@@ -1,6 +1,6 @@
 -- Create feedbacks table
 CREATE TABLE IF NOT EXISTS public.feedbacks (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     name TEXT NOT NULL,
     role TEXT NOT NULL, -- 'Student', 'Faculty', etc.
