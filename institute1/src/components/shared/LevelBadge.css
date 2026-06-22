@@ -1,0 +1,36 @@
+.level-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--level-color, var(--neon-cyan));
+  border-radius: var(--radius-full);
+  color: var(--level-color, var(--neon-cyan));
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--level-color, var(--neon-cyan)) 30%, transparent);
+}
+
+.level-badge-sm {
+  font-size: var(--text-xs);
+  padding: 2px var(--space-xs);
+}
+
+.level-badge-md {
+  font-size: var(--text-xs);
+}
+
+.level-badge-lg {
+  font-size: var(--text-sm);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.level-badge-icon {
+  font-size: 1em;
+}
+
+.level-badge-text {
+  font-size: inherit;
+}

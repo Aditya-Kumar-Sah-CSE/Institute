@@ -1,0 +1,91 @@
+import { createClient } from '@/lib/supabase/server';
+import Link from 'next/link';
+import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+import { InstructorRegistrationForm, InstructorApplicationForm } from './ApplyForms';
+
+export default async function ApplyInstructorPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // If already logged in, check if they are already an instructor or pending
+  if (user) {
+    const { data: profile } = await supabase.from('profiles').select('role, status').eq('id', user.id).single();
+    if (profile?.role === 'instructor') {
+      if (profile.status === 'pending') {
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
+            <Card variant="glass" padding="lg" style={{ textAlign: 'center', maxWidth: '500px' }}>
+              <h1 className="text-gradient" style={{ fontSize: 'var(--text-2xl)', marginBottom: 'var(--space-md)' }}>Application Received</h1>
+              <p className="text-secondary" style={{ marginBottom: 'var(--space-lg)' }}>
+                Your instructor application has been submitted and is currently awaiting admin approval. We will notify you once reviewed.
+              </p>
+              <form action="/api/auth/signout" method="post">
+                <Button variant="secondary" type="submit">Logout</Button>
+              </form>
+            </Card>
+          </div>
+        );
+      } else if (profile.status === 'active') {
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
+            <Card variant="glass" padding="lg" style={{ textAlign: 'center', maxWidth: '500px' }}>
+              <h1 style={{ color: 'var(--neon-lime)', fontSize: 'var(--text-2xl)', marginBottom: 'var(--space-md)' }}>Congratulations!</h1>
+              <p className="text-secondary" style={{ marginBottom: 'var(--space-lg)' }}>
+                You are approved as instructor.
+              </p>
+              <a href="/instructor" style={{ textDecoration: 'none' }}>
+                <Button variant="primary">Go to Instructor Dashboard</Button>
+              </a>
+            </Card>
+          </div>
+        );
+      } else if (profile.status === 'rejected') {
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
+            <Card variant="glass" padding="lg" style={{ textAlign: 'center', maxWidth: '500px' }}>
+              <h1 style={{ color: 'var(--neon-red)', fontSize: 'var(--text-2xl)', marginBottom: 'var(--space-md)' }}>OOPs!</h1>
+              <p className="text-secondary" style={{ marginBottom: 'var(--space-lg)' }}>
+                Your application was rejected.
+              </p>
+              <Link href="/dashboard" style={{ marginRight: 'var(--space-sm)' }}>
+                <Button variant="primary">Back to Dashboard</Button>
+              </Link>
+              <form action="/api/auth/signout" method="post" style={{ display: 'inline-block' }}>
+                <Button variant="secondary" type="submit">Logout</Button>
+              </form>
+            </Card>
+          </div>
+        );
+      }
+    }
+  }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', padding: 'var(--space-2xl) 0' }}>
+      <Card variant="glass" padding="lg" style={{ width: '100%', maxWidth: '600px' }}>
+        <h1 className="text-gradient" style={{ fontSize: 'var(--text-3xl)', textAlign: 'center', marginBottom: 'var(--space-sm)' }}>
+          Become an Instructor
+        </h1>
+        <p className="text-secondary" style={{ textAlign: 'center', marginBottom: 'var(--space-xl)' }}>
+          Share your knowledge with thousands of students. Apply today!
+        </p>
+
+        {!user ? (
+          <InstructorRegistrationForm />
+        ) : (
+          <InstructorApplicationForm userEmail={user.email || ''} />
+        )}
+
+        {!user && (
+          <div style={{ marginTop: 'var(--space-xl)', textAlign: 'center', fontSize: 'var(--text-sm)' }}>
+            <span className="text-secondary">Already have an account? </span>
+            <Link href="/login" style={{ color: 'var(--neon-cyan)', fontWeight: 'var(--weight-semibold)' }}>
+              Log in first to apply
+            </Link>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}

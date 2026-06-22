@@ -1,0 +1,47 @@
+# Comprehensive App Optimization Plan
+
+This plan outlines the architecture for making the platform highly secure, lightning-fast, and deeply optimized.
+
+## User Review Required
+
+Please review the architectural changes below. Pay special attention to the security triggers, as they will permanently restrict how data can be modified.
+
+## Proposed Changes
+
+### 1. [SECURITY] Critical RLS Lockdown (Postgres Triggers)
+
+Instead of completely revoking client access, I will write strict PostgreSQL triggers that intercept database updates before they are saved. If a user connects via the browser (Anon Key) and tries to hack their XP or auto-approve their assignment, the trigger will silently reset those specific columns back to their original values.
+
+**SQL Migration (`010_security_triggers.sql`)**:
+- Trigger `on_profile_update`: If `auth.role() == 'authenticated'`, forcibly reset `NEW.role = OLD.role`, `NEW.xp = OLD.xp`, and `NEW.level = OLD.level`.
+- Trigger `on_submission_update`: If `auth.role() == 'authenticated'`, forcibly reset `NEW.status = OLD.status`, `NEW.score = OLD.score`, and `NEW.feedback = OLD.feedback`.
+
+Because Next.js Server Actions use the `service_role` key (which I will configure), the server will bypass these triggers and safely award XP and approve assignments.
+
+### 2. [OPTIMIZATION] Admin Panel Pagination
+
+The `admin/submissions` and `admin/feedback` pages currently fetch all rows at once (`.select('*')`). I will refactor these pages to use URL-based pagination (`?page=1`).
+- Modify the Supabase query to use `.range(start, end)`.
+- Add a `<Pagination>` UI component to the bottom of the lists.
+
+### 3. [SECURITY] Rate Limiting on Server Actions
+
+To prevent malicious users from spamming the "Submit Assignment" button and crashing the server or bloating storage:
+- I will create a lightweight, in-memory rate limiter in `src/lib/rate-limit.ts`.
+- It will track actions by `user.id`.
+- I will apply a limit of `5 submissions per minute` for assignments and `3 feedbacks per minute` for user feedback.
+
+### 4. [OPTIMIZATION] Image Caching (`next.config.ts`)
+
+To prevent downloading heavy images repeatedly:
+- I will verify and update `next.config.ts` with explicit `remotePatterns` for the Supabase storage URLs.
+- I will ensure that the Leaderboard and Course Catalogs are using Next.js `<Image>` components with proper sizing attributes to trigger Next.js native CDN caching.
+
+## Verification Plan
+
+### Automated Tests
+- Attempt to manually update the `xp` column using a client-side Supabase script. Verify that the database silently rejects the `xp` change while allowing the `name` change.
+
+### Manual Verification
+- Test the Admin Submissions page by navigating through multiple pages using the new Pagination buttons.
+- Rapidly click the "Submit Assignment" button 10 times to verify that the rate limiter catches the spam and throws an error.

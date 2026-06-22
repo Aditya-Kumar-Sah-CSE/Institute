@@ -1,0 +1,60 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# Redundant Scripts
+add_github_username.js
+check_submissions.js
+check_user.js
+confirm_email.js
+create_avatar_bucket.js
+create_bucket.js
+migrate_admin.js
+migrate_instructor.js
+migrate.js
+run_migration_004.js
+run_migration_005.js
+run_migration_006.js
+seed_curriculum.js
+trigger_badges.js
+trigger.js
+trigger.ts
+update_trigger.js

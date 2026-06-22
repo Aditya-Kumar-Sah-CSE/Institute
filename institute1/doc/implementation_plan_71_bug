@@ -1,0 +1,150 @@
+# Implementation Plan - Core Codebase Bug & Issue Cleanup
+
+This plan resolves the 71 ESLint issues in the repository. It focuses on resolving React 19 state-in-effect issues, unescaped text entities, unused imports/variables, and explicit `any` types.
+
+---
+
+## Proposed Changes
+
+### Component: Configurations & Shared Types
+
+#### [MODIFY] [eslint.config.mjs](file:///d:/TechPlatform/skillarena/eslint.config.mjs)
+- Exclude standalone JS scripts (such as database migrations and utility scripts) from compilation-level typescript/react linting rules.
+- Add `*.js` and `scripts/**` to the `globalIgnores` array.
+
+#### [MODIFY] [database.ts](file:///d:/TechPlatform/skillarena/src/types/database.ts)
+- Add a shared `Feedback` interface to avoid utilizing `any` when mapping feedback records:
+  ```typescript
+  export interface Feedback {
+    id: string;
+    user_id: string;
+    name: string;
+    role: string;
+    category: string;
+    message: string;
+    status: string;
+    admin_reply: string | null;
+    replied_at: string | null;
+    created_at: string;
+  }
+  ```
+
+---
+
+### Component: Core UI & PWA Features
+
+#### [MODIFY] [Modal.tsx](file:///d:/TechPlatform/skillarena/src/components/ui/Modal.tsx)
+- Resolve React 19 `react-hooks/set-state-in-effect` warning.
+- Wrap `setMounted(true)` inside a hydration-safe `setTimeout` callback in `useEffect` and clean up the timer.
+
+#### [MODIFY] [InstallAppButton.tsx](file:///d:/TechPlatform/skillarena/src/components/pwa/InstallAppButton.tsx)
+- Resolve `react-hooks/set-state-in-effect` warning.
+- Wrap `setIsStandalone` inside a deferred `setTimeout` callback to prevent synchronous render cascading on mount.
+
+#### [MODIFY] [PWAInstallPrompt.tsx](file:///d:/TechPlatform/skillarena/src/components/pwa/PWAInstallPrompt.tsx)
+- Resolve `react-hooks/set-state-in-effect` warning.
+- Replace synchronous `setIsIOS` call by lazy initializing `isIOS` via state initializer (since the prompt is not rendered during initial page hydration, this is safe and warning-free).
+- Escape JSX quotes/apostrophes in prompt texts.
+
+#### [MODIFY] [BadgeDisplay.tsx](file:///d:/TechPlatform/skillarena/src/components/shared/BadgeDisplay.tsx)
+- Remove unused eslint-disable comment on line 29 since the component correctly uses Next's `<Image>` component instead of raw `<img>`.
+
+---
+
+### Component: TypeScript and Cleanup Improvements
+
+#### [MODIFY] [adminActions.ts](file:///d:/TechPlatform/skillarena/src/features/admin/actions/adminActions.ts)
+- Change explicit `any` in `catch` blocks to standard typed errors.
+- Cast dynamic object properties safely (e.g., cast `courses` to `{ title: string } | null` rather than `any`).
+
+#### [MODIFY] [badge-actions.ts](file:///d:/TechPlatform/skillarena/src/features/admin/actions/badge-actions.ts)
+- Replace explicit `any` types in `catch` blocks with standard safe error checks.
+
+#### [MODIFY] [enrollments.ts](file:///d:/TechPlatform/skillarena/src/features/admin/actions/enrollments.ts)
+- Replace `courses as any` cast with `{ title: string } | null`.
+
+#### [MODIFY] [enrollments.ts](file:///d:/TechPlatform/skillarena/src/features/instructor/actions/enrollments.ts)
+- Replace `courses as any` cast with `{ title: string } | null`.
+
+#### [MODIFY] [CurriculumBuilder.tsx](file:///d:/TechPlatform/skillarena/src/features/admin/components/CurriculumBuilder.tsx)
+- Create a specific interface for the edit target instead of `any`.
+- Refactor the component to use `Lesson | Assignment` unions and safe property checks/casts.
+
+#### [MODIFY] [AssignmentCard.tsx](file:///d:/TechPlatform/skillarena/src/features/courses/components/AssignmentCard.tsx)
+- Replace explicit `any` type in `catch` block with standard type checks.
+
+---
+
+### Component: Next.js Pages & Unused Variables
+
+#### [MODIFY] [builder/page.tsx](file:///d:/TechPlatform/skillarena/src/app/\(admin\)/admin/courses/[courseId]/builder/page.tsx)
+- Remove unused `redirect` import.
+
+#### [MODIFY] [enrollments/page.tsx](file:///d:/TechPlatform/skillarena/src/app/\(admin\)/admin/enrollments/page.tsx)
+- Remove unused `createClient` import.
+- Type `enrollments.map` using a custom interface instead of `any`.
+
+#### [MODIFY] [feedback/page.tsx](file:///d:/TechPlatform/skillarena/src/app/\(admin\)/admin/feedback/page.tsx)
+- Use typed `Feedback` interface in `.map` function instead of `any`.
+
+#### [MODIFY] [notices/page.tsx](file:///d:/TechPlatform/skillarena/src/app/\(admin\)/admin/notices/page.tsx)
+- Use typed `Notice[]` cast on line 37 instead of `any`.
+
+#### [MODIFY] [page.tsx](file:///d:/TechPlatform/skillarena/src/app/\(dashboard\)/courses/[courseId]/[lessonId]/page.tsx)
+- Clean up unused imports, change require-style imports for `fs` to standard imports, change variables to `const` where possible, remove unnecessary `as any` casts on File checking, and type `submissions` array cleanly.
+
+#### [MODIFY] [page.tsx](file:///d:/TechPlatform/skillarena/src/app/\(dashboard\)/courses/[courseId]/page.tsx)
+- Remove unused `enrollInCourse` import.
+
+#### [MODIFY] [page.tsx](file:///d:/TechPlatform/skillarena/src/app/\(dashboard\)/courses/page.tsx)
+- Replace `Record<string, any>` with a typed mapping interface for progress state.
+
+#### [MODIFY] [page.tsx](file:///d:/TechPlatform/skillarena/src/app/\(dashboard\)/dashboard/page.tsx)
+- Cast notices and enrollments correctly instead of mapping over `any`.
+
+#### [MODIFY] [feedbacks/page.tsx](file:///d:/TechPlatform/skillarena/src/app/\(dashboard\)/feedbacks/page.tsx)
+- Escape JSX quotes/apostrophes.
+- Cast `feedbacks` parameter using typed `Feedback` interface.
+
+#### [MODIFY] [page.tsx](file:///d:/TechPlatform/skillarena/src/app/\(dashboard\)/leaderboard/page.tsx)
+- Cast the sorted and mapped values using proper local typescript types instead of `any`.
+
+#### [MODIFY] [page.tsx](file:///d:/TechPlatform/skillarena/src/app/\(dashboard\)/notices/page.tsx)
+- Replace `notices as any` cast with `Notice[]`.
+
+#### [MODIFY] [AvatarUpload.tsx](file:///d:/TechPlatform/skillarena/src/app/\(dashboard\)/profile/components/AvatarUpload.tsx)
+- Refactor explicit `any` in `catch` blocks.
+
+#### [MODIFY] [GithubConnect.tsx](file:///d:/TechPlatform/skillarena/src/app/\(dashboard\)/profile/components/GithubConnect.tsx)
+- Refactor explicit `any` in `catch` block.
+
+#### [MODIFY] [enrollments/page.tsx](file:///d:/TechPlatform/skillarena/src/app/\(instructor\)/instructor/enrollments/page.tsx)
+- Remove unused `createClient` import.
+- Type mapping parameter correctly.
+
+#### [MODIFY] [feedback/page.tsx](file:///d:/TechPlatform/skillarena/src/app/\(instructor\)/instructor/feedback/page.tsx)
+- Remove unused action imports.
+- Cast mapping parameters using `Feedback`.
+
+#### [MODIFY] [notices/page.tsx](file:///d:/TechPlatform/skillarena/src/app/\(instructor\)/instructor/notices/page.tsx)
+- Cast notices variable correctly.
+
+#### [MODIFY] [apply-instructor/page.tsx](file:///d:/TechPlatform/skillarena/src/app/\(public\)/apply-instructor/page.tsx)
+- Remove unused `redirect` import.
+
+#### [MODIFY] [route.ts](file:///d:/TechPlatform/skillarena/src/app/api/deploy/validate/route.ts)
+- Replace `catch (error: any)` with standard error handling.
+
+#### [MODIFY] [gamification.ts](file:///d:/TechPlatform/skillarena/src/features/gamification/actions/gamification.ts)
+- Remove unused `revalidatePath` import.
+
+#### [MODIFY] [LeaderboardTable.tsx](file:///d:/TechPlatform/skillarena/src/features/leaderboard/components/LeaderboardTable.tsx)
+- Remove unused `BadgeDisplay` import.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- Execute `npm run lint` and verify that there are zero lint issues remaining in the codebase.
+- Execute `npm run build` to verify that the Next.js production build passes cleanly.

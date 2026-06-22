@@ -1,0 +1,180 @@
+'use server';
+
+import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
+import { getLevelFromXP } from '@/lib/utils';
+
+
+export async function signUp(formData: FormData) {
+  const supabase = await createClient();
+
+  const name = formData.get('name') as string;
+  const email = formData.get('email') as string;
+  const password = formData.get('password') as string;
+
+  if (!name || !email || !password) {
+    return { error: 'All fields are required' };
+  }
+
+  if (password.length < 6) {
+    return { error: 'Password must be at least 6 characters' };
+  }
+
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { name },
+    },
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  // Profile creation is handled automatically by the Supabase database trigger 'handle_new_user'
+  // Sign out the user so they must manually sign in as per requested flow
+  await supabase.auth.signOut();
+
+  redirect('/login?message=Account created successfully. Please sign in.');
+}
+
+export async function signIn(formData: FormData) {
+  const supabase = await createClient();
+
+  const email = formData.get('email') as string;
+  const password = formData.get('password') as string;
+
+  if (!email || !password) {
+    return { error: 'Email and password are required' };
+  }
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  redirect('/dashboard');
+}
+
+export async function signOut() {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+
+  // Clear all Supabase auth cookies explicitly
+  const { cookies } = await import('next/headers');
+  const cookieStore = await cookies();
+  const allCookies = cookieStore.getAll();
+  for (const cookie of allCookies) {
+    if (cookie.name.startsWith('sb-') || cookie.name.includes('supabase')) {
+      cookieStore.delete(cookie.name);
+    }
+  }
+
+  redirect('/');
+}
+
+export async function getProfile() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return null;
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single();
+
+  return profile;
+}
+
+export async function awardXP(userId: string, amount: number, action: string, sourceType?: string, sourceId?: string) {
+  const supabase = await createAdminClient();
+
+  // Log the XP
+  await supabase.from('xp_log').insert({
+    user_id: userId,
+    xp_amount: amount,
+    action,
+    source_type: sourceType,
+    source_id: sourceId,
+  });
+
+  // Get current XP
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('xp')
+    .eq('id', userId)
+    .single();
+
+  if (!profile) return;
+
+  const newXP = profile.xp + amount;
+  const newLevel = getLevelFromXP(newXP);
+
+  // Update profile
+  await supabase
+    .from('profiles')
+    .update({ xp: newXP, level: newLevel, last_active_at: new Date().toISOString() })
+    .eq('id', userId);
+
+  return { newXP, newLevel };
+}
+
+export async function updateAvatarUrl(userId: string, avatarUrl: string) {
+  const supabase = await createClient();
+
+  // Fetch the old avatar to clean it up from storage
+  const { data: profile } = await supabase.from('profiles').select('avatar_url').eq('id', userId).single();
+  if (profile?.avatar_url && profile.avatar_url !== avatarUrl) {
+    const match = profile.avatar_url.match(/\/object\/public\/avatars\/(.+)$/);
+    if (match) {
+      await supabase.storage.from('avatars').remove([match[1]]);
+    }
+  }
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ avatar_url: avatarUrl })
+    .eq('id', userId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return { success: true };
+}
+
+export async function updateGithubUsername(userId: string, githubUsername: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ github_username: githubUsername })
+    .eq('id', userId);
+
+  if (error) {
+    return { error: error.message };
+  }
+  
+  // Award XP for connecting GitHub if it's not null/empty
+  if (githubUsername) {
+    // Check if they already got XP for this to avoid infinite XP farming
+    const { count } = await supabase
+      .from('xp_log')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('action', 'Connected GitHub Profile');
+      
+    if (count === 0) {
+      await awardXP(userId, 50, 'Connected GitHub Profile', 'integration', 'github');
+    }
+  }
+
+  return { success: true };
+}

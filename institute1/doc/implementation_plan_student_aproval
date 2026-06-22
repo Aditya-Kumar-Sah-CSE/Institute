@@ -1,0 +1,56 @@
+# Add Instructor Approval for Course Enrollments
+
+This plan outlines the steps to require students to get instructor approval before they can start a course they've enrolled in.
+
+## User Review Required
+> [!IMPORTANT]
+> Existing enrollments will be automatically marked as `approved` so current students don't lose access. All new enrollments will default to `pending`.
+
+## Proposed Changes
+
+### Database Migration
+
+#### [NEW] `supabase/migrations/007_enrollment_approval.sql`
+- Add a `status` column to the `enrollments` table: `status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected'))`.
+- Update all existing records to `approved`: `UPDATE enrollments SET status = 'approved';`.
+- Add RLS Policies to allow instructors to view and update enrollments for the courses they have created.
+
+### Types and Backend Logic
+
+#### [MODIFY] `src/features/courses/actions/enroll.ts`
+- Update the success message to indicate the enrollment is pending approval.
+
+#### [NEW] `src/features/instructor/actions/enrollments.ts`
+- Create a new server action `getPendingEnrollments()` that fetches all `pending` enrollments for courses created by the current instructor.
+- Create server actions `approveEnrollment(enrollmentId)` and `rejectEnrollment(enrollmentId)` to update the enrollment status.
+
+### Student UI
+
+#### [MODIFY] `src/app/(dashboard)/courses/[courseId]/page.tsx`
+- Fetch the enrollment `status`.
+- If `status === 'pending'`, show a "Pending Approval" message and disable the "Continue Course" / "Start Course" button.
+- If `status === 'rejected'`, show a "Enrollment Rejected" message.
+
+#### [MODIFY] `src/app/(dashboard)/courses/[courseId]/[lessonId]/page.tsx`
+- Prevent access to the lesson if the enrollment status is not `approved`.
+
+#### [MODIFY] `src/features/courses/components/CourseCard.tsx`
+- Update UI to handle the 'pending' state if applicable on the catalog view.
+
+### Instructor UI
+
+#### [NEW] `src/app/(instructor)/instructor/enrollments/page.tsx`
+- Create a new page in the instructor dashboard to view all enrollment requests.
+- Add an interactive list/table showing the student's name, course title, and date requested.
+- Add "Approve" and "Reject" buttons for each request.
+
+#### [MODIFY] `src/app/(instructor)/layout.tsx` (or sidebar component)
+- Add a navigation link to the new "Enrollment Requests" page.
+
+## Verification Plan
+
+### Manual Verification
+1. Log in as an instructor, create a course.
+2. Log in as a student, find the course, and click "Enroll". Verify the UI says "Pending Approval" and lessons are inaccessible.
+3. Log back in as the instructor, navigate to the new Enrollment Requests page, and click "Approve" for the student.
+4. Log back in as the student and verify the course is now accessible.

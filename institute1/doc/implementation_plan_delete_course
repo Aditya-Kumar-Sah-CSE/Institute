@@ -1,0 +1,34 @@
+# Goal
+Implement a "soft delete" feature for courses so that deleting a course hides it from instructors and students instead of permanently deleting it from the database, while still allowing the Admin to see it.
+
+## Proposed Changes
+
+### 1. Database Schema
+#### [NEW] `supabase/migrations/017_add_is_deleted_to_courses.sql`
+- Add an `is_deleted BOOLEAN DEFAULT false` column to the `courses` table.
+
+### 2. Type Definitions
+#### [MODIFY] `src/types/database.ts`
+- Add `is_deleted: boolean` to the `Course` interface.
+
+### 3. Server Actions
+#### [MODIFY] `src/features/admin/actions/course-actions.ts`
+- Update `deleteCourse` to perform an `update({ is_deleted: true, is_published: false })` instead of `.delete()`.
+- [NEW] Add a `restoreCourse(id: string)` action to allow admins to undo the deletion.
+
+### 4. Course Query Logic
+#### [MODIFY] `src/app/(admin)/admin/courses/page.tsx`
+- For Instructors, add `.eq('is_deleted', false)` to the database query so deleted courses are hidden.
+- For Admins, fetch all courses (no `is_deleted` filter).
+
+### 5. Instructor/Admin UI
+#### [MODIFY] `src/features/admin/components/CourseManager.tsx`
+- Display a prominent `[DELETED]` badge on courses that are `is_deleted: true`.
+- Change the action buttons for deleted courses to only show a "Restore" button (no Edit, Delete, or Build Curriculum buttons for deleted courses).
+
+## Verification Plan
+### Manual Verification
+1. Log in as an Instructor, create a course, and click "Delete".
+2. Verify the course disappears from the Instructor's "Manage Courses" view.
+3. Log in as an Admin and verify the deleted course is visible with a `[DELETED]` badge and a "Restore" button.
+4. Click "Restore" as an Admin, and verify the Instructor can see it again.
