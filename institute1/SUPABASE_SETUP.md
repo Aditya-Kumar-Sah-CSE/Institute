@@ -40,3 +40,28 @@ By default, Supabase provides a built-in email server for testing. However, it h
 
 ---
 **Done!** Your password reset flow is now fully configured on the Supabase side.
+
+Step 4: Configure SMTP Provider (For Sending Emails)
+By default, Supabase uses its own email server which has strict limits and may not work reliably in production.
+
+You need to configure an SMTP provider to send emails (like password resets, notifications, etc.). A popular choice is **Resend** (offers a generous free tier).
+
+## Resend se SMTP Details Kaise Lein:
+
+1. Resend.com par jayein aur ek free account banayein (ya GitHub se login karein).
+
+2. Dashboard par aane ke baad, left menu me **API Keys** par click karein.
+
+3. Ek nayi API Key banayein (naam kuch bhi de dein, jaise "Supabase"). Jo code (key) milega usko copy karke rakh lein (ye aapka password hoga).
+
+Ab Supabase me ye form aise bharein:
+
+Sender email address: onboarding@resend.dev (Agar aapke paas abhi custom domain nahi hai. Resend free me isi se bhejta hai. Custom domain ho toh verify karke wo daal sakte hain)
+Sender name: Smart Hybrid Learning (Ya jo aap chahein)
+Host: smtp.resend.com
+Port number: 465
+Username: resend
+Password: (Yahan wo lambi si API Key paste karein jo Resend se mili thi)
+Iske baad form ke sabse neeche Save ka button hoga, use daba dein. Ab aapka live app bina kisi limit ke password reset emails bhej payega!
+
+9:05 PM
