@@ -1,9 +1,0 @@
-{
-  "files": [
-    {
-      "name": "saarthi-qr-DEMO1234.png",
-      "size": 1961,
-      "type": "image/png"
-    }
-  ]
-}

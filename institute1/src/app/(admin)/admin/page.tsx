@@ -87,11 +87,11 @@ export default async function AdminDashboardPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 'var(--space-xl)' }}>
         <Card variant="glass">
-          <h2 style={{ marginBottom: 'var(--space-lg)', fontSize: 'var(--text-xl)' }}>Company Branding Settings</h2>
+          <h2 style={{ marginBottom: 'var(--space-lg)', fontSize: 'var(--text-xl)' }}>Institute Settings</h2>
           <form action={updateSettings} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
             <Input 
               name="company_name" 
-              label="Company Name" 
+              label="Institute Name" 
               defaultValue={settings?.company_name || ''} 
             />
             <Input 
@@ -100,7 +100,7 @@ export default async function AdminDashboardPage() {
               defaultValue={settings?.tagline || ''} 
             />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
-              <label style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>Company Logo</label>
+              <label style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>Institute Logo</label>
               <input 
                 type="file" 
                 name="logo_file" 
@@ -109,7 +109,7 @@ export default async function AdminDashboardPage() {
               />
                 {settings?.logo_url && (
                   <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
-                    Current: <Image src={settings.logo_url} alt="Current Logo" width={24} height={24} style={{ verticalAlign: 'middle', marginLeft: '8px', borderRadius: '4px' }} />
+                    Current: <Image src={settings.logo_url} alt="Current Logo" width={24} height={24} style={{ verticalAlign: 'middle', marginLeft: '8px', borderRadius: '4px', width: 'auto', height: '24px' }} />
                   </span>
                 )}
             </div>

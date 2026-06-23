@@ -41,6 +41,15 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
     <header className="dashboard-navbar">
       <div className="navbar-left">
         <h1 className="navbar-title">{pageTitle}</h1>
+        {companyName && (
+          <Link href={homeLink} className="company-branding-nav mobile-logo" style={{ padding: 'var(--space-xs)' }}>
+            {companyLogo ? (
+              <Image src={companyLogo} alt={companyName} width={32} height={32} className="company-nav-logo" priority />
+            ) : (
+              <div className="company-nav-logo-fallback">🏢</div>
+            )}
+          </Link>
+        )}
       </div>
 
       {companyName && (
@@ -53,9 +62,9 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
 
       <div className="navbar-right">
         {companyName && (
-          <Link href={homeLink} className="company-branding-nav" style={{ padding: 'var(--space-xs)' }}>
+          <Link href={homeLink} className="company-branding-nav desktop-logo" style={{ padding: 'var(--space-xs)' }}>
             {companyLogo ? (
-              <Image src={companyLogo} alt={companyName} width={32} height={32} className="company-nav-logo" />
+              <Image src={companyLogo} alt={companyName} width={32} height={32} className="company-nav-logo" priority />
             ) : (
               <div className="company-nav-logo-fallback">🏢</div>
             )}
