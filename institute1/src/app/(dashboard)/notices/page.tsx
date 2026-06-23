@@ -4,7 +4,7 @@ import NoticeBoard from '@/features/notices/components/NoticeBoard';
 import type { Notice } from '@/features/notices/components/NoticeBoard';
 
 export const metadata = {
-  title: 'Notices | SkillArena',
+  title: 'Notices | Smart Learning',
 };
 
 export default async function NoticesPage() {
@@ -22,7 +22,7 @@ export default async function NoticesPage() {
           All Notices
         </h1>
         <p className="text-secondary" style={{ fontSize: 'var(--text-lg)' }}>
-          Stay updated with the latest announcements from instructors and admins.
+          Stay updated with the latest announcements from instructors.
         </p>
       </div>
 

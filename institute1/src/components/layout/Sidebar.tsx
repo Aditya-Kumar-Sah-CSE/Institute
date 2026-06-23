@@ -35,8 +35,8 @@ export default function Sidebar({ profile, isAdmin = false, roleView }: SidebarP
     <aside className="sidebar">
       <div className="sidebar-header">
         <Link href={isAdmin ? '/admin' : '/dashboard'} className="sidebar-logo">
-          <span className="sidebar-logo-icon">⚔️</span>
-          <span className="sidebar-logo-text">SkillArena</span>
+          <span className="sidebar-logo-icon">🏛️</span>
+          <span className="sidebar-logo-text">Smart  Learning</span>
         </Link>
       </div>
 

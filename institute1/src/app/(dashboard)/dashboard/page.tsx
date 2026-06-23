@@ -132,7 +132,7 @@ export default async function DashboardPage() {
               Enroll in a course to start your learning journey.
             </p>
             <Link href="/courses">
-              <button className="btn btn-primary">Browse Courses</button>
+              <button className="btn btn-primary btn-md">Browse Courses</button>
             </Link>
           </Card>
         )}

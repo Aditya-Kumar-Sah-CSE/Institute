@@ -185,7 +185,7 @@ Prepare in advance using videos and study materials<br></br>
           </div>
         </div>
         <div className="footer-bottom">
-          <p>&copy; {new Date().getFullYear()} Techglaz Labs Pvt. Ltd. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Smart Hybrid Learning  platform. All rights reserved.</p>
         </div>
       </footer>
     </div>

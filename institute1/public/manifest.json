@@ -1,7 +1,7 @@
 {
-  "name": "SkillArena",
-  "short_name": "SkillArena",
-  "description": "Learn new skills and track your progress in the arena.",
+  "name": "Smart Learn",
+  "short_name": "Smart Learning",
+  "description": "Smart Hybrid Learning & Student Engagement Platform",
   "start_url": "/",
   "id": "/",
   "scope": "/",

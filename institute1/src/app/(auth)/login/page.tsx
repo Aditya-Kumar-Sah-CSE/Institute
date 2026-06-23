@@ -3,8 +3,8 @@ import { Suspense } from 'react';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Login | SkillArena',
-  description: 'Sign in to SkillArena and continue your learning journey.',
+  title: 'Login | Smart Learning',
+  description: 'Sign in to Smart Learning and continue your journey.',
 };
 
 export default function LoginPage() {

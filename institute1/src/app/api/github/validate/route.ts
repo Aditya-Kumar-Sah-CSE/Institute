@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     const response = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
       headers: {
         'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'SkillArena-App',
+        'User-Agent': 'Smart Learning-App',
         // 'Authorization': `token ${process.env.GITHUB_TOKEN}` // Uncomment when adding token
       }
     });

@@ -44,9 +44,9 @@ CREATE TRIGGER on_auth_user_created
 -- ==========================================
 CREATE TABLE company_settings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_name TEXT NOT NULL DEFAULT 'Techglaz Labs Pvt. Ltd.',
+  company_name TEXT NOT NULL DEFAULT 'Smart Learning',
   logo_url TEXT,
-  tagline TEXT DEFAULT 'Transforming passive learners into job-ready developers',
+  tagline TEXT DEFAULT 'Smart Hybrid Learning & Student Engagement Platform',
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -167,4 +167,4 @@ CREATE TABLE lesson_progress (
 );
 
 -- Create initial settings record
-INSERT INTO company_settings (company_name) VALUES ('Techglaz Labs Pvt. Ltd.');
+INSERT INTO company_settings (company_name, tagline) VALUES ('Smart Learning', 'Smart Hybrid Learning & Student Engagement Platform');

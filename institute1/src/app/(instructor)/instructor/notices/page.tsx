@@ -5,7 +5,7 @@ import NoticeManager from '@/features/notices/components/NoticeManager';
 import type { Notice } from '@/features/notices/components/NoticeBoard';
 
 export const metadata = {
-  title: 'Manage Notices | Instructor | SkillArena',
+  title: 'Manage Notices | Instructor | Smart Learning',
 };
 
 export default async function InstructorNoticesPage() {

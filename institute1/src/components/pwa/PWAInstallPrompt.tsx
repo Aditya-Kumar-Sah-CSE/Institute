@@ -102,7 +102,7 @@ export default function PWAInstallPrompt() {
     <div className="pwa-prompt-overlay">
       <div className="pwa-prompt-modal">
         <div className="pwa-prompt-header">
-          <h3>Install SkillArena</h3>
+          <h3>Install Smart Learning</h3>
           <button onClick={handleDismiss} className="pwa-close-btn" aria-label="Close">&times;</button>
         </div>
         <div className="pwa-prompt-body">

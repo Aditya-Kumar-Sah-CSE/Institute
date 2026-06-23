@@ -73,9 +73,9 @@ export default function SignupForm() {
           ← Home
         </Link>
         <div className="auth-header">
-          <span className="auth-logo">⚔️</span>
-          <h1 className="auth-title">Join SkillArena</h1>
-          <p className="auth-subtitle">Start your journey to becoming a full-stack developer</p>
+          <span className="auth-logo">🏛️</span>
+          <h1 className="auth-title"> Smart Hybrid Learning</h1>
+          <p className="auth-subtitle">Start your journey </p>
         </div>
 
         <form action={handleSubmit} className="auth-form">
@@ -85,7 +85,7 @@ export default function SignupForm() {
             name="name"
             type="text"
             label="Full Name"
-            placeholder="John Doe"
+            placeholder="Your Name"
             icon="👤"
             required
           />

@@ -66,7 +66,7 @@ export default function LoginForm() {
           ← Home
         </Link>
         <div className="auth-header">
-          <span className="auth-logo">⚔️</span>
+          <span className="auth-logo">🏛️</span>
           <h1 className="auth-title">Welcome Back</h1>
           <p className="auth-subtitle">Sign in to continue your learning journey</p>
         </div>

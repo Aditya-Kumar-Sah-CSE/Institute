@@ -52,7 +52,7 @@ export default function LessonView({ lesson, isCompleted, onComplete }: LessonVi
 
       {!isCompleted && onComplete && (
         <div className="lesson-actions">
-          <button className="btn btn-primary" onClick={onComplete}>
+          <button className="btn btn-primary btn-md" onClick={onComplete}>
             Mark as Completed
           </button>
         </div>
