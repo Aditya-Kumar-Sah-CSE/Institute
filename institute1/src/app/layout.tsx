@@ -10,9 +10,10 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'SkillArena | Gamified Full Stack Learning Platform',
-  description: 'Learn full-stack web development, AI, ML and more through gamified courses with XP, badges, leaderboards, and real-world GitHub & deployment practice. By Techglaz Labs Pvt. Ltd.',
-  keywords: ['full stack', 'web development', 'learning platform', 'gamified', 'coding', 'skill arena'],
+  title: 'Smart Hybrid Learning | Student Engagement Platform',
+  description: "To transform traditional classrooms into intelligent, data-driven learning environments where every student receives continuous guidance, every teacher gains actionable insights, and every institute can deliver a more engaging and effective educational experience.",
+
+  keywords: ['full stack', 'web development', 'Student Engagement platform', 'gamified', 'coding', 'institute'],
   manifest: '/manifest.json',
   icons: {
     icon: '/icon-192x192.png',
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'SkillArena',
+    title: 'Smart Hybrid Learning',
   },
   formatDetection: {
     telephone: false,

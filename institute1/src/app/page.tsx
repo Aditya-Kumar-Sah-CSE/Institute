@@ -33,13 +33,13 @@ export default async function LandingPage() {
       {/* Navigation */}
       <header className="landing-nav">
         <div className="landing-logo">
-          <span className="logo-icon">⚔️</span>
-          <span className="logo-text">SkillArena</span>
+          <span className="logo-icon">🏛️</span>
+          <span className="logo-text">Smart Learning</span>
         </div>
         <div className="landing-nav-actions">
           <InstallAppButton variant="ghost" />
           <Link href="/apply-instructor" className="hide-on-mobile">
-            <Button variant="ghost">Apply as Instructor</Button>
+            <Button variant="ghost">Apply as Faculty</Button>
           </Link>
           <Link href="/login">
             <Button variant="ghost">Login</Button>
@@ -55,21 +55,23 @@ export default async function LandingPage() {
         <section className="hero-section">
           <div className="hero-bg-glow"></div>
           <div className="hero-content">
-            <h1 className="hero-title">
-              Level Up Your <span className="text-gradient">Coding Skills</span>
+            <h1 className="hero-title">Student 
+              <span className="text-gradient"> Engagement Platform</span>
             </h1>
             <p className="hero-subtitle">
-              The ultimate gamified platform to learn Full Stack Web Development, AI, ML, and Embedded Systems. Build real projects, push to GitHub, and deploy to earn XP.
+              To transform traditional classrooms into intelligent, data-driven learning environments where every student
+receives continuous guidance, every teacher gains actionable insights, and every institute can deliver a
+more engaging and effective educational experience.
             </p>
             <div className="hero-cta">
               <Link href="/signup">
-                <Button variant="primary" size="lg" className="cta-btn">Start Playing Now</Button>
+                <Button variant="primary" size="lg" className="cta-btn">Start Learning</Button>
               </Link>
               <Link href="/apply-instructor">
-                <Button variant="secondary" size="lg" className="cta-btn">Apply as Instructor</Button>
+                <Button variant="secondary" size="lg" className="cta-btn">Apply as Faculty</Button>
               </Link>
             </div>
-            <div className="hero-stats stagger-children">
+            {/* <div className="hero-stats stagger-children">
               <div className="stat-card">
                 <span className="stat-number text-gradient">10k+</span>
                 <span className="stat-label">Active Learners</span>
@@ -82,33 +84,78 @@ export default async function LandingPage() {
                 <span className="stat-number text-gradient">Real</span>
                 <span className="stat-label">Dev Workflow</span>
               </div>
+            </div> */}
+                      <div className="feature-card glass-card">
+              <div className="feature-icon">😣</div>
+              <h3 className="feature-title">Communication gap between faculty and students </h3>
+              <p className="feature-desc"><br/>Helps identify struggling students early.
+Creates a modern hybrid education system combining online and offline learning.
+Vision</p>
             </div>
           </div>
         </section>
 
         {/* Features Section */}
         <section className="features-section">
-          <h2 className="section-title">How It Works</h2>
+          <h2 className="section-title">Problem & Solutions</h2>
           <div className="features-grid">
+            <div className="feature-card glass-card">
+              <div className="feature-icon">😒</div>
+              <h3 className="feature-title">Student Engagement</h3>
+              <p className="feature-desc">Lack of motivation and participation in traditional classrooms.</p>
+            </div>
+            <div className="feature-card glass-card">
+              <div className="feature-icon">📈</div>
+              <h3 className="feature-title"> individual progress.
+</h3>
+              <p className="feature-desc">
+                Teachers struggle to track individual progress.<br></br>
+                Track student participation and performance.<br></br>
+</p>
+            </div>
+            <div className="feature-card glass-card">
+              <div className="feature-icon">📒</div>
+              <h3 className="feature-title"> Assignment management becomes time-consuming.
+
+</h3>
+              <p className="feature-desc">
+                Assign tasks and assignments.<br></br>
+                Verify student submissions with a single click<br></br>
+</p>
+            </div>
+            <div className="feature-card glass-card">
+              <div className="feature-icon">😓</div>
+              <h3 className="feature-title"> Students who miss classes face learning gaps.
+
+</h3>
+              <p className="feature-desc">
+               Access learning content before attending offline classes.
+Prepare in advance using videos and study materials<br></br>
+                Catch up easily if they miss any offline classes<br></br>
+</p>
+            </div>
+
+
+
             <div className="feature-card glass-card">
               <div className="feature-icon">🎮</div>
               <h3 className="feature-title">Gamified Learning</h3>
               <p className="feature-desc">Earn XP, unlock badges, and level up as you complete lessons and assignments.</p>
             </div>
-            <div className="feature-card glass-card">
+            {/* <div className="feature-card glass-card">
               <div className="feature-icon">🐙</div>
               <h3 className="feature-title">GitHub Integration</h3>
-              <p className="feature-desc">Push your code to GitHub. Our system automatically validates your commits to build your portfolio.</p>
-            </div>
-            <div className="feature-card glass-card">
+              <p className="feature-desc">Push your code to GitHub. </p>
+            </div> */}
+            {/* <div className="feature-card glass-card">
               <div className="feature-icon">🚀</div>
               <h3 className="feature-title">Real Deployments</h3>
               <p className="feature-desc">Deploy your projects to Vercel or Netlify and submit the live URLs for massive XP rewards.</p>
-            </div>
+            </div> */}
             <div className="feature-card glass-card">
               <div className="feature-icon">🏆</div>
               <h3 className="feature-title">Leaderboards</h3>
-              <p className="feature-desc">Compete with other developers globally or within your course to reach the top ranks.</p>
+              <p className="feature-desc">Compete on institute-wide and batch-specific leaderboards</p>
             </div>
           </div>
         </section>
@@ -119,8 +166,8 @@ export default async function LandingPage() {
         <div className="footer-content">
           <div className="footer-brand">
             <div className="landing-logo">
-              <span className="logo-icon">⚔️</span>
-              <span className="logo-text">SkillArena</span>
+              <span className="logo-icon">🏛️</span>
+              <span className="logo-text">Smart Hybrid Learning</span>
             </div>
             <p className="footer-desc">A Techglaz Labs Pvt. Ltd. Initiative.</p>
           </div>
