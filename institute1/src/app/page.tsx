@@ -169,13 +169,17 @@ Prepare in advance using videos and study materials<br></br>
               <span className="logo-icon">🏛️</span>
               <span className="logo-text">Smart Hybrid Learning</span>
             </div>
-            <p className="footer-desc">A Techglaz Labs Pvt. Ltd. Initiative.</p>
+            <p className="footer-desc">Aditya's Hard Work !!❤️</p>
           </div>
           <div className="footer-links">
             <div className="link-group">
               <h4>Platform</h4>
               <Link href="/courses">Courses</Link>
               <Link href="/leaderboard">Leaderboard</Link>
+            </div>
+            <div className="link-group">
+              <h4>Connect</h4>
+              <Link href="https://portfolio-two-ashen-zseywond41.vercel.app/" target="_blank" rel="noopener noreferrer">Meet Developer</Link>
             </div>
             <div className="link-group">
               <h4>Legal</h4>

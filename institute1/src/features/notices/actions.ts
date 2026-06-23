@@ -38,11 +38,36 @@ export async function createNotice(formData: FormData) {
   if (!user) {
     return { error: 'Not authenticated' };
   }
+
+  const image = formData.get('image') as File | null;
+  let image_url = null;
+
+  if (image && image.size > 0) {
+    const fileExt = image.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+    const filePath = `${user.id}/${fileName}`;
+
+    const { error: uploadError, data } = await supabase.storage
+      .from('notices_media')
+      .upload(filePath, image);
+
+    if (uploadError) {
+      console.error('Error uploading image:', uploadError);
+      return { error: 'Failed to upload image' };
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('notices_media')
+      .getPublicUrl(filePath);
+
+    image_url = publicUrl;
+  }
   
   const { error } = await supabase.from('notices').insert({
     title,
     content,
-    author_id: user.id
+    author_id: user.id,
+    image_url
   });
   
   if (error) {
