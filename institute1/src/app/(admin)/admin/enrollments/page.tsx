@@ -29,14 +29,14 @@ export default async function AdminEnrollmentsPage() {
       ) : (
         <div className="enrollment-requests-grid" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
           {(enrollments as unknown as EnrollmentReq[]).map((req) => (
-            <Card key={req.id} variant="glass" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
+            <Card key={req.id} variant="glass" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-md)' }}>
+              <div style={{ flex: '1 1 300px' }}>
                 <h3 style={{ margin: '0 0 var(--space-xs) 0' }}>{req.profiles.name} ({req.profiles.email})</h3>
                 <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
                   Requested to join <strong>{req.courses.title}</strong> on {new Date(req.enrolled_at).toLocaleDateString()}
                 </p>
               </div>
-              <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+              <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
                 <form action={adminApproveEnrollmentFormAction.bind(null, req.id)}>
                   <Button variant="primary" type="submit">Approve</Button>
                 </form>
