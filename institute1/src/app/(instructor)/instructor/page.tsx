@@ -103,12 +103,12 @@ export default async function InstructorDashboardPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
             {courses && courses.length > 0 ? (
               courses.map(course => (
-                <div key={course.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-md)', background: 'var(--bg-input)', borderRadius: 'var(--radius-md)' }}>
-                  <div>
+                <div key={course.id} style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-md)', gap: 'var(--space-md)', background: 'var(--bg-input)', borderRadius: 'var(--radius-md)' }}>
+                  <div style={{ flex: '1 1 200px' }}>
                     <h3 style={{ fontSize: 'var(--text-md)', fontWeight: 'var(--weight-semibold)' }}>{course.title}</h3>
                     <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>{course.is_published ? '🟢 Published' : '🟡 Draft'}</p>
                   </div>
-                  <Link href={`/instructor/courses/${course.id}/builder`} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: 'var(--text-sm)' }}>
+                  <Link href={`/instructor/courses/${course.id}/builder`} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: 'var(--text-sm)', flex: '0 0 auto' }}>
                     Edit Curriculum
                   </Link>
                 </div>

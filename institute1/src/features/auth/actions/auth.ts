@@ -11,8 +11,9 @@ export async function signUp(formData: FormData) {
   const name = formData.get('name') as string;
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
+  const institute_id = formData.get('institute_id') as string;
 
-  if (!name || !email || !password) {
+  if (!name || !email || !password || !institute_id) {
     return { error: 'All fields are required' };
   }
 
@@ -24,7 +25,7 @@ export async function signUp(formData: FormData) {
     email,
     password,
     options: {
-      data: { name },
+      data: { name, institute_id },
     },
   });
 
@@ -55,6 +56,9 @@ export async function signIn(formData: FormData) {
   });
 
   if (error) {
+    if (error.message === 'Email not confirmed') {
+      return { error: 'Please check your email and click the confirmation link to sign in.' };
+    }
     return { error: error.message };
   }
 

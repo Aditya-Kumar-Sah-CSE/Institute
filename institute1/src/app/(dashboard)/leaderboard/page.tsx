@@ -92,7 +92,7 @@ export default async function LeaderboardPage({
     <div className="leaderboard-page" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
       <div className="page-header">
         <h1 className="text-gradient">Hall of Fame</h1>
-        <p className="text-secondary">Compete with learners globally and earn your spot on the leaderboard.</p>
+        <p className="text-secondary">Compete on institute-wide and batch-specific leaderboards and earn your spot on the leaderboard.</p>
       </div>
 
       <div className="leaderboard-filters" style={{ display: 'flex', gap: 'var(--space-md)' }}>

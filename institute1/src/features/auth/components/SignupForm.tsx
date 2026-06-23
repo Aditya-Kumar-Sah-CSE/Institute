@@ -91,6 +91,15 @@ export default function SignupForm() {
           />
 
           <Input
+            name="institute_id"
+            type="text"
+            label="Institute ID"
+            placeholder="Your Institute ID (e.g., 2023CS01)"
+            icon="🆔"
+            required
+          />
+
+          <Input
             name="email"
             type="email"
             label="Email"

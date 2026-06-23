@@ -21,7 +21,7 @@ export async function getPendingEnrollments() {
 
   const { data: enrollments, error } = await supabase
     .from('enrollments')
-    .select('id, status, enrolled_at, courses(title), profiles!inner(name, email)')
+    .select('id, status, enrolled_at, courses(title), profiles!inner(name, email, institute_id)')
     .in('course_id', courseIds)
     .eq('status', 'pending')
     .order('enrolled_at', { ascending: false });
