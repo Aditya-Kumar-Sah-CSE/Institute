@@ -50,6 +50,27 @@ export default function LessonView({ lesson, isCompleted, onComplete }: LessonVi
         </div>
       )}
 
+      {lesson.pdf_url && (
+        <div className="lesson-attachment-section" style={{ marginTop: 'var(--space-lg)' }}>
+          <h3 className="section-title">Attachments</h3>
+          <div className="glass-card" style={{ padding: 'var(--space-md)', display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+            <span style={{ fontSize: '24px' }}>📄</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 'bold' }}>Lesson Materials</div>
+              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>PDF or Image notes</div>
+            </div>
+            <a 
+              href={lesson.pdf_url} 
+              target="_blank" 
+              rel="noreferrer" 
+              className="btn btn-secondary btn-sm"
+            >
+              View Attachment
+            </a>
+          </div>
+        </div>
+      )}
+
       {!isCompleted && onComplete && (
         <div className="lesson-actions">
           <button className="btn btn-primary btn-md" onClick={onComplete}>

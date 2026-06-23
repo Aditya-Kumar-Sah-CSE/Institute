@@ -55,6 +55,7 @@ export interface Lesson {
   title: string;
   youtube_url: string | null;
   notes: string | null;
+  pdf_url: string | null;
   xp_reward: number;
   sort_order: number;
   week_number: number;

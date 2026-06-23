@@ -9,7 +9,7 @@ async function runMigration() {
 
   try {
     await client.connect();
-    const sql = fs.readFileSync('supabase/migrations/020_add_notice_images.sql', 'utf8');
+    const sql = fs.readFileSync('supabase/migrations/021_lesson_pdf_notes.sql', 'utf8');
     await client.query(sql);
     console.log('Migration completed successfully');
   } catch (err) {

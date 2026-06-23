@@ -82,6 +82,44 @@ export async function signOut() {
   redirect('/');
 }
 
+export async function resetPasswordRequest(formData: FormData) {
+  const supabase = await createClient();
+  const email = formData.get('email') as string;
+  
+  if (!email) {
+    return { error: 'Email is required' };
+  }
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3002'}/api/auth/callback?redirect_to=/reset-password`,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+  
+  return { success: true };
+}
+
+export async function updatePassword(formData: FormData) {
+  const supabase = await createClient();
+  const password = formData.get('password') as string;
+
+  if (!password || password.length < 6) {
+    return { error: 'Password must be at least 6 characters' };
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    password: password
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  redirect('/login?message=Password updated successfully. Please sign in with your new password.');
+}
+
 export async function getProfile() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

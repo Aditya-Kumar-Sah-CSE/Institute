@@ -15,9 +15,13 @@ export default function Input({
   icon,
   className = '',
   id,
+  type,
   ...props
 }: InputProps) {
+  const [showPassword, setShowPassword] = React.useState(false);
   const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
+  const isPassword = type === 'password';
+  const inputType = isPassword ? (showPassword ? 'text' : 'password') : type;
 
   return (
     <div className={`input-group ${error ? 'input-error' : ''} ${className}`}>
@@ -26,13 +30,39 @@ export default function Input({
           {label}
         </label>
       )}
-      <div className="input-wrapper">
+      <div className="input-wrapper" style={{ position: 'relative' }}>
         {icon && <span className="input-icon">{icon}</span>}
         <input
           id={inputId}
-          className={`input-field ${icon ? 'has-icon' : ''}`}
+          type={inputType}
+          className={`input-field ${icon ? 'has-icon' : ''} ${isPassword ? 'has-password-toggle' : ''}`}
+          style={isPassword ? { paddingRight: '2.5rem' } : undefined}
           {...props}
         />
+        {isPassword && (
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="password-toggle-btn"
+            style={{
+              position: 'absolute',
+              right: '12px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '4px',
+            }}
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+          >
+            {showPassword ? '👁️' : '🙈'}
+          </button>
+        )}
       </div>
       {error && <span className="input-error-text">{error}</span>}
     </div>

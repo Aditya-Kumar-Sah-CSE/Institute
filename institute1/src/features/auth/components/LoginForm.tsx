@@ -84,14 +84,19 @@ export default function LoginForm() {
             required
           />
 
-          <Input
-            name="password"
-            type="password"
-            label="Password"
-            placeholder="••••••••"
-            icon="🔒"
-            required
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <Input
+              name="password"
+              type="password"
+              label="Password"
+              placeholder="••••••••"
+              icon="🔒"
+              required
+            />
+            <div style={{ textAlign: 'right' }}>
+              <Link href="/forgot-password" style={{ fontSize: 'var(--text-sm)', color: 'var(--neon-cyan)', textDecoration: 'none' }}>Forgot Password?</Link>
+            </div>
+          </div>
 
           <Button type="submit" fullWidth isLoading={isLoading} size="lg">
             Sign In

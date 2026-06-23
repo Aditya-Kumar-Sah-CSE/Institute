@@ -21,6 +21,7 @@ interface EditingItem {
   youtube_url?: string | null;
   xp_reward?: number;
   notes?: string | null;
+  pdf_url?: string | null;
   type?: string;
   description?: string | null;
   expected_output?: string | null;
@@ -256,6 +257,23 @@ export default function CurriculumBuilder({ course, lessons, courseBadges = [] }
                 <Input name="xp_reward" type="number" label="XP Reward for reading" defaultValue={editingItem?.xp_reward || 20} required />
                 <TextArea name="notes" label="Lesson Content" defaultValue={editingItem?.notes || undefined} style={{ minHeight: '150px' }} />
                 
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
+                  <label style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>PDF / Image Notes (Optional)</label>
+                  {editingItem?.pdf_url && (
+                    <div style={{ marginBottom: '8px' }}>
+                      <a href={editingItem.pdf_url} target="_blank" rel="noreferrer" style={{ color: 'var(--neon-cyan)', fontSize: 'var(--text-sm)' }}>View Current Attachment</a>
+                    </div>
+                  )}
+                  <input 
+                    type="file" 
+                    name="pdf_file" 
+                    accept="application/pdf,image/*" 
+                    disabled={isLoading}
+                    style={{ padding: 'var(--space-sm)', background: 'var(--bg-input)', color: 'white', borderRadius: 'var(--radius-sm)', border: '1px solid var(--glass-border)' }}
+                  />
+                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Upload PDF or Image notes for this lesson.</p>
+                </div>
+
                 <div style={{ display: 'flex', gap: 'var(--space-md)', justifyContent: 'flex-end', marginTop: 'var(--space-md)' }}>
                   <Button type="button" variant="ghost" onClick={closeModal}>Cancel</Button>
                   <Button type="submit" variant="primary" isLoading={isLoading}>Save Lesson</Button>

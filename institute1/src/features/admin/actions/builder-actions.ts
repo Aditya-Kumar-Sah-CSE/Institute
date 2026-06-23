@@ -13,14 +13,34 @@ export async function addLesson(courseId: string, formData: FormData) {
   const xp_reward = parseInt(formData.get('xp_reward') as string || '20');
   const sort_order = parseInt(formData.get('sort_order') as string || '1');
   const week_number = parseInt(formData.get('week_number') as string || '1');
+  const pdf_file = formData.get('pdf_file') as File | null;
 
   if (!title) return { error: 'Lesson title is required' };
+
+  let pdf_url = null;
+  if (pdf_file && pdf_file.size > 0) {
+    const fileExt = pdf_file.name.split('.').pop();
+    const filePath = `notes/lesson_${courseId}_${Date.now()}.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('lesson_notes')
+      .upload(filePath, pdf_file, { upsert: true });
+
+    if (uploadError) return { error: `Failed to upload note: ${uploadError.message}` };
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('lesson_notes')
+      .getPublicUrl(filePath);
+    
+    pdf_url = publicUrl;
+  }
 
   const { error } = await supabase.from('lessons').insert({
     course_id: courseId,
     title,
     youtube_url: youtube_url || null,
     notes: notes || null,
+    pdf_url,
     xp_reward,
     sort_order,
     week_number,
@@ -41,15 +61,35 @@ export async function updateLesson(lessonId: string, courseId: string, formData:
   const xp_reward = parseInt(formData.get('xp_reward') as string || '20');
   const sort_order = parseInt(formData.get('sort_order') as string || '1');
   const week_number = parseInt(formData.get('week_number') as string || '1');
+  const pdf_file = formData.get('pdf_file') as File | null;
 
-  const { error } = await supabase.from('lessons').update({
+  const updateData: any = {
     title,
     youtube_url: youtube_url || null,
     notes: notes || null,
     xp_reward,
     sort_order,
     week_number,
-  }).eq('id', lessonId);
+  };
+
+  if (pdf_file && pdf_file.size > 0) {
+    const fileExt = pdf_file.name.split('.').pop();
+    const filePath = `notes/lesson_${courseId}_${Date.now()}.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('lesson_notes')
+      .upload(filePath, pdf_file, { upsert: true });
+
+    if (uploadError) return { error: `Failed to upload note: ${uploadError.message}` };
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('lesson_notes')
+      .getPublicUrl(filePath);
+    
+    updateData.pdf_url = publicUrl;
+  }
+
+  const { error } = await supabase.from('lessons').update(updateData).eq('id', lessonId);
 
   if (error) return { error: error.message };
 
