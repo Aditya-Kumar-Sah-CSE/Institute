@@ -56,6 +56,7 @@
     padding: var(--space-sm) var(--space-sm) !important;
     text-align: right;
     font-size: var(--text-sm) !important;
+    gap: var(--space-md);
   }
   
   .responsive-table td:last-child {
@@ -68,6 +69,8 @@
     color: var(--text-secondary);
     text-align: left;
     margin-right: var(--space-md);
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .td-content {
@@ -76,9 +79,20 @@
     align-items: center;
     flex: 1;
     min-width: 0;
+    text-align: right;
   }
   
   .progress-container {
     max-width: 60%;
+  }
+}
+
+.search-container {
+  width: 100%;
+  max-width: 400px;
+}
+@media (max-width: 480px) {
+  .search-container {
+    max-width: 100%;
   }
 }

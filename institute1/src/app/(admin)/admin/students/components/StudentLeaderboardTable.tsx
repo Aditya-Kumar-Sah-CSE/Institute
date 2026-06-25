@@ -24,6 +24,7 @@ interface StudentDetail {
   id: string;
   name: string;
   email: string;
+  institute_id?: string | null;
   xp: number;
   level: LevelName;
   created_at: string;
@@ -97,7 +98,7 @@ export default function StudentLeaderboardTable({ students, isInstructor }: Stud
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
       {/* Search Input */}
-      <div style={{ maxWidth: '400px', marginBottom: 'var(--space-sm)' }}>
+      <div className="search-container" style={{ marginBottom: 'var(--space-md)' }}>
         <Input 
           placeholder="Search students by name or email..." 
           value={searchTerm}
@@ -139,10 +140,14 @@ export default function StudentLeaderboardTable({ students, isInstructor }: Stud
                   onClick={() => setSelectedStudent(student)}
                 >
                   <td data-label="Name" style={{ padding: 'var(--space-md) var(--space-sm)', fontWeight: 'var(--weight-semibold)' }}>
-                    <span className="hover-underline">{student.name}</span>
+                    <div className="td-content">
+                      <span className="hover-underline" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{student.name}</span>
+                    </div>
                   </td>
                   <td data-label="Email" style={{ padding: 'var(--space-md) var(--space-sm)', color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
-                    {student.email}
+                    <div className="td-content" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {student.email}
+                    </div>
                   </td>
                   <td data-label="Level" style={{ padding: 'var(--space-md) var(--space-sm)' }} onClick={(e) => e.stopPropagation()}>
                     <div className="td-content">
@@ -150,7 +155,9 @@ export default function StudentLeaderboardTable({ students, isInstructor }: Stud
                     </div>
                   </td>
                   <td data-label="XP" style={{ padding: 'var(--space-md) var(--space-sm)', color: 'var(--neon-cyan)', fontWeight: 'var(--weight-bold)' }}>
-                    {student.xp}
+                    <div className="td-content">
+                      {student.xp}
+                    </div>
                   </td>
                   <td data-label="Overall Progress" style={{ padding: 'var(--space-md) var(--space-sm)' }}>
                     <div className="td-content progress-container" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', width: '100%' }}>
@@ -161,7 +168,9 @@ export default function StudentLeaderboardTable({ students, isInstructor }: Stud
                     </div>
                   </td>
                   <td data-label="Last Active" style={{ padding: 'var(--space-md) var(--space-sm)', color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
-                    {student.last_active_at ? formatDistanceToNow(new Date(student.last_active_at), { addSuffix: true }) : 'Never'}
+                    <div className="td-content" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {student.last_active_at ? formatDistanceToNow(new Date(student.last_active_at), { addSuffix: true }) : 'Never'}
+                    </div>
                   </td>
                   <td data-label="Actions" style={{ padding: 'var(--space-md) var(--space-sm)' }} onClick={(e) => e.stopPropagation()}>
                     <div className="td-content">
@@ -207,6 +216,11 @@ export default function StudentLeaderboardTable({ students, isInstructor }: Stud
               <div>
                 <h3 style={{ margin: '0 0 var(--space-xs) 0', fontSize: 'var(--text-xl)' }}>{selectedStudent.name}</h3>
                 <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>{selectedStudent.email}</p>
+                {selectedStudent.institute_id && (
+                  <p style={{ margin: 'var(--space-xs) 0 0 0', color: 'var(--text-primary)', fontSize: 'var(--text-sm)' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Institute ID:</span> <span style={{ fontWeight: 'var(--weight-semibold)', color: 'var(--neon-cyan)' }}>{selectedStudent.institute_id}</span>
+                  </p>
+                )}
                 <p style={{ margin: 'var(--space-sm) 0 0 0', color: 'var(--text-muted)', fontSize: 'var(--text-xs)' }}>
                   Joined: {new Date(selectedStudent.created_at).toLocaleDateString()} | Active: {selectedStudent.last_active_at ? new Date(selectedStudent.last_active_at).toLocaleString() : 'Never'}
                 </p>

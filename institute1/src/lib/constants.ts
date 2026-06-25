@@ -32,7 +32,7 @@ export const NAV_ITEMS = [
   { label: 'Dashboard', href: '/dashboard', icon: '📊' },
   { label: 'All Courses', href: '/courses', icon: '📚' },
   { label: 'Leaderboard', href: '/leaderboard', icon: '🏆' },
-  { label: 'My Feedbacks', href: '/feedbacks', icon: '💬' },
+  { label: 'My Doubts', href: '/feedbacks', icon: '💬' },
   { label: 'Notices', href: '/notices', icon: '📢' },
   { label: 'Profile', href: '/profile', icon: '👤' },
 ];

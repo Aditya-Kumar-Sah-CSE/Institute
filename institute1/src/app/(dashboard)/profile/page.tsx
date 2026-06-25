@@ -33,6 +33,11 @@ export default async function ProfilePage() {
         <div className="profile-info-large">
           <h1 className="profile-name">{profile.name}</h1>
           <p className="profile-email">{profile.email}</p>
+          {profile.institute_id && (
+            <p className="profile-email" style={{ marginTop: 'var(--space-xs)', fontSize: 'var(--text-sm)' }}>
+              Institute ID: <span style={{ color: 'var(--neon-cyan)', fontWeight: 'var(--weight-semibold)' }}>{profile.institute_id}</span>
+            </p>
+          )}
           <div className="profile-badges-quick">
             <LevelBadge level={profile.level} size="lg" />
             <div className="profile-streak-pill">
