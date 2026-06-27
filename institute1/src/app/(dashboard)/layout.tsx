@@ -24,8 +24,21 @@ export default async function DashboardLayout({
     .single();
 
   if (!profile) {
-    // Edge case if profile isn't created yet
-    return <div>Loading profile...</div>;
+    // Edge case if profile isn't created yet (e.g. deleted from DB manually but not from Auth)
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: '20px', textAlign: 'center', color: 'white' }}>
+        <div>
+          <h3>Profile Not Found!</h3>
+          <p>Your user profile seems to be missing from the database.</p>
+          <p>If you deleted your test user from the 'profiles' table, you MUST also delete it from 'Authentication -\> Users' in Supabase!</p>
+        </div>
+        <form action="/api/auth/signout" method="POST">
+          <button type="submit" style={{ padding: '10px 20px', background: 'var(--accent-red, #ff4444)', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
+            Force Sign Out
+          </button>
+        </form>
+      </div>
+    );
   }
 
   // Optimize: Only update streak and check badges if it's a new day
