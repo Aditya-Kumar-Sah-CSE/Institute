@@ -26,32 +26,52 @@ export async function signUp(formData: FormData) {
     return { error: 'Password must be at least 6 characters' };
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3002';
+  const isDev = process.env.NODE_ENV === 'development';
 
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { name, institute_id },
-      emailRedirectTo: `${siteUrl}/api/auth/callback`,
-    },
-  });
+  if (isDev) {
+    // Local dev: bypass SMTP and auto-confirm using admin client
+    const adminSupabase = await createAdminClient();
+    const { error: adminAuthError } = await adminSupabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { name, institute_id },
+    });
 
-  if (error) {
-    // Handle Supabase SMTP / rate limit errors which often manifest as a 500 FetchError with an empty message
-    if (error.name === 'AuthRetryableFetchError' || error.status === 500 || error.message === '{}') {
-      return { 
-        error: 'Signup is temporarily disabled because the email server is overloaded. Please try again later or contact the administrator to fix SMTP settings.' 
-      };
+    if (adminAuthError) {
+      return { error: adminAuthError.message };
     }
-    return { error: error.message };
+
+    redirect('/login?message=Account created successfully (Local Auto-Confirmed). Please sign in.');
+  } else {
+    // Production: standard signup flow requiring email confirmation
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3002';
+  
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name, institute_id },
+        emailRedirectTo: `${siteUrl}/api/auth/callback`,
+      },
+    });
+  
+    if (error) {
+      // Handle Supabase SMTP / rate limit errors which often manifest as a 500 FetchError with an empty message
+      if (error.name === 'AuthRetryableFetchError' || error.status === 500 || error.message === '{}') {
+        return { 
+          error: 'Signup is temporarily disabled because the email server is overloaded. Please try again later or contact the administrator to fix SMTP settings.' 
+        };
+      }
+      return { error: error.message };
+    }
+  
+    // Profile creation is handled automatically by the Supabase database trigger 'handle_new_user'
+    // Sign out the user so they must manually sign in as per requested flow
+    await supabase.auth.signOut();
+  
+    redirect('/login?message=Account created successfully. Please check your email to confirm.');
   }
-
-  // Profile creation is handled automatically by the Supabase database trigger 'handle_new_user'
-  // Sign out the user so they must manually sign in as per requested flow
-  await supabase.auth.signOut();
-
-  redirect('/login?message=Account created successfully. Please sign in.');
 }
 
 export async function signIn(formData: FormData) {
