@@ -16,11 +16,8 @@ export default async function InstructorLayout({
     redirect('/login');
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
+  const { getOrCreateProfile } = await import('@/lib/profile');
+  const profile = await getOrCreateProfile(user);
 
   if (!profile) {
     // Edge case if profile isn't created yet (e.g. deleted from DB manually but not from Auth)

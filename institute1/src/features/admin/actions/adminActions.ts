@@ -32,7 +32,7 @@ export async function deleteStudent(studentId: string) {
 
     // Delete user from Supabase Auth
     // This will trigger cascade deletes on profiles, submissions, user_badges, etc.
-    const { error } = await supabaseAdmin.auth.admin.deleteUser(studentId);
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(studentId, false);
 
     if (error) {
       return { error: error.message };
