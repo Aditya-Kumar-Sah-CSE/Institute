@@ -37,13 +37,13 @@ export async function handleSubmitApplication(formData: FormData) {
 
   const bio = formData.get('bio') as string;
   const experience = formData.get('experience') as string;
-  const instructor_id = (formData.get('instructor_id') as string) || null;
+  const institute_id = (formData.get('institute_id') as string) || null;
 
   // Upgrade profile to instructor and pending
   const { error: profileError } = await sb.from('profiles').update({
     role: 'instructor',
     status: 'pending',
-    instructor_id
+    institute_id
   }).eq('id', currentUser.id);
   
   if (profileError) {
@@ -56,8 +56,7 @@ export async function handleSubmitApplication(formData: FormData) {
     user_id: currentUser.id,
     bio,
     experience,
-    status: 'pending',
-    instructor_id
+    status: 'pending'
   });
   
   if (appError) {
@@ -91,7 +90,7 @@ export async function handleFullRegistrationAndApplication(formData: FormData) {
   const password = formData.get('password') as string;
   const bio = formData.get('bio') as string;
   const experience = formData.get('experience') as string;
-  const instructor_id = (formData.get('instructor_id') as string) || null;
+  const institute_id = (formData.get('institute_id') as string) || null;
 
   const { data: authData, error: authError } = await sb.auth.signUp({
     email,
@@ -114,7 +113,7 @@ export async function handleFullRegistrationAndApplication(formData: FormData) {
   const { error: profileError } = await adminSb.from('profiles').update({
     role: 'instructor',
     status: 'pending',
-    instructor_id
+    institute_id
   }).eq('id', userId);
   
   if (profileError) {
@@ -127,8 +126,7 @@ export async function handleFullRegistrationAndApplication(formData: FormData) {
     user_id: userId,
     bio,
     experience,
-    status: 'pending',
-    instructor_id
+    status: 'pending'
   });
   
   if (appError) {

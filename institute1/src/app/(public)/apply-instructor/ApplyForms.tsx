@@ -19,7 +19,7 @@ export function InstructorRegistrationForm() {
     password: '',
     bio: '',
     experience: '',
-    instructor_id: ''
+    institute_id: ''
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -120,10 +120,10 @@ export function InstructorRegistrationForm() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
             <h3 style={{ color: 'var(--text-primary)' }}>Professional Profile</h3>
             <Input 
-              name="instructor_id" 
-              label="Instructor ID (Optional)" 
-              placeholder="Enter your Instructor ID" 
-              value={formData.instructor_id}
+              name="institute_id" 
+              label="Institute ID (Optional)" 
+              placeholder="Enter your Institute ID" 
+              value={formData.institute_id}
               onChange={handleChange}
             />
             <TextArea 
@@ -238,9 +238,9 @@ export function InstructorApplicationForm({ userEmail }: { userEmail: string }) 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
           <h3 style={{ color: 'var(--text-primary)' }}>Professional Profile</h3>
           <Input 
-            name="instructor_id" 
-            label="Instructor ID (Optional)" 
-            placeholder="Enter your Instructor ID" 
+            name="institute_id" 
+            label="Institute ID (Optional)" 
+            placeholder="Enter your Institute ID" 
           />
           <TextArea 
             name="bio" 
