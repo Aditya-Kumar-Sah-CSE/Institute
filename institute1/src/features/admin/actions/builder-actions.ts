@@ -3,10 +3,29 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
+// Authorization helper — verifies the user has admin or instructor role
+async function requireBuilderRole() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile || (profile.role !== 'admin' && profile.role !== 'instructor')) {
+    throw new Error('Unauthorized: admin or instructor role required');
+  }
+
+  return { supabase, user, role: profile.role };
+}
+
 // --- LESSON ACTIONS ---
 
 export async function addLesson(courseId: string, formData: FormData) {
-  const supabase = await createClient();
+  const { supabase } = await requireBuilderRole();
   const title = formData.get('title') as string;
   const youtube_url = formData.get('youtube_url') as string;
   const notes = formData.get('notes') as string;
@@ -54,7 +73,7 @@ export async function addLesson(courseId: string, formData: FormData) {
 }
 
 export async function updateLesson(lessonId: string, courseId: string, formData: FormData) {
-  const supabase = await createClient();
+  const { supabase } = await requireBuilderRole();
   const title = formData.get('title') as string;
   const youtube_url = formData.get('youtube_url') as string;
   const notes = formData.get('notes') as string;
@@ -99,7 +118,7 @@ export async function updateLesson(lessonId: string, courseId: string, formData:
 }
 
 export async function deleteLesson(lessonId: string, courseId: string) {
-  const supabase = await createClient();
+  const { supabase } = await requireBuilderRole();
   const { error } = await supabase.from('lessons').delete().eq('id', lessonId);
   
   if (error) return { error: error.message };
@@ -112,7 +131,7 @@ export async function deleteLesson(lessonId: string, courseId: string) {
 // --- ASSIGNMENT ACTIONS ---
 
 export async function addAssignment(lessonId: string, courseId: string, formData: FormData) {
-  const supabase = await createClient();
+  const { supabase } = await requireBuilderRole();
   const title = formData.get('title') as string;
   const type = formData.get('type') as string;
   const description = formData.get('description') as string;
@@ -142,7 +161,7 @@ export async function addAssignment(lessonId: string, courseId: string, formData
 }
 
 export async function updateAssignment(assignmentId: string, courseId: string, formData: FormData) {
-  const supabase = await createClient();
+  const { supabase } = await requireBuilderRole();
   const title = formData.get('title') as string;
   const type = formData.get('type') as string;
   const description = formData.get('description') as string;
@@ -169,7 +188,7 @@ export async function updateAssignment(assignmentId: string, courseId: string, f
 }
 
 export async function deleteAssignment(assignmentId: string, courseId: string) {
-  const supabase = await createClient();
+  const { supabase } = await requireBuilderRole();
   const { error } = await supabase.from('assignments').delete().eq('id', assignmentId);
   
   if (error) return { error: error.message };

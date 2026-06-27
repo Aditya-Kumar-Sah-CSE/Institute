@@ -3,9 +3,26 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
-export async function addCourse(formData: FormData) {
+// Authorization helper — verifies admin or instructor role
+async function requireCourseRole() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile || (profile.role !== 'admin' && profile.role !== 'instructor')) {
+    throw new Error('Unauthorized: admin or instructor role required');
+  }
+
+  return { supabase, user, role: profile.role };
+}
+export async function addCourse(formData: FormData) {
+  const { supabase, user } = await requireCourseRole();
 
   const title = formData.get('title') as string;
   const description = formData.get('description') as string;
@@ -30,7 +47,7 @@ export async function addCourse(formData: FormData) {
 }
 
 export async function updateCourse(id: string, formData: FormData) {
-  const supabase = await createClient();
+  const { supabase } = await requireCourseRole();
 
   const title = formData.get('title') as string;
   const description = formData.get('description') as string;
@@ -52,7 +69,7 @@ export async function updateCourse(id: string, formData: FormData) {
 }
 
 export async function deleteCourse(id: string) {
-  const supabase = await createClient();
+  const { supabase } = await requireCourseRole();
   
   // Soft delete the course
   const { error } = await supabase.from('courses').update({ 
@@ -68,7 +85,7 @@ export async function deleteCourse(id: string) {
 }
 
 export async function restoreCourse(id: string) {
-  const supabase = await createClient();
+  const { supabase } = await requireCourseRole();
   
   // Restore the course
   const { error } = await supabase.from('courses').update({ 

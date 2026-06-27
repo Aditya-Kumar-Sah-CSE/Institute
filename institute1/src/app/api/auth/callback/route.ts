@@ -11,25 +11,23 @@ export async function GET(request: Request) {
   const next = searchParams.get('next') ?? '/dashboard';
   const redirectTo = searchParams.get('redirect_to') ?? next;
 
-  console.log('--- Auth Callback Triggered ---');
-  console.log('URL:', request.url);
-  console.log('Code:', code ? 'present' : 'missing');
-  console.log('Token Hash:', token_hash ? 'present' : 'missing');
+  // Prevent open redirect: only allow relative paths starting with /
+  const safeRedirect = (redirectTo.startsWith('/') && !redirectTo.startsWith('//'))
+    ? redirectTo
+    : '/dashboard';
 
   if (token_hash && type) {
     const supabase = await createClient();
     const { error } = await supabase.auth.verifyOtp({ token_hash, type });
     if (!error) {
-      return NextResponse.redirect(`${origin}${redirectTo}`);
+      return NextResponse.redirect(`${origin}${safeRedirect}`);
     }
-    console.error('verifyOtp error:', error);
   } else if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return NextResponse.redirect(`${origin}${redirectTo}`);
+      return NextResponse.redirect(`${origin}${safeRedirect}`);
     }
-    console.error('exchangeCodeForSession error:', error);
   }
 
   // return the user to an error page with some instructions

@@ -3,6 +3,25 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
+// Authorization helper — only admin/instructor can manage feedbacks
+async function requireFeedbackManageRole() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile || (profile.role !== 'admin' && profile.role !== 'instructor')) {
+    throw new Error('Unauthorized: admin or instructor role required');
+  }
+
+  return { supabase, user };
+}
+
 export async function submitFeedback(formData: FormData) {
   const supabase = await createClient();
   
@@ -67,8 +86,7 @@ export async function getFeedbacks(page: number = 1, limit: number = 20) {
 }
 
 export async function replyToFeedback(feedbackId: string, replyMessage: string) {
-  const supabase = await createClient();
-  
+  const { supabase } = await requireFeedbackManageRole();
   const { error } = await supabase
     .from('feedbacks')
     .update({ 
@@ -103,7 +121,7 @@ export async function getUserFeedbacks() {
 }
 
 export async function resolveFeedback(feedbackId: string) {
-  const supabase = await createClient();
+  const { supabase } = await requireFeedbackManageRole();
   
   const { error } = await supabase
     .from('feedbacks')
@@ -118,7 +136,7 @@ export async function resolveFeedback(feedbackId: string) {
 }
 
 export async function deleteFeedback(feedbackId: string) {
-  const supabase = await createClient();
+  const { supabase } = await requireFeedbackManageRole();
   
   const { error } = await supabase
     .from('feedbacks')

@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
+import DOMPurify from 'dompurify';
 import { getYouTubeEmbedUrl } from '@/lib/utils';
 import type { Lesson } from '@/types';
 import './LessonView.css';
@@ -13,6 +14,16 @@ interface LessonViewProps {
 
 export default function LessonView({ lesson, isCompleted, onComplete }: LessonViewProps) {
   const embedUrl = getYouTubeEmbedUrl(lesson.youtube_url || '');
+
+  // Sanitize lesson notes to prevent XSS attacks
+  const sanitizedNotes = useMemo(() => {
+    if (!lesson.notes) return '';
+    return DOMPurify.sanitize(lesson.notes, {
+      ALLOWED_TAGS: ['p', 'br', 'b', 'i', 'em', 'strong', 'u', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'a', 'code', 'pre', 'blockquote', 'hr', 'span', 'div', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'img', 'sub', 'sup'],
+      ALLOWED_ATTR: ['href', 'target', 'rel', 'class', 'style', 'src', 'alt', 'width', 'height'],
+      ALLOW_DATA_ATTR: false,
+    });
+  }, [lesson.notes]);
 
   return (
     <div className="lesson-view">
@@ -40,12 +51,12 @@ export default function LessonView({ lesson, isCompleted, onComplete }: LessonVi
         </div>
       ) : null}
 
-      {lesson.notes && (
+      {sanitizedNotes && (
         <div className="lesson-notes-section">
           <h3 className="section-title">Lesson Notes</h3>
           <div 
             className="lesson-notes-content glass-card"
-            dangerouslySetInnerHTML={{ __html: lesson.notes }}
+            dangerouslySetInnerHTML={{ __html: sanitizedNotes }}
           />
         </div>
       )}

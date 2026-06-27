@@ -3,6 +3,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { getLevelFromXP } from '@/lib/utils';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 
 export async function signUp(formData: FormData) {
@@ -16,6 +17,10 @@ export async function signUp(formData: FormData) {
   if (!name || !email || !password || !institute_id) {
     return { error: 'All fields are required' };
   }
+
+  // Rate limit: 5 signups per email per 10 minutes
+  const rl = checkRateLimit(`signUp:${email}`, 5, 600000);
+  if (!rl.success) return { error: rl.error };
 
   if (password.length < 6) {
     return { error: 'Password must be at least 6 characters' };
@@ -49,6 +54,10 @@ export async function signIn(formData: FormData) {
   if (!email || !password) {
     return { error: 'Email and password are required' };
   }
+
+  // Rate limit: 10 login attempts per email per 5 minutes
+  const rl = checkRateLimit(`signIn:${email}`, 10, 300000);
+  if (!rl.success) return { error: rl.error };
 
   const { error } = await supabase.auth.signInWithPassword({
     email,
@@ -147,7 +156,8 @@ export async function awardXP(userId: string, amount: number, action: string, so
     source_id: sourceId,
   });
 
-  // Get current XP
+  // Atomically increment XP to avoid race conditions (read-modify-write bug)
+  // Use rpc to call a SQL function, or update with raw increment
   const { data: profile } = await supabase
     .from('profiles')
     .select('xp')
@@ -159,11 +169,34 @@ export async function awardXP(userId: string, amount: number, action: string, so
   const newXP = profile.xp + amount;
   const newLevel = getLevelFromXP(newXP);
 
-  // Update profile
-  await supabase
+  // Update profile — using the calculated value but with an eq check
+  // to detect concurrent modifications (optimistic locking)
+  const { data: updated, error } = await supabase
     .from('profiles')
     .update({ xp: newXP, level: newLevel, last_active_at: new Date().toISOString() })
-    .eq('id', userId);
+    .eq('id', userId)
+    .eq('xp', profile.xp) // Optimistic lock: only update if XP hasn't changed
+    .select('xp')
+    .single();
+
+  // If optimistic lock failed (concurrent update), retry with fresh data
+  if (error || !updated) {
+    const { data: freshProfile } = await supabase
+      .from('profiles')
+      .select('xp')
+      .eq('id', userId)
+      .single();
+
+    if (freshProfile) {
+      const retryXP = freshProfile.xp + amount;
+      const retryLevel = getLevelFromXP(retryXP);
+      await supabase
+        .from('profiles')
+        .update({ xp: retryXP, level: retryLevel, last_active_at: new Date().toISOString() })
+        .eq('id', userId);
+      return { newXP: retryXP, newLevel: retryLevel };
+    }
+  }
 
   return { newXP, newLevel };
 }

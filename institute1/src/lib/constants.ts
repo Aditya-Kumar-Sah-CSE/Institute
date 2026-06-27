@@ -6,7 +6,7 @@ export const XP_VALUES = {
   DAILY_STREAK: 20,
 } as const;
 
-export const SUPER_ADMIN_EMAIL = 'iambestadi@gmail.com';
+export const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL || 'iambestadi@gmail.com';
 
 // Level thresholds
 export const LEVEL_THRESHOLDS = [
