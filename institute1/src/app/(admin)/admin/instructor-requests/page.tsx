@@ -18,7 +18,7 @@ export default async function InstructorRequestsPage() {
   const adminSb = await createAdminClient();
 
   // Fetch all pending requests
-  const { data: requests } = await adminSb
+  const { data: requests, error: requestsError } = await adminSb
     .from('instructor_applications')
     .select(`
       *,
@@ -31,7 +31,7 @@ export default async function InstructorRequestsPage() {
     .order('submitted_at', { ascending: false });
 
   // Fetch all approved requests
-  const { data: approvedRequests } = await adminSb
+  const { data: approvedRequests, error: approvedError } = await adminSb
     .from('instructor_applications')
     .select(`
       *,
@@ -43,12 +43,27 @@ export default async function InstructorRequestsPage() {
     .eq('status', 'approved')
     .order('approved_at', { ascending: false });
 
+  if (requestsError) {
+    console.error('Pending requests error:', requestsError);
+  }
+  if (approvedError) {
+    console.error('Approved requests error:', approvedError);
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2xl)' }}>
       <div className="page-header">
         <h1 className="text-gradient">Instructor Approval Panel</h1>
         <p className="text-secondary">Review and approve applications to become an instructor.</p>
       </div>
+
+      {(requestsError || approvedError) && (
+        <div style={{ padding: '1rem', background: '#ffcccc', color: '#cc0000', borderRadius: '8px' }}>
+          <h3>Database Error (For debugging):</h3>
+          <p>{requestsError?.message}</p>
+          <p>{approvedError?.message}</p>
+        </div>
+      )}
 
       <section>
         <h2 style={{ marginBottom: 'var(--space-lg)', color: 'var(--text-primary)' }}>Pending Requests</h2>
