@@ -63,8 +63,8 @@ export function InstructorRegistrationForm() {
       }
       setShowPopup(true);
       setTimeout(() => {
-        router.push('/dashboard');
-      }, 2000);
+        router.push('/login');
+      }, 4000);
     } catch (err: any) {
       setError(err.message || 'Something went wrong');
       setLoading(false);
@@ -98,7 +98,7 @@ export function InstructorRegistrationForm() {
           }}>
             <h2 style={{ color: 'var(--neon-cyan)', marginBottom: 'var(--space-md)' }}>Success!</h2>
             <p className="text-secondary" style={{ fontSize: 'var(--text-lg)' }}>
-              You have applied successfully. Wait for admin approval. Until then explore your student view.
+              You have applied successfully. Please check your email to confirm your account. After confirmation, you can login and explore your student view until admin approval.
             </p>
           </div>
         </div>
