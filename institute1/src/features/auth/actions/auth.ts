@@ -35,6 +35,12 @@ export async function signUp(formData: FormData) {
   });
 
   if (error) {
+    // Handle Supabase SMTP / rate limit errors which often manifest as a 500 FetchError with an empty message
+    if (error.name === 'AuthRetryableFetchError' || error.status === 500 || error.message === '{}') {
+      return { 
+        error: 'Signup is temporarily disabled because the email server is overloaded. Please try again later or contact the administrator to fix SMTP settings.' 
+      };
+    }
     return { error: error.message };
   }
 

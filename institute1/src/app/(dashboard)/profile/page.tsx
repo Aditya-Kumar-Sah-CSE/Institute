@@ -38,6 +38,11 @@ export default async function ProfilePage() {
               Institute ID: <span style={{ color: 'var(--neon-cyan)', fontWeight: 'var(--weight-semibold)' }}>{profile.institute_id}</span>
             </p>
           )}
+          {profile.instructor_id && (
+            <p className="profile-email" style={{ marginTop: 'var(--space-xs)', fontSize: 'var(--text-sm)' }}>
+              Instructor ID: <span style={{ color: 'var(--neon-cyan)', fontWeight: 'var(--weight-semibold)' }}>{profile.instructor_id}</span>
+            </p>
+          )}
           <div className="profile-badges-quick">
             <LevelBadge level={profile.level} size="lg" />
             <div className="profile-streak-pill">

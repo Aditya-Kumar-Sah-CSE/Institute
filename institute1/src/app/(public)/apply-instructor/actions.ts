@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
@@ -37,20 +37,33 @@ export async function handleSubmitApplication(formData: FormData) {
 
   const bio = formData.get('bio') as string;
   const experience = formData.get('experience') as string;
+  const instructor_id = formData.get('instructor_id') as string;
 
   // Upgrade profile to instructor and pending
-  await sb.from('profiles').update({
+  const { error: profileError } = await sb.from('profiles').update({
     role: 'instructor',
-    status: 'pending'
+    status: 'pending',
+    instructor_id
   }).eq('id', currentUser.id);
+  
+  if (profileError) {
+    console.error('Profile update error:', profileError);
+    return { error: 'Failed to update profile: ' + profileError.message };
+  }
 
   // Insert application
-  await sb.from('instructor_applications').insert({
+  const { error: appError } = await sb.from('instructor_applications').insert({
     user_id: currentUser.id,
     bio,
     experience,
-    status: 'pending'
+    status: 'pending',
+    instructor_id
   });
+  
+  if (appError) {
+    console.error('Application insert error:', appError);
+    return { error: 'Failed to submit application: ' + appError.message };
+  }
 
   // System notification for applying as instructor
   await sb.from('feedbacks').insert({
@@ -78,6 +91,7 @@ export async function handleFullRegistrationAndApplication(formData: FormData) {
   const password = formData.get('password') as string;
   const bio = formData.get('bio') as string;
   const experience = formData.get('experience') as string;
+  const instructor_id = formData.get('instructor_id') as string;
 
   const { data: authData, error: authError } = await sb.auth.signUp({
     email,
@@ -92,23 +106,38 @@ export async function handleFullRegistrationAndApplication(formData: FormData) {
   }
 
   const userId = authData.user.id;
+  
+  // Use admin client to bypass RLS since the user's session isn't fully established in this request yet
+  const adminSb = await createAdminClient();
 
   // Upgrade profile to instructor and pending
-  await sb.from('profiles').update({
+  const { error: profileError } = await adminSb.from('profiles').update({
     role: 'instructor',
-    status: 'pending'
+    status: 'pending',
+    instructor_id
   }).eq('id', userId);
+  
+  if (profileError) {
+    console.error('Profile update error:', profileError);
+    return { error: 'Failed to update profile: ' + profileError.message };
+  }
 
   // Insert application
-  await sb.from('instructor_applications').insert({
+  const { error: appError } = await adminSb.from('instructor_applications').insert({
     user_id: userId,
     bio,
     experience,
-    status: 'pending'
+    status: 'pending',
+    instructor_id
   });
+  
+  if (appError) {
+    console.error('Application insert error:', appError);
+    return { error: 'Failed to submit application: ' + appError.message };
+  }
 
   // System notification for applying as instructor
-  await sb.from('feedbacks').insert({
+  await adminSb.from('feedbacks').insert({
     user_id: userId,
     name: 'System',
     role: 'System',
