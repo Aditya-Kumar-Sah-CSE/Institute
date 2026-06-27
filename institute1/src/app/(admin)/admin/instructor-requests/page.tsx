@@ -5,6 +5,7 @@ import Button from '@/components/ui/Button';
 import { formatDistanceToNow } from 'date-fns';
 import { approveInstructor, rejectInstructor } from '@/features/admin/actions/instructor-actions';
 import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
+import ActionButtons from './ActionButtons';
 
 export default async function InstructorRequestsPage() {
   const supabase = await createClient();
@@ -95,14 +96,7 @@ export default async function InstructorRequestsPage() {
                   </p>
                 </div>
 
-                <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
-                  <form action={approveInstructor.bind(null, request.id, request.user_id)} style={{ flex: 1 }}>
-                    <Button type="submit" variant="primary" style={{ width: '100%' }}>Approve</Button>
-                  </form>
-                  <form action={rejectInstructor.bind(null, request.id, request.user_id)} style={{ flex: 1 }}>
-                    <Button type="submit" variant="danger" style={{ width: '100%' }}>Reject</Button>
-                  </form>
-                </div>
+                <ActionButtons applicationId={request.id} userId={request.user_id} />
               </Card>
             ))
           ) : (
