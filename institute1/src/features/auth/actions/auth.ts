@@ -80,7 +80,7 @@ export async function signIn(formData: FormData) {
     return { error: error.message };
   }
 
-  redirect('/dashboard');
+  redirect('/');
 }
 
 export async function signOut() {

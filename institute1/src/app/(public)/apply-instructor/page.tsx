@@ -11,53 +11,59 @@ export default async function ApplyInstructorPage() {
   // If already logged in, check if they are already an instructor or pending
   if (user) {
     const { data: profile } = await supabase.from('profiles').select('role, status').eq('id', user.id).single();
-    if (profile?.role === 'instructor') {
-      if (profile.status === 'pending') {
-        return (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
-            <Card variant="glass" padding="lg" style={{ textAlign: 'center', maxWidth: '500px' }}>
-              <h1 className="text-gradient" style={{ fontSize: 'var(--text-2xl)', marginBottom: 'var(--space-md)' }}>Application Received</h1>
-              <p className="text-secondary" style={{ marginBottom: 'var(--space-lg)' }}>
-                Your instructor application has been submitted and is currently awaiting admin approval. We will notify you once reviewed.
-              </p>
-              <form action="/api/auth/signout" method="post">
-                <Button variant="secondary" type="submit">Logout</Button>
-              </form>
-            </Card>
-          </div>
-        );
-      } else if (profile.status === 'active') {
-        return (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
-            <Card variant="glass" padding="lg" style={{ textAlign: 'center', maxWidth: '500px' }}>
-              <h1 style={{ color: 'var(--neon-lime)', fontSize: 'var(--text-2xl)', marginBottom: 'var(--space-md)' }}>Congratulations!</h1>
-              <p className="text-secondary" style={{ marginBottom: 'var(--space-lg)' }}>
-                You are approved as instructor.
-              </p>
-              <a href="/instructor" style={{ textDecoration: 'none' }}>
-                <Button variant="primary">Go to Instructor Dashboard</Button>
-              </a>
-            </Card>
-          </div>
-        );
-      } else if (profile.status === 'rejected') {
-        return (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
-            <Card variant="glass" padding="lg" style={{ textAlign: 'center', maxWidth: '500px' }}>
-              <h1 style={{ color: 'var(--neon-red)', fontSize: 'var(--text-2xl)', marginBottom: 'var(--space-md)' }}>OOPs!</h1>
-              <p className="text-secondary" style={{ marginBottom: 'var(--space-lg)' }}>
-                Your application was rejected.
-              </p>
-              <Link href="/dashboard" style={{ marginRight: 'var(--space-sm)' }}>
-                <Button variant="primary">Back to Dashboard</Button>
-              </Link>
-              <form action="/api/auth/signout" method="post" style={{ display: 'inline-block' }}>
-                <Button variant="secondary" type="submit">Logout</Button>
-              </form>
-            </Card>
-          </div>
-        );
-      }
+    if (profile?.role === 'instructor' || profile?.role === 'admin') {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
+          <Card variant="glass" padding="lg" style={{ textAlign: 'center', maxWidth: '500px' }}>
+            <h1 style={{ color: 'var(--neon-lime)', fontSize: 'var(--text-2xl)', marginBottom: 'var(--space-md)' }}>Congratulations!</h1>
+            <p className="text-secondary" style={{ marginBottom: 'var(--space-lg)' }}>
+              You are already an approved instructor.
+            </p>
+            <a href="/instructor" style={{ textDecoration: 'none' }}>
+              <Button variant="primary">Go to Instructor Dashboard</Button>
+            </a>
+          </Card>
+        </div>
+      );
+    }
+
+    // Check if they have a pending or rejected application
+    const { data: appData } = await supabase
+      .from('instructor_applications')
+      .select('status')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (appData?.status === 'pending') {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
+          <Card variant="glass" padding="lg" style={{ textAlign: 'center', maxWidth: '500px' }}>
+            <h1 className="text-gradient" style={{ fontSize: 'var(--text-2xl)', marginBottom: 'var(--space-md)' }}>Application Received</h1>
+            <p className="text-secondary" style={{ marginBottom: 'var(--space-lg)' }}>
+              Your instructor application has been submitted and is currently awaiting admin approval. We will notify you once reviewed.
+            </p>
+            <Link href="/dashboard" style={{ textDecoration: 'none' }}>
+              <Button variant="primary">Go to Dashboard</Button>
+            </Link>
+          </Card>
+        </div>
+      );
+    } else if (appData?.status === 'rejected') {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
+          <Card variant="glass" padding="lg" style={{ textAlign: 'center', maxWidth: '500px' }}>
+            <h1 style={{ color: 'var(--neon-red)', fontSize: 'var(--text-2xl)', marginBottom: 'var(--space-md)' }}>OOPs!</h1>
+            <p className="text-secondary" style={{ marginBottom: 'var(--space-lg)' }}>
+              Your previous application was rejected. Please contact the admin for details.
+            </p>
+            <Link href="/dashboard" style={{ marginRight: 'var(--space-sm)' }}>
+              <Button variant="primary">Back to Dashboard</Button>
+            </Link>
+          </Card>
+        </div>
+      );
     }
   }
 

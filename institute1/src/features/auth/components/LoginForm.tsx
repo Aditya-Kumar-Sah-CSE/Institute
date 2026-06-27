@@ -21,7 +21,7 @@ export default function LoginForm() {
     // Check if user is already logged in (handles browser back button)
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        router.push('/dashboard');
+        router.push('/');
         router.refresh();
       }
     });

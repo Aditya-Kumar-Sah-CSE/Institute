@@ -38,9 +38,6 @@ export default async function LandingPage() {
         </div>
         <div className="landing-nav-actions">
           <InstallAppButton variant="ghost" />
-          <Link href="/apply-instructor" className="hide-on-mobile">
-            <Button variant="ghost">Apply as Faculty</Button>
-          </Link>
           <Link href="/login">
             <Button variant="ghost">Login</Button>
           </Link>
@@ -66,9 +63,6 @@ more engaging and effective educational experience.
             <div className="hero-cta">
               <Link href="/signup">
                 <Button variant="primary" size="lg" className="cta-btn">Start Learning</Button>
-              </Link>
-              <Link href="/apply-instructor">
-                <Button variant="secondary" size="lg" className="cta-btn">Apply as Faculty</Button>
               </Link>
             </div>
             {/* <div className="hero-stats stagger-children">

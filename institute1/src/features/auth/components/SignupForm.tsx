@@ -18,7 +18,7 @@ export default function SignupForm() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        router.push('/dashboard');
+        router.push('/');
         router.refresh();
       }
     });

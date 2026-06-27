@@ -8,13 +8,13 @@ export async function GET(request: Request) {
   const type = searchParams.get('type') as any;
 
   // if "next" is in param, use it as the redirect URL
-  const next = searchParams.get('next') ?? '/dashboard';
+  const next = searchParams.get('next') ?? '/';
   const redirectTo = searchParams.get('redirect_to') ?? next;
 
   // Prevent open redirect: only allow relative paths starting with /
   const safeRedirect = (redirectTo.startsWith('/') && !redirectTo.startsWith('//'))
     ? redirectTo
-    : '/dashboard';
+    : '/';
 
   if (token_hash && type) {
     const supabase = await createClient();

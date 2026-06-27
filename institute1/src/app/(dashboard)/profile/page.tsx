@@ -4,6 +4,8 @@ import XPBar from '@/components/shared/XPBar';
 import LevelBadge from '@/components/shared/LevelBadge';
 import BadgeDisplay from '@/components/shared/BadgeDisplay';
 import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+import Link from 'next/link';
 import AvatarUpload from './components/AvatarUpload';
 import GithubConnect from './components/GithubConnect';
 import './Profile.css';
@@ -49,6 +51,14 @@ export default async function ProfilePage() {
               🔥 {profile.streak_days} Day Streak
             </div>
           </div>
+          
+          {profile.role !== 'admin' && profile.role !== 'instructor' && (
+            <div style={{ marginTop: 'var(--space-md)' }}>
+              <Link href="/apply-instructor">
+                <Button variant="secondary" size="sm">Apply as Instructor or Faculty</Button>
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 
