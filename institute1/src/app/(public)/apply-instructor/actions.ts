@@ -39,17 +39,8 @@ export async function handleSubmitApplication(formData: FormData) {
   const experience = formData.get('experience') as string;
   const institute_id = (formData.get('institute_id') as string) || null;
 
-  // Upgrade profile to instructor and pending
-  const { error: profileError } = await sb.from('profiles').update({
-    role: 'instructor',
-    status: 'pending',
-    institute_id
-  }).eq('id', currentUser.id);
-  
-  if (profileError) {
-    console.error('Profile update error:', profileError);
-    return { error: 'Failed to update profile: ' + profileError.message };
-  }
+  // Note: We no longer upgrade profile to instructor immediately.
+  // The user remains a student until the admin approves their application.
 
   // Insert application
   const { error: appError } = await sb.from('instructor_applications').insert({
@@ -109,17 +100,8 @@ export async function handleFullRegistrationAndApplication(formData: FormData) {
   // Use admin client to bypass RLS since the user's session isn't fully established in this request yet
   const adminSb = await createAdminClient();
 
-  // Upgrade profile to instructor and pending
-  const { error: profileError } = await adminSb.from('profiles').update({
-    role: 'instructor',
-    status: 'pending',
-    institute_id
-  }).eq('id', userId);
-  
-  if (profileError) {
-    console.error('Profile update error:', profileError);
-    return { error: 'Failed to update profile: ' + profileError.message };
-  }
+  // Note: We no longer upgrade profile to instructor immediately.
+  // The user remains a student until the admin approves their application.
 
   // Insert application
   const { error: appError } = await adminSb.from('instructor_applications').insert({

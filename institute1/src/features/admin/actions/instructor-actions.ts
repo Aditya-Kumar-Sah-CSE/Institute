@@ -73,12 +73,19 @@ export async function rejectInstructor(applicationId: string, userId: string) {
     
     if (appError) throw new Error('Failed to update application: ' + appError.message);
 
-    // Update Profile Status
-    const { error: profileError } = await adminSb.from('profiles').update({
-      status: 'rejected'
-    }).eq('id', userId);
-
-    if (profileError) throw new Error('Failed to update profile: ' + profileError.message);
+    // On rejection, we do NOT change the profile status to rejected,
+    // because they are still an active student.
+    // They just can't become an instructor right now.
+    
+    // Send feedback notification
+    await adminSb.from('feedbacks').insert({
+      user_id: userId,
+      name: 'System',
+      role: 'System',
+      category: 'Notification',
+      message: 'Unfortunately, your application to become an instructor has been declined.',
+      status: 'open'
+    });
 
     revalidatePath('/admin/instructor-requests');
     revalidatePath('/', 'layout');

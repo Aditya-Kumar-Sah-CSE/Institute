@@ -79,9 +79,7 @@ export async function updateSession(request: NextRequest) {
   if (user && (pathname === '/login' || pathname === '/signup' || pathname === '/')) {
     const url = request.nextUrl.clone();
     // Redirect based on role and status
-    if (profile?.role === 'instructor' && profile?.status !== 'active') {
-      url.pathname = '/apply-instructor';
-    } else if (profile?.role === 'instructor') {
+    if (profile?.role === 'instructor') {
       url.pathname = '/instructor';
     } else if (profile?.role === 'admin') {
       url.pathname = '/admin';
@@ -91,15 +89,7 @@ export async function updateSession(request: NextRequest) {
     return redirectWithCookies(url);
   }
 
-  // Enforce Instructor Status
-  if (user && profile?.role === 'instructor' && profile?.status !== 'active') {
-    if (pathname.startsWith('/instructor') && pathname !== '/apply-instructor') {
-      const url = request.nextUrl.clone();
-      url.pathname = '/apply-instructor';
-      return redirectWithCookies(url);
-    }
-  }
-
+  // (Instructor pending status check removed: pending applicants are now just 'student' role)
   // (Admin status check removed since there's no admin application process)
 
   // Admin route protection
