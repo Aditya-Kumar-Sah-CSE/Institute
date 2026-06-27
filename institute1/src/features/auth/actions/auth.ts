@@ -26,11 +26,14 @@ export async function signUp(formData: FormData) {
     return { error: 'Password must be at least 6 characters' };
   }
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3002';
+
   const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: { name, institute_id },
+      emailRedirectTo: `${siteUrl}/api/auth/callback`,
     },
   });
 
