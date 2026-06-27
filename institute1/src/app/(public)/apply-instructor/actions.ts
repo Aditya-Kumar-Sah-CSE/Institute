@@ -37,7 +37,7 @@ export async function handleSubmitApplication(formData: FormData) {
 
   const bio = formData.get('bio') as string;
   const experience = formData.get('experience') as string;
-  const instructor_id = formData.get('instructor_id') as string;
+  const instructor_id = (formData.get('instructor_id') as string) || null;
 
   // Upgrade profile to instructor and pending
   const { error: profileError } = await sb.from('profiles').update({
@@ -91,7 +91,7 @@ export async function handleFullRegistrationAndApplication(formData: FormData) {
   const password = formData.get('password') as string;
   const bio = formData.get('bio') as string;
   const experience = formData.get('experience') as string;
-  const instructor_id = formData.get('instructor_id') as string;
+  const instructor_id = (formData.get('instructor_id') as string) || null;
 
   const { data: authData, error: authError } = await sb.auth.signUp({
     email,

@@ -27,8 +27,12 @@ export function InstructorRegistrationForm() {
   };
 
   const nextStep = () => {
-    if (!formData.name || !formData.email || !formData.password) {
+    if (!formData.name || !formData.email || !(formData as any).confirmEmail || !formData.password) {
       setError('Please fill all account details.');
+      return;
+    }
+    if (formData.email !== (formData as any).confirmEmail) {
+      setError('Email addresses do not match.');
       return;
     }
     setError('');
@@ -107,6 +111,7 @@ export function InstructorRegistrationForm() {
             <h3 style={{ color: 'var(--text-primary)' }}>Account Details</h3>
             <Input name="name" label="Full Name" value={formData.name} onChange={handleChange} required />
             <Input name="email" type="email" label="Email Address" value={formData.email} onChange={handleChange} required />
+            <Input name="confirmEmail" type="email" label="Confirm Email Address" value={(formData as any).confirmEmail || ''} onChange={handleChange} required />
             <Input name="password" type="password" label="Password" value={formData.password} onChange={handleChange} required />
           </div>
         )}
@@ -116,11 +121,10 @@ export function InstructorRegistrationForm() {
             <h3 style={{ color: 'var(--text-primary)' }}>Professional Profile</h3>
             <Input 
               name="instructor_id" 
-              label="Instructor ID" 
+              label="Instructor ID (Optional)" 
               placeholder="Enter your Instructor ID" 
               value={formData.instructor_id}
               onChange={handleChange}
-              required 
             />
             <TextArea 
               name="bio" 
@@ -235,9 +239,8 @@ export function InstructorApplicationForm({ userEmail }: { userEmail: string }) 
           <h3 style={{ color: 'var(--text-primary)' }}>Professional Profile</h3>
           <Input 
             name="instructor_id" 
-            label="Instructor ID" 
+            label="Instructor ID (Optional)" 
             placeholder="Enter your Instructor ID" 
-            required 
           />
           <TextArea 
             name="bio" 

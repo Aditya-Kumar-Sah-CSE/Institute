@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -14,8 +14,11 @@ export default async function InstructorRequestsPage() {
     redirect('/admin');
   }
 
+  // Use admin client to bypass RLS in case the admin's profile role is not set to 'admin'
+  const adminSb = await createAdminClient();
+
   // Fetch all pending requests
-  const { data: requests } = await supabase
+  const { data: requests } = await adminSb
     .from('instructor_applications')
     .select(`
       *,
@@ -28,7 +31,7 @@ export default async function InstructorRequestsPage() {
     .order('submitted_at', { ascending: false });
 
   // Fetch all approved requests
-  const { data: approvedRequests } = await supabase
+  const { data: approvedRequests } = await adminSb
     .from('instructor_applications')
     .select(`
       *,
