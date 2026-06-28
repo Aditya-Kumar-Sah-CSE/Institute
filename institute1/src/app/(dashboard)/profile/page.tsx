@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import XPBar from '@/components/shared/XPBar';
 import LevelBadge from '@/components/shared/LevelBadge';
@@ -21,8 +21,9 @@ export default async function ProfilePage() {
   const { data: allBadges } = await supabase.from('badges').select('*').order('created_at', { ascending: true });
   const { data: earnedBadges } = await supabase.from('user_badges').select('*, badge:badges(*)').eq('user_id', user.id);
   const { data: xpLogs } = await supabase.from('xp_log').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10);
+  const adminSb = await createAdminClient();
   const { data: enrollments } = await supabase.from('enrollments').select('*, course:courses(title, thumbnail_url)').eq('user_id', user.id);
-  const { data: appData } = await supabase.from('instructor_applications').select('status').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle();
+  const { data: appData, error: appError } = await adminSb.from('instructor_applications').select('status').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle();
 
   if (!profile) return <div>Profile not found.</div>;
 
@@ -55,26 +56,28 @@ export default async function ProfilePage() {
           </div>
           
           {profile.role !== 'admin' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
-              {profile.role !== 'instructor' && (!appData || appData.status === 'rejected') && (
-                <Link href={appData?.status === 'rejected' ? '/apply-instructor?reapply=true' : '/apply-instructor'} style={{ textDecoration: 'none' }}>
-                  <Button variant="secondary" size="sm">
-                    Apply as Instructor or Faculty
-                  </Button>
-                </Link>
-              )}
-              {(appData?.status === 'pending' || appData?.status === 'approved' || profile.role === 'instructor') && (
-                <span style={{ 
-                  fontSize: 'var(--text-sm)', 
-                  fontWeight: 'var(--weight-bold)', 
-                  color: (appData?.status === 'pending') ? '#eab308' : '#22c55e',
-                  padding: '0.25rem 0.75rem',
-                  borderRadius: '1rem',
-                  backgroundColor: (appData?.status === 'pending') ? 'rgba(234, 179, 8, 0.1)' : 'rgba(34, 197, 94, 0.1)'
-                }}>
-                  Status: {appData?.status === 'pending' ? 'Pending' : 'Approved'}
-                </span>
-              )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+                {profile.role !== 'instructor' && (!appData || appData.status === 'rejected') && (
+                  <Link href={appData?.status === 'rejected' ? '/apply-instructor?reapply=true' : '/apply-instructor'} style={{ textDecoration: 'none' }}>
+                    <Button variant="secondary" size="sm">
+                      Apply as Instructor or Faculty
+                    </Button>
+                  </Link>
+                )}
+                {(appData?.status === 'pending' || appData?.status === 'approved' || profile.role === 'instructor') && (
+                  <span style={{ 
+                    fontSize: 'var(--text-sm)', 
+                    fontWeight: 'var(--weight-bold)', 
+                    color: (appData?.status === 'pending') ? '#eab308' : '#22c55e',
+                    padding: '0.25rem 0.75rem',
+                    borderRadius: '1rem',
+                    backgroundColor: (appData?.status === 'pending') ? 'rgba(234, 179, 8, 0.1)' : 'rgba(34, 197, 94, 0.1)'
+                  }}>
+                    Status: {appData?.status === 'pending' ? 'Pending' : 'Approved as faculty'}
+                  </span>
+                )}
+              </div>
             </div>
           )}
         </div>
