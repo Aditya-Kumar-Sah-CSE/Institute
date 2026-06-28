@@ -42,8 +42,10 @@ export async function handleSubmitApplication(formData: FormData) {
   // Note: We no longer upgrade profile to instructor immediately.
   // The user remains a student until the admin approves their application.
 
+  const adminSb = await createAdminClient();
+
   // Insert or update application (Upsert for reapply)
-  const { error: appError } = await sb.from('instructor_applications').upsert({
+  const { error: appError } = await adminSb.from('instructor_applications').upsert({
     user_id: currentUser.id,
     bio,
     experience,
