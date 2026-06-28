@@ -57,6 +57,7 @@ export default async function LeaderboardPage({
       level: p.level,
       badge_count: p.user_badges[0]?.count || 0
     }));
+  } else {
     interface DBEnrollmentItem {
       progress: number;
       user_id: string;
