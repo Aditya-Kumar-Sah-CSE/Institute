@@ -135,7 +135,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
                   const index = globalLessonIndex++;
                   const isCompleted = completedLessonIds.has(lesson.id);
                   const isApproved = enrollment && enrollment.status === 'approved';
-                  const isLocked = !isApproved && index > 0; // First lesson free, rest locked if not approved
+                  const isLocked = !isApproved; // Lock all lessons if not approved
 
                   return (
                     <Card 
@@ -152,15 +152,18 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
                       </div>
                       
                       <div className="lesson-item-action">
-                        {isCompleted ? (
+                        {isLocked ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+                            {isCompleted && <span className="completed-mark" style={{ color: 'var(--neon-lime)', fontWeight: 'bold' }}>✓</span>}
+                            <span className="locked-mark">🔒</span>
+                          </div>
+                        ) : isCompleted ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
                             <span className="completed-mark" style={{ color: 'var(--neon-lime)', fontWeight: 'bold' }}>✓</span>
                             <Link href={`/courses/${courseId}/${lesson.id}`}>
                               <Button variant="secondary" size="sm">Review / Task</Button>
                             </Link>
                           </div>
-                        ) : isLocked ? (
-                          <span className="locked-mark">🔒</span>
                         ) : (
                           <Link href={`/courses/${courseId}/${lesson.id}`}>
                             <Button variant="primary" size="sm">Start Lesson</Button>
