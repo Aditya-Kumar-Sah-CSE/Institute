@@ -44,6 +44,11 @@ export async function handleSubmitApplication(formData: FormData) {
 
   const adminSb = await createAdminClient();
 
+  // If user provided an institute_id, save it to their profile
+  if (institute_id) {
+    await adminSb.from('profiles').update({ institute_id }).eq('id', currentUser.id);
+  }
+
   // Insert or update application (Upsert for reapply)
   const { error: appError } = await adminSb.from('instructor_applications').upsert({
     user_id: currentUser.id,
@@ -90,7 +95,7 @@ export async function handleFullRegistrationAndApplication(formData: FormData) {
     email,
     password,
     options: {
-      data: { name },
+      data: { name, institute_id },
     }
   });
 

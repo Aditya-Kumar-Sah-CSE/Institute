@@ -25,7 +25,8 @@ export default async function InstructorRequestsPage() {
       *,
       profiles:user_id (
         name,
-        email
+        email,
+        institute_id
       )
     `)
     .eq('status', 'pending')
@@ -38,7 +39,8 @@ export default async function InstructorRequestsPage() {
       *,
       profiles:user_id (
         name,
-        email
+        email,
+        institute_id
       )
     `)
     .eq('status', 'approved')
@@ -76,6 +78,11 @@ export default async function InstructorRequestsPage() {
                   <div>
                     <h3 style={{ fontSize: 'var(--text-lg)', color: 'var(--text-primary)' }}>{request.profiles?.name}</h3>
                     <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>{request.profiles?.email}</p>
+                    {request.profiles?.institute_id && (
+                      <p style={{ color: 'var(--neon-cyan)', fontSize: 'var(--text-sm)', marginTop: '4px' }}>
+                        Institute ID: <strong>{request.profiles.institute_id}</strong>
+                      </p>
+                    )}
                   </div>
                   <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
                     Applied {request.submitted_at ? formatDistanceToNow(new Date(request.submitted_at), { addSuffix: true }) : ''}
@@ -118,6 +125,11 @@ export default async function InstructorRequestsPage() {
                   <div>
                     <h3 style={{ fontSize: 'var(--text-lg)', color: 'var(--text-primary)' }}>{request.profiles?.name}</h3>
                     <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>{request.profiles?.email}</p>
+                    {request.profiles?.institute_id && (
+                      <p style={{ color: 'var(--neon-cyan)', fontSize: 'var(--text-sm)', marginTop: '4px' }}>
+                        Institute ID: <strong>{request.profiles.institute_id}</strong>
+                      </p>
+                    )}
                   </div>
                   <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
                     Approved {request.approved_at ? formatDistanceToNow(new Date(request.approved_at), { addSuffix: true }) : ''}
