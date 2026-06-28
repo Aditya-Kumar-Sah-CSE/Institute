@@ -23,7 +23,7 @@ export default async function ProfilePage() {
   const { data: xpLogs } = await supabase.from('xp_log').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10);
   const adminSb = await createAdminClient();
   const { data: enrollments } = await supabase.from('enrollments').select('*, course:courses(title, thumbnail_url)').eq('user_id', user.id);
-  const { data: appData, error: appError } = await adminSb.from('instructor_applications').select('status').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle();
+  const { data: appData, error: appError } = await adminSb.from('instructor_applications').select('status').eq('user_id', user.id).order('submitted_at', { ascending: false }).limit(1).maybeSingle();
 
   if (!profile) return <div>Profile not found.</div>;
 
