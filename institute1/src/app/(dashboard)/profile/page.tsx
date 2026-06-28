@@ -9,6 +9,7 @@ import Link from 'next/link';
 import AvatarUpload from './components/AvatarUpload';
 import GithubConnect from './components/GithubConnect';
 import './Profile.css';
+export const dynamic = 'force-dynamic';
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -21,7 +22,7 @@ export default async function ProfilePage() {
   const { data: earnedBadges } = await supabase.from('user_badges').select('*, badge:badges(*)').eq('user_id', user.id);
   const { data: xpLogs } = await supabase.from('xp_log').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10);
   const { data: enrollments } = await supabase.from('enrollments').select('*, course:courses(title, thumbnail_url)').eq('user_id', user.id);
-  const { data: appData } = await supabase.from('instructor_applications').select('status').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).single();
+  const { data: appData } = await supabase.from('instructor_applications').select('status').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle();
 
   if (!profile) return <div>Profile not found.</div>;
 
