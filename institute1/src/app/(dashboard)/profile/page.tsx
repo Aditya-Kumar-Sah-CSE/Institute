@@ -56,27 +56,23 @@ export default async function ProfilePage() {
           
           {profile.role !== 'admin' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
-              {appData?.status === 'pending' || profile.role === 'instructor' || appData?.status === 'approved' ? (
-                <Button variant="secondary" size="sm" disabled>Apply as Instructor or Faculty</Button>
-              ) : (
+              {profile.role !== 'instructor' && (!appData || appData.status === 'rejected') && (
                 <Link href={appData?.status === 'rejected' ? '/apply-instructor?reapply=true' : '/apply-instructor'} style={{ textDecoration: 'none' }}>
                   <Button variant="secondary" size="sm">
-                    {appData?.status === 'rejected' ? 'Apply as Instructor or Faculty' : 'Apply as Instructor or Faculty'}
+                    Apply as Instructor or Faculty
                   </Button>
                 </Link>
               )}
-              {(appData?.status || profile.role === 'instructor') && (
+              {(appData?.status === 'pending' || appData?.status === 'approved' || profile.role === 'instructor') && (
                 <span style={{ 
                   fontSize: 'var(--text-sm)', 
                   fontWeight: 'var(--weight-bold)', 
-                  color: (appData?.status === 'pending') ? '#eab308' : 
-                         (appData?.status === 'rejected') ? '#ef4444' : '#22c55e',
+                  color: (appData?.status === 'pending') ? '#eab308' : '#22c55e',
                   padding: '0.25rem 0.75rem',
                   borderRadius: '1rem',
-                  backgroundColor: (appData?.status === 'pending') ? 'rgba(234, 179, 8, 0.1)' : 
-                                   (appData?.status === 'rejected') ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)'
+                  backgroundColor: (appData?.status === 'pending') ? 'rgba(234, 179, 8, 0.1)' : 'rgba(34, 197, 94, 0.1)'
                 }}>
-                  Status: {appData?.status === 'pending' ? 'Pending' : appData?.status === 'rejected' ? 'Rejected' : 'Accepted'}
+                  Status: {appData?.status === 'pending' ? 'Pending' : 'Approved'}
                 </span>
               )}
             </div>
