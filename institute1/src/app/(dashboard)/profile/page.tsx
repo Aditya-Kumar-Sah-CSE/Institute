@@ -21,6 +21,7 @@ export default async function ProfilePage() {
   const { data: earnedBadges } = await supabase.from('user_badges').select('*, badge:badges(*)').eq('user_id', user.id);
   const { data: xpLogs } = await supabase.from('xp_log').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10);
   const { data: enrollments } = await supabase.from('enrollments').select('*, course:courses(title, thumbnail_url)').eq('user_id', user.id);
+  const { data: appData } = await supabase.from('instructor_applications').select('status').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).single();
 
   if (!profile) return <div>Profile not found.</div>;
 
@@ -53,10 +54,30 @@ export default async function ProfilePage() {
           </div>
           
           {profile.role !== 'admin' && profile.role !== 'instructor' && (
-            <div style={{ marginTop: 'var(--space-md)' }}>
-              <Link href="/apply-instructor">
-                <Button variant="secondary" size="sm">Apply as Instructor or Faculty</Button>
-              </Link>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
+              {appData?.status === 'pending' ? (
+                <Button variant="secondary" size="sm" disabled>Apply as Instructor or Faculty</Button>
+              ) : (
+                <Link href={appData?.status === 'rejected' ? '/apply-instructor?reapply=true' : '/apply-instructor'} style={{ textDecoration: 'none' }}>
+                  <Button variant="secondary" size="sm">
+                    {appData?.status === 'rejected' ? 'Reapply as Instructor' : 'Apply as Instructor or Faculty'}
+                  </Button>
+                </Link>
+              )}
+              {appData?.status && (
+                <span style={{ 
+                  fontSize: 'var(--text-sm)', 
+                  fontWeight: 'var(--weight-bold)', 
+                  color: appData.status === 'pending' ? '#eab308' : 
+                         appData.status === 'rejected' ? '#ef4444' : '#22c55e',
+                  padding: '0.25rem 0.75rem',
+                  borderRadius: '1rem',
+                  backgroundColor: appData.status === 'pending' ? 'rgba(234, 179, 8, 0.1)' : 
+                                   appData.status === 'rejected' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)'
+                }}>
+                  Status: {appData.status.charAt(0).toUpperCase() + appData.status.slice(1)}
+                </span>
+              )}
             </div>
           )}
         </div>
