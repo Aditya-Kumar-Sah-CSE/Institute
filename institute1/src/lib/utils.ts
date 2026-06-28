@@ -54,9 +54,14 @@ export function getLevelColor(level: LevelName): string {
 
 export function getDifficultyColor(difficulty: string): string {
   switch (difficulty) {
-    case 'beginner': return 'var(--neon-lime)';
-    case 'intermediate': return 'var(--neon-orange)';
-    case 'advanced': return 'var(--neon-red)';
+    case 'sem 1':
+    case 'sem 2': return 'var(--neon-lime)';
+    case 'sem 3':
+    case 'sem 4': return 'var(--neon-orange)';
+    case 'sem 5':
+    case 'sem 6': return 'var(--neon-red)';
+    case 'sem 7':
+    case 'sem 8': return 'var(--neon-purple)';
     default: return 'var(--neon-cyan)';
   }
 }

@@ -55,7 +55,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
             className="course-difficulty-badge"
             style={{ backgroundColor: getDifficultyColor(course.difficulty) }}
           >
-            {course.difficulty}
+            {course.difficulty.charAt(0).toUpperCase() + course.difficulty.slice(1)}
           </div>
           <h1 className="course-title-large">{course.title}</h1>
           {course.profiles?.name && (

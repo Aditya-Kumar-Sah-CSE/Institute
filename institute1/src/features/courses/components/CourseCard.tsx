@@ -60,7 +60,7 @@ export default function CourseCard({ course, progress, status }: CourseCardProps
               className="course-difficulty" 
               style={{ backgroundColor: difficultyColor }}
             >
-              {course.difficulty}
+              {course.difficulty.charAt(0).toUpperCase() + course.difficulty.slice(1)}
             </div>
           </div>
 

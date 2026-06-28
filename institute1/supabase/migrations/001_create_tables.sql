@@ -58,7 +58,7 @@ CREATE TABLE courses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title TEXT NOT NULL,
   description TEXT,
-  difficulty TEXT CHECK (difficulty IN ('beginner', 'intermediate', 'advanced')),
+  difficulty TEXT CHECK (difficulty IN ('sem 1', 'sem 2', 'sem 3', 'sem 4', 'sem 5', 'sem 6', 'sem 7', 'sem 8')),
   thumbnail_url TEXT,
   tags TEXT[],
   total_xp INTEGER DEFAULT 0,

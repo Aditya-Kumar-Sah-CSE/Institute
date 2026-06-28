@@ -13,7 +13,7 @@ interface CourseCatalogProps {
 
 export default function CourseCatalog({ courses, enrollments = {} }: CourseCatalogProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filter, setFilter] = useState('all'); // 'all', 'enrolled', 'beginner', 'intermediate', 'advanced'
+  const [filter, setFilter] = useState('all'); // 'all', 'enrolled', 'sem 1', 'sem 2', etc.
 
   const filteredCourses = courses.filter(course => {
     const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -41,7 +41,7 @@ export default function CourseCatalog({ courses, enrollments = {} }: CourseCatal
           />
         </div>
         <div className="catalog-filters">
-          {['all', 'enrolled', 'beginner', 'intermediate', 'advanced'].map(f => (
+          {['all', 'enrolled', 'sem 1', 'sem 2', 'sem 3', 'sem 4', 'sem 5', 'sem 6', 'sem 7', 'sem 8'].map(f => (
             <button
               key={f}
               className={`filter-btn ${filter === f ? 'active' : ''}`}

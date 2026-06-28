@@ -90,7 +90,7 @@ export default function CourseManager({ courses }: CourseManagerProps) {
                 </p>
               )}
               <p className="text-secondary text-sm" style={{ marginBottom: 'var(--space-xs)' }}>
-                {course.lesson_count} Lessons | {course.total_xp} XP | Level: {course.difficulty}
+                {course.lesson_count} Lessons | {course.total_xp} XP | {course.difficulty.charAt(0).toUpperCase() + course.difficulty.slice(1)}
               </p>
             </div>
             <div className="course-card-actions">
@@ -126,12 +126,17 @@ export default function CourseManager({ courses }: CourseManagerProps) {
               
               <Select 
                 name="difficulty" 
-                label="Difficulty" 
-                defaultValue={editingCourse?.difficulty || 'beginner'}
+                label="Semester" 
+                defaultValue={editingCourse?.difficulty || 'sem 1'}
                 options={[
-                  { value: 'beginner', label: 'Beginner' },
-                  { value: 'intermediate', label: 'Intermediate' },
-                  { value: 'advanced', label: 'Advanced' }
+                  { value: 'sem 1', label: 'Semester 1' },
+                  { value: 'sem 2', label: 'Semester 2' },
+                  { value: 'sem 3', label: 'Semester 3' },
+                  { value: 'sem 4', label: 'Semester 4' },
+                  { value: 'sem 5', label: 'Semester 5' },
+                  { value: 'sem 6', label: 'Semester 6' },
+                  { value: 'sem 7', label: 'Semester 7' },
+                  { value: 'sem 8', label: 'Semester 8' }
                 ]}
               />
 
