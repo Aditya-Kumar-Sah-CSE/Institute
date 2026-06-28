@@ -42,13 +42,14 @@ export async function handleSubmitApplication(formData: FormData) {
   // Note: We no longer upgrade profile to instructor immediately.
   // The user remains a student until the admin approves their application.
 
-  // Insert application
-  const { error: appError } = await sb.from('instructor_applications').insert({
+  // Insert or update application (Upsert for reapply)
+  const { error: appError } = await sb.from('instructor_applications').upsert({
     user_id: currentUser.id,
     bio,
     experience,
-    status: 'pending'
-  });
+    status: 'pending',
+    submitted_at: new Date().toISOString()
+  }, { onConflict: 'user_id' });
   
   if (appError) {
     console.error('Application insert error:', appError);
@@ -103,13 +104,14 @@ export async function handleFullRegistrationAndApplication(formData: FormData) {
   // Note: We no longer upgrade profile to instructor immediately.
   // The user remains a student until the admin approves their application.
 
-  // Insert application
-  const { error: appError } = await adminSb.from('instructor_applications').insert({
+  // Insert or update application (Upsert for reapply)
+  const { error: appError } = await adminSb.from('instructor_applications').upsert({
     user_id: userId,
     bio,
     experience,
-    status: 'pending'
-  });
+    status: 'pending',
+    submitted_at: new Date().toISOString()
+  }, { onConflict: 'user_id' });
   
   if (appError) {
     console.error('Application insert error:', appError);

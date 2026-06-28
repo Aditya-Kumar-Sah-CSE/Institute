@@ -4,9 +4,11 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { InstructorRegistrationForm, InstructorApplicationForm } from './ApplyForms';
 
-export default async function ApplyInstructorPage() {
+export default async function ApplyInstructorPage({ searchParams }: { searchParams: Promise<{ reapply?: string }> }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  const resolvedSearchParams = await searchParams;
+  const reapply = resolvedSearchParams?.reapply === 'true';
 
   // If already logged in, check if they are already an instructor or pending
   if (user) {
@@ -41,6 +43,9 @@ export default async function ApplyInstructorPage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
           <Card variant="glass" padding="lg" style={{ textAlign: 'center', maxWidth: '500px' }}>
             <h1 className="text-gradient" style={{ fontSize: 'var(--text-2xl)', marginBottom: 'var(--space-md)' }}>Application Received</h1>
+            <div style={{ marginBottom: 'var(--space-md)' }}>
+              <span style={{ padding: '0.25rem 0.75rem', borderRadius: '1rem', backgroundColor: 'rgba(234, 179, 8, 0.2)', color: '#eab308', fontWeight: 'bold' }}>Status: Pending</span>
+            </div>
             <p className="text-secondary" style={{ marginBottom: 'var(--space-lg)' }}>
               Your instructor application has been submitted and is currently awaiting admin approval. We will notify you once reviewed.
             </p>
@@ -50,17 +55,25 @@ export default async function ApplyInstructorPage() {
           </Card>
         </div>
       );
-    } else if (appData?.status === 'rejected') {
+    } else if (appData?.status === 'rejected' && !reapply) {
       return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
           <Card variant="glass" padding="lg" style={{ textAlign: 'center', maxWidth: '500px' }}>
             <h1 style={{ color: 'var(--neon-red)', fontSize: 'var(--text-2xl)', marginBottom: 'var(--space-md)' }}>OOPs!</h1>
+            <div style={{ marginBottom: 'var(--space-md)' }}>
+              <span style={{ padding: '0.25rem 0.75rem', borderRadius: '1rem', backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', fontWeight: 'bold' }}>Status: Rejected</span>
+            </div>
             <p className="text-secondary" style={{ marginBottom: 'var(--space-lg)' }}>
               Your previous application was rejected. Please contact the admin for details.
             </p>
-            <Link href="/dashboard" style={{ marginRight: 'var(--space-sm)' }}>
-              <Button variant="primary">Back to Dashboard</Button>
-            </Link>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: 'var(--space-lg)' }}>
+              <Link href="/dashboard" style={{ textDecoration: 'none' }}>
+                <Button variant="secondary">Back to Dashboard</Button>
+              </Link>
+              <Link href="/apply-instructor?reapply=true" style={{ textDecoration: 'none' }}>
+                <Button variant="primary">Reapply</Button>
+              </Link>
+            </div>
           </Card>
         </div>
       );
