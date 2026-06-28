@@ -44,7 +44,7 @@ export default async function ApplyInstructorPage({ searchParams }: { searchPara
           <Card variant="glass" padding="lg" style={{ textAlign: 'center', maxWidth: '500px' }}>
             <h1 className="text-gradient" style={{ fontSize: 'var(--text-2xl)', marginBottom: 'var(--space-md)' }}>Application Received</h1>
             <div style={{ marginBottom: 'var(--space-md)' }}>
-              <span style={{ padding: '0.25rem 0.75rem', borderRadius: '1rem', backgroundColor: 'rgba(234, 179, 8, 0.2)', color: '#eab308', fontWeight: 'bold' }}>Status: Pending</span>
+              <span style={{ display: 'inline-block', padding: '0.25rem 1rem', borderRadius: '1rem', backgroundColor: 'rgba(234, 179, 8, 0.2)', color: '#eab308', fontWeight: 'bold' }}>Status: Pending</span>
             </div>
             <p className="text-secondary" style={{ marginBottom: 'var(--space-lg)' }}>
               Your instructor application has been submitted and is currently awaiting admin approval. We will notify you once reviewed.
@@ -61,17 +61,17 @@ export default async function ApplyInstructorPage({ searchParams }: { searchPara
           <Card variant="glass" padding="lg" style={{ textAlign: 'center', maxWidth: '500px' }}>
             <h1 style={{ color: 'var(--neon-red)', fontSize: 'var(--text-2xl)', marginBottom: 'var(--space-md)' }}>OOPs!</h1>
             <div style={{ marginBottom: 'var(--space-md)' }}>
-              <span style={{ padding: '0.25rem 0.75rem', borderRadius: '1rem', backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', fontWeight: 'bold' }}>Status: Rejected</span>
+              <span style={{ display: 'inline-block', padding: '0.25rem 1rem', borderRadius: '1rem', backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', fontWeight: 'bold' }}>Status: Rejected</span>
             </div>
             <p className="text-secondary" style={{ marginBottom: 'var(--space-lg)' }}>
               Your previous application was rejected. Please contact the admin for details.
             </p>
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: 'var(--space-lg)' }}>
-              <Link href="/dashboard" style={{ textDecoration: 'none' }}>
-                <Button variant="secondary">Back to Dashboard</Button>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'center', marginTop: 'var(--space-lg)' }}>
+              <Link href="/dashboard" style={{ textDecoration: 'none', width: '100%', maxWidth: '200px' }}>
+                <Button variant="secondary" fullWidth>Back to Dashboard</Button>
               </Link>
-              <Link href="/apply-instructor?reapply=true" style={{ textDecoration: 'none' }}>
-                <Button variant="primary">Reapply</Button>
+              <Link href="/apply-instructor?reapply=true" style={{ textDecoration: 'none', width: '100%', maxWidth: '200px' }}>
+                <Button variant="primary" fullWidth>Reapply</Button>
               </Link>
             </div>
           </Card>
