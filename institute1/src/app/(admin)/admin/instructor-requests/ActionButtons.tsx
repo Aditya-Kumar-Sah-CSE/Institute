@@ -39,6 +39,7 @@ export default function ActionButtons({ applicationId, userId }: { applicationId
           style={{ flex: 1 }} 
           onClick={handleApprove}
           isLoading={isPending}
+          confirmMessage="Are you sure you want to approve this instructor?"
         >
           Approve
         </Button>
@@ -47,6 +48,7 @@ export default function ActionButtons({ applicationId, userId }: { applicationId
           style={{ flex: 1 }} 
           onClick={handleReject}
           isLoading={isPending}
+          confirmMessage="Are you sure you want to reject this instructor?"
         >
           Reject
         </Button>

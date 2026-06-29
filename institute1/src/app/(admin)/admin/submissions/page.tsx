@@ -150,8 +150,8 @@ export default async function SubmissionsPage(props: {
                 style={{ width: '100%', padding: 'var(--space-sm)', background: 'var(--bg-input)', color: 'white', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-sm)' }}
               />
               <div style={{ display: 'flex', gap: 'var(--space-sm)', justifyContent: 'flex-end' }}>
-                <Button type="submit" name="action" value="reject" variant="danger" size="sm">Reject / Needs Work</Button>
-                <Button type="submit" name="action" value="approve" variant="success" size="sm">Approve & Award XP</Button>
+                <Button type="submit" name="action" value="reject" variant="danger" size="sm" confirmMessage="Are you sure you want to reject this assignment?">Reject / Needs Work</Button>
+                <Button type="submit" name="action" value="approve" variant="success" size="sm" confirmMessage="Are you sure you want to approve this assignment?">Approve & Award XP</Button>
               </div>
             </form>
           </Card>

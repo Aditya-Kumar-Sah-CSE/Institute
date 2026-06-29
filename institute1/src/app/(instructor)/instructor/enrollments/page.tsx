@@ -46,10 +46,10 @@ export default async function InstructorEnrollmentsPage() {
               </div>
               <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
                 <form action={approveEnrollmentFormAction.bind(null, req.id)}>
-                  <Button variant="primary" type="submit">Approve</Button>
+                  <Button variant="primary" type="submit" confirmMessage="Are you sure you want to approve this student to enroll in the course?">Approve</Button>
                 </form>
                 <form action={rejectEnrollmentFormAction.bind(null, req.id)}>
-                  <Button variant="danger" type="submit">Reject</Button>
+                  <Button variant="danger" type="submit" confirmMessage="Are you sure you want to reject this enrollment request?">Reject</Button>
                 </form>
               </div>
             </Card>

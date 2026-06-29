@@ -90,12 +90,12 @@ export default async function InstructorFeedbackPage() {
                       }}
                     />
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-sm)' }}>
-                      <Button variant="primary" type="submit">Reply & Resolve</Button>
+                      <Button variant="primary" type="submit" confirmMessage="Are you sure you want to resolve this doubt/feedback?">Reply & Resolve</Button>
                       <Button variant="danger" formAction={async () => {
                         'use server';
                         const { deleteFeedback } = await import('@/features/feedback/actions/feedback');
                         await deleteFeedback(fb.id);
-                      }}>Delete</Button>
+                      }} confirmMessage="Are you sure you want to delete this doubt/feedback?">Delete</Button>
                     </div>
                   </form>
                 ) : (
@@ -106,7 +106,7 @@ export default async function InstructorFeedbackPage() {
                       const { deleteFeedback } = await import('@/features/feedback/actions/feedback');
                       await deleteFeedback(fb.id);
                     }}>
-                      <Button variant="danger" type="submit">Delete</Button>
+                      <Button variant="danger" type="submit" confirmMessage="Are you sure you want to delete this doubt/feedback?">Delete</Button>
                     </form>
                   </div>
                 )}
