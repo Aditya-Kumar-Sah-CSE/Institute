@@ -11,6 +11,7 @@ export default function BadgeCelebrator() {
   useEffect(() => {
     // Fetch unseen badges
     getUnseenBadges().then((data) => {
+      console.log('Fetched unseen badges:', data);
       if (data && data.length > 0) {
         setUnseenBadges(data);
       }
@@ -28,15 +29,22 @@ export default function BadgeCelebrator() {
     
     const badgeData = unseenBadges[0];
     setCurrentBadge(badgeData);
-    
-    // Mark this badge as seen
-    markBadgesSeen([badgeData.id]).catch(console.error);
 
-    // After 5 seconds, remove this badge and show next if any
-    setTimeout(() => {
-      setCurrentBadge(null);
-      setUnseenBadges((prev) => prev.slice(1));
+    // After 5 seconds, auto-dismiss
+    const timer = setTimeout(() => {
+      dismissCurrentBadge(badgeData.id);
     }, 5000);
+    
+    // Store timer if we wanted to clear it on manual dismiss, but simple approach is fine
+    // just let it fire, if currentBadge is already null it's safe.
+  };
+
+  const dismissCurrentBadge = (badgeId: string) => {
+    // Mark as seen in DB ONLY when it is dismissed so they don't lose it if they reload too fast
+    markBadgesSeen([badgeId]).catch(console.error);
+    
+    setCurrentBadge(null);
+    setUnseenBadges((prev) => prev.slice(1));
   };
 
   if (!currentBadge || !currentBadge.badges) return null;
@@ -55,6 +63,7 @@ export default function BadgeCelebrator() {
         ))}
       </div>
       <div className="badge-popup">
+        <button onClick={() => dismissCurrentBadge(currentBadge.id)} className="badge-close-btn">×</button>
         <h2 className="celebration-title">🎉 Badge Unlocked! 🎉</h2>
         <div className="badge-icon-large">{currentBadge.badges.icon}</div>
         <h3 className="badge-name">{currentBadge.badges.name}</h3>
