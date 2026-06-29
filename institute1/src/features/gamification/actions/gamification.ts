@@ -1,12 +1,13 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { getLevelFromXP } from '@/lib/utils';
 import { XP_VALUES } from '@/lib/constants';
 import { awardXP } from '@/features/auth/actions/auth';
 
 export async function checkBadges(userId: string) {
   const supabase = await createClient();
+  const adminSb = await createAdminClient();
 
   // 1. Get all available badges
   const { data: allBadges } = await supabase.from('badges').select('*');
@@ -119,13 +120,13 @@ export async function checkBadges(userId: string) {
     }
 
     if (isEligible) {
-      await supabase.from('user_badges').insert({
+      const { error } = await adminSb.from('user_badges').insert({
         user_id: userId,
         badge_id: badge.id
       });
       
-      // Award Bonus XP if the badge has it
-      if (badge.bonus_xp && badge.bonus_xp > 0) {
+      // Award Bonus XP if the badge has it and insert was successful
+      if (!error && badge.bonus_xp && badge.bonus_xp > 0) {
         await awardXP(userId, badge.bonus_xp, `Bonus Reward: ${badge.name}`, 'badge_bonus', badge.id);
       }
     }
@@ -134,6 +135,7 @@ export async function checkBadges(userId: string) {
 
 export async function updateStreak(userId: string) {
   const supabase = await createClient();
+  const adminSb = await createAdminClient();
 
   const { data: profile } = await supabase.from('profiles').select('last_active_at, streak_days, total_active_days').eq('id', userId).single();
   if (!profile) return;
@@ -184,12 +186,12 @@ export async function updateStreak(userId: string) {
     const { data: newProf } = await supabase.from('profiles').select('xp').eq('id', userId).single();
     if (newProf) {
       const updatedXp = newProf.xp + XP_VALUES.DAILY_STREAK;
-      await supabase.from('profiles').update({
+      await adminSb.from('profiles').update({
         xp: updatedXp,
         level: getLevelFromXP(updatedXp)
       }).eq('id', userId);
       
-      await supabase.from('xp_log').insert({
+      await adminSb.from('xp_log').insert({
         user_id: userId,
         action: 'Daily Login Streak',
         xp_amount: XP_VALUES.DAILY_STREAK,
@@ -230,10 +232,11 @@ export async function getUnseenBadges() {
 
 export async function markBadgesSeen(userBadgeIds: string[]) {
   const supabase = await createClient();
+  const adminSb = await createAdminClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user || !userBadgeIds.length) return;
 
-  await supabase
+  await adminSb
     .from('user_badges')
     .update({ is_seen: true })
     .in('id', userBadgeIds)
