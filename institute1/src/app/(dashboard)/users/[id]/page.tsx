@@ -162,8 +162,6 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
                       border: '1px solid var(--glass-border)',
                       transition: 'all 0.2s ease'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--neon-cyan)'}
-                    onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--glass-border)'}
                   >
                     <span style={{ textTransform: 'capitalize', color: 'var(--neon-cyan)' }}>{platform}</span>
                   </a>
