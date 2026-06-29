@@ -233,6 +233,14 @@ export default function StudentLeaderboardTable({ students, isInstructor }: Stud
                 </div>
               </div>
             </div>
+            
+            <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+              <a href={`/users/${selectedStudent.id}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                <Button variant="secondary" size="sm">
+                  View Full Public Profile ↗
+                </Button>
+              </a>
+            </div>
 
             <hr style={{ border: 'none', borderBottom: '1px solid var(--border-color)', margin: 0 }} />
 
