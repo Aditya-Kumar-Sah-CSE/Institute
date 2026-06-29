@@ -1,3 +1,0 @@
--- migration to add course badges
-ALTER TABLE badges ADD COLUMN IF NOT EXISTS course_id UUID REFERENCES courses(id) ON DELETE CASCADE;
-ALTER TABLE badges ADD COLUMN IF NOT EXISTS bonus_xp INTEGER DEFAULT 0;

@@ -9,7 +9,6 @@ import {
   addLesson, updateLesson, deleteLesson,  
   addAssignment, updateAssignment, deleteAssignment 
 } from '@/features/admin/actions/builder-actions';
-import { addCourseBadge, deleteCourseBadge } from '@/features/admin/actions/badge-actions';
 import type { Course, Lesson, Assignment, Badge } from '@/types';
 import './CurriculumBuilder.css';
 
@@ -32,11 +31,10 @@ interface EditingItem {
 interface CurriculumBuilderProps {
   course: Course;
   lessons: (Lesson & { assignments: Assignment[] })[];
-  courseBadges?: Badge[];
 }
 
-export default function CurriculumBuilder({ course, lessons, courseBadges = [] }: CurriculumBuilderProps) {
-  const [modalType, setModalType] = useState<'lesson' | 'assignment' | 'badge' | null>(null);
+export default function CurriculumBuilder({ course, lessons }: CurriculumBuilderProps) {
+  const [modalType, setModalType] = useState<'lesson' | 'assignment' | null>(null);
   const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
   const [parentLessonId, setParentLessonId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -60,10 +58,6 @@ export default function CurriculumBuilder({ course, lessons, courseBadges = [] }
     setParentLessonId(lessonId);
     setEditingItem(assignment || null);
     setModalType('assignment');
-  };
-
-  const openBadgeModal = () => {
-    setModalType('badge');
   };
 
   const closeModal = () => {
@@ -104,21 +98,6 @@ export default function CurriculumBuilder({ course, lessons, courseBadges = [] }
     closeModal();
   };
 
-  const handleBadgeSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsLoading(true);
-    const formData = new FormData(e.currentTarget);
-    
-    const result = await addCourseBadge(course.id, formData);
-    
-    setIsLoading(false);
-    if (result.error) {
-      alert(`Error creating badge: ${result.error}`);
-    } else {
-      closeModal();
-    }
-  };
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
       <div className="curriculum-header">
@@ -127,34 +106,9 @@ export default function CurriculumBuilder({ course, lessons, courseBadges = [] }
           <p className="text-secondary">Drag-and-drop coming soon. For now, set the Sort Order.</p>
         </div>
         <div className="curriculum-actions">
-          <Button variant="secondary" onClick={() => openBadgeModal()}>+ Add Course Badge</Button>
           <Button variant="primary" onClick={() => openLessonModal()}>+ Add Day (Lesson)</Button>
         </div>
       </div>
-
-      {courseBadges.length > 0 && (
-        <Card variant="glass" style={{ borderLeft: '4px solid var(--neon-gold)' }}>
-          <h3 style={{ fontSize: 'var(--text-lg)', marginBottom: 'var(--space-md)' }}>Course Rewards</h3>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
-            {courseBadges.map(badge => (
-              <div key={badge.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', background: 'var(--bg-elevated)', padding: 'var(--space-sm) var(--space-md)', borderRadius: 'var(--radius-md)' }}>
-                <div className="badge-preview">
-                  <Image src={badge.icon} alt={badge.name} width={40} height={40} style={{ objectFit: 'contain' }} />
-                </div>
-                <div>
-                  <div style={{ fontWeight: 'var(--weight-semibold)' }}>{badge.name}</div>
-                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                    {badge.description} | +{badge.bonus_xp || 0} XP
-                  </div>
-                </div>
-                <Button variant="ghost" size="sm" onClick={async () => {
-                  if (confirm('Delete this course badge?')) await deleteCourseBadge(badge.id, course.id);
-                }} style={{ color: 'var(--neon-red)', marginLeft: 'var(--space-md)' }}>Del</Button>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
         {lessons.length === 0 && (
@@ -234,7 +188,7 @@ export default function CurriculumBuilder({ course, lessons, courseBadges = [] }
         }}>
           <Card variant="glass" style={{ width: '100%', maxWidth: '600px', background: 'var(--bg-secondary)', maxHeight: '90vh', overflowY: 'auto' }}>
             <h2 style={{ marginBottom: 'var(--space-lg)' }}>
-              {editingItem ? 'Edit' : 'Add'} {modalType === 'lesson' ? 'Lesson' : modalType === 'assignment' ? 'Assignment' : 'Badge'}
+              {editingItem ? 'Edit' : 'Add'} {modalType === 'lesson' ? 'Lesson' : 'Assignment'}
             </h2>
             
             {modalType === 'lesson' && (
@@ -317,32 +271,6 @@ export default function CurriculumBuilder({ course, lessons, courseBadges = [] }
                 <div style={{ display: 'flex', gap: 'var(--space-md)', justifyContent: 'flex-end', marginTop: 'var(--space-md)' }}>
                   <Button type="button" variant="ghost" onClick={closeModal}>Cancel</Button>
                   <Button type="submit" variant="primary" isLoading={isLoading}>Save Assignment</Button>
-                </div>
-              </form>
-            )}
-
-            {modalType === 'badge' && (
-              <form onSubmit={handleBadgeSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-                <Input name="name" label="Badge Name" placeholder="e.g. React Master" required />
-                <TextArea name="description" label="Condition / Task Description" placeholder="e.g. Complete 100% of the React course" required />
-                <Input name="bonus_xp" type="number" label="Bonus XP" defaultValue={100} required />
-                
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
-                  <label style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>Badge Icon Image</label>
-                  <input 
-                    type="file" 
-                    name="icon_file" 
-                    accept="image/*" 
-                    required
-                    disabled={isLoading}
-                    style={{ padding: 'var(--space-sm)', background: 'var(--bg-input)', color: 'white', borderRadius: 'var(--radius-sm)', border: '1px solid var(--glass-border)' }}
-                  />
-                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Upload a transparent PNG for best results.</p>
-                </div>
-
-                <div style={{ display: 'flex', gap: 'var(--space-md)', justifyContent: 'flex-end', marginTop: 'var(--space-md)' }}>
-                  <Button type="button" variant="ghost" onClick={closeModal}>Cancel</Button>
-                  <Button type="submit" variant="primary" isLoading={isLoading}>Create Badge</Button>
                 </div>
               </form>
             )}

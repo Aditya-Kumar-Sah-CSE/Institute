@@ -52,6 +52,12 @@ export async function checkBadges(userId: string) {
   const { count: courseCount } = await supabase.from('enrollments').select('*', { count: 'exact', head: true })
     .eq('user_id', userId).not('completed_at', 'is', null);
 
+  const { count: enrolledCount } = await supabase.from('enrollments').select('*', { count: 'exact', head: true })
+    .eq('user_id', userId).eq('status', 'approved');
+
+  const { count: approvedAssignmentCount } = await supabase.from('submissions').select('*', { count: 'exact', head: true })
+    .eq('user_id', userId).eq('status', 'approved');
+
   const { data: enrollments } = await supabase.from('enrollments').select('course_id, progress').eq('user_id', userId);
 
 
@@ -94,6 +100,15 @@ export async function checkBadges(userId: string) {
       case 'streak_days':
         isEligible = (profile?.streak_days || 0) >= (badge.condition_value || 0);
         break;
+      case 'active_days':
+        isEligible = (profile?.total_active_days || 0) >= (badge.condition_value || 0);
+        break;
+      case 'course_enrolled':
+        isEligible = (enrolledCount || 0) >= (badge.condition_value || 0);
+        break;
+      case 'assignments_approved':
+        isEligible = (approvedAssignmentCount || 0) >= (badge.condition_value || 0);
+        break;
     }
 
     if (isEligible) {
@@ -113,17 +128,19 @@ export async function checkBadges(userId: string) {
 export async function updateStreak(userId: string) {
   const supabase = await createClient();
 
-  const { data: profile } = await supabase.from('profiles').select('last_active_at, streak_days').eq('id', userId).single();
+  const { data: profile } = await supabase.from('profiles').select('last_active_at, streak_days, total_active_days').eq('id', userId).single();
   if (!profile) return;
 
   const now = new Date();
   const lastActive = profile.last_active_at ? new Date(profile.last_active_at) : null;
   
   let newStreak = profile.streak_days;
+  let newTotalActiveDays = profile.total_active_days || 0;
   let shouldAwardStreakXP = false;
 
   if (!lastActive) {
     newStreak = 1;
+    newTotalActiveDays = 1;
     shouldAwardStreakXP = true;
   } else {
     // Check if it's a new day
@@ -137,9 +154,11 @@ export async function updateStreak(userId: string) {
     if (!isSameDay) {
       if (isNextDay) {
         newStreak += 1;
+        newTotalActiveDays += 1;
         shouldAwardStreakXP = true;
       } else {
         newStreak = 1; // Streak broken
+        newTotalActiveDays += 1;
         shouldAwardStreakXP = true; // Still award for the new day
       }
     }
@@ -148,7 +167,8 @@ export async function updateStreak(userId: string) {
   // Update profile
   await supabase.from('profiles').update({
     last_active_at: now.toISOString(),
-    streak_days: newStreak
+    streak_days: newStreak,
+    total_active_days: newTotalActiveDays
   }).eq('id', userId);
 
   // Award XP if it's a new day
@@ -173,4 +193,38 @@ export async function updateStreak(userId: string) {
 
   // Always check badges on login
   await checkBadges(userId);
+}
+
+export async function getUnseenBadges() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data: unseen } = await supabase
+    .from('user_badges')
+    .select(`
+      id,
+      badges (
+        id,
+        name,
+        icon,
+        description
+      )
+    `)
+    .eq('user_id', user.id)
+    .eq('is_seen', false);
+
+  return unseen || [];
+}
+
+export async function markBadgesSeen(userBadgeIds: string[]) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || !userBadgeIds.length) return;
+
+  await supabase
+    .from('user_badges')
+    .update({ is_seen: true })
+    .in('id', userBadgeIds)
+    .eq('user_id', user.id);
 }

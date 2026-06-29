@@ -27,11 +27,6 @@ export default async function CourseBuilderPage({ params }: { params: Promise<{ 
     .eq('course_id', courseId)
     .order('sort_order', { ascending: true });
 
-  // Fetch course badges
-  const { data: badges } = await supabase
-    .from('badges')
-    .select('*')
-    .eq('course_id', courseId);
 
   // Fetch enrolled students
   const { data: enrollments } = await supabase
@@ -47,7 +42,7 @@ export default async function CourseBuilderPage({ params }: { params: Promise<{ 
         </Link>
       </div>
       
-      <CurriculumBuilder course={course} lessons={lessons || []} courseBadges={badges || []} />
+      <CurriculumBuilder course={course} lessons={lessons || []} />
 
       <div style={{ marginTop: 'var(--space-xl)' }}>
         <h2 style={{ fontSize: 'var(--text-xl)', marginBottom: 'var(--space-md)' }}>Joined Students</h2>

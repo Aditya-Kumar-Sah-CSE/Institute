@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Sidebar from '@/components/layout/Sidebar';
 import Navbar from '@/components/layout/Navbar';
+import BadgeCelebrator from '@/components/shared/BadgeCelebrator';
 import { updateStreak } from '@/features/gamification/actions/gamification';
 import './DashboardLayout.css';
 
@@ -70,6 +71,7 @@ export default async function DashboardLayout({
           {children}
         </main>
       </div>
+      <BadgeCelebrator />
     </div>
   );
 }
