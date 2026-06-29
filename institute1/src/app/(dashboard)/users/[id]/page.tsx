@@ -14,7 +14,6 @@ export default async function PublicProfilePage(props: { params: Promise<{ id: s
   const { id } = params;
   
   const supabase = await createClient();
-  const adminSb = await createAdminClient();
 
   let profile = null;
   let earnedBadges = [];
@@ -46,8 +45,8 @@ export default async function PublicProfilePage(props: { params: Promise<{ id: s
     earnedBadges = userBadgesRes.data || [];
 
     // Fetch enrollments securely via admin client (read-only display)
-    // Wrapped in try/catch in case service role key is missing locally
     if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      const adminSb = await createAdminClient();
       const { data: enrData } = await adminSb
         .from('enrollments')
         .select('*, course:courses(title, thumbnail_url)')
