@@ -41,13 +41,13 @@ export default function LeaderboardTable({ entries, currentUserId }: Leaderboard
               <Link href={isCurrentUser ? '/profile' : `/users/${entry.id}`} className="col-user" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
                 <div className="user-avatar-sm">
                   {entry.avatar_url ? (
-                    <Image src={entry.avatar_url} alt={entry.name} width={40} height={40} style={{ objectFit: 'cover' }} />
+                    <Image src={entry.avatar_url} alt={entry.name || 'User'} width={40} height={40} style={{ objectFit: 'cover' }} />
                   ) : (
-                    <span>{entry.name.charAt(0)}</span>
+                    <span>{(entry.name || '?').charAt(0)}</span>
                   )}
                 </div>
                 <span className="user-name" style={{ transition: 'color 0.2s', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--neon-cyan)'} onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}>
-                  {entry.name} {isCurrentUser && '(You)'}
+                  {entry.name || 'Anonymous User'} {isCurrentUser && '(You)'}
                 </span>
               </Link>
               
