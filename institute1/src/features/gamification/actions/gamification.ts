@@ -62,7 +62,7 @@ export async function checkBadges(userId: string) {
 
   // Faculty logic: count courses created by this user
   const { count: coursesCreatedCount } = await supabase.from('courses').select('*', { count: 'exact', head: true })
-    .eq('instructor_id', userId);
+    .eq('created_by', userId);
 
 
   // 3. Get currently earned badges

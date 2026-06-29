@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { checkBadges } from '@/features/gamification/actions/gamification';
 
 // Authorization helper — verifies admin or instructor role
 async function requireCourseRole() {
@@ -40,6 +41,10 @@ export async function addCourse(formData: FormData) {
   });
 
   if (error) return { error: error.message };
+
+  if (user?.id) {
+    await checkBadges(user.id);
+  }
 
   revalidatePath('/admin/courses');
   revalidatePath('/instructor/courses');
