@@ -38,7 +38,7 @@ export default function LeaderboardTable({ entries, currentUserId }: Leaderboard
                 {entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : `#${entry.rank}`}
               </div>
               
-              <Link href={isCurrentUser ? '/profile' : `/users/${entry.id}`} target={!isCurrentUser ? "_blank" : undefined} rel={!isCurrentUser ? "noopener noreferrer" : undefined} className="col-user" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+              <Link href={isCurrentUser ? '/profile' : `/users/${entry.id}`} className="col-user" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
                 <div className="user-avatar-sm">
                   {entry.avatar_url ? (
                     <Image src={entry.avatar_url} alt={entry.name} width={40} height={40} style={{ objectFit: 'cover' }} />
