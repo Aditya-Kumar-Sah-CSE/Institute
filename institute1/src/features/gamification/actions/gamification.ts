@@ -60,6 +60,10 @@ export async function checkBadges(userId: string) {
 
   const { data: enrollments } = await supabase.from('enrollments').select('course_id, progress').eq('user_id', userId);
 
+  // Faculty logic: count courses created by this user
+  const { count: coursesCreatedCount } = await supabase.from('courses').select('*', { count: 'exact', head: true })
+    .eq('instructor_id', userId);
+
 
   // 3. Get currently earned badges
   const { data: earned } = await supabase.from('user_badges').select('badge_id').eq('user_id', userId);
@@ -108,6 +112,9 @@ export async function checkBadges(userId: string) {
         break;
       case 'assignments_approved':
         isEligible = (approvedAssignmentCount || 0) >= (badge.condition_value || 0);
+        break;
+      case 'courses_created':
+        isEligible = (coursesCreatedCount || 0) >= (badge.condition_value || 0);
         break;
     }
 
