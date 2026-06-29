@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button';
 import Link from 'next/link';
 import AvatarUpload from './components/AvatarUpload';
 import GithubConnect from './components/GithubConnect';
+import SocialLinksConnect from './components/SocialLinksConnect';
 import { getPastMonthlyRewards } from '@/features/gamification/actions/monthly-rewards';
 import './Profile.css';
 export const dynamic = 'force-dynamic';
@@ -151,7 +152,10 @@ export default async function ProfilePage() {
         <div className="profile-col-side">
           <Card variant="glass" className="profile-section">
             <h2 className="section-title-sm">Integrations</h2>
-            <GithubConnect userId={user.id} initialUsername={profile.github_username} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+              <GithubConnect userId={user.id} initialUsername={profile.github_username} />
+              <SocialLinksConnect userId={user.id} initialLinks={profile.social_links as Record<string, string> | null} />
+            </div>
           </Card>
 
           <Card variant="glass" className="profile-section">

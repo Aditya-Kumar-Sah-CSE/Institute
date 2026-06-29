@@ -282,3 +282,32 @@ export async function updateGithubUsername(userId: string, githubUsername: strin
 
   return { success: true };
 }
+
+export async function updateSocialLinks(userId: string, socialLinks: Record<string, string>) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ social_links: socialLinks })
+    .eq('id', userId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  // Award XP for adding social links if they have any
+  const countLinks = Object.keys(socialLinks).length;
+  if (countLinks > 0) {
+    const { count } = await supabase
+      .from('xp_log')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('action', 'Added Social Profile Links');
+      
+    if (count === 0) {
+      await awardXP(userId, 50, 'Added Social Profile Links', 'integration', 'social_links');
+    }
+  }
+
+  return { success: true };
+}

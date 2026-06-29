@@ -20,6 +20,7 @@ export interface Profile {
   streak_days: number;
   last_active_at: string | null;
   created_at: string;
+  social_links?: Record<string, string>;
 }
 
 export interface InstructorApplication {

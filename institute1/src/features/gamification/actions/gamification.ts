@@ -117,6 +117,9 @@ export async function checkBadges(userId: string) {
       case 'courses_created':
         isEligible = (coursesCreatedCount || 0) >= (badge.condition_value || 0);
         break;
+      case 'social_links':
+        isEligible = Object.keys((profile?.social_links as Record<string, string>) || {}).length >= (badge.condition_value || 0);
+        break;
     }
 
     if (isEligible) {
