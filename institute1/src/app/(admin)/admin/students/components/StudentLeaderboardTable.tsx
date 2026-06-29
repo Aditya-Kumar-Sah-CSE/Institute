@@ -43,14 +43,27 @@ import './StudentLeaderboardTable.css';
 
 export default function StudentLeaderboardTable({ students, isInstructor }: StudentLeaderboardTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'student' | 'instructor'>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 25;
   const [selectedStudent, setSelectedStudent] = useState<StudentDetail | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  // Search filter logic
-  const filteredStudents = students.filter(student => 
-    student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Search and Role filter logic
+  const filteredStudents = students.filter(student => {
+    const matchesSearch = student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          student.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRole = roleFilter === 'all' || student.role === roleFilter;
+    return matchesSearch && matchesRole;
+  });
+
+  const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
+  const paginatedStudents = filteredStudents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  // Reset page to 1 when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, roleFilter]);
 
   const handleDeleteStudent = async (studentId: string, studentName: string) => {
     if (window.confirm(`Are you sure you want to permanently delete student "${studentName}"? This will remove all their progress, submissions, and XP. This action cannot be undone.`)) {
@@ -98,20 +111,45 @@ export default function StudentLeaderboardTable({ students, isInstructor }: Stud
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
       {/* Search Input */}
-      <div className="search-container" style={{ marginBottom: 'var(--space-md)' }}>
-        <Input 
-          placeholder="Search students by name or email..." 
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          icon="🔍"
-        />
+      <div className="search-container" style={{ marginBottom: 'var(--space-md)', display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ flex: 1, minWidth: '250px' }}>
+          <Input 
+            placeholder="Search users by name or email..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            icon="🔍"
+          />
+        </div>
+        <div style={{ display: 'flex', gap: 'var(--space-xs)' }}>
+          <Button 
+            variant={roleFilter === 'all' ? 'primary' : 'secondary'} 
+            onClick={() => setRoleFilter('all')}
+            size="sm"
+          >
+            All Members
+          </Button>
+          <Button 
+            variant={roleFilter === 'student' ? 'primary' : 'secondary'} 
+            onClick={() => setRoleFilter('student')}
+            size="sm"
+          >
+            Students
+          </Button>
+          <Button 
+            variant={roleFilter === 'instructor' ? 'primary' : 'secondary'} 
+            onClick={() => setRoleFilter('instructor')}
+            size="sm"
+          >
+            Faculty
+          </Button>
+        </div>
       </div>
 
       <div className="table-responsive-wrapper">
         <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--glass-border)', color: 'var(--text-secondary)' }}>
-              <th style={{ padding: 'var(--space-md) var(--space-sm)' }}>Name</th>
+              <th style={{ padding: 'var(--space-md) var(--space-sm)' }}>Name & Role</th>
               <th style={{ padding: 'var(--space-md) var(--space-sm)' }}>Email</th>
               <th style={{ padding: 'var(--space-md) var(--space-sm)' }}>Level</th>
               <th style={{ padding: 'var(--space-md) var(--space-sm)' }}>XP</th>
@@ -121,7 +159,7 @@ export default function StudentLeaderboardTable({ students, isInstructor }: Stud
             </tr>
           </thead>
           <tbody>
-            {filteredStudents.map(student => {
+            {paginatedStudents.map(student => {
               let studentProgress = 0;
               if (student.enrollments && student.enrollments.length > 0) {
                 const sum = student.enrollments.reduce((acc: number, curr: EnrollmentDetail) => acc + (curr.progress || 0), 0);
@@ -140,8 +178,19 @@ export default function StudentLeaderboardTable({ students, isInstructor }: Stud
                   onClick={() => setSelectedStudent(student)}
                 >
                   <td data-label="Name" style={{ padding: 'var(--space-md) var(--space-sm)', fontWeight: 'var(--weight-semibold)' }}>
-                    <div className="td-content">
+                    <div className="td-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                       <span className="hover-underline" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{student.name}</span>
+                      <span style={{ 
+                        fontSize: '0.65rem', 
+                        padding: '2px 6px', 
+                        borderRadius: '4px', 
+                        marginTop: '4px',
+                        background: student.role === 'instructor' ? 'rgba(255, 165, 2, 0.2)' : 'rgba(46, 213, 115, 0.2)',
+                        color: student.role === 'instructor' ? '#ffa502' : '#2ed573',
+                        textTransform: 'uppercase'
+                      }}>
+                        {student.role}
+                      </span>
                     </div>
                   </td>
                   <td data-label="Email" style={{ padding: 'var(--space-md) var(--space-sm)', color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
@@ -196,10 +245,37 @@ export default function StudentLeaderboardTable({ students, isInstructor }: Stud
         
         {filteredStudents.length === 0 && (
           <div style={{ padding: 'var(--space-2xl)', textAlign: 'center', color: 'var(--text-muted)' }}>
-            No students match the search filter.
+            No users match the selected filters.
           </div>
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--space-md)' }}>
+          <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+            Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredStudents.length)} of {filteredStudents.length} entries
+          </div>
+          <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Student Details Modal */}
       {selectedStudent && (

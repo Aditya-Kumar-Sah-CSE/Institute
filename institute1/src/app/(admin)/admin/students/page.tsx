@@ -3,9 +3,7 @@ import Card from '@/components/ui/Card';
 import StudentLeaderboardTable from './components/StudentLeaderboardTable';
 import Link from 'next/link';
 
-export default async function AdminStudentsPage(props: { searchParams: Promise<{ view?: string }> }) {
-  const searchParams = await props.searchParams;
-  const viewMode = searchParams.view || 'students';
+export default async function AdminStudentsPage() {
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -58,17 +56,15 @@ export default async function AdminStudentsPage(props: { searchParams: Promise<{
 
       {/* Overview Panel */}
       <div className="dashboard-stats-grid">
-        <Link href={viewMode === 'all' ? "/admin/students" : "/admin/students?view=all"} style={{ textDecoration: 'none' }}>
-          <Card variant="glass" padding="lg" hover style={{ cursor: 'pointer', height: '100%', border: viewMode === 'all' ? '1px solid var(--neon-cyan)' : undefined }}>
-            <div className="stat-card-value" style={{ color: 'var(--neon-cyan)' }}>
-              {totalMembers}
-            </div>
-            <div className="text-secondary stat-card-label">Total Members</div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '8px', opacity: 0.8 }}>
-              {students.length} Students • {instructors.length} Faculty
-            </div>
-          </Card>
-        </Link>
+        <Card variant="glass" padding="lg">
+          <div className="stat-card-value" style={{ color: 'var(--neon-cyan)' }}>
+            {totalMembers}
+          </div>
+          <div className="text-secondary stat-card-label">Total Members</div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '8px', opacity: 0.8 }}>
+            {students.length} Students • {instructors.length} Faculty
+          </div>
+        </Card>
         
         <Card variant="glass" padding="lg">
           <div className="stat-card-value" style={{ color: 'var(--neon-magenta)' }}>
@@ -96,15 +92,10 @@ export default async function AdminStudentsPage(props: { searchParams: Promise<{
       <Card variant="glass" padding="lg">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-xl)' }}>
           <h2 style={{ fontSize: 'var(--text-xl)', margin: 0 }}>
-            {viewMode === 'all' ? 'All Members & Details' : 'Student Leaderboard & Details'}
+            Member Directory & Leaderboard
           </h2>
-          {viewMode === 'all' && (
-            <Link href="/admin/students" className="btn btn-secondary btn-sm" style={{ textDecoration: 'none' }}>
-              Show Students Only
-            </Link>
-          )}
         </div>
-        <StudentLeaderboardTable students={viewMode === 'all' ? (allUsers || []) : students} isInstructor={isInstructor} />
+        <StudentLeaderboardTable students={allUsers || []} isInstructor={isInstructor} />
       </Card>
     </div>
   );
