@@ -3,6 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import LevelBadge from '@/components/shared/LevelBadge';
+import Link from 'next/link';
 import type { LeaderboardEntry } from '@/types';
 import './Leaderboard.css';
 
@@ -37,7 +38,7 @@ export default function LeaderboardTable({ entries, currentUserId }: Leaderboard
                 {entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : `#${entry.rank}`}
               </div>
               
-              <div className="col-user">
+              <Link href={isCurrentUser ? '/profile' : `/users/${entry.id}`} className="col-user" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
                 <div className="user-avatar-sm">
                   {entry.avatar_url ? (
                     <Image src={entry.avatar_url} alt={entry.name} width={40} height={40} style={{ objectFit: 'cover' }} />
@@ -45,8 +46,10 @@ export default function LeaderboardTable({ entries, currentUserId }: Leaderboard
                     <span>{entry.name.charAt(0)}</span>
                   )}
                 </div>
-                <span className="user-name">{entry.name} {isCurrentUser && '(You)'}</span>
-              </div>
+                <span className="user-name" style={{ transition: 'color 0.2s', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--neon-cyan)'} onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}>
+                  {entry.name} {isCurrentUser && '(You)'}
+                </span>
+              </Link>
               
               <div className="col-level">
                 <LevelBadge level={entry.level} size="sm" />
