@@ -37,4 +37,9 @@ INSERT INTO badges (name, icon, description, condition_type, condition_value) VA
 ('XP Elite', '🔥', 'Earned 500 XP', 'xp_threshold', 500),
 ('XP Master', '💥', 'Earned 1000 XP', 'xp_threshold', 1000),
 ('XP Grandmaster', '💫', 'Earned 2500 XP', 'xp_threshold', 2500),
-('XP Legend', '👑', 'Earned 5000 XP', 'xp_threshold', 5000);
+('XP Legend', '👑', 'Earned 5000 XP', 'xp_threshold', 5000),
+('XP Mythic', '🌟', 'Earned 10,000 XP', 'xp_threshold', 10000),
+('XP Titan', '🏔️', 'Earned 25,000 XP', 'xp_threshold', 25000),
+('XP Deity', '⚡', 'Earned 50,000 XP', 'xp_threshold', 50000),
+('XP Celestial', '✨', 'Earned 100,000 XP', 'xp_threshold', 100000),
+('XP Ascendant', '🌌', 'Earned 1,000,000 XP', 'xp_threshold', 1000000);
