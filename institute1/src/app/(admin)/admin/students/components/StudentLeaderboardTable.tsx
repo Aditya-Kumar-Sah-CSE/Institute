@@ -235,10 +235,14 @@ export default function StudentLeaderboardTable({ students, isInstructor }: Stud
             </div>
             
             <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
-              <a href={`/users/${selectedStudent.id}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-                <Button variant="secondary" size="sm">
-                  View Full Public Profile ↗
-                </Button>
+              <a 
+                href={`/users/${selectedStudent.id}`} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="btn btn-secondary btn-sm" 
+                style={{ textDecoration: 'none' }}
+              >
+                <span className="btn-label">View Full Public Profile ↗</span>
               </a>
             </div>
 
