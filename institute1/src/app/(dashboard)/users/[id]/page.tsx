@@ -16,36 +16,62 @@ export default async function PublicProfilePage(props: { params: Promise<{ id: s
   const supabase = await createClient();
   const adminSb = await createAdminClient();
 
-  // Fetch the public profile
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, name, avatar_url, xp, level, role, streak_days, social_links')
-    .eq('id', id)
-    .single();
+  let profile = null;
+  let earnedBadges = [];
+  let allBadges = [];
+  let enrollments = null;
+
+  try {
+    // Fetch the public profile
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, name, avatar_url, xp, level, role, streak_days, social_links')
+      .eq('id', id)
+      .single();
+    
+    profile = data;
+  } catch (err) {
+    console.error('Error fetching profile:', err);
+  }
 
   if (!profile) return notFound();
 
-  // Fetch badges (viewable by everyone)
-  const { data: allBadges } = await supabase.from('badges').select('*').order('created_at', { ascending: true });
-  const { data: earnedBadges } = await supabase.from('user_badges').select('*, badge:badges(*)').eq('user_id', id);
+  try {
+    // Fetch badges (viewable by everyone)
+    const [badgesRes, userBadgesRes] = await Promise.all([
+      supabase.from('badges').select('*').order('created_at', { ascending: true }),
+      supabase.from('user_badges').select('*, badge:badges(*)').eq('user_id', id)
+    ]);
+    allBadges = badgesRes.data || [];
+    earnedBadges = userBadgesRes.data || [];
 
-  // Fetch enrollments securely via admin client (read-only display)
-  const { data: enrollments } = await adminSb
-    .from('enrollments')
-    .select('*, course:courses(title, thumbnail_url)')
-    .eq('user_id', id);
+    // Fetch enrollments securely via admin client (read-only display)
+    // Wrapped in try/catch in case service role key is missing locally
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      const { data: enrData } = await adminSb
+        .from('enrollments')
+        .select('*, course:courses(title, thumbnail_url)')
+        .eq('user_id', id);
+      enrollments = enrData;
+    }
+  } catch (err) {
+    console.error('Error fetching extra profile data:', err);
+  }
 
-  const socialLinks = (profile.social_links as Record<string, string>) || {};
+  const socialLinksRaw = profile.social_links;
+  const socialLinks = (typeof socialLinksRaw === 'object' && socialLinksRaw !== null) 
+    ? (socialLinksRaw as Record<string, string>) 
+    : {};
 
   return (
     <div className="profile-page">
       <div className="profile-header glass-card">
         <div style={{ position: 'relative', width: 120, height: 120, borderRadius: '50%', overflow: 'hidden', border: '4px solid var(--glass-border)' }}>
           {profile.avatar_url ? (
-            <Image src={profile.avatar_url} alt={profile.name} fill style={{ objectFit: 'cover' }} />
+            <Image src={profile.avatar_url} alt={profile.name || 'User'} fill style={{ objectFit: 'cover' }} />
           ) : (
             <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem', background: 'var(--glass-bg)', color: 'var(--text-primary)' }}>
-              {profile.name.charAt(0)}
+              {(profile.name || '?').charAt(0)}
             </div>
           )}
         </div>
