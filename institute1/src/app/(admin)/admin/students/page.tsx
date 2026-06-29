@@ -9,9 +9,9 @@ export default async function AdminStudentsPage() {
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single();
   const isInstructor = profile?.role === 'instructor';
 
-  // Fetch all students and their enrollments to calculate progress
-  // In Supabase we can query profiles with a left join to enrollments
-  const { data: students } = await supabase
+  // Fetch all users and their enrollments to calculate progress
+  // We need all users to show member breakdown, but only students for the table
+  const { data: allUsers } = await supabase
     .from('profiles')
     .select(`
       *,
@@ -25,15 +25,17 @@ export default async function AdminStudentsPage() {
         )
       )
     `)
-    .neq('role', 'admin')
     .order('xp', { ascending: false });
 
+  const students = allUsers?.filter(u => u.role === 'student') || [];
+  const instructors = allUsers?.filter(u => u.role === 'instructor') || [];
+
   // Calculate stats for the overview panel
-  const totalStudents = students?.length || 0;
-  const activeStudents = students?.filter(s => s.last_active_at && (new Date().getTime() - new Date(s.last_active_at).getTime() < 7 * 24 * 60 * 60 * 1000)).length || 0; // active in last 7 days
-  const totalXPEarned = students?.reduce((sum, s) => sum + (s.xp || 0), 0) || 0;
+  const totalMembers = allUsers?.length || 0;
+  const activeStudents = students.filter(s => s.last_active_at && (new Date().getTime() - new Date(s.last_active_at).getTime() < 7 * 24 * 60 * 60 * 1000)).length || 0; // active in last 7 days
+  const totalXPEarned = students.reduce((sum, s) => sum + (s.xp || 0), 0) || 0;
   
-  // Calculate average completion rate
+  // Calculate average completion rate (only for students)
   let totalProgress = 0;
   let enrollmentCount = 0;
   students?.forEach(student => {
@@ -55,9 +57,12 @@ export default async function AdminStudentsPage() {
       <div className="dashboard-stats-grid">
         <Card variant="glass" padding="lg">
           <div className="stat-card-value" style={{ color: 'var(--neon-cyan)' }}>
-            {totalStudents}
+            {totalMembers}
           </div>
-          <div className="text-secondary stat-card-label">Total Users</div>
+          <div className="text-secondary stat-card-label">Total Members</div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '8px', opacity: 0.8 }}>
+            {students.length} Students • {instructors.length} Faculty
+          </div>
         </Card>
         
         <Card variant="glass" padding="lg">
@@ -85,7 +90,7 @@ export default async function AdminStudentsPage() {
       {/* Student Table */}
       <Card variant="glass" padding="lg">
         <h2 style={{ marginBottom: 'var(--space-xl)', fontSize: 'var(--text-xl)' }}>Student Leaderboard & Details</h2>
-        <StudentLeaderboardTable students={students || []} isInstructor={isInstructor} />
+        <StudentLeaderboardTable students={students} isInstructor={isInstructor} />
       </Card>
     </div>
   );
