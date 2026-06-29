@@ -5,6 +5,7 @@ import LevelBadge from '@/components/shared/LevelBadge';
 import BadgeDisplay from '@/components/shared/BadgeDisplay';
 import Card from '@/components/ui/Card';
 import Image from 'next/image';
+import ProfileViewTracker from '@/components/shared/ProfileViewTracker';
 import '../../profile/Profile.css';
 
 export const dynamic = 'force-dynamic';
@@ -78,6 +79,8 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
 
   return (
     <div className="profile-page">
+      <ProfileViewTracker viewedId={id} />
+      
       <div className="profile-header glass-card">
         <div style={{ position: 'relative', width: 120, height: 120, borderRadius: '50%', overflow: 'hidden', border: '4px solid var(--glass-border)' }}>
           {profile.avatar_url ? (

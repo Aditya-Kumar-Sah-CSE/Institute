@@ -103,7 +103,11 @@ export default async function StudentFeedbacksPage() {
               
               <div style={{ background: 'rgba(0,0,0,0.2)', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', margin: 'var(--space-sm) 0' }}>
                 <p style={{ margin: '0 0 5px 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Your Message:</p>
-                <p style={{ margin: 0 }}>{fb.message}</p>
+                {fb.category === 'Notification' ? (
+                  <p style={{ margin: 0 }} dangerouslySetInnerHTML={{ __html: fb.message }} />
+                ) : (
+                  <p style={{ margin: 0 }}>{fb.message}</p>
+                )}
               </div>
 
               {fb.admin_reply && (
