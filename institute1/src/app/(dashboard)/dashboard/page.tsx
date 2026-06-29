@@ -71,33 +71,41 @@ export default async function DashboardPage() {
       </div>
 
       <div className="dashboard-stats-grid">
-        <Card variant="glass" padding="lg">
-          <div className="stat-card-value" style={{ color: 'var(--neon-cyan)' }}>
-            {profile?.xp.toLocaleString()}
-          </div>
-          <div className="text-secondary stat-card-label">Total XP</div>
-        </Card>
+        <Link href="/profile" style={{ textDecoration: 'none' }}>
+          <Card variant="glass" padding="lg">
+            <div className="stat-card-value" style={{ color: 'var(--neon-cyan)' }}>
+              {profile?.xp.toLocaleString()}
+            </div>
+            <div className="text-secondary stat-card-label">Total XP</div>
+          </Card>
+        </Link>
         
-        <Card variant="glass" padding="lg">
-          <div className="stat-card-value" style={{ color: 'var(--neon-magenta)' }}>
-            {profile?.streak_days} 🔥
-          </div>
-          <div className="text-secondary stat-card-label">Day Streak</div>
-        </Card>
+        <Link href="/profile" style={{ textDecoration: 'none' }}>
+          <Card variant="glass" padding="lg">
+            <div className="stat-card-value" style={{ color: 'var(--neon-magenta)' }}>
+              {profile?.streak_days} 🔥
+            </div>
+            <div className="text-secondary stat-card-label">Day Streak</div>
+          </Card>
+        </Link>
 
-        <Card variant="glass" padding="lg">
-          <div className="stat-card-value" style={{ color: 'var(--neon-lime)' }}>
-            {completedAssignments || 0}
-          </div>
-          <div className="text-secondary stat-card-label">Tasks Completed</div>
-        </Card>
+        <Link href="/profile" style={{ textDecoration: 'none' }}>
+          <Card variant="glass" padding="lg">
+            <div className="stat-card-value" style={{ color: 'var(--neon-lime)' }}>
+              {completedAssignments || 0}
+            </div>
+            <div className="text-secondary stat-card-label">Tasks Completed</div>
+          </Card>
+        </Link>
 
-        <Card variant="glass" padding="lg">
-          <div className="stat-card-value" style={{ color: 'var(--neon-gold)' }}>
-            {earnedBadges || 0}
-          </div>
-          <div className="text-secondary stat-card-label">Badges Earned</div>
-        </Card>
+        <Link href="/profile" style={{ textDecoration: 'none' }}>
+          <Card variant="glass" padding="lg">
+            <div className="stat-card-value" style={{ color: 'var(--neon-gold)' }}>
+              {earnedBadges || 0}
+            </div>
+            <div className="text-secondary stat-card-label">Badges Earned</div>
+          </Card>
+        </Link>
       </div>
 
       {notices && notices.length > 0 && (
