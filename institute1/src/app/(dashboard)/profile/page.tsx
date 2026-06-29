@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button';
 import Link from 'next/link';
 import AvatarUpload from './components/AvatarUpload';
 import GithubConnect from './components/GithubConnect';
+import { getPastMonthlyRewards } from '@/features/gamification/actions/monthly-rewards';
 import './Profile.css';
 export const dynamic = 'force-dynamic';
 
@@ -25,10 +26,37 @@ export default async function ProfilePage() {
   const { data: enrollments } = await supabase.from('enrollments').select('*, course:courses(title, thumbnail_url)').eq('user_id', user.id);
   const { data: appData, error: appError } = await adminSb.from('instructor_applications').select('status').eq('user_id', user.id).order('submitted_at', { ascending: false }).limit(1).maybeSingle();
 
+  // Fetch monthly rewards
+  const monthlyRewards = await getPastMonthlyRewards(user.id);
+  // Sort descending by month_date
+  const latestReward = monthlyRewards.length > 0 ? monthlyRewards.sort((a, b) => new Date(b.month_date).getTime() - new Date(a.month_date).getTime())[0] : null;
+
   if (!profile) return <div>Profile not found.</div>;
 
   return (
     <div className="profile-page">
+      {latestReward && latestReward.rank <= 10 && (
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 140, 0, 0.1))',
+          border: '1px solid var(--neon-gold)',
+          borderRadius: 'var(--radius-lg)',
+          padding: 'var(--space-md) var(--space-xl)',
+          marginBottom: 'var(--space-xl)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'var(--space-md)',
+          boxShadow: '0 0 20px rgba(255, 215, 0, 0.15)'
+        }}>
+          <span style={{ fontSize: '2.5rem', filter: 'drop-shadow(0 0 5px rgba(255,215,0,0.8))' }}>👑</span>
+          <div>
+            <h2 style={{ color: 'var(--neon-gold)', fontSize: 'var(--text-xl)', marginBottom: 'var(--space-2xs)' }}>Institute Topper</h2>
+            <p className="text-secondary" style={{ fontSize: 'var(--text-md)' }}>
+              Congratulations! You ranked <strong>#{latestReward.rank}</strong> in the leaderboard last month.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="profile-header glass-card">
         <AvatarUpload 
           userId={user.id} 

@@ -5,6 +5,7 @@ import Navbar from '@/components/layout/Navbar';
 import BadgeCelebrator from '@/components/shared/BadgeCelebrator';
 import { updateStreak } from '@/features/gamification/actions/gamification';
 import './DashboardLayout.css';
+import MonthlyCelebrator from '@/components/shared/MonthlyCelebrator';
 
 export default async function DashboardLayout({
   children,
@@ -72,6 +73,7 @@ export default async function DashboardLayout({
         </main>
       </div>
       <BadgeCelebrator />
+      <MonthlyCelebrator />
     </div>
   );
 }
