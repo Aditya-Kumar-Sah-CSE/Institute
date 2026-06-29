@@ -200,6 +200,10 @@ export async function getUnseenBadges() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
+  // Always evaluate badges when fetching unseen to catch retroactive eligibility 
+  // (e.g. for users who are already active today so they bypass updateStreak)
+  await checkBadges(user.id).catch(console.error);
+
   const { data: unseen } = await supabase
     .from('user_badges')
     .select(`
