@@ -50,8 +50,8 @@ export default async function AdminStudentsPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2xl)' }}>
       <div className="page-header">
-        <h1 className="text-gradient">Student Tracking</h1>
-        <p className="text-secondary">Monitor student progress, XP, and active engagement.</p>
+        <h1 className="text-gradient">Member Directory & Tracking</h1>
+        <p className="text-secondary">Monitor student progress, manage faculty, and view overall platform engagement.</p>
       </div>
 
       {/* Overview Panel */}
