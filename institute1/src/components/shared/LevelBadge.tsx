@@ -13,9 +13,14 @@ interface LevelBadgeProps {
 
 const levelIcons: Record<LevelName, string> = {
   Beginner: '🌱',
+  Novice: '🌿',
   Intermediate: '⚡',
   Advanced: '🔥',
-  Pro: '👑',
+  Expert: '💥',
+  Master: '🏅',
+  Grandmaster: '👁️',
+  Legend: '👑',
+  Mythic: '🌌',
 };
 
 export default function LevelBadge({ level, size = 'md', className = '' }: LevelBadgeProps) {

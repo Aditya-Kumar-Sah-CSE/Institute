@@ -10,10 +10,15 @@ export const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL || 'iambestadi@gm
 
 // Level thresholds
 export const LEVEL_THRESHOLDS = [
-  { name: 'Beginner' as const, min: 0, max: 499 },
-  { name: 'Intermediate' as const, min: 500, max: 1499 },
-  { name: 'Advanced' as const, min: 1500, max: 2999 },
-  { name: 'Pro' as const, min: 3000, max: Infinity },
+  { name: 'Beginner' as const, min: 0, max: 99 },
+  { name: 'Novice' as const, min: 100, max: 499 },
+  { name: 'Intermediate' as const, min: 500, max: 999 },
+  { name: 'Advanced' as const, min: 1000, max: 2499 },
+  { name: 'Expert' as const, min: 2500, max: 4999 },
+  { name: 'Master' as const, min: 5000, max: 9999 },
+  { name: 'Grandmaster' as const, min: 10000, max: 24999 },
+  { name: 'Legend' as const, min: 25000, max: 99999 },
+  { name: 'Mythic' as const, min: 100000, max: Infinity },
 ];
 
 // Default badge definitions
