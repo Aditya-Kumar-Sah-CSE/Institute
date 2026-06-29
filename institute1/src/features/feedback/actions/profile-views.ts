@@ -14,6 +14,11 @@ export async function recordProfileView(viewedId: string) {
     const profile = await getOrCreateProfile(user);
     if (!profile) return { success: false, error: 'Profile not found' };
 
+    // Admin and Faculty should be able to view student profiles secretly
+    if (profile.role === 'admin' || profile.role === 'instructor') {
+      return { success: true, message: 'Hidden view' };
+    }
+
     // Check if we already notified this user recently to avoid spam (e.g., within the last 12 hours)
     // We can just check the feedbacks table for a Notification from this viewer to this viewed user.
     // Wait, the feedbacks table only has 'user_id' which is the RECEIVER in this case.
