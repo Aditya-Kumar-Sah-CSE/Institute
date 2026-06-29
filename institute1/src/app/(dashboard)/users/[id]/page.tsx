@@ -9,9 +9,8 @@ import '../../profile/Profile.css';
 
 export const dynamic = 'force-dynamic';
 
-export default async function PublicProfilePage(props: { params: Promise<{ id: string }> }) {
-  const params = await props.params;
-  const { id } = params;
+export default async function PublicProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   
   const supabase = await createClient();
 
@@ -22,18 +21,33 @@ export default async function PublicProfilePage(props: { params: Promise<{ id: s
 
   try {
     // Fetch the public profile
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .select('id, name, avatar_url, xp, level, role, streak_days, social_links')
       .eq('id', id)
-      .single();
+      .maybeSingle();
+      
+    if (error) {
+      console.error('Supabase profile fetch error:', error);
+    }
     
     profile = data;
   } catch (err) {
     console.error('Error fetching profile:', err);
   }
 
-  if (!profile) return notFound();
+  if (!profile) {
+    return (
+      <div className="profile-page" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <Card variant="glass" style={{ textAlign: 'center', padding: 'var(--space-2xl)', maxWidth: '500px' }}>
+          <h2 style={{ color: 'var(--neon-red)', marginBottom: 'var(--space-md)' }}>Profile Not Found</h2>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-lg)' }}>
+            We couldn't find a student or faculty profile with this ID. They may have been removed or the link is invalid.
+          </p>
+        </Card>
+      </div>
+    );
+  }
 
   try {
     // Fetch badges (viewable by everyone)
