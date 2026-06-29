@@ -9,6 +9,7 @@ import Link from 'next/link';
 import AvatarUpload from './components/AvatarUpload';
 import GithubConnect from './components/GithubConnect';
 import SocialLinksConnect from './components/SocialLinksConnect';
+import AcademicInfoConnect from './components/AcademicInfoConnect';
 import { getPastMonthlyRewards } from '@/features/gamification/actions/monthly-rewards';
 import './Profile.css';
 export const dynamic = 'force-dynamic';
@@ -75,6 +76,16 @@ export default async function ProfilePage() {
           {profile.instructor_id && (
             <p className="profile-email" style={{ marginTop: 'var(--space-xs)', fontSize: 'var(--text-sm)' }}>
               Instructor ID: <span style={{ color: 'var(--neon-cyan)', fontWeight: 'var(--weight-semibold)' }}>{profile.instructor_id}</span>
+            </p>
+          )}
+          {profile.graduation_period && (
+            <p className="profile-email" style={{ marginTop: 'var(--space-xs)', fontSize: 'var(--text-sm)' }}>
+              Batch: <span style={{ color: 'var(--neon-cyan)', fontWeight: 'var(--weight-semibold)' }}>{profile.graduation_period}</span>
+            </p>
+          )}
+          {profile.cgpa !== null && profile.cgpa !== undefined && (
+            <p className="profile-email" style={{ marginTop: 'var(--space-xs)', fontSize: 'var(--text-sm)' }}>
+              CGPA: <span style={{ color: 'var(--neon-cyan)', fontWeight: 'var(--weight-semibold)' }}>{profile.cgpa}</span>
             </p>
           )}
           <div className="profile-badges-quick">
@@ -155,6 +166,18 @@ export default async function ProfilePage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
               <GithubConnect userId={user.id} initialUsername={profile.github_username} />
               <SocialLinksConnect userId={user.id} initialLinks={profile.social_links as Record<string, string> | null} />
+            </div>
+          </Card>
+
+          <Card variant="glass" className="profile-section">
+            <h2 className="section-title-sm">Academic Details</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+              <AcademicInfoConnect 
+                userId={user.id} 
+                initialGraduationPeriod={profile.graduation_period}
+                initialCgpa={profile.cgpa}
+                initialSgpa={profile.sgpa as Record<string, number> | null}
+              />
             </div>
           </Card>
 

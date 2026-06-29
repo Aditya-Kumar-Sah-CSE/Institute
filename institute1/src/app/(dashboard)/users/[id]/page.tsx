@@ -24,7 +24,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
     // Fetch the public profile
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, name, avatar_url, xp, level, role, streak_days, social_links')
+      .select('id, name, avatar_url, xp, level, role, streak_days, social_links, institute_id, instructor_id, graduation_period, cgpa, sgpa')
       .eq('id', id)
       .maybeSingle();
       
@@ -96,6 +96,27 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
           <h1 className="profile-name">{profile.name}</h1>
           <p className="profile-email text-muted" style={{ textTransform: 'capitalize' }}>{profile.role}</p>
           
+          {profile.institute_id && (
+            <p className="profile-email" style={{ marginTop: 'var(--space-xs)', fontSize: 'var(--text-sm)' }}>
+              Institute ID: <span style={{ color: 'var(--neon-cyan)', fontWeight: 'var(--weight-semibold)' }}>{profile.institute_id}</span>
+            </p>
+          )}
+          {profile.instructor_id && (
+            <p className="profile-email" style={{ marginTop: 'var(--space-xs)', fontSize: 'var(--text-sm)' }}>
+              Instructor ID: <span style={{ color: 'var(--neon-cyan)', fontWeight: 'var(--weight-semibold)' }}>{profile.instructor_id}</span>
+            </p>
+          )}
+          {profile.graduation_period && (
+            <p className="profile-email" style={{ marginTop: 'var(--space-xs)', fontSize: 'var(--text-sm)' }}>
+              Batch: <span style={{ color: 'var(--neon-cyan)', fontWeight: 'var(--weight-semibold)' }}>{profile.graduation_period}</span>
+            </p>
+          )}
+          {profile.cgpa !== null && profile.cgpa !== undefined && (
+            <p className="profile-email" style={{ marginTop: 'var(--space-xs)', fontSize: 'var(--text-sm)' }}>
+              CGPA: <span style={{ color: 'var(--neon-cyan)', fontWeight: 'var(--weight-semibold)' }}>{profile.cgpa}</span>
+            </p>
+          )}
+          
           <div className="profile-badges-quick">
             <LevelBadge level={profile.level} size="lg" />
             <div className="profile-streak-pill">
@@ -143,6 +164,20 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
         </div>
 
         <div className="profile-col-side">
+          {(profile.sgpa && Object.keys(profile.sgpa).length > 0) && (
+            <Card variant="glass" className="profile-section">
+              <h2 className="section-title-sm">Semester GPAs</h2>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-sm)' }}>
+                {Object.entries(profile.sgpa as Record<string, number>).map(([sem, val]) => (
+                  <div key={sem} style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--space-xs) var(--space-sm)', background: 'rgba(0,0,0,0.2)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--glass-border)' }}>
+                    <span style={{ color: 'var(--text-muted)', textTransform: 'capitalize' }}>{sem}</span>
+                    <span style={{ color: 'var(--neon-gold)', fontWeight: 'bold' }}>{String(val)}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+          
           {Object.keys(socialLinks).length > 0 && (
             <Card variant="glass" className="profile-section">
               <h2 className="section-title-sm">Connected Profiles</h2>

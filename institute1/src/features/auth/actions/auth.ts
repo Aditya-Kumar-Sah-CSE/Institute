@@ -311,3 +311,25 @@ export async function updateSocialLinks(userId: string, socialLinks: Record<stri
 
   return { success: true };
 }
+
+export async function updateAcademicInfo(
+  userId: string, 
+  data: { graduation_period?: string, cgpa?: number, sgpa?: Record<string, number> }
+) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ 
+      graduation_period: data.graduation_period,
+      cgpa: data.cgpa,
+      sgpa: data.sgpa
+    })
+    .eq('id', userId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return { success: true };
+}

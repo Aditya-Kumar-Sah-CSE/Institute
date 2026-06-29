@@ -21,6 +21,9 @@ export interface Profile {
   last_active_at: string | null;
   created_at: string;
   social_links?: Record<string, string>;
+  graduation_period?: string | null;
+  cgpa?: number | null;
+  sgpa?: Record<string, number> | null;
 }
 
 export interface InstructorApplication {
