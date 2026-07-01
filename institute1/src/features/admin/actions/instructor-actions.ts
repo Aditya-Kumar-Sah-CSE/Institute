@@ -34,13 +34,11 @@ export async function approveInstructor(applicationId: string, userId: string) {
     if (profileError) throw new Error('Failed to update profile: ' + profileError.message);
 
     // Send feedback notification
-    const { error: feedbackError } = await adminSb.from('feedbacks').insert({
+    const { error: feedbackError } = await adminSb.from('notifications').insert({
       user_id: userId,
-      name: 'System',
-      role: 'System',
-      category: 'Notification',
+      type: 'system',
       message: 'Congratulations! Your application to become an instructor has been approved.',
-      status: 'open'
+      link: '/instructor'
     });
 
     if (feedbackError) throw new Error('Failed to send notification: ' + feedbackError.message);
@@ -78,13 +76,11 @@ export async function rejectInstructor(applicationId: string, userId: string) {
     // They just can't become an instructor right now.
     
     // Send feedback notification
-    await adminSb.from('feedbacks').insert({
+    await adminSb.from('notifications').insert({
       user_id: userId,
-      name: 'System',
-      role: 'System',
-      category: 'Notification',
+      type: 'system',
       message: 'Unfortunately, your application to become an instructor has been declined.',
-      status: 'open'
+      link: '/dashboard'
     });
 
     revalidatePath('/admin/instructor-requests');

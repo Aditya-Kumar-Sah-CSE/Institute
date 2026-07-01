@@ -32,13 +32,11 @@ export async function enrollInCourse(courseId: string) {
     const { data: course } = await supabase.from('courses').select('title').eq('id', courseId).single();
     const courseName = course?.title || 'the course';
 
-    await supabase.from('feedbacks').insert({
+    await supabase.from('notifications').insert({
       user_id: user.id,
-      name: 'System',
-      role: 'System',
-      category: 'Notification',
+      type: 'system',
       message: `Thank you for enrolling in ${courseName}. Please wait for instructor approval.`,
-      status: 'open'
+      link: '/dashboard'
     });
     
     await awardXP(user.id, XP_VALUES.COURSE_JOIN, 'Joined a Course', 'enrollment', courseId);

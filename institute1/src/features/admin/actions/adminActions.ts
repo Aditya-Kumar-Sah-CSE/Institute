@@ -85,13 +85,11 @@ export async function deleteEnrollment(enrollmentId: string) {
     // If successfully deleted, insert a system notification for the student
     if (enrollment) {
       const courseTitle = Array.isArray(enrollment.courses) ? enrollment.courses[0]?.title : (enrollment.courses as { title: string } | null)?.title || 'the course';
-      await supabaseUser.from('feedbacks').insert({
+      await supabaseUser.from('notifications').insert({
         user_id: enrollment.user_id,
-        name: 'System',
-        role: 'System',
-        category: 'Notification',
+        type: 'system',
         message: `You have been removed from the course: ${courseTitle}.`,
-        status: 'open'
+        link: '/dashboard'
       });
     }
 

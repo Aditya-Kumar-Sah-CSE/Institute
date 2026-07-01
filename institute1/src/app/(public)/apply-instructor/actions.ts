@@ -64,13 +64,11 @@ export async function handleSubmitApplication(formData: FormData) {
   }
 
   // System notification for applying as instructor
-  await sb.from('feedbacks').insert({
+  await sb.from('notifications').insert({
     user_id: currentUser.id,
-    name: 'System',
-    role: 'System',
-    category: 'Notification',
+    type: 'system',
     message: 'Thank you for applying as an instructor. Please wait for admin approval.',
-    status: 'open'
+    link: '/dashboard'
   });
 
   // Revalidate the root layout so that subsequent navigations (e.g., to dashboard)
@@ -126,13 +124,11 @@ export async function handleFullRegistrationAndApplication(formData: FormData) {
   }
 
   // System notification for applying as instructor
-  await adminSb.from('feedbacks').insert({
+  await adminSb.from('notifications').insert({
     user_id: userId,
-    name: 'System',
-    role: 'System',
-    category: 'Notification',
+    type: 'system',
     message: 'Thank you for applying as an instructor. Please wait for admin approval.',
-    status: 'open'
+    link: '/dashboard'
   });
 
   // Revalidate the root layout so that subsequent navigations (e.g., to dashboard)

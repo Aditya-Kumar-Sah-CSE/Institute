@@ -49,13 +49,11 @@ export async function approveEnrollment(enrollmentId: string) {
     if (enrollment) {
       courseId = enrollment.course_id;
       const courseTitle = Array.isArray(enrollment.courses) ? enrollment.courses[0]?.title : (enrollment.courses as { title: string } | null)?.title || 'the course';
-      await supabase.from('feedbacks').insert({
+      await supabase.from('notifications').insert({
         user_id: enrollment.user_id,
-        name: 'System',
-        role: 'System',
-        category: 'Notification',
+        type: 'system',
         message: `Congratulations! Your enrollment in ${courseTitle} has been approved.`,
-        status: 'open'
+        link: `/courses/${courseId}`
       });
     }
   }

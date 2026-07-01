@@ -29,10 +29,10 @@ export async function recordProfileView(viewedId: string) {
     twelveHoursAgo.setHours(twelveHoursAgo.getHours() - 12);
 
     const { data: recentViews, error: selectError } = await supabase
-      .from('feedbacks')
+      .from('notifications')
       .select('id')
       .eq('user_id', viewedId)
-      .eq('category', 'Notification')
+      .eq('type', 'system')
       .ilike('message', `${messageTemplate}%`)
       .gte('created_at', twelveHoursAgo.toISOString())
       .limit(1);
@@ -48,14 +48,12 @@ export async function recordProfileView(viewedId: string) {
 
     // Insert the notification
     const { error: insertError } = await supabase
-      .from('feedbacks')
+      .from('notifications')
       .insert({
         user_id: viewedId, // The receiver
-        name: 'System',
-        role: 'System',
-        category: 'Notification',
-        message: `${messageTemplate} <a href="/users/${user.id}" class="text-gradient" style="text-decoration: underline;">Click here to view their profile back!</a>`,
-        status: 'open'
+        type: 'system',
+        message: `${messageTemplate} Click to view their profile back!`,
+        link: `/users/${user.id}`
       });
 
     if (insertError) {
