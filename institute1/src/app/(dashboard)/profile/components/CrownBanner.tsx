@@ -15,8 +15,9 @@ export default function CrownBanner({ rank, companyName = 'Institute', monthDate
   }, []);
 
   const dateObj = new Date(monthDate);
-  const monthNameStr = dateObj.toLocaleString('default', { month: 'long' });
-  const year = dateObj.getFullYear();
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const monthNameStr = monthNames[dateObj.getUTCMonth()];
+  const year = dateObj.getUTCFullYear();
   const formattedDate = `${monthNameStr} ${year}`;
 
   const handleShare = async () => {

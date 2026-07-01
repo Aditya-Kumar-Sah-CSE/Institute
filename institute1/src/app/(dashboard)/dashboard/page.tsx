@@ -74,7 +74,7 @@ export default async function DashboardPage() {
         <Link href="/profile" style={{ textDecoration: 'none' }}>
           <Card variant="glass" padding="lg">
             <div className="stat-card-value" style={{ color: 'var(--neon-cyan)' }}>
-              {profile?.xp.toLocaleString()}
+              {profile?.xp.toLocaleString('en-US')}
             </div>
             <div className="text-secondary stat-card-label">Total XP</div>
           </Card>

@@ -72,7 +72,7 @@ export default function Sidebar({ profile, isAdmin = false, roleView }: SidebarP
           </div>
           <div className="sidebar-xp">
             <XPBar xp={profile.xp} size="sm" showLabel={false} />
-            <span className="sidebar-xp-text">{profile.xp.toLocaleString()} XP</span>
+            <span className="sidebar-xp-text">{profile.xp.toLocaleString('en-US')} XP</span>
           </div>
           {profile.streak_days > 0 && (
             <div className="sidebar-streak">
