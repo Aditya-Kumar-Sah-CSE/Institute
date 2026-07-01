@@ -45,7 +45,6 @@ export const NAV_ITEMS = [
   { label: 'Dashboard', href: '/dashboard', icon: '📊' },
   { label: 'All Courses', href: '/courses', icon: '📚' },
   { label: 'Leaderboard', href: '/leaderboard', icon: '🏆' },
-  { label: 'Notifications', href: '/feedbacks', icon: '🔔' },
   { label: 'Batch Doubts', href: '/doubts', icon: '❓' },
   { label: 'Notices', href: '/notices', icon: '📢' },
   { label: 'Profile', href: '/profile', icon: '👤' },
