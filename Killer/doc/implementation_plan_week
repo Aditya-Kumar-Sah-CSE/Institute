@@ -1,0 +1,47 @@
+# Goal
+Add a "Week" section to group lessons by week in the curriculum. This will involve adding a "Week Number" field to lessons, allowing instructors to organize their curriculum into weeks instead of just individual days.
+
+## User Review Required
+
+> [!IMPORTANT]
+> The lessons will be grouped by their assigned Week Number. Do you want lessons inside each week to still use the "Day Number (Sort Order)" for ordering within that week?
+> For example:
+> - **Week 1**
+>   - Day 1: Introduction
+>   - Day 2: Setup
+> - **Week 2**
+>   - Day 1: Advanced Topics (or Day 3 if you prefer continuous numbering)
+
+## Proposed Changes
+
+### 1. Database Schema
+#### [NEW] `supabase/migrations/015_add_week_to_lessons.sql`
+- Add an `ALTER TABLE lessons ADD COLUMN week_number INTEGER DEFAULT 1;` script to persist the change.
+- A quick Node.js script will be run to immediately apply this to your active database.
+
+### 2. Type Definitions
+#### [MODIFY] `src/types/database.ts`
+- Update the `Lesson` interface to include the new `week_number: number` property.
+
+### 3. Server Actions
+#### [MODIFY] `src/features/admin/actions/builder-actions.ts`
+- Update `addLesson` and `updateLesson` functions to extract `week_number` from the form data and save it to the database.
+
+### 4. Instructor View (Curriculum Builder)
+#### [MODIFY] `src/features/admin/components/CurriculumBuilder.tsx`
+- Add `week_number` to the `EditingItem` interface.
+- Add a new `Input` field for "Week Number" in the Add/Edit Lesson modal (defaulting to 1).
+- Refactor the display logic to group `lessons` by `week_number`. Render a distinct header for each week, containing the lessons belonging to that week.
+
+### 5. Student View (Course Dashboard)
+#### [MODIFY] `src/app/(dashboard)/courses/[courseId]/page.tsx`
+- Refactor the curriculum list to group lessons by `week_number` so students see a structured weekly schedule.
+- Update CSS styling if necessary to distinguish week headers.
+
+## Verification Plan
+
+### Manual Verification
+- Go to the instructor builder and add a lesson, setting Week = 1 and Day = 1.
+- Add another lesson, setting Week = 2 and Day = 1.
+- Verify that the builder groups them under "Week 1" and "Week 2" headers.
+- Switch to the student view (`/courses/[courseId]`) and verify that the curriculum displays the lessons grouped by week.

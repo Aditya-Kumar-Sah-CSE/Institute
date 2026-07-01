@@ -1,0 +1,80 @@
+# Advanced Student Doubt Discussion System
+
+This document outlines the architecture, database schema, routing, and UI implementation for the production-ready Doubt Discussion System.
+
+## User Review Required
+
+Please review the proposed database changes and routing structure. Let me know your thoughts on the Open Questions below before I begin execution.
+
+> [!IMPORTANT]
+> The database migration will require executing SQL to create several new tables (votes, views, notifications, tags) and modifying the existing `doubt_replies` table. Since local DB push via CLI failed earlier due to network limits, you will need to apply this SQL manually in your Supabase Dashboard when I generate it.
+
+## Open Questions
+
+1. **Modules Requirement**: You mentioned a doubt belongs to "Course, Batch, Module, Lesson". Currently, the database only has `courses` and `lessons` (no intermediate modules). Should I ignore the "Module" requirement, or do you want me to add a whole new `modules` table (which would require a massive refactoring of existing course logic)?
+2. **Batch Routing**: Currently, the system uses the `graduation_period` string (e.g., "2024-2028") as the batch identifier. I plan to make the route `/batch/[batchId]/doubts` where `[batchId]` is that string. Does this work for you?
+3. **Image Uploads**: I will create a new Supabase Storage bucket called `doubt_media` to store attached screenshots/images. Is this acceptable?
+4. **Rich Text / Markdown**: For markdown and code block support, I plan to use a library like `react-markdown` to render the doubt descriptions and replies. Is that okay?
+
+## Proposed Changes
+
+---
+
+### Database Schema (Supabase)
+
+#### [NEW] `supabase/migrations/034_advanced_doubts.sql`
+- **Alter `doubt_replies`**: Add `parent_id` (UUID, self-referencing), `is_official` (BOOLEAN), `is_pinned` (BOOLEAN), `upvotes_count` (INTEGER).
+- **Create `doubt_views`**: `doubt_id`, `user_id`. (Tracks unique views).
+- **Create `reply_votes`**: `reply_id`, `user_id`, `vote_type`.
+- **Create `doubt_tags`**: `doubt_id`, `tag_name`.
+- **Create `notifications`**: `user_id`, `type` (mention, reply, faculty_reply, accepted, etc), `message`, `link`, `is_read`.
+- **Create Storage Bucket**: SQL to create `doubt_media` bucket and RLS policies for uploads.
+
+---
+
+### UI & Pages (Next.js App Router)
+
+#### [NEW] `src/app/(dashboard)/batch/[batchId]/doubts/page.tsx`
+- The central hub for all doubts in a batch.
+- Includes advanced filtering (Unanswered, Solved, Recent, Most Active) and Search.
+
+#### [DELETE] `src/app/(dashboard)/doubts/page.tsx`
+- Replaced by the batch-specific route above.
+
+#### [NEW] `src/app/(dashboard)/courses/[courseId]/[lessonId]/doubt/[doubtId]/page.tsx`
+- The dedicated discussion page (Stack Overflow / GitHub Discussions style).
+- Full question, nested replies up to 2 levels.
+- Markdown rendering, image attachments, upvotes, and marking "Accepted Solution".
+
+#### [MODIFY] `src/app/(dashboard)/courses/[courseId]/[lessonId]/components/LessonDoubts.tsx`
+- Overhaul the Lesson page tab.
+- Add "Recent", "Popular", "Solved" sections.
+- Upgrade the Ask Doubt modal to support markdown and images.
+
+---
+
+### Server Actions (Backend Logic)
+
+#### [MODIFY] `src/features/doubts/actions/doubts.ts`
+- Enhance `createDoubt` and `replyToDoubt` to handle attachments, tags, and trigger notifications.
+- Add nested reply logic.
+- Add `toggleVote` action (upvoting replies).
+- Add `markOfficial` and `pinReply` (Faculty only).
+- Add `recordDoubtView` action.
+
+#### [NEW] `src/features/notifications/actions/notifications.ts`
+- Logic to fetch, mark as read, and delete notifications.
+
+---
+
+### Gamification (XP & Badges)
+
+#### [MODIFY] `src/lib/constants.ts`
+- Update `XP_VALUES` to match the new rewards (+10 for Ask, +5 for Reply, +30 for Accepted, +50 for Faculty Accepted).
+- Add new default badges (`Daily Helpful Contributor`, `Top Doubt Solver`).
+
+## Verification Plan
+- **Database**: Ensure RLS prevents students from modifying other users' doubts/votes.
+- **UI**: Test nested replies rendering and markdown/code block syntax highlighting.
+- **Notifications**: Verify that mentions and replies generate unread notifications.
+- **Gamification**: Validate that XP updates properly upon accepting answers.

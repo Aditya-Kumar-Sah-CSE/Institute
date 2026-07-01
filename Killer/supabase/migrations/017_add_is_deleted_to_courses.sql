@@ -1,0 +1,1 @@
+ALTER TABLE courses ADD COLUMN is_deleted BOOLEAN DEFAULT false;

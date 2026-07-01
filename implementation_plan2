@@ -1,0 +1,43 @@
+# Refactor Instructor Application Flow (Decoupled Approach)
+
+This plan implements the industry-standard decoupled architecture for handling instructor applications. It removes the risk of partial database failures and strictly separates User Authentication from Business Logic.
+
+## User Review Required
+
+Please review the proposed changes below. The key difference is that when a user applies to be an instructor, they will remain a **Student** until you (the Admin) explicitly approve them. Once approved, their role will upgrade to **Instructor**.
+
+## Proposed Changes
+
+### Core Logic (Server Actions)
+
+#### [MODIFY] [actions.ts](file:///d:/Institute/institute1/src/app/(public)/apply-instructor/actions.ts)
+- In `handleFullRegistrationAndApplication`:
+  - **Remove** the `profiles` table update that prematurely sets `role: 'instructor'` and `status: 'pending'`.
+  - The newly registered user will default to a `student` profile via the standard database trigger.
+  - Keep the insertion into `instructor_applications`.
+- In `handleSubmitApplication` (for already logged-in users):
+  - **Remove** the `profiles` table update for the same reason.
+  - The user remains a `student` while their application sits in the `instructor_applications` queue.
+
+#### [MODIFY] [instructor-actions.ts](file:///d:/Institute/institute1/src/features/admin/actions/instructor-actions.ts)
+- In `approveInstructor`:
+  - **Update** the `profiles` table query to change the user's `role` from `'student'` to `'instructor'` upon approval.
+- In `rejectInstructor`:
+  - **Update** logic so that no `profiles` table changes are needed (they simply remain a student), but the application in `instructor_applications` is marked as `rejected`.
+
+### Clean-up
+
+#### [MODIFY] [middleware.ts](file:///d:/Institute/institute1/src/lib/supabase/middleware.ts)
+- **Remove** the edge-case routing logic that was required to redirect "pending instructors" back to the student dashboard. Since they will now officially be `student`s until approved, the standard routing logic will handle them perfectly.
+
+## Verification Plan
+
+### Automated Tests
+- Run `npm run build` to ensure no TypeScript or build errors are introduced by the changes.
+
+### Manual Verification
+- Register a completely new user via `/apply-instructor`.
+- Verify in the database that their profile is `student` and `active`, but they have a `pending` row in `instructor_applications`.
+- Ensure they can log in and view the `/dashboard` normally.
+- Login as Admin, navigate to `/admin/instructor-requests`, and approve the application.
+- Verify the user's role is upgraded to `instructor` and they can now access `/instructor` routes.

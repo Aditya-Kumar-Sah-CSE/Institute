@@ -1,0 +1,29 @@
+# Add Delete Student Feature in Admin Panel
+
+This plan outlines the steps to add a "Delete Student" feature to the Admin panel's Student Tracking table. 
+
+## Proposed Changes
+
+We need to add a secure way for administrators to delete a student's account entirely. Deleting a user from Supabase's Auth system (`auth.users`) will trigger our database constraints (`ON DELETE CASCADE`) to automatically delete their profile, submissions, badges, and xp logs cleanly.
+
+### 1. Server Action
+#### [NEW] `src/features/admin/actions/adminActions.ts` (or add to an existing file)
+- Create an `async function deleteStudent(studentId: string)` server action.
+- This action will initialize a Supabase client using the `SUPABASE_SERVICE_ROLE_KEY`. (Standard server clients don't have permission to delete users from the authentication table; the service role key bypasses RLS and allows admin-level auth modifications).
+- It will call `supabase.auth.admin.deleteUser(studentId)`.
+
+### 2. UI Updates
+#### [NEW] `src/app/(admin)/admin/students/components/DeleteStudentButton.tsx`
+- Create a client component that contains a "Delete" button.
+- When clicked, it will prompt the admin with a standard browser `window.confirm("Are you sure you want to delete this student? This action cannot be undone.")` to prevent accidental deletions.
+- If confirmed, it calls the `deleteStudent` server action and triggers a router refresh to update the table.
+
+#### [MODIFY] `src/app/(admin)/admin/students/page.tsx`
+- Add a new "Actions" column to the `<th>` of the students table.
+- Add a corresponding `<td>` in the row mapping that renders the `<DeleteStudentButton studentId={student.id} />`.
+
+## Open Questions
+> [!CAUTION]
+> Deleting a student will permanently remove their login credentials, profile, XP, streaks, and all assignment submissions. Is it okay to use a simple browser confirmation dialog (`window.confirm`), or would you prefer a custom modal where the admin has to type the word "DELETE" to confirm? For now, I will build it with a simple confirmation prompt for speed.
+
+Let me know if you approve this plan!

@@ -1,0 +1,51 @@
+# Implementation Plan - Security and Performance Improvement Plan
+
+This plan addresses security vulnerabilities in row-level security (RLS) policies, tracks database triggers and indexes formally in migration files, and outlines a verification and testing strategy.
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **1. RLS Policy Tighter Restrictions**
+> - Currently, any student can approve their own course enrollments because the RLS policy for `enrollments` allows `FOR ALL` modifications using `auth.uid() = user_id`. We will restrict updates to only allow `progress` and `completed_at` to be modified by the student, while reserving `status` updates for admins and instructors.
+>
+> **2. Proper Security Triggers in Migrations**
+> - The profile triggers (`protect_profile_fields`) and submission triggers (`protect_submission_fields`) are currently in a manual node script (`inject_security_triggers.js`) which is not part of the `supabase/migrations` folder. This leads to drift. We will move these triggers to a migration file (`012_security_triggers.sql`) and fix the bugs in their logic.
+> - Specifically, the trigger previously used `auth.role() = 'authenticated'` which blocked even admin users (who also have authentication role `'authenticated'`) from modifying student roles or approving submissions. We will correct the logic to verify `profiles.role` instead.
+
+---
+
+## Proposed Changes
+
+### Component: Database Migrations & Security
+
+#### [NEW] [012_security_triggers.sql](file:///d:/TechPlatform/skillarena/supabase/migrations/012_security_triggers.sql)
+- Formally define the security triggers inside the migrations directory.
+- Refactor trigger functions to check against `profiles.role` (allowing admins and instructors to update status/roles/scores) rather than checking against `auth.role() = 'authenticated'`:
+  - `protect_profile_fields()`: Only allow `admin` users to modify `role`, `xp`, `level` or `streak_days` columns. If updated by a student, revert these fields to their original values.
+  - `protect_submission_fields()`: Only allow `admin` or `instructor` (or the system runner for auto-approved MCQ types) to modify a submission's `status`, `score` or `feedback`.
+
+#### [NEW] [013_performance_indexes.sql](file:///d:/TechPlatform/skillarena/supabase/migrations/013_performance_indexes.sql)
+- Formally move performance indexes from `create_indexes.js` to a tracked migration file:
+  - `idx_lessons_course_id` on `lessons(course_id)`
+  - `idx_assignments_lesson_id` on `assignments(lesson_id)`
+  - `idx_submissions_user_id` on `submissions(user_id)`
+  - `idx_submissions_assignment_id` on `submissions(assignment_id)`
+  - `idx_submissions_status` on `submissions(status)`
+  - `idx_enrollments_user_id` on `enrollments(user_id)`
+  - `idx_lesson_progress_user_id` on `lesson_progress(user_id)`
+  - `idx_xp_log_user_id` on `xp_log(user_id)`
+
+#### [MODIFY] [002_rls_policies.sql](file:///d:/TechPlatform/skillarena/supabase/migrations/002_rls_policies.sql)
+- Restructure the update policy for `enrollments` table. Splitting the broad `FOR ALL` policy into separate `INSERT`, `SELECT`, and `UPDATE` policies.
+- Ensure that students can only update `progress` or `completed_at` values, while `status` updates are only permitted for instructors and admins.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- We will write a unit test script under `scratch/test_security_policies.js` using the standard database connection to simulate:
+  - Profile modification attempt by a student user: verifying that sensitive fields (role, xp) are rejected/reverted by database triggers.
+  - Enrollment update attempt: verifying that a student cannot change their own enrollment status to 'approved'.

@@ -1,0 +1,56 @@
+export const XP_VALUES = {
+  WATCH_LESSON: 10,
+  COMPLETE_PRACTICE: 50,
+  GITHUB_PUSH: 100,
+  DEPLOY_PROJECT: 150,
+  DAILY_STREAK: 20,
+} as const;
+
+export const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL || 'iambestadi@gmail.com';
+
+// Level thresholds
+export const LEVEL_THRESHOLDS = [
+  { name: 'Beginner' as const, min: 0, max: 499 },
+  { name: 'Intermediate' as const, min: 500, max: 1499 },
+  { name: 'Advanced' as const, min: 1500, max: 2999 },
+  { name: 'Pro' as const, min: 3000, max: Infinity },
+];
+
+// Default badge definitions
+export const DEFAULT_BADGES = [
+  { name: 'Git Starter', icon: '🧑‍💻', description: 'Made your first GitHub submission', condition_type: 'github_count', condition_value: 1 },
+  { name: 'First Deploy', icon: '🚀', description: 'Deployed your first project', condition_type: 'deploy_count', condition_value: 1 },
+  { name: 'JS Master', icon: '⚡', description: 'Earned 500+ XP in JavaScript', condition_type: 'xp_threshold', condition_value: 500 },
+  { name: 'React Builder', icon: '⚛️', description: 'Completed the React course', condition_type: 'course_complete', condition_value: 1 },
+  { name: 'Full Stack Warrior', icon: '🏆', description: 'Reached Pro level', condition_type: 'xp_threshold', condition_value: 3000 },
+  { name: 'Streak Master', icon: '🔥', description: '7-day learning streak', condition_type: 'streak_days', condition_value: 7 },
+  { name: 'Quiz Ace', icon: '🎯', description: 'Scored 100% on 5 quizzes', condition_type: 'perfect_score', condition_value: 5 },
+  { name: 'Code Ninja', icon: '🥷', description: 'Completed 20 coding tasks', condition_type: 'code_complete', condition_value: 20 },
+];
+
+export const NAV_ITEMS = [
+  { label: 'Dashboard', href: '/dashboard', icon: '📊' },
+  { label: 'All Courses', href: '/courses', icon: '📚' },
+  { label: 'Leaderboard', href: '/leaderboard', icon: '🏆' },
+  { label: 'My Doubts', href: '/feedbacks', icon: '💬' },
+  { label: 'Notices', href: '/notices', icon: '📢' },
+  { label: 'Profile', href: '/profile', icon: '👤' },
+];
+
+export const ADMIN_NAV_ITEMS = [
+  { label: 'Overview', href: '/admin', icon: '📊' },
+  { label: 'Courses', href: '/admin/courses', icon: '🎓' },
+  { label: 'Enrollments', href: '/admin/enrollments', icon: '🎫' },
+  { label: 'Students', href: '/admin/students', icon: '👥' },
+  { label: 'Submissions', href: '/admin/submissions', icon: '📝' },
+  { label: 'Instructors', href: '/admin/instructor-requests', icon: '👨‍🏫' },
+  { label: 'Feedback', href: '/admin/feedback', icon: '💬' },
+  { label: 'Notices', href: '/admin/notices', icon: '📢' },
+];
+
+export const INSTRUCTOR_NAV_ITEMS = [
+  { label: 'Dashboard', href: '/instructor', icon: '📊' },
+  { label: 'My Courses', href: '/instructor/courses', icon: '🎓' },
+  { label: 'Enrollments', href: '/instructor/enrollments', icon: '👥' },
+  { label: 'Review Student Submissions', href: '/instructor/submissions', icon: '📝' },
+];

@@ -1,0 +1,417 @@
+{
+  "course": {
+    "title": "Full Stack Web Development Mastery",
+    "goal": "Transform absolute beginners into internship-ready Full Stack Developers.",
+    "technology_stack": {
+      "frontend": ["HTML5", "CSS3", "Responsive Design", "Flexbox", "Grid", "JavaScript", "Advanced JavaScript", "Git", "GitHub", "React JS", "Tailwind CSS"],
+      "backend": ["Node.js", "Express.js", "MongoDB", "Mongoose", "JWT Authentication"],
+      "deployment": ["GitHub", "Vercel", "Netlify", "Render"]
+    },
+    "difficulty": "beginner_to_intermediate",
+    "workflow": "Learn → Practice → Git → Build → Deploy → Showcase"
+  },
+  "days": [
+    {
+      "dayNumber": 1,
+      "title": "HTML Fundamentals",
+      "objectives": ["Understand the web", "Master semantic HTML tags", "Build basic page structure"],
+      "theoryTopics": ["How the Web Works", "HTML Skeleton", "Text Formatting", "Lists and Links", "Images and Media", "Semantic HTML5 Elements"],
+      "practicalTasks": [
+        "Create a basic personal introduction page using headings and paragraphs.",
+        "Add a list of your hobbies and favorite movies with external links.",
+        "Embed an image and a YouTube video into your page."
+      ],
+      "assignment": {
+        "title": "Build a Wikipedia Clone Page",
+        "description": "Recreate a Wikipedia article layout using only HTML. Must include semantic tags like header, main, section, aside, and footer."
+      },
+      "miniProject": {
+        "title": "Personal Portfolio Wireframe (HTML Only)",
+        "description": "Build the skeleton of your personal portfolio."
+      },
+      "xpReward": 100,
+      "badgeCriteria": "Complete Day 1 assignment with semantic tags.",
+      "difficultyLevel": "Beginner",
+      "estimatedDuration": "3 hours",
+      "resources": ["MDN HTML Basics", "W3Schools HTML Tutorial"],
+      "submissionType": "github"
+    },
+    {
+      "dayNumber": 2,
+      "title": "HTML Advanced + Forms",
+      "objectives": ["Master HTML forms", "Understand input types", "Learn about tables and iframes"],
+      "theoryTopics": ["Form Element and Attributes", "Input Types (text, email, password, etc.)", "Labels and Accessibility", "Tables", "Iframes"],
+      "practicalTasks": [
+        "Build a basic login form with email and password inputs.",
+        "Create a complex HTML table for a class schedule.",
+        "Build a multi-step survey form with radio buttons and checkboxes."
+      ],
+      "assignment": {
+        "title": "Registration Form UI",
+        "description": "Create a comprehensive user registration form capturing personal details, preferences, and account setup information."
+      },
+      "miniProject": {
+        "title": "Restaurant Menu & Booking Form",
+        "description": "Build a restaurant page with a menu table and a table reservation form."
+      },
+      "xpReward": 120,
+      "badgeCriteria": "Successfully submit the Registration Form UI via GitHub.",
+      "difficultyLevel": "Beginner",
+      "estimatedDuration": "3 hours",
+      "resources": ["MDN Web Forms"],
+      "submissionType": "github"
+    },
+    {
+      "dayNumber": 3,
+      "title": "CSS Fundamentals",
+      "objectives": ["Understand CSS syntax", "Master the Box Model", "Learn basic styling and typography"],
+      "theoryTopics": ["CSS Selectors", "Colors and Backgrounds", "The Box Model (Margin, Border, Padding)", "Typography", "CSS Resets"],
+      "practicalTasks": [
+        "Style the Day 1 portfolio skeleton with custom fonts and colors.",
+        "Demonstrate the Box Model by styling three distinct boxes.",
+        "Create a styled button component with hover states."
+      ],
+      "assignment": {
+        "title": "Styling the Registration Form",
+        "description": "Apply CSS to the Day 2 registration form to make it visually appealing and user-friendly."
+      },
+      "miniProject": {
+        "title": "Styled Product Card",
+        "description": "Create an e-commerce product card with an image, title, price, and 'Add to Cart' button."
+      },
+      "xpReward": 150,
+      "badgeCriteria": "Score 100% on the CSS Box Model Quiz.",
+      "difficultyLevel": "Beginner",
+      "estimatedDuration": "4 hours",
+      "resources": ["CSS Tricks", "MDN CSS Basics"],
+      "submissionType": "github"
+    },
+    {
+      "dayNumber": 4,
+      "title": "Responsive Design + Flexbox + Grid",
+      "objectives": ["Master Flexbox for 1D layouts", "Master CSS Grid for 2D layouts", "Make websites responsive with Media Queries"],
+      "theoryTopics": ["Flexbox Container and Item Properties", "CSS Grid Layouts", "Media Queries", "Mobile-First Design", "Relative Units (em, rem, vh, vw)"],
+      "practicalTasks": [
+        "Build a flexible navigation bar using Flexbox.",
+        "Create a 3-column photo gallery using CSS Grid.",
+        "Write media queries to make the gallery stack vertically on mobile."
+      ],
+      "assignment": {
+        "title": "Responsive Dashboard Layout",
+        "description": "Build a responsive dashboard layout with a sidebar (Grid) and a top navigation bar (Flexbox)."
+      },
+      "miniProject": {
+        "title": "Responsive Portfolio Page",
+        "description": "Upgrade your HTML portfolio into a fully responsive, styled webpage."
+      },
+      "xpReward": 200,
+      "badgeCriteria": "Deploy the Responsive Portfolio Page and submit the live URL.",
+      "difficultyLevel": "Intermediate",
+      "estimatedDuration": "5 hours",
+      "resources": ["Flexbox Froggy", "Grid Garden"],
+      "submissionType": "deploy"
+    },
+    {
+      "dayNumber": 5,
+      "title": "JavaScript Fundamentals",
+      "objectives": ["Learn JS syntax", "Understand data types and variables", "Master control flow and loops"],
+      "theoryTopics": ["Variables (var, let, const)", "Data Types", "Operators", "If/Else Statements", "Loops (for, while)", "Functions (Declarations and Arrow Functions)"],
+      "practicalTasks": [
+        "Write a function that calculates the area of a rectangle.",
+        "Use a loop to print all even numbers from 1 to 50.",
+        "Build a simple calculator using functions and switch statements."
+      ],
+      "assignment": {
+        "title": "JavaScript Logic Puzzles",
+        "description": "Solve 5 algorithmic challenges (e.g., FizzBuzz, Reverse String, Palindrome Check)."
+      },
+      "miniProject": {
+        "title": "Interactive Quiz Logic",
+        "description": "Write the core logic for a multiple-choice quiz using JS arrays and objects (no UI yet)."
+      },
+      "xpReward": 150,
+      "badgeCriteria": "Complete the Logic Puzzles with all test cases passing.",
+      "difficultyLevel": "Intermediate",
+      "estimatedDuration": "4 hours",
+      "resources": ["JavaScript.info", "MDN JavaScript"],
+      "submissionType": "code"
+    },
+    {
+      "dayNumber": 6,
+      "title": "Advanced JavaScript + DOM + APIs",
+      "objectives": ["Manipulate the DOM", "Handle events", "Make asynchronous API calls"],
+      "theoryTopics": ["DOM Selection and Manipulation", "Event Listeners", "Array Methods (map, filter, reduce)", "Promises and Async/Await", "Fetch API"],
+      "practicalTasks": [
+        "Create a button that changes the background color of the page on click.",
+        "Use array methods to filter a list of users by age.",
+        "Fetch and display a random joke from a public API."
+      ],
+      "assignment": {
+        "title": "DOM Manipulation Task Tracker",
+        "description": "Build a simple To-Do list where users can add, cross out, and delete tasks using pure JS."
+      },
+      "miniProject": {
+        "title": "API-based Weather App",
+        "description": "Build a weather application that fetches data from the OpenWeatherMap API and displays it in the DOM."
+      },
+      "xpReward": 250,
+      "badgeCriteria": "Successfully fetch and render data from a public API.",
+      "difficultyLevel": "Intermediate",
+      "estimatedDuration": "5 hours",
+      "resources": ["MDN Fetch API", "Public APIs List"],
+      "submissionType": "github"
+    },
+    {
+      "dayNumber": 7,
+      "title": "Git & GitHub Workflow",
+      "objectives": ["Master version control", "Collaborate using GitHub", "Understand branching"],
+      "theoryTopics": ["What is Git?", "Basic Commands (init, add, commit, status)", "Branching and Merging", "Push and Pull", "Resolving Merge Conflicts", "Writing good commit messages"],
+      "practicalTasks": [
+        "Initialize a Git repository and make your first commit.",
+        "Create a new branch, make changes, and merge it into main.",
+        "Push a local repository to GitHub."
+      ],
+      "assignment": {
+        "title": "Open Source Contribution Simulation",
+        "description": "Fork a repository, create a feature branch, make a meaningful change, and open a Pull Request."
+      },
+      "miniProject": {
+        "title": "Portfolio Deployment via GitHub Pages",
+        "description": "Host your Day 4 portfolio on GitHub Pages."
+      },
+      "xpReward": 200,
+      "badgeCriteria": "Successfully merge a Pull Request and host on GitHub pages.",
+      "difficultyLevel": "Beginner",
+      "estimatedDuration": "3 hours",
+      "resources": ["Pro Git Book", "GitHub Guides"],
+      "submissionType": "deploy"
+    },
+    {
+      "dayNumber": 8,
+      "title": "React Fundamentals",
+      "objectives": ["Think in React", "Understand Components and JSX", "Master State and Props"],
+      "theoryTopics": ["What is React?", "JSX Syntax", "Functional Components", "Props", "State (useState)", "Handling Events in React"],
+      "practicalTasks": [
+        "Create a 'Hello World' React component.",
+        "Pass data from a parent component to a child component using props.",
+        "Build a simple counter using the useState hook."
+      ],
+      "assignment": {
+        "title": "React Component Library",
+        "description": "Build a set of reusable UI components (Button, Card, Input) in React using props for customization."
+      },
+      "miniProject": {
+        "title": "React Todo App",
+        "description": "Rebuild the Day 6 Todo App using React State and Components."
+      },
+      "xpReward": 200,
+      "badgeCriteria": "Complete the React Todo App assignment.",
+      "difficultyLevel": "Intermediate",
+      "estimatedDuration": "5 hours",
+      "resources": ["React Official Docs (react.dev)"],
+      "submissionType": "github"
+    },
+    {
+      "dayNumber": 9,
+      "title": "React Intermediate + Routing",
+      "objectives": ["Handle side effects", "Navigate between pages", "Manage global state concepts"],
+      "theoryTopics": ["useEffect Hook", "Component Lifecycle", "React Router DOM", "Context API (Basics)", "Fetching Data in React"],
+      "practicalTasks": [
+        "Use useEffect to log a message when a component mounts.",
+        "Set up a multi-page app with React Router (Home, About, Contact).",
+        "Fetch API data inside useEffect and store it in state."
+      ],
+      "assignment": {
+        "title": "Movie Search Application",
+        "description": "Build an app that searches for movies using the OMDB API and displays details on a separate route."
+      },
+      "miniProject": {
+        "title": "E-Commerce Frontend",
+        "description": "Build a product listing page and a shopping cart page using React Router and Context API."
+      },
+      "xpReward": 250,
+      "badgeCriteria": "Implement nested routing successfully.",
+      "difficultyLevel": "Advanced",
+      "estimatedDuration": "5 hours",
+      "resources": ["React Router Docs"],
+      "submissionType": "github"
+    },
+    {
+      "dayNumber": 10,
+      "title": "Tailwind CSS + UI Building",
+      "objectives": ["Master utility-first CSS", "Build modern UIs rapidly", "Implement dark mode"],
+      "theoryTopics": ["Tailwind Installation & Config", "Utility Classes (Spacing, Typography, Colors)", "Responsive Design in Tailwind", "Flexbox & Grid in Tailwind", "Dark Mode Configuration"],
+      "practicalTasks": [
+        "Rebuild the Day 3 Button component using only Tailwind classes.",
+        "Create a responsive navigation bar in Tailwind.",
+        "Implement a dark mode toggle switch."
+      ],
+      "assignment": {
+        "title": "Gamified Dashboard UI",
+        "description": "Build the frontend UI for a student dashboard displaying XP, levels, and enrolled courses using Tailwind CSS."
+      },
+      "miniProject": {
+        "title": "Landing Page Clone",
+        "description": "Clone the homepage of a popular SaaS product (like Stripe or Vercel) using React and Tailwind."
+      },
+      "xpReward": 200,
+      "badgeCriteria": "Submit a pixel-perfect Tailwind clone.",
+      "difficultyLevel": "Intermediate",
+      "estimatedDuration": "4 hours",
+      "resources": ["Tailwind CSS Documentation"],
+      "submissionType": "deploy"
+    },
+    {
+      "dayNumber": 11,
+      "title": "Node.js + Express.js",
+      "objectives": ["Understand backend concepts", "Build a web server", "Create RESTful APIs"],
+      "theoryTopics": ["What is Node.js?", "The Event Loop", "Express.js Fundamentals", "Routing in Express", "Middleware", "Handling JSON data"],
+      "practicalTasks": [
+        "Set up a basic Express server that responds with 'Hello World'.",
+        "Create GET and POST routes for a '/users' endpoint.",
+        "Write a custom logging middleware function."
+      ],
+      "assignment": {
+        "title": "Task Manager API",
+        "description": "Build a full REST API for a Task Manager with GET, POST, PUT, and DELETE routes (using in-memory arrays)."
+      },
+      "miniProject": {
+        "title": "Course Catalog Backend",
+        "description": "Create APIs to serve course data, handle enrollments, and manage progress updates."
+      },
+      "xpReward": 250,
+      "badgeCriteria": "Successfully test API endpoints using Postman or ThunderClient.",
+      "difficultyLevel": "Advanced",
+      "estimatedDuration": "5 hours",
+      "resources": ["Express.js Docs", "Node.js Docs"],
+      "submissionType": "github"
+    },
+    {
+      "dayNumber": 12,
+      "title": "MongoDB + Mongoose",
+      "objectives": ["Understand NoSQL databases", "Design database schemas", "Perform CRUD operations with DB"],
+      "theoryTopics": ["Relational vs NoSQL", "MongoDB Basics", "Mongoose ODM", "Schema Design", "CRUD with Mongoose", "Populate and Relations"],
+      "practicalTasks": [
+        "Connect an Express app to MongoDB Atlas.",
+        "Create a User Mongoose schema and model.",
+        "Write a script to seed the database with initial data."
+      ],
+      "assignment": {
+        "title": "Database Integration for Task API",
+        "description": "Upgrade the Day 11 Task Manager API to use MongoDB for persistent data storage."
+      },
+      "miniProject": {
+        "title": "Full Stack User Directory",
+        "description": "Build a React frontend and Node/Mongo backend to add, view, and delete users."
+      },
+      "xpReward": 250,
+      "badgeCriteria": "Perform a complex aggregate query in MongoDB.",
+      "difficultyLevel": "Advanced",
+      "estimatedDuration": "5 hours",
+      "resources": ["MongoDB Atlas Docs", "Mongoose Documentation"],
+      "submissionType": "github"
+    },
+    {
+      "dayNumber": 13,
+      "title": "Authentication + Full Stack Integration",
+      "objectives": ["Secure applications", "Implement JWT Auth", "Connect Frontend to Protected Backend"],
+      "theoryTopics": ["Authentication vs Authorization", "Password Hashing (Bcrypt)", "JSON Web Tokens (JWT)", "Protecting Routes (Middleware)", "Handling Auth State in React"],
+      "practicalTasks": [
+        "Hash a password before saving it to the database.",
+        "Generate a JWT upon successful login.",
+        "Create a React context to manage user authentication state."
+      ],
+      "assignment": {
+        "title": "Secure Login System",
+        "description": "Implement a full register and login flow where the backend issues a JWT, and the frontend stores it to access protected routes."
+      },
+      "miniProject": {
+        "title": "Protected Dashboard Integration",
+        "description": "Connect the React Dashboard (Day 10) to the Course API (Day 11) using JWT authentication."
+      },
+      "xpReward": 300,
+      "badgeCriteria": "Successfully implement secure JWT authentication.",
+      "difficultyLevel": "Advanced",
+      "estimatedDuration": "6 hours",
+      "resources": ["JWT.io", "Bcrypt NPM"],
+      "submissionType": "github"
+    },
+    {
+      "dayNumber": 14,
+      "title": "Deployment + Portfolio + Final Project",
+      "objectives": ["Deploy Full Stack Apps", "Configure Environment Variables", "Showcase work"],
+      "theoryTopics": ["Production Environments", "Hosting Frontend (Vercel)", "Hosting Backend (Render)", "CORS Configuration", "Database Whitelisting", "CI/CD Basics"],
+      "practicalTasks": [
+        "Deploy the backend API to Render.",
+        "Deploy the React frontend to Vercel.",
+        "Configure CORS and Environment Variables to link them."
+      ],
+      "assignment": {
+        "title": "Live App Submission",
+        "description": "Submit the live URLs of your fully functioning Full Stack Application."
+      },
+      "miniProject": {
+        "title": "Final Portfolio Wrap-up",
+        "description": "Add your new Full Stack project to your developer portfolio."
+      },
+      "xpReward": 500,
+      "badgeCriteria": "Successfully deploy a full stack application live on the internet.",
+      "difficultyLevel": "Advanced",
+      "estimatedDuration": "5 hours",
+      "resources": ["Vercel Docs", "Render Docs"],
+      "submissionType": "deploy"
+    }
+  ],
+  "quizzes": [
+    {
+      "dayId": 1,
+      "questions": [
+        { "question": "What does HTML stand for?", "options": ["Hyper Text Markup Language", "Hyperlinks and Text Markup Language", "Home Tool Markup Language"], "answer": "Hyper Text Markup Language" },
+        { "question": "Which tag is used for the largest heading?", "options": ["<h1>", "<heading>", "<h6>", "<head>"], "answer": "<h1>" }
+      ]
+    }
+  ],
+  "badges": [
+    { "id": "html_hero", "name": "HTML Hero", "description": "Mastered HTML structure", "icon": "🛡️", "criteria": "Complete Day 2" },
+    { "id": "css_wizard", "name": "CSS Wizard", "description": "Mastered styling", "icon": "🪄", "criteria": "Complete Day 4" },
+    { "id": "js_ninja", "name": "JavaScript Ninja", "description": "Mastered JS logic", "icon": "🥷", "criteria": "Complete Day 6" },
+    { "id": "git_explorer", "name": "Git Explorer", "description": "Pushed code to GitHub", "icon": "🧭", "criteria": "Complete Day 7" },
+    { "id": "react_builder", "name": "React Builder", "description": "Built React Apps", "icon": "🏗️", "criteria": "Complete Day 9" },
+    { "id": "tailwind_master", "name": "Tailwind Master", "description": "Mastered Utility CSS", "icon": "🌊", "criteria": "Complete Day 10" },
+    { "id": "api_warrior", "name": "API Warrior", "description": "Built Node REST APIs", "icon": "⚔️", "criteria": "Complete Day 11" },
+    { "id": "mongo_master", "name": "MongoDB Master", "description": "Managed NoSQL Data", "icon": "🍃", "criteria": "Complete Day 12" },
+    { "id": "auth_guardian", "name": "Auth Guardian", "description": "Secured the app with JWT", "icon": "🔐", "criteria": "Complete Day 13" },
+    { "id": "deploy_champion", "name": "Deployment Champion", "description": "Deployed Full Stack App", "icon": "🏆", "criteria": "Complete Day 14" },
+    { "id": "full_stack_warrior", "name": "Full Stack Warrior", "description": "Graduated the Bootcamp", "icon": "🎖️", "criteria": "Complete all 14 Days" }
+  ],
+  "leaderboardRules": [
+    { "action": "Lesson Completion", "xp": 20 },
+    { "action": "Quiz Perfect Score", "xp": 50 },
+    { "action": "Assignment Approved", "xp": 100 },
+    { "action": "Mini Project Approved", "xp": 200 },
+    { "action": "GitHub Submission Bonus", "xp": 50 },
+    { "action": "Live Deployment Bonus", "xp": 150 },
+    { "action": "Daily Streak", "xp": 10 },
+    { "action": "Admin Exceptional Approval", "xp": 300 }
+  ],
+  "adminControls": [
+    "Create Course", "Edit Course", "Delete Course",
+    "Create Lesson", "Edit Lesson", "Delete Lesson",
+    "Change XP Values", "Change Badge Rules", "Change Quiz Questions",
+    "Upload YouTube Links", "Upload Notes", "Upload Assignments",
+    "Track Student Progress", "Track XP", "Track Completion Rate",
+    "View Leaderboards", "Approve/Reject Submissions"
+  ],
+  "finalProject": {
+    "title": "Gamified Learning Platform Clone",
+    "description": "Build a learning platform containing Authentication, Dashboard, Courses, Progress Tracking, XP System, Leaderboard, Badges, Admin Dashboard, MongoDB Database, GitHub Repository, Live Deployment.",
+    "stack": ["React", "Node.js", "Express", "MongoDB", "Tailwind CSS"],
+    "requirements": [
+      "User authentication with JWT",
+      "Role-based access (Student vs Admin)",
+      "Student dashboard displaying XP and Badges",
+      "Admin dashboard to view student progress",
+      "Deployed frontend to Vercel and backend to Render"
+    ]
+  }
+}
