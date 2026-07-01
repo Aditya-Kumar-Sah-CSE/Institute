@@ -90,7 +90,7 @@ export default function CourseManager({ courses }: CourseManagerProps) {
                 </p>
               )}
               <p className="text-secondary text-sm" style={{ marginBottom: 'var(--space-xs)' }}>
-                {course.lesson_count} Lessons | {course.total_xp} XP | {course.difficulty.charAt(0).toUpperCase() + course.difficulty.slice(1)}
+                {course.lesson_count} Lessons | {course.total_xp} XP | {course.difficulty?.charAt(0).toUpperCase() + course.difficulty?.slice(1)} {course.tags?.length ? `• ${course.tags.join(', ')}` : ''}
               </p>
             </div>
             <div className="course-card-actions">
@@ -124,21 +124,26 @@ export default function CourseManager({ courses }: CourseManagerProps) {
               <Input name="title" label="Course Title" defaultValue={editingCourse?.title} required />
               <TextArea name="description" label="Description" defaultValue={editingCourse?.description || ''} />
               
-              <Select 
-                name="difficulty" 
-                label="Semester" 
-                defaultValue={editingCourse?.difficulty || 'sem 1'}
-                options={[
-                  { value: 'sem 1', label: 'Semester 1' },
-                  { value: 'sem 2', label: 'Semester 2' },
-                  { value: 'sem 3', label: 'Semester 3' },
-                  { value: 'sem 4', label: 'Semester 4' },
-                  { value: 'sem 5', label: 'Semester 5' },
-                  { value: 'sem 6', label: 'Semester 6' },
-                  { value: 'sem 7', label: 'Semester 7' },
-                  { value: 'sem 8', label: 'Semester 8' }
-                ]}
-              />
+              <div>
+                <Input 
+                  name="difficulty" 
+                  label="Category / Semester"
+                  list="semester-options"
+                  defaultValue={editingCourse?.difficulty || 'sem 1'}
+                  placeholder="e.g. sem 1, AI, Skill, Web Dev" 
+                  required
+                />
+                <datalist id="semester-options">
+                  <option value="sem 1" />
+                  <option value="sem 2" />
+                  <option value="sem 3" />
+                  <option value="sem 4" />
+                  <option value="sem 5" />
+                  <option value="sem 6" />
+                  <option value="sem 7" />
+                  <option value="sem 8" />
+                </datalist>
+              </div>
 
               <Select 
                 name="is_published" 

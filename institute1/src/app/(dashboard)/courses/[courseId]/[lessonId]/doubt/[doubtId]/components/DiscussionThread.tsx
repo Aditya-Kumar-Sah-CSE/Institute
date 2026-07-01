@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import Button from '@/components/ui/Button';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
+import ImageUploadButton from '@/components/ui/ImageUploadButton';
 import { replyToDoubt, markReplyAsAccepted, toggleReplyVote, recordDoubtView } from '@/features/doubts/actions/doubts';
 
 export default function DiscussionThread({ doubt, replies, currentUser }: any) {
@@ -67,8 +68,8 @@ export default function DiscussionThread({ doubt, replies, currentUser }: any) {
         paddingLeft: isNested ? 'var(--space-md)' : 'var(--space-md)'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-sm)' }}>
-          <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
-            <img src={reply.author?.avatar_url || '/default-avatar.png'} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
+          <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'flex-start' }}>
+            <img src={reply.author?.avatar_url || '/default-avatar.png'} alt="avatar" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1px solid var(--glass-border)' }} />
             <div>
               <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {reply.author?.name} 
@@ -81,17 +82,19 @@ export default function DiscussionThread({ doubt, replies, currentUser }: any) {
             </div>
           </div>
           
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '4px 8px', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
             <button 
               onClick={() => handleVote(reply.id, 'upvote')} 
-              style={{ background: 'transparent', border: 'none', color: userVote === 'upvote' ? 'var(--neon-blue)' : 'var(--text-secondary)', cursor: 'pointer' }}
+              style={{ background: 'transparent', border: 'none', color: userVote === 'upvote' ? 'var(--neon-green)' : 'var(--text-secondary)', cursor: 'pointer', padding: '2px', transition: 'color 0.2s' }}
+              title="Upvote"
             >
               ▲
             </button>
-            <span>{reply.upvotes_count || 0}</span>
+            <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'bold', color: userVote ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{reply.upvotes_count || 0}</span>
             <button 
               onClick={() => handleVote(reply.id, 'downvote')} 
-              style={{ background: 'transparent', border: 'none', color: userVote === 'downvote' ? 'var(--neon-pink)' : 'var(--text-secondary)', cursor: 'pointer' }}
+              style={{ background: 'transparent', border: 'none', color: userVote === 'downvote' ? 'var(--neon-pink)' : 'var(--text-secondary)', cursor: 'pointer', padding: '2px', transition: 'color 0.2s' }}
+              title="Downvote"
             >
               ▼
             </button>
@@ -100,15 +103,15 @@ export default function DiscussionThread({ doubt, replies, currentUser }: any) {
 
         <MarkdownRenderer content={reply.reply_text} />
 
-        <div style={{ display: 'flex', gap: 'var(--space-md)', marginTop: 'var(--space-sm)', fontSize: 'var(--text-sm)' }}>
+        <div style={{ display: 'flex', gap: 'var(--space-md)', marginTop: 'var(--space-md)', fontSize: 'var(--text-sm)' }}>
           {!isNested && (
-            <button onClick={() => setActiveReplyId(activeReplyId === reply.id ? null : reply.id)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-              Reply
+            <button onClick={() => setActiveReplyId(activeReplyId === reply.id ? null : reply.id)} style={{ background: 'transparent', border: 'none', color: 'var(--neon-cyan)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 500 }}>
+              <span style={{ fontSize: '1.2em' }}>💬</span> Reply
             </button>
           )}
           {(isDoubtAuthor || isFaculty) && !reply.is_accepted && !doubt.status.includes('resolved') && !isNested && (
-            <button onClick={() => handleAccept(reply.id)} style={{ background: 'transparent', border: 'none', color: 'var(--neon-green)', cursor: 'pointer' }}>
-              Accept Answer
+            <button onClick={() => handleAccept(reply.id)} style={{ background: 'transparent', border: 'none', color: 'var(--neon-green)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 500 }}>
+              <span style={{ fontSize: '1.2em' }}>✓</span> Accept Answer
             </button>
           )}
         </div>
@@ -122,9 +125,14 @@ export default function DiscussionThread({ doubt, replies, currentUser }: any) {
               className="input-field"
               style={{ width: '100%', minHeight: '80px', marginBottom: 'var(--space-sm)' }}
             />
-            <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
-              <Button onClick={() => handleSubmit(reply.id)} isLoading={isSubmitting}>Submit</Button>
-              <Button variant="secondary" onClick={() => setActiveReplyId(null)}>Cancel</Button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <ImageUploadButton onUpload={(markdown) => {
+                setReplyText((prev) => prev + (prev ? '\\n\\n' : '') + markdown);
+              }} />
+              <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+                <Button onClick={() => handleSubmit(reply.id)} isLoading={isSubmitting}>Submit</Button>
+                <Button variant="secondary" onClick={() => setActiveReplyId(null)}>Cancel</Button>
+              </div>
             </div>
           </div>
         )}
@@ -140,8 +148,8 @@ export default function DiscussionThread({ doubt, replies, currentUser }: any) {
       <div className="glass-card" style={{ padding: 'var(--space-xl)', marginBottom: 'var(--space-xl)' }}>
         <h1 style={{ fontSize: 'var(--text-2xl)', marginBottom: 'var(--space-md)', color: 'var(--text-primary)' }}>{doubt.title}</h1>
         
-        <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'center', marginBottom: 'var(--space-lg)', paddingBottom: 'var(--space-sm)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-          <img src={doubt.author?.avatar_url || '/default-avatar.png'} alt="avatar" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+        <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'flex-start', marginBottom: 'var(--space-lg)', paddingBottom: 'var(--space-md)', borderBottom: '1px solid rgba(255,255,255,0.1)', flexWrap: 'wrap' }}>
+          <img src={doubt.author?.avatar_url || '/default-avatar.png'} alt="avatar" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid var(--neon-cyan)' }} />
           <div>
             <div style={{ fontWeight: 'bold' }}>{doubt.author?.name}</div>
             <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
@@ -149,9 +157,9 @@ export default function DiscussionThread({ doubt, replies, currentUser }: any) {
             </div>
           </div>
           
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: 'var(--space-sm)' }}>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
             {doubt.tags?.map((t: any) => (
-              <span key={t.tag_name} style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>
+              <span key={t.tag_name} style={{ background: 'rgba(0, 240, 255, 0.1)', border: '1px solid var(--neon-cyan)', color: 'var(--neon-cyan)', padding: '4px 12px', borderRadius: '16px', fontSize: '12px', fontWeight: 600 }}>
                 {t.tag_name}
               </span>
             ))}
@@ -161,27 +169,38 @@ export default function DiscussionThread({ doubt, replies, currentUser }: any) {
         <MarkdownRenderer content={doubt.description} />
       </div>
 
-      {/* Main Reply Input */}
+      {/* Replies List */}
+      <div style={{ marginBottom: 'var(--space-xl)' }}>
+        <h3 style={{ marginBottom: 'var(--space-md)', fontSize: 'var(--text-xl)', borderBottom: '1px solid var(--glass-border)', paddingBottom: 'var(--space-sm)' }}>
+          {replies.length} Replies
+        </h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+          {topLevel.map(reply => renderReply(reply))}
+        </div>
+      </div>
+
+      {/* Main Reply Input (Moved to bottom) */}
       {!doubt.status.includes('resolved') && (
-        <div className="glass-card" style={{ padding: 'var(--space-lg)', marginBottom: 'var(--space-xl)' }}>
-          <h3 style={{ marginBottom: 'var(--space-sm)' }}>Add a Reply</h3>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: 'var(--space-sm)' }}>Markdown and code blocks are supported.</p>
+        <div className="glass-card" style={{ padding: 'var(--space-lg)', marginBottom: 'var(--space-xl)', borderTop: '4px solid var(--neon-purple)' }}>
+          <h3 style={{ marginBottom: 'var(--space-2xs)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '1.2em' }}>✍️</span> Add a Reply
+          </h3>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: 'var(--space-md)' }}>Markdown and code blocks are supported.</p>
           <textarea 
             value={replyText} 
             onChange={e => setReplyText(e.target.value)}
             placeholder="Write your detailed answer here..."
             className="input-field"
-            style={{ width: '100%', minHeight: '120px', marginBottom: 'var(--space-sm)' }}
+            style={{ width: '100%', minHeight: '120px', marginBottom: 'var(--space-md)', resize: 'vertical' }}
           />
-          <Button onClick={() => handleSubmit()} isLoading={isSubmitting}>Post Reply</Button>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <ImageUploadButton onUpload={(markdown) => {
+              setReplyText((prev) => prev + (prev ? '\\n\\n' : '') + markdown);
+            }} />
+            <Button onClick={() => handleSubmit()} isLoading={isSubmitting}>Post Reply</Button>
+          </div>
         </div>
       )}
-
-      {/* Replies List */}
-      <div>
-        <h3 style={{ marginBottom: 'var(--space-md)' }}>{replies.length} Replies</h3>
-        {topLevel.map(reply => renderReply(reply))}
-      </div>
     </div>
   );
 }

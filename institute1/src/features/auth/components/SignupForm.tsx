@@ -100,6 +100,15 @@ export default function SignupForm() {
           />
 
           <Input
+            name="graduation_period"
+            type="text"
+            label="Graduation Year"
+            placeholder="Graduation Year (e.g., 2024-2028)"
+            icon="🎓"
+            required
+          />
+
+          <Input
             name="email"
             type="email"
             label="Email"

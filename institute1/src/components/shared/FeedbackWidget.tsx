@@ -14,7 +14,6 @@ export default function FeedbackWidget() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [defaultName, setDefaultName] = useState('');
-  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -25,16 +24,6 @@ export default function FeedbackWidget() {
         if (profile?.name) {
           setDefaultName(profile.name);
         }
-
-        // Fetch unread notifications count
-        const { count } = await supabase
-          .from('feedbacks')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .eq('category', 'Notification')
-          .eq('status', 'open');
-        
-        setUnreadCount(count || 0);
       }
     };
     fetchUser();
@@ -71,17 +60,6 @@ export default function FeedbackWidget() {
         style={{ position: 'fixed' }}
       >
         <span className="feedback-icon">💬</span>
-        {unreadCount > 0 && <span className="notification-dot" style={{
-          position: 'absolute',
-          top: '-4px',
-          left: '-4px',
-          width: '12px',
-          height: '12px',
-          backgroundColor: 'var(--neon-pink)',
-          borderRadius: '50%',
-          boxShadow: '0 0 8px var(--neon-pink)',
-          zIndex: 1000
-        }}></span>}
       </button>
 
       {/* The Overlay & Panel */}
@@ -92,14 +70,6 @@ export default function FeedbackWidget() {
               <h2>Submit Feedback</h2>
               <button className="close-btn" onClick={() => setIsOpen(false)}>✕</button>
             </div>
-
-            {unreadCount > 0 && (
-              <div style={{ marginBottom: 'var(--space-md)', padding: 'var(--space-sm)', background: 'rgba(255,71,87,0.1)', borderLeft: '3px solid var(--neon-pink)', borderRadius: 'var(--radius-sm)' }}>
-                <a href="/feedbacks" style={{ color: 'var(--neon-pink)', fontWeight: 600, textDecoration: 'none', display: 'block' }}>
-                  You have {unreadCount} new system notification(s)! Click here to view.
-                </a>
-              </div>
-            )}
 
             {success ? (
               <div className="feedback-success">
@@ -132,10 +102,7 @@ export default function FeedbackWidget() {
                   <label>Feedback Category:</label>
                   <div className="radio-group">
                     <label>
-                      <input type="radio" name="category" value="Issue" defaultChecked /> General Issue
-                    </label>
-                    <label>
-                      <input type="radio" name="category" value="Bug" /> Report a Bug
+                      <input type="radio" name="category" value="Bug" defaultChecked /> Report a Bug
                     </label>
                     <label>
                       <input type="radio" name="category" value="Feature" /> Suggest Feature

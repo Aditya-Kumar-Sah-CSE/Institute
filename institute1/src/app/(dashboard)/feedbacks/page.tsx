@@ -33,8 +33,8 @@ export default async function StudentFeedbacksPage() {
   return (
     <div className="student-feedbacks-page">
       <div className="page-header" style={{ marginBottom: 'var(--space-xl)' }}>
-        <h1 className="text-gradient">My Doubts</h1>
-        <p className="text-secondary">Track the status of the doubts you&apos;ve submitted.</p>
+        <h1 className="text-gradient">Notifications</h1>
+        <p className="text-secondary">View your system notifications and feedback updates.</p>
       </div>
 
       {error && <div className="error-message">{error}</div>}

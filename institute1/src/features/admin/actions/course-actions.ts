@@ -75,13 +75,13 @@ export async function updateCourse(id: string, formData: FormData) {
 
 export async function deleteCourse(id: string) {
   const { supabase } = await requireCourseRole();
-  
+
   // Soft delete the course
-  const { error } = await supabase.from('courses').update({ 
-    is_deleted: true, 
-    is_published: false 
+  const { error } = await supabase.from('courses').update({
+    is_deleted: true,
+    is_published: false
   }).eq('id', id);
-  
+
   if (error) return { error: error.message };
 
   revalidatePath('/admin/courses');
@@ -91,12 +91,12 @@ export async function deleteCourse(id: string) {
 
 export async function restoreCourse(id: string) {
   const { supabase } = await requireCourseRole();
-  
+
   // Restore the course
-  const { error } = await supabase.from('courses').update({ 
-    is_deleted: false 
+  const { error } = await supabase.from('courses').update({
+    is_deleted: false
   }).eq('id', id);
-  
+
   if (error) return { error: error.message };
 
   revalidatePath('/admin/courses');

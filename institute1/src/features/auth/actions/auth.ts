@@ -13,8 +13,9 @@ export async function signUp(formData: FormData) {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
   const institute_id = formData.get('institute_id') as string;
+  const graduation_period = formData.get('graduation_period') as string;
 
-  if (!name || !email || !password || !institute_id) {
+  if (!name || !email || !password || !institute_id || !graduation_period) {
     return { error: 'All fields are required' };
   }
 
@@ -35,7 +36,7 @@ export async function signUp(formData: FormData) {
       email,
       password,
       email_confirm: true,
-      user_metadata: { name, institute_id },
+      user_metadata: { name, institute_id, graduation_period },
     });
 
     if (adminAuthError) {
@@ -51,7 +52,7 @@ export async function signUp(formData: FormData) {
       email,
       password,
       options: {
-        data: { name, institute_id },
+        data: { name, institute_id, graduation_period },
         emailRedirectTo: `${siteUrl}/api/auth/callback`,
       },
     });

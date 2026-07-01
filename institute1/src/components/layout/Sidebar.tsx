@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 import './Sidebar.css';
 import { NAV_ITEMS, ADMIN_NAV_ITEMS, INSTRUCTOR_NAV_ITEMS, SUPER_ADMIN_EMAIL } from '@/lib/constants';
 import XPBar from '@/components/shared/XPBar';
@@ -20,6 +21,29 @@ interface SidebarProps {
 export default function Sidebar({ profile, isAdmin = false, roleView }: SidebarProps) {
   const pathname = usePathname();
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  React.useEffect(() => {
+    if (pathname === '/feedbacks') {
+      setUnreadCount(0);
+      return;
+    }
+
+    const fetchUnread = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { count } = await supabase
+          .from('feedbacks')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('category', 'Notification')
+          .eq('status', 'open');
+        setUnreadCount(count || 0);
+      }
+    };
+    fetchUnread();
+  }, [pathname]);
   
   const currentView = roleView || (isAdmin ? 'admin' : 'student');
   let navItems = currentView === 'admin' ? ADMIN_NAV_ITEMS : 
@@ -107,7 +131,14 @@ export default function Sidebar({ profile, isAdmin = false, roleView }: SidebarP
             href={item.href}
             className={`sidebar-nav-item ${pathname === item.href ? 'active' : ''}`}
           >
-            <span className="sidebar-nav-icon">{item.icon}</span>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span className="sidebar-nav-icon">{item.icon}</span>
+              {item.label === 'Notifications' && unreadCount > 0 && (
+                <span className="sidebar-nav-notification">
+                  {unreadCount}
+                </span>
+              )}
+            </div>
             <span className="sidebar-nav-label">{item.label}</span>
             {pathname === item.href && <span className="sidebar-nav-indicator" />}
           </Link>

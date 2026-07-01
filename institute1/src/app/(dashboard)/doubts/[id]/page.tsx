@@ -57,11 +57,11 @@ export default async function DoubtDetailsPage({ params }: { params: Promise<{ i
       </div>
       
       <Card variant="glass" style={{ borderLeft: '4px solid var(--neon-cyan)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-md)' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2xs)' }}>
-            <h1 style={{ fontSize: 'var(--text-xl)', margin: 0 }}>{doubt.title}</h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-md)', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2xs)', flex: '1 1 auto', minWidth: 0 }}>
+            <h1 style={{ fontSize: 'var(--text-xl)', margin: 0, wordBreak: 'break-word' }}>{doubt.title}</h1>
             {(doubt.course || doubt.lesson) && (
-              <div style={{ display: 'flex', gap: 'var(--space-xs)', alignItems: 'center', marginTop: 'var(--space-2xs)' }}>
+              <div style={{ display: 'flex', gap: 'var(--space-xs)', alignItems: 'center', marginTop: 'var(--space-2xs)', flexWrap: 'wrap' }}>
                 {doubt.course && (
                   <Link href={`/courses/${doubt.course.id}`} style={{ textDecoration: 'none' }}>
                     <span style={{ fontSize: '12px', padding: '2px 8px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '4px', color: 'var(--neon-cyan)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -85,13 +85,14 @@ export default async function DoubtDetailsPage({ params }: { params: Promise<{ i
             borderRadius: '12px', 
             background: doubt.status === 'resolved' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(234, 179, 8, 0.1)',
             color: doubt.status === 'resolved' ? '#22c55e' : '#eab308',
-            fontWeight: 'var(--weight-semibold)'
+            fontWeight: 'var(--weight-semibold)',
+            flexShrink: 0
           }}>
             {doubt.status === 'resolved' ? 'Resolved' : 'Open'}
           </span>
         </div>
         
-        <p style={{ color: 'var(--text-primary)', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+        <p style={{ color: 'var(--text-primary)', whiteSpace: 'pre-wrap', lineHeight: 1.6, wordBreak: 'break-word' }}>
           {doubt.description}
         </p>
         
@@ -114,7 +115,7 @@ export default async function DoubtDetailsPage({ params }: { params: Promise<{ i
         </div>
       </Card>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)', marginLeft: 'var(--space-lg)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)', marginLeft: 'var(--space-md)' }}>
         <h3 style={{ fontSize: 'var(--text-lg)', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: 'var(--space-xs)' }}>
           {replies?.length || 0} Replies
         </h3>
@@ -131,7 +132,7 @@ export default async function DoubtDetailsPage({ params }: { params: Promise<{ i
                 {reply.reply_text}
               </p>
               
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--space-md)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--space-md)', flexWrap: 'wrap', gap: 'var(--space-sm)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
                   {reply.author?.avatar_url ? (
                     <img src={reply.author.avatar_url} alt={reply.author.name} style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }} />
@@ -162,7 +163,7 @@ export default async function DoubtDetailsPage({ params }: { params: Promise<{ i
       </div>
 
       {doubt.status !== 'resolved' && (
-        <Card variant="glass" style={{ marginLeft: 'var(--space-lg)', marginTop: 'var(--space-md)' }}>
+        <Card variant="glass" style={{ marginLeft: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
           <h4 style={{ marginBottom: 'var(--space-sm)' }}>Your Reply</h4>
           <ReplyForm doubtId={doubt.id} />
         </Card>

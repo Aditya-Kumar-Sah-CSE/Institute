@@ -105,6 +105,9 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
                  {currentView !== 'instructor' && ((profile.role === 'instructor' && profile.status === 'active') || profile.role === 'admin') && (
                    <Link href="/instructor" onClick={() => setIsMenuOpen(false)}>👨‍🏫 Instructor Panel</Link>
                  )}
+                 {currentView === 'student' && (
+                   <Link href="/notices" onClick={() => setIsMenuOpen(false)}>📢 Notices</Link>
+                 )}
                  <Link href="/profile" onClick={() => setIsMenuOpen(false)}>👤 Profile</Link>
                  <form action="/api/auth/signout" method="post" style={{ margin: 0, width: '100%' }}>
                    <button type="submit" className="mobile-logout-btn">🚪 Logout</button>

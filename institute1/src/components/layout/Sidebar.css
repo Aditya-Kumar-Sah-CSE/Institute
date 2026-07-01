@@ -201,6 +201,22 @@
   color: var(--neon-red) !important;
 }
 
+.sidebar-nav-notification {
+  position: absolute;
+  right: -5px;
+  top: -5px;
+  background: var(--neon-pink);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: bold;
+  padding: 1px 5px;
+  border-radius: 10px;
+  box-shadow: 0 0 6px var(--neon-pink);
+  z-index: 10;
+  min-width: 16px;
+  text-align: center;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .sidebar {
@@ -269,7 +285,8 @@
     flex: none;
   }
 
-  .sidebar-nav-item[href="/profile"] {
+  .sidebar-nav-item[href="/profile"],
+  .sidebar-nav-item[href="/notices"] {
     display: none !important;
   }
 }

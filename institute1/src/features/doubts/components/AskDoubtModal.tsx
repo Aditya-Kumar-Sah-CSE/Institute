@@ -5,6 +5,7 @@ import { createDoubt } from '@/features/doubts/actions/doubts';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import ImageUploadButton from '@/components/ui/ImageUploadButton';
 
 interface AskDoubtModalProps {
   isOpen: boolean;
@@ -53,7 +54,8 @@ export default function AskDoubtModal({ isOpen, onClose, courseId, lessonId }: A
             Description (Markdown Supported)
           </label>
           <textarea 
-            name="description" 
+            name="description"
+            id="doubt-description" 
             rows={5} 
             required 
             placeholder="Explain your doubt in detail. You can use markdown and code blocks..."
@@ -67,6 +69,20 @@ export default function AskDoubtModal({ isOpen, onClose, courseId, lessonId }: A
               resize: 'vertical'
             }}
           />
+          <div style={{ alignSelf: 'flex-start' }}>
+            <ImageUploadButton onUpload={(markdown) => {
+              const textarea = document.getElementById('doubt-description') as HTMLTextAreaElement;
+              if (textarea) {
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                const text = textarea.value;
+                textarea.value = text.substring(0, start) + '\\n\\n' + markdown + '\\n\\n' + text.substring(end);
+                textarea.focus();
+                textarea.selectionStart = start + markdown.length + 4;
+                textarea.selectionEnd = start + markdown.length + 4;
+              }
+            }} />
+          </div>
         </div>
 
         <Input 

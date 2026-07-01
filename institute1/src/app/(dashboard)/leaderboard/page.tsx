@@ -23,8 +23,7 @@ export default async function LeaderboardPage({
     profilesQuery = supabase
       .from('profiles')
       .select('*, user_badges(count)')
-      .neq('role', 'admin')
-      .neq('role', 'instructor')
+      .eq('role', 'student')
       .order('xp', { ascending: false })
       .limit(50);
   } else {
@@ -32,8 +31,7 @@ export default async function LeaderboardPage({
       .from('enrollments')
       .select('progress, user_id, profiles!inner(id, name, avatar_url, xp, level, role, user_badges(count))')
       .eq('course_id', filter)
-      .neq('profiles.role', 'admin')
-      .neq('profiles.role', 'instructor')
+      .eq('profiles.role', 'student')
       .order('progress', { ascending: false })
       .limit(50);
   }

@@ -22,8 +22,8 @@ export default function HubDoubtCard({ doubt, batchId }: HubDoubtCardProps) {
           borderLeft: isResolved ? '4px solid #22c55e' : '4px solid #eab308'
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <h3 style={{ fontSize: 'var(--text-lg)', margin: 0, color: 'var(--text-primary)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-sm)' }}>
+          <h3 style={{ fontSize: 'var(--text-lg)', margin: 0, color: 'var(--text-primary)', wordBreak: 'break-word', flex: '1 1 auto', minWidth: 0 }}>
             {doubt.title}
           </h3>
           <span style={{ 
@@ -31,7 +31,8 @@ export default function HubDoubtCard({ doubt, batchId }: HubDoubtCardProps) {
             padding: '2px 8px', 
             borderRadius: '12px', 
             background: isResolved ? 'rgba(34, 197, 94, 0.1)' : 'rgba(234, 179, 8, 0.1)',
-            color: isResolved ? '#22c55e' : '#eab308' 
+            color: isResolved ? '#22c55e' : '#eab308',
+            flexShrink: 0
           }}>
             {isResolved ? 'Resolved' : 'Open'}
           </span>
@@ -44,13 +45,14 @@ export default function HubDoubtCard({ doubt, batchId }: HubDoubtCardProps) {
           WebkitLineClamp: 2, 
           WebkitBoxOrient: 'vertical', 
           overflow: 'hidden',
-          margin: 0
+          margin: 0,
+          wordBreak: 'break-word'
         }}>
           {doubt.description}
         </p>
 
         {(doubt.course || doubt.lesson) && (
-          <div style={{ display: 'flex', gap: 'var(--space-xs)', alignItems: 'center', marginTop: 'var(--space-2xs)' }}>
+          <div style={{ display: 'flex', gap: 'var(--space-xs)', alignItems: 'center', marginTop: 'var(--space-2xs)', flexWrap: 'wrap' }}>
             {doubt.course && (
               <span style={{ fontSize: '10px', padding: '2px 6px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '4px', color: 'var(--text-secondary)' }}>
                 📚 {doubt.course.title}
@@ -64,7 +66,7 @@ export default function HubDoubtCard({ doubt, batchId }: HubDoubtCardProps) {
           </div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--space-sm)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--space-sm)', flexWrap: 'wrap', gap: 'var(--space-sm)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xs)' }}>
             {doubt.author?.avatar_url ? (
               <img src={doubt.author.avatar_url} alt={doubt.author.name} style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }} />
