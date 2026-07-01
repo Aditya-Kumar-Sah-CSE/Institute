@@ -18,11 +18,27 @@ export default function LessonView({ lesson, isCompleted, onComplete }: LessonVi
   // Sanitize lesson notes to prevent XSS attacks
   const sanitizedNotes = useMemo(() => {
     if (!lesson.notes) return '';
-    return DOMPurify.sanitize(lesson.notes, {
-      ALLOWED_TAGS: ['p', 'br', 'b', 'i', 'em', 'strong', 'u', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'a', 'code', 'pre', 'blockquote', 'hr', 'span', 'div', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'img', 'sub', 'sup'],
-      ALLOWED_ATTR: ['href', 'target', 'rel', 'class', 'style', 'src', 'alt', 'width', 'height'],
-      ALLOW_DATA_ATTR: false,
-    });
+    
+    if (typeof window === 'undefined') {
+      return lesson.notes; // Skip sanitization on server side
+    }
+
+    try {
+      // Depending on the bundler, DOMPurify might be the factory function or the bound instance
+      const purifier = typeof DOMPurify === 'function' ? DOMPurify(window) : DOMPurify;
+      
+      if (purifier && typeof purifier.sanitize === 'function') {
+        return purifier.sanitize(lesson.notes, {
+          ALLOWED_TAGS: ['p', 'br', 'b', 'i', 'em', 'strong', 'u', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'a', 'code', 'pre', 'blockquote', 'hr', 'span', 'div', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'img', 'sub', 'sup'],
+          ALLOWED_ATTR: ['href', 'target', 'rel', 'class', 'style', 'src', 'alt', 'width', 'height'],
+          ALLOW_DATA_ATTR: false,
+        });
+      }
+      return lesson.notes;
+    } catch (e) {
+      console.error('Error sanitizing notes:', e);
+      return lesson.notes;
+    }
   }, [lesson.notes]);
 
   return (

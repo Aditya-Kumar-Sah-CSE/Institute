@@ -4,6 +4,10 @@ export const XP_VALUES = {
   GITHUB_PUSH: 100,
   DEPLOY_PROJECT: 150,
   DAILY_STREAK: 20,
+  ASK_DOUBT: 10,
+  REPLY_DOUBT: 5,
+  ACCEPTED_ANSWER: 30,
+  FACULTY_ACCEPTED: 50,
 } as const;
 
 export const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL || 'iambestadi@gmail.com';
@@ -31,6 +35,8 @@ export const DEFAULT_BADGES = [
   { name: 'Streak Master', icon: '🔥', description: '7-day learning streak', condition_type: 'streak_days', condition_value: 7 },
   { name: 'Quiz Ace', icon: '🎯', description: 'Scored 100% on 5 quizzes', condition_type: 'perfect_score', condition_value: 5 },
   { name: 'Code Ninja', icon: '🥷', description: 'Completed 20 coding tasks', condition_type: 'code_complete', condition_value: 20 },
+  { name: 'Daily Helpful Contributor', icon: '🤝', description: 'Replied to 5 doubts in one day', condition_type: 'daily_replies', condition_value: 5 },
+  { name: 'Top Doubt Solver', icon: '💡', description: 'Got 10 accepted answers', condition_type: 'accepted_answers', condition_value: 10 },
 ];
 
 export const NAV_ITEMS = [
@@ -38,6 +44,7 @@ export const NAV_ITEMS = [
   { label: 'All Courses', href: '/courses', icon: '📚' },
   { label: 'Leaderboard', href: '/leaderboard', icon: '🏆' },
   { label: 'Alerts & Doubts', href: '/feedbacks', icon: '🔔' },
+  { label: 'Batch Doubts', href: '/doubts', icon: '❓' },
   { label: 'Notices', href: '/notices', icon: '📢' },
   { label: 'Profile', href: '/profile', icon: '👤' },
 ];

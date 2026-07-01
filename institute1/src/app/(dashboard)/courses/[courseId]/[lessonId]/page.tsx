@@ -6,6 +6,8 @@ import AssignmentCard from '@/features/courses/components/AssignmentCard';
 import { awardXP } from '@/features/auth/actions/auth';
 import { revalidatePath } from 'next/cache';
 import type { Submission } from '@/types';
+import LessonDoubts from './components/LessonDoubts';
+
 export default async function LessonPage({ params }: { params: Promise<{ courseId: string; lessonId: string }> }) {
   const { courseId, lessonId } = await params;
   
@@ -13,6 +15,9 @@ export default async function LessonPage({ params }: { params: Promise<{ courseI
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) redirect('/login');
+
+  const { data: profile } = await supabase.from('profiles').select('graduation_period, role').eq('id', user.id).single();
+  const batch = profile?.graduation_period || null;
 
   // Check enrollment
   const { data: enrollment } = await supabase
@@ -44,6 +49,21 @@ export default async function LessonPage({ params }: { params: Promise<{ courseI
     .single();
 
   if (!lesson) notFound();
+
+  // Fetch doubts for this lesson based on user's batch (or all if admin/instructor)
+  let doubtsQuery = supabase
+    .from('doubts')
+    .select('*, author:profiles(name, avatar_url, role), view_count:doubt_views(count), replies:doubt_replies(count)')
+    .eq('lesson_id', lessonId)
+    .order('created_at', { ascending: false });
+    
+  // The RLS policy should handle batch filtering automatically based on auth.uid()
+  const { data: doubtsData, error: doubtsError } = await doubtsQuery;
+  const doubts = doubtsData || [];
+
+  if (doubtsError && doubtsError.code !== 'PGRST205' && !doubtsError.message?.includes('public.doubts')) {
+    console.error('Error fetching lesson doubts:', doubtsError);
+  }
 
   // Fetch assignments
   const { data: assignments } = await supabase
@@ -272,6 +292,11 @@ export default async function LessonPage({ params }: { params: Promise<{ courseI
             );
           })}
         </div>
+      )}
+      
+      {/* Lesson Doubts Component */}
+      {(profile?.role === 'admin' || profile?.role === 'instructor' || batch) && (
+        <LessonDoubts courseId={courseId} lessonId={lessonId} doubts={doubts} />
       )}
     </div>
   );

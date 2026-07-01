@@ -138,7 +138,7 @@ export default function FeedbackWidget() {
                       <input type="radio" name="category" value="Bug" /> Report a Bug
                     </label>
                     <label>
-                      <input type="radio" name="category" value="Doubt" /> Ask a Doubt
+                      <input type="radio" name="category" value="Feature" /> Suggest Feature
                     </label>
                   </div>
                 </div>
@@ -150,7 +150,7 @@ export default function FeedbackWidget() {
                     name="message" 
                     rows={4} 
                     required 
-                    placeholder="Please describe your issue, bug, or doubt in detail..."
+                    placeholder="Please describe your issue, bug, or suggestion in detail..."
                   ></textarea>
                 </div>
 
