@@ -10,6 +10,7 @@ import AvatarUpload from './components/AvatarUpload';
 import GithubConnect from './components/GithubConnect';
 import SocialLinksConnect from './components/SocialLinksConnect';
 import AcademicInfoConnect from './components/AcademicInfoConnect';
+import CrownBanner from './components/CrownBanner';
 import { getPastMonthlyRewards } from '@/features/gamification/actions/monthly-rewards';
 import './Profile.css';
 export const dynamic = 'force-dynamic';
@@ -24,6 +25,7 @@ export default async function ProfilePage() {
   const { data: allBadges } = await supabase.from('badges').select('*').order('created_at', { ascending: true });
   const { data: earnedBadges } = await supabase.from('user_badges').select('*, badge:badges(*)').eq('user_id', user.id);
   const { data: xpLogs } = await supabase.from('xp_log').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10);
+  const { data: companySettings } = await supabase.from('company_settings').select('company_name').single();
   const adminSb = await createAdminClient();
   const { data: enrollments } = await supabase.from('enrollments').select('*, course:courses(title, thumbnail_url)').eq('user_id', user.id);
   const { data: appData, error: appError } = await adminSb.from('instructor_applications').select('status').eq('user_id', user.id).order('submitted_at', { ascending: false }).limit(1).maybeSingle();
@@ -38,25 +40,11 @@ export default async function ProfilePage() {
   return (
     <div className="profile-page">
       {latestReward && latestReward.rank <= 10 && (
-        <div style={{
-          background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 140, 0, 0.1))',
-          border: '1px solid var(--neon-gold)',
-          borderRadius: 'var(--radius-lg)',
-          padding: 'var(--space-md) var(--space-xl)',
-          marginBottom: 'var(--space-xl)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'var(--space-md)',
-          boxShadow: '0 0 20px rgba(255, 215, 0, 0.15)'
-        }}>
-          <span style={{ fontSize: '2.5rem', filter: 'drop-shadow(0 0 5px rgba(255,215,0,0.8))' }}>👑</span>
-          <div>
-            <h2 style={{ color: 'var(--neon-gold)', fontSize: 'var(--text-xl)', marginBottom: 'var(--space-2xs)' }}>Institute Topper</h2>
-            <p className="text-secondary" style={{ fontSize: 'var(--text-md)' }}>
-              Congratulations! You ranked <strong>#{latestReward.rank}</strong> in the leaderboard last month.
-            </p>
-          </div>
-        </div>
+        <CrownBanner 
+          rank={latestReward.rank} 
+          companyName={companySettings?.company_name || 'Institute'} 
+          monthDate={latestReward.month_date} 
+        />
       )}
 
       <div className="profile-header glass-card">

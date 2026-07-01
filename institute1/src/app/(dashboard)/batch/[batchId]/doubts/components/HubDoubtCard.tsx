@@ -80,19 +80,23 @@ export default function HubDoubtCard({ doubt, batchId }: HubDoubtCardProps) {
             </span>
           </div>
 
-          <div style={{ display: 'flex', gap: 'var(--space-sm)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              👁️ {doubt.view_count?.[0]?.count || 0}
+          <div style={{ display: 'flex', gap: 'var(--space-md)', fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '16px' }}>👍</span> {doubt.likes_count || 0}
             </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              💬 {doubt.replies?.[0]?.count || 0}
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '16px' }}>👁️</span> {doubt.view_count?.[0]?.count || 0}
             </span>
-            <span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '16px' }}>💬</span> {doubt.replies?.[0]?.count || 0}
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', fontSize: 'var(--text-xs)' }}>
               {formatDistanceToNow(new Date(doubt.created_at), { addSuffix: true })}
             </span>
           </div>
         </div>
       </div>
+
     </Link>
   );
 }

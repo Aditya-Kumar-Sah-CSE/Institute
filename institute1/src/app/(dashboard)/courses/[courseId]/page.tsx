@@ -73,7 +73,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
           <div className="course-action">
             {!enrollment ? (
               <form action={enrollInCourseFormAction.bind(null, courseId)}>
-                <Button variant="primary" size="lg" type="submit">Enroll Now</Button>
+                <Button variant="primary" size="lg" type="submit">Enroll Now (+20 XP ⚡)</Button>
               </form>
             ) : enrollment.status === 'pending' ? (
               <div className="enrolled-status">

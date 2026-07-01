@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import NotificationBell from './NotificationBell';
 import './Navbar.css';
 
 import type { Profile } from '@/types';
@@ -69,6 +70,11 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
               <div className="company-nav-logo-fallback">🏢</div>
             )}
           </Link>
+        )}
+
+        {/* Notification Bell */}
+        {profile && (
+          <NotificationBell userId={profile.id} />
         )}
 
         {/* Hamburger Menu (Mobile Only) */}

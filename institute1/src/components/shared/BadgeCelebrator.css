@@ -111,3 +111,32 @@
     opacity: 0;
   }
 }
+
+
+/* Fixes for html2canvas export */
+.exporting-image {
+  background: #1a1a2e !important;
+  border: 2px solid #00f0ff !important;
+  box-shadow: none !important;
+}
+
+.exporting-image .celebration-title {
+  background: none !important;
+  -webkit-background-clip: border-box !important;
+  -webkit-text-fill-color: currentcolor !important;
+  color: #00f0ff !important;
+  text-shadow: none !important;
+}
+
+.exporting-image .badge-name {
+  color: #ffffff !important;
+}
+
+.exporting-image .badge-desc {
+  color: #a0aec0 !important;
+}
+
+.exporting-image .badge-icon-large {
+  animation: none !important;
+  filter: none !important;
+}

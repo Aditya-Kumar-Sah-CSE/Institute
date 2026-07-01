@@ -232,6 +232,10 @@ export async function toggleReplyVote(replyId: string, voteType: 'upvote' | 'dow
       vote_type: voteType
     });
     
+    if (voteType === 'upvote') {
+      await awardXP(user.id, XP_VALUES.LIKE_DOUBT, 'Upvoted a Reply', 'reply_vote', replyId);
+    }
+    
     // Notify author on upvote
     if (voteType === 'upvote') {
       const { data: reply } = await supabase.from('doubt_replies').select('user_id, doubt_id').eq('id', replyId).single();
@@ -280,6 +284,49 @@ export async function togglePinReply(replyId: string, doubtId: string) {
   if (!reply) return { error: 'Reply not found' };
 
   await supabase.from('doubt_replies').update({ is_pinned: !reply.is_pinned }).eq('id', replyId);
+  revalidatePath(`/doubts/${doubtId}`);
+  return { success: true };
+}
+
+export async function toggleDoubtLike(doubtId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not logged in' };
+
+  const { data: existingLike } = await supabase
+    .from('doubt_likes')
+    .select('*')
+    .eq('doubt_id', doubtId)
+    .eq('user_id', user.id)
+    .single();
+
+  if (existingLike) {
+    // Unlike
+    await supabase.from('doubt_likes').delete().eq('id', existingLike.id);
+  } else {
+    // Like
+    await supabase.from('doubt_likes').insert({
+      doubt_id: doubtId,
+      user_id: user.id
+    });
+    
+    await awardXP(user.id, XP_VALUES.LIKE_DOUBT, 'Liked a Doubt', 'doubt_like', doubtId);
+    
+    // Notify author
+    const { data: doubt } = await supabase.from('doubts').select('user_id').eq('id', doubtId).single();
+    if (doubt && doubt.user_id !== user.id) {
+      const { data: profile } = await supabase.from('profiles').select('name').eq('id', user.id).single();
+      await createNotification(
+        supabase,
+        doubt.user_id,
+        'like',
+        `${profile?.name} liked your doubt`,
+        `/doubts/${doubtId}`
+      );
+    }
+  }
+
+  // Due to multiple entry points, revalidate both batch page and detail page
   revalidatePath(`/doubts/${doubtId}`);
   return { success: true };
 }

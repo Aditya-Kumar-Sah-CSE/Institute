@@ -28,7 +28,8 @@ export default async function DiscussionPage({
       author:profiles(name, avatar_url, role),
       course:courses(title),
       lesson:lessons(title),
-      tags:doubt_tags(tag_name)
+      tags:doubt_tags(tag_name),
+      likes:doubt_likes(user_id)
     `)
     .eq('id', doubtId)
     .single();

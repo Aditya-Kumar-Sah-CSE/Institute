@@ -2,6 +2,8 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { awardXP } from '@/features/auth/actions/auth';
+import { XP_VALUES } from '@/lib/constants';
 
 export async function enrollInCourse(courseId: string) {
   const supabase = await createClient();
@@ -38,6 +40,8 @@ export async function enrollInCourse(courseId: string) {
       message: `Thank you for enrolling in ${courseName}. Please wait for instructor approval.`,
       status: 'open'
     });
+    
+    await awardXP(user.id, XP_VALUES.COURSE_JOIN, 'Joined a Course', 'enrollment', courseId);
   }
 
   if (error) return { error: error.message };

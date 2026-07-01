@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import LeaderboardTable from '@/features/leaderboard/components/LeaderboardTable';
 import CourseFilter from '@/features/leaderboard/components/CourseFilter';
+import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 import type { LeaderboardEntry, LevelName } from '@/types';
 
 export default async function LeaderboardPage({
@@ -24,6 +25,7 @@ export default async function LeaderboardPage({
       .from('profiles')
       .select('*, user_badges(count)')
       .eq('role', 'student')
+      .neq('email', SUPER_ADMIN_EMAIL)
       .order('xp', { ascending: false })
       .limit(50);
   } else {
@@ -32,6 +34,7 @@ export default async function LeaderboardPage({
       .select('progress, user_id, profiles!inner(id, name, avatar_url, xp, level, role, user_badges(count))')
       .eq('course_id', filter)
       .eq('profiles.role', 'student')
+      .neq('profiles.email', SUPER_ADMIN_EMAIL)
       .order('progress', { ascending: false })
       .limit(50);
   }

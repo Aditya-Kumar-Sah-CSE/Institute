@@ -146,3 +146,37 @@
   0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
   100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
 }
+
+
+/* Fixes for html2canvas export */
+.exporting-image {
+  background: #1a1a2e !important;
+  border: 2px solid #ffd700 !important;
+  box-shadow: none !important;
+}
+
+.exporting-image .monthly-celebration-title {
+  background: none !important;
+  -webkit-background-clip: border-box !important;
+  -webkit-text-fill-color: currentcolor !important;
+  color: #ffd700 !important;
+  text-shadow: none !important;
+}
+
+.exporting-image .monthly-desc {
+  color: #ffffff !important;
+}
+
+.exporting-image .monthly-desc strong {
+  color: #00ffff !important;
+  text-shadow: none !important;
+}
+
+.exporting-image .glow-effect {
+  display: none !important;
+}
+
+.exporting-image .crown-icon {
+  animation: none !important;
+  filter: none !important;
+}

@@ -35,7 +35,7 @@ export default function AskDoubtModal({ isOpen, onClose, courseId, lessonId }: A
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Ask a Doubt">
+    <Modal isOpen={isOpen} onClose={onClose} title="Ask a Doubt (+10 XP ⚡)">
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
         {error && <div style={{ color: 'var(--neon-pink)', background: 'rgba(255, 71, 87, 0.1)', padding: 'var(--space-sm)', borderRadius: 'var(--radius-sm)' }}>{error}</div>}
         
@@ -58,7 +58,7 @@ export default function AskDoubtModal({ isOpen, onClose, courseId, lessonId }: A
             id="doubt-description" 
             rows={5} 
             required 
-            placeholder="Explain your doubt in detail. You can use markdown and code blocks..."
+            placeholder="Explain your doubt in detail... (Ask to earn +10 XP!)"
             style={{ 
               background: 'rgba(255, 255, 255, 0.05)', 
               border: '1px solid rgba(255, 255, 255, 0.1)',

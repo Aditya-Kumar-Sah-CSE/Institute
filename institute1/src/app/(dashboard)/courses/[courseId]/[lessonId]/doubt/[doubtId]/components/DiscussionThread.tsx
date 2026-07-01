@@ -5,7 +5,7 @@ import { formatDistanceToNow } from 'date-fns';
 import Button from '@/components/ui/Button';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import ImageUploadButton from '@/components/ui/ImageUploadButton';
-import { replyToDoubt, markReplyAsAccepted, toggleReplyVote, recordDoubtView } from '@/features/doubts/actions/doubts';
+import { replyToDoubt, markReplyAsAccepted, toggleReplyVote, recordDoubtView, toggleDoubtLike } from '@/features/doubts/actions/doubts';
 
 export default function DiscussionThread({ doubt, replies, currentUser }: any) {
   const [replyText, setReplyText] = useState('');
@@ -33,8 +33,13 @@ export default function DiscussionThread({ doubt, replies, currentUser }: any) {
     await toggleReplyVote(replyId, type);
   };
 
+  const handleDoubtLike = async () => {
+    await toggleDoubtLike(doubt.id);
+  };
+
   const isDoubtAuthor = currentUser.id === doubt.user_id;
   const isFaculty = currentUser.role === 'admin' || currentUser.role === 'instructor';
+  const hasLikedDoubt = doubt.likes?.some((l: any) => l.user_id === currentUser.id);
 
   // Organize replies into a tree
   const { topLevel, childrenMap } = useMemo(() => {
@@ -121,7 +126,7 @@ export default function DiscussionThread({ doubt, replies, currentUser }: any) {
             <textarea 
               value={replyText} 
               onChange={e => setReplyText(e.target.value)}
-              placeholder="Write your reply..."
+              placeholder="Write your reply... (+5 XP ⚡)"
               className="input-field"
               style={{ width: '100%', minHeight: '80px', marginBottom: 'var(--space-sm)' }}
             />
@@ -167,6 +172,29 @@ export default function DiscussionThread({ doubt, replies, currentUser }: any) {
         </div>
 
         <MarkdownRenderer content={doubt.description} />
+        
+        <div style={{ marginTop: 'var(--space-md)', paddingTop: 'var(--space-md)', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+          <button 
+            onClick={handleDoubtLike}
+            title="Like this doubt to earn +2 XP ⚡"
+            style={{ 
+              background: hasLikedDoubt ? 'rgba(255, 59, 92, 0.1)' : 'transparent',
+              border: hasLikedDoubt ? '1px solid var(--neon-pink)' : '1px solid rgba(255,255,255,0.2)',
+              color: hasLikedDoubt ? 'var(--neon-pink)' : 'var(--text-secondary)',
+              padding: '6px 16px',
+              borderRadius: '20px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s ease',
+              fontWeight: 500
+            }}
+          >
+            <span style={{ fontSize: '18px' }}>👍</span> 
+            {doubt.likes_count || 0} Likes (+2 XP ⚡)
+          </button>
+        </div>
       </div>
 
       {/* Replies List */}
@@ -189,7 +217,7 @@ export default function DiscussionThread({ doubt, replies, currentUser }: any) {
           <textarea 
             value={replyText} 
             onChange={e => setReplyText(e.target.value)}
-            placeholder="Write your detailed answer here..."
+            placeholder="Write your detailed answer here... (Earn +5 XP ⚡)"
             className="input-field"
             style={{ width: '100%', minHeight: '120px', marginBottom: 'var(--space-md)', resize: 'vertical' }}
           />
