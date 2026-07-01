@@ -5,6 +5,7 @@ import Button from '@/components/ui/Button';
 import Image from 'next/image';
 import { revalidatePath } from 'next/cache';
 import Link from 'next/link';
+import { BookOpen, FileText, Users } from 'lucide-react';
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
 
@@ -132,14 +133,14 @@ export default async function AdminDashboardPage() {
         <Card variant="glass">
           <h2 style={{ marginBottom: 'var(--space-lg)', fontSize: 'var(--text-xl)' }}>Quick Actions</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-            <a href="/admin/courses" className="btn btn-secondary btn-md" style={{ justifyContent: 'flex-start' }}>
-              📚 Manage Courses & Lessons
+            <a href="/admin/courses" className="btn btn-secondary btn-md" style={{ justifyContent: 'flex-start', gap: '12px' }}>
+              <BookOpen className="w-5 h-5 text-neon-cyan" /> Manage Courses & Lessons
             </a>
-            <a href="/admin/submissions" className="btn btn-secondary btn-md" style={{ justifyContent: 'flex-start' }}>
-              📝 Review Pending Submissions
+            <a href="/admin/submissions" className="btn btn-secondary btn-md" style={{ justifyContent: 'flex-start', gap: '12px' }}>
+              <FileText className="w-5 h-5 text-neon-gold" /> Review Pending Submissions
             </a>
-            <a href="/admin/students" className="btn btn-secondary btn-md" style={{ justifyContent: 'flex-start' }}>
-              👥 View Student Progress
+            <a href="/admin/students" className="btn btn-secondary btn-md" style={{ justifyContent: 'flex-start', gap: '12px' }}>
+              <Users className="w-5 h-5 text-neon-magenta" /> View Student Progress
             </a>
           </div>
         </Card>

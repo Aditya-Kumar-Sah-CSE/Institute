@@ -2,6 +2,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { createClient as createRawClient } from '@supabase/supabase-js';
 import Card from '@/components/ui/Card';
 import Link from 'next/link';
+import { BookOpen, FileText } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -122,11 +123,11 @@ export default async function InstructorDashboardPage() {
         <Card variant="glass">
           <h2 style={{ marginBottom: 'var(--space-lg)', fontSize: 'var(--text-xl)' }}>Quick Actions</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-            <Link href="/instructor/courses" className="btn btn-secondary" style={{ justifyContent: 'flex-start', padding: '16px 20px', fontSize: 'var(--text-md)' }}>
-              📚 Course Manager
+            <Link href="/instructor/courses" className="btn btn-secondary" style={{ justifyContent: 'flex-start', padding: '16px 20px', fontSize: 'var(--text-md)', gap: '12px' }}>
+              <BookOpen className="w-5 h-5 text-neon-cyan" /> Course Manager
             </Link>
-            <Link href="/instructor/submissions" className="btn btn-secondary" style={{ justifyContent: 'flex-start', padding: '16px 20px', fontSize: 'var(--text-md)' }}>
-              📝 Review Student Submissions
+            <Link href="/instructor/submissions" className="btn btn-secondary" style={{ justifyContent: 'flex-start', padding: '16px 20px', fontSize: 'var(--text-md)', gap: '12px' }}>
+              <FileText className="w-5 h-5 text-neon-gold" /> Review Student Submissions
             </Link>
           </div>
           <p style={{ marginTop: 'var(--space-lg)', fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
