@@ -11,7 +11,8 @@ import {
   FileText,
   MessageSquare,
   Shield,
-  Building
+  Building,
+  LogOut
 } from 'lucide-react';
 
 export function getIcon(name: string, props?: any) {
@@ -29,6 +30,7 @@ export function getIcon(name: string, props?: any) {
     case 'Feedback': return <MessageSquare {...props} />;
     case 'Admin': return <Shield {...props} />;
     case 'Building': return <Building {...props} />;
+    case 'Logout': return <LogOut {...props} />;
     default: return <LayoutDashboard {...props} />;
   }
 }

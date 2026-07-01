@@ -9,6 +9,7 @@ import './Navbar.css';
 
 import type { Profile } from '@/types';
 import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
+import { getIcon } from '@/lib/icon-mapper';
 
 interface NavbarProps {
   title?: string;
@@ -47,7 +48,7 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
             {companyLogo ? (
               <Image src={companyLogo} alt={companyName} width={32} height={32} className="company-nav-logo" priority />
             ) : (
-              <div className="company-nav-logo-fallback">🏢</div>
+              <div className="company-nav-logo-fallback">{getIcon('Building', { size: 20 })}</div>
             )}
           </Link>
         )}
@@ -67,7 +68,7 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
             {companyLogo ? (
               <Image src={companyLogo} alt={companyName} width={32} height={32} className="company-nav-logo" priority />
             ) : (
-              <div className="company-nav-logo-fallback">🏢</div>
+              <div className="company-nav-logo-fallback">{getIcon('Building', { size: 20 })}</div>
             )}
           </Link>
         )}
@@ -87,36 +88,58 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
               <div className="mobile-dropdown">
                  {currentView === 'admin' && profile.email === SUPER_ADMIN_EMAIL && (
                    <>
-                     <Link href="/admin/instructor-requests" onClick={() => setIsMenuOpen(false)}>👨‍🏫 Instructors</Link>
+                     <Link href="/admin/instructor-requests" onClick={() => setIsMenuOpen(false)}>
+                       {getIcon('Instructors', { size: 16, className: 'mobile-nav-icon' })} Instructors
+                     </Link>
                    </>
                  )}
                  {currentView === 'admin' && (
                    <>
-                     <Link href="/admin/feedback" onClick={() => setIsMenuOpen(false)}>💬 Feedback</Link>
-                     <Link href="/admin/notices" onClick={() => setIsMenuOpen(false)}>📢 Notices</Link>
+                     <Link href="/admin/feedback" onClick={() => setIsMenuOpen(false)}>
+                       {getIcon('Feedback', { size: 16, className: 'mobile-nav-icon' })} Feedback
+                     </Link>
+                     <Link href="/admin/notices" onClick={() => setIsMenuOpen(false)}>
+                       {getIcon('Notices', { size: 16, className: 'mobile-nav-icon' })} Notices
+                     </Link>
                    </>
                  )}
                  {currentView === 'instructor' && (
                    <>
-                     <Link href="/instructor/feedback" onClick={() => setIsMenuOpen(false)}>💬 Feedback/Doubts</Link>
-                     <Link href="/instructor/notices" onClick={() => setIsMenuOpen(false)}>📢 Notices</Link>
+                     <Link href="/instructor/feedback" onClick={() => setIsMenuOpen(false)}>
+                       {getIcon('Feedback', { size: 16, className: 'mobile-nav-icon' })} Feedback/Doubts
+                     </Link>
+                     <Link href="/instructor/notices" onClick={() => setIsMenuOpen(false)}>
+                       {getIcon('Notices', { size: 16, className: 'mobile-nav-icon' })} Notices
+                     </Link>
                    </>
                  )}
                  {currentView !== 'student' && (
-                   <Link href="/dashboard" onClick={() => setIsMenuOpen(false)}>🎓 Student View</Link>
+                   <Link href="/dashboard" onClick={() => setIsMenuOpen(false)}>
+                     {getIcon('Dashboard', { size: 16, className: 'mobile-nav-icon' })} Student View
+                   </Link>
                  )}
                  {currentView !== 'admin' && profile.role === 'admin' && (
-                   <Link href="/admin" onClick={() => setIsMenuOpen(false)}>🛡️ Admin Panel</Link>
+                   <Link href="/admin" onClick={() => setIsMenuOpen(false)}>
+                     {getIcon('Admin', { size: 16, className: 'mobile-nav-icon' })} Admin Panel
+                   </Link>
                  )}
                  {currentView !== 'instructor' && ((profile.role === 'instructor' && profile.status === 'active') || profile.role === 'admin') && (
-                   <Link href="/instructor" onClick={() => setIsMenuOpen(false)}>👨‍🏫 Instructor Panel</Link>
+                   <Link href="/instructor" onClick={() => setIsMenuOpen(false)}>
+                     {getIcon('Instructors', { size: 16, className: 'mobile-nav-icon' })} Instructor Panel
+                   </Link>
                  )}
                  {currentView === 'student' && (
-                   <Link href="/notices" onClick={() => setIsMenuOpen(false)}>📢 Notices</Link>
+                   <Link href="/notices" onClick={() => setIsMenuOpen(false)}>
+                     {getIcon('Notices', { size: 16, className: 'mobile-nav-icon' })} Notices
+                   </Link>
                  )}
-                 <Link href="/profile" onClick={() => setIsMenuOpen(false)}>👤 Profile</Link>
+                 <Link href="/profile" onClick={() => setIsMenuOpen(false)}>
+                   {getIcon('Profile', { size: 16, className: 'mobile-nav-icon' })} Profile
+                 </Link>
                  <form action="/api/auth/signout" method="post" style={{ margin: 0, width: '100%' }}>
-                   <button type="submit" className="mobile-logout-btn">🚪 Logout</button>
+                   <button type="submit" className="mobile-logout-btn">
+                     {getIcon('Logout', { size: 16, className: 'mobile-nav-icon' })} Logout
+                   </button>
                  </form>
               </div>
             )}

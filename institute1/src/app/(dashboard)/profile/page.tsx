@@ -48,12 +48,8 @@ export default async function ProfilePage() {
       )}
 
       <div className="profile-header glass-card">
-        <AvatarUpload 
-          userId={user.id} 
-          currentAvatarUrl={profile.avatar_url} 
-          name={profile.name} 
-        />
-        <div className="profile-info-large">
+        {/* Left Column: Profile Info */}
+        <div className="profile-info-large" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', justifyContent: 'center' }}>
           <h1 className="profile-name">{profile.name}</h1>
           <p className="profile-email">{profile.email}</p>
           {profile.institute_id && (
@@ -66,17 +62,33 @@ export default async function ProfilePage() {
               Instructor ID: <span style={{ color: 'var(--text-primary)', fontWeight: 'var(--weight-semibold)' }}>{profile.instructor_id}</span>
             </p>
           )}
-          {profile.graduation_period && (
-            <p className="profile-email" style={{ marginTop: 'var(--space-xs)', fontSize: 'var(--text-sm)' }}>
-              Batch: <span style={{ color: 'var(--text-primary)', fontWeight: 'var(--weight-semibold)' }}>{profile.graduation_period}</span>
-            </p>
-          )}
-          {profile.cgpa !== null && profile.cgpa !== undefined && (
-            <p className="profile-email" style={{ marginTop: 'var(--space-xs)', fontSize: 'var(--text-sm)' }}>
-              CGPA: <span style={{ color: 'var(--text-primary)', fontWeight: 'var(--weight-semibold)' }}>{profile.cgpa}</span>
-            </p>
-          )}
-          <div className="profile-badges-quick">
+        </div>
+
+        {/* Center Column: Avatar */}
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <AvatarUpload 
+            userId={user.id} 
+            currentAvatarUrl={profile.avatar_url} 
+            name={profile.name} 
+          />
+        </div>
+
+        {/* Right Column: Info, Badges & Action */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: 'var(--space-md)' }}>
+          <div style={{ textAlign: 'right' }}>
+            {profile.graduation_period && (
+              <p className="profile-email" style={{ marginTop: 'var(--space-xs)', fontSize: 'var(--text-sm)' }}>
+                Batch: <span style={{ color: 'var(--text-primary)', fontWeight: 'var(--weight-semibold)' }}>{profile.graduation_period}</span>
+              </p>
+            )}
+            {profile.cgpa !== null && profile.cgpa !== undefined && (
+              <p className="profile-email" style={{ marginTop: 'var(--space-xs)', fontSize: 'var(--text-sm)' }}>
+                CGPA: <span style={{ color: 'var(--text-primary)', fontWeight: 'var(--weight-semibold)' }}>{profile.cgpa}</span>
+              </p>
+            )}
+          </div>
+
+          <div className="profile-badges-quick" style={{ marginTop: 0 }}>
             <LevelBadge level={profile.level} size="lg" />
             <div className="profile-streak-pill">
               🔥 {profile.streak_days} Day Streak
@@ -84,28 +96,26 @@ export default async function ProfilePage() {
           </div>
           
           {profile.role !== 'admin' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
-                {profile.role !== 'instructor' && (!appData || appData.status === 'rejected') && (
-                  <Link href={appData?.status === 'rejected' ? '/apply-instructor?reapply=true' : '/apply-instructor'} style={{ textDecoration: 'none' }}>
-                    <Button variant="secondary" size="sm">
-                      Apply as Instructor or Faculty
-                    </Button>
-                  </Link>
-                )}
-                {(appData?.status === 'pending' || appData?.status === 'approved' || profile.role === 'instructor') && (
-                  <span style={{ 
-                    fontSize: 'var(--text-sm)', 
-                    fontWeight: 'var(--weight-bold)', 
-                    color: (appData?.status === 'pending') ? '#eab308' : '#22c55e',
-                    padding: '0.25rem 0.75rem',
-                    borderRadius: '1rem',
-                    backgroundColor: (appData?.status === 'pending') ? 'rgba(234, 179, 8, 0.1)' : 'rgba(34, 197, 94, 0.1)'
-                  }}>
-                    Status: {appData?.status === 'pending' ? 'Pending' : 'Approved as faculty'}
-                  </span>
-                )}
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+              {profile.role !== 'instructor' && (!appData || appData.status === 'rejected') && (
+                <Link href={appData?.status === 'rejected' ? '/apply-instructor?reapply=true' : '/apply-instructor'} style={{ textDecoration: 'none' }}>
+                  <Button variant="secondary" size="sm">
+                    Apply as Instructor or Faculty
+                  </Button>
+                </Link>
+              )}
+              {(appData?.status === 'pending' || appData?.status === 'approved' || profile.role === 'instructor') && (
+                <span style={{ 
+                  fontSize: 'var(--text-sm)', 
+                  fontWeight: 'var(--weight-bold)', 
+                  color: (appData?.status === 'pending') ? '#eab308' : '#22c55e',
+                  padding: '0.25rem 0.75rem',
+                  borderRadius: '1rem',
+                  backgroundColor: (appData?.status === 'pending') ? 'rgba(234, 179, 8, 0.1)' : 'rgba(34, 197, 94, 0.1)'
+                }}>
+                  Status: {appData?.status === 'pending' ? 'Pending' : 'Approved as faculty'}
+                </span>
+              )}
             </div>
           )}
         </div>

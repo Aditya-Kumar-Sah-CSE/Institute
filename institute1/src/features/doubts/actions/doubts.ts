@@ -220,9 +220,17 @@ export async function toggleReplyVote(replyId: string, voteType: 'upvote' | 'dow
     if (existingVote.vote_type === voteType) {
       // Toggle off
       await supabase.from('reply_votes').delete().eq('id', existingVote.id);
+      if (existingVote.vote_type === 'upvote') {
+        await awardXP(user.id, -XP_VALUES.LIKE_DOUBT, 'Removed Upvote', 'reply_unvote', replyId);
+      }
     } else {
       // Change vote
       await supabase.from('reply_votes').update({ vote_type: voteType }).eq('id', existingVote.id);
+      if (voteType === 'upvote') {
+        await awardXP(user.id, XP_VALUES.LIKE_DOUBT, 'Upvoted a Reply', 'reply_vote', replyId);
+      } else if (voteType === 'downvote' && existingVote.vote_type === 'upvote') {
+        await awardXP(user.id, -XP_VALUES.LIKE_DOUBT, 'Removed Upvote', 'reply_unvote', replyId);
+      }
     }
   } else {
     // New vote
@@ -303,6 +311,7 @@ export async function toggleDoubtLike(doubtId: string) {
   if (existingLike) {
     // Unlike
     await supabase.from('doubt_likes').delete().eq('id', existingLike.id);
+    await awardXP(user.id, -XP_VALUES.LIKE_DOUBT, 'Unliked a Doubt', 'doubt_unlike', doubtId);
   } else {
     // Like
     await supabase.from('doubt_likes').insert({
