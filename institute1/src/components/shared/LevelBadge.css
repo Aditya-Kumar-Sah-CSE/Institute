@@ -4,13 +4,12 @@
   gap: var(--space-xs);
   padding: var(--space-xs) var(--space-sm);
   background: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--level-color, var(--neon-cyan));
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-full);
-  color: var(--level-color, var(--neon-cyan));
+  color: var(--text-primary);
   font-weight: var(--weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  box-shadow: 0 0 10px color-mix(in srgb, var(--level-color, var(--neon-cyan)) 30%, transparent);
 }
 
 .level-badge-sm {

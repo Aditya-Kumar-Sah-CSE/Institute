@@ -42,28 +42,28 @@ export const DEFAULT_BADGES = [
 ];
 
 export const NAV_ITEMS = [
-  { label: 'Dashboard', href: '/dashboard', icon: '📊' },
-  { label: 'All Courses', href: '/courses', icon: '📚' },
-  { label: 'Leaderboard', href: '/leaderboard', icon: '🏆' },
-  { label: 'Batch Doubts', href: '/doubts', icon: '❓' },
-  { label: 'Notices', href: '/notices', icon: '📢' },
-  { label: 'Profile', href: '/profile', icon: '👤' },
+  { label: 'Dashboard', href: '/dashboard', icon: 'Dashboard' },
+  { label: 'All Courses', href: '/courses', icon: 'Courses' },
+  { label: 'Leaderboard', href: '/leaderboard', icon: 'Leaderboard' },
+  { label: 'Batch Doubts', href: '/doubts', icon: 'Doubts' },
+  { label: 'Notices', href: '/notices', icon: 'Notices' },
+  { label: 'Profile', href: '/profile', icon: 'Profile' },
 ];
 
 export const ADMIN_NAV_ITEMS = [
-  { label: 'Overview', href: '/admin', icon: '📊' },
-  { label: 'Courses', href: '/admin/courses', icon: '🎓' },
-  { label: 'Enrollments', href: '/admin/enrollments', icon: '🎫' },
-  { label: 'Students', href: '/admin/students', icon: '👥' },
-  { label: 'Submissions', href: '/admin/submissions', icon: '📝' },
-  { label: 'Instructors', href: '/admin/instructor-requests', icon: '👨‍🏫' },
-  { label: 'Feedback', href: '/admin/feedback', icon: '💬' },
-  { label: 'Notices', href: '/admin/notices', icon: '📢' },
+  { label: 'Overview', href: '/admin', icon: 'Dashboard' },
+  { label: 'Courses', href: '/admin/courses', icon: 'Courses' },
+  { label: 'Enrollments', href: '/admin/enrollments', icon: 'Enrollments' },
+  { label: 'Students', href: '/admin/students', icon: 'Students' },
+  { label: 'Submissions', href: '/admin/submissions', icon: 'Submissions' },
+  { label: 'Instructors', href: '/admin/instructor-requests', icon: 'Instructors' },
+  { label: 'Feedback', href: '/admin/feedback', icon: 'Feedback' },
+  { label: 'Notices', href: '/admin/notices', icon: 'Notices' },
 ];
 
 export const INSTRUCTOR_NAV_ITEMS = [
-  { label: 'Dashboard', href: '/instructor', icon: '📊' },
-  { label: 'My Courses', href: '/instructor/courses', icon: '🎓' },
-  { label: 'Enrollments', href: '/instructor/enrollments', icon: '👥' },
-  { label: 'Review Student Submissions', href: '/instructor/submissions', icon: '📝' },
+  { label: 'Dashboard', href: '/instructor', icon: 'Dashboard' },
+  { label: 'My Courses', href: '/instructor/courses', icon: 'Courses' },
+  { label: 'Enrollments', href: '/instructor/enrollments', icon: 'Enrollments' },
+  { label: 'Review Student Submissions', href: '/instructor/submissions', icon: 'Submissions' },
 ];

@@ -18,8 +18,8 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: var(--gradient-hero);
-  opacity: 0.5;
+  background: linear-gradient(135deg, rgba(255,255,255,0.05), transparent);
+  opacity: 1;
   pointer-events: none;
 }
 
@@ -27,8 +27,8 @@
   width: 120px;
   height: 120px;
   border-radius: var(--radius-full);
-  border: 4px solid var(--neon-cyan);
-  box-shadow: var(--glow-cyan-strong);
+  border: 4px solid var(--bg-elevated);
+  box-shadow: var(--shadow-elevated);
   overflow: hidden;
   flex-shrink: 0;
   position: relative;
@@ -67,7 +67,7 @@
 
 .profile-avatar-large.clickable:hover {
   transform: scale(1.02);
-  box-shadow: var(--glow-cyan-strong), 0 0 30px rgba(0, 255, 255, 0.4);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.4);
 }
 
 .avatar-hover-overlay {
@@ -137,9 +137,9 @@
 }
 
 .profile-streak-pill {
-  background: rgba(255, 107, 0, 0.15);
-  border: 1px solid rgba(255, 107, 0, 0.3);
-  color: var(--neon-orange);
+  background: var(--bg-elevated);
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
   padding: var(--space-xs) var(--space-md);
   border-radius: var(--radius-full);
   font-weight: var(--weight-semibold);

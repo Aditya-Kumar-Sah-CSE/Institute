@@ -7,10 +7,12 @@ import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import './Sidebar.css';
 import { NAV_ITEMS, ADMIN_NAV_ITEMS, INSTRUCTOR_NAV_ITEMS, SUPER_ADMIN_EMAIL } from '@/lib/constants';
+import { getIcon } from '@/lib/icon-mapper';
 import XPBar from '@/components/shared/XPBar';
 import LevelBadge from '@/components/shared/LevelBadge';
 import Modal from '@/components/ui/Modal';
 import type { Profile } from '@/types';
+import { LogOut } from 'lucide-react';
 
 interface SidebarProps {
   profile: Profile;
@@ -35,7 +37,7 @@ export default function Sidebar({ profile, isAdmin = false, roleView }: SidebarP
     <aside className="sidebar">
       <div className="sidebar-header">
         <Link href={isAdmin ? '/admin' : '/dashboard'} className="sidebar-logo">
-          <span className="sidebar-logo-icon">🏛️</span>
+          <span className="sidebar-logo-icon text-neon-cyan">{getIcon('Building', { className: 'w-6 h-6' })}</span>
           <span className="sidebar-logo-text">Smart  Learning</span>
         </Link>
       </div>
@@ -76,7 +78,7 @@ export default function Sidebar({ profile, isAdmin = false, roleView }: SidebarP
           </div>
           {profile.streak_days > 0 && (
             <div className="sidebar-streak">
-              <span className="streak-fire">🔥</span>
+              <span className="streak-fire text-neon-orange">🔥</span>
               <span className="streak-count">{profile.streak_days} day streak</span>
             </div>
           )}
@@ -108,7 +110,7 @@ export default function Sidebar({ profile, isAdmin = false, roleView }: SidebarP
             className={`sidebar-nav-item ${pathname === item.href ? 'active' : ''}`}
           >
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span className="sidebar-nav-icon">{item.icon}</span>
+              <span className="sidebar-nav-icon">{getIcon(item.icon, { className: 'w-5 h-5' })}</span>
             </div>
             <span className="sidebar-nav-label">{item.label}</span>
             {pathname === item.href && <span className="sidebar-nav-indicator" />}
@@ -119,25 +121,25 @@ export default function Sidebar({ profile, isAdmin = false, roleView }: SidebarP
       <div className="sidebar-footer">
         {currentView !== 'student' && (
           <a href="/dashboard" className="sidebar-nav-item sidebar-switch">
-            <span className="sidebar-nav-icon">🎓</span>
+            <span className="sidebar-nav-icon">{getIcon('Instructors', { className: 'w-5 h-5' })}</span>
             <span className="sidebar-nav-label">Student View</span>
           </a>
         )}
         {currentView !== 'admin' && profile.role === 'admin' && (
           <a href="/admin" className="sidebar-nav-item sidebar-switch">
-            <span className="sidebar-nav-icon">🛡️</span>
+            <span className="sidebar-nav-icon">{getIcon('Admin', { className: 'w-5 h-5' })}</span>
             <span className="sidebar-nav-label">Admin Panel</span>
           </a>
         )}
         {currentView !== 'instructor' && ((profile.role === 'instructor' && profile.status === 'active') || profile.role === 'admin') && (
           <a href="/instructor" className="sidebar-nav-item sidebar-switch">
-            <span className="sidebar-nav-icon">👨‍🏫</span>
+            <span className="sidebar-nav-icon">{getIcon('Instructors', { className: 'w-5 h-5' })}</span>
             <span className="sidebar-nav-label">Instructor Panel</span>
           </a>
         )}
         <form action="/api/auth/signout" method="post">
           <button type="submit" className="sidebar-nav-item sidebar-logout">
-            <span className="sidebar-nav-icon">🚪</span>
+            <span className="sidebar-nav-icon"><LogOut className="w-5 h-5" /></span>
             <span className="sidebar-nav-label">Logout</span>
           </button>
         </form>
