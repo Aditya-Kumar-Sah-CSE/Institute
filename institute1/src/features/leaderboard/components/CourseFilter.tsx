@@ -30,10 +30,10 @@ export default function CourseFilter({ courses, currentFilter }: CourseFilterPro
       value={currentFilter}
       onChange={(e) => router.push(`?filter=${e.target.value}`)}
     >
-      <option value="global">🌍 Global Overall Leaderboard</option>
-      <optgroup label="Course Leaderboards">
+      <option value="global" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>🌍 Global Overall Leaderboard</option>
+      <optgroup label="Course Leaderboards" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
         {courses.map(c => (
-          <option key={c.id} value={c.id}>{c.title}</option>
+          <option key={c.id} value={c.id} style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>{c.title}</option>
         ))}
       </optgroup>
     </select>
