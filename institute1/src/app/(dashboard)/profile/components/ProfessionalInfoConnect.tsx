@@ -5,6 +5,7 @@ import { updateProfessionalInfo } from '@/features/auth/actions/auth';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { Briefcase, GraduationCap, ScrollText, Building2 } from 'lucide-react';
 
 interface ProfessionalInfoConnectProps {
   userId: string;
@@ -68,7 +69,7 @@ export default function ProfessionalInfoConnect({
               value={experienceYears}
               onChange={(e) => setExperienceYears(e.target.value)}
               disabled={isLoading}
-              icon="🏢"
+              icon={<Briefcase size={16} />}
             />
             <Input 
               name="phd_details"
@@ -76,7 +77,7 @@ export default function ProfessionalInfoConnect({
               value={phdDetails}
               onChange={(e) => setPhdDetails(e.target.value)}
               disabled={isLoading}
-              icon="🎓"
+              icon={<GraduationCap size={16} />}
             />
             <Input 
               name="mtech_details"
@@ -84,7 +85,7 @@ export default function ProfessionalInfoConnect({
               value={mtechDetails}
               onChange={(e) => setMtechDetails(e.target.value)}
               disabled={isLoading}
-              icon="📜"
+              icon={<ScrollText size={16} />}
             />
             <Input 
               name="btech_details"
@@ -92,7 +93,7 @@ export default function ProfessionalInfoConnect({
               value={btechDetails}
               onChange={(e) => setBtechDetails(e.target.value)}
               disabled={isLoading}
-              icon="🏫"
+              icon={<Building2 size={16} />}
             />
           </div>
           {error && <p className="text-sm text-neon-red" style={{ color: 'var(--neon-red)', fontSize: 'var(--text-sm)' }}>{error}</p>}
@@ -123,7 +124,7 @@ export default function ProfessionalInfoConnect({
           border: '1px solid var(--glass-border)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
-            <span style={{ fontSize: '1.2rem' }}>💼</span>
+            <span style={{ color: 'var(--neon-cyan)', display: 'flex' }}><Briefcase size={20} /></span>
             <div>
               <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Professional Background</p>
               <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--neon-cyan)', fontWeight: 'var(--weight-semibold)' }}>

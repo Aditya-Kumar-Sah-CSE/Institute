@@ -5,6 +5,7 @@ import { updateAcademicInfo } from '@/features/auth/actions/auth';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { BookOpen, GraduationCap, BarChart } from 'lucide-react';
 
 interface AcademicInfoConnectProps {
   userId: string;
@@ -83,7 +84,7 @@ export default function AcademicInfoConnect({
               value={graduationPeriod}
               onChange={(e) => setGraduationPeriod(e.target.value)}
               disabled={isLoading}
-              icon="🎓"
+              icon={<GraduationCap size={16} />}
             />
             <Input 
               name="cgpa"
@@ -93,7 +94,7 @@ export default function AcademicInfoConnect({
               value={cgpa}
               onChange={(e) => setCgpa(e.target.value)}
               disabled={isLoading}
-              icon="📊"
+              icon={<BarChart size={16} />}
             />
             
             <div style={{ marginTop: 'var(--space-xs)' }}>
@@ -141,7 +142,7 @@ export default function AcademicInfoConnect({
           border: '1px solid var(--glass-border)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
-            <span style={{ fontSize: '1.2rem' }}>📚</span>
+            <span style={{ color: 'var(--neon-cyan)', display: 'flex' }}><BookOpen size={20} /></span>
             <div>
               <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Academic Info</p>
               <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--neon-cyan)', fontWeight: 'var(--weight-semibold)' }}>
