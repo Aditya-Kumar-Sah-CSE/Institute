@@ -76,7 +76,7 @@ export default async function ProfilePage() {
         </div>
 
         {/* Center Column: Avatar */}
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <div className="profile-avatar-wrapper" style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <AvatarUpload 
             userId={user.id} 
             currentAvatarUrl={profile.avatar_url} 
