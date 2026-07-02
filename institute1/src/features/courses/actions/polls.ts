@@ -50,6 +50,45 @@ export async function createCoursePoll(
 
     if (optionsError) throw optionsError;
 
+    // 3. Notify enrolled students and course creator
+    const { data: course } = await supabase
+      .from('courses')
+      .select('title, created_by')
+      .eq('id', courseId)
+      .single();
+
+    const { data: enrollments } = await supabase
+      .from('enrollments')
+      .select('user_id')
+      .eq('course_id', courseId)
+      .eq('status', 'approved');
+
+    if (course) {
+      const userIdsToNotify = new Set<string>();
+      
+      if (enrollments) {
+        enrollments.forEach(e => userIdsToNotify.add(e.user_id));
+      }
+      
+      if (course.created_by) {
+        userIdsToNotify.add(course.created_by);
+      }
+      
+      // Do not notify the person who created the poll
+      userIdsToNotify.delete(user.id);
+
+      const notifications = Array.from(userIdsToNotify).map(userId => ({
+        user_id: userId,
+        type: 'poll',
+        message: `A new poll has been added to ${course.title}: "${question}"`,
+        link: `/courses/${courseId}`
+      }));
+
+      if (notifications.length > 0) {
+        await supabase.from('notifications').insert(notifications);
+      }
+    }
+
     revalidatePath(`/courses/${courseId}`);
     return { success: true, poll };
   } catch (error: any) {
