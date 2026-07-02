@@ -44,7 +44,7 @@ export default async function CoursePollsSection({ courseId, currentUserId, isEn
         <h2 className="section-title" style={{ margin: 0 }}>Course Polls</h2>
         <CreatePollButton courseId={courseId} />
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div className="polls-flex">
         {polls.map((poll: any) => (
           <PollCard key={poll.id} poll={poll as Poll} currentUserId={currentUserId} isFaculty={isFaculty} />
         ))}

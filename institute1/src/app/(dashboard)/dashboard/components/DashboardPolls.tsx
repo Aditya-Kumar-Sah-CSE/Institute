@@ -21,9 +21,9 @@ export default function DashboardPolls({ polls, currentUserId }: DashboardPollsP
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
         <h2 className="section-title" style={{ margin: 0 }}>Active Polls</h2>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div className="polls-flex">
         {displayedPolls.map(poll => (
-          <div key={poll.id} style={{ marginBottom: 'var(--space-md)' }}>
+          <div key={poll.id} style={{ display: 'flex', flexDirection: 'column' }}>
              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--neon-cyan)', marginBottom: 'var(--space-xs)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                Course: {poll.courses?.title}
              </div>

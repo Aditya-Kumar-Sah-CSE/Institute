@@ -116,7 +116,7 @@ export default function PollCard({ poll, currentUserId, isFaculty = false }: Pol
   const canDelete = isFaculty || poll.created_by === currentUserId;
 
   return (
-    <Card variant="glass" padding="lg" style={{ marginBottom: 'var(--space-md)' }}>
+    <Card variant="glass" padding="lg" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-md)' }}>
         <div>
           <h3 style={{ fontSize: 'var(--text-lg)', marginBottom: 'var(--space-xs)' }}>{poll.question}</h3>
@@ -234,7 +234,7 @@ export default function PollCard({ poll, currentUserId, isFaculty = false }: Pol
         })}
       </div>
 
-      <div style={{ marginTop: 'var(--space-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ marginTop: 'auto', paddingTop: 'var(--space-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
           Total votes: {totalVotes}
         </span>
