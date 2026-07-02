@@ -40,7 +40,7 @@ export default async function LandingPage() {
             <button className="btn-human-ghost">Login</button>
           </Link>
           <Link href="/signup">
-            <button className="btn-human">Get Started</button>
+            <button className="btn-human">Start</button>
           </Link>
         </div>
       </header>
