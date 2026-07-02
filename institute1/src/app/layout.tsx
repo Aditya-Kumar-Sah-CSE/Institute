@@ -8,6 +8,7 @@ import { Analytics } from "@vercel/analytics/next";
 
 export const viewport: Viewport = {
   themeColor: '#000000',
+  colorScheme: 'dark',
 };
 
 export const metadata: Metadata = {
