@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { resetPasswordRequest } from '@/features/auth/actions/auth';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { LockKeyhole, Mail } from 'lucide-react';
 import './AuthForms.css';
 
 export default function ForgotPasswordForm() {
@@ -54,7 +55,7 @@ export default function ForgotPasswordForm() {
           ← Back to Login
         </Link>
         <div className="auth-header">
-          <span className="auth-logo">🔐</span>
+          <span className="auth-logo"><LockKeyhole size={48} className="text-neon-cyan" /></span>
           <h1 className="auth-title">Reset Password</h1>
           <p className="auth-subtitle">Enter your email to receive a password reset link</p>
         </div>
@@ -70,7 +71,7 @@ export default function ForgotPasswordForm() {
                 type="email"
                 label="Email"
                 placeholder="your@email.com"
-                icon="📧"
+                icon={<Mail size={18} />}
                 required
               />
 

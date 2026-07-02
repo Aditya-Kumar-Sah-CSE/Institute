@@ -7,6 +7,7 @@ import { signUp } from '@/features/auth/actions/auth';
 import { createClient } from '@/lib/supabase/client';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { Building, User, IdCard, GraduationCap, Mail, Lock } from 'lucide-react';
 import './AuthForms.css';
 
 export default function SignupForm() {
@@ -73,7 +74,7 @@ export default function SignupForm() {
           ← Home
         </Link>
         <div className="auth-header">
-          <span className="auth-logo">🏛️</span>
+          <span className="auth-logo"><Building size={48} className="text-neon-cyan" /></span>
           <h1 className="auth-title"> Smart Hybrid Learning</h1>
           <p className="auth-subtitle">Start your journey </p>
         </div>
@@ -86,7 +87,7 @@ export default function SignupForm() {
             type="text"
             label="Full Name"
             placeholder="Your Name"
-            icon="👤"
+            icon={<User size={18} />}
             required
           />
 
@@ -95,7 +96,7 @@ export default function SignupForm() {
             type="text"
             label="Institute ID"
             placeholder="Your Institute ID (e.g., 2023CS01)"
-            icon="🆔"
+            icon={<IdCard size={18} />}
             required
           />
 
@@ -104,7 +105,7 @@ export default function SignupForm() {
             type="text"
             label="Graduation Year"
             placeholder="Graduation Year (e.g., 2024-2028)"
-            icon="🎓"
+            icon={<GraduationCap size={18} />}
             required
           />
 
@@ -113,7 +114,7 @@ export default function SignupForm() {
             type="email"
             label="Email"
             placeholder="your@email.com"
-            icon="📧"
+            icon={<Mail size={18} />}
             required
           />
 
@@ -122,7 +123,7 @@ export default function SignupForm() {
             type="password"
             label="Password"
             placeholder="Min 6 characters"
-            icon="🔒"
+            icon={<Lock size={18} />}
             required
             minLength={6}
           />
@@ -132,7 +133,7 @@ export default function SignupForm() {
             type="password"
             label="Confirm Password"
             placeholder="••••••••"
-            icon="🔒"
+            icon={<Lock size={18} />}
             required
           />
 

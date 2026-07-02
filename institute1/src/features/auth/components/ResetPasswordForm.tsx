@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { updatePassword } from '@/features/auth/actions/auth';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { KeyRound, Lock } from 'lucide-react';
 import './AuthForms.css';
 
 export default function ResetPasswordForm() {
@@ -40,7 +41,7 @@ export default function ResetPasswordForm() {
 
       <div className="auth-card">
         <div className="auth-header">
-          <span className="auth-logo">🔑</span>
+          <span className="auth-logo"><KeyRound size={48} className="text-neon-cyan" /></span>
           <h1 className="auth-title">Set New Password</h1>
           <p className="auth-subtitle">Enter your new password below</p>
         </div>
@@ -48,23 +49,23 @@ export default function ResetPasswordForm() {
         <form action={handleSubmit} className="auth-form">
           {error && <div className="auth-error">{error}</div>}
 
-          <Input
-            name="password"
-            type="password"
-            label="New Password"
-            placeholder="••••••••"
-            icon="🔒"
-            required
-          />
+            <Input
+              name="password"
+              type="password"
+              label="New Password"
+              placeholder="••••••••"
+              icon={<Lock size={18} />}
+              required
+            />
 
-          <Input
-            name="confirm_password"
-            type="password"
-            label="Confirm New Password"
-            placeholder="••••••••"
-            icon="🔒"
-            required
-          />
+            <Input
+              name="confirm_password"
+              type="password"
+              label="Confirm New Password"
+              placeholder="••••••••"
+              icon={<Lock size={18} />}
+              required
+            />
 
           <Button type="submit" fullWidth isLoading={isLoading} size="lg">
             Update Password

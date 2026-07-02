@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import './Input.css';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -60,7 +61,7 @@ export default function Input({
             }}
             aria-label={showPassword ? 'Hide password' : 'Show password'}
           >
-            {showPassword ? '👁️' : '🙈'}
+            {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
           </button>
         )}
       </div>

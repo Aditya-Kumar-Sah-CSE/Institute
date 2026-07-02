@@ -7,6 +7,7 @@ import { signIn } from '@/features/auth/actions/auth';
 import { createClient } from '@/lib/supabase/client';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { Building, Mail, Lock } from 'lucide-react';
 import './AuthForms.css';
 
 export default function LoginForm() {
@@ -66,7 +67,7 @@ export default function LoginForm() {
           ← Home
         </Link>
         <div className="auth-header">
-          <span className="auth-logo">🏛️</span>
+          <span className="auth-logo"><Building size={48} className="text-neon-cyan" /></span>
           <h1 className="auth-title">Welcome Back</h1>
           <p className="auth-subtitle">Sign in to continue your learning journey</p>
         </div>
@@ -80,7 +81,7 @@ export default function LoginForm() {
             type="email"
             label="Email"
             placeholder="your@email.com"
-            icon="📧"
+            icon={<Mail size={18} />}
             required
           />
 
@@ -90,7 +91,7 @@ export default function LoginForm() {
               type="password"
               label="Password"
               placeholder="••••••••"
-              icon="🔒"
+              icon={<Lock size={18} />}
               required
             />
             <div style={{ textAlign: 'right' }}>
