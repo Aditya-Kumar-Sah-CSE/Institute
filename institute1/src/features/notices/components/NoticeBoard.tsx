@@ -39,7 +39,7 @@ export default function NoticeBoard({ notices, emptyMessage = 'No notices availa
           <Card key={notice.id} variant="glass" padding="md">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-sm)' }}>
               <h3 style={{ color: 'var(--neon-cyan)', margin: 0 }}>{notice.title}</h3>
-              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
+              <span suppressHydrationWarning style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
                 {new Date(notice.created_at).toLocaleDateString(undefined, {
                   year: 'numeric', month: 'short', day: 'numeric',
                   hour: '2-digit', minute: '2-digit'

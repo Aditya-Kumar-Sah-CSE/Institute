@@ -60,7 +60,7 @@ export default function LeaderboardTable({ entries, currentUserId }: Leaderboard
               </div>
               
               <div className="col-xp text-gradient">
-                {entry.xp.toLocaleString()}
+                {entry.xp.toLocaleString('en-US')}
               </div>
             </div>
           );

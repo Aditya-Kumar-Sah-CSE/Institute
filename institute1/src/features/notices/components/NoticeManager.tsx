@@ -86,7 +86,7 @@ export default function NoticeManager({ notices, currentUserId, currentUserRole 
                             />
                           </div>
                         )}
-                        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
+                        <div suppressHydrationWarning style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
                           Posted by {notice.profiles.name} ({notice.profiles.role}) on {new Date(notice.created_at).toLocaleString()}
                         </div>
                       </div>

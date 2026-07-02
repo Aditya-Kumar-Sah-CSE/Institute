@@ -125,7 +125,7 @@ export default async function DoubtDetailsPage({ params }: { params: Promise<{ i
             <span style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)' }}>
               {doubt.author?.name} {doubt.author?.role !== 'student' ? <span style={{ color: 'var(--neon-gold)' }}>({doubt.author?.role})</span> : ''}
             </span>
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+            <span suppressHydrationWarning style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
               Batch {doubt.batch} • {new Date(doubt.created_at).toLocaleString()}
             </span>
           </div>
@@ -162,7 +162,7 @@ export default async function DoubtDetailsPage({ params }: { params: Promise<{ i
                     <span style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)' }}>
                       {reply.author?.name} {reply.author?.role !== 'student' ? <span style={{ color: 'var(--neon-gold)' }}>({reply.author?.role})</span> : ''}
                     </span>
-                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                    <span suppressHydrationWarning style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
                       {new Date(reply.created_at).toLocaleString()}
                     </span>
                   </div>

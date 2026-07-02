@@ -119,7 +119,7 @@ export default function PollCard({ poll, currentUserId, isFaculty = false }: Pol
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-md)' }}>
         <div>
           <h3 style={{ fontSize: 'var(--text-lg)', marginBottom: 'var(--space-xs)' }}>{poll.question}</h3>
-          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+          <p suppressHydrationWarning style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
             Asked by {poll.profiles?.name || 'Unknown'} • {formatDistanceToNow(new Date(poll.created_at), { addSuffix: true })}
           </p>
         </div>
@@ -142,7 +142,7 @@ export default function PollCard({ poll, currentUserId, isFaculty = false }: Pol
           {isExpired ? (
             <span style={{ fontSize: 'var(--text-xs)', color: 'var(--neon-pink)' }}>Ended</span>
           ) : poll.expires_at && (
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--neon-gold)' }}>
+            <span suppressHydrationWarning style={{ fontSize: 'var(--text-xs)', color: 'var(--neon-gold)' }}>
               Ends in {formatDistanceToNow(new Date(poll.expires_at))}
             </span>
           )}
