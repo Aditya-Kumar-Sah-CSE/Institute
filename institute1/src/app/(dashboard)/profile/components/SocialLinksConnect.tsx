@@ -14,7 +14,7 @@ interface SocialLinksConnectProps {
 
 const PLATFORMS = [
   { id: 'portfolio', name: 'Portfolio / Website', icon: '🌍' },
-  { id: 'linkedin', name: 'LinkedIn', icon: '💼' },
+  { id: 'github', name: 'GitHub', icon: '🧑‍💻' },
   { id: 'x', name: 'X (Twitter)', icon: '🐦' },
   { id: 'codechef', name: 'CodeChef', icon: '👨‍🍳' },
   { id: 'codeforces', name: 'Codeforces', icon: '📊' },
