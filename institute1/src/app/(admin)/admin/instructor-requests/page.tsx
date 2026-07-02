@@ -70,7 +70,7 @@ export default async function InstructorRequestsPage() {
 
       <section>
         <h2 style={{ marginBottom: 'var(--space-lg)', color: 'var(--text-primary)' }}>Pending Requests</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 'var(--space-lg)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-lg)' }}>
           {requests && requests.length > 0 ? (
             requests.map(request => (
               <Card key={request.id} variant="glass" padding="lg">
@@ -117,7 +117,7 @@ export default async function InstructorRequestsPage() {
 
       <section>
         <h2 style={{ marginBottom: 'var(--space-lg)', color: 'var(--text-primary)' }}>Approved Instructors</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 'var(--space-lg)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-lg)' }}>
           {approvedRequests && approvedRequests.length > 0 ? (
             approvedRequests.map(request => (
               <Card key={request.id} variant="glass" padding="lg">

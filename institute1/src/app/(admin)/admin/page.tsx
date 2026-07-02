@@ -96,7 +96,7 @@ export default async function AdminDashboardPage() {
         </Link>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 'var(--space-xl)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-xl)' }}>
         <Card variant="glass">
           <h2 style={{ marginBottom: 'var(--space-lg)', fontSize: 'var(--text-xl)' }}>Institute Settings</h2>
           <form action={updateSettings} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
