@@ -7,6 +7,7 @@ import Card from '@/components/ui/Card';
 import { getDifficultyColor } from '@/lib/utils';
 import { enrollInCourseFormAction } from '@/features/courses/actions/enroll';
 import LeaveCourseButton from '@/features/courses/components/LeaveCourseButton';
+import ShareCourseButton from '@/features/courses/components/ShareCourseButton';
 import CoursePollsSection from '@/features/courses/components/CoursePollsSection';
 import CourseDoubtsSection from '@/features/courses/components/CourseDoubtsSection';
 import './CourseDetail.css';
@@ -73,33 +74,37 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
             <span className="text-gradient">⭐ {course.total_xp} Total XP</span>
           </div>
 
-          <div className="course-action">
-            {!enrollment ? (
-              <form action={enrollInCourseFormAction.bind(null, courseId)}>
-                <Button variant="primary" size="lg" type="submit">Enroll Now (+20 XP ⚡)</Button>
-              </form>
-            ) : enrollment.status === 'pending' ? (
-              <div className="enrolled-status">
-                <span className="status-text text-warning">⏳ Pending Approval</span>
-                <p style={{ fontSize: '0.9rem', opacity: 0.8 }}>Waiting for instructor to approve your request.</p>
-              </div>
-            ) : enrollment.status === 'rejected' ? (
-              <div className="enrolled-status">
-                <span className="status-text text-danger">❌ Enrollment Rejected</span>
-                <p style={{ fontSize: '0.9rem', opacity: 0.8 }}>Please contact the instructor for more details.</p>
-              </div>
-            ) : (
-              <div className="enrolled-status">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
-                  <span className="status-text">✓ Enrolled</span>
-                  <LeaveCourseButton courseId={courseId} />
+          <div style={{ display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+            <div className="course-action" style={{ flex: 1, minWidth: '250px' }}>
+              {!enrollment ? (
+                <form action={enrollInCourseFormAction.bind(null, courseId)}>
+                  <Button variant="primary" size="lg" type="submit">Enroll Now (+20 XP ⚡)</Button>
+                </form>
+              ) : enrollment.status === 'pending' ? (
+                <div className="enrolled-status">
+                  <span className="status-text text-warning">⏳ Pending Approval</span>
+                  <p style={{ fontSize: '0.9rem', opacity: 0.8 }}>Waiting for instructor to approve your request.</p>
                 </div>
-                <div className="progress-bar-container">
-                  <div className="progress-fill" style={{ width: `${Math.round((enrollment.progress || 0) * 100)}%` }} />
+              ) : enrollment.status === 'rejected' ? (
+                <div className="enrolled-status">
+                  <span className="status-text text-danger">❌ Enrollment Rejected</span>
+                  <p style={{ fontSize: '0.9rem', opacity: 0.8 }}>Please contact the instructor for more details.</p>
                 </div>
-                <span className="progress-value">{Math.round((enrollment.progress || 0) * 100)}% Complete</span>
-              </div>
-            )}
+              ) : (
+                <div className="enrolled-status">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
+                    <span className="status-text">✓ Enrolled</span>
+                    <LeaveCourseButton courseId={courseId} />
+                  </div>
+                  <div className="progress-bar-container">
+                    <div className="progress-fill" style={{ width: `${Math.round((enrollment.progress || 0) * 100)}%` }} />
+                  </div>
+                  <span className="progress-value">{Math.round((enrollment.progress || 0) * 100)}% Complete</span>
+                </div>
+              )}
+            </div>
+            
+            <ShareCourseButton courseId={courseId} />
           </div>
         </div>
         {course.thumbnail_url && (

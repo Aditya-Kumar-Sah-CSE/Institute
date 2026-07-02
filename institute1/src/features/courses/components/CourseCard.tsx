@@ -38,6 +38,19 @@ export default function CourseCard({ course, progress, status }: CourseCardProps
     setIsEnrolling(false);
   };
 
+  const handleShare = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const url = `${window.location.origin}/courses/${course.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setAlertMessage('Course link copied to clipboard!');
+    } catch (err) {
+      console.error('Failed to copy', err);
+      prompt('Copy this link to share:', url);
+    }
+  };
+
   return (
     <>
       <Link href={`/courses/${course.id}`} className="course-card-link">
@@ -62,6 +75,13 @@ export default function CourseCard({ course, progress, status }: CourseCardProps
             >
               {course.difficulty.charAt(0).toUpperCase() + course.difficulty.slice(1)}
             </div>
+            <button
+              onClick={handleShare}
+              className="course-share-btn"
+              title="Share Course"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>
+            </button>
           </div>
 
           <div className="course-card-content">
