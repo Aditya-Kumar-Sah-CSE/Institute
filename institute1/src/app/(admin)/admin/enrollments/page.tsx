@@ -32,7 +32,7 @@ export default async function AdminEnrollmentsPage() {
             <Card key={req.id} variant="glass" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-md)' }}>
               <div style={{ flex: '1 1 300px' }}>
                 <h3 style={{ margin: '0 0 var(--space-xs) 0' }}>{req.profiles.name} ({req.profiles.email})</h3>
-                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
+                <p suppressHydrationWarning style={{ margin: 0, color: 'var(--text-secondary)' }}>
                   Requested to join <strong>{req.courses.title}</strong> on {new Date(req.enrolled_at).toLocaleDateString()}
                 </p>
               </div>

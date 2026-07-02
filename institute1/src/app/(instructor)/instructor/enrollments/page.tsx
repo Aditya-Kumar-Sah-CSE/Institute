@@ -40,7 +40,7 @@ export default async function InstructorEnrollmentsPage() {
                     ID: Not provided
                   </p>
                 )}
-                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
+                <p suppressHydrationWarning style={{ margin: 0, color: 'var(--text-secondary)' }}>
                   Requested to join <strong>{req.courses.title}</strong> on {new Date(req.enrolled_at).toLocaleDateString()}
                 </p>
               </div>

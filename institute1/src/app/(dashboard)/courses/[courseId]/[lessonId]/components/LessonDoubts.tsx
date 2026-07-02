@@ -44,7 +44,7 @@ export default function LessonDoubts({ courseId, lessonId, doubts }: LessonDoubt
                   </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--space-sm)' }}>
-                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                  <span suppressHydrationWarning style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
                     Asked by {doubt.author?.name || 'Unknown'} • {new Date(doubt.created_at).toLocaleDateString()}
                   </span>
                   <div style={{ display: 'flex', gap: 'var(--space-xs)' }}>

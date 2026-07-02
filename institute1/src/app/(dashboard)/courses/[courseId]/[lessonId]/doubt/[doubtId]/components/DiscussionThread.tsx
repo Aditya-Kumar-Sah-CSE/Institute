@@ -81,7 +81,7 @@ export default function DiscussionThread({ doubt, replies, currentUser }: any) {
                 {reply.author?.role !== 'student' && <span style={{ fontSize: '10px', background: 'var(--primary)', padding: '2px 6px', borderRadius: '4px' }}>Faculty</span>}
                 {reply.is_accepted && <span style={{ fontSize: '12px', color: 'var(--neon-green)' }}>✓ Accepted Answer</span>}
               </div>
-              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+              <div suppressHydrationWarning style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
                 {formatDistanceToNow(new Date(reply.created_at), { addSuffix: true })}
               </div>
             </div>
@@ -157,7 +157,7 @@ export default function DiscussionThread({ doubt, replies, currentUser }: any) {
           <img src={doubt.author?.avatar_url || '/default-avatar.png'} alt="avatar" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid var(--neon-cyan)' }} />
           <div>
             <div style={{ fontWeight: 'bold' }}>{doubt.author?.name}</div>
-            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+            <div suppressHydrationWarning style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
               {formatDistanceToNow(new Date(doubt.created_at), { addSuffix: true })} in {doubt.batch}
             </div>
           </div>

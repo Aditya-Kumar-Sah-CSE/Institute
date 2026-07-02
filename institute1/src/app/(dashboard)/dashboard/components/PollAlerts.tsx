@@ -39,7 +39,7 @@ export default function PollAlerts({ alerts }: { alerts: any[] }) {
               <div style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-primary)' }}>
                 {alert.message}
               </div>
-              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '4px' }}>
+              <div suppressHydrationWarning style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '4px' }}>
                 {new Date(alert.created_at).toLocaleString()}
               </div>
             </div>

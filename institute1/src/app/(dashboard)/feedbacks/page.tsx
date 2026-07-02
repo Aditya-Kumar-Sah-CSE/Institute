@@ -72,7 +72,7 @@ export default async function StudentFeedbacksPage() {
                     </span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    <div suppressHydrationWarning style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                       {new Date(fb.created_at).toLocaleString()}
                     </div>
                     {fb.category === 'Notification' ? (
@@ -112,7 +112,7 @@ export default async function StudentFeedbacksPage() {
 
               {fb.admin_reply && (
                 <div style={{ background: 'rgba(var(--neon-cyan-rgb), 0.1)', borderLeft: '3px solid var(--neon-cyan)', padding: 'var(--space-md)', borderRadius: 'var(--radius-sm)', margin: 'var(--space-sm) 0' }}>
-                  <p style={{ margin: '0 0 var(--space-xs) 0', fontSize: '0.8rem', color: 'var(--neon-cyan)', fontWeight: 600 }}>Reply from Admin/Instructor (on {fb.replied_at ? new Date(fb.replied_at).toLocaleDateString() : ''}):</p>
+                  <p suppressHydrationWarning style={{ margin: '0 0 var(--space-xs) 0', fontSize: '0.8rem', color: 'var(--neon-cyan)', fontWeight: 600 }}>Reply from Admin/Instructor (on {fb.replied_at ? new Date(fb.replied_at).toLocaleDateString() : ''}):</p>
                   <p style={{ margin: 0 }}>{fb.admin_reply}</p>
                 </div>
               )}

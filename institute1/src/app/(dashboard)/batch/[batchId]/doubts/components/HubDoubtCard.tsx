@@ -90,7 +90,7 @@ export default function HubDoubtCard({ doubt, batchId }: HubDoubtCardProps) {
             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ fontSize: '16px' }}>💬</span> {doubt.replies?.[0]?.count || 0}
             </span>
-            <span style={{ display: 'flex', alignItems: 'center', fontSize: 'var(--text-xs)' }}>
+            <span suppressHydrationWarning style={{ display: 'flex', alignItems: 'center', fontSize: 'var(--text-xs)' }}>
               {formatDistanceToNow(new Date(doubt.created_at), { addSuffix: true })}
             </span>
           </div>
