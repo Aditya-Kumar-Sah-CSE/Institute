@@ -165,4 +165,8 @@ h1, h2, h3, h4, h5, h6 {
     flex: 1 1 calc(50% - var(--space-md));
     max-width: calc(50% - var(--space-md) / 2);
   }
+  .polls-flex > *:only-child {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
 }

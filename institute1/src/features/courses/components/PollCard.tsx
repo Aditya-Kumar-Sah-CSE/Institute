@@ -116,37 +116,53 @@ export default function PollCard({ poll, currentUserId, isFaculty = false }: Pol
   const canDelete = isFaculty || poll.created_by === currentUserId;
 
   return (
-    <Card variant="glass" padding="lg" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-md)' }}>
-        <div>
-          <h3 style={{ fontSize: 'var(--text-lg)', marginBottom: 'var(--space-xs)' }}>{poll.question}</h3>
-          <p suppressHydrationWarning style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-            Asked by {poll.profiles?.name || 'Unknown'} • {formatDistanceToNow(new Date(poll.created_at), { addSuffix: true })}
-          </p>
+    <Card variant="glass" padding="md" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)', marginBottom: 'var(--space-md)' }}>
+        <h3 style={{ fontSize: 'var(--text-lg)', wordBreak: 'break-word', lineHeight: 1.3, margin: 0, width: '100%' }}>
+          {poll.question}
+        </h3>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', width: '100%' }}>
+          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', flex: '1 1 50%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            Asked by {poll.profiles?.name || 'Unknown'}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', fontSize: 'var(--text-xs)', flex: '1 1 50%' }}>
+            <span suppressHydrationWarning style={{ color: 'var(--text-muted)' }}>
+              {formatDistanceToNow(new Date(poll.created_at), { addSuffix: true })}
+            </span>
+          </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-          {canDelete && (
-            <button 
-              onClick={handleDeleteClick} 
-              disabled={isDeleting || isPending}
-              style={{ background: 'transparent', border: 'none', color: 'var(--neon-pink)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
-              title="Delete Poll"
-            >
-              <Trash2 size={16} />
-            </button>
-          )}
-          {poll.is_multiple_choice && (
-            <span style={{ fontSize: 'var(--text-xs)', padding: '2px 8px', background: 'var(--bg-input)', borderRadius: '12px', color: 'var(--text-secondary)' }}>
-              Multiple Choice
-            </span>
-          )}
-          {isExpired ? (
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--neon-pink)' }}>Ended</span>
-          ) : poll.expires_at && (
-            <span suppressHydrationWarning style={{ fontSize: 'var(--text-xs)', color: 'var(--neon-gold)' }}>
-              Ends in {formatDistanceToNow(new Date(poll.expires_at))}
-            </span>
-          )}
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 50%', flexWrap: 'wrap' }}>
+            {isExpired ? (
+              <span style={{ color: 'var(--neon-pink)', fontWeight: 500, fontSize: 'var(--text-xs)' }}>Ended</span>
+            ) : poll.expires_at && (
+              <span suppressHydrationWarning style={{ color: 'var(--neon-gold)', fontWeight: 500, fontSize: 'var(--text-xs)', background: 'rgba(255, 215, 0, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>
+                Ends in {formatDistanceToNow(new Date(poll.expires_at))}
+              </span>
+            )}
+            
+            {poll.is_multiple_choice && (
+              <span style={{ padding: '2px 6px', background: 'var(--bg-input)', borderRadius: '12px', color: 'var(--text-secondary)', fontSize: 'var(--text-xs)' }}>
+                Multiple Choice
+              </span>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flex: '1 1 50%' }}>
+            {canDelete && (
+              <button 
+                onClick={handleDeleteClick} 
+                disabled={isDeleting || isPending}
+                style={{ background: 'transparent', border: 'none', color: 'var(--neon-pink)', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center', transition: 'opacity 0.2s ease' }}
+                title="Delete Poll"
+              >
+                <Trash2 size={16} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -162,7 +178,7 @@ export default function PollCard({ poll, currentUserId, isFaculty = false }: Pol
               onClick={() => handleOptionChange(option.id)}
               style={{
                 position: 'relative',
-                padding: 'var(--space-md)',
+                padding: 'var(--space-sm) var(--space-md)',
                 borderRadius: 'var(--radius-md)',
                 background: 'var(--bg-input)',
                 cursor: isExpired ? 'default' : 'pointer',
