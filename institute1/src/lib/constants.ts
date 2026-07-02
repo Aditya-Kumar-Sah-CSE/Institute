@@ -10,6 +10,7 @@ export const XP_VALUES = {
   FACULTY_ACCEPTED: 50,
   LIKE_DOUBT: 2,
   COURSE_JOIN: 20,
+  POLL_VOTE: 1,
 } as const;
 
 export const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL || 'iambestadi@gmail.com';

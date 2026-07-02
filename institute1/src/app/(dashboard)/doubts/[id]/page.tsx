@@ -39,7 +39,6 @@ export default async function DoubtDetailsPage({ params }: { params: Promise<{ i
     );
   }
 
-  // Fetch replies
   const { data: replies } = await supabase
     .from('doubt_replies')
     .select('*, author:profiles!doubt_replies_user_id_fkey(name, avatar_url, role)')
@@ -47,6 +46,24 @@ export default async function DoubtDetailsPage({ params }: { params: Promise<{ i
     .order('created_at', { ascending: true });
 
   const isDoubtAuthor = user.id === doubt.user_id;
+
+  let canReply = true;
+  if (doubt.course_id && !isDoubtAuthor) {
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    if (profile?.role === 'student') {
+      const { data: enrollment } = await supabase
+        .from('enrollments')
+        .select('id')
+        .eq('course_id', doubt.course_id)
+        .eq('user_id', user.id)
+        .eq('status', 'approved')
+        .maybeSingle();
+        
+      if (!enrollment) {
+        canReply = false;
+      }
+    }
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
@@ -165,7 +182,13 @@ export default async function DoubtDetailsPage({ params }: { params: Promise<{ i
       {doubt.status !== 'resolved' && (
         <Card variant="glass" style={{ marginLeft: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
           <h4 style={{ marginBottom: 'var(--space-sm)' }}>Your Reply</h4>
-          <ReplyForm doubtId={doubt.id} />
+          {canReply ? (
+            <ReplyForm doubtId={doubt.id} />
+          ) : (
+            <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)', padding: 'var(--space-md) 0' }}>
+              🔒 You must be enrolled in this course to reply.
+            </p>
+          )}
         </Card>
       )}
     </div>

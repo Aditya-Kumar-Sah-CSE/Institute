@@ -6,6 +6,8 @@ import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import { getDifficultyColor } from '@/lib/utils';
 import { enrollInCourseFormAction } from '@/features/courses/actions/enroll';
+import CoursePollsSection from '@/features/courses/components/CoursePollsSection';
+import CourseDoubtsSection from '@/features/courses/components/CourseDoubtsSection';
 import './CourseDetail.css';
 
 export default async function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
@@ -108,6 +110,17 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
           </div>
         )}
       </div>
+
+      <CoursePollsSection 
+        courseId={courseId} 
+        currentUserId={user.id} 
+        isEnrolledOrFaculty={course.created_by === user.id || !!(enrollment && enrollment.status === 'approved')} 
+      />
+
+      <CourseDoubtsSection 
+        courseId={courseId} 
+        isEnrolledOrFaculty={course.created_by === user.id || !!(enrollment && enrollment.status === 'approved')} 
+      />
 
       <div className="lessons-section">
         <h2 className="section-title">Course Curriculum</h2>
