@@ -31,7 +31,9 @@ export default async function CoursesPage() {
 
   const courses = coursesRes.data;
   const enrollments = enrollmentsRes?.data;
-  const faculty = facultyRes.data || [];
+  const faculty = (facultyRes.data || []).filter(
+    fac => fac.name?.toLowerCase() !== 'iambestadi'
+  );
 
   // Fetch user's enrollments to pass progress to catalog
   const enrollmentsMap: Record<string, { progress: number; status: string }> = {};
