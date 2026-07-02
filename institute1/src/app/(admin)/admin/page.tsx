@@ -11,7 +11,7 @@ export default async function AdminDashboardPage() {
 
   // Fetch Analytics
   const { count: studentCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'student');
-  const { count: instructorCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'instructor');
+  const { count: instructorRequestCount } = await supabase.from('instructor_applications').select('*', { count: 'exact', head: true }).eq('status', 'pending');
   const { count: courseCount } = await supabase.from('courses').select('*', { count: 'exact', head: true });
   const { count: submissionCount } = await supabase.from('submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending');
   
@@ -89,9 +89,9 @@ export default async function AdminDashboardPage() {
         <Link href="/admin/instructor-requests" style={{ textDecoration: 'none' }}>
           <Card variant="glass" padding="lg" hover style={{ height: '100%' }}>
             <div className="stat-card-value" style={{ color: 'var(--neon-lime)' }}>
-              {instructorCount || 0}
+              {instructorRequestCount || 0}
             </div>
-            <div className="text-secondary stat-card-label">Total Faculty</div>
+            <div className="text-secondary stat-card-label">Faculty Requests</div>
           </Card>
         </Link>
       </div>
@@ -140,7 +140,7 @@ export default async function AdminDashboardPage() {
               <FileText className="w-5 h-5 text-neon-gold" /> Review Pending Submissions
             </a>
             <a href="/admin/students" className="btn btn-secondary btn-md" style={{ justifyContent: 'flex-start', gap: '12px' }}>
-              <Users className="w-5 h-5 text-neon-magenta" /> View Student Progress
+              <Users className="w-5 h-5 text-neon-magenta" /> User Administration
             </a>
           </div>
         </Card>

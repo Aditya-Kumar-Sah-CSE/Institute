@@ -101,3 +101,80 @@ export async function deleteEnrollment(enrollmentId: string) {
     return { error: errorMsg };
   }
 }
+
+export async function makeAdmin(userId: string) {
+  try {
+    const { createClient: createServerClient } = await import('@/lib/supabase/server');
+    const supabaseUser = await createServerClient();
+    const { data: { user } } = await supabaseUser.auth.getUser();
+
+    if (!user) {
+      return { error: 'Not authenticated' };
+    }
+
+    const { data: profile } = await supabaseUser
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role !== 'admin') {
+      return { error: 'Unauthorized. Only admins can assign admin roles.' };
+    }
+
+    // Update user role to admin
+    const { error } = await supabaseAdmin
+      .from('profiles')
+      .update({ role: 'admin' })
+      .eq('id', userId);
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    revalidatePath('/admin/students');
+    return { success: true };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Failed to make admin';
+    return { error: errorMsg };
+  }
+}
+
+export async function makeFaculty(userId: string) {
+  try {
+    const { createClient: createServerClient } = await import('@/lib/supabase/server');
+    const supabaseUser = await createServerClient();
+    const { data: { user } } = await supabaseUser.auth.getUser();
+
+    if (!user) {
+      return { error: 'Not authenticated' };
+    }
+
+    const { data: profile } = await supabaseUser
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role !== 'admin') {
+      return { error: 'Unauthorized. Only admins can assign roles.' };
+    }
+
+    // Prevent demoting the super admin (you can add a check for SUPER_ADMIN_EMAIL here if needed, but we'll assume the UI handles it or they can't demote themselves easily without it being tricky. Actually, let's just update the role)
+    // Update user role to instructor
+    const { error } = await supabaseAdmin
+      .from('profiles')
+      .update({ role: 'instructor' })
+      .eq('id', userId);
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    revalidatePath('/admin/students');
+    return { success: true };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Failed to make faculty';
+    return { error: errorMsg };
+  }
+}

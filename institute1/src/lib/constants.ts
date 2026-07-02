@@ -54,9 +54,9 @@ export const ADMIN_NAV_ITEMS = [
   { label: 'Overview', href: '/admin', icon: 'Dashboard' },
   { label: 'Courses', href: '/admin/courses', icon: 'Courses' },
   { label: 'Enrollments', href: '/admin/enrollments', icon: 'Enrollments' },
-  { label: 'Students', href: '/admin/students', icon: 'Students' },
+  { label: 'Administration', href: '/admin/students', icon: 'Students' },
   { label: 'Submissions', href: '/admin/submissions', icon: 'Submissions' },
-  { label: 'Instructors', href: '/admin/instructor-requests', icon: 'Instructors' },
+  { label: 'Instructor Requests', href: '/admin/instructor-requests', icon: 'Instructors' },
   { label: 'Feedback', href: '/admin/feedback', icon: 'Feedback' },
   { label: 'Notices', href: '/admin/notices', icon: 'Notices' },
 ];

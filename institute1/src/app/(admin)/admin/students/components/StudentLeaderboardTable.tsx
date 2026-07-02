@@ -7,7 +7,7 @@ import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import LevelBadge from '@/components/shared/LevelBadge';
 import { formatDistanceToNow } from 'date-fns';
-import { deleteStudent, deleteEnrollment } from '@/features/admin/actions/adminActions';
+import { deleteStudent, deleteEnrollment, makeAdmin, makeFaculty } from '@/features/admin/actions/adminActions';
 import type { LevelName } from '@/types';
 
 interface EnrollmentDetail {
@@ -43,10 +43,13 @@ import './StudentLeaderboardTable.css';
 
 export default function StudentLeaderboardTable({ students, isInstructor }: StudentLeaderboardTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'student' | 'instructor'>('all');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'student' | 'instructor' | 'admin'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 25;
   const [selectedStudent, setSelectedStudent] = useState<StudentDetail | null>(null);
+  const [adminPromotionTarget, setAdminPromotionTarget] = useState<{ id: string, name: string } | null>(null);
+  const [makeFacultyTarget, setMakeFacultyTarget] = useState<{ id: string, name: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string, name: string, role: string } | null>(null);
   const [isPending, startTransition] = useTransition();
 
   // Search and Role filter logic
@@ -65,22 +68,26 @@ export default function StudentLeaderboardTable({ students, isInstructor }: Stud
     setCurrentPage(1);
   }, [searchTerm, roleFilter]);
 
-  const handleDeleteStudent = async (studentId: string, studentName: string) => {
-    if (window.confirm(`Are you sure you want to permanently delete student "${studentName}"? This will remove all their progress, submissions, and XP. This action cannot be undone.`)) {
-      startTransition(async () => {
-        try {
-          const result = await deleteStudent(studentId);
-          if (result.error) {
-            alert(`Error deleting student: ${result.error}`);
-          } else {
-            setSelectedStudent(null);
-          }
-        } catch (err) {
-          console.error(err);
-          alert('An unexpected error occurred.');
+  const handleDeleteStudentClick = (studentId: string, studentName: string, role: string) => {
+    setDeleteTarget({ id: studentId, name: studentName, role });
+  };
+
+  const confirmDeleteStudent = async () => {
+    if (!deleteTarget) return;
+    startTransition(async () => {
+      try {
+        const result = await deleteStudent(deleteTarget.id);
+        if (result.error) {
+          alert(`Error deleting user: ${result.error}`);
+        } else {
+          setSelectedStudent(null);
+          setDeleteTarget(null);
         }
-      });
-    }
+      } catch (err) {
+        console.error(err);
+        alert('An unexpected error occurred.');
+      }
+    });
   };
 
   const handleDeleteEnrollment = async (enrollmentId: string, courseTitle: string, studentName: string) => {
@@ -106,6 +113,52 @@ export default function StudentLeaderboardTable({ students, isInstructor }: Stud
         }
       });
     }
+  };
+
+  const handleMakeAdminClick = (userId: string, userName: string) => {
+    setAdminPromotionTarget({ id: userId, name: userName });
+  };
+
+  const confirmMakeAdmin = async () => {
+    if (!adminPromotionTarget) return;
+    
+    startTransition(async () => {
+      try {
+        const result = await makeAdmin(adminPromotionTarget.id);
+        if (result.error) {
+          alert(`Error making admin: ${result.error}`);
+        } else {
+          setSelectedStudent(null);
+          setAdminPromotionTarget(null);
+        }
+      } catch (err) {
+        console.error(err);
+        alert('An unexpected error occurred.');
+      }
+    });
+  };
+
+  const handleMakeFacultyClick = (userId: string, userName: string) => {
+    setMakeFacultyTarget({ id: userId, name: userName });
+  };
+
+  const confirmMakeFaculty = async () => {
+    if (!makeFacultyTarget) return;
+    
+    startTransition(async () => {
+      try {
+        const result = await makeFaculty(makeFacultyTarget.id);
+        if (result.error) {
+          alert(`Error making faculty: ${result.error}`);
+        } else {
+          setSelectedStudent(null);
+          setMakeFacultyTarget(null);
+        }
+      } catch (err) {
+        console.error(err);
+        alert('An unexpected error occurred.');
+      }
+    });
   };
 
   return (
@@ -141,6 +194,13 @@ export default function StudentLeaderboardTable({ students, isInstructor }: Stud
             size="sm"
           >
             Faculty
+          </Button>
+          <Button 
+            variant={roleFilter === 'admin' ? 'primary' : 'secondary'} 
+            onClick={() => setRoleFilter('admin')}
+            size="sm"
+          >
+            Admin
           </Button>
         </div>
       </div>
@@ -229,7 +289,7 @@ export default function StudentLeaderboardTable({ students, isInstructor }: Stud
                         <Button 
                           variant="danger" 
                           size="sm" 
-                          onClick={() => handleDeleteStudent(student.id, student.name)}
+                          onClick={() => handleDeleteStudentClick(student.id, student.name, student.role)}
                           disabled={isPending}
                         >
                           Delete
@@ -282,7 +342,7 @@ export default function StudentLeaderboardTable({ students, isInstructor }: Stud
         <Modal 
           isOpen={true} 
           onClose={() => setSelectedStudent(null)} 
-          title="Student Profile Details"
+          title={selectedStudent.role === 'admin' ? "Admin Profile Details" : selectedStudent.role === 'instructor' ? "Faculty Profile Details" : "Student Profile Details"}
           size="lg"
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
@@ -404,25 +464,160 @@ export default function StudentLeaderboardTable({ students, isInstructor }: Stud
             {/* Modal Actions */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--space-md)' }}>
               {!isInstructor ? (
-                <Button 
-                  variant="danger" 
-                  onClick={() => handleDeleteStudent(selectedStudent.id, selectedStudent.name)}
-                  disabled={isPending}
-                >
-                  Delete Student Account
-                </Button>
+                <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+                  {selectedStudent.role === 'admin' ? (
+                    <Button 
+                      variant="primary" 
+                      onClick={() => handleMakeFacultyClick(selectedStudent.id, selectedStudent.name)}
+                      disabled={isPending}
+                      style={{ background: 'var(--neon-gold)', borderColor: 'var(--neon-gold)', color: '#000' }}
+                    >
+                      Make Faculty
+                    </Button>
+                  ) : (
+                    <Button 
+                      variant="danger" 
+                      onClick={() => handleDeleteStudentClick(selectedStudent.id, selectedStudent.name, selectedStudent.role)}
+                      disabled={isPending}
+                    >
+                      {selectedStudent.role === 'instructor' ? 'Delete Faculty Account' : 'Delete Student Account'}
+                    </Button>
+                  )}
+                  {selectedStudent.role === 'instructor' && (
+                    <Button 
+                      variant="primary" 
+                      onClick={() => handleMakeAdminClick(selectedStudent.id, selectedStudent.name)}
+                      disabled={isPending}
+                      style={{ background: 'var(--neon-purple)', borderColor: 'var(--neon-purple)', color: '#fff' }}
+                    >
+                      Make Admin
+                    </Button>
+                  )}
+                </div>
               ) : (
                 <div />
               )}
-              <Button 
-                variant="secondary" 
-                onClick={() => setSelectedStudent(null)}
-                disabled={isPending}
-              >
-                Close
-              </Button>
             </div>
 
+          </div>
+        </Modal>
+      )}
+
+      {/* Admin Promotion Confirmation Modal */}
+      {adminPromotionTarget && (
+        <Modal 
+          isOpen={true} 
+          onClose={() => setAdminPromotionTarget(null)} 
+          title="Promote to Admin"
+          size="md"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+              <div style={{ fontSize: '2rem', padding: 'var(--space-sm)', background: 'rgba(177, 78, 255, 0.1)', borderRadius: 'var(--radius-md)', color: 'var(--neon-purple)' }}>
+                👑
+              </div>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '1.1rem', lineHeight: 1.5 }}>
+                Are you sure you want to promote <strong>{adminPromotionTarget.name}</strong> to Admin? 
+                They will have full access to manage students, faculty, and system settings.
+              </p>
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
+              <Button 
+                variant="secondary" 
+                onClick={() => setAdminPromotionTarget(null)}
+                disabled={isPending}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="primary" 
+                onClick={confirmMakeAdmin}
+                disabled={isPending}
+                style={{ background: 'var(--neon-purple)', borderColor: 'var(--neon-purple)' }}
+              >
+                {isPending ? 'Promoting...' : 'Yes, Promote to Admin'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Make Faculty Confirmation Modal */}
+      {makeFacultyTarget && (
+        <Modal 
+          isOpen={true} 
+          onClose={() => setMakeFacultyTarget(null)} 
+          title="Demote to Faculty"
+          size="md"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+              <div style={{ fontSize: '2rem', padding: 'var(--space-sm)', background: 'rgba(255, 165, 2, 0.1)', borderRadius: 'var(--radius-md)', color: 'var(--neon-gold)' }}>
+                👨‍🏫
+              </div>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '1.1rem', lineHeight: 1.5 }}>
+                Are you sure you want to change <strong>{makeFacultyTarget.name}</strong> from Admin to Faculty? 
+                They will lose access to administrative features.
+              </p>
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
+              <Button 
+                variant="secondary" 
+                onClick={() => setMakeFacultyTarget(null)}
+                disabled={isPending}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="primary" 
+                onClick={confirmMakeFaculty}
+                disabled={isPending}
+                style={{ background: 'var(--neon-gold)', borderColor: 'var(--neon-gold)', color: '#000' }}
+              >
+                {isPending ? 'Processing...' : 'Yes, Make Faculty'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Delete User Confirmation Modal */}
+      {deleteTarget && (
+        <Modal 
+          isOpen={true} 
+          onClose={() => setDeleteTarget(null)} 
+          title="Delete Account"
+          size="md"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+              <div style={{ fontSize: '2rem', padding: 'var(--space-sm)', background: 'rgba(255, 71, 87, 0.1)', borderRadius: 'var(--radius-md)', color: 'var(--neon-pink)' }}>
+                ⚠️
+              </div>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '1.1rem', lineHeight: 1.5 }}>
+                Are you sure you want to permanently delete {deleteTarget.role === 'instructor' ? 'faculty member' : 'student'} <strong>{deleteTarget.name}</strong>? 
+                This action cannot be undone and will erase all their progress and data.
+              </p>
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
+              <Button 
+                variant="secondary" 
+                onClick={() => setDeleteTarget(null)}
+                disabled={isPending}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="danger" 
+                onClick={confirmDeleteStudent}
+                disabled={isPending}
+              >
+                {isPending ? 'Deleting...' : 'Yes, Delete Account'}
+              </Button>
+            </div>
           </div>
         </Modal>
       )}
