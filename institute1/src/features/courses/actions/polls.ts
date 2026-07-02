@@ -53,7 +53,7 @@ export async function createCoursePoll(
     // 3. Notify enrolled students and course creator
     const { data: course } = await supabase
       .from('courses')
-      .select('title, created_by')
+      .select('title, created_by, instructor_id')
       .eq('id', courseId)
       .single();
 
@@ -72,6 +72,9 @@ export async function createCoursePoll(
       
       if (course.created_by) {
         userIdsToNotify.add(course.created_by);
+      }
+      if (course.instructor_id) {
+        userIdsToNotify.add(course.instructor_id);
       }
       
       // Do not notify the person who created the poll
@@ -150,6 +153,18 @@ export async function submitPollVote(pollId: string, optionIds: string[], course
       
       if (!hadPriorVote) {
         await awardXP(user.id, XP_VALUES.POLL_VOTE, 'Participated in a poll', 'poll_vote', pollId);
+        
+        // Notify the poll creator
+        const { data: poll } = await supabase.from('course_polls').select('created_by, question').eq('id', pollId).single();
+        if (poll && poll.created_by !== user.id) {
+           const { data: voterProfile } = await supabase.from('profiles').select('name').eq('id', user.id).single();
+           await supabase.from('notifications').insert({
+             user_id: poll.created_by,
+             type: 'poll_vote',
+             message: `${voterProfile?.name} voted on your poll: "${poll.question}"`,
+             link: `/courses/${courseId}`
+           });
+        }
       }
     }
 
