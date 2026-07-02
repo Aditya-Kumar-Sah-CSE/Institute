@@ -9,6 +9,8 @@ import type { Course } from '@/types';
 import DashboardProfileCard from './components/DashboardProfileCard';
 import { createAdminClient } from '@/lib/supabase/server';
 import PollAlerts from './components/PollAlerts';
+import DashboardPolls from './components/DashboardPolls';
+import { getDashboardPolls } from '@/features/courses/actions/polls';
 import { Zap, Flame, CheckCircle, Award } from 'lucide-react';
 
 interface DashboardEnrollment {
@@ -67,6 +69,17 @@ export default async function DashboardPage() {
     .like('message', '%posted a new poll in%')
     .order('created_at', { ascending: false });
 
+  const allEnrollmentsPromise = supabase
+    .from('enrollments')
+    .select('course_id')
+    .eq('user_id', user.id)
+    .eq('status', 'approved');
+
+  const dashboardPollsPromise = allEnrollmentsPromise.then(res => {
+    const ids = res.data?.map(e => e.course_id) || [];
+    return getDashboardPolls(ids);
+  });
+
   const [
     { data: profile },
     { data: enrollments },
@@ -74,7 +87,8 @@ export default async function DashboardPage() {
     { count: earnedBadges },
     notices,
     { data: appData },
-    { data: pollAlerts }
+    { data: pollAlerts },
+    { data: dashboardPolls }
   ] = await Promise.all([
     profilePromise,
     enrollmentsPromise,
@@ -82,7 +96,8 @@ export default async function DashboardPage() {
     earnedBadgesPromise,
     noticesPromise,
     appDataPromise,
-    pollAlertsPromise
+    pollAlertsPromise,
+    dashboardPollsPromise
   ]);
 
   return (
@@ -162,6 +177,10 @@ export default async function DashboardPage() {
 
         {pollAlerts && pollAlerts.length > 0 && (
           <PollAlerts alerts={pollAlerts} />
+        )}
+
+        {dashboardPolls && dashboardPolls.length > 0 && (
+          <DashboardPolls polls={dashboardPolls} currentUserId={user.id} />
         )}
 
         <div>

@@ -213,3 +213,35 @@ export async function deleteCoursePoll(pollId: string, courseId: string) {
     return { error: error.message || 'Failed to delete poll' };
   }
 }
+
+export async function getDashboardPolls(courseIds: string[]) {
+  if (!courseIds || courseIds.length === 0) return { data: null, error: null };
+  
+  const supabase = await createClient();
+  
+  const { data, error } = await supabase
+    .from('course_polls')
+    .select(`
+      *,
+      courses ( title ),
+      profiles:created_by ( name ),
+      options:course_poll_options (
+        id,
+        option_text,
+        votes:course_poll_votes (
+          id,
+          user_id,
+          profiles:user_id ( name )
+        )
+      )
+    `)
+    .in('course_id', courseIds)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching dashboard polls:', error);
+    return { data: null, error: error.message };
+  }
+
+  return { data, error: null };
+}
