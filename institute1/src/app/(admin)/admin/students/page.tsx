@@ -50,7 +50,7 @@ export default async function AdminStudentsPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2xl)' }}>
       <div className="page-header">
-        <h1 className="text-gradient">Member Directory & Tracking</h1>
+        <h1 className="text-gradient">Administration & Tracking</h1>
         <p className="text-secondary">Monitor student progress, manage faculty, and view overall platform engagement.</p>
       </div>
 
@@ -92,7 +92,7 @@ export default async function AdminStudentsPage() {
       <Card variant="glass" padding="lg">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-xl)' }}>
           <h2 style={{ fontSize: 'var(--text-xl)', margin: 0 }}>
-            Member Directory & Leaderboard
+            Administration & Leaderboard
           </h2>
         </div>
         <StudentLeaderboardTable students={allUsers || []} isInstructor={isInstructor} />
