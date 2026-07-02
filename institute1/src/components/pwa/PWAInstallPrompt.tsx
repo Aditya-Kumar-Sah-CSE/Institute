@@ -125,7 +125,7 @@ export default function PWAInstallPrompt() {
         </div>
         <div className="pwa-prompt-footer">
           <button onClick={handleDismiss} className="pwa-btn-secondary">{showFallback ? 'Close' : 'Maybe Later'}</button>
-          {(!isIOS || deferredPrompt) && !showFallback && (
+          {!showFallback && (
             <button onClick={handleInstall} className="pwa-btn-primary">Install Now</button>
           )}
         </div>
