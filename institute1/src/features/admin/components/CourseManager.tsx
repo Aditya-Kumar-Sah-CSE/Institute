@@ -11,13 +11,15 @@ import './CourseManager.css';
 
 interface CourseManagerProps {
   courses: Course[];
+  currentUserId?: string;
 }
 
-export default function CourseManager({ courses }: CourseManagerProps) {
+export default function CourseManager({ courses, currentUserId }: CourseManagerProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [courseFilter, setCourseFilter] = useState<'my_courses' | 'all_courses'>('my_courses');
   const pathname = usePathname();
   const basePath = pathname?.startsWith('/instructor') ? '/instructor' : '/admin';
 
@@ -68,15 +70,45 @@ export default function CourseManager({ courses }: CourseManagerProps) {
     }
   };
 
+  const filteredCourses = courses.filter(c => {
+    if (c.is_deleted) return false;
+    if (courseFilter === 'my_courses' && currentUserId) {
+      return c.created_by === currentUserId;
+    }
+    return true;
+  });
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ fontSize: 'var(--text-xl)' }}>All Courses</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+          <h2 style={{ fontSize: 'var(--text-xl)', margin: 0 }}>Manage Courses</h2>
+          <div style={{ display: 'flex', background: 'var(--bg-input)', padding: '4px', borderRadius: 'var(--radius-sm)', gap: '4px' }}>
+            <button 
+              className={`btn-ghost ${courseFilter === 'my_courses' ? 'active' : ''}`}
+              style={{ padding: '6px 12px', borderRadius: '4px', background: courseFilter === 'my_courses' ? 'var(--bg-secondary)' : 'transparent', color: courseFilter === 'my_courses' ? 'var(--text-primary)' : 'var(--text-secondary)', border: 'none', cursor: 'pointer' }}
+              onClick={() => setCourseFilter('my_courses')}
+            >
+              My Courses
+            </button>
+            <button 
+              className={`btn-ghost ${courseFilter === 'all_courses' ? 'active' : ''}`}
+              style={{ padding: '6px 12px', borderRadius: '4px', background: courseFilter === 'all_courses' ? 'var(--bg-secondary)' : 'transparent', color: courseFilter === 'all_courses' ? 'var(--text-primary)' : 'var(--text-secondary)', border: 'none', cursor: 'pointer' }}
+              onClick={() => setCourseFilter('all_courses')}
+            >
+              All Courses
+            </button>
+          </div>
+        </div>
         <Button variant="primary" onClick={openAdd}>+ Add New Course</Button>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-        {courses.map(course => (
+        {filteredCourses.length === 0 ? (
+          <Card variant="glass" style={{ textAlign: 'center', padding: 'var(--space-xl)' }}>
+            <p className="text-secondary">No courses found.</p>
+          </Card>
+        ) : filteredCourses.map(course => (
           <Card key={course.id} variant="glass" className="course-card" style={course.is_deleted ? { opacity: 0.7, border: '1px solid var(--neon-red)' } : {}}>
             <div className="course-card-info">
               <h3 style={{ marginBottom: 'var(--space-2xs)' }}>
