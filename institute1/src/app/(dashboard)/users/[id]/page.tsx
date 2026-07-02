@@ -6,6 +6,7 @@ import BadgeDisplay from '@/components/shared/BadgeDisplay';
 import Card from '@/components/ui/Card';
 import Image from 'next/image';
 import ProfileViewTracker from '@/components/shared/ProfileViewTracker';
+import ShareProfileButton from '@/components/shared/ShareProfileButton';
 import { User } from 'lucide-react';
 import '../../profile/Profile.css';
 
@@ -93,9 +94,14 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
           )}
         </div>
         
-        <div className="profile-info-large">
-          <h1 className="profile-name">{profile.name}</h1>
-          <p className="profile-email text-muted" style={{ textTransform: 'capitalize' }}>{profile.role}</p>
+        <div className="profile-info-large" style={{ flex: 1, minWidth: '250px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-sm)' }}>
+            <div>
+              <h1 className="profile-name">{profile.name}</h1>
+              <p className="profile-email text-muted" style={{ textTransform: 'capitalize' }}>{profile.role}</p>
+            </div>
+            <ShareProfileButton userId={id} />
+          </div>
           
           {profile.institute_id && (
             <p className="profile-email" style={{ marginTop: 'var(--space-xs)', fontSize: 'var(--text-sm)' }}>

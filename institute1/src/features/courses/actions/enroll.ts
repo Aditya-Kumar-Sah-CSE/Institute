@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { awardXP } from '@/features/auth/actions/auth';
 import { XP_VALUES } from '@/lib/constants';
@@ -78,4 +78,22 @@ export async function leaveCourse(courseId: string) {
 
 export async function leaveCourseFormAction(courseId: string): Promise<void> {
   await leaveCourse(courseId);
+}
+
+export async function getTopEnrolledStudents(courseId: string, limit: number = 3) {
+  const adminClient = await createAdminClient();
+  const { data } = await adminClient
+    .from('enrollments')
+    .select('user_id, profiles(name, avatar_url)')
+    .eq('course_id', courseId)
+    .eq('status', 'approved')
+    .limit(limit);
+  
+  const { count } = await adminClient
+    .from('enrollments')
+    .select('*', { count: 'exact', head: true })
+    .eq('course_id', courseId)
+    .eq('status', 'approved');
+
+  return { students: data || [], total: count || 0 };
 }

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -50,6 +50,13 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
     .eq('completed', true);
 
   const completedLessonIds = new Set(lessonProgress?.map(lp => lp.lesson_id) || []);
+
+  const adminClient = await createAdminClient();
+  const { data: enrolledStudents } = await adminClient
+    .from('enrollments')
+    .select('user_id, profiles(name, avatar_url)')
+    .eq('course_id', courseId)
+    .eq('status', 'approved');
 
   return (
     <div className="course-detail-page">
@@ -104,7 +111,32 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
               )}
             </div>
             
-            <ShareCourseButton courseId={courseId} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)', alignItems: 'flex-end' }}>
+              {enrolledStudents && enrolledStudents.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', marginLeft: '8px' }}>
+                    {enrolledStudents.slice(0, 3).map((student: any, i: number) => (
+                      <div key={student.user_id} style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid var(--glass-bg)', backgroundColor: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: -8, overflow: 'hidden', zIndex: 3 - i }}>
+                        {student.profiles?.avatar_url ? (
+                          <Image src={student.profiles.avatar_url} alt={student.profiles.name || 'User'} width={28} height={28} style={{ objectFit: 'cover' }} />
+                        ) : (
+                          <span style={{ fontSize: 12, color: 'var(--neon-cyan)', fontWeight: 'bold' }}>{(student.profiles?.name || 'S').charAt(0).toUpperCase()}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    {enrolledStudents.length} joined
+                  </span>
+                  {enrolledStudents.length > 3 && (
+                    <a href="#joined-students" style={{ fontSize: '0.85rem', color: 'var(--neon-cyan)', cursor: 'pointer', textDecoration: 'none' }}>
+                      View all
+                    </a>
+                  )}
+                </div>
+              )}
+              <ShareCourseButton courseId={courseId} />
+            </div>
           </div>
         </div>
         {course.thumbnail_url && (
@@ -205,6 +237,39 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
             </div>
           ));
         })()}
+      </div>
+
+      <div id="joined-students" className="enrolled-students-section" style={{ marginTop: 'var(--space-2xl)' }}>
+        <h2 className="section-title">Joined Students</h2>
+        {(!enrolledStudents || enrolledStudents.length === 0) ? (
+          <p style={{ color: 'var(--text-secondary)' }}>No students have joined this course yet.</p>
+        ) : (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
+            {enrolledStudents.map((enrollment: any) => (
+              <Link 
+                key={enrollment.user_id} 
+                href={`/users/${enrollment.user_id}`}
+                className="student-card glass-card" 
+                style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', padding: 'var(--space-sm) var(--space-md)', borderRadius: 'var(--radius-md)', textDecoration: 'none', color: 'inherit', transition: 'all 0.2s ease' }}
+              >
+                {enrollment.profiles?.avatar_url ? (
+                  <Image 
+                    src={enrollment.profiles.avatar_url} 
+                    alt={enrollment.profiles?.name || 'Student'} 
+                    width={40} 
+                    height={40} 
+                    style={{ borderRadius: '50%', objectFit: 'cover' }} 
+                  />
+                ) : (
+                  <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: 'var(--glass-bg)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--neon-cyan)', fontWeight: 'bold' }}>
+                    {(enrollment.profiles?.name || 'S').charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <span style={{ fontWeight: 500 }}>{enrollment.profiles?.name || 'Unknown Student'}</span>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
