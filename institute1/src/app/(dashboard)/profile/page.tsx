@@ -96,7 +96,7 @@ export default async function ProfilePage() {
             </div>
           </div>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             {profile.role !== 'admin' && (
               <>
                 {profile.role !== 'instructor' && (!appData || appData.status === 'rejected') && (
