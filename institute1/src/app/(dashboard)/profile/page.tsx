@@ -28,7 +28,17 @@ export default async function ProfilePage() {
   const { data: xpLogs } = await supabase.from('xp_log').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10);
   const { data: companySettings } = await supabase.from('company_settings').select('company_name').single();
   const adminSb = await createAdminClient();
-  const { data: enrollments } = await supabase.from('enrollments').select('*, course:courses(title, thumbnail_url)').eq('user_id', user.id);
+  
+  let enrollments = null;
+  let teachingCourses = null;
+  if (profile.role === 'student') {
+    const { data } = await supabase.from('enrollments').select('*, course:courses(title, thumbnail_url)').eq('user_id', user.id);
+    enrollments = data;
+  } else {
+    const { data } = await adminSb.from('courses').select('id, title').eq('instructor_id', user.id);
+    teachingCourses = data;
+  }
+  
   const { data: appData, error: appError } = await adminSb.from('instructor_applications').select('status').eq('user_id', user.id).order('submitted_at', { ascending: false }).limit(1).maybeSingle();
 
   // Fetch monthly rewards
@@ -89,12 +99,14 @@ export default async function ProfilePage() {
             )}
           </div>
 
-          <div className="profile-badges-quick" style={{ marginTop: 0 }}>
-            <LevelBadge level={profile.level} size="lg" />
-            <div className="profile-streak-pill">
-              🔥 {profile.streak_days} Day Streak
+          {profile.role === 'student' && (
+            <div className="profile-badges-quick" style={{ marginTop: 0 }}>
+              <LevelBadge level={profile.level} size="lg" />
+              <div className="profile-streak-pill">
+                🔥 {profile.streak_days} Day Streak
+              </div>
             </div>
-          </div>
+          )}
           
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', flexWrap: 'nowrap', justifyContent: 'flex-end' }}>
             {profile.role !== 'admin' && (
@@ -126,41 +138,63 @@ export default async function ProfilePage() {
       </div>
 
       <div className="profile-grid">
-        <div className="profile-col-main">
-          <Card variant="glass" className="profile-section">
-            <h2 className="section-title-sm">Current Progress</h2>
-            <XPBar xp={profile.xp} size="lg" />
-          </Card>
+        {profile.role === 'student' ? (
+          <div className="profile-col-main">
+            <Card variant="glass" className="profile-section">
+              <h2 className="section-title-sm">Current Progress</h2>
+              <XPBar xp={profile.xp} size="lg" />
+            </Card>
 
-          <Card variant="glass" className="profile-section">
-            <h2 className="section-title-sm">Badges ({earnedBadges?.length || 0}/{allBadges?.length || 0})</h2>
-            <BadgeDisplay allBadges={allBadges || []} earnedBadges={earnedBadges || []} />
-          </Card>
+            <Card variant="glass" className="profile-section">
+              <h2 className="section-title-sm">Badges ({earnedBadges?.length || 0}/{allBadges?.length || 0})</h2>
+              <BadgeDisplay allBadges={allBadges || []} earnedBadges={earnedBadges || []} />
+            </Card>
 
-          <Card variant="glass" className="profile-section">
-            <h2 className="section-title-sm">Enrolled Courses</h2>
-            {enrollments && enrollments.length > 0 ? (
-              <div className="enrollments-list">
-                {enrollments.map(enr => (
-                  <div key={enr.id} className="enrollment-item">
-                    <div className="enrollment-icon">🎓</div>
-                    <div className="enrollment-details">
-                      <h4>{enr.course?.title}</h4>
-                      <div className="enrollment-progress">
-                        <div className="progress-bar-small">
-                          <div className="progress-fill-small" style={{ width: `${Math.round(enr.progress * 100)}%` }} />
+            <Card variant="glass" className="profile-section">
+              <h2 className="section-title-sm">Enrolled Courses</h2>
+              {enrollments && enrollments.length > 0 ? (
+                <div className="enrollments-list">
+                  {enrollments.map((enr: any) => (
+                    <div key={enr.id} className="enrollment-item">
+                      <div className="enrollment-icon">🎓</div>
+                      <div className="enrollment-details">
+                        <h4>{enr.course?.title}</h4>
+                        <div className="enrollment-progress">
+                          <div className="progress-bar-small">
+                            <div className="progress-fill-small" style={{ width: `${Math.round(enr.progress * 100)}%` }} />
+                          </div>
+                          <span className="progress-text">{Math.round(enr.progress * 100)}%</span>
                         </div>
-                        <span className="progress-text">{Math.round(enr.progress * 100)}%</span>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-muted">No courses enrolled yet.</p>
-            )}
-          </Card>
-        </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted">No courses enrolled yet.</p>
+              )}
+            </Card>
+          </div>
+        ) : (
+          <div className="profile-col-main">
+            <Card variant="glass" className="profile-section">
+              <h2 className="section-title-sm">Courses Teaching</h2>
+              {teachingCourses && teachingCourses.length > 0 ? (
+                <div className="enrollments-list">
+                  {teachingCourses.map((tc: any) => (
+                    <div key={tc.id} className="enrollment-item">
+                      <div className="enrollment-icon">🏫</div>
+                      <div className="enrollment-details">
+                        <h4>{tc.title}</h4>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted">You have not created any courses yet.</p>
+              )}
+            </Card>
+          </div>
+        )}
 
         <div className="profile-col-side">
           <Card variant="glass" className="profile-section">
@@ -172,7 +206,7 @@ export default async function ProfilePage() {
           </Card>
 
           <Card variant="glass" className="profile-section">
-            <h2 className="section-title-sm">Academic Details</h2>
+            <h2 className="section-title-sm">{profile.role === 'student' ? 'Academic Details' : 'Professional & Academic Details'}</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
               <AcademicInfoConnect 
                 userId={user.id} 
@@ -183,21 +217,23 @@ export default async function ProfilePage() {
             </div>
           </Card>
 
-          <Card variant="glass" className="profile-section">
-            <h2 className="section-title-sm">Recent Activity</h2>
-            {xpLogs && xpLogs.length > 0 ? (
-              <ul className="activity-list">
-                {xpLogs.map(log => (
-                  <li key={log.id} className="activity-item">
-                    <span className="activity-action">{log.action}</span>
-                    <span className="activity-xp text-gradient">+{log.xp_amount} XP</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-muted">No recent activity.</p>
-            )}
-          </Card>
+          {profile.role === 'student' && (
+            <Card variant="glass" className="profile-section">
+              <h2 className="section-title-sm">Recent Activity</h2>
+              {xpLogs && xpLogs.length > 0 ? (
+                <ul className="activity-list">
+                  {xpLogs.map(log => (
+                    <li key={log.id} className="activity-item">
+                      <span className="activity-action">{log.action}</span>
+                      <span className="activity-xp text-gradient">+{log.xp_amount} XP</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-muted">No recent activity.</p>
+              )}
+            </Card>
+          )}
         </div>
       </div>
     </div>
