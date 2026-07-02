@@ -32,6 +32,9 @@ export default function Sidebar({ profile, isAdmin = false, roleView }: SidebarP
   if (currentView === 'admin' && profile.email !== SUPER_ADMIN_EMAIL) {
     navItems = navItems.filter(item => item.label !== 'Instructors' && item.label !== 'Admins' && item.label !== 'Feedback');
   }
+  if (currentView === 'instructor' && profile.email !== SUPER_ADMIN_EMAIL) {
+    navItems = navItems.filter(item => item.label !== 'Feedback');
+  }
 
   return (
     <aside className="sidebar">
