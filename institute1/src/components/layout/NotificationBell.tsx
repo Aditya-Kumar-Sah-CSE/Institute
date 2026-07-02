@@ -76,6 +76,19 @@ export default function NotificationBell({ userId }: { userId: string }) {
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
+  // Sync with PWA App Badge
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'setAppBadge' in navigator && typeof navigator.setAppBadge === 'function') {
+      if (unreadCount > 0) {
+        navigator.setAppBadge(unreadCount).catch(console.error);
+      } else {
+        if ('clearAppBadge' in navigator && typeof navigator.clearAppBadge === 'function') {
+          navigator.clearAppBadge().catch(console.error);
+        }
+      }
+    }
+  }, [unreadCount]);
+
   const handleNotificationClick = async (id: string, link: string) => {
     setIsOpen(false);
     await markNotificationAsRead(id);
