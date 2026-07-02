@@ -11,6 +11,7 @@ import GithubConnect from './components/GithubConnect';
 import SocialLinksConnect from './components/SocialLinksConnect';
 import AcademicInfoConnect from './components/AcademicInfoConnect';
 import CrownBanner from './components/CrownBanner';
+import ShareProfileButton from '@/components/shared/ShareProfileButton';
 import { getPastMonthlyRewards } from '@/features/gamification/actions/monthly-rewards';
 import './Profile.css';
 export const dynamic = 'force-dynamic';
@@ -95,29 +96,32 @@ export default async function ProfilePage() {
             </div>
           </div>
           
-          {profile.role !== 'admin' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
-              {profile.role !== 'instructor' && (!appData || appData.status === 'rejected') && (
-                <Link href={appData?.status === 'rejected' ? '/apply-instructor?reapply=true' : '/apply-instructor'} style={{ textDecoration: 'none' }}>
-                  <Button variant="secondary" size="sm">
-                    Apply as Instructor or Faculty
-                  </Button>
-                </Link>
-              )}
-              {(appData?.status === 'pending' || appData?.status === 'approved' || profile.role === 'instructor') && (
-                <span style={{ 
-                  fontSize: 'var(--text-sm)', 
-                  fontWeight: 'var(--weight-bold)', 
-                  color: (appData?.status === 'pending') ? '#eab308' : '#22c55e',
-                  padding: '0.25rem 0.75rem',
-                  borderRadius: '1rem',
-                  backgroundColor: (appData?.status === 'pending') ? 'rgba(234, 179, 8, 0.1)' : 'rgba(34, 197, 94, 0.1)'
-                }}>
-                  Status: {appData?.status === 'pending' ? 'Pending' : 'Approved as faculty'}
-                </span>
-              )}
-            </div>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+            {profile.role !== 'admin' && (
+              <>
+                {profile.role !== 'instructor' && (!appData || appData.status === 'rejected') && (
+                  <Link href={appData?.status === 'rejected' ? '/apply-instructor?reapply=true' : '/apply-instructor'} style={{ textDecoration: 'none' }}>
+                    <Button variant="secondary" size="sm">
+                      Apply as Instructor or Faculty
+                    </Button>
+                  </Link>
+                )}
+                {(appData?.status === 'pending' || appData?.status === 'approved' || profile.role === 'instructor') && (
+                  <span style={{ 
+                    fontSize: 'var(--text-sm)', 
+                    fontWeight: 'var(--weight-bold)', 
+                    color: (appData?.status === 'pending') ? '#eab308' : '#22c55e',
+                    padding: '0.25rem 0.75rem',
+                    borderRadius: '1rem',
+                    backgroundColor: (appData?.status === 'pending') ? 'rgba(234, 179, 8, 0.1)' : 'rgba(34, 197, 94, 0.1)'
+                  }}>
+                    Status: {appData?.status === 'pending' ? 'Pending' : 'Approved as faculty'}
+                  </span>
+                )}
+              </>
+            )}
+            <ShareProfileButton userId={user.id} />
+          </div>
         </div>
       </div>
 
