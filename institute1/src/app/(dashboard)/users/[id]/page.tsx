@@ -21,12 +21,13 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
   let earnedBadges = [];
   let allBadges = [];
   let enrollments = null;
+  let teachingCourses = null;
 
   try {
     // Fetch the public profile
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, name, avatar_url, xp, level, role, streak_days, social_links, institute_id, instructor_id, graduation_period, cgpa, sgpa')
+      .select('id, name, avatar_url, xp, level, role, streak_days, social_links, institute_id, instructor_id, graduation_period, cgpa, sgpa, created_at')
       .eq('id', id)
       .maybeSingle();
       
@@ -53,22 +54,34 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
   }
 
   try {
-    // Fetch badges (viewable by everyone)
-    const [badgesRes, userBadgesRes] = await Promise.all([
-      supabase.from('badges').select('*').order('created_at', { ascending: true }),
-      supabase.from('user_badges').select('*, badge:badges(*)').eq('user_id', id)
-    ]);
-    allBadges = badgesRes.data || [];
-    earnedBadges = userBadgesRes.data || [];
+    if (profile.role === 'student') {
+      // Fetch badges (viewable by everyone) for students
+      const [badgesRes, userBadgesRes] = await Promise.all([
+        supabase.from('badges').select('*').order('created_at', { ascending: true }),
+        supabase.from('user_badges').select('*, badge:badges(*)').eq('user_id', id)
+      ]);
+      allBadges = badgesRes.data || [];
+      earnedBadges = userBadgesRes.data || [];
+    }
 
-    // Fetch enrollments securely via admin client (read-only display)
+    // Fetch enrollments or teaching courses securely via admin client (read-only display)
     if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
       const adminSb = await createAdminClient();
-      const { data: enrData } = await adminSb
-        .from('enrollments')
-        .select('*, course:courses(title, thumbnail_url)')
-        .eq('user_id', id);
-      enrollments = enrData;
+      
+      if (profile.role === 'student') {
+        const { data: enrData } = await adminSb
+          .from('enrollments')
+          .select('*, course:courses(title, thumbnail_url)')
+          .eq('user_id', id);
+        enrollments = enrData;
+      } else {
+        const { data: tcData } = await adminSb
+          .from('courses')
+          .select('id, title, thumbnail_url')
+          .eq('instructor_id', id)
+          .eq('is_published', true);
+        teachingCourses = tcData;
+      }
     }
   } catch (err) {
     console.error('Error fetching extra profile data:', err);
@@ -124,21 +137,25 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
             </p>
           )}
           
-          <div className="profile-badges-quick">
-            <LevelBadge level={profile.level} size="lg" />
-            <div className="profile-streak-pill">
-              🔥 {profile.streak_days} Day Streak
+          {profile.role === 'student' && (
+            <div className="profile-badges-quick">
+              <LevelBadge level={profile.level} size="lg" />
+              <div className="profile-streak-pill">
+                🔥 {profile.streak_days} Day Streak
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
       <div className="profile-grid">
-        <div className="profile-col-main">
-          <Card variant="glass" className="profile-section">
-            <h2 className="section-title-sm">Current Progress</h2>
-            <XPBar xp={profile.xp} size="lg" />
-          </Card>
+        {profile.role === 'student' ? (
+          <>
+            <div className="profile-col-main">
+              <Card variant="glass" className="profile-section">
+                <h2 className="section-title-sm">Current Progress</h2>
+                <XPBar xp={profile.xp} size="lg" />
+              </Card>
 
           <Card variant="glass" className="profile-section">
             <h2 className="section-title-sm">Badges ({earnedBadges?.length || 0}/{allBadges?.length || 0})</h2>
@@ -149,7 +166,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
             <h2 className="section-title-sm">Enrolled Courses</h2>
             {enrollments && enrollments.length > 0 ? (
               <div className="enrollments-list">
-                {enrollments.map(enr => (
+                {enrollments.map((enr: any) => (
                   <div key={enr.id} className="enrollment-item">
                     <div className="enrollment-icon">🎓</div>
                     <div className="enrollment-details">
@@ -168,12 +185,12 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
               <p className="text-muted">No courses enrolled yet.</p>
             )}
           </Card>
-        </div>
+            </div>
 
-        <div className="profile-col-side">
-          {(profile.sgpa && Object.keys(profile.sgpa).length > 0) && (
-            <Card variant="glass" className="profile-section">
-              <h2 className="section-title-sm">Semester GPAs</h2>
+            <div className="profile-col-side">
+              {(profile.sgpa && Object.keys(profile.sgpa).length > 0) && (
+                <Card variant="glass" className="profile-section">
+                  <h2 className="section-title-sm">Semester GPAs</h2>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-sm)' }}>
                 {Object.entries(profile.sgpa as Record<string, number>).map(([sem, val]) => (
                   <div key={sem} style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--space-xs) var(--space-sm)', background: 'rgba(0,0,0,0.2)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--glass-border)' }}>
@@ -183,38 +200,116 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
                 ))}
               </div>
             </Card>
-          )}
-          
-          {Object.keys(socialLinks).length > 0 && (
-            <Card variant="glass" className="profile-section">
-              <h2 className="section-title-sm">Connected Profiles</h2>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-                {Object.entries(socialLinks).map(([platform, url]) => (
-                  <a 
-                    key={platform} 
-                    href={url.startsWith('http') ? url : `https://${url}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    style={{
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: 'var(--space-sm)',
-                      padding: 'var(--space-sm)',
-                      background: 'rgba(0,0,0,0.2)',
-                      borderRadius: 'var(--radius-sm)',
-                      textDecoration: 'none',
-                      color: 'var(--text-primary)',
-                      border: '1px solid var(--glass-border)',
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    <span style={{ textTransform: 'capitalize', color: 'var(--neon-cyan)' }}>{platform}</span>
-                  </a>
-                ))}
-              </div>
-            </Card>
-          )}
-        </div>
+              )}
+              
+              {Object.keys(socialLinks).length > 0 && (
+                <Card variant="glass" className="profile-section">
+                  <h2 className="section-title-sm">Connected Profiles</h2>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+                    {Object.entries(socialLinks).map(([platform, url]) => (
+                      <a 
+                        key={platform} 
+                        href={url.startsWith('http') ? url : `https://${url}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 'var(--space-sm)',
+                          padding: 'var(--space-sm)',
+                          background: 'rgba(0,0,0,0.2)',
+                          borderRadius: 'var(--radius-sm)',
+                          textDecoration: 'none',
+                          color: 'var(--text-primary)',
+                          border: '1px solid var(--glass-border)',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <span style={{ textTransform: 'capitalize', color: 'var(--neon-cyan)' }}>{platform}</span>
+                      </a>
+                    ))}
+                  </div>
+                </Card>
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="profile-col-main">
+              <Card variant="glass" className="profile-section">
+                <h2 className="section-title-sm">Professional Info</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+                  {profile.created_at && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-md)', background: 'var(--bg-input)', borderRadius: 'var(--radius-md)' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Joined Institute</span>
+                      <span style={{ fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)' }}>
+                        {new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                      </span>
+                    </div>
+                  )}
+                  {profile.graduation_period && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-md)', background: 'var(--bg-input)', borderRadius: 'var(--radius-md)' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Graduation Batch</span>
+                      <span style={{ fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)' }}>
+                        {profile.graduation_period}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </Card>
+
+              <Card variant="glass" className="profile-section">
+                <h2 className="section-title-sm">Courses Teaching</h2>
+                {teachingCourses && teachingCourses.length > 0 ? (
+                  <div className="enrollments-list">
+                    {teachingCourses.map((tc: any) => (
+                      <div key={tc.id} className="enrollment-item">
+                        <div className="enrollment-icon">🏫</div>
+                        <div className="enrollment-details">
+                          <h4>{tc.title}</h4>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted">No courses currently teaching.</p>
+                )}
+              </Card>
+            </div>
+
+            <div className="profile-col-side">
+              {Object.keys(socialLinks).length > 0 && (
+                <Card variant="glass" className="profile-section">
+                  <h2 className="section-title-sm">Social Presence</h2>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+                    {Object.entries(socialLinks).map(([platform, url]) => (
+                      <a 
+                        key={platform} 
+                        href={url.startsWith('http') ? url : `https://${url}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 'var(--space-sm)',
+                          padding: 'var(--space-sm)',
+                          background: 'rgba(0,0,0,0.2)',
+                          borderRadius: 'var(--radius-sm)',
+                          textDecoration: 'none',
+                          color: 'var(--text-primary)',
+                          border: '1px solid var(--glass-border)',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <span style={{ textTransform: 'capitalize', color: 'var(--neon-cyan)' }}>{platform}</span>
+                      </a>
+                    ))}
+                  </div>
+                </Card>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
