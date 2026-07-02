@@ -43,7 +43,7 @@ export const DEFAULT_BADGES = [
 
 export const NAV_ITEMS = [
   { label: 'Dashboard', href: '/dashboard', icon: 'Dashboard' },
-  { label: 'All Courses', href: '/courses', icon: 'Courses' },
+  { label: 'Courses', href: '/courses', icon: 'Courses' },
   { label: 'Leaderboard', href: '/leaderboard', icon: 'Leaderboard' },
   { label: 'Batch Doubts', href: '/doubts', icon: 'Doubts' },
   { label: 'Notices', href: '/notices', icon: 'Notices' },

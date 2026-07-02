@@ -22,7 +22,8 @@ export default async function AdminStudentsPage() {
         status,
         course_id,
         courses (
-          title
+          title,
+          created_by
         )
       )
     `)
@@ -95,7 +96,7 @@ export default async function AdminStudentsPage() {
             Administration & Leaderboard
           </h2>
         </div>
-        <StudentLeaderboardTable students={allUsers || []} isInstructor={isInstructor} />
+        <StudentLeaderboardTable students={allUsers || []} isInstructor={isInstructor} currentUserId={user?.id} />
       </Card>
     </div>
   );

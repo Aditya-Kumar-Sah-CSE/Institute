@@ -17,6 +17,7 @@ interface EnrollmentDetail {
   course_id: string;
   courses: {
     title: string;
+    created_by?: string;
   } | null;
 }
 
@@ -37,13 +38,15 @@ interface StudentDetail {
 interface StudentLeaderboardTableProps {
   students: StudentDetail[];
   isInstructor: boolean;
+  currentUserId?: string;
 }
 
 import './StudentLeaderboardTable.css';
 
-export default function StudentLeaderboardTable({ students, isInstructor }: StudentLeaderboardTableProps) {
+export default function StudentLeaderboardTable({ students, isInstructor, currentUserId }: StudentLeaderboardTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'student' | 'instructor' | 'admin'>('all');
+  const [enrollmentFilter, setEnrollmentFilter] = useState<'all' | 'enrolled'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 25;
   const [selectedStudent, setSelectedStudent] = useState<StudentDetail | null>(null);
@@ -58,7 +61,13 @@ export default function StudentLeaderboardTable({ students, isInstructor }: Stud
     const matchesSearch = student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           student.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === 'all' || student.role === roleFilter;
-    return matchesSearch && matchesRole;
+    
+    let matchesEnrollment = true;
+    if (enrollmentFilter === 'enrolled' && currentUserId) {
+      matchesEnrollment = student.enrollments?.some(e => e.courses?.created_by === currentUserId) || false;
+    }
+    
+    return matchesSearch && matchesRole && matchesEnrollment;
   });
 
   const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
@@ -67,7 +76,7 @@ export default function StudentLeaderboardTable({ students, isInstructor }: Stud
   // Reset page to 1 when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, roleFilter]);
+  }, [searchTerm, roleFilter, enrollmentFilter]);
 
   const handleDeleteStudentClick = (studentId: string, studentName: string, role: string) => {
     setDeleteTarget({ id: studentId, name: studentName, role });
@@ -197,7 +206,27 @@ export default function StudentLeaderboardTable({ students, isInstructor }: Stud
             icon="🔍"
           />
         </div>
-        <div style={{ display: 'flex', gap: 'var(--space-xs)' }}>
+        <div style={{ display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
+          {/* Enrollment Filter Toggle */}
+          <div style={{ display: 'flex', background: 'var(--bg-input)', padding: '4px', borderRadius: 'var(--radius-sm)', gap: '4px' }}>
+            <button 
+              className={`btn-ghost ${enrollmentFilter === 'all' ? 'active' : ''}`}
+              style={{ padding: '6px 12px', borderRadius: '4px', background: enrollmentFilter === 'all' ? 'var(--bg-secondary)' : 'transparent', color: enrollmentFilter === 'all' ? 'var(--text-primary)' : 'var(--text-secondary)', border: 'none', cursor: 'pointer', fontSize: 'var(--text-sm)' }}
+              onClick={() => setEnrollmentFilter('all')}
+            >
+              All Users
+            </button>
+            <button 
+              className={`btn-ghost ${enrollmentFilter === 'enrolled' ? 'active' : ''}`}
+              style={{ padding: '6px 12px', borderRadius: '4px', background: enrollmentFilter === 'enrolled' ? 'var(--bg-secondary)' : 'transparent', color: enrollmentFilter === 'enrolled' ? 'var(--text-primary)' : 'var(--text-secondary)', border: 'none', cursor: 'pointer', fontSize: 'var(--text-sm)' }}
+              onClick={() => setEnrollmentFilter('enrolled')}
+            >
+              My Enrolled
+            </button>
+          </div>
+
+          {/* Role Filters */}
+          <div style={{ display: 'flex', gap: 'var(--space-xs)' }}>
           <Button 
             variant={roleFilter === 'all' ? 'primary' : 'secondary'} 
             onClick={() => setRoleFilter('all')}
@@ -228,6 +257,7 @@ export default function StudentLeaderboardTable({ students, isInstructor }: Stud
           </Button>
         </div>
       </div>
+    </div>
 
       <div className="table-responsive-wrapper">
         <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
