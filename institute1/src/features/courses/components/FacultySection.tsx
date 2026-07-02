@@ -24,31 +24,26 @@ export default function FacultySection({ faculty }: FacultySectionProps) {
       <h2 style={{ fontSize: 'var(--text-2xl)', marginBottom: 'var(--space-lg)' }}>Meet Your Faculty</h2>
       <div style={{ 
         display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', 
+        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
         gap: 'var(--space-lg)' 
       }}>
         {faculty.map(fac => (
           <Link href={`/users/${fac.id}`} key={fac.id} style={{ textDecoration: 'none' }}>
-            <Card variant="glass" padding="md" className="hover-lift" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 'var(--space-sm)' }}>
-              <div style={{ position: 'relative', width: 80, height: 80, borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--glass-border)' }}>
+            <Card variant="glass" padding="md" className="hover-lift" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', textAlign: 'left', gap: 'var(--space-md)' }}>
+              <div style={{ position: 'relative', width: 64, height: 64, borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--glass-border)', flexShrink: 0 }}>
                 {fac.avatar_url ? (
                   <Image src={fac.avatar_url} alt={fac.name || 'Faculty'} fill style={{ objectFit: 'cover' }} />
                 ) : (
-                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', background: 'var(--bg-elevated)', color: 'var(--neon-cyan)' }}>
-                    <User size={32} opacity={0.5} />
+                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', background: 'var(--bg-elevated)', color: 'var(--neon-cyan)' }}>
+                    <User size={24} opacity={0.5} />
                   </div>
                 )}
               </div>
-              <div>
-                <h3 style={{ fontSize: 'var(--text-lg)', margin: 0, color: 'var(--text-primary)' }}>{fac.name || 'Unknown'}</h3>
-                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', textTransform: 'capitalize', marginTop: '4px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1, minWidth: 0 }}>
+                <h3 style={{ fontSize: 'var(--text-lg)', margin: 0, color: 'var(--text-primary)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fac.name || 'Unknown'}</h3>
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', textTransform: 'capitalize', marginTop: '2px' }}>
                   {fac.role}
                 </p>
-                {fac.institute_id && (
-                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--neon-cyan)', marginTop: '4px' }}>
-                    ID: {fac.institute_id}
-                  </p>
-                )}
               </div>
             </Card>
           </Link>
