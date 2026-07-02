@@ -2,6 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
+import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 
 // Using the service role key to bypass RLS and interact with auth.users
 const supabaseAdmin = createClient(
@@ -28,6 +29,16 @@ export async function deleteStudent(studentId: string) {
 
     if (profile?.role !== 'admin') {
       return { error: 'Unauthorized. Only admins can delete students.' };
+    }
+
+    const { data: targetProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('email')
+      .eq('id', studentId)
+      .single();
+
+    if (targetProfile?.email === SUPER_ADMIN_EMAIL) {
+      return { error: 'Cannot delete the super admin account.' };
     }
 
     // Delete user from Supabase Auth
@@ -160,6 +171,16 @@ export async function makeFaculty(userId: string) {
       return { error: 'Unauthorized. Only admins can assign roles.' };
     }
 
+    const { data: targetProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('email')
+      .eq('id', userId)
+      .single();
+
+    if (targetProfile?.email === SUPER_ADMIN_EMAIL) {
+      return { error: 'Cannot demote the super admin.' };
+    }
+
     // Prevent demoting the super admin (you can add a check for SUPER_ADMIN_EMAIL here if needed, but we'll assume the UI handles it or they can't demote themselves easily without it being tricky. Actually, let's just update the role)
     // Update user role to instructor
     const { error } = await supabaseAdmin
@@ -197,6 +218,16 @@ export async function makeStudent(userId: string) {
 
     if (profile?.role !== 'admin') {
       return { error: 'Unauthorized. Only admins can assign roles.' };
+    }
+
+    const { data: targetProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('email')
+      .eq('id', userId)
+      .single();
+
+    if (targetProfile?.email === SUPER_ADMIN_EMAIL) {
+      return { error: 'Cannot demote the super admin.' };
     }
 
     // Update user role to student

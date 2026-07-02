@@ -8,6 +8,7 @@ import Modal from '@/components/ui/Modal';
 import LevelBadge from '@/components/shared/LevelBadge';
 import { formatDistanceToNow } from 'date-fns';
 import { deleteStudent, deleteEnrollment, makeAdmin, makeFaculty, makeStudent } from '@/features/admin/actions/adminActions';
+import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 import type { LevelName } from '@/types';
 
 interface EnrollmentDetail {
@@ -339,6 +340,8 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
                     <div className="td-content">
                       {isInstructor ? (
                         <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Restricted</span>
+                      ) : student.email === SUPER_ADMIN_EMAIL ? (
+                        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--neon-purple)', fontWeight: 'bold' }}>Super Admin</span>
                       ) : (
                         <Button 
                           variant="danger" 
@@ -517,7 +520,7 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
 
             {/* Modal Actions */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--space-md)' }}>
-              {!isInstructor ? (
+              {!isInstructor && selectedStudent.email !== SUPER_ADMIN_EMAIL ? (
                 <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
                   {selectedStudent.role === 'admin' ? (
                     <Button 
