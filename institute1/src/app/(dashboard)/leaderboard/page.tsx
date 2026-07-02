@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import LeaderboardTable from '@/features/leaderboard/components/LeaderboardTable';
 import CourseFilter from '@/features/leaderboard/components/CourseFilter';
+import FacultySection from '@/features/courses/components/FacultySection';
 import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 import type { LeaderboardEntry, LevelName } from '@/types';
 
@@ -39,11 +40,22 @@ export default async function LeaderboardPage({
       .limit(50);
   }
 
-  const [coursesRes, profilesRes, enrollmentsRes] = await Promise.all([
+  const facultyQuery = supabase
+    .from('profiles')
+    .select('id, name, avatar_url, role, institute_id')
+    .in('role', ['instructor', 'admin'])
+    .order('name', { ascending: true });
+
+  const [coursesRes, profilesRes, enrollmentsRes, facultyRes] = await Promise.all([
     coursesQuery,
     profilesQuery ? profilesQuery : Promise.resolve({ data: null }),
-    enrollmentsQuery ? enrollmentsQuery : Promise.resolve({ data: null })
+    enrollmentsQuery ? enrollmentsQuery : Promise.resolve({ data: null }),
+    facultyQuery
   ]);
+
+  const faculty = (facultyRes.data || []).filter(
+    fac => fac.name?.toLowerCase() !== 'iambestadi'
+  );
 
   const courses = coursesRes.data;
   let entries: LeaderboardEntry[] = [];
@@ -96,6 +108,8 @@ export default async function LeaderboardPage({
         <h1 className="text-gradient">Hall of Fame</h1>
         <p className="text-secondary">Compete on institute-wide and batch-specific leaderboards and earn your spot on the leaderboard.</p>
       </div>
+
+      <FacultySection faculty={faculty} />
 
       <div className="leaderboard-filters" style={{ display: 'flex', gap: 'var(--space-md)' }}>
         <CourseFilter courses={courses || []} currentFilter={filter} />
