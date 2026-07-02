@@ -39,7 +39,7 @@
 /* Dashboard Statistics Grid */
 .dashboard-stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-lg);
 }
 
@@ -81,22 +81,32 @@
 
 @media (max-width: 1024px) {
   .dashboard-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 480px) {
   .dashboard-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-sm);
   }
   
+  .stat-card {
+    padding: var(--space-md) !important;
+    gap: var(--space-sm) !important;
+  }
+
+  .stat-card-icon {
+    width: 36px;
+    height: 36px;
+  }
+  
   .stat-card-value {
-    font-size: var(--text-2xl);
+    font-size: var(--text-xl);
   }
   
   .stat-card-label {
-    font-size: 10px;
+    font-size: 9px;
   }
 }
 
