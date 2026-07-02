@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import CurriculumBuilder from '@/features/admin/components/CurriculumBuilder';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
+import { User } from 'lucide-react';
 
 export default async function CourseBuilderPage({ params }: { params: Promise<{ courseId: string }> }) {
   const { courseId } = await params;
@@ -59,7 +60,7 @@ export default async function CourseBuilderPage({ params }: { params: Promise<{ 
                     />
                   ) : (
                     <div style={{ width: 48, height: 48, borderRadius: '50%', backgroundColor: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 'bold', fontSize: '1.2rem' }}>
-                      {enrollment.profiles?.name?.charAt(0)?.toUpperCase() || 'U'}
+                      <User size={24} opacity={0.5} />
                     </div>
                   )}
                   <div>

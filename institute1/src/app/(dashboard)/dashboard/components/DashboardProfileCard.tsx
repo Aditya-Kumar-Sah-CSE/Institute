@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import LevelBadge from '@/components/shared/LevelBadge';
 import Button from '@/components/ui/Button';
+import { User } from 'lucide-react';
 
 interface DashboardProfileCardProps {
   profile: any;
@@ -41,9 +42,9 @@ export default function DashboardProfileCard({ profile, appData }: DashboardProf
           ) : (
             <div style={{
               width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'var(--bg-elevated)', color: 'var(--neon-cyan)', fontSize: '2.5rem', fontWeight: 'bold'
+              background: 'var(--bg-elevated)', color: 'var(--neon-cyan)'
             }}>
-              {profile.name?.charAt(0).toUpperCase()}
+              <User size={48} opacity={0.5} />
             </div>
           )}
         </div>

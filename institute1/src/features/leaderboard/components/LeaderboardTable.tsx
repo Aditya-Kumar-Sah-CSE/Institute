@@ -3,6 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import LevelBadge from '@/components/shared/LevelBadge';
+import { User } from 'lucide-react';
 import Link from 'next/link';
 import type { LeaderboardEntry } from '@/types';
 import './Leaderboard.css';
@@ -43,7 +44,7 @@ export default function LeaderboardTable({ entries, currentUserId }: Leaderboard
                   {entry.avatar_url ? (
                     <Image src={entry.avatar_url} alt={entry.name || 'User'} width={40} height={40} style={{ objectFit: 'cover' }} />
                   ) : (
-                    <span>{(entry.name || '?').charAt(0)}</span>
+                    <span><User size={24} opacity={0.5} /></span>
                   )}
                 </div>
                 <span className="user-name" style={{ transition: 'color 0.2s', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--neon-cyan)'} onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}>

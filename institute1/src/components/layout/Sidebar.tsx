@@ -12,7 +12,7 @@ import XPBar from '@/components/shared/XPBar';
 import LevelBadge from '@/components/shared/LevelBadge';
 import Modal from '@/components/ui/Modal';
 import type { Profile } from '@/types';
-import { LogOut } from 'lucide-react';
+import { LogOut, User } from 'lucide-react';
 
 interface SidebarProps {
   profile: Profile;
@@ -64,7 +64,7 @@ export default function Sidebar({ profile, isAdmin = false, roleView }: SidebarP
               />
             ) : (
               <span className="sidebar-avatar-fallback">
-                {profile.name?.charAt(0)?.toUpperCase() || '?'}
+                <User size={32} opacity={0.5} />
               </span>
             )}
           </div>

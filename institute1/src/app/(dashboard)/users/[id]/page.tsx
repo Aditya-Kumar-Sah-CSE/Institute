@@ -6,6 +6,7 @@ import BadgeDisplay from '@/components/shared/BadgeDisplay';
 import Card from '@/components/ui/Card';
 import Image from 'next/image';
 import ProfileViewTracker from '@/components/shared/ProfileViewTracker';
+import { User } from 'lucide-react';
 import '../../profile/Profile.css';
 
 export const dynamic = 'force-dynamic';
@@ -87,7 +88,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
             <Image src={profile.avatar_url} alt={profile.name || 'User'} fill style={{ objectFit: 'cover' }} />
           ) : (
             <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem', background: 'var(--glass-bg)', color: 'var(--text-primary)' }}>
-              {(profile.name || '?').charAt(0)}
+              <User size={64} opacity={0.5} />
             </div>
           )}
         </div>

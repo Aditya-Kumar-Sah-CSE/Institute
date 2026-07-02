@@ -5,6 +5,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { formatDistanceToNow } from 'date-fns';
+import { User } from 'lucide-react';
 import { submitPollVote, deleteCoursePoll } from '../actions/polls';
 import { Trash2 } from 'lucide-react';
 
@@ -222,7 +223,7 @@ export default function PollCard({ poll, currentUserId, isFaculty = false }: Pol
                           zIndex: 3 - i
                         }}
                       >
-                        {(v.profiles?.name || 'U').charAt(0).toUpperCase()}
+                        <User size={14} opacity={0.8} />
                       </div>
                     ))}
                   </div>

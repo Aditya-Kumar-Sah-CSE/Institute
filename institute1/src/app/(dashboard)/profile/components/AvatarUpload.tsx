@@ -7,6 +7,7 @@ import { updateAvatarUrl } from '@/features/auth/actions/auth';
 import { useRouter } from 'next/navigation';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
+import { User } from 'lucide-react';
 
 interface AvatarUploadProps {
   userId: string;
@@ -141,7 +142,7 @@ export default function AvatarUpload({ userId, currentAvatarUrl, name }: AvatarU
             </div>
           ) : (
             <span className={`profile-avatar-fallback`} style={{ opacity: isUploading ? 0.5 : 1 }}>
-              {name.charAt(0)}
+              <User size={64} opacity={0.5} />
             </span>
           )}
           

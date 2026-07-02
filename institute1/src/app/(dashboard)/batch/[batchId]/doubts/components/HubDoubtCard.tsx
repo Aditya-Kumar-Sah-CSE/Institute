@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
+import { User } from 'lucide-react';
 
 interface HubDoubtCardProps {
   doubt: any;
@@ -72,7 +73,7 @@ export default function HubDoubtCard({ doubt, batchId }: HubDoubtCardProps) {
               <img src={doubt.author.avatar_url} alt={doubt.author.name} style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }} />
             ) : (
               <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}>
-                {doubt.author?.name?.charAt(0) || '?'}
+                <User size={14} opacity={0.5} />
               </div>
             )}
             <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
+import { User } from 'lucide-react';
 import ReplyForm from './components/ReplyForm';
 import AcceptReplyButton from './components/AcceptReplyButton';
 
@@ -118,7 +119,7 @@ export default async function DoubtDetailsPage({ params }: { params: Promise<{ i
             <img src={doubt.author.avatar_url} alt={doubt.author.name} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
           ) : (
             <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {doubt.author?.name?.charAt(0) || '?'}
+              <User size={16} opacity={0.5} />
             </div>
           )}
           <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -155,7 +156,7 @@ export default async function DoubtDetailsPage({ params }: { params: Promise<{ i
                     <img src={reply.author.avatar_url} alt={reply.author.name} style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }} />
                   ) : (
                     <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--text-xs)' }}>
-                      {reply.author?.name?.charAt(0) || '?'}
+                      <User size={14} opacity={0.5} />
                     </div>
                   )}
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
