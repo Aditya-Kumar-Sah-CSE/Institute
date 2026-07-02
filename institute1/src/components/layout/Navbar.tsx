@@ -86,13 +86,7 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
             </button>
             {isMenuOpen && (
               <div className="mobile-dropdown">
-                 {currentView === 'admin' && profile.email === SUPER_ADMIN_EMAIL && (
-                   <>
-                     <Link href="/admin/instructor-requests" onClick={() => setIsMenuOpen(false)}>
-                       {getIcon('Instructors', { size: 16, className: 'mobile-nav-icon' })} Instructors
-                     </Link>
-                   </>
-                 )}
+                 {/* Removed Instructors link */}
                  {currentView === 'admin' && (
                    <>
                      {profile.email === SUPER_ADMIN_EMAIL && (

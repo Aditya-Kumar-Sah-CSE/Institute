@@ -178,3 +178,41 @@ export async function makeFaculty(userId: string) {
     return { error: errorMsg };
   }
 }
+
+export async function makeStudent(userId: string) {
+  try {
+    const { createClient: createServerClient } = await import('@/lib/supabase/server');
+    const supabaseUser = await createServerClient();
+    const { data: { user } } = await supabaseUser.auth.getUser();
+
+    if (!user) {
+      return { error: 'Not authenticated' };
+    }
+
+    const { data: profile } = await supabaseUser
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role !== 'admin') {
+      return { error: 'Unauthorized. Only admins can assign roles.' };
+    }
+
+    // Update user role to student
+    const { error } = await supabaseAdmin
+      .from('profiles')
+      .update({ role: 'student' })
+      .eq('id', userId);
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    revalidatePath('/admin/students');
+    return { success: true };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Failed to make student';
+    return { error: errorMsg };
+  }
+}

@@ -7,7 +7,7 @@ import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import LevelBadge from '@/components/shared/LevelBadge';
 import { formatDistanceToNow } from 'date-fns';
-import { deleteStudent, deleteEnrollment, makeAdmin, makeFaculty } from '@/features/admin/actions/adminActions';
+import { deleteStudent, deleteEnrollment, makeAdmin, makeFaculty, makeStudent } from '@/features/admin/actions/adminActions';
 import type { LevelName } from '@/types';
 
 interface EnrollmentDetail {
@@ -49,6 +49,7 @@ export default function StudentLeaderboardTable({ students, isInstructor }: Stud
   const [selectedStudent, setSelectedStudent] = useState<StudentDetail | null>(null);
   const [adminPromotionTarget, setAdminPromotionTarget] = useState<{ id: string, name: string } | null>(null);
   const [makeFacultyTarget, setMakeFacultyTarget] = useState<{ id: string, name: string } | null>(null);
+  const [makeStudentTarget, setMakeStudentTarget] = useState<{ id: string, name: string } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string, name: string, role: string } | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -153,6 +154,29 @@ export default function StudentLeaderboardTable({ students, isInstructor }: Stud
         } else {
           setSelectedStudent(null);
           setMakeFacultyTarget(null);
+        }
+      } catch (err) {
+        console.error(err);
+        alert('An unexpected error occurred.');
+      }
+    });
+  };
+
+  const handleMakeStudentClick = (userId: string, userName: string) => {
+    setMakeStudentTarget({ id: userId, name: userName });
+  };
+
+  const confirmMakeStudent = async () => {
+    if (!makeStudentTarget) return;
+    
+    startTransition(async () => {
+      try {
+        const result = await makeStudent(makeStudentTarget.id);
+        if (result.error) {
+          alert(`Error making student: ${result.error}`);
+        } else {
+          setSelectedStudent(null);
+          setMakeStudentTarget(null);
         }
       } catch (err) {
         console.error(err);
@@ -474,23 +498,32 @@ export default function StudentLeaderboardTable({ students, isInstructor }: Stud
                     >
                       Make Faculty
                     </Button>
+                  ) : selectedStudent.role === 'instructor' ? (
+                    <>
+                      <Button 
+                        variant="primary" 
+                        onClick={() => handleMakeStudentClick(selectedStudent.id, selectedStudent.name)}
+                        disabled={isPending}
+                        style={{ background: 'var(--neon-cyan)', borderColor: 'var(--neon-cyan)', color: '#000' }}
+                      >
+                        Make Student
+                      </Button>
+                      <Button 
+                        variant="primary" 
+                        onClick={() => handleMakeAdminClick(selectedStudent.id, selectedStudent.name)}
+                        disabled={isPending}
+                        style={{ background: 'var(--neon-purple)', borderColor: 'var(--neon-purple)', color: '#fff' }}
+                      >
+                        Make Admin
+                      </Button>
+                    </>
                   ) : (
                     <Button 
                       variant="danger" 
                       onClick={() => handleDeleteStudentClick(selectedStudent.id, selectedStudent.name, selectedStudent.role)}
                       disabled={isPending}
                     >
-                      {selectedStudent.role === 'instructor' ? 'Delete Faculty Account' : 'Delete Student Account'}
-                    </Button>
-                  )}
-                  {selectedStudent.role === 'instructor' && (
-                    <Button 
-                      variant="primary" 
-                      onClick={() => handleMakeAdminClick(selectedStudent.id, selectedStudent.name)}
-                      disabled={isPending}
-                      style={{ background: 'var(--neon-purple)', borderColor: 'var(--neon-purple)', color: '#fff' }}
-                    >
-                      Make Admin
+                      Delete Student Account
                     </Button>
                   )}
                 </div>
@@ -577,6 +610,46 @@ export default function StudentLeaderboardTable({ students, isInstructor }: Stud
                 style={{ background: 'var(--neon-gold)', borderColor: 'var(--neon-gold)', color: '#000' }}
               >
                 {isPending ? 'Processing...' : 'Yes, Make Faculty'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Make Student Confirmation Modal */}
+      {makeStudentTarget && (
+        <Modal 
+          isOpen={true} 
+          onClose={() => setMakeStudentTarget(null)} 
+          title="Demote to Student"
+          size="md"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+              <div style={{ fontSize: '2rem', padding: 'var(--space-sm)', background: 'rgba(0, 242, 254, 0.1)', borderRadius: 'var(--radius-md)', color: 'var(--neon-cyan)' }}>
+                🎓
+              </div>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '1.1rem', lineHeight: 1.5 }}>
+                Are you sure you want to change <strong>{makeStudentTarget.name}</strong> from Faculty to a Student? 
+                They will lose access to instructor courses, grading, and dashboards.
+              </p>
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
+              <Button 
+                variant="secondary" 
+                onClick={() => setMakeStudentTarget(null)}
+                disabled={isPending}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="primary" 
+                onClick={confirmMakeStudent}
+                disabled={isPending}
+                style={{ background: 'var(--neon-cyan)', borderColor: 'var(--neon-cyan)', color: '#000' }}
+              >
+                {isPending ? 'Processing...' : 'Yes, Make Student'}
               </Button>
             </div>
           </div>
