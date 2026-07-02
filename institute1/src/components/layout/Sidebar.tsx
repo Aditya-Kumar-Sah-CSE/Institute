@@ -30,7 +30,7 @@ export default function Sidebar({ profile, isAdmin = false, roleView }: SidebarP
 
   // Filter restricted tabs for non-super-admins
   if (currentView === 'admin' && profile.email !== SUPER_ADMIN_EMAIL) {
-    navItems = navItems.filter(item => item.label !== 'Instructors' && item.label !== 'Admins');
+    navItems = navItems.filter(item => item.label !== 'Instructors' && item.label !== 'Admins' && item.label !== 'Feedback');
   }
 
   return (

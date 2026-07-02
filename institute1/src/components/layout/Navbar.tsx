@@ -95,9 +95,11 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
                  )}
                  {currentView === 'admin' && (
                    <>
-                     <Link href="/admin/feedback" onClick={() => setIsMenuOpen(false)}>
-                       {getIcon('Feedback', { size: 16, className: 'mobile-nav-icon' })} Feedback
-                     </Link>
+                     {profile.email === SUPER_ADMIN_EMAIL && (
+                       <Link href="/admin/feedback" onClick={() => setIsMenuOpen(false)}>
+                         {getIcon('Feedback', { size: 16, className: 'mobile-nav-icon' })} Feedback
+                       </Link>
+                     )}
                      <Link href="/admin/notices" onClick={() => setIsMenuOpen(false)}>
                        {getIcon('Notices', { size: 16, className: 'mobile-nav-icon' })} Notices
                      </Link>
@@ -105,8 +107,8 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
                  )}
                  {currentView === 'instructor' && (
                    <>
-                     <Link href="/instructor/feedback" onClick={() => setIsMenuOpen(false)}>
-                       {getIcon('Feedback', { size: 16, className: 'mobile-nav-icon' })} Feedback/Doubts
+                     <Link href="/doubts" onClick={() => setIsMenuOpen(false)}>
+                       {getIcon('Doubts', { size: 16, className: 'mobile-nav-icon' })} Batch Doubts
                      </Link>
                      <Link href="/instructor/notices" onClick={() => setIsMenuOpen(false)}>
                        {getIcon('Notices', { size: 16, className: 'mobile-nav-icon' })} Notices

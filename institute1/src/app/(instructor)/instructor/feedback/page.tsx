@@ -2,8 +2,17 @@ import { getFeedbacks } from '@/features/feedback/actions/feedback';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import type { Feedback } from '@/types';
+import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
+import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 
 export default async function InstructorFeedbackPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || user.email !== SUPER_ADMIN_EMAIL) {
+    redirect('/dashboard');
+  }
+
   const { data: feedbacks, error } = await getFeedbacks();
 
   const getCategoryColor = (category: string) => {

@@ -3,10 +3,19 @@ import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Link from 'next/link';
 import type { Feedback } from '@/types';
+import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
+import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 
 export default async function AdminFeedbackPage(props: {
   searchParams: Promise<{ page?: string }>
 }) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || user.email !== SUPER_ADMIN_EMAIL) {
+    redirect('/dashboard');
+  }
+
   const searchParams = await props.searchParams;
   const page = parseInt(searchParams.page || '1', 10);
 
