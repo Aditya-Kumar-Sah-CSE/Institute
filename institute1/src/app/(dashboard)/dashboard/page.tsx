@@ -10,6 +10,7 @@ import DashboardProfileCard from './components/DashboardProfileCard';
 import { createAdminClient } from '@/lib/supabase/server';
 import PollAlerts from './components/PollAlerts';
 import DashboardPolls from './components/DashboardPolls';
+import ContinueLearning from './components/ContinueLearning';
 import { getDashboardPolls } from '@/features/courses/actions/polls';
 import { Zap, Flame, CheckCircle, Award } from 'lucide-react';
 
@@ -33,8 +34,7 @@ export default async function DashboardPage() {
     .from('enrollments')
     .select('progress, status, course_id, courses(*, profiles(name))')
     .eq('user_id', user.id)
-    .order('enrolled_at', { ascending: false })
-    .limit(3);
+    .order('enrolled_at', { ascending: false });
 
   // Quick stats
   const completedAssignmentsPromise = supabase
@@ -183,33 +183,7 @@ export default async function DashboardPage() {
           <DashboardPolls polls={dashboardPolls} currentUserId={user.id} />
         )}
 
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
-            <h2 style={{ fontSize: 'var(--text-2xl)' }}>Continue Learning</h2>
-            <Link href="/courses" style={{ color: 'var(--neon-cyan)' }}>Browse all courses →</Link>
-          </div>
-          
-          {enrollments && enrollments.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 'var(--space-lg)' }}>
-              {(enrollments as unknown as DashboardEnrollment[])
-                .filter((enr) => enr.courses !== null)
-                .map((enr) => (
-                  <CourseCard key={enr.course_id} course={enr.courses!} progress={enr.progress} status={enr.status} />
-                ))}
-            </div>
-          ) : (
-            <Card variant="glass" style={{ padding: 'var(--space-3xl)', textAlign: 'center' }}>
-              <span style={{ fontSize: '3rem', opacity: 0.5, display: 'block', marginBottom: 'var(--space-md)' }}>🏜️</span>
-              <h3 style={{ marginBottom: 'var(--space-sm)' }}>No courses yet</h3>
-              <p className="text-secondary" style={{ marginBottom: 'var(--space-lg)' }}>
-                Enroll in a course to start your learning journey.
-              </p>
-              <Link href="/courses">
-                <button className="btn btn-primary btn-md">Browse Courses</button>
-              </Link>
-            </Card>
-          )}
-        </div>
+        <ContinueLearning enrollments={enrollments || []} />
 
         <div className="dashboard-bottom-row">
           <div className="dashboard-bottom-col">
