@@ -8,6 +8,7 @@ import type { Notice } from '@/features/notices/components/NoticeBoard';
 import type { Course } from '@/types';
 import DashboardProfileCard from './components/DashboardProfileCard';
 import { createAdminClient } from '@/lib/supabase/server';
+import PollAlerts from './components/PollAlerts';
 
 interface DashboardEnrollment {
   progress: number;
@@ -56,20 +57,31 @@ export default async function DashboardPage() {
     .limit(1)
     .maybeSingle();
 
+  // Fetch unread poll alerts
+  const pollAlertsPromise = supabase
+    .from('notifications')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('is_read', false)
+    .like('message', '%posted a new poll in%')
+    .order('created_at', { ascending: false });
+
   const [
     { data: profile },
     { data: enrollments },
     { count: completedAssignments },
     { count: earnedBadges },
     notices,
-    { data: appData }
+    { data: appData },
+    { data: pollAlerts }
   ] = await Promise.all([
     profilePromise,
     enrollmentsPromise,
     completedAssignmentsPromise,
     earnedBadgesPromise,
     noticesPromise,
-    appDataPromise
+    appDataPromise,
+    pollAlertsPromise
   ]);
 
   return (
@@ -146,6 +158,10 @@ export default async function DashboardPage() {
           </Card>
         </Link>
       </div>
+
+      {pollAlerts && pollAlerts.length > 0 && (
+        <PollAlerts alerts={pollAlerts} />
+      )}
 
       {notices && notices.length > 0 && (
         <div>
