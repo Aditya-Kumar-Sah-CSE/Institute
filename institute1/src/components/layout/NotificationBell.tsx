@@ -136,7 +136,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
                   </div>
                   <div className="notification-content">
                     <p>{n.message}</p>
-                    <span className="notification-time">
+                    <span suppressHydrationWarning className="notification-time">
                       {new Date(n.created_at).toLocaleDateString()} {new Date(n.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                     </span>
                   </div>

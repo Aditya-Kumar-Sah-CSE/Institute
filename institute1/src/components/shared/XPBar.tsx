@@ -20,7 +20,7 @@ export default function XPBar({ xp, showLabel = true, size = 'md', className = '
       {showLabel && (
         <div className="xp-bar-labels">
           <span className="xp-bar-level">{label}</span>
-          <span className="xp-bar-numbers">
+          <span suppressHydrationWarning className="xp-bar-numbers">
             {xp.toLocaleString('en-US')} / {next === 99999 ? 'MAX' : next.toLocaleString('en-US')} XP
           </span>
         </div>
@@ -34,7 +34,7 @@ export default function XPBar({ xp, showLabel = true, size = 'md', className = '
         </div>
       </div>
       {showLabel && next !== 99999 && (
-        <div className="xp-bar-remaining">
+        <div suppressHydrationWarning className="xp-bar-remaining">
           {(next - xp).toLocaleString('en-US')} XP to next level
         </div>
       )}

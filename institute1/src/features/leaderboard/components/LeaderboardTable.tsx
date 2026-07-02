@@ -59,7 +59,7 @@ export default function LeaderboardTable({ entries, currentUserId }: Leaderboard
                 <span className="badge-count-pill">🏆 {entry.badge_count}</span>
               </div>
               
-              <div className="col-xp text-gradient">
+              <div suppressHydrationWarning className="col-xp text-gradient">
                 {entry.xp.toLocaleString('en-US')}
               </div>
             </div>

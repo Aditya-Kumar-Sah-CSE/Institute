@@ -84,7 +84,7 @@ export default async function InstructorRequestsPage() {
                       </p>
                     )}
                   </div>
-                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                  <span suppressHydrationWarning style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
                     Applied {request.submitted_at ? formatDistanceToNow(new Date(request.submitted_at), { addSuffix: true }) : ''}
                   </span>
                 </div>
@@ -131,7 +131,7 @@ export default async function InstructorRequestsPage() {
                       </p>
                     )}
                   </div>
-                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                  <span suppressHydrationWarning style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
                     Approved {request.approved_at ? formatDistanceToNow(new Date(request.approved_at), { addSuffix: true }) : ''}
                   </span>
                 </div>

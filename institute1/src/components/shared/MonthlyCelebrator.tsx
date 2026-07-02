@@ -37,7 +37,7 @@ export default function MonthlyCelebrator() {
     <div className="monthly-celebrator-overlay">
       <div className="confetti-container">
         {[...Array(50)].map((_, i) => (
-          <div key={i} className={`confetti ${i % 2 === 0 ? 'confetti-gold' : 'confetti-silver'}`} style={{ 
+          <div suppressHydrationWarning key={i} className={`confetti ${i % 2 === 0 ? 'confetti-gold' : 'confetti-silver'}`} style={{ 
             left: `${Math.random() * 100}vw`,
             animationDuration: `${Math.random() * 3 + 2}s`,
             animationDelay: `${Math.random() * 2}s`

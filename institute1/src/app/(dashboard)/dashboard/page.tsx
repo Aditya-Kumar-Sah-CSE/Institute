@@ -109,7 +109,7 @@ export default async function DashboardPage() {
                 <Zap size={24} />
               </div>
               <div className="stat-card-content">
-                <div className="stat-card-value" style={{ color: 'var(--neon-cyan)' }}>
+                <div suppressHydrationWarning className="stat-card-value" style={{ color: 'var(--neon-cyan)' }}>
                   {profile?.xp.toLocaleString('en-US')}
                 </div>
                 <div className="text-secondary stat-card-label">Total XP</div>

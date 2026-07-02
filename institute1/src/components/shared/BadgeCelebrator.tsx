@@ -53,7 +53,7 @@ export default function BadgeCelebrator() {
     <div className="badge-celebrator-overlay">
       <div className="falling-stars">
         {[...Array(30)].map((_, i) => (
-          <div key={i} className="star" style={{ 
+          <div suppressHydrationWarning key={i} className="star" style={{ 
             left: `${Math.random() * 100}vw`,
             animationDuration: `${Math.random() * 2 + 2}s`,
             animationDelay: `${Math.random() * 2}s`

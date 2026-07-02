@@ -331,7 +331,7 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
                     </div>
                   </td>
                   <td data-label="Last Active" style={{ padding: 'var(--space-md) var(--space-sm)', color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
-                    <div className="td-content" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div suppressHydrationWarning className="td-content" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {student.last_active_at ? formatDistanceToNow(new Date(student.last_active_at), { addSuffix: true }) : 'Never'}
                     </div>
                   </td>
@@ -411,7 +411,7 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
                     <span style={{ color: 'var(--text-muted)' }}>Institute ID:</span> <span style={{ fontWeight: 'var(--weight-semibold)', color: 'var(--neon-cyan)' }}>{selectedStudent.institute_id}</span>
                   </p>
                 )}
-                <p style={{ margin: 'var(--space-sm) 0 0 0', color: 'var(--text-muted)', fontSize: 'var(--text-xs)' }}>
+                <p suppressHydrationWarning style={{ margin: 'var(--space-sm) 0 0 0', color: 'var(--text-muted)', fontSize: 'var(--text-xs)' }}>
                   Joined: {new Date(selectedStudent.created_at).toLocaleDateString()} | Active: {selectedStudent.last_active_at ? new Date(selectedStudent.last_active_at).toLocaleString() : 'Never'}
                 </p>
               </div>
