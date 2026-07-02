@@ -209,6 +209,13 @@ export async function makeStudent(userId: string) {
       return { error: error.message };
     }
 
+    // Also update any approved instructor applications to rejected
+    await supabaseAdmin
+      .from('instructor_applications')
+      .update({ status: 'rejected' })
+      .eq('user_id', userId)
+      .in('status', ['pending', 'approved']);
+
     revalidatePath('/admin/students');
     return { success: true };
   } catch (err) {

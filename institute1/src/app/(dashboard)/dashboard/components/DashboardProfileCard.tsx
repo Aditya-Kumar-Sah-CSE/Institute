@@ -107,25 +107,25 @@ export default function DashboardProfileCard({ profile, appData }: DashboardProf
 
         {profile.role !== 'admin' && (
           <div style={{ width: '100%' }}>
-            {profile.role !== 'instructor' && (!appData || appData.status === 'rejected') && (
-              <Link href={appData?.status === 'rejected' ? '/apply-instructor?reapply=true' : '/apply-instructor'} style={{ textDecoration: 'none', width: '100%', display: 'block' }}>
+            {profile.role !== 'instructor' && appData?.status !== 'pending' && (
+              <Link href={(appData?.status === 'rejected' || appData?.status === 'approved') ? '/apply-instructor?reapply=true' : '/apply-instructor'} style={{ textDecoration: 'none', width: '100%', display: 'block' }}>
                 <Button variant="secondary" size="sm" style={{ width: '100%' }}>
                   Apply as Instructor or Faculty
                 </Button>
               </Link>
             )}
-            {(appData?.status === 'pending' || appData?.status === 'approved' || profile.role === 'instructor') && (
+            {(appData?.status === 'pending' || profile.role === 'instructor') && (
               <div style={{ 
                 fontSize: 'var(--text-sm)', 
                 fontWeight: 'var(--weight-bold)', 
-                color: (appData?.status === 'pending') ? '#eab308' : '#22c55e',
+                color: (appData?.status === 'pending' && profile.role !== 'instructor') ? '#eab308' : '#22c55e',
                 padding: '0.5rem',
                 borderRadius: 'var(--radius-md)',
-                backgroundColor: (appData?.status === 'pending') ? 'rgba(234, 179, 8, 0.1)' : 'rgba(34, 197, 94, 0.1)',
+                backgroundColor: (appData?.status === 'pending' && profile.role !== 'instructor') ? 'rgba(234, 179, 8, 0.1)' : 'rgba(34, 197, 94, 0.1)',
                 textAlign: 'center',
                 width: '100%'
               }}>
-                Status: {appData?.status === 'pending' ? 'Pending' : 'Approved as faculty'}
+                Status: {(appData?.status === 'pending' && profile.role !== 'instructor') ? 'Pending' : 'Approved as faculty'}
               </div>
             )}
           </div>
