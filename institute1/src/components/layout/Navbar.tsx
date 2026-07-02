@@ -100,6 +100,9 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
                          {getIcon('Feedback', { size: 16, className: 'mobile-nav-icon' })} Feedback
                        </Link>
                      )}
+                     <Link href="/leaderboard" onClick={() => setIsMenuOpen(false)}>
+                       {getIcon('Leaderboard', { size: 16, className: 'mobile-nav-icon' })} Leaderboard
+                     </Link>
                      <Link href="/admin/notices" onClick={() => setIsMenuOpen(false)}>
                        {getIcon('Notices', { size: 16, className: 'mobile-nav-icon' })} Notices
                      </Link>
@@ -109,6 +112,9 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
                    <>
                      <Link href="/doubts" onClick={() => setIsMenuOpen(false)}>
                        {getIcon('Doubts', { size: 16, className: 'mobile-nav-icon' })} Batch Doubts
+                     </Link>
+                     <Link href="/leaderboard" onClick={() => setIsMenuOpen(false)}>
+                       {getIcon('Leaderboard', { size: 16, className: 'mobile-nav-icon' })} Leaderboard
                      </Link>
                      <Link href="/instructor/notices" onClick={() => setIsMenuOpen(false)}>
                        {getIcon('Notices', { size: 16, className: 'mobile-nav-icon' })} Notices
