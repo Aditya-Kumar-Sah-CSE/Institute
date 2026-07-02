@@ -1,4 +1,6 @@
-import React from 'react';
+"use client";
+
+import React, { useState } from 'react';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import Image from 'next/image';
@@ -17,17 +19,38 @@ interface FacultySectionProps {
 }
 
 export default function FacultySection({ faculty }: FacultySectionProps) {
+  const [showAll, setShowAll] = useState(false);
+
   if (!faculty || faculty.length === 0) return null;
 
+  const displayedFaculty = showAll ? faculty : faculty.slice(0, 2);
+
   return (
-    <div style={{ marginTop: 'var(--space-2xl)', marginBottom: 'var(--space-2xl)' }}>
-      <h2 style={{ fontSize: 'var(--text-2xl)', marginBottom: 'var(--space-lg)' }}>Meet Your Faculty</h2>
+    <div style={{ marginBottom: 'var(--space-2xl)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
+        <h2 style={{ fontSize: 'var(--text-2xl)', margin: 0 }}>Meet Your Faculty</h2>
+        {faculty.length > 2 && (
+          <button 
+            onClick={() => setShowAll(!showAll)}
+            style={{ 
+              background: 'none', 
+              border: 'none', 
+              color: 'var(--neon-cyan)', 
+              cursor: 'pointer', 
+              fontSize: 'var(--text-sm)',
+              fontWeight: 'var(--weight-semibold)'
+            }}
+          >
+            {showAll ? 'Show Less' : 'Meet All'}
+          </button>
+        )}
+      </div>
       <div style={{ 
         display: 'grid', 
         gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
         gap: 'var(--space-lg)' 
       }}>
-        {faculty.map(fac => (
+        {displayedFaculty.map(fac => (
           <Link href={`/users/${fac.id}`} key={fac.id} style={{ textDecoration: 'none' }}>
             <Card variant="glass" padding="md" className="hover-lift" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', textAlign: 'left', gap: 'var(--space-md)' }}>
               <div style={{ position: 'relative', width: 64, height: 64, borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--glass-border)', flexShrink: 0 }}>

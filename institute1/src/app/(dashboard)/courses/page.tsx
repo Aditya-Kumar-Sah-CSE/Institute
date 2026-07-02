@@ -48,12 +48,12 @@ export default async function CoursesPage() {
         <p className="text-secondary">Discover new skills and level up your career.</p>
       </div>
 
+      <FacultySection faculty={faculty} />
+
       <CourseCatalog 
         courses={courses || []} 
         enrollments={enrollmentsMap} 
       />
-
-      <FacultySection faculty={faculty} />
     </div>
   );
 }
