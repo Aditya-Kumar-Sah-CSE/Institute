@@ -10,6 +10,7 @@ import AvatarUpload from './components/AvatarUpload';
 import GithubConnect from './components/GithubConnect';
 import SocialLinksConnect from './components/SocialLinksConnect';
 import AcademicInfoConnect from './components/AcademicInfoConnect';
+import ProfessionalInfoConnect from './components/ProfessionalInfoConnect';
 import CrownBanner from './components/CrownBanner';
 import ShareProfileButton from '@/components/shared/ShareProfileButton';
 import { getPastMonthlyRewards } from '@/features/gamification/actions/monthly-rewards';
@@ -206,14 +207,21 @@ export default async function ProfilePage() {
           </Card>
 
           <Card variant="glass" className="profile-section">
-            <h2 className="section-title-sm">{profile.role === 'student' ? 'Academic Details' : 'Professional & Academic Details'}</h2>
+            <h2 className="section-title-sm">{profile.role === 'student' ? 'Academic Details' : 'Professional Background'}</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-              <AcademicInfoConnect 
-                userId={user.id} 
-                initialGraduationPeriod={profile.graduation_period}
-                initialCgpa={profile.cgpa}
-                initialSgpa={profile.sgpa as Record<string, number> | null}
-              />
+              {profile.role === 'student' ? (
+                <AcademicInfoConnect 
+                  userId={user.id} 
+                  initialGraduationPeriod={profile.graduation_period}
+                  initialCgpa={profile.cgpa}
+                  initialSgpa={profile.sgpa as Record<string, number> | null}
+                />
+              ) : (
+                <ProfessionalInfoConnect 
+                  userId={user.id} 
+                  initialProfessionalDetails={profile.professional_details}
+                />
+              )}
             </div>
           </Card>
 

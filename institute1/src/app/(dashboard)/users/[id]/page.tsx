@@ -27,7 +27,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
     // Fetch the public profile
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, name, avatar_url, xp, level, role, streak_days, social_links, institute_id, instructor_id, graduation_period, cgpa, sgpa, created_at')
+      .select('id, name, avatar_url, xp, level, role, streak_days, social_links, institute_id, instructor_id, graduation_period, cgpa, sgpa, created_at, professional_details')
       .eq('id', id)
       .maybeSingle();
       
@@ -91,6 +91,8 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
   const socialLinks = (typeof socialLinksRaw === 'object' && socialLinksRaw !== null) 
     ? (socialLinksRaw as Record<string, string>) 
     : {};
+
+  const profDetails = profile.professional_details || {};
 
   return (
     <div className="profile-page">
@@ -252,6 +254,38 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
                       <span style={{ color: 'var(--text-secondary)' }}>Graduation Batch</span>
                       <span style={{ fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)' }}>
                         {profile.graduation_period}
+                      </span>
+                    </div>
+                  )}
+                  {profDetails.experience_years && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-md)', background: 'var(--bg-input)', borderRadius: 'var(--radius-md)' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Experience</span>
+                      <span style={{ fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)' }}>
+                        {profDetails.experience_years} Years
+                      </span>
+                    </div>
+                  )}
+                  {profDetails.phd_details && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-md)', background: 'var(--bg-input)', borderRadius: 'var(--radius-md)' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>PhD Details</span>
+                      <span style={{ fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)' }}>
+                        {profDetails.phd_details}
+                      </span>
+                    </div>
+                  )}
+                  {profDetails.mtech_details && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-md)', background: 'var(--bg-input)', borderRadius: 'var(--radius-md)' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>MTech Details</span>
+                      <span style={{ fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)' }}>
+                        {profDetails.mtech_details}
+                      </span>
+                    </div>
+                  )}
+                  {profDetails.btech_details && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-md)', background: 'var(--bg-input)', borderRadius: 'var(--radius-md)' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>BTech Details</span>
+                      <span style={{ fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)' }}>
+                        {profDetails.btech_details}
                       </span>
                     </div>
                   )}

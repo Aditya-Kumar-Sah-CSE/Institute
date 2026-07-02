@@ -334,3 +334,35 @@ export async function updateAcademicInfo(
 
   return { success: true };
 }
+
+export async function updateProfessionalInfo(
+  userId: string,
+  data: {
+    experience_years?: number | null;
+    phd_details?: string | null;
+    mtech_details?: string | null;
+    btech_details?: string | null;
+  }
+) {
+  const supabase = await createClient();
+
+  const professional_details = {
+    experience_years: data.experience_years,
+    phd_details: data.phd_details,
+    mtech_details: data.mtech_details,
+    btech_details: data.btech_details,
+  };
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ 
+      professional_details 
+    })
+    .eq('id', userId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return { success: true };
+}
