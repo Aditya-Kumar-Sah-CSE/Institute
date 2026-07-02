@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import CourseCatalog from '@/features/courses/components/CourseCatalog';
+import FacultySection from '@/features/courses/components/FacultySection';
 
 export default async function CoursesPage() {
   const supabase = await createClient();
@@ -16,13 +17,21 @@ export default async function CoursesPage() {
     .select('course_id, progress, status')
     .eq('user_id', user.id) : null;
 
-  const [coursesRes, enrollmentsRes] = await Promise.all([
+  const facultyQuery = supabase
+    .from('profiles')
+    .select('id, name, avatar_url, role, institute_id')
+    .in('role', ['instructor', 'admin'])
+    .order('name', { ascending: true });
+
+  const [coursesRes, enrollmentsRes, facultyRes] = await Promise.all([
     coursesQuery,
-    enrollmentsQuery
+    enrollmentsQuery,
+    facultyQuery
   ]);
 
   const courses = coursesRes.data;
   const enrollments = enrollmentsRes?.data;
+  const faculty = facultyRes.data || [];
 
   // Fetch user's enrollments to pass progress to catalog
   const enrollmentsMap: Record<string, { progress: number; status: string }> = {};
@@ -43,6 +52,8 @@ export default async function CoursesPage() {
         courses={courses || []} 
         enrollments={enrollmentsMap} 
       />
+
+      <FacultySection faculty={faculty} />
     </div>
   );
 }
