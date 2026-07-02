@@ -14,6 +14,7 @@ export default function FeedbackWidget() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [defaultName, setDefaultName] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -36,6 +37,26 @@ export default function FeedbackWidget() {
     setSuccess(false);
 
     const formData = new FormData(e.currentTarget);
+    
+    // Upload image if selected
+    if (selectedFile) {
+      const supabase = createClient();
+      const fileExt = selectedFile.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `${fileName}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('feedback_images')
+        .upload(filePath, selectedFile);
+        
+      if (!uploadError) {
+        const { data: { publicUrl } } = supabase.storage
+          .from('feedback_images')
+          .getPublicUrl(filePath);
+        formData.append('image_url', publicUrl);
+      }
+    }
+
     const result = await submitFeedback(formData);
 
     if (result.error) {
@@ -76,6 +97,9 @@ export default function FeedbackWidget() {
                 <div className="success-icon">✅</div>
                 <h3>Thank You!</h3>
                 <p>Your feedback has been submitted successfully. We appreciate your input!</p>
+                <div style={{ marginTop: '1rem', padding: '0.5rem', background: 'rgba(0, 255, 128, 0.1)', borderRadius: '8px', color: 'var(--neon-lime)', fontWeight: 'bold' }}>
+                  🎉 You earned 5 XP!
+                </div>
               </div>
             ) : (
               <form className="feedback-form" onSubmit={handleSubmit}>
@@ -119,6 +143,18 @@ export default function FeedbackWidget() {
                     required 
                     placeholder="Please describe your issue, bug, or suggestion in detail..."
                   ></textarea>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="screenshot">Screenshot (Optional)</label>
+                  <input 
+                    type="file" 
+                    id="screenshot" 
+                    accept="image/png, image/jpeg, image/webp"
+                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                    style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--glass-border)', color: 'var(--text-primary)' }}
+                  />
+                  {selectedFile && <p style={{ fontSize: '0.8rem', color: 'var(--neon-cyan)', marginTop: '4px' }}>Selected: {selectedFile.name}</p>}
                 </div>
 
                 <Button type="submit" variant="primary" disabled={isSubmitting} style={{ width: '100%' }}>

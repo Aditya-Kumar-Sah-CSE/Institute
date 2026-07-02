@@ -194,6 +194,7 @@ export interface Feedback {
   category: string;
   message: string;
   status: string;
+  image_url?: string | null;
   admin_reply: string | null;
   replied_at: string | null;
   created_at: string;

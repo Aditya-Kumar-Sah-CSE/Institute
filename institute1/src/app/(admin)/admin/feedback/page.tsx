@@ -70,6 +70,15 @@ export default async function AdminFeedbackPage(props: {
               
               <div style={{ background: 'rgba(0,0,0,0.2)', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', margin: 'var(--space-sm) 0' }}>
                 {fb.message}
+                {fb.image_url && (
+                  <div style={{ marginTop: 'var(--space-md)' }}>
+                    <img 
+                      src={fb.image_url} 
+                      alt="Feedback Screenshot" 
+                      style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: '8px', border: '1px solid var(--glass-border)' }} 
+                    />
+                  </div>
+                )}
               </div>
 
               {fb.admin_reply && (

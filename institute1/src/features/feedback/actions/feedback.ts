@@ -2,6 +2,8 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { awardXP } from '@/features/auth/actions/auth';
+import { XP_VALUES } from '@/lib/constants';
 
 // Authorization helper — only admin/instructor can manage feedbacks
 async function requireFeedbackManageRole() {
@@ -53,12 +55,20 @@ export async function submitFeedback(formData: FormData) {
       role,
       category,
       message,
-      status: 'open'
-    });
+      status: 'open',
+      image_url: formData.get('image_url') as string || null
+    })
+    .select('id')
+    .single();
 
   if (error) {
     console.error('Feedback submission error:', error);
     return { error: 'Failed to submit feedback. Please try again.' };
+  }
+
+  // Reward XP
+  if (user) {
+    await awardXP(user.id, XP_VALUES.FEEDBACK_SUBMIT, 'Submitted feedback', 'feedback', error ? '' : 'fb');
   }
 
   return { success: true };

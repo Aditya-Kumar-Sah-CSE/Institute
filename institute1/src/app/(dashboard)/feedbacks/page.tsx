@@ -108,6 +108,15 @@ export default async function StudentFeedbacksPage() {
                 ) : (
                   <p style={{ margin: 0 }}>{fb.message}</p>
                 )}
+                {fb.image_url && (
+                  <div style={{ marginTop: 'var(--space-md)' }}>
+                    <img 
+                      src={fb.image_url} 
+                      alt="Feedback Screenshot" 
+                      style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: '8px', border: '1px solid var(--glass-border)' }} 
+                    />
+                  </div>
+                )}
               </div>
 
               {fb.admin_reply && (
