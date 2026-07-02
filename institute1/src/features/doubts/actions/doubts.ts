@@ -75,21 +75,55 @@ export async function createDoubt(formData: FormData) {
 
   await awardXP(user.id, XP_VALUES.ASK_DOUBT, 'Asked a Doubt', 'doubt', doubt.id);
 
-  // Notify only the Super Admin (iambestadi@gmail.com)
-  const { data: admin } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('email', 'iambestadi@gmail.com')
-    .single();
-    
-  if (admin) {
-    await createNotification(
-      supabase, 
-      admin.id, 
-      'new_doubt', 
-      `New doubt posted by ${profile.name} in batch ${batch}`,
-      `/doubts/${doubt.id}`
-    );
+  // Notify joined students and course faculty
+  const userIdsToNotify = new Set<string>();
+
+  if (courseId) {
+    // It's a course doubt: fetch enrolled students
+    const { data: enrollments } = await supabase
+      .from('enrollments')
+      .select('user_id')
+      .eq('course_id', courseId)
+      .eq('status', 'approved');
+
+    if (enrollments) {
+      enrollments.forEach(e => userIdsToNotify.add(e.user_id));
+    }
+
+    // Fetch course faculty
+    const { data: course } = await supabase
+      .from('courses')
+      .select('created_by')
+      .eq('id', courseId)
+      .single();
+
+    if (course && course.created_by) {
+      userIdsToNotify.add(course.created_by);
+    }
+  } else {
+    // It's a batch doubt: fetch all students in the batch
+    const { data: batchStudents } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('graduation_period', batch)
+      .eq('role', 'student');
+
+    if (batchStudents) {
+      batchStudents.forEach(s => userIdsToNotify.add(s.id));
+    }
+  }
+
+  // Do not notify the person asking the doubt
+  userIdsToNotify.delete(user.id);
+
+  if (userIdsToNotify.size > 0) {
+    const notifications = Array.from(userIdsToNotify).map(uid => ({
+      user_id: uid,
+      type: 'new_doubt',
+      message: `New doubt posted by ${profile.name} in batch ${batch}`,
+      link: `/doubts/${doubt.id}`
+    }));
+    await supabase.from('notifications').insert(notifications);
   }
 
   revalidatePath('/doubts');
