@@ -255,29 +255,29 @@ export async function updateAvatarUrl(userId: string, avatarUrl: string) {
   return { success: true };
 }
 
-export async function updateGithubUsername(userId: string, githubUsername: string) {
+export async function updateLinkedinUrl(userId: string, linkedinUrl: string) {
   const supabase = await createClient();
 
   const { error } = await supabase
     .from('profiles')
-    .update({ github_username: githubUsername })
+    .update({ linkedin_url: linkedinUrl })
     .eq('id', userId);
 
   if (error) {
     return { error: error.message };
   }
   
-  // Award XP for connecting GitHub if it's not null/empty
-  if (githubUsername) {
+  // Award XP for connecting LinkedIn if it's not null/empty
+  if (linkedinUrl) {
     // Check if they already got XP for this to avoid infinite XP farming
     const { count } = await supabase
       .from('xp_log')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .eq('action', 'Connected GitHub Profile');
+      .eq('action', 'Connected LinkedIn Profile');
       
     if (count === 0) {
-      await awardXP(userId, 50, 'Connected GitHub Profile', 'integration', 'github');
+      await awardXP(userId, 50, 'Connected LinkedIn Profile', 'integration', 'linkedin');
     }
   }
 

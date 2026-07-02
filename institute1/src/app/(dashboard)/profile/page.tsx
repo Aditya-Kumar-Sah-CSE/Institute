@@ -7,7 +7,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Link from 'next/link';
 import AvatarUpload from './components/AvatarUpload';
-import GithubConnect from './components/GithubConnect';
+import LinkedinConnect from './components/LinkedinConnect';
 import SocialLinksConnect from './components/SocialLinksConnect';
 import AcademicInfoConnect from './components/AcademicInfoConnect';
 import ProfessionalInfoConnect from './components/ProfessionalInfoConnect';
@@ -201,7 +201,7 @@ export default async function ProfilePage() {
           <Card variant="glass" className="profile-section">
             <h2 className="section-title-sm">Integrations</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-              <GithubConnect userId={user.id} initialUsername={profile.github_username} />
+              <LinkedinConnect userId={user.id} initialUrl={profile.linkedin_url} />
               <SocialLinksConnect userId={user.id} initialLinks={profile.social_links as Record<string, string> | null} />
             </div>
           </Card>

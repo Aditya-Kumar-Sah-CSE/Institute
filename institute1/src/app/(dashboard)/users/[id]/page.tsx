@@ -27,7 +27,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
     // Fetch the public profile
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, name, avatar_url, xp, level, role, streak_days, social_links, institute_id, instructor_id, graduation_period, cgpa, sgpa, created_at, professional_details')
+      .select('id, name, avatar_url, xp, level, role, streak_days, social_links, linkedin_url, institute_id, instructor_id, graduation_period, cgpa, sgpa, created_at, professional_details')
       .eq('id', id)
       .maybeSingle();
       
@@ -89,8 +89,12 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
 
   const socialLinksRaw = profile.social_links;
   const socialLinks = (typeof socialLinksRaw === 'object' && socialLinksRaw !== null) 
-    ? (socialLinksRaw as Record<string, string>) 
+    ? { ...(socialLinksRaw as Record<string, string>) } 
     : {};
+    
+  if (profile.linkedin_url) {
+    socialLinks['linkedin'] = profile.linkedin_url;
+  }
 
   const profDetails = profile.professional_details || {};
 
