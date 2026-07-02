@@ -9,6 +9,7 @@ import type { Course } from '@/types';
 import DashboardProfileCard from './components/DashboardProfileCard';
 import { createAdminClient } from '@/lib/supabase/server';
 import PollAlerts from './components/PollAlerts';
+import { Zap, Flame, CheckCircle, Award } from 'lucide-react';
 
 interface DashboardEnrollment {
   progress: number;
@@ -91,122 +92,124 @@ export default async function DashboardPage() {
       gap: 'var(--space-2xl)' 
     }}>
       {/* Use media queries from global.css or inline for 2 cols on desktop if desired, but we can just use flex for safety */}
-      <style>{`
-        @media (min-width: 992px) {
-          .dashboard-main-grid {
-            display: grid;
-            grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
-            gap: var(--space-2xl);
-            align-items: start;
-          }
-        }
-        @media (max-width: 991px) {
-          .dashboard-main-grid {
-            display: flex;
-            flex-direction: column;
-            gap: var(--space-2xl);
-          }
-        }
-      `}</style>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2xl)' }}>
+        <div className="dashboard-welcome">
+          <h1 className="text-gradient" style={{ fontSize: 'var(--text-4xl)', marginBottom: 'var(--space-xs)' }}>
+            Welcome back, {profile?.name.split(' ')[0]}!
+          </h1>
+          <p className="text-secondary" style={{ fontSize: 'var(--text-lg)' }}>
+            Ready to continue your learning journey?
+          </p>
+        </div>
 
-      <div className="dashboard-main-grid">
-        {/* Left Column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2xl)' }}>
-          <div className="dashboard-welcome">
-            <h1 className="text-gradient" style={{ fontSize: 'var(--text-4xl)', marginBottom: 'var(--space-xs)' }}>
-              Welcome back, {profile?.name.split(' ')[0]}!
-            </h1>
-            <p className="text-secondary" style={{ fontSize: 'var(--text-lg)' }}>
-              Ready to continue your learning journey?
-            </p>
-          </div>
+        <div className="dashboard-stats-grid">
+          <Link href="/profile" style={{ textDecoration: 'none' }}>
+            <Card variant="glass" padding="lg" className="stat-card hover-lift">
+              <div className="stat-card-icon" style={{ background: 'rgba(0, 242, 254, 0.1)', color: 'var(--neon-cyan)' }}>
+                <Zap size={24} />
+              </div>
+              <div className="stat-card-content">
+                <div className="stat-card-value" style={{ color: 'var(--neon-cyan)' }}>
+                  {profile?.xp.toLocaleString('en-US')}
+                </div>
+                <div className="text-secondary stat-card-label">Total XP</div>
+              </div>
+            </Card>
+          </Link>
+          
+          <Link href="/profile" style={{ textDecoration: 'none' }}>
+            <Card variant="glass" padding="lg" className="stat-card hover-lift">
+              <div className="stat-card-icon" style={{ background: 'rgba(255, 0, 255, 0.1)', color: 'var(--neon-magenta)' }}>
+                <Flame size={24} />
+              </div>
+              <div className="stat-card-content">
+                <div className="stat-card-value" style={{ color: 'var(--neon-magenta)' }}>
+                  {profile?.streak_days}
+                </div>
+                <div className="text-secondary stat-card-label">Day Streak</div>
+              </div>
+            </Card>
+          </Link>
 
-      <div className="dashboard-stats-grid">
-        <Link href="/profile" style={{ textDecoration: 'none' }}>
-          <Card variant="glass" padding="lg">
-            <div className="stat-card-value" style={{ color: 'var(--neon-cyan)' }}>
-              {profile?.xp.toLocaleString('en-US')}
-            </div>
-            <div className="text-secondary stat-card-label">Total XP</div>
-          </Card>
-        </Link>
-        
-        <Link href="/profile" style={{ textDecoration: 'none' }}>
-          <Card variant="glass" padding="lg">
-            <div className="stat-card-value" style={{ color: 'var(--neon-magenta)' }}>
-              {profile?.streak_days} 🔥
-            </div>
-            <div className="text-secondary stat-card-label">Day Streak</div>
-          </Card>
-        </Link>
+          <Link href="/profile" style={{ textDecoration: 'none' }}>
+            <Card variant="glass" padding="lg" className="stat-card hover-lift">
+              <div className="stat-card-icon" style={{ background: 'rgba(57, 255, 20, 0.1)', color: 'var(--neon-lime)' }}>
+                <CheckCircle size={24} />
+              </div>
+              <div className="stat-card-content">
+                <div className="stat-card-value" style={{ color: 'var(--neon-lime)' }}>
+                  {completedAssignments || 0}
+                </div>
+                <div className="text-secondary stat-card-label">Tasks Completed</div>
+              </div>
+            </Card>
+          </Link>
 
-        <Link href="/profile" style={{ textDecoration: 'none' }}>
-          <Card variant="glass" padding="lg">
-            <div className="stat-card-value" style={{ color: 'var(--neon-lime)' }}>
-              {completedAssignments || 0}
-            </div>
-            <div className="text-secondary stat-card-label">Tasks Completed</div>
-          </Card>
-        </Link>
+          <Link href="/profile" style={{ textDecoration: 'none' }}>
+            <Card variant="glass" padding="lg" className="stat-card hover-lift">
+              <div className="stat-card-icon" style={{ background: 'rgba(255, 215, 0, 0.1)', color: 'var(--neon-gold)' }}>
+                <Award size={24} />
+              </div>
+              <div className="stat-card-content">
+                <div className="stat-card-value" style={{ color: 'var(--neon-gold)' }}>
+                  {earnedBadges || 0}
+                </div>
+                <div className="text-secondary stat-card-label">Badges Earned</div>
+              </div>
+            </Card>
+          </Link>
+        </div>
 
-        <Link href="/profile" style={{ textDecoration: 'none' }}>
-          <Card variant="glass" padding="lg">
-            <div className="stat-card-value" style={{ color: 'var(--neon-gold)' }}>
-              {earnedBadges || 0}
-            </div>
-            <div className="text-secondary stat-card-label">Badges Earned</div>
-          </Card>
-        </Link>
-      </div>
+        {pollAlerts && pollAlerts.length > 0 && (
+          <PollAlerts alerts={pollAlerts} />
+        )}
 
-      {pollAlerts && pollAlerts.length > 0 && (
-        <PollAlerts alerts={pollAlerts} />
-      )}
-
-      {notices && notices.length > 0 && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
-            <h2 style={{ fontSize: 'var(--text-2xl)' }}>Recent Notices</h2>
-            <Link href="/notices" style={{ color: 'var(--neon-cyan)' }}>View all notices →</Link>
+            <h2 style={{ fontSize: 'var(--text-2xl)' }}>Continue Learning</h2>
+            <Link href="/courses" style={{ color: 'var(--neon-cyan)' }}>Browse all courses →</Link>
           </div>
-          <NoticeBoard notices={notices as Notice[]} />
+          
+          {enrollments && enrollments.length > 0 ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 'var(--space-lg)' }}>
+              {(enrollments as unknown as DashboardEnrollment[])
+                .filter((enr) => enr.courses !== null)
+                .map((enr) => (
+                  <CourseCard key={enr.course_id} course={enr.courses!} progress={enr.progress} status={enr.status} />
+                ))}
+            </div>
+          ) : (
+            <Card variant="glass" style={{ padding: 'var(--space-3xl)', textAlign: 'center' }}>
+              <span style={{ fontSize: '3rem', opacity: 0.5, display: 'block', marginBottom: 'var(--space-md)' }}>🏜️</span>
+              <h3 style={{ marginBottom: 'var(--space-sm)' }}>No courses yet</h3>
+              <p className="text-secondary" style={{ marginBottom: 'var(--space-lg)' }}>
+                Enroll in a course to start your learning journey.
+              </p>
+              <Link href="/courses">
+                <button className="btn btn-primary btn-md">Browse Courses</button>
+              </Link>
+            </Card>
+          )}
         </div>
-      )}
 
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
-          <h2 style={{ fontSize: 'var(--text-2xl)' }}>Continue Learning</h2>
-          <Link href="/courses" style={{ color: 'var(--neon-cyan)' }}>Browse all courses →</Link>
-        </div>
-        
-        {enrollments && enrollments.length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 'var(--space-lg)' }}>
-            {(enrollments as unknown as DashboardEnrollment[])
-              .filter((enr) => enr.courses !== null)
-              .map((enr) => (
-                <CourseCard key={enr.course_id} course={enr.courses!} progress={enr.progress} status={enr.status} />
-              ))}
+        <div className="dashboard-bottom-row">
+          <div className="dashboard-bottom-col">
+            {notices && notices.length > 0 && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
+                  <h2 style={{ fontSize: 'var(--text-2xl)' }}>Recent Notices</h2>
+                  <Link href="/notices" style={{ color: 'var(--neon-cyan)' }}>View all notices →</Link>
+                </div>
+                <NoticeBoard notices={notices as Notice[]} />
+              </div>
+            )}
           </div>
-        ) : (
-          <Card variant="glass" style={{ padding: 'var(--space-3xl)', textAlign: 'center' }}>
-            <span style={{ fontSize: '3rem', opacity: 0.5, display: 'block', marginBottom: 'var(--space-md)' }}>🏜️</span>
-            <h3 style={{ marginBottom: 'var(--space-sm)' }}>No courses yet</h3>
-            <p className="text-secondary" style={{ marginBottom: 'var(--space-lg)' }}>
-              Enroll in a course to start your learning journey.
-            </p>
-            <Link href="/courses">
-              <button className="btn btn-primary btn-md">Browse Courses</button>
-            </Link>
-          </Card>
-        )}
+          
+          <div className="dashboard-bottom-col">
+            <DashboardProfileCard profile={profile} appData={appData} />
+          </div>
         </div>
       </div>
-
-      {/* Right Column */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2xl)' }}>
-        <DashboardProfileCard profile={profile} appData={appData} />
-      </div>
-    </div>
   </div>
   );
 }

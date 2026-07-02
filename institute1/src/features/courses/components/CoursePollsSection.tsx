@@ -1,4 +1,5 @@
 import React from 'react';
+import { createClient } from '@/lib/supabase/server';
 import { getCoursePolls } from '../actions/polls';
 import PollCard, { Poll } from './PollCard';
 import CreatePollButton from './CreatePollButton';
@@ -11,6 +12,10 @@ interface CoursePollsSectionProps {
 
 export default async function CoursePollsSection({ courseId, currentUserId, isEnrolledOrFaculty }: CoursePollsSectionProps) {
   if (!isEnrolledOrFaculty) return null; // Only enrolled students/faculty can see polls
+
+  const supabase = await createClient();
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', currentUserId).single();
+  const isFaculty = profile?.role === 'admin' || profile?.role === 'instructor';
 
   const { data: polls, error } = await getCoursePolls(courseId);
 
@@ -41,7 +46,7 @@ export default async function CoursePollsSection({ courseId, currentUserId, isEn
       </div>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {polls.map((poll: any) => (
-          <PollCard key={poll.id} poll={poll as Poll} currentUserId={currentUserId} />
+          <PollCard key={poll.id} poll={poll as Poll} currentUserId={currentUserId} isFaculty={isFaculty} />
         ))}
       </div>
     </div>

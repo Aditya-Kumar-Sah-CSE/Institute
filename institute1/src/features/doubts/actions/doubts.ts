@@ -339,3 +339,31 @@ export async function toggleDoubtLike(doubtId: string) {
   revalidatePath(`/doubts/${doubtId}`);
   return { success: true };
 }
+
+export async function deleteDoubt(doubtId: string, courseId?: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: 'Not authenticated' };
+  }
+
+  try {
+    const { error } = await supabase
+      .from('doubts')
+      .delete()
+      .eq('id', doubtId);
+
+    if (error) throw error;
+
+    if (courseId) {
+      revalidatePath(`/courses/${courseId}`);
+    }
+    revalidatePath('/doubts');
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error deleting doubt:', error);
+    return { error: error.message || 'Failed to delete doubt' };
+  }
+}
+

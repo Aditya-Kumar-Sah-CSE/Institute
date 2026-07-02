@@ -29,6 +29,7 @@ export async function addCourse(formData: FormData) {
   const description = formData.get('description') as string;
   const difficulty = formData.get('difficulty') as string;
   const is_published = formData.get('is_published') === 'true';
+  const enrollment_restriction = (formData.get('enrollment_restriction') as string) || 'any';
 
   if (!title) return { error: 'Title is required' };
 
@@ -37,6 +38,7 @@ export async function addCourse(formData: FormData) {
     description,
     difficulty,
     is_published,
+    enrollment_restriction,
     created_by: user?.id,
   });
 
@@ -58,12 +60,14 @@ export async function updateCourse(id: string, formData: FormData) {
   const description = formData.get('description') as string;
   const difficulty = formData.get('difficulty') as string;
   const is_published = formData.get('is_published') === 'true';
+  const enrollment_restriction = (formData.get('enrollment_restriction') as string) || 'any';
 
   const { error } = await supabase.from('courses').update({
     title,
     description,
     difficulty,
     is_published,
+    enrollment_restriction,
   }).eq('id', id);
 
   if (error) return { error: error.message };

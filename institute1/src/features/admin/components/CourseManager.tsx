@@ -187,6 +187,16 @@ export default function CourseManager({ courses, currentUserId }: CourseManagerP
                 ]}
               />
 
+              <Select 
+                name="enrollment_restriction" 
+                label="Enrollment Restriction" 
+                defaultValue={editingCourse?.enrollment_restriction || 'any'}
+                options={[
+                  { value: 'any', label: 'Anyone can enroll (Auto-approve)' },
+                  { value: 'approval', label: 'Requires Approval' }
+                ]}
+              />
+
               <div style={{ display: 'flex', gap: 'var(--space-md)', justifyContent: 'flex-end', marginTop: 'var(--space-md)' }}>
                 <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
                 <Button type="submit" variant="primary" isLoading={isLoading}>Save Course</Button>

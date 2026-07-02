@@ -3,8 +3,10 @@
 import React, { useState, useTransition } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import { formatDistanceToNow } from 'date-fns';
-import { submitPollVote } from '../actions/polls';
+import { submitPollVote, deleteCoursePoll } from '../actions/polls';
+import { Trash2 } from 'lucide-react';
 
 interface PollOption {
   id: string;
@@ -31,10 +33,13 @@ export interface Poll {
 interface PollCardProps {
   poll: Poll;
   currentUserId: string;
+  isFaculty?: boolean;
 }
 
-export default function PollCard({ poll, currentUserId }: PollCardProps) {
+export default function PollCard({ poll, currentUserId, isFaculty = false }: PollCardProps) {
   const [isPending, startTransition] = useTransition();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<Set<string>>(() => {
     const initial = new Set<string>();
     poll.options.forEach(opt => {
@@ -91,6 +96,24 @@ export default function PollCard({ poll, currentUserId }: PollCardProps) {
     return false;
   };
 
+  const handleDeleteClick = () => {
+    setShowConfirm(true);
+  };
+
+  const confirmDelete = () => {
+    setIsDeleting(true);
+    startTransition(async () => {
+      const result = await deleteCoursePoll(poll.id, poll.course_id);
+      if (result.error) {
+        alert(result.error);
+        setIsDeleting(false);
+      }
+      setShowConfirm(false);
+    });
+  };
+
+  const canDelete = isFaculty || poll.created_by === currentUserId;
+
   return (
     <Card variant="glass" padding="lg" style={{ marginBottom: 'var(--space-md)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-md)' }}>
@@ -101,6 +124,16 @@ export default function PollCard({ poll, currentUserId }: PollCardProps) {
           </p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+          {canDelete && (
+            <button 
+              onClick={handleDeleteClick} 
+              disabled={isDeleting || isPending}
+              style={{ background: 'transparent', border: 'none', color: 'var(--neon-pink)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+              title="Delete Poll"
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
           {poll.is_multiple_choice && (
             <span style={{ fontSize: 'var(--text-xs)', padding: '2px 8px', background: 'var(--bg-input)', borderRadius: '12px', color: 'var(--text-secondary)' }}>
               Multiple Choice
@@ -210,6 +243,17 @@ export default function PollCard({ poll, currentUserId }: PollCardProps) {
           </Button>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={showConfirm}
+        onClose={() => setShowConfirm(false)}
+        onConfirm={confirmDelete}
+        title="Delete Poll"
+        message="Are you sure you want to delete this poll? This cannot be undone."
+        confirmText="Delete"
+        isDestructive={true}
+        isPending={isDeleting}
+      />
     </Card>
   );
 }

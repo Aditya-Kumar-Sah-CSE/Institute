@@ -11,6 +11,11 @@ export default async function CourseDoubtsSection({ courseId, isEnrolledOrFacult
   if (!isEnrolledOrFaculty) return null;
 
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const currentUserId = user?.id || '';
+  
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', currentUserId).single();
+  const isFaculty = profile?.role === 'admin' || profile?.role === 'instructor';
 
   const { data: doubts, error } = await supabase
     .from('doubts')
@@ -29,6 +34,11 @@ export default async function CourseDoubtsSection({ courseId, isEnrolledOrFacult
   }
 
   return (
-    <CourseDoubtsClient courseId={courseId} initialDoubts={doubts || []} />
+    <CourseDoubtsClient 
+      courseId={courseId} 
+      initialDoubts={doubts || []} 
+      currentUserId={currentUserId}
+      isFaculty={isFaculty}
+    />
   );
 }

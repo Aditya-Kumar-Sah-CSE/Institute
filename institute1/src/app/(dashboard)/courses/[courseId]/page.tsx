@@ -6,6 +6,7 @@ import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import { getDifficultyColor } from '@/lib/utils';
 import { enrollInCourseFormAction } from '@/features/courses/actions/enroll';
+import LeaveCourseButton from '@/features/courses/components/LeaveCourseButton';
 import CoursePollsSection from '@/features/courses/components/CoursePollsSection';
 import CourseDoubtsSection from '@/features/courses/components/CourseDoubtsSection';
 import './CourseDetail.css';
@@ -89,7 +90,10 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
               </div>
             ) : (
               <div className="enrolled-status">
-                <span className="status-text">✓ Enrolled</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
+                  <span className="status-text">✓ Enrolled</span>
+                  <LeaveCourseButton courseId={courseId} />
+                </div>
                 <div className="progress-bar-container">
                   <div className="progress-fill" style={{ width: `${Math.round((enrollment.progress || 0) * 100)}%` }} />
                 </div>
@@ -111,16 +115,22 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
         )}
       </div>
 
-      <CoursePollsSection 
-        courseId={courseId} 
-        currentUserId={user.id} 
-        isEnrolledOrFaculty={course.created_by === user.id || !!(enrollment && enrollment.status === 'approved')} 
-      />
+      <div className="course-interactions-row">
+        <div className="course-interaction-col">
+          <CoursePollsSection 
+            courseId={courseId} 
+            currentUserId={user.id} 
+            isEnrolledOrFaculty={course.created_by === user.id || !!(enrollment && enrollment.status === 'approved')} 
+          />
+        </div>
 
-      <CourseDoubtsSection 
-        courseId={courseId} 
-        isEnrolledOrFaculty={course.created_by === user.id || !!(enrollment && enrollment.status === 'approved')} 
-      />
+        <div className="course-interaction-col">
+          <CourseDoubtsSection 
+            courseId={courseId} 
+            isEnrolledOrFaculty={course.created_by === user.id || !!(enrollment && enrollment.status === 'approved')} 
+          />
+        </div>
+      </div>
 
       <div className="lessons-section">
         <h2 className="section-title">Course Curriculum</h2>

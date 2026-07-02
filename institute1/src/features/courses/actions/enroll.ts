@@ -54,3 +54,28 @@ export async function enrollInCourse(courseId: string) {
 export async function enrollInCourseFormAction(courseId: string): Promise<void> {
   await enrollInCourse(courseId);
 }
+
+export async function leaveCourse(courseId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { error: 'Not logged in' };
+
+  const { error } = await supabase
+    .from('enrollments')
+    .delete()
+    .eq('user_id', user.id)
+    .eq('course_id', courseId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath('/courses');
+  revalidatePath(`/courses/${courseId}`);
+  revalidatePath('/dashboard');
+  revalidatePath('/', 'layout');
+  return { success: true, message: 'Left the course successfully.' };
+}
+
+export async function leaveCourseFormAction(courseId: string): Promise<void> {
+  await leaveCourse(courseId);
+}

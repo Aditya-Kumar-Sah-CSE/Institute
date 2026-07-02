@@ -150,3 +150,27 @@ export async function getCoursePolls(courseId: string) {
 
   return { data, error: null };
 }
+
+export async function deleteCoursePoll(pollId: string, courseId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: 'Not authenticated' };
+  }
+
+  try {
+    const { error } = await supabase
+      .from('course_polls')
+      .delete()
+      .eq('id', pollId);
+
+    if (error) throw error;
+
+    revalidatePath(`/courses/${courseId}`);
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error deleting poll:', error);
+    return { error: error.message || 'Failed to delete poll' };
+  }
+}

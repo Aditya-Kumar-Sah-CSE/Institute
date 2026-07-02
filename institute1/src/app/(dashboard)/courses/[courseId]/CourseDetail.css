@@ -183,3 +183,21 @@
   color: var(--text-muted);
   font-size: var(--text-xl);
 }
+
+.course-interactions-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+}
+
+@media (min-width: 992px) {
+  .course-interactions-row {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+  
+  .course-interaction-col {
+    flex: 1;
+    min-width: 0;
+  }
+}
