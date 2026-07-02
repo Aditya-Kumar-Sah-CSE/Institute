@@ -43,6 +43,19 @@ export default async function BatchDoubtsPage({
     );
   }
 
+  // Get enrolled courses for student
+  let enrolledCourseIds: string[] = [];
+  if (!isFaculty) {
+    const { data: enrollments } = await supabase
+      .from('enrollments')
+      .select('course_id')
+      .eq('user_id', user.id);
+
+    if (enrollments) {
+      enrolledCourseIds = enrollments.map(e => e.course_id);
+    }
+  }
+
   // Base query
   let doubtsQuery = supabase
     .from('doubts')
@@ -55,6 +68,16 @@ export default async function BatchDoubtsPage({
       replies:doubt_replies(count)
     `)
     .eq('batch', decodedBatchId);
+
+  // Filter by enrolled courses for students
+  if (!isFaculty) {
+    if (enrolledCourseIds.length > 0) {
+      const idsString = enrolledCourseIds.join(',');
+      doubtsQuery = doubtsQuery.or(`course_id.in.(${idsString}),course_id.is.null`);
+    } else {
+      doubtsQuery = doubtsQuery.is('course_id', null);
+    }
+  }
 
   // Apply filters
   if (filter === 'unanswered') {
