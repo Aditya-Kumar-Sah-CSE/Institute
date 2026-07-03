@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import CourseCard from './CourseCard';
 import Input from '@/components/ui/Input';
 import type { Course } from '@/types';
@@ -16,22 +16,24 @@ export default function CourseCatalog({ courses, enrollments = {} }: CourseCatal
   const [enrollmentFilter, setEnrollmentFilter] = useState<'all' | 'enrolled'>('enrolled');
   const [semesterFilter, setSemesterFilter] = useState('all'); // 'all', 'sem 1', 'sem 2', etc.
 
-  const filteredCourses = courses.filter(course => {
-    const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          (course.description?.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    if (!matchesSearch) return false;
+  const filteredCourses = useMemo(() => {
+    return courses.filter(course => {
+      const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            (course.description?.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      if (!matchesSearch) return false;
 
-    if (enrollmentFilter === 'enrolled' && enrollments[course.id] === undefined) {
-      return false;
-    }
-    
-    if (semesterFilter !== 'all' && course.difficulty !== semesterFilter) {
-      return false;
-    }
-    
-    return true;
-  });
+      if (enrollmentFilter === 'enrolled' && enrollments[course.id] === undefined) {
+        return false;
+      }
+      
+      if (semesterFilter !== 'all' && course.difficulty !== semesterFilter) {
+        return false;
+      }
+      
+      return true;
+    });
+  }, [courses, searchTerm, enrollmentFilter, semesterFilter, enrollments]);
 
   return (
     <div className="course-catalog">

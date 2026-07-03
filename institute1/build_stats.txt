@@ -1,0 +1,67 @@
+﻿
+> skillarena@0.1.0 build
+> next build
+
+Γû▓ Next.js 16.2.9 (Turbopack)
+- Environments: .env.local
+- Experiments (use with caution):
+  ┬╖ serverActions
+
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 9.4s
+  Running TypeScript ...
+  Finished TypeScript in 9.1s ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/26) ...
+  Generating static pages using 7 workers (6/26) 
+  Generating static pages using 7 workers (12/26) 
+  Generating static pages using 7 workers (19/26) 
+Γ£ô Generating static pages using 7 workers (26/26) in 477ms
+  Finalizing page optimization ...
+
+Route (app)
+Γöî ╞Æ /
+Γö£ Γùï /_not-found
+Γö£ ╞Æ /admin
+Γö£ ╞Æ /admin/courses
+Γö£ ╞Æ /admin/courses/[courseId]/builder
+Γö£ ╞Æ /admin/enrollments
+Γö£ ╞Æ /admin/feedback
+Γö£ ╞Æ /admin/instructor-requests
+Γö£ ╞Æ /admin/notices
+Γö£ ╞Æ /admin/students
+Γö£ ╞Æ /admin/submissions
+Γö£ ╞Æ /api/auth/callback
+Γö£ ╞Æ /apply-instructor
+Γö£ ╞Æ /batch/[batchId]/doubts
+Γö£ ╞Æ /courses
+Γö£ ╞Æ /courses/[courseId]
+Γö£ ╞Æ /courses/[courseId]/[lessonId]
+Γö£ ╞Æ /courses/[courseId]/[lessonId]/doubt/[doubtId]
+Γö£ ╞Æ /dashboard
+Γö£ ╞Æ /doubts
+Γö£ ╞Æ /doubts/[id]
+Γö£ ╞Æ /feedbacks
+Γö£ Γùï /forgot-password
+Γö£ ╞Æ /instructor
+Γö£ ╞Æ /instructor/courses
+Γö£ ╞Æ /instructor/courses/[courseId]/builder
+Γö£ ╞Æ /instructor/enrollments
+Γö£ ╞Æ /instructor/feedback
+Γö£ ╞Æ /instructor/notices
+Γö£ ╞Æ /instructor/students
+Γö£ ╞Æ /instructor/submissions
+Γö£ ╞Æ /leaderboard
+Γö£ Γùï /login
+Γö£ ╞Æ /notices
+Γö£ ╞Æ /profile
+Γö£ Γùï /reset-password
+Γö£ Γùï /signup
+Γöö ╞Æ /users/[id]
+
+
+╞Æ Proxy (Middleware)
+
+Γùï  (Static)   prerendered as static content
+╞Æ  (Dynamic)  server-rendered on demand
+

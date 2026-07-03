@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { usePathname } from 'next/navigation';
+import { BookOpen } from 'lucide-react';
 import Input, { TextArea, Select } from '@/components/ui/Input';
 import { addCourse, updateCourse, deleteCourse, restoreCourse } from '@/features/admin/actions/course-actions';
 import type { Course } from '@/types';
@@ -133,8 +134,8 @@ export default function CourseManager({ courses, currentUserId, userRole }: Cour
                 <Button variant="success" size="sm" onClick={() => handleRestore(course.id)} style={{ width: '100%' }}>Restore Course</Button>
               ) : (
                 <>
-                  <a href={`${basePath}/courses/${course.id}/builder`} className="btn btn-primary btn-build-curriculum" style={{ padding: '4px 12px', fontSize: '14px' }}>
-                    🏗️ Build Curriculum
+                  <a href={`${basePath}/courses/${course.id}/builder`} className="btn btn-primary btn-build-curriculum" style={{ padding: '10px 16px', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', minHeight: '40px' }}>
+                    <BookOpen size={16} /> Start Teaching
                   </a>
                   <Button variant="secondary" size="sm" onClick={() => openEdit(course)} className="btn-edit">Edit</Button>
                   <Button variant="danger" size="sm" onClick={() => handleDelete(course.id)} className="btn-delete">Delete</Button>

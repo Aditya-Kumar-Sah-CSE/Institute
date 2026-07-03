@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, getUser } from '@/lib/supabase/server';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import CourseCard from '@/features/courses/components/CourseCard';
@@ -23,29 +23,29 @@ interface DashboardEnrollment {
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUser();
 
   if (!user) return null;
 
-  const profilePromise = supabase.from('profiles').select('*').eq('id', user.id).single();
+  const profilePromise = supabase.from('profiles').select('id, name, xp, streak_days, last_active_at, role').eq('id', user.id).single();
   
   // Fetch enrollments with course details
   const enrollmentsPromise = supabase
     .from('enrollments')
-    .select('progress, status, course_id, courses(*, profiles(name))')
+    .select('progress, status, course_id, courses(id, title, thumbnail_url, description, difficulty, xp_reward, profiles(name))')
     .eq('user_id', user.id)
     .order('enrolled_at', { ascending: false });
 
   // Quick stats
   const completedAssignmentsPromise = supabase
     .from('submissions')
-    .select('*', { count: 'exact', head: true })
+    .select('id', { count: 'exact', head: true })
     .eq('user_id', user.id)
     .eq('status', 'approved');
 
   const earnedBadgesPromise = supabase
     .from('user_badges')
-    .select('*', { count: 'exact', head: true })
+    .select('id', { count: 'exact', head: true })
     .eq('user_id', user.id);
 
   // Fetch recent 2 notices
@@ -69,14 +69,11 @@ export default async function DashboardPage() {
     .like('message', '%posted a new poll in%')
     .order('created_at', { ascending: false });
 
-  const allEnrollmentsPromise = supabase
-    .from('enrollments')
-    .select('course_id')
-    .eq('user_id', user.id)
-    .eq('status', 'approved');
-
-  const dashboardPollsPromise = allEnrollmentsPromise.then(res => {
-    const ids = res.data?.map(e => e.course_id) || [];
+  // We can fetch polls in parallel by just letting it run, though it needs course_ids.
+  // Wait, if it needs course_ids, it depends on enrollments.
+  // Let's use the enrollmentsPromise instead of making a duplicate query.
+  const dashboardPollsPromise = enrollmentsPromise.then(res => {
+    const ids = res.data?.filter(e => e.status === 'approved').map(e => e.course_id) || [];
     return getDashboardPolls(ids);
   });
 

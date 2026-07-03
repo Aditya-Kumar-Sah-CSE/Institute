@@ -1,6 +1,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { cache } from 'react';
 
-export async function getOrCreateProfile(user: any) {
+export const getOrCreateProfile = cache(async (user: any) => {
   const supabase = await createClient();
   
   let { data: profile } = await supabase
@@ -32,4 +33,4 @@ export async function getOrCreateProfile(user: any) {
   }
   
   return profile;
-}
+});

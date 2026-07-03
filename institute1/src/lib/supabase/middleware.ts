@@ -56,32 +56,17 @@ export async function updateSession(request: NextRequest) {
     return redirectWithCookies(url);
   }
 
-  // We only need to fetch the profile for role-based redirects or protecting admin/instructor routes
-  const needsProfileCheck = 
-    pathname === '/login' || 
-    pathname === '/signup' || 
-    pathname === '/' ||
-    pathname.startsWith('/admin') || 
-    pathname.startsWith('/instructor') ||
-    pathname.startsWith('/apply-');
-
-  let profile = null;
-  if (user && needsProfileCheck) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('role, status')
-      .eq('id', user.id)
-      .single();
-    profile = data;
-  }
+  // We rely on the JWT metadata for the role in middleware to avoid a massive database bottleneck.
+  // The actual database role will be verified by the Server Components.
+  const userRole = user?.user_metadata?.role || 'student';
 
   // If authenticated and trying to access login/signup/landing
   if (user && (pathname === '/login' || pathname === '/signup' || pathname === '/')) {
     const url = request.nextUrl.clone();
-    // Redirect based on role and status
-    if (profile?.role === 'instructor') {
+    // Redirect based on role
+    if (userRole === 'instructor') {
       url.pathname = '/instructor';
-    } else if (profile?.role === 'admin') {
+    } else if (userRole === 'admin') {
       url.pathname = '/admin';
     } else {
       url.pathname = '/dashboard';
@@ -89,12 +74,9 @@ export async function updateSession(request: NextRequest) {
     return redirectWithCookies(url);
   }
 
-  // (Instructor pending status check removed: pending applicants are now just 'student' role)
-  // (Admin status check removed since there's no admin application process)
-
   // Admin route protection
   if (user && pathname.startsWith('/admin')) {
-    if (!profile || profile.role !== 'admin') {
+    if (userRole !== 'admin') {
       const url = request.nextUrl.clone();
       url.pathname = '/dashboard';
       return redirectWithCookies(url);
@@ -103,7 +85,7 @@ export async function updateSession(request: NextRequest) {
 
   // Instructor route protection
   if (user && pathname.startsWith('/instructor') && pathname !== '/apply-instructor') {
-    if (!profile || (profile.role !== 'instructor' && profile.role !== 'admin')) {
+    if (userRole !== 'instructor' && userRole !== 'admin') {
       const url = request.nextUrl.clone();
       url.pathname = '/dashboard';
       return redirectWithCookies(url);

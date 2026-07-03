@@ -41,11 +41,27 @@ self.addEventListener('fetch', (event) => {
   }
 
   const url = new URL(event.request.url);
-  // Only cache specific static assets
-  if (url.pathname.endsWith('.png') || url.pathname.endsWith('manifest.json')) {
+  const isMedia = url.pathname.includes('/storage/v1/object/public/');
+  const isStatic = url.pathname.endsWith('.png') || url.pathname.endsWith('.jpg') || url.pathname.endsWith('.webp') || url.pathname.endsWith('manifest.json');
+
+  if (isMedia || isStatic) {
     event.respondWith(
       caches.match(event.request).then((response) => {
-        return response || fetch(event.request);
+        if (response) {
+          return response; // Return from cache immediately
+        }
+        // Fetch from network and put in cache for future
+        return fetch(event.request).then((networkResponse) => {
+          // Check if we received a valid response
+          if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic' && networkResponse.type !== 'cors') {
+            return networkResponse;
+          }
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+          return networkResponse;
+        });
       })
     );
   } else {

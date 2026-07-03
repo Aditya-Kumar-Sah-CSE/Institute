@@ -3,6 +3,8 @@
 import React, { useMemo } from 'react';
 import DOMPurify from 'dompurify';
 import { getYouTubeEmbedUrl } from '@/lib/utils';
+import LazyVideoPlayer from '@/components/ui/LazyVideoPlayer';
+import LazyPdfViewer from '@/components/ui/LazyPdfViewer';
 import type { Lesson } from '@/types';
 import './LessonView.css';
 
@@ -52,15 +54,7 @@ export default function LessonView({ lesson, isCompleted, onComplete }: LessonVi
       </div>
 
       {embedUrl ? (
-        <div className="lesson-video-container">
-          <iframe
-            className="lesson-video-frame"
-            src={embedUrl}
-            title={lesson.title}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        </div>
+        <LazyVideoPlayer embedUrl={embedUrl} title={lesson.title} />
       ) : lesson.youtube_url ? (
         <div className="lesson-attachment-section" style={{ marginTop: 'var(--space-md)', marginBottom: 'var(--space-md)' }}>
           <div className="glass-card" style={{ padding: 'var(--space-md)', display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
@@ -92,24 +86,7 @@ export default function LessonView({ lesson, isCompleted, onComplete }: LessonVi
       )}
 
       {lesson.pdf_url && (
-        <div className="lesson-attachment-section" style={{ marginTop: 'var(--space-lg)' }}>
-          <h3 className="section-title">Attachments</h3>
-          <div className="glass-card" style={{ padding: 'var(--space-md)', display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
-            <span style={{ fontSize: '24px' }}>📄</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 'bold' }}>Lesson Materials</div>
-              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>PDF or Image notes</div>
-            </div>
-            <a 
-              href={lesson.pdf_url} 
-              target="_blank" 
-              rel="noreferrer" 
-              className="btn btn-secondary btn-sm"
-            >
-              View Attachment
-            </a>
-          </div>
-        </div>
+        <LazyPdfViewer url={lesson.pdf_url} title={`${lesson.title} Materials`} />
       )}
 
       {!isCompleted && onComplete && (

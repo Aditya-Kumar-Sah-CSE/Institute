@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input, { TextArea } from '@/components/ui/Input';
+import LazyAttachment from '@/components/ui/LazyAttachment';
 import type { Assignment, Submission } from '@/types';
 import './AssignmentCard.css';
 
@@ -126,20 +127,7 @@ export default function AssignmentCard({ assignment, submission, communitySubmis
                       }
                       return urls.map((url, idx) => {
                         const isPdf = url.split('?')[0].toLowerCase().endsWith('.pdf');
-                        return (
-                          <div key={idx} style={{ position: 'relative', width: '100%', height: '150px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
-                            {isPdf ? (
-                              <a href={url} target="_blank" rel="noreferrer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', color: 'var(--text-primary)', textDecoration: 'none' }}>
-                                <span style={{ fontSize: '3rem' }}>📄</span>
-                                <span style={{ fontSize: 'var(--text-xs)', marginTop: 'var(--space-xs)' }}>View PDF</span>
-                              </a>
-                            ) : (
-                              <a href={url} target="_blank" rel="noreferrer" style={{ display: 'block', width: '100%', height: '100%' }}>
-                                <Image src={url} alt={`Submission ${idx + 1}`} fill style={{ objectFit: 'contain' }} />
-                              </a>
-                            )}
-                          </div>
-                        );
+                        return <LazyAttachment key={idx} url={url} type={isPdf ? 'pdf' : 'image'} title={`Submission ${idx + 1}`} />;
                       });
                     })()}
                   </div>
