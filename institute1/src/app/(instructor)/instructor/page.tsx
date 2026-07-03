@@ -1,5 +1,5 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { createClient as createRawClient } from '@supabase/supabase-js';
+
 import Card from '@/components/ui/Card';
 import Link from 'next/link';
 import { BookOpen, FileText } from 'lucide-react';
@@ -41,17 +41,19 @@ export default async function InstructorDashboardPage() {
       const assignmentIds = assignments?.map(a => a.id) || [];
       
       if (assignmentIds.length > 0) {
-        // Create a raw client without cookies to genuinely bypass RLS
-        const serviceRoleClient = createRawClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
-        const { count } = await serviceRoleClient
-          .from('submissions')
-          .select('*', { count: 'exact', head: true })
-          .in('assignment_id', assignmentIds)
-          .eq('status', 'pending');
-        pendingReviewsCount = count || 0;
+        try {
+          // Use admin client to genuinely bypass RLS
+          const serviceRoleClient = await createAdminClient();
+          const { count } = await serviceRoleClient
+            .from('submissions')
+            .select('*', { count: 'exact', head: true })
+            .in('assignment_id', assignmentIds)
+            .eq('status', 'pending');
+          pendingReviewsCount = count || 0;
+        } catch (error) {
+          console.error("Failed to fetch pending reviews:", error);
+          pendingReviewsCount = 0;
+        }
       }
     }
   }

@@ -43,7 +43,7 @@ export default async function InstructorLayout({
   }
 
   // Redirect pending or rejected instructors to dashboard
-  if (profile.role === 'instructor' && profile.status !== 'active') {
+  if (profile.role === 'instructor' && (profile.status === 'pending' || profile.status === 'rejected')) {
     redirect('/apply-instructor');
   }
 
