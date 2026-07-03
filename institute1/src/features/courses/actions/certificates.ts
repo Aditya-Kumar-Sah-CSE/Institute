@@ -66,24 +66,57 @@ export async function completeCourseAndIssueCertificates(courseId: string) {
       .select('id, assignments(id, xp_reward)')
       .eq('course_id', courseId);
 
+    const lessonIds = lessons?.map(l => l.id) || [];
     const assignmentIds = lessons?.flatMap(l => l.assignments?.map(a => a.id) || []) || [];
     const totalTasks = assignmentIds.length;
 
-    // Get submissions for all these students in this course
+    // Get all course-specific doubts and replies
+    const { data: doubts } = await supabase
+      .from('doubts')
+      .select('id, doubt_replies(id)')
+      .eq('course_id', courseId);
+
+    const doubtIds = doubts?.map(d => d.id) || [];
+    const replyIds = doubts?.flatMap(d => d.doubt_replies?.map(r => r.id) || []) || [];
+
+    const validSourceIds = [...lessonIds, ...assignmentIds, ...doubtIds, ...replyIds];
+    const enrolledUserIds = enrollments.map(e => e.user_id);
+
+    // Fetch xp logs in chunks to avoid PostgREST URL length limits
+    let allXpLogs: { user_id: string, xp_amount: number }[] = [];
+    if (validSourceIds.length > 0 && enrolledUserIds.length > 0) {
+      const chunkSize = 150;
+      for (let i = 0; i < validSourceIds.length; i += chunkSize) {
+        const chunk = validSourceIds.slice(i, i + chunkSize);
+        const { data: chunkLogs } = await supabase
+          .from('xp_log')
+          .select('user_id, xp_amount')
+          .in('user_id', enrolledUserIds)
+          .in('source_id', chunk);
+        
+        if (chunkLogs) {
+          allXpLogs = [...allXpLogs, ...chunkLogs];
+        }
+      }
+    }
+
+    // Get submissions for all these students in this course (to count tasks completed)
     const { data: submissions } = await supabase
       .from('submissions')
       .select('user_id, assignment_id, score, status')
       .in('assignment_id', assignmentIds)
-      .in('user_id', enrollments.map(e => e.user_id));
+      .in('user_id', enrolledUserIds);
 
     // Map student performance
     const studentPerformance = enrollments.map(enrollment => {
       const studentId = enrollment.user_id;
-      // Approved submissions
+      // Approved submissions for task count
       const studentSubs = submissions?.filter(s => s.user_id === studentId && s.status === 'approved') || [];
       const tasksCompleted = studentSubs.length;
-      // Calculate XP specifically from these assignments
-      const xpEarned = studentSubs.reduce((sum, sub) => sum + (sub.score || 0), 0);
+      
+      // Calculate XP from all course-related activities
+      const studentXpLogs = allXpLogs.filter(log => log.user_id === studentId);
+      const xpEarned = studentXpLogs.reduce((sum, log) => sum + (log.xp_amount || 0), 0);
       
       return {
         user_id: studentId,
