@@ -230,3 +230,11 @@
     min-width: 0;
   }
 }
+
+.dummy-certificate-preview {
+  transition: background-color 0.2s ease;
+}
+
+.dummy-certificate-preview:hover {
+  background-color: rgba(255, 215, 0, 0.1) !important;
+}

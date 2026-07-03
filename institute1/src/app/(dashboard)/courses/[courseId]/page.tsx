@@ -83,9 +83,8 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
 
           <Link href="/certificates/dummy" style={{ textDecoration: 'none', display: 'inline-block', marginBottom: 'var(--space-xl)' }}>
             <div 
+              className="dummy-certificate-preview"
               style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 16px', background: 'rgba(255, 215, 0, 0.05)', border: '1px solid rgba(255, 215, 0, 0.3)', borderRadius: 'var(--radius-md)', transition: 'all 0.2s', cursor: 'pointer' }}
-              onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 215, 0, 0.1)'}
-              onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255, 215, 0, 0.05)'}
             >
               <div style={{ fontSize: '1.5rem', filter: 'drop-shadow(0 0 5px rgba(255,215,0,0.5))' }}>📜</div>
               <div>
