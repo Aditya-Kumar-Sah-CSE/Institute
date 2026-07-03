@@ -36,7 +36,7 @@ interface CurriculumBuilderProps {
 }
 
 export default function CurriculumBuilder({ course, lessons, submissions = [] }: CurriculumBuilderProps) {
-  const [modalType, setModalType] = useState<'lesson' | 'assignment' | null>(null);
+  const [modalType, setModalType] = useState<'lesson' | 'assignment' | 'submission' | null>(null);
   const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
   const [parentLessonId, setParentLessonId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
