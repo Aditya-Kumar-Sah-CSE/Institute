@@ -201,7 +201,21 @@ export default async function ProfilePage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-muted">No certificates earned yet.</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+                  <p className="text-muted">No certificates earned yet.</p>
+                  <Link href="/certificates/dummy" style={{ textDecoration: 'none' }}>
+                    <div className="enrollment-item" style={{ cursor: 'pointer', border: '1px dashed rgba(255, 215, 0, 0.3)', opacity: 0.7 }}>
+                      <div className="enrollment-icon" style={{ background: 'transparent', border: '1px solid var(--text-muted)' }}>🔒</div>
+                      <div className="enrollment-details">
+                        <h4 style={{ color: 'var(--text-secondary)' }}>Certificate of Completion</h4>
+                        <p className="text-muted" style={{ fontSize: '12px', marginTop: '2px' }}>Complete a course to unlock</p>
+                        <div style={{ fontSize: '11px', marginTop: '6px', color: 'var(--neon-cyan)' }}>
+                          Preview Template →
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                </div>
               )}
             </Card>
           </div>
