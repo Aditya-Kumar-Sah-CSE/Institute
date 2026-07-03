@@ -37,7 +37,7 @@ interface CurriculumBuilderProps {
 }
 
 export default function CurriculumBuilder({ course, lessons, submissions = [] }: CurriculumBuilderProps) {
-  const [modalType, setModalType] = useState<'lesson' | 'assignment' | 'submission' | null>(null);
+  const [modalType, setModalType] = useState<'lesson' | 'assignment' | 'submission' | 'complete_course' | null>(null);
   const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
   const [parentLessonId, setParentLessonId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -134,15 +134,15 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
     }
   };
 
-  const handleCompleteCourse = async () => {
-    if (!confirm('Are you sure you want to mark this course as completed? This will lock the curriculum and generate certificates for all enrolled students. This action cannot be undone.')) return;
+  const executeCompleteCourse = async () => {
     setIsCompletingCourse(true);
     const res = await completeCourseAndIssueCertificates(course.id);
     setIsCompletingCourse(false);
     if (res.error) {
       alert(res.error);
     } else {
-      alert('Course completed successfully! Certificates have been generated.');
+      setModalType(null);
+      // Optional: you can show a success toast here if you have one, or just let it update visually
     }
   };
 
@@ -155,7 +155,7 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
         </div>
         <div className="curriculum-actions">
           {!course.is_completed && (
-            <Button variant="ghost" onClick={handleCompleteCourse} isLoading={isCompletingCourse} style={{ color: 'var(--neon-gold)', border: '1px solid var(--neon-gold)' }}>Complete & Issue Certificates</Button>
+            <Button variant="ghost" onClick={() => setModalType('complete_course')} isLoading={isCompletingCourse} style={{ color: 'var(--neon-gold)', border: '1px solid var(--neon-gold)' }}>Issue Certificate</Button>
           )}
           {!course.is_completed && <Button variant="primary" onClick={() => openLessonModal()}>+ Add Day (Lesson)</Button>}
         </div>
@@ -446,6 +446,19 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                     </div>
                   )}
                 </form>
+              </div>
+            )}
+
+            {modalType === 'complete_course' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+                <h3 style={{ margin: 0, fontSize: 'var(--text-lg)', color: 'var(--neon-gold)' }}>Issue Certificate</h3>
+                <p className="text-secondary" style={{ fontSize: '0.95rem', lineHeight: 1.5 }}>
+                  Are you sure you want to mark this course as completed? This will lock the curriculum and generate certificates for all enrolled students. <strong>This action cannot be undone.</strong>
+                </p>
+                <div style={{ display: 'flex', gap: 'var(--space-sm)', justifyContent: 'flex-end', marginTop: 'var(--space-md)' }}>
+                  <Button type="button" variant="ghost" onClick={closeModal} disabled={isCompletingCourse}>Cancel</Button>
+                  <Button type="button" variant="primary" onClick={executeCompleteCourse} isLoading={isCompletingCourse} style={{ background: 'var(--neon-gold)', color: '#000', borderColor: 'var(--neon-gold)' }}>Yes, Issue Certificates</Button>
+                </div>
               </div>
             )}
           </Card>
