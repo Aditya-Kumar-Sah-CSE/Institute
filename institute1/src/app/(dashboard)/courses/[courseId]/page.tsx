@@ -124,8 +124,8 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
               )}
             </div>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)', alignItems: 'flex-end' }}>
-              {enrolledStudents && enrolledStudents.length > 0 && (
+            <div className="course-meta-actions" style={{ flex: 1, minWidth: '250px' }}>
+              {enrolledStudents && enrolledStudents.length > 0 ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div style={{ display: 'flex', marginLeft: '8px' }}>
                     {enrolledStudents.slice(0, 3).map((student: any, i: number) => (
@@ -147,6 +147,8 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
                     </a>
                   )}
                 </div>
+              ) : (
+                <div />
               )}
               <ShareCourseButton courseId={courseId} />
             </div>

@@ -64,6 +64,25 @@
   margin-top: var(--space-md);
 }
 
+.course-meta-actions {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  margin-top: var(--space-md);
+}
+
+@media (min-width: 768px) {
+  .course-meta-actions {
+    flex-direction: column;
+    align-items: flex-end;
+    width: auto;
+    margin-top: 0;
+  }
+}
+
 .enrolled-status {
   background: var(--bg-input);
   padding: var(--space-md) var(--space-lg);
