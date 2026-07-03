@@ -48,6 +48,7 @@ export interface Course {
   lesson_count: number;
   is_published: boolean;
   is_deleted: boolean;
+  is_completed?: boolean;
   enrollment_restriction?: 'any' | 'approval';
   created_by: string | null;
   created_at: string;

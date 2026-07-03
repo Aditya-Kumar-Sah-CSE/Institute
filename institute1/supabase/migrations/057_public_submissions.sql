@@ -1,5 +1,6 @@
 -- Update submissions RLS to allow enrolled students and faculty to view all submissions for their courses
 DROP POLICY IF EXISTS "Users view own submissions" ON submissions;
+DROP POLICY IF EXISTS "Users view submissions" ON submissions;
 
 CREATE POLICY "Users view submissions" ON submissions FOR SELECT
 USING (

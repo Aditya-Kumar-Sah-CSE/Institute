@@ -32,9 +32,13 @@ export default async function ProfilePage() {
   
   let enrollments = null;
   let teachingCourses = null;
+  let certificates = null;
   if (profile.role === 'student') {
     const { data } = await supabase.from('enrollments').select('*, course:courses(title, thumbnail_url)').eq('user_id', user.id);
     enrollments = data;
+    
+    const { data: certData } = await supabase.from('certificates').select('*, courses(title)').eq('user_id', user.id).order('issued_at', { ascending: false });
+    certificates = certData;
   } else {
     const { data } = await adminSb.from('courses').select('id, title').eq('instructor_id', user.id);
     teachingCourses = data;
@@ -172,6 +176,32 @@ export default async function ProfilePage() {
                 </div>
               ) : (
                 <p className="text-muted">No courses enrolled yet.</p>
+              )}
+            </Card>
+
+            <Card variant="glass" className="profile-section">
+              <h2 className="section-title-sm">My Certificates</h2>
+              {certificates && certificates.length > 0 ? (
+                <div className="enrollments-list">
+                  {certificates.map((cert: any) => (
+                    <Link key={cert.id} href={`/certificates/${cert.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                      <div className="enrollment-item" style={{ cursor: 'pointer', border: '1px solid rgba(255, 215, 0, 0.3)', background: 'rgba(255, 215, 0, 0.05)' }}>
+                        <div className="enrollment-icon" style={{ background: 'var(--neon-gold)', color: '#000' }}>📜</div>
+                        <div className="enrollment-details">
+                          <h4 style={{ color: 'var(--neon-gold)' }}>Certificate of Completion</h4>
+                          <p className="text-secondary" style={{ fontSize: '12px', marginTop: '2px' }}>{cert.courses?.title}</p>
+                          <div style={{ display: 'flex', gap: '8px', fontSize: '11px', marginTop: '6px', color: 'var(--text-muted)' }}>
+                            <span>Rank: #{cert.course_rank}</span>
+                            <span>•</span>
+                            <span>{new Date(cert.issued_at).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted">No certificates earned yet.</p>
               )}
             </Card>
           </div>

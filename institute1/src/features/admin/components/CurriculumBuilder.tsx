@@ -10,6 +10,7 @@ import {
   addAssignment, updateAssignment, deleteAssignment 
 } from '@/features/admin/actions/builder-actions';
 import { reviewSubmissionAction } from '@/features/admin/actions/submissions';
+import { completeCourseAndIssueCertificates } from '@/features/courses/actions/certificates';
 import type { Course, Lesson, Assignment, Badge } from '@/types';
 import './CurriculumBuilder.css';
 
@@ -42,6 +43,7 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
   const [isLoading, setIsLoading] = useState(false);
   const [reviewingSubmission, setReviewingSubmission] = useState<any>(null);
   const [expandedAssignments, setExpandedAssignments] = useState<Record<string, boolean>>({});
+  const [isCompletingCourse, setIsCompletingCourse] = useState(false);
 
   // Group lessons by date
   const groupedLessons = lessons.reduce((acc, lesson) => {
@@ -132,15 +134,30 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
     }
   };
 
+  const handleCompleteCourse = async () => {
+    if (!confirm('Are you sure you want to mark this course as completed? This will lock the curriculum and generate certificates for all enrolled students. This action cannot be undone.')) return;
+    setIsCompletingCourse(true);
+    const res = await completeCourseAndIssueCertificates(course.id);
+    setIsCompletingCourse(false);
+    if (res.error) {
+      alert(res.error);
+    } else {
+      alert('Course completed successfully! Certificates have been generated.');
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
       <div className="curriculum-header">
         <div className="curriculum-title-container">
-          <h2 style={{ fontSize: 'var(--text-xl)' }}>{course.title} - Curriculum</h2>
+          <h2 style={{ fontSize: 'var(--text-xl)' }}>{course.title} - Curriculum {course.is_completed && <span style={{ padding: '2px 8px', background: 'var(--neon-gold)', color: '#000', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold', marginLeft: '10px' }}>COMPLETED</span>}</h2>
           <p className="text-secondary">Lessons are automatically grouped by date.</p>
         </div>
         <div className="curriculum-actions">
-          <Button variant="primary" onClick={() => openLessonModal()}>+ Add Day (Lesson)</Button>
+          {!course.is_completed && (
+            <Button variant="ghost" onClick={handleCompleteCourse} isLoading={isCompletingCourse} style={{ color: 'var(--neon-gold)', border: '1px solid var(--neon-gold)' }}>Complete & Issue Certificates</Button>
+          )}
+          {!course.is_completed && <Button variant="primary" onClick={() => openLessonModal()}>+ Add Day (Lesson)</Button>}
         </div>
       </div>
 
@@ -166,18 +183,20 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                       {lesson.youtube_url && <span>🔗 Link Attached</span>}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 'var(--space-xs)' }}>
-                    <Button variant="ghost" size="sm" onClick={() => openLessonModal(lesson as any)}>Edit</Button>
-                    <Button variant="danger" size="sm" onClick={async () => {
-                      if (confirm('Delete this lesson?')) await deleteLesson(lesson.id, course.id);
-                    }}>Delete</Button>
-                  </div>
+                  {!course.is_completed && (
+                    <div style={{ display: 'flex', gap: 'var(--space-xs)' }}>
+                      <Button variant="ghost" size="sm" onClick={() => openLessonModal(lesson as any)}>Edit</Button>
+                      <Button variant="danger" size="sm" onClick={async () => {
+                        if (confirm('Delete this lesson?')) await deleteLesson(lesson.id, course.id);
+                      }}>Delete</Button>
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ background: 'rgba(0,0,0,0.2)', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
                     <h4 style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>Assignments</h4>
-                    <Button variant="secondary" size="sm" onClick={() => openAssignmentModal(lesson.id)}>+ Add Task</Button>
+                    {!course.is_completed && <Button variant="secondary" size="sm" onClick={() => openAssignmentModal(lesson.id)}>+ Add Task</Button>}
                   </div>
                   
                   {lesson.assignments.length === 0 ? (
@@ -202,12 +221,14 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                                   {assign.requires_deploy && <span style={{ color: 'var(--neon-magenta)' }}>| 🚀 Requires Deploy</span>}
                                 </div>
                               </div>
-                              <div style={{ display: 'flex', gap: 'var(--space-xs)' }}>
-                                <Button variant="ghost" size="sm" onClick={() => openAssignmentModal(lesson.id, assign)}>Edit</Button>
-                                <Button variant="ghost" size="sm" onClick={async () => {
-                                  if (confirm('Delete this task?')) await deleteAssignment(assign.id, course.id);
-                                }} style={{ color: 'var(--neon-red)' }}>Del</Button>
-                              </div>
+                              {!course.is_completed && (
+                                <div style={{ display: 'flex', gap: 'var(--space-xs)' }}>
+                                  <Button variant="ghost" size="sm" onClick={() => openAssignmentModal(lesson.id, assign)}>Edit</Button>
+                                  <Button variant="ghost" size="sm" onClick={async () => {
+                                    if (confirm('Delete this task?')) await deleteAssignment(assign.id, course.id);
+                                  }} style={{ color: 'var(--neon-red)' }}>Del</Button>
+                                </div>
+                              )}
                             </div>
                             
                             {/* Student Submissions Section */}
