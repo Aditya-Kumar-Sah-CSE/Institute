@@ -241,3 +241,88 @@
     aspect-ratio: auto;
   }
 }
+
+/* Responsive Styles for Mobile and Tablet */
+@media (max-width: 768px) {
+  .certificate-inner {
+    padding: 1.5rem;
+    margin: 1rem;
+  }
+  .cert-title {
+    font-size: 1.8rem;
+  }
+  .cert-name {
+    font-size: 2.5rem;
+  }
+  .cert-course {
+    font-size: 1.2rem;
+  }
+  .cert-stats {
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .cert-stat-box {
+    padding: 0.5rem 1rem;
+  }
+  .cert-corner {
+    width: 100px;
+    height: 100px;
+  }
+  .cert-corner.top-right {
+    top: -50px;
+    right: -50px;
+  }
+  .cert-corner.bottom-left {
+    bottom: -50px;
+    left: -50px;
+  }
+}
+
+@media (max-width: 480px) {
+  .certificate-page {
+    padding: 1rem;
+  }
+  .certificate-inner {
+    padding: 1rem;
+    margin: 0.5rem;
+  }
+  .cert-title {
+    font-size: 1.4rem;
+  }
+  .cert-name {
+    font-size: 1.8rem;
+  }
+  .cert-course {
+    font-size: 0.9rem;
+  }
+  .cert-badge {
+    width: 80px;
+    height: 80px;
+  }
+  .cert-badge::after {
+    font-size: 2.5rem;
+  }
+  .cert-badge-text {
+    font-size: 0.45rem;
+  }
+  .cert-stat-value {
+    font-size: 1.2rem;
+  }
+  .cert-stat-label {
+    font-size: 0.55rem;
+  }
+  .cert-footer {
+    padding: 0 0.5rem;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+  }
+  .cert-signature {
+    width: 150px;
+  }
+  .cert-signature-line {
+    height: 25px;
+    font-size: 0.9rem;
+  }
+}
+
