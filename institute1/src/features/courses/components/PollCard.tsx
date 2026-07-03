@@ -4,6 +4,7 @@ import React, { useState, useTransition } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import Modal from '@/components/ui/Modal';
 import { formatDistanceToNow } from 'date-fns';
 import { User } from 'lucide-react';
 import { submitPollVote, deleteCoursePoll } from '../actions/polls';
@@ -41,6 +42,7 @@ export default function PollCard({ poll, currentUserId, isFaculty = false }: Pol
   const [isPending, startTransition] = useTransition();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showVotesModal, setShowVotesModal] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<Set<string>>(() => {
     const initial = new Set<string>();
     poll.options.forEach(opt => {
@@ -251,9 +253,19 @@ export default function PollCard({ poll, currentUserId, isFaculty = false }: Pol
       </div>
 
       <div style={{ marginTop: 'auto', paddingTop: 'var(--space-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
-          Total votes: {totalVotes}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
+            Total votes: {totalVotes}
+          </span>
+          {totalVotes > 0 && (
+            <button
+              onClick={() => setShowVotesModal(true)}
+              style={{ background: 'transparent', border: 'none', color: 'var(--neon-cyan)', cursor: 'pointer', fontSize: 'var(--text-sm)', padding: 0 }}
+            >
+              View votes
+            </button>
+          )}
+        </div>
         {hasChanged() && !isExpired && (
           <Button variant="primary" size="sm" onClick={handleVoteSubmit} disabled={isPending}>
             {isPending ? 'Submitting...' : 'Submit Vote'}
@@ -271,6 +283,37 @@ export default function PollCard({ poll, currentUserId, isFaculty = false }: Pol
         isDestructive={true}
         isPending={isDeleting}
       />
+
+      <Modal isOpen={showVotesModal} onClose={() => setShowVotesModal(false)} title="Poll Votes" size="md">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)', maxHeight: '60vh', overflowY: 'auto', paddingRight: '8px' }}>
+          {poll.options.map(option => (
+            <div key={option.id} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: '4px' }}>
+                <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{option.option_text}</span>
+                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
+                  {option.votes.length} vote{option.votes.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+              {option.votes.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingLeft: 'var(--space-xs)' }}>
+                  {option.votes.map(vote => (
+                    <div key={vote.id} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--neon-cyan)', fontSize: '12px', border: '1px solid var(--glass-border)' }}>
+                        {(vote.profiles?.name || 'U').charAt(0).toUpperCase()}
+                      </div>
+                      <span style={{ fontSize: 'var(--text-sm)', color: vote.user_id === currentUserId ? 'var(--neon-cyan)' : 'var(--text-secondary)', fontWeight: vote.user_id === currentUserId ? 500 : 400 }}>
+                        {vote.user_id === currentUserId ? 'You' : vote.profiles?.name || 'Unknown User'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', paddingLeft: 'var(--space-xs)' }}>No votes yet</span>
+              )}
+            </div>
+          ))}
+        </div>
+      </Modal>
     </Card>
   );
 }

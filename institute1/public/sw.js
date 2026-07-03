@@ -50,6 +50,11 @@ self.addEventListener('fetch', (event) => {
     );
   } else {
     // Always fetch from network for HTML/API to keep Next.js middleware working
-    event.respondWith(fetch(event.request).catch(() => new Response('Offline')));
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        // Return a generic 503 response to avoid 'promise was rejected' network errors
+        return new Response(null, { status: 503, statusText: 'Service Unavailable' });
+      })
+    );
   }
 });

@@ -18,13 +18,17 @@ export default function FeedbackWidget() {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase.from('profiles').select('name').eq('id', user.id).single();
-        if (profile?.name) {
-          setDefaultName(profile.name);
+      try {
+        const supabase = createClient();
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (user && !error) {
+          const { data: profile } = await supabase.from('profiles').select('name').eq('id', user.id).single();
+          if (profile?.name) {
+            setDefaultName(profile.name);
+          }
         }
+      } catch (err) {
+        console.error('Error fetching user for feedback widget:', err);
       }
     };
     fetchUser();

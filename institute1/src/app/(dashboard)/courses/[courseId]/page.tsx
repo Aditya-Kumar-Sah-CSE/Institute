@@ -31,7 +31,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
   // Fetch lessons
   const { data: lessons } = await supabase
     .from('lessons')
-    .select('*')
+    .select('*, assignments(xp_reward)')
     .eq('course_id', courseId)
     .order('sort_order', { ascending: true });
 
@@ -200,44 +200,49 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
                   const isCompleted = completedLessonIds.has(lesson.id);
                   const isApproved = enrollment && enrollment.status === 'approved';
                   const isLocked = !isApproved; // Lock all lessons if not approved
+                  const assignmentXp = lesson.assignments?.reduce((sum: number, a: any) => sum + (a.xp_reward || 0), 0) || 0;
 
                   return (
                     <Card 
                       key={lesson.id} 
                       variant={isLocked ? 'default' : 'glass'}
                       className={`lesson-list-item ${isLocked ? 'locked' : ''} ${isCompleted ? 'completed' : ''}`}
+                      style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 'var(--space-lg)', padding: 'var(--space-lg)' }}
                     >
-                      <div className="lesson-item-header">
-                        <div className="lesson-number">{index + 1}</div>
-                        <div className="lesson-item-info">
-                          <h3>{lesson.title}</h3>
-                          <span className="lesson-reward text-gradient">+{lesson.xp_reward} XP</span>
-                        </div>
-                      </div>
+                      <div className="lesson-number" style={{ flexShrink: 0 }}>{index + 1}</div>
                       
-                      <div className="lesson-item-action">
-                        {isLocked ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
-                            {isCompleted && <span className="completed-mark" style={{ color: 'var(--neon-lime)', fontWeight: 'bold' }}>✓</span>}
-                            <span className="locked-mark">🔒</span>
-                          </div>
-                        ) : isCompleted ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
-                            <span className="completed-mark" style={{ color: 'var(--neon-lime)', fontWeight: 'bold' }}>✓</span>
-                            <Link href={`/courses/${courseId}/${lesson.id}`}>
-                              <Button variant="secondary" size="sm">Review / Task</Button>
-                            </Link>
-                          </div>
-                        ) : (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
-                            <Link href={`/courses/${courseId}/${lesson.id}#assignments`}>
-                              <Button variant="secondary" size="sm">Go to Assignment</Button>
-                            </Link>
-                            <Link href={`/courses/${courseId}/${lesson.id}`}>
-                              <Button variant="primary" size="sm">Start Lesson</Button>
-                            </Link>
-                          </div>
-                        )}
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+                        <h3 style={{ margin: 0, fontSize: 'var(--text-lg)', color: 'var(--text-primary)' }}>{lesson.title}</h3>
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-sm)', flexWrap: 'wrap', width: '100%' }}>
+                          {isLocked ? (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 'var(--space-md)', width: '100%' }}>
+                              {isCompleted && <span className="completed-mark" style={{ color: 'var(--neon-lime)', fontWeight: 'bold' }}>✓</span>}
+                              <span className="locked-mark">🔒</span>
+                            </div>
+                          ) : isCompleted ? (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 'var(--space-md)', width: '100%' }}>
+                              <span className="completed-mark" style={{ color: 'var(--neon-lime)', fontWeight: 'bold' }}>✓</span>
+                              <Link href={`/courses/${courseId}/${lesson.id}`}>
+                                <Button variant="secondary" size="sm">Review / Task</Button>
+                              </Link>
+                            </div>
+                          ) : (
+                            <>
+                              {assignmentXp > 0 ? (
+                                <span className="lesson-reward text-gradient" style={{ fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)' }}>+{assignmentXp} XP</span>
+                              ) : <span style={{ width: '40px' }} />}
+                              <Link href={`/courses/${courseId}/${lesson.id}#assignments`}>
+                                <Button variant="secondary" size="sm">Assignment</Button>
+                              </Link>
+                              
+                              <span className="lesson-reward text-gradient" style={{ fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)' }}>+{lesson.xp_reward} XP</span>
+                              <Link href={`/courses/${courseId}/${lesson.id}`}>
+                                <Button variant="primary" size="sm">Start</Button>
+                              </Link>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </Card>
                   );
