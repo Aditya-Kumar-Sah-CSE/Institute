@@ -176,22 +176,26 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
           if (!lessons || lessons.length === 0) return null;
           
           const groupedLessons = lessons.reduce((acc, lesson) => {
-            const week = lesson.week_number || 1;
-            if (!acc[week]) acc[week] = [];
-            acc[week].push(lesson);
+            const dateStr = new Date(lesson.created_at || Date.now()).toLocaleDateString(undefined, {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            });
+            if (!acc[dateStr]) acc[dateStr] = [];
+            acc[dateStr].push(lesson);
             return acc;
-          }, {} as Record<number, typeof lessons>);
+          }, {} as Record<string, typeof lessons>);
           
-          const sortedWeeks = Object.keys(groupedLessons).map(Number).sort((a, b) => a - b);
+          const sortedDates = Object.keys(groupedLessons).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
           let globalLessonIndex = 0;
 
-          return sortedWeeks.map(weekNum => (
-            <div key={`week-${weekNum}`} style={{ marginBottom: 'var(--space-xl)' }}>
+          return sortedDates.map((dateStr, idx) => (
+            <div key={`date-${dateStr}`} style={{ marginBottom: 'var(--space-xl)' }}>
               <h3 style={{ fontSize: 'var(--text-xl)', color: 'var(--neon-gold)', marginBottom: 'var(--space-md)', paddingBottom: 'var(--space-xs)', borderBottom: '1px solid var(--glass-border)' }}>
-                Week {weekNum}
+                Week {idx + 1} - {dateStr}
               </h3>
               <div className="lessons-list">
-                {groupedLessons[weekNum].map((lesson: any) => {
+                {groupedLessons[dateStr].map((lesson: any) => {
                   const index = globalLessonIndex++;
                   const isCompleted = completedLessonIds.has(lesson.id);
                   const isApproved = enrollment && enrollment.status === 'approved';
@@ -225,9 +229,14 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
                             </Link>
                           </div>
                         ) : (
-                          <Link href={`/courses/${courseId}/${lesson.id}`}>
-                            <Button variant="primary" size="sm">Start Lesson</Button>
-                          </Link>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+                            <Link href={`/courses/${courseId}/${lesson.id}#assignments`}>
+                              <Button variant="secondary" size="sm">Go to Assignment</Button>
+                            </Link>
+                            <Link href={`/courses/${courseId}/${lesson.id}`}>
+                              <Button variant="primary" size="sm">Start Lesson</Button>
+                            </Link>
+                          </div>
                         )}
                       </div>
                     </Card>

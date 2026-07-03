@@ -20,6 +20,7 @@ export default function AssignmentCard({ assignment, submission, communitySubmis
   const [githubUrl, setGithubUrl] = useState(submission?.github_link || '');
   const [deployUrl, setDeployUrl] = useState(submission?.deploy_link || '');
   const [answer, setAnswer] = useState(submission?.answer ? (typeof submission.answer === 'string' ? submission.answer : JSON.stringify(submission.answer)) : '');
+  const [showAllSubmissions, setShowAllSubmissions] = useState(false);
 
   const isCompleted = submission?.status === 'approved';
   const isPending = submission?.status === 'pending';
@@ -194,7 +195,7 @@ export default function AssignmentCard({ assignment, submission, communitySubmis
         <div style={{ marginTop: 'var(--space-xl)', borderTop: '1px solid var(--glass-border)', paddingTop: 'var(--space-md)' }}>
           <h4 style={{ fontSize: 'var(--text-md)', marginBottom: 'var(--space-md)' }}>Community Submissions ({communitySubmissions.length})</h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-            {communitySubmissions.map((sub, i) => (
+            {(showAllSubmissions ? communitySubmissions : communitySubmissions.slice(0, 1)).map((sub, i) => (
               <div key={sub.id || i} style={{ background: 'var(--bg-secondary)', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', border: '1px solid var(--glass-border)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', marginBottom: 'var(--space-sm)' }}>
                   {sub.profile?.avatar_url ? (
@@ -247,6 +248,13 @@ export default function AssignmentCard({ assignment, submission, communitySubmis
               </div>
             ))}
           </div>
+          {!showAllSubmissions && communitySubmissions.length > 1 && (
+            <div style={{ marginTop: 'var(--space-md)', textAlign: 'center' }}>
+              <Button type="button" variant="secondary" size="sm" onClick={() => setShowAllSubmissions(true)}>
+                Show More Submissions
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </Card>
