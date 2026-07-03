@@ -35,6 +35,17 @@ export default async function CourseBuilderPage({ params }: { params: Promise<{ 
     .select('*, profiles(name, email, avatar_url, institute_id)')
     .eq('course_id', courseId);
 
+  // Fetch submissions for assignments in this course
+  const assignmentIds = lessons?.flatMap(l => l.assignments?.map(a => a.id) || []) || [];
+  let submissions: any[] = [];
+  if (assignmentIds.length > 0) {
+    const { data: subs } = await supabase
+      .from('submissions')
+      .select('*, profiles(name, avatar_url)')
+      .in('assignment_id', assignmentIds);
+    submissions = subs || [];
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
@@ -43,7 +54,7 @@ export default async function CourseBuilderPage({ params }: { params: Promise<{ 
         </Link>
       </div>
       
-      <CurriculumBuilder course={course} lessons={lessons || []} />
+      <CurriculumBuilder course={course} lessons={lessons || []} submissions={submissions} />
 
       <div style={{ marginTop: 'var(--space-xl)' }}>
         <h2 style={{ fontSize: 'var(--text-xl)', marginBottom: 'var(--space-md)' }}>Joined Students</h2>

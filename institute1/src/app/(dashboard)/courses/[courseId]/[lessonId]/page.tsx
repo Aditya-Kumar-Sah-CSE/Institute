@@ -71,46 +71,22 @@ export default async function LessonPage({ params }: { params: Promise<{ courseI
     .select('*')
     .eq('lesson_id', lessonId);
 
-  // Fetch user's submissions
+  // Fetch all submissions for these assignments (for community view)
   let submissions: Submission[] = [];
+  // For the community view, we want to include the user profile data
+  let allSubmissions: any[] = [];
+  
   if (assignments && assignments.length > 0) {
     const assignmentIds = assignments.map(a => a.id);
     const { data: subs } = await supabase
       .from('submissions')
-      .select('*')
-      .eq('user_id', user.id)
-      .in('assignment_id', assignmentIds);
-    submissions = subs || [];
-
-    // Check xp_log for assignments that were approved & deleted from submissions table
-    // This ensures students still see the "completed" state on their assignment cards
-    const { data: completedLogs } = await supabase
-      .from('xp_log')
-      .select('source_id')
-      .eq('user_id', user.id)
-      .eq('source_type', 'assignment')
-      .in('source_id', assignmentIds);
-
-    if (completedLogs) {
-      for (const log of completedLogs) {
-        const alreadyHasSub = submissions.some(s => s.assignment_id === log.source_id);
-        if (!alreadyHasSub && log.source_id) {
-          // Create a virtual "approved" submission so the UI shows completed state
-          submissions.push({
-            id: `virtual-${log.source_id}`,
-            user_id: user.id,
-            assignment_id: log.source_id,
-            answer: null,
-            github_link: null,
-            deploy_link: null,
-            status: 'approved',
-            score: 0,
-            feedback: null,
-            submitted_at: new Date().toISOString(),
-          } as Submission);
-        }
-      }
-    }
+      .select('*, profile:profiles(name, avatar_url, role)')
+      .in('assignment_id', assignmentIds)
+      .order('submitted_at', { ascending: false });
+      
+    allSubmissions = subs || [];
+    // The current user's submissions
+    submissions = allSubmissions.filter(s => s.user_id === user.id) as Submission[];
   }
 
   // Check lesson progress
@@ -186,14 +162,15 @@ export default async function LessonPage({ params }: { params: Promise<{ courseI
     const { data: assign } = await sb.from('assignments').select('*').eq('id', assignmentId).single();
     if (!assign) return;
 
-    // Prevent re-submission for already completed assignments (submission deleted after approval)
-    const { count: alreadyAwarded } = await sb
-      .from('xp_log')
-      .select('*', { count: 'exact', head: true })
+    // Prevent re-submission for already completed assignments
+    const { data: existingSub } = await sb
+      .from('submissions')
+      .select('status')
       .eq('user_id', user.id)
-      .eq('source_type', 'assignment')
-      .eq('source_id', assignmentId);
-    if (alreadyAwarded && alreadyAwarded > 0) {
+      .eq('assignment_id', assignmentId)
+      .single();
+      
+    if (existingSub?.status === 'approved') {
       throw new Error('You have already completed this assignment.');
     }
 
@@ -281,12 +258,14 @@ export default async function LessonPage({ params }: { params: Promise<{ courseI
           <h2 className="section-title">Practice Assignments</h2>
           {assignments.map(assign => {
             const sub = submissions.find(s => s.assignment_id === assign.id);
+            const communitySubs = allSubmissions.filter(s => s.assignment_id === assign.id);
             const submitAction = submitAssignment.bind(null, assign.id);
             return (
               <AssignmentCard 
                 key={assign.id}
                 assignment={assign}
                 submission={sub}
+                communitySubmissions={communitySubs}
                 onSubmit={submitAction}
               />
             );

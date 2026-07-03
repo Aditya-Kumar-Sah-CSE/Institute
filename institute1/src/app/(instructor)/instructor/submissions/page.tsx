@@ -82,26 +82,8 @@ export default async function InstructorSubmissionsPage(props: {
     if (action === 'approve') {
       await awardXP(sub.user_id, sub.assignments.xp_reward, `Approved Assignment: ${sub.assignments.title}`, 'assignment', sub.assignments.id);
       
-      if (sub.assignments.type === 'ui' && sub.answer) {
-        let urls: string[] = [];
-        try {
-          const parsed = typeof sub.answer === 'string' ? JSON.parse(sub.answer) : sub.answer;
-          urls = Array.isArray(parsed) ? parsed : [String(sub.answer)];
-        } catch {
-          urls = [String(sub.answer)];
-        }
-        
-        const pathsToRemove = urls.map(url => {
-          const match = url.match(/\/object\/public\/branding\/(.+)$/);
-          return match ? match[1] : null;
-        }).filter(Boolean) as string[];
-
-        if (pathsToRemove.length > 0) {
-          await sb.storage.from('branding').remove(pathsToRemove);
-        }
-      }
-
-      await sb.from('submissions').delete().eq('id', submissionId);
+      // Update the submission status to approved (keeps DB history for community view)
+      await sb.from('submissions').update({ status: 'approved', feedback }).eq('id', submissionId);
 
       const { checkBadges } = await import('@/features/gamification/actions/gamification');
       await checkBadges(sub.user_id);

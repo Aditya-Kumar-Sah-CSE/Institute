@@ -13,6 +13,7 @@ import LevelBadge from '@/components/shared/LevelBadge';
 import Modal from '@/components/ui/Modal';
 import type { Profile } from '@/types';
 import { LogOut, User } from 'lucide-react';
+import { signOut } from '@/features/auth/actions/auth';
 
 interface SidebarProps {
   profile: Profile;
@@ -140,7 +141,7 @@ export default function Sidebar({ profile, isAdmin = false, roleView }: SidebarP
             <span className="sidebar-nav-label">Instructor Panel</span>
           </a>
         )}
-        <form action="/api/auth/signout" method="post">
+        <form action={signOut}>
           <button type="submit" className="sidebar-nav-item sidebar-logout">
             <span className="sidebar-nav-icon"><LogOut className="w-5 h-5" /></span>
             <span className="sidebar-nav-label">Logout</span>

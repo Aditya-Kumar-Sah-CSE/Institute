@@ -62,8 +62,22 @@ export default function LessonView({ lesson, isCompleted, onComplete }: LessonVi
           />
         </div>
       ) : lesson.youtube_url ? (
-        <div className="lesson-video-error glass-card">
-          Invalid YouTube URL provided.
+        <div className="lesson-attachment-section" style={{ marginTop: 'var(--space-md)', marginBottom: 'var(--space-md)' }}>
+          <div className="glass-card" style={{ padding: 'var(--space-md)', display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+            <span style={{ fontSize: '24px' }}>🔗</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 'bold' }}>External Resource</div>
+              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>Additional reading or form</div>
+            </div>
+            <a 
+              href={lesson.youtube_url} 
+              target="_blank" 
+              rel="noreferrer" 
+              className="btn btn-primary btn-sm"
+            >
+              Open Link
+            </a>
+          </div>
         </div>
       ) : null}
 

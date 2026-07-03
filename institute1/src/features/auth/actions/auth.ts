@@ -105,17 +105,25 @@ export async function signIn(formData: FormData) {
 }
 
 export async function signOut() {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
+  try {
+    const supabase = await createClient();
+    await supabase.auth.signOut();
+  } catch (error) {
+    console.error('Supabase signout error:', error);
+  }
 
-  // Clear all Supabase auth cookies explicitly
-  const { cookies } = await import('next/headers');
-  const cookieStore = await cookies();
-  const allCookies = cookieStore.getAll();
-  for (const cookie of allCookies) {
-    if (cookie.name.startsWith('sb-') || cookie.name.includes('supabase')) {
-      cookieStore.delete(cookie.name);
+  try {
+    // Clear all Supabase auth cookies explicitly
+    const { cookies } = await import('next/headers');
+    const cookieStore = await cookies();
+    const allCookies = cookieStore.getAll();
+    for (const cookie of allCookies) {
+      if (cookie.name.startsWith('sb-') || cookie.name.includes('supabase')) {
+        cookieStore.delete(cookie.name);
+      }
     }
+  } catch (error) {
+    console.error('Error clearing cookies:', error);
   }
 
   redirect('/');

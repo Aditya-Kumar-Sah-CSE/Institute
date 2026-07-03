@@ -17,7 +17,7 @@ export default async function AdminCoursesPage() {
       <div className="page-header">
         <h1 className="text-gradient">Manage Courses</h1>
       </div>
-      <CourseManager courses={courses || []} currentUserId={user?.id} />
+      <CourseManager courses={courses || []} currentUserId={user?.id} userRole={profile?.role} />
     </div>
   );
 }

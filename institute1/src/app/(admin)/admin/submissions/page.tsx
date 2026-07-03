@@ -47,29 +47,8 @@ export default async function SubmissionsPage(props: {
     if (action === 'approve') {
       await awardXP(sub.user_id, sub.assignments.xp_reward, `Approved Assignment: ${sub.assignments.title}`, 'assignment', sub.assignments.id);
       
-      // Clean up storage files if it's a UI type
-      if (sub.assignments.type === 'ui' && sub.answer) {
-        let urls: string[] = [];
-        try {
-          const parsed = typeof sub.answer === 'string' ? JSON.parse(sub.answer) : sub.answer;
-          urls = Array.isArray(parsed) ? parsed : [String(sub.answer)];
-        } catch {
-          urls = [String(sub.answer)];
-        }
-        
-        const pathsToRemove = urls.map(url => {
-          const match = url.match(/\/object\/public\/branding\/(.+)$/);
-          return match ? match[1] : null;
-        }).filter(Boolean) as string[];
-
-        if (pathsToRemove.length > 0) {
-          const { error: removeError } = await sb.storage.from('branding').remove(pathsToRemove);
-          if (removeError) console.error("Error removing storage files:", removeError);
-        }
-      }
-
-      // Delete the submission from the database after approval (keeps DB clean)
-      await sb.from('submissions').delete().eq('id', submissionId);
+      // Update the submission status to approved (keeps DB history for community view)
+      await sb.from('submissions').update({ status: 'approved', feedback }).eq('id', submissionId);
 
       // Check for any new badges earned from this submission or XP gain
       const { checkBadges } = await import('@/features/gamification/actions/gamification');

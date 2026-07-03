@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
 // Authorization helper — verifies the user has admin or instructor role
@@ -30,9 +30,27 @@ export async function addLesson(courseId: string, formData: FormData) {
   const youtube_url = formData.get('youtube_url') as string;
   const notes = formData.get('notes') as string;
   const xp_reward = parseInt(formData.get('xp_reward') as string || '20');
-  const sort_order = parseInt(formData.get('sort_order') as string || '1');
-  const week_number = parseInt(formData.get('week_number') as string || '1');
+  let sort_order = parseInt(formData.get('sort_order') as string);
+  let week_number = parseInt(formData.get('week_number') as string);
   const pdf_file = formData.get('pdf_file') as File | null;
+
+  if (isNaN(sort_order) || isNaN(week_number)) {
+    // Auto-calculate sort_order and week_number
+    const { data: existingLessons } = await supabase
+      .from('lessons')
+      .select('sort_order, week_number')
+      .eq('course_id', courseId)
+      .order('sort_order', { ascending: false })
+      .limit(1);
+    
+    if (existingLessons && existingLessons.length > 0) {
+      sort_order = existingLessons[0].sort_order + 1;
+      week_number = Math.ceil(sort_order / 7);
+    } else {
+      sort_order = 1;
+      week_number = 1;
+    }
+  }
 
   if (!title) return { error: 'Lesson title is required' };
 
@@ -41,13 +59,14 @@ export async function addLesson(courseId: string, formData: FormData) {
     const fileExt = pdf_file.name.split('.').pop();
     const filePath = `notes/lesson_${courseId}_${Date.now()}.${fileExt}`;
 
-    const { error: uploadError } = await supabase.storage
+    const adminSupabase = await createAdminClient();
+    const { error: uploadError } = await adminSupabase.storage
       .from('lesson_notes')
       .upload(filePath, pdf_file, { upsert: true });
 
     if (uploadError) return { error: `Failed to upload note: ${uploadError.message}` };
 
-    const { data: { publicUrl } } = supabase.storage
+    const { data: { publicUrl } } = adminSupabase.storage
       .from('lesson_notes')
       .getPublicUrl(filePath);
     
@@ -78,8 +97,8 @@ export async function updateLesson(lessonId: string, courseId: string, formData:
   const youtube_url = formData.get('youtube_url') as string;
   const notes = formData.get('notes') as string;
   const xp_reward = parseInt(formData.get('xp_reward') as string || '20');
-  const sort_order = parseInt(formData.get('sort_order') as string || '1');
-  const week_number = parseInt(formData.get('week_number') as string || '1');
+  let sort_order = parseInt(formData.get('sort_order') as string);
+  let week_number = parseInt(formData.get('week_number') as string);
   const pdf_file = formData.get('pdf_file') as File | null;
 
   const updateData: any = {
@@ -87,21 +106,24 @@ export async function updateLesson(lessonId: string, courseId: string, formData:
     youtube_url: youtube_url || null,
     notes: notes || null,
     xp_reward,
-    sort_order,
-    week_number,
   };
+
+  // Only update sort_order and week_number if they were explicitly provided
+  if (!isNaN(sort_order)) updateData.sort_order = sort_order;
+  if (!isNaN(week_number)) updateData.week_number = week_number;
 
   if (pdf_file && pdf_file.size > 0) {
     const fileExt = pdf_file.name.split('.').pop();
     const filePath = `notes/lesson_${courseId}_${Date.now()}.${fileExt}`;
 
-    const { error: uploadError } = await supabase.storage
+    const adminSupabase = await createAdminClient();
+    const { error: uploadError } = await adminSupabase.storage
       .from('lesson_notes')
       .upload(filePath, pdf_file, { upsert: true });
 
     if (uploadError) return { error: `Failed to upload note: ${uploadError.message}` };
 
-    const { data: { publicUrl } } = supabase.storage
+    const { data: { publicUrl } } = adminSupabase.storage
       .from('lesson_notes')
       .getPublicUrl(filePath);
     
@@ -135,7 +157,6 @@ export async function addAssignment(lessonId: string, courseId: string, formData
   const title = formData.get('title') as string;
   const type = formData.get('type') as string;
   const description = formData.get('description') as string;
-  const expected_output = formData.get('expected_output') as string;
   const xp_reward = parseInt(formData.get('xp_reward') as string || '50');
   const requires_github = formData.get('requires_github') === 'true';
   const requires_deploy = formData.get('requires_deploy') === 'true';
@@ -147,7 +168,6 @@ export async function addAssignment(lessonId: string, courseId: string, formData
     title,
     type,
     description: description || null,
-    expected_output: expected_output || null,
     xp_reward,
     requires_github,
     requires_deploy,
@@ -165,7 +185,6 @@ export async function updateAssignment(assignmentId: string, courseId: string, f
   const title = formData.get('title') as string;
   const type = formData.get('type') as string;
   const description = formData.get('description') as string;
-  const expected_output = formData.get('expected_output') as string;
   const xp_reward = parseInt(formData.get('xp_reward') as string || '50');
   const requires_github = formData.get('requires_github') === 'true';
   const requires_deploy = formData.get('requires_deploy') === 'true';
@@ -174,7 +193,6 @@ export async function updateAssignment(assignmentId: string, courseId: string, f
     title,
     type,
     description: description || null,
-    expected_output: expected_output || null,
     xp_reward,
     requires_github,
     requires_deploy,

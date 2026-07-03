@@ -10,6 +10,7 @@ import './Navbar.css';
 import type { Profile } from '@/types';
 import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 import { getIcon } from '@/lib/icon-mapper';
+import { signOut } from '@/features/auth/actions/auth';
 
 interface NavbarProps {
   title?: string;
@@ -138,7 +139,7 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
                  <Link href="/profile" onClick={() => setIsMenuOpen(false)}>
                    {getIcon('Profile', { size: 16, className: 'mobile-nav-icon' })} Profile
                  </Link>
-                 <form action="/api/auth/signout" method="post" style={{ margin: 0, width: '100%' }}>
+                 <form action={signOut} style={{ margin: 0, width: '100%' }}>
                    <button type="submit" className="mobile-logout-btn">
                      {getIcon('Logout', { size: 16, className: 'mobile-nav-icon' })} Logout
                    </button>

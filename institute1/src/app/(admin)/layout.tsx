@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import Sidebar from '@/components/layout/Sidebar';
 import Navbar from '@/components/layout/Navbar';
 import '../(dashboard)/DashboardLayout.css';
+import { signOut } from '@/features/auth/actions/auth';
 
 export default async function AdminLayout({
   children,
@@ -28,7 +29,7 @@ export default async function AdminLayout({
           <p>Your user profile seems to be missing from the database.</p>
           <p>If you deleted your test user from the 'profiles' table, you MUST also delete it from 'Authentication -&gt; Users' in Supabase!</p>
         </div>
-        <form action="/api/auth/signout" method="POST">
+        <form action={signOut}>
           <button type="submit" style={{ padding: '10px 20px', background: 'var(--accent-red, #ff4444)', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
             Force Sign Out
           </button>

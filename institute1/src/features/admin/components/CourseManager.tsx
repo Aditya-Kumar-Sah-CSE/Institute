@@ -12,9 +12,10 @@ import './CourseManager.css';
 interface CourseManagerProps {
   courses: Course[];
   currentUserId?: string;
+  userRole?: string;
 }
 
-export default function CourseManager({ courses, currentUserId }: CourseManagerProps) {
+export default function CourseManager({ courses, currentUserId, userRole }: CourseManagerProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -72,7 +73,7 @@ export default function CourseManager({ courses, currentUserId }: CourseManagerP
 
   const filteredCourses = courses.filter(c => {
     if (c.is_deleted) return false;
-    if (courseFilter === 'my_courses' && currentUserId) {
+    if ((courseFilter === 'my_courses' || userRole === 'instructor') && currentUserId) {
       return c.created_by === currentUserId;
     }
     return true;
@@ -83,22 +84,24 @@ export default function CourseManager({ courses, currentUserId }: CourseManagerP
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
           <h2 style={{ fontSize: 'var(--text-xl)', margin: 0 }}>Manage Courses</h2>
-          <div style={{ display: 'flex', background: 'var(--bg-input)', padding: '4px', borderRadius: 'var(--radius-sm)', gap: '4px' }}>
-            <button 
-              className={`btn-ghost ${courseFilter === 'my_courses' ? 'active' : ''}`}
-              style={{ padding: '6px 12px', borderRadius: '4px', background: courseFilter === 'my_courses' ? 'var(--bg-secondary)' : 'transparent', color: courseFilter === 'my_courses' ? 'var(--text-primary)' : 'var(--text-secondary)', border: 'none', cursor: 'pointer' }}
-              onClick={() => setCourseFilter('my_courses')}
-            >
-              My Courses
-            </button>
-            <button 
-              className={`btn-ghost ${courseFilter === 'all_courses' ? 'active' : ''}`}
-              style={{ padding: '6px 12px', borderRadius: '4px', background: courseFilter === 'all_courses' ? 'var(--bg-secondary)' : 'transparent', color: courseFilter === 'all_courses' ? 'var(--text-primary)' : 'var(--text-secondary)', border: 'none', cursor: 'pointer' }}
-              onClick={() => setCourseFilter('all_courses')}
-            >
-              All Courses
-            </button>
-          </div>
+          {userRole !== 'instructor' && (
+            <div style={{ display: 'flex', background: 'var(--bg-input)', padding: '4px', borderRadius: 'var(--radius-sm)', gap: '4px' }}>
+              <button 
+                className={`btn-ghost ${courseFilter === 'my_courses' ? 'active' : ''}`}
+                style={{ padding: '6px 12px', borderRadius: '4px', background: courseFilter === 'my_courses' ? 'var(--bg-secondary)' : 'transparent', color: courseFilter === 'my_courses' ? 'var(--text-primary)' : 'var(--text-secondary)', border: 'none', cursor: 'pointer' }}
+                onClick={() => setCourseFilter('my_courses')}
+              >
+                My Courses
+              </button>
+              <button 
+                className={`btn-ghost ${courseFilter === 'all_courses' ? 'active' : ''}`}
+                style={{ padding: '6px 12px', borderRadius: '4px', background: courseFilter === 'all_courses' ? 'var(--bg-secondary)' : 'transparent', color: courseFilter === 'all_courses' ? 'var(--text-primary)' : 'var(--text-secondary)', border: 'none', cursor: 'pointer' }}
+                onClick={() => setCourseFilter('all_courses')}
+              >
+                All Courses
+              </button>
+            </div>
+          )}
         </div>
         <Button variant="primary" onClick={openAdd}>+ Add New Course</Button>
       </div>

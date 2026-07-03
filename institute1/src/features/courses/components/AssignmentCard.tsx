@@ -11,10 +11,11 @@ import './AssignmentCard.css';
 interface AssignmentCardProps {
   assignment: Assignment;
   submission?: Submission | null;
+  communitySubmissions?: any[];
   onSubmit: (formData: FormData) => Promise<void>;
 }
 
-export default function AssignmentCard({ assignment, submission, onSubmit }: AssignmentCardProps) {
+export default function AssignmentCard({ assignment, submission, communitySubmissions, onSubmit }: AssignmentCardProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [githubUrl, setGithubUrl] = useState(submission?.github_link || '');
   const [deployUrl, setDeployUrl] = useState(submission?.deploy_link || '');
@@ -81,13 +82,12 @@ export default function AssignmentCard({ assignment, submission, onSubmit }: Ass
           {(assignment.type === 'github' || assignment.requires_github) && (
             <Input
               name="githubUrl"
-              label="GitHub Repository URL"
+              label="GitHub Repository URL (Optional)"
               type="url"
               value={githubUrl}
               onChange={(e) => setGithubUrl(e.target.value)}
               placeholder="https://github.com/username/repo"
               icon="🐙"
-              required={assignment.type === 'github' || assignment.requires_github}
               disabled={isPending}
             />
           )}
@@ -95,13 +95,12 @@ export default function AssignmentCard({ assignment, submission, onSubmit }: Ass
           {(assignment.type === 'deploy' || assignment.requires_deploy) && (
             <Input
               name="deployUrl"
-              label="Live Deployment URL"
+              label="Live Deployment URL (Optional)"
               type="url"
               value={deployUrl}
               onChange={(e) => setDeployUrl(e.target.value)}
               placeholder="https://your-project.vercel.app"
               icon="🚀"
-              required={assignment.type === 'deploy' || assignment.requires_deploy}
               disabled={isPending}
             />
           )}
@@ -187,6 +186,67 @@ export default function AssignmentCard({ assignment, submission, onSubmit }: Ass
               <strong>Feedback:</strong> {submission.feedback}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Community Submissions Section */}
+      {communitySubmissions && communitySubmissions.length > 0 && (
+        <div style={{ marginTop: 'var(--space-xl)', borderTop: '1px solid var(--glass-border)', paddingTop: 'var(--space-md)' }}>
+          <h4 style={{ fontSize: 'var(--text-md)', marginBottom: 'var(--space-md)' }}>Community Submissions ({communitySubmissions.length})</h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+            {communitySubmissions.map((sub, i) => (
+              <div key={sub.id || i} style={{ background: 'var(--bg-secondary)', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', border: '1px solid var(--glass-border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', marginBottom: 'var(--space-sm)' }}>
+                  {sub.profile?.avatar_url ? (
+                    <Image src={sub.profile.avatar_url} alt="Avatar" width={32} height={32} style={{ borderRadius: '50%' }} />
+                  ) : (
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', fontWeight: 'bold' }}>
+                      {sub.profile?.name?.[0] || '?'}
+                    </div>
+                  )}
+                  <div>
+                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 'bold' }}>{sub.profile?.name || 'Anonymous Student'}</div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                      {new Date(sub.submitted_at).toLocaleDateString()} {sub.status === 'approved' && <span style={{ color: 'var(--neon-lime)' }}>• Approved</span>}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Submission Content */}
+                <div style={{ fontSize: 'var(--text-sm)' }}>
+                  {sub.github_link && <div style={{ marginBottom: '4px' }}><strong>GitHub:</strong> <a href={sub.github_link} target="_blank" rel="noreferrer" style={{ color: 'var(--neon-cyan)' }}>{sub.github_link}</a></div>}
+                  {sub.deploy_link && <div style={{ marginBottom: '4px' }}><strong>Deploy:</strong> <a href={sub.deploy_link} target="_blank" rel="noreferrer" style={{ color: 'var(--neon-cyan)' }}>{sub.deploy_link}</a></div>}
+                  
+                  {sub.answer && (
+                    <div style={{ marginTop: 'var(--space-xs)' }}>
+                      {assignment.type === 'ui' ? (
+                        <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
+                          {(() => {
+                            let urls: string[] = [];
+                            try {
+                              const parsed = typeof sub.answer === 'string' ? JSON.parse(sub.answer) : sub.answer;
+                              urls = Array.isArray(parsed) ? parsed : [String(sub.answer)];
+                            } catch {
+                              urls = [String(sub.answer)];
+                            }
+                            return urls.map((url, idx) => (
+                              <a key={idx} href={url} target="_blank" rel="noreferrer" style={{ color: '#000', background: 'var(--neon-cyan)', padding: '4px 12px', borderRadius: '4px', textDecoration: 'none', fontSize: 'var(--text-xs)', fontWeight: 'bold' }}>
+                                📄 View Attachment {idx + 1}
+                              </a>
+                            ));
+                          })()}
+                        </div>
+                      ) : (
+                        <pre style={{ background: 'var(--bg-input)', padding: 'var(--space-sm)', overflowX: 'auto', whiteSpace: 'pre-wrap', borderRadius: 'var(--radius-sm)' }}>
+                          {typeof sub.answer === 'string' ? sub.answer : JSON.stringify(sub.answer, null, 2)}
+                        </pre>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </Card>
