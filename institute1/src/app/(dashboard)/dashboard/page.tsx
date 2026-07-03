@@ -32,7 +32,7 @@ export default async function DashboardPage() {
   // Fetch enrollments with course details
   const enrollmentsPromise = supabase
     .from('enrollments')
-    .select('progress, status, course_id, courses(id, title, thumbnail_url, description, difficulty, xp_reward, profiles(name))')
+    .select('progress, status, course_id, courses(id, title, thumbnail_url, description, difficulty, total_xp, is_completed, is_published, profiles(name))')
     .eq('user_id', user.id)
     .order('enrolled_at', { ascending: false });
 
