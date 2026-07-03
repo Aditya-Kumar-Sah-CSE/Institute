@@ -244,6 +244,10 @@
 
 /* Responsive Styles for Mobile and Tablet */
 @media (max-width: 768px) {
+  .certificate-container {
+    aspect-ratio: auto;
+    min-height: 600px;
+  }
   .certificate-inner {
     padding: 1.5rem;
     margin: 1rem;
@@ -281,6 +285,11 @@
 @media (max-width: 480px) {
   .certificate-page {
     padding: 1rem;
+  }
+  .certificate-container {
+    aspect-ratio: auto;
+    border-width: 4px;
+    min-height: 500px;
   }
   .certificate-inner {
     padding: 1rem;
