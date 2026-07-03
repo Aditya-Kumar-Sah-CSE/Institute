@@ -76,10 +76,24 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
           )}
           <p className="course-desc-large">{course.description}</p>
           
-          <div className="course-stats">
+          <div className="course-stats" style={{ marginBottom: 'var(--space-md)' }}>
             <span>📚 {lessons?.length || 0} Lessons</span>
             <span className="text-gradient">⭐ {course.total_xp} Total XP</span>
           </div>
+
+          <Link href="/certificates/dummy" style={{ textDecoration: 'none', display: 'inline-block', marginBottom: 'var(--space-xl)' }}>
+            <div 
+              style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 16px', background: 'rgba(255, 215, 0, 0.05)', border: '1px solid rgba(255, 215, 0, 0.3)', borderRadius: 'var(--radius-md)', transition: 'all 0.2s', cursor: 'pointer' }}
+              onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 215, 0, 0.1)'}
+              onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255, 215, 0, 0.05)'}
+            >
+              <div style={{ fontSize: '1.5rem', filter: 'drop-shadow(0 0 5px rgba(255,215,0,0.5))' }}>📜</div>
+              <div>
+                <div style={{ color: 'var(--neon-gold)', fontWeight: 600, fontSize: '0.9rem' }}>Certificate of Completion</div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Click to preview course certificate template</div>
+              </div>
+            </div>
+          </Link>
 
           <div style={{ display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap', alignItems: 'flex-start' }}>
             <div className="course-action" style={{ flex: 1, minWidth: '250px' }}>
