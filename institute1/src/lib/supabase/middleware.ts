@@ -56,9 +56,22 @@ export async function updateSession(request: NextRequest) {
     return redirectWithCookies(url);
   }
 
-  // We rely on the JWT metadata for the role in middleware to avoid a massive database bottleneck.
-  // The actual database role will be verified by the Server Components.
-  const userRole = user?.user_metadata?.role || 'student';
+  // We fetch the actual database role from profiles to prevent out-of-sync JWT metadata redirect loops.
+  // Since we only do this for specific protected routes and login/signup, the DB hit is minimal.
+  let userRole = 'student';
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+    
+    if (profile) {
+      userRole = profile.role;
+    } else {
+      userRole = user?.user_metadata?.role || 'student';
+    }
+  }
 
   // If authenticated and trying to access login/signup/landing
   if (user && (pathname === '/login' || pathname === '/signup' || pathname === '/')) {
