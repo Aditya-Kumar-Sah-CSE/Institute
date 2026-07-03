@@ -132,7 +132,7 @@ export default function Sidebar({ profile, isAdmin = false, roleView }: SidebarP
         {currentView !== 'admin' && profile.role === 'admin' && (
           <a href="/admin" className="sidebar-nav-item sidebar-switch">
             <span className="sidebar-nav-icon">{getIcon('Admin', { className: 'w-5 h-5' })}</span>
-            <span className="sidebar-nav-label">Developer Panel</span>
+            <span className="sidebar-nav-label">{profile.email === SUPER_ADMIN_EMAIL ? 'Developer Panel' : 'Administration Panel'}</span>
           </a>
         )}
         {currentView !== 'instructor' && ((profile.role === 'instructor' && profile.status === 'active') || profile.role === 'admin') && (
