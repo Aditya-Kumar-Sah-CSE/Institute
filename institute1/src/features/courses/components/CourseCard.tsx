@@ -117,6 +117,18 @@ export default function CourseCard({ course, progress, status }: CourseCardProps
               <span className="course-meta-item text-gradient">
                 ⭐ {course.total_xp} XP
               </span>
+              <span 
+                className="course-meta-item" 
+                style={{ cursor: 'pointer', color: 'var(--neon-gold)', transition: 'all 0.2s', marginLeft: 'auto', paddingLeft: '8px' }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  router.push('/certificates/dummy');
+                }}
+                title="Preview Certificate Template"
+              >
+                📜 Certificate
+              </span>
             </div>
 
             {totalEnrolled > 0 && (
