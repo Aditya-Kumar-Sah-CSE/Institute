@@ -38,7 +38,7 @@ export async function deleteStudent(studentId: string) {
       .single();
 
     if (targetProfile?.email === SUPER_ADMIN_EMAIL) {
-      return { error: 'Cannot delete the super admin account.' };
+      return { error: 'Cannot delete the developer account.' };
     }
 
     // Delete user from Supabase Auth
@@ -178,10 +178,10 @@ export async function makeFaculty(userId: string) {
       .single();
 
     if (targetProfile?.email === SUPER_ADMIN_EMAIL) {
-      return { error: 'Cannot demote the super admin.' };
+      return { error: 'Cannot demote the developer.' };
     }
 
-    // Prevent demoting the super admin (you can add a check for SUPER_ADMIN_EMAIL here if needed, but we'll assume the UI handles it or they can't demote themselves easily without it being tricky. Actually, let's just update the role)
+    // Prevent demoting the developer (you can add a check for SUPER_ADMIN_EMAIL here if needed, but we'll assume the UI handles it or they can't demote themselves easily without it being tricky. Actually, let's just update the role)
     // Update user role to instructor
     const { error } = await supabaseAdmin
       .from('profiles')
@@ -227,7 +227,7 @@ export async function makeStudent(userId: string) {
       .single();
 
     if (targetProfile?.email === SUPER_ADMIN_EMAIL) {
-      return { error: 'Cannot demote the super admin.' };
+      return { error: 'Cannot demote the developer.' };
     }
 
     // Update user role to student

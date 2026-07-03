@@ -341,7 +341,7 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
                       {isInstructor ? (
                         <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Restricted</span>
                       ) : student.email === SUPER_ADMIN_EMAIL ? (
-                        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--neon-purple)', fontWeight: 'bold' }}>Super Admin</span>
+                        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--neon-purple)', fontWeight: 'bold' }}>Developer</span>
                       ) : (
                         <Button 
                           variant="danger" 
