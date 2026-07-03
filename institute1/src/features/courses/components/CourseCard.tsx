@@ -157,7 +157,7 @@ export default function CourseCard({ course, progress, status }: CourseCardProps
                 }}
                 title="Preview Certificate"
               >
-                📜 Preview
+                📜 Certificate
               </div>
             </div>
 
