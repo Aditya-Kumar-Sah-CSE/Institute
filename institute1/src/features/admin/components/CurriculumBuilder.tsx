@@ -6,6 +6,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input, { TextArea, Select } from '@/components/ui/Input';
 import { 
+  addLesson, updateLesson, deleteLesson,
   addAssignment, updateAssignment, deleteAssignment 
 } from '@/features/admin/actions/builder-actions';
 import { reviewSubmissionAction } from '@/features/admin/actions/submissions';

@@ -36,7 +36,7 @@ export default async function CourseBuilderPage({ params }: { params: Promise<{ 
     .eq('course_id', courseId);
 
   // Fetch submissions for assignments in this course
-  const assignmentIds = lessons?.flatMap(l => l.assignments?.map(a => a.id) || []) || [];
+  const assignmentIds = lessons?.flatMap(l => l.assignments?.map((a: any) => a.id) || []) || [];
   let submissions: any[] = [];
   if (assignmentIds.length > 0) {
     const { data: subs } = await supabase
