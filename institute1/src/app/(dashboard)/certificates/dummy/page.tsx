@@ -2,8 +2,30 @@ import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import PrintButton from '../[id]/PrintButton';
 import '../[id]/Certificate.css';
+import { createClient } from '@/lib/supabase/server';
 
-export default function DummyCertificatePage() {
+export default async function DummyCertificatePage({ searchParams }: { searchParams: Promise<{ courseId?: string }> }) {
+  const { courseId } = await searchParams;
+  
+  const supabase = await createClient();
+  
+  let studentName = 'Your Name Here';
+  let instituteId = 'YOUR-INSTITUTE-ID';
+  let courseName = 'Advanced Web Development';
+  let companyName = 'Smart Learning APP';
+
+  if (courseId) {
+    const { data: course } = await supabase.from('courses').select('title').eq('id', courseId).single();
+    if (course && course.title) {
+      courseName = course.title;
+    }
+  }
+
+  const { data: settings } = await supabase.from('company_settings').select('company_name').single();
+  if (settings && settings.company_name) {
+    companyName = settings.company_name;
+  }
+
   const issueDate = new Date().toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
@@ -13,8 +35,8 @@ export default function DummyCertificatePage() {
   return (
     <div className="certificate-page">
       <div className="certificate-actions">
-        <Link href="/profile" style={{ textDecoration: 'none' }}>
-          <Button variant="ghost" style={{ color: 'var(--text-secondary)' }}>← Back to Profile</Button>
+        <Link href={courseId ? `/courses/${courseId}` : "/profile"} style={{ textDecoration: 'none' }}>
+          <Button variant="ghost" style={{ color: 'var(--text-secondary)' }}>← Back</Button>
         </Link>
         <PrintButton />
       </div>
@@ -37,11 +59,11 @@ export default function DummyCertificatePage() {
 
           <div className="cert-body">
             <div className="cert-presented-to">This certificate is proudly presented to</div>
-            <h2 className="cert-name">Your Name Here</h2>
-            <div className="cert-course">for successfully completing <strong>Demo Course: Advanced Web Development</strong></div>
+            <h2 className="cert-name">{studentName}</h2>
+            <div className="cert-course">for successfully completed course: <strong>{courseName}</strong></div>
             
             <div style={{ color: '#aaa', marginTop: '0.5rem', fontSize: '0.9rem', letterSpacing: '1px', textTransform: 'uppercase' }}>
-              Institute ID: YOUR-INSTITUTE-ID
+              Institute ID: {instituteId}
             </div>
 
             <div className="cert-stats">
@@ -71,7 +93,7 @@ export default function DummyCertificatePage() {
             </div>
             <div className="cert-signature">
               <div className="cert-signature-line" style={{ fontFamily: 'var(--font-sans)', fontStyle: 'normal', fontWeight: 'bold', fontSize: '1rem' }}>
-                Smart Learning APP
+                {companyName}
               </div>
               <div className="cert-signature-label">Issued By</div>
             </div>

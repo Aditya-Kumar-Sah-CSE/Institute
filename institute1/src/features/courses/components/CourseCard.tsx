@@ -153,7 +153,7 @@ export default function CourseCard({ course, progress, status }: CourseCardProps
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  router.push('/certificates/dummy');
+                  router.push(`/certificates/dummy?courseId=${course.id}`);
                 }}
                 title="Preview Certificate"
               >
