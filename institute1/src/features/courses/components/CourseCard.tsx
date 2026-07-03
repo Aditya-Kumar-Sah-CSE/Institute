@@ -117,18 +117,35 @@ export default function CourseCard({ course, progress, status }: CourseCardProps
               <span className="course-meta-item text-gradient">
                 ⭐ {course.total_xp} XP
               </span>
-              <span 
-                className="course-meta-item" 
-                style={{ cursor: 'pointer', color: 'var(--neon-gold)', transition: 'all 0.2s', marginLeft: 'auto', paddingLeft: '8px' }}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'center', margin: 'var(--space-md) 0' }}>
+              <div 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px', 
+                  padding: '6px 12px', 
+                  background: 'rgba(255, 215, 0, 0.1)', 
+                  border: '1px dashed rgba(255, 215, 0, 0.4)',
+                  borderRadius: 'var(--radius-full)',
+                  cursor: 'pointer',
+                  color: 'var(--neon-gold)',
+                  fontSize: '0.8rem',
+                  fontWeight: 500,
+                  transition: 'all 0.2s'
+                }}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   router.push('/certificates/dummy');
                 }}
+                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 215, 0, 0.2)'}
+                onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255, 215, 0, 0.1)'}
                 title="Preview Certificate Template"
               >
-                📜 Certificate
-              </span>
+                📜 Preview Certificate
+              </div>
             </div>
 
             {totalEnrolled > 0 && (
