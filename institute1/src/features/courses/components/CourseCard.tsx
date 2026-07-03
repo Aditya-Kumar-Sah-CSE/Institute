@@ -119,36 +119,47 @@ export default function CourseCard({ course, progress, status }: CourseCardProps
               </span>
             </div>
 
-            {totalEnrolled > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'var(--space-sm)' }}>
+              {totalEnrolled > 0 ? (
+                <div 
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsStudentsModalOpen(true);
+                  }}
+                >
+                  <div style={{ display: 'flex', marginLeft: '8px' }}>
+                    {enrolledStudents.map((student, i) => (
+                      <div key={student.user_id} style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid var(--glass-bg)', backgroundColor: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: -8, overflow: 'hidden', zIndex: 3 - i }}>
+                        {student.profiles?.avatar_url ? (
+                          <Image src={student.profiles.avatar_url} alt={student.profiles.name || 'User'} width={24} height={24} style={{ objectFit: 'cover' }} />
+                        ) : (
+                          <span style={{ fontSize: 10, color: 'var(--neon-cyan)', fontWeight: 'bold' }}>{(student.profiles?.name || 'S').charAt(0).toUpperCase()}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    {totalEnrolled} joined
+                  </span>
+                </div>
+              ) : (
+                <div />
+              )}
+
               <div 
-                style={{ display: 'flex', alignItems: 'center', marginTop: 'var(--space-sm)', gap: '8px', cursor: 'pointer' }}
+                style={{ fontSize: '0.75rem', color: 'var(--neon-gold)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(255, 215, 0, 0.1)', border: '1px dashed rgba(255, 215, 0, 0.3)', padding: '2px 8px', borderRadius: '12px' }}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  setIsStudentsModalOpen(true);
+                  router.push('/certificates/dummy');
                 }}
+                title="Preview Certificate"
               >
-                <div style={{ display: 'flex', marginLeft: '8px' }}>
-                  {enrolledStudents.map((student, i) => (
-                    <div key={student.user_id} style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid var(--glass-bg)', backgroundColor: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: -8, overflow: 'hidden', zIndex: 3 - i }}>
-                      {student.profiles?.avatar_url ? (
-                        <Image src={student.profiles.avatar_url} alt={student.profiles.name || 'User'} width={24} height={24} style={{ objectFit: 'cover' }} />
-                      ) : (
-                        <span style={{ fontSize: 10, color: 'var(--neon-cyan)', fontWeight: 'bold' }}>{(student.profiles?.name || 'S').charAt(0).toUpperCase()}</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                  {totalEnrolled} joined
-                </span>
-                {totalEnrolled > 3 && (
-                  <span style={{ fontSize: '0.75rem', color: 'var(--neon-cyan)', cursor: 'pointer', marginLeft: 'auto' }}>
-                    View all
-                  </span>
-                )}
+                📜 Preview
               </div>
-            )}
+            </div>
 
             {progress !== undefined ? (
               status === 'pending' ? (
