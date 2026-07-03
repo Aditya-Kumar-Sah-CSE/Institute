@@ -51,6 +51,13 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
 
   const completedLessonIds = new Set(lessonProgress?.map(lp => lp.lesson_id) || []);
 
+  const { data: userCertificate } = await supabase
+    .from('certificates')
+    .select('id')
+    .eq('course_id', courseId)
+    .eq('user_id', user.id)
+    .single();
+
   const adminClient = await createAdminClient();
   const { data: enrolledStudents } = await adminClient
     .from('enrollments')
@@ -81,18 +88,33 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
             <span className="text-gradient">⭐ {course.total_xp} Total XP</span>
           </div>
 
-          <Link href={`/certificates/dummy?courseId=${courseId}`} style={{ textDecoration: 'none', display: 'inline-block', marginBottom: 'var(--space-xl)' }}>
-            <div 
-              className="dummy-certificate-preview"
-              style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 16px', background: 'rgba(255, 215, 0, 0.05)', border: '1px solid rgba(255, 215, 0, 0.3)', borderRadius: 'var(--radius-md)', transition: 'all 0.2s', cursor: 'pointer' }}
-            >
-              <div style={{ fontSize: '1.5rem', filter: 'drop-shadow(0 0 5px rgba(255,215,0,0.5))' }}>📜</div>
-              <div>
-                <div style={{ color: 'var(--neon-gold)', fontWeight: 600, fontSize: '0.9rem' }}>Certificate of Completion</div>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Click to preview course certificate template</div>
+          {userCertificate ? (
+            <Link href={`/certificates/${userCertificate.id}`} style={{ textDecoration: 'none', display: 'inline-block', marginBottom: 'var(--space-xl)' }}>
+              <div 
+                className="dummy-certificate-preview hover-lift"
+                style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 16px', background: 'rgba(57, 255, 20, 0.1)', border: '1px solid var(--neon-lime)', borderRadius: 'var(--radius-md)', transition: 'all 0.2s', cursor: 'pointer' }}
+              >
+                <div style={{ fontSize: '1.5rem', filter: 'drop-shadow(0 0 5px rgba(57,255,20,0.5))' }}>🎓</div>
+                <div>
+                  <div style={{ color: 'var(--neon-lime)', fontWeight: 600, fontSize: '0.9rem' }}>View Your Certificate</div>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>You have successfully completed this course</div>
+                </div>
               </div>
-            </div>
-          </Link>
+            </Link>
+          ) : (
+            <Link href={`/certificates/dummy?courseId=${courseId}`} style={{ textDecoration: 'none', display: 'inline-block', marginBottom: 'var(--space-xl)' }}>
+              <div 
+                className="dummy-certificate-preview hover-lift"
+                style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 16px', background: 'rgba(255, 215, 0, 0.05)', border: '1px solid rgba(255, 215, 0, 0.3)', borderRadius: 'var(--radius-md)', transition: 'all 0.2s', cursor: 'pointer' }}
+              >
+                <div style={{ fontSize: '1.5rem', filter: 'drop-shadow(0 0 5px rgba(255,215,0,0.5))' }}>📜</div>
+                <div>
+                  <div style={{ color: 'var(--neon-gold)', fontWeight: 600, fontSize: '0.9rem' }}>Certificate of Completion</div>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Click to preview course certificate template</div>
+                </div>
+              </div>
+            </Link>
+          )}
 
           <div style={{ display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap', alignItems: 'flex-start' }}>
             <div className="course-action" style={{ flex: 1, minWidth: '250px' }}>

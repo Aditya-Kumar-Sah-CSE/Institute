@@ -16,19 +16,33 @@ export default async function CoursesPage() {
     .select('course_id, progress, status')
     .eq('user_id', user.id) : null;
 
-  const [coursesRes, enrollmentsRes] = await Promise.all([
+  const certificatesQuery = user ? supabase
+    .from('certificates')
+    .select('id, course_id')
+    .eq('user_id', user.id) : null;
+
+  const [coursesRes, enrollmentsRes, certificatesRes] = await Promise.all([
     coursesQuery,
-    enrollmentsQuery
+    enrollmentsQuery,
+    certificatesQuery
   ]);
 
   const courses = coursesRes.data;
   const enrollments = enrollmentsRes?.data;
+  const certificatesData = certificatesRes?.data;
 
   // Fetch user's enrollments to pass progress to catalog
   const enrollmentsMap: Record<string, { progress: number; status: string }> = {};
   if (enrollments) {
     enrollments.forEach(e => {
       enrollmentsMap[e.course_id] = { progress: e.progress, status: e.status };
+    });
+  }
+
+  const certificatesMap: Record<string, string> = {};
+  if (certificatesData) {
+    certificatesData.forEach(c => {
+      certificatesMap[c.course_id] = c.id;
     });
   }
 
@@ -42,6 +56,7 @@ export default async function CoursesPage() {
       <CourseCatalog 
         courses={courses || []} 
         enrollments={enrollmentsMap} 
+        certificatesMap={certificatesMap}
       />
     </div>
   );

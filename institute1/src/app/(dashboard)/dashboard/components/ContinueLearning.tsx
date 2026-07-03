@@ -14,9 +14,10 @@ interface DashboardEnrollment {
 
 interface ContinueLearningProps {
   enrollments: any[];
+  certificatesMap?: Record<string, string>;
 }
 
-export default function ContinueLearning({ enrollments }: ContinueLearningProps) {
+export default function ContinueLearning({ enrollments, certificatesMap }: ContinueLearningProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Filter out any enrollments where course is null
@@ -38,7 +39,7 @@ export default function ContinueLearning({ enrollments }: ContinueLearningProps)
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 'var(--space-lg)' }}>
             {displayedEnrollments.map((enr) => (
-              <CourseCard key={enr.course_id} course={enr.courses!} progress={enr.progress} status={enr.status} />
+              <CourseCard key={enr.course_id} course={enr.courses!} progress={enr.progress} status={enr.status} certificateId={certificatesMap?.[enr.course_id] || null} />
             ))}
           </div>
           {hasMore && (

@@ -18,9 +18,10 @@ interface CourseCardProps {
   course: Course;
   progress?: number; // 0 to 1
   status?: string;
+  certificateId?: string | null;
 }
 
-export default function CourseCard({ course, progress, status }: CourseCardProps) {
+export default function CourseCard({ course, progress, status, certificateId }: CourseCardProps) {
   const difficultyColor = getDifficultyColor(course.difficulty);
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
@@ -153,11 +154,15 @@ export default function CourseCard({ course, progress, status }: CourseCardProps
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  router.push(`/certificates/dummy?courseId=${course.id}`);
+                  if (certificateId) {
+                    router.push(`/certificates/${certificateId}`);
+                  } else {
+                    router.push(`/certificates/dummy?courseId=${course.id}`);
+                  }
                 }}
-                title="Preview Certificate"
+                title={certificateId ? "View Real Certificate" : "Preview Certificate"}
               >
-                📜 Certificate
+                📜 {certificateId ? 'View Certificate' : 'Certificate'}
               </div>
             </div>
 

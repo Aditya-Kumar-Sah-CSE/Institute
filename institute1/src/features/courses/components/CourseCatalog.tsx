@@ -9,9 +9,10 @@ import './CourseCatalog.css';
 interface CourseCatalogProps {
   courses: Course[];
   enrollments?: Record<string, { progress: number; status: string }>; // courseId -> { progress, status }
+  certificatesMap?: Record<string, string>;
 }
 
-export default function CourseCatalog({ courses, enrollments = {} }: CourseCatalogProps) {
+export default function CourseCatalog({ courses, enrollments = {}, certificatesMap = {} }: CourseCatalogProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [enrollmentFilter, setEnrollmentFilter] = useState<'all' | 'enrolled'>('enrolled');
   const [semesterFilter, setSemesterFilter] = useState('all'); // 'all', 'sem 1', 'sem 2', etc.
@@ -101,6 +102,7 @@ export default function CourseCatalog({ courses, enrollments = {} }: CourseCatal
               course={course} 
               progress={enrollments[course.id]?.progress} 
               status={enrollments[course.id]?.status}
+              certificateId={certificatesMap[course.id]}
             />
           ))}
         </div>

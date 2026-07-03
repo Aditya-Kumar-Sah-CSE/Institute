@@ -43,6 +43,11 @@ export default async function DashboardPage() {
     .eq('user_id', user.id)
     .eq('status', 'approved');
 
+  const certificatesPromise = supabase
+    .from('certificates')
+    .select('id, course_id')
+    .eq('user_id', user.id);
+
   const earnedBadgesPromise = supabase
     .from('user_badges')
     .select('id', { count: 'exact', head: true })
@@ -85,7 +90,8 @@ export default async function DashboardPage() {
     notices,
     { data: appData },
     { data: pollAlerts },
-    { data: dashboardPolls }
+    { data: dashboardPolls },
+    { data: certificatesData }
   ] = await Promise.all([
     profilePromise,
     enrollmentsPromise,
@@ -94,8 +100,19 @@ export default async function DashboardPage() {
     noticesPromise,
     appDataPromise,
     pollAlertsPromise,
-    dashboardPollsPromise
+    dashboardPollsPromise,
+    certificatesPromise
   ]);
+
+  const enrolledCourses = enrollments?.filter(e => e.courses).map(e => e.courses as Course) || [];
+  
+  // Create a map of course_id -> certificate_id
+  const certificatesMap: Record<string, string> = {};
+  if (certificatesData) {
+    certificatesData.forEach(c => {
+      certificatesMap[c.course_id] = c.id;
+    });
+  }
 
   return (
     <div style={{ 
@@ -180,7 +197,9 @@ export default async function DashboardPage() {
           <DashboardPolls polls={dashboardPolls} currentUserId={user.id} />
         )}
 
-        <ContinueLearning enrollments={enrollments || []} />
+        <div style={{ marginTop: 'var(--space-2xl)' }}>
+          <ContinueLearning enrollments={enrollments || []} certificatesMap={certificatesMap} />
+        </div>
 
         <div className="dashboard-bottom-row">
           <div className="dashboard-bottom-col">
