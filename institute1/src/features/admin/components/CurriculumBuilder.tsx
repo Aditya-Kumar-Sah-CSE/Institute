@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import Image from 'next/image';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -296,9 +297,11 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
           overflowY: 'auto'
         }}>
           <Card variant="glass" style={{ width: '100%', maxWidth: '600px', background: 'var(--bg-secondary)', maxHeight: '90vh', overflowY: 'auto' }}>
-            <h2 style={{ marginBottom: 'var(--space-lg)' }}>
-              {modalType === 'submission' ? 'Review Submission' : editingItem ? 'Edit ' + (modalType === 'lesson' ? 'Lesson' : 'Assignment') : 'Add ' + (modalType === 'lesson' ? 'Lesson' : 'Assignment')}
-            </h2>
+            {modalType !== 'complete_course' && (
+              <h2 style={{ marginBottom: 'var(--space-lg)' }}>
+                {modalType === 'submission' ? 'Review Submission' : editingItem ? 'Edit ' + (modalType === 'lesson' ? 'Lesson' : 'Assignment') : 'Add ' + (modalType === 'lesson' ? 'Lesson' : 'Assignment')}
+              </h2>
+            )}
             
             {modalType === 'lesson' && (
               <form onSubmit={handleLessonSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
@@ -451,10 +454,15 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
 
             {modalType === 'complete_course' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-                <h3 style={{ margin: 0, fontSize: 'var(--text-lg)', color: 'var(--neon-gold)' }}>Issue Certificate</h3>
+                <h3 style={{ margin: 0, fontSize: 'var(--text-lg)', color: 'var(--neon-gold)' }}>Course Completed</h3>
                 <p className="text-secondary" style={{ fontSize: '0.95rem', lineHeight: 1.5 }}>
                   Are you sure you want to mark this course as completed? This will lock the curriculum and generate certificates for all enrolled students. <strong>This action cannot be undone.</strong>
                 </p>
+                <div style={{ marginTop: 'var(--space-xs)' }}>
+                  <Link href={`/certificates/dummy?courseId=${course.id}`} target="_blank" style={{ color: 'var(--neon-gold)', fontSize: '0.9rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    📜 Preview Certificate Template ↗
+                  </Link>
+                </div>
                 <div style={{ display: 'flex', gap: 'var(--space-sm)', justifyContent: 'flex-end', marginTop: 'var(--space-md)' }}>
                   <Button type="button" variant="ghost" onClick={closeModal} disabled={isCompletingCourse}>Cancel</Button>
                   <Button type="button" variant="primary" onClick={executeCompleteCourse} isLoading={isCompletingCourse} style={{ background: 'var(--neon-gold)', color: '#000', borderColor: 'var(--neon-gold)' }}>Yes, Issue Certificates</Button>
