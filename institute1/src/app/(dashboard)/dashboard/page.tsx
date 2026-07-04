@@ -138,7 +138,7 @@ export default async function DashboardPage() {
         )}
         <div className="dashboard-welcome">
           <h1 className="text-gradient" style={{ fontSize: 'var(--text-4xl)', marginBottom: 'var(--space-xs)' }}>
-            Welcome back, {profile?.name.split(' ')[0]}!
+            Welcome back, {profile?.name?.split(' ')[0] || 'Student'}!
           </h1>
           <p className="text-secondary" style={{ fontSize: 'var(--text-lg)' }}>
             Ready to continue your learning journey?
