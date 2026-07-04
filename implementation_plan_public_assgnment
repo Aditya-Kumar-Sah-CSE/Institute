@@ -1,0 +1,32 @@
+# Make Assignment Submissions Public to Enrolled Students & Faculty
+
+You requested that assignment submissions be visible to all enrolled students and the respective faculty. Currently, submissions are strictly private (only the submitter and admins can see them).
+
+## Proposed Changes
+
+### 1. Database (RLS Policy Update)
+I will write a new database migration to change the security rules (Row Level Security) for the `submissions` table. The new rule will allow a submission to be viewed by:
+- The student who submitted it.
+- The faculty member who created the course.
+- Any student who has an "approved" enrollment in the course.
+- Admins.
+
+### 2. Backend Data Fetching
+In the lesson page (`src/app/(dashboard)/courses/[courseId]/[lessonId]/page.tsx`), I will update the query to fetch **all** submissions for the assignments on that page (along with the name and avatar of the student who submitted it), instead of just the current user's submission.
+
+### 3. Frontend UI (Community Submissions)
+I will update the `AssignmentCard` component (or add a new section below it) to display a "Community Submissions" list. 
+- It will show a neat list/grid of other students' submissions.
+- For "Code Snippet" submissions, it will show the code.
+- For "Live Deployment" or "GitHub" links, it will provide clickable links.
+- For "Screenshot / UI Image", it will show the images.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Privacy Note:** By making this change, students will be able to see each other's code/answers for the assignments. This is great for peer learning, but please confirm this is exactly what you want!
+
+> [!WARNING]
+> **UI Layout:** Should the community submissions be hidden inside a "View other submissions" accordion/button so it doesn't clutter the page, or should they be visible immediately below the assignment? (I plan to use a toggle button to keep the page clean).
+
+Please approve this plan so I can begin writing the database migration and updating the UI!

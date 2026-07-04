@@ -1,0 +1,55 @@
+.course-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+}
+
+.course-card-info {
+  flex: 1;
+}
+
+.course-card-actions {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .course-card {
+    flex-direction: column;
+    align-items: stretch;
+    padding: var(--space-md);
+  }
+  
+  .course-card-info {
+    width: 100%;
+    margin-bottom: var(--space-sm);
+  }
+
+  .course-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    gap: var(--space-md);
+    justify-content: space-between;
+  }
+
+  .course-card-actions > .btn-build-curriculum {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .course-card-actions > .btn-edit,
+  .course-card-actions > .btn-delete {
+    width: 48%; /* Leave slight gap for space-between */
+    justify-content: center;
+    text-align: center;
+    padding: 12px 16px !important;
+    font-size: 16px !important;
+  }
+}

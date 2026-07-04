@@ -1,0 +1,21 @@
+# Codebase Cleanup Plan
+
+I have audited the workspace and found several redundant files and one potentially dangerous API route. Here is the plan to clean up and organize the repository.
+
+## Proposed Changes
+
+### 1. Delete Dangerous/Redundant API Route
+#### [DELETE] [bootstrap/route.ts](file:///d:/TechPlatform/skillarena/src/app/api/admin/bootstrap/route.ts)
+- This file is an old `GET` API route used to bootstrap your super admin account.
+- **Security Risk:** It contains hardcoded emails and passwords. Because it's a `GET` route, anyone who discovers the URL `/api/admin/bootstrap` could potentially trigger it. Since your admin account is already set up, this file is fully redundant and should be deleted immediately.
+
+### 2. Organize Root Scripts
+The root directory (`d:\TechPlatform\skillarena`) is currently cluttered with 18 different `.js` and `.ts` files that were used for database migrations, setup, and testing (e.g., `migrate.js`, `create_bucket.js`, `trigger_badges.js`).
+
+#### [NEW] `scripts/database/`
+I will create a new folder called `scripts/database/` and move all 18 of these standalone scripts into it. 
+- This will instantly clean up your root directory.
+- It will keep your historical setup scripts safely organized in case you ever need to reference them again, without cluttering the main workspace.
+
+## User Review Required
+Please review the plan. If you are okay with deleting the old `bootstrap` API route and organizing the loose script files into a `scripts/` folder, please click **Approve**.

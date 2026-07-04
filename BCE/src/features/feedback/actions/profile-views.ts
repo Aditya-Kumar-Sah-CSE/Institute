@@ -1,0 +1,69 @@
+'use server';
+
+import { createClient } from '@/lib/supabase/server';
+import { getOrCreateProfile } from '@/lib/profile';
+
+export async function recordProfileView(viewedId: string) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) return { success: false, error: 'Unauthorized' };
+    if (user.id === viewedId) return { success: true, message: 'Self view' }; // don't notify for self view
+
+    const profile = await getOrCreateProfile(user);
+    if (!profile) return { success: false, error: 'Profile not found' };
+
+    // Admin and Faculty should be able to view student profiles secretly
+    if (profile.role === 'admin' || profile.role === 'instructor') {
+      return { success: true, message: 'Hidden view' };
+    }
+
+    // Check if we already notified this user recently to avoid spam (e.g., within the last 12 hours)
+    // We can just check the feedbacks table for a Notification from this viewer to this viewed user.
+    // Wait, the feedbacks table only has 'user_id' which is the RECEIVER in this case.
+    // The message string contains the viewer's ID. We can check if such a message exists recently.
+    const messageTemplate = `Your profile was viewed by ${profile.name}.`;
+    
+    const twelveHoursAgo = new Date();
+    twelveHoursAgo.setHours(twelveHoursAgo.getHours() - 12);
+
+    const { data: recentViews, error: selectError } = await supabase
+      .from('notifications')
+      .select('id')
+      .eq('user_id', viewedId)
+      .eq('type', 'system')
+      .ilike('message', `${messageTemplate}%`)
+      .gte('created_at', twelveHoursAgo.toISOString())
+      .limit(1);
+
+    if (selectError) {
+      console.error('Error checking recent views:', selectError);
+      return { success: false, error: 'Database error checking views' }; // Fail safe, don't spam if select fails
+    }
+
+    if (recentViews && recentViews.length > 0) {
+      return { success: true, message: 'Already notified recently' };
+    }
+
+    // Insert the notification
+    const { error: insertError } = await supabase
+      .from('notifications')
+      .insert({
+        user_id: viewedId, // The receiver
+        type: 'system',
+        message: `${messageTemplate} Click to view their profile back!`,
+        link: `/users/${user.id}`
+      });
+
+    if (insertError) {
+      console.error('Error inserting profile view notification:', insertError);
+      return { success: false, error: 'Database error' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Record profile view error:', error);
+    return { success: false, error: 'Internal server error' };
+  }
+}

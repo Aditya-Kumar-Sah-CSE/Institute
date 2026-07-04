@@ -1,0 +1,77 @@
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-normal);
+}
+
+.card-pad-sm { padding: var(--space-md); }
+.card-pad-md { padding: var(--space-lg); }
+.card-pad-lg { padding: var(--space-2xl); }
+
+/* Variants */
+.card-glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+}
+
+.card-neon.card-neon-cyan {
+  border-color: rgba(0, 240, 255, 0.2);
+}
+
+.card-neon.card-neon-magenta {
+  border-color: rgba(255, 0, 229, 0.2);
+}
+
+.card-neon.card-neon-purple {
+  border-color: rgba(177, 78, 255, 0.2);
+}
+
+.card-neon.card-neon-lime {
+  border-color: rgba(57, 255, 20, 0.2);
+}
+
+.card-neon.card-neon-gold {
+  border-color: rgba(255, 215, 0, 0.2);
+}
+
+.card-gradient {
+  background: var(--gradient-card);
+  border-color: var(--glass-border);
+}
+
+/* Hover */
+.card-hover {
+  cursor: pointer;
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-elevated);
+  border-color: var(--glass-border-hover);
+}
+
+.card-hover.card-neon-cyan:hover {
+  box-shadow: var(--glow-cyan), var(--shadow-elevated);
+  border-color: rgba(0, 240, 255, 0.4);
+}
+
+.card-hover.card-neon-magenta:hover {
+  box-shadow: var(--glow-magenta), var(--shadow-elevated);
+  border-color: rgba(255, 0, 229, 0.4);
+}
+
+.card-hover.card-neon-purple:hover {
+  box-shadow: var(--glow-purple), var(--shadow-elevated);
+  border-color: rgba(177, 78, 255, 0.4);
+}
+
+.card-hover.card-neon-lime:hover {
+  box-shadow: var(--glow-lime), var(--shadow-elevated);
+  border-color: rgba(57, 255, 20, 0.4);
+}
+
+.card-hover.card-neon-gold:hover {
+  box-shadow: var(--glow-gold), var(--shadow-elevated);
+  border-color: rgba(255, 215, 0, 0.4);
+}

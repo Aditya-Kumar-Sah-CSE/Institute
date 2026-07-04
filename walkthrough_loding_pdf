@@ -1,0 +1,24 @@
+# File Loading Optimization Walkthrough
+
+I have successfully executed the on-demand file loading strategy across the application. The system now radically defers fetching heavy media (PDFs, Images, Videos, Iframe Scripts) until they are strictly necessary, ensuring a lightning-fast initial page load.
+
+Here is a breakdown of what was implemented:
+
+## 1. Lazy Video Player
+**Before:** YouTube `iframe`s were rendered unconditionally on page load, instantly downloading megabytes of YouTube player scripts, APIs, and trackers regardless of whether the user played the video.
+**After:** Implemented the `LazyVideoPlayer` component. It renders a lightweight static image thumbnail with a play button overlay. The heavy `iframe` is only mounted into the DOM when the user explicitly clicks the play button, triggering the video to load and auto-play seamlessly.
+
+## 2. On-Demand Inline PDF Viewer
+**Before:** PDFs were handled via basic `<a target="_blank">` links, which offered poor UX and forced users to leave the app. Loading them directly would freeze the client.
+**After:** Installed `react-pdf` and built the `LazyPdfViewer` component. It renders a skeleton placeholder on the lesson page. When clicked, it dynamically fetches the `react-pdf` parser library chunks and streams the PDF document inline within the application, ensuring 0% impact on the initial JS bundle.
+
+## 3. Deferred Assignment Attachments
+**Before:** Community submissions loaded all uploaded UI screenshots and PDFs instantly, causing massive network cascades when viewing an assignment with multiple participants.
+**After:** Created the `LazyAttachment` component. It renders a simple "Load Image" or "View PDF" placeholder for all submission files. Full-resolution assets are only downloaded when the user explicitly reveals them.
+
+## 4. Service Worker Media Caching
+**Before:** The Progressive Web App (PWA) `sw.js` was only intercepting and caching basic icon `.png`s.
+**After:** Upgraded the `fetch` event listener in `sw.js`. It now actively intercepts all requests matching `/storage/v1/object/public/` (Supabase Media Storage). Once a user downloads a PDF, avatar, or assignment attachment, it is immediately written to the `Cache API`. Subsequent page loads or re-visits will serve these assets instantly from disk without hitting the network, saving immense bandwidth.
+
+> [!TIP]
+> Try visiting a course lesson. Notice how the network tab is clean on initial load, and only spikes when you interact with the video or PDF placeholders! 
