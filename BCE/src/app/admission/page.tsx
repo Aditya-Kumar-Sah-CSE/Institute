@@ -71,7 +71,7 @@ export default function AdmissionForm() {
       <div className="admission-card">
         <div className="admission-header">
           <h1>Bhagalpur College of Engineering</h1>
-          <h2>New Admission Registration Form (Batch 2026–2030)</h2>
+          <h2>New Admission Registration Form</h2>
           <p>Kindly fill all the details carefully. The information provided by you will be used for admission verification and institute records. Fields marked (*) are mandatory.</p>
         </div>
 
