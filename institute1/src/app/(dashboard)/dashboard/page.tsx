@@ -65,6 +65,8 @@ export default async function DashboardPage() {
     .limit(1)
     .maybeSingle();
 
+  const settingsPromise = supabase.from('company_settings').select('is_admission_pinned').single();
+
   // Fetch unread poll alerts
   const pollAlertsPromise = supabase
     .from('notifications')
@@ -91,7 +93,8 @@ export default async function DashboardPage() {
     { data: appData },
     { data: pollAlerts },
     { data: dashboardPolls, error: pollsError },
-    { data: certificatesData }
+    { data: certificatesData },
+    { data: settings }
   ] = await Promise.all([
     profilePromise,
     enrollmentsPromise,
@@ -101,7 +104,8 @@ export default async function DashboardPage() {
     appDataPromise,
     pollAlertsPromise,
     dashboardPollsPromise,
-    certificatesPromise
+    certificatesPromise,
+    settingsPromise
   ]);
 
   const enrolledCourses = enrollments?.filter(e => e.courses).map(e => e.courses as unknown as Course) || [];
@@ -203,7 +207,7 @@ export default async function DashboardPage() {
           <PollAlerts alerts={pollAlerts} />
         )}
 
-        {profile?.role === 'student' && !profile.admission_filled && (
+        {profile?.role === 'student' && !profile.admission_filled && settings?.is_admission_pinned && (
           <div style={{ background: 'rgba(255, 0, 0, 0.1)', border: '1px solid var(--neon-red)', padding: 'var(--space-md)', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--space-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xs)' }}>
               <strong style={{ color: 'var(--neon-red)', fontSize: 'var(--text-lg)', display: 'flex', alignItems: 'center' }}>

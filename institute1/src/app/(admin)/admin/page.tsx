@@ -5,7 +5,7 @@ import Button from '@/components/ui/Button';
 import Image from 'next/image';
 import { revalidatePath } from 'next/cache';
 import Link from 'next/link';
-import { BookOpen, FileText, Users, ExternalLink, Table } from 'lucide-react';
+import { BookOpen, FileText, Users, ExternalLink, Table, Pin, PinOff } from 'lucide-react';
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
 
@@ -49,6 +49,19 @@ export default async function AdminDashboardPage() {
         logo_url: finalLogoUrl
       }).eq('id', currentSettings.id);
       revalidatePath('/admin');
+    }
+  }
+
+  async function toggleAdmissionPin() {
+    'use server';
+    const sb = await createClient();
+    const { data: currentSettings } = await sb.from('company_settings').select('*').limit(1).single();
+    if (currentSettings) {
+      await sb.from('company_settings').update({
+        is_admission_pinned: !currentSettings.is_admission_pinned
+      }).eq('id', currentSettings.id);
+      revalidatePath('/admin');
+      revalidatePath('/dashboard');
     }
   }
 
@@ -143,9 +156,12 @@ export default async function AdminDashboardPage() {
               <Users className="w-5 h-5 text-neon-magenta" /> User Administration
             </a>
             <hr style={{ border: 'none', borderBottom: '1px solid var(--glass-border)', margin: 'var(--space-xs) 0' }} />
-            <a href="https://institute-ashen.vercel.app/admission" target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-md" style={{ justifyContent: 'flex-start', gap: '12px', background: 'rgba(0, 242, 254, 0.1)', border: '1px solid var(--neon-cyan)', color: 'var(--neon-cyan)' }}>
-              <ExternalLink className="w-5 h-5" /> Pin Admission form to student dashboard
-            </a>
+            <form action={toggleAdmissionPin} style={{ width: '100%', display: 'flex' }}>
+              <button type="submit" className="btn btn-secondary btn-md" style={{ width: '100%', justifyContent: 'flex-start', gap: '12px', background: settings?.is_admission_pinned ? 'rgba(255, 0, 0, 0.1)' : 'rgba(0, 242, 254, 0.1)', border: settings?.is_admission_pinned ? '1px solid var(--neon-red)' : '1px solid var(--neon-cyan)', color: settings?.is_admission_pinned ? 'var(--neon-red)' : 'var(--neon-cyan)', cursor: 'pointer' }}>
+                {settings?.is_admission_pinned ? <PinOff className="w-5 h-5" /> : <Pin className="w-5 h-5" />}
+                {settings?.is_admission_pinned ? "Unpin Admission form from Dashboards" : "Pin Admission form to Dashboards"}
+              </button>
+            </form>
             <a href="https://docs.google.com/spreadsheets/d/1tyjANcp-NPEzQk1qKJGKirsqKpqe3iPSmdkovjcy6bc/edit?usp=sharing" target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-md" style={{ justifyContent: 'flex-start', gap: '12px', background: 'rgba(57, 255, 20, 0.1)', border: '1px solid var(--neon-lime)', color: 'var(--neon-lime)' }}>
               <Table className="w-5 h-5" /> View Admission Responses
             </a>

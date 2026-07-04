@@ -165,6 +165,7 @@ export interface CompanySettings {
   logo_url: string | null;
   tagline: string | null;
   updated_at: string;
+  is_admission_pinned?: boolean;
 }
 
 // Leaderboard entry

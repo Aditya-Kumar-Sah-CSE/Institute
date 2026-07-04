@@ -1,0 +1,13 @@
+# Admission Alert Board Completed
+
+The student dashboard is now synced up accurately with the custom Admission Form logic.
+
+1. **Dashboard Alert Visibility:** Added a mandatory warning section that sits prominently on top of the Active Polls inside `/dashboard`. It only displays for accounts marked with the `'student'` role.
+2. **Database Control Loop:** Created a database migration to insert a new `admission_filled` boolean securely into your `profiles` schema natively. By default, every student sees the banner on login!
+3. **Automatic Disappearance:** After a student navigates to `/admission` and Submits, the Next.js API instantly updates the Supabase student profile natively to `{ admission_filled: true }`. The dashboard banner is permanently removed for that particular user!
+
+## Recent Enhancements (Admin & Dynamic Binding)
+
+1. **Dynamic College Identity:** Refactored the `/admission` portal to automatically load your exact College Name and Logo URL from the `company_settings` database! No hardcoded institution names.
+2. **Institute1 Integration:** The entire admission form module, student dashboard banner logic, and CSS have been natively ported identically inside your `institute1` codebase!
+3. **Admin Dashboard Shortcuts:** The `BCE` and `institute1` server-side Admin `<Dashboard />` pages now feature two beautifully styled glowing standard-icon Quick Action buttons! They flawlessly hyperlink directly to the frontend `/admission` web portal, as well as the external Google Spreadsheet response hub.
