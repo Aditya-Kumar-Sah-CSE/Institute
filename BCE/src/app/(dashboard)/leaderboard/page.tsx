@@ -4,6 +4,8 @@ import CourseFilter from '@/features/leaderboard/components/CourseFilter';
 import FacultySection from '@/features/courses/components/FacultySection';
 import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 import type { LeaderboardEntry, LevelName } from '@/types';
+import Card from '@/components/ui/Card';
+import { User } from 'lucide-react';
 
 export default async function LeaderboardPage({
   searchParams
@@ -42,7 +44,7 @@ export default async function LeaderboardPage({
 
   const facultyQuery = supabase
     .from('profiles')
-    .select('id, name, avatar_url, role, institute_id')
+    .select('id, name, avatar_url, role, institute_id, email')
     .in('role', ['instructor', 'admin'])
     .order('name', { ascending: true });
 
@@ -53,8 +55,10 @@ export default async function LeaderboardPage({
     facultyQuery
   ]);
 
-  const faculty = (facultyRes.data || []).filter(
-    fac => fac.name?.toLowerCase() !== 'iambestadi'
+  const rawAdmins = facultyRes.data || [];
+  const developer = rawAdmins.find(fac => fac.email === 'iambestadi@gmail.com');
+  const faculty = rawAdmins.filter(
+    fac => fac.email !== 'iambestadi@gmail.com' && fac.email !== SUPER_ADMIN_EMAIL
   );
 
   const courses = coursesRes.data;
@@ -109,7 +113,32 @@ export default async function LeaderboardPage({
         <p className="text-secondary">Compete on institute-wide and batch-specific leaderboards and earn your spot on the leaderboard.</p>
       </div>
 
-      <FacultySection faculty={faculty} />
+      {developer && (
+        <div style={{ marginBottom: 'var(--space-md)' }}>
+          <h2 style={{ fontSize: 'var(--text-2xl)', margin: 0, marginBottom: 'var(--space-lg)' }}>Meet Developer</h2>
+          <a href="https://portfolio-two-ashen-zseywond41.vercel.app/" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+            <Card variant="glass" padding="md" className="hover-lift" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', textAlign: 'left', gap: 'var(--space-md)', width: '100%', maxWidth: '350px' }}>
+              <div style={{ position: 'relative', width: 64, height: 64, borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--glass-border)', flexShrink: 0 }}>
+                {developer.avatar_url ? (
+                  <img src={developer.avatar_url} alt={developer.name || 'Developer'} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                ) : (
+                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', background: 'var(--bg-elevated)', color: 'var(--neon-cyan)' }}>
+                    <User size={24} opacity={0.5} />
+                  </div>
+                )}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1, minWidth: 0 }}>
+                <h3 style={{ fontSize: 'var(--text-lg)', margin: 0, color: 'var(--text-primary)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{developer.name || 'Aditya Kumar Sah'}</h3>
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--neon-cyan)', textTransform: 'capitalize', marginTop: '2px' }}>
+                  Full Stack Developer
+                </p>
+              </div>
+            </Card>
+          </a>
+        </div>
+      )}
+
+      {faculty.length > 0 && <FacultySection faculty={faculty} />}
 
       <div className="leaderboard-filters" style={{ display: 'flex', gap: 'var(--space-md)' }}>
         <CourseFilter courses={courses || []} currentFilter={filter} />

@@ -28,7 +28,7 @@ export default function FacultySection({ faculty }: FacultySectionProps) {
   return (
     <div style={{ marginBottom: 'var(--space-2xl)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
-        <h2 style={{ fontSize: 'var(--text-2xl)', margin: 0 }}>Meet Developer</h2>
+        <h2 style={{ fontSize: 'var(--text-2xl)', margin: 0 }}>Meet Your Faculty</h2>
         {faculty.length > 2 && (
           <button 
             onClick={() => setShowAll(!showAll)}
