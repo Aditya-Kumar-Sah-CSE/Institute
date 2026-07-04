@@ -32,7 +32,7 @@ export default async function DashboardPage() {
   // Fetch enrollments with course details
   const enrollmentsPromise = supabase
     .from('enrollments')
-    .select('progress, status, course_id, courses(id, title, thumbnail_url, description, difficulty, total_xp, is_published, profiles:created_by(name))')
+    .select('progress, status, course_id, courses(id, title, thumbnail_url, description, difficulty, total_xp, is_published)')
     .eq('user_id', user.id)
     .order('enrolled_at', { ascending: false });
 
@@ -84,13 +84,13 @@ export default async function DashboardPage() {
 
   const [
     { data: profile },
-    { data: enrollments },
+    { data: enrollments, error: enrollmentsError },
     { count: completedAssignments },
     { count: earnedBadges },
     notices,
     { data: appData },
     { data: pollAlerts },
-    { data: dashboardPolls },
+    { data: dashboardPolls, error: pollsError },
     { data: certificatesData }
   ] = await Promise.all([
     profilePromise,
@@ -122,6 +122,16 @@ export default async function DashboardPage() {
     }}>
       {/* Use media queries from global.css or inline for 2 cols on desktop if desired, but we can just use flex for safety */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2xl)' }}>
+        {(enrollmentsError || pollsError) && (
+           <div style={{ padding: '1rem', background: 'rgba(255, 0, 0, 0.2)', border: '1px solid red', borderRadius: '8px', color: '#ffcccc' }}>
+             <h3>Debug Error Info (Live Only)</h3>
+             <pre style={{ whiteSpace: 'pre-wrap' }}>
+               Enrollments Error: {JSON.stringify(enrollmentsError, null, 2)}
+               {'\n'}
+               Polls Error: {JSON.stringify(pollsError, null, 2)}
+             </pre>
+           </div>
+        )}
         <div className="dashboard-welcome">
           <h1 className="text-gradient" style={{ fontSize: 'var(--text-4xl)', marginBottom: 'var(--space-xs)' }}>
             Welcome back, {profile?.name.split(' ')[0]}!
