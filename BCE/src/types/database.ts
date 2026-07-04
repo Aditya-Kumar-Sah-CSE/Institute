@@ -24,6 +24,7 @@ export interface Profile {
   graduation_period?: string | null;
   cgpa?: number | null;
   sgpa?: Record<string, number> | null;
+  admission_filled?: boolean;
 }
 
 export interface InstructorApplication {
