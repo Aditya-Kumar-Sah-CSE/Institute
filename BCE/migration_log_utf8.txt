@@ -1,0 +1,814 @@
+﻿Applying migration: 001_create_tables.sql...
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42710',
+  message: 'extension "uuid-ossp" already exists, skipping',
+  file: 'extension.c',
+  line: '1791',
+  routine: 'CreateExtension'
+}
+node : Γ¥î Failed applying 001_create_tables.sql: relation "profiles" already exists
+At line:1 char:1
++ node run-migration.js > migration_log.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Γ¥î Failed appl... already exists:String) [], RemoteE 
+   xception
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Applying migration: 002_rls_policies.sql...
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '00000',
+  message: 'policy "Users view own submissions" for relation "submissions" does not exist, skipping',
+  file: 'dropcmds.c',
+  line: '523',
+  routine: 'does_not_exist_skipping'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '00000',
+  message: 'policy "Users manage own enrollments" for relation "enrollments" does not exist, skipping',
+  file: 'dropcmds.c',
+  line: '523',
+  routine: 'does_not_exist_skipping'
+}
+Γ£à Successfully applied 002_rls_policies.sql
+Applying migration: 003_seed_data.sql...
+Γ£à Successfully applied 003_seed_data.sql
+Applying migration: 005_course_stats_triggers.sql...
+Γ£à Successfully applied 005_course_stats_triggers.sql
+Applying migration: 006_instructor_role.sql...
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42701',
+  message: 'column "status" of relation "profiles" already exists, skipping',
+  file: 'tablecmds.c',
+  line: '7471',
+  routine: 'check_for_column_name_collision'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "instructor_applications" already exists, skipping',
+  file: 'parse_utilcmd.c',
+  line: '207',
+  routine: 'transformCreateStmt'
+}
+Γ£à Successfully applied 006_instructor_role.sql
+Applying migration: 007_enrollment_approval.sql...
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42701',
+  message: 'column "status" of relation "enrollments" already exists, skipping',
+  file: 'tablecmds.c',
+  line: '7471',
+  routine: 'check_for_column_name_collision'
+}
+Γ£à Successfully applied 007_enrollment_approval.sql
+Applying migration: 008_feedbacks.sql...
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "feedbacks" already exists, skipping',
+  file: 'parse_utilcmd.c',
+  line: '207',
+  routine: 'transformCreateStmt'
+}
+Γ¥î Failed applying 008_feedbacks.sql: policy "Anyone can insert feedbacks" for table "feedbacks" 
+already exists
+Applying migration: 009_feedback_replies.sql...
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42701',
+  message: 'column "admin_reply" of relation "feedbacks" already exists, skipping',
+  file: 'tablecmds.c',
+  line: '7471',
+  routine: 'check_for_column_name_collision'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42701',
+  message: 'column "replied_at" of relation "feedbacks" already exists, skipping',
+  file: 'tablecmds.c',
+  line: '7471',
+  routine: 'check_for_column_name_collision'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '00000',
+  message: 'policy "Authenticated users can view feedbacks" for relation "public.feedbacks" does not exist, skipping',
+  file: 'dropcmds.c',
+  line: '523',
+  routine: 'does_not_exist_skipping'
+}
+Γ¥î Failed applying 009_feedback_replies.sql: policy "Users can view their own feedbacks" for 
+table "feedbacks" already exists
+Applying migration: 010_notices.sql...
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "notices" already exists, skipping',
+  file: 'parse_utilcmd.c',
+  line: '207',
+  routine: 'transformCreateStmt'
+}
+Γ¥î Failed applying 010_notices.sql: policy "Anyone can view notices" for table "notices" already 
+exists
+Applying migration: 011_prune_old_data.sql...
+Γ£à Successfully applied 011_prune_old_data.sql
+Applying migration: 012_security_triggers.sql...
+Γ£à Successfully applied 012_security_triggers.sql
+Applying migration: 013_performance_indexes.sql...
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_lessons_course_id" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_assignments_lesson_id" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_submissions_user_id" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_submissions_assignment_id" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_submissions_status" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_enrollments_user_id" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_lesson_progress_user_id" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_xp_log_user_id" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+Γ£à Successfully applied 013_performance_indexes.sql
+Applying migration: 014_instructor_builder_rls.sql...
+Γ£à Successfully applied 014_instructor_builder_rls.sql
+Applying migration: 015_add_week_to_lessons.sql...
+Γ¥î Failed applying 015_add_week_to_lessons.sql: column "week_number" of relation "lessons" 
+already exists
+Applying migration: 016_instructor_course_select.sql...
+Γ£à Successfully applied 016_instructor_course_select.sql
+Applying migration: 017_add_is_deleted_to_courses.sql...
+Γ¥î Failed applying 017_add_is_deleted_to_courses.sql: column "is_deleted" of relation "courses" 
+already exists
+Applying migration: 018_instructor_submissions_rls.sql...
+Γ£à Successfully applied 018_instructor_submissions_rls.sql
+Applying migration: 019_create_branding_bucket.sql...
+Γ¥î Failed applying 019_create_branding_bucket.sql: policy "Public Access" for table "objects" 
+already exists
+Applying migration: 020_add_institute_id.sql...
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42701',
+  message: 'column "institute_id" of relation "profiles" already exists, skipping',
+  file: 'tablecmds.c',
+  line: '7471',
+  routine: 'check_for_column_name_collision'
+}
+Γ£à Successfully applied 020_add_institute_id.sql
+Applying migration: 021_lesson_pdf_notes.sql...
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42701',
+  message: 'column "pdf_url" of relation "lessons" already exists, skipping',
+  file: 'tablecmds.c',
+  line: '7471',
+  routine: 'check_for_column_name_collision'
+}
+Γ¥î Failed applying 021_lesson_pdf_notes.sql: policy "Public Access to lesson_notes" for table 
+"objects" already exists
+Applying migration: 022_add_notice_images.sql...
+Γ¥î Failed applying 022_add_notice_images.sql: column "image_url" of relation "notices" already 
+exists
+Applying migration: 023_additional_indexes.sql...
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_enrollments_course_id" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_enrollments_status" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_enrollments_user_course_status" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_courses_created_by" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_profiles_role" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_feedbacks_user_id" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_feedbacks_category" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_lesson_progress_lesson_id" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_xp_log_source_type" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_instructor_applications_user_id" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_notices_author_id" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+Γ£à Successfully applied 023_additional_indexes.sql
+Applying migration: 024_add_instructor_id.sql...
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42701',
+  message: 'column "instructor_id" of relation "profiles" already exists, skipping',
+  file: 'tablecmds.c',
+  line: '7471',
+  routine: 'check_for_column_name_collision'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42701',
+  message: 'column "instructor_id" of relation "instructor_applications" already exists, skipping',
+  file: 'tablecmds.c',
+  line: '7471',
+  routine: 'check_for_column_name_collision'
+}
+Γ£à Successfully applied 024_add_instructor_id.sql
+Applying migration: 025_realistic_badges.sql...
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42701',
+  message: 'column "total_active_days" of relation "profiles" already exists, skipping',
+  file: 'tablecmds.c',
+  line: '7471',
+  routine: 'check_for_column_name_collision'
+}
+Γ£à Successfully applied 025_realistic_badges.sql
+Applying migration: 026_assignment_badges.sql...
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42701',
+  message: 'column "is_seen" of relation "user_badges" already exists, skipping',
+  file: 'tablecmds.c',
+  line: '7471',
+  routine: 'check_for_column_name_collision'
+}
+Γ£à Successfully applied 026_assignment_badges.sql
+Applying migration: 027_faculty_badges.sql...
+Γ¥î Failed applying 027_faculty_badges.sql: column "bonus_xp" of relation "badges" does not exist
+Applying migration: 028_monthly_rewards.sql...
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "monthly_rewards" already exists, skipping',
+  file: 'parse_utilcmd.c',
+  line: '207',
+  routine: 'transformCreateStmt'
+}
+Γ¥î Failed applying 028_monthly_rewards.sql: policy "Users view own monthly rewards" for table 
+"monthly_rewards" already exists
+Applying migration: 029_social_links.sql...
+Γ¥î Failed applying 029_social_links.sql: column "bonus_xp" of relation "badges" does not exist
+Applying migration: 030_student_academic_info.sql...
+Γ¥î Failed applying 030_student_academic_info.sql: column "graduation_period" of relation 
+"profiles" already exists
+Applying migration: 031_doubts_system.sql...
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "doubts" already exists, skipping',
+  file: 'parse_utilcmd.c',
+  line: '207',
+  routine: 'transformCreateStmt'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "doubt_replies" already exists, skipping',
+  file: 'parse_utilcmd.c',
+  line: '207',
+  routine: 'transformCreateStmt'
+}
+Γ¥î Failed applying 031_doubts_system.sql: policy "Users can view doubts in their batch or all if 
+admin/instructor" for table "doubts" already exists
+Applying migration: 032_doubts_lesson_link.sql...
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42701',
+  message: 'column "course_id" of relation "doubts" already exists, skipping',
+  file: 'tablecmds.c',
+  line: '7471',
+  routine: 'check_for_column_name_collision'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42701',
+  message: 'column "lesson_id" of relation "doubts" already exists, skipping',
+  file: 'tablecmds.c',
+  line: '7471',
+  routine: 'check_for_column_name_collision'
+}
+Γ£à Successfully applied 032_doubts_lesson_link.sql
+Applying migration: 033_reload_schema.sql...
+Γ£à Successfully applied 033_reload_schema.sql
+Applying migration: 034_advanced_doubts.sql...
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42701',
+  message: 'column "parent_id" of relation "doubt_replies" already exists, skipping',
+  file: 'tablecmds.c',
+  line: '7471',
+  routine: 'check_for_column_name_collision'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42701',
+  message: 'column "is_official" of relation "doubt_replies" already exists, skipping',
+  file: 'tablecmds.c',
+  line: '7471',
+  routine: 'check_for_column_name_collision'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42701',
+  message: 'column "is_pinned" of relation "doubt_replies" already exists, skipping',
+  file: 'tablecmds.c',
+  line: '7471',
+  routine: 'check_for_column_name_collision'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42701',
+  message: 'column "upvotes_count" of relation "doubt_replies" already exists, skipping',
+  file: 'tablecmds.c',
+  line: '7471',
+  routine: 'check_for_column_name_collision'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "doubt_views" already exists, skipping',
+  file: 'parse_utilcmd.c',
+  line: '207',
+  routine: 'transformCreateStmt'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "reply_votes" already exists, skipping',
+  file: 'parse_utilcmd.c',
+  line: '207',
+  routine: 'transformCreateStmt'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "doubt_tags" already exists, skipping',
+  file: 'parse_utilcmd.c',
+  line: '207',
+  routine: 'transformCreateStmt'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "notifications" already exists, skipping',
+  file: 'parse_utilcmd.c',
+  line: '207',
+  routine: 'transformCreateStmt'
+}
+Γ¥î Failed applying 034_advanced_doubts.sql: policy "Users can view views for doubts they can 
+access" for table "doubt_views" already exists
+Applying migration: 035_reload_schema_again.sql...
+Γ£à Successfully applied 035_reload_schema_again.sql
+Applying migration: 036_fix_doubt_foreign_keys.sql...
+Γ£à Successfully applied 036_fix_doubt_foreign_keys.sql
+Applying migration: 037_doubts_media_bucket.sql...
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42622',
+  message: 'identifier "Authenticated users can update their own uploads in doubts_media" will be truncated to "Authenticated users can update their own uploads in doubts_medi"',
+  file: 'scansup.c',
+  line: '99',
+  routine: 'truncate_identifier'
+}
+Γ¥î Failed applying 037_doubts_media_bucket.sql: policy "Public Access to doubts_media" for table 
+"objects" already exists
+Applying migration: 038_add_grad_to_handle_new_user.sql...
+Γ£à Successfully applied 038_add_grad_to_handle_new_user.sql
+Applying migration: 040_optimize_database.sql...
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_doubts_user_id" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_doubts_batch_created_at" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_doubts_course_lesson" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_doubts_open" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_doubt_replies_doubt_id" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_doubt_replies_user_id" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_doubt_replies_parent_id" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_doubt_views_user_id" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_reply_votes_user_id" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_notifications_user_created" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_notifications_unread" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_lessons_course_week" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "idx_enrollments_user_course" already exists, skipping',
+  file: 'index.c',
+  line: '889',
+  routine: 'index_create'
+}
+Γ£à Successfully applied 040_optimize_database.sql
+Applying migration: 041_doubt_likes.sql...
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "doubt_likes" already exists, skipping',
+  file: 'parse_utilcmd.c',
+  line: '207',
+  routine: 'transformCreateStmt'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42701',
+  message: 'column "likes_count" of relation "doubts" already exists, skipping',
+  file: 'tablecmds.c',
+  line: '7471',
+  routine: 'check_for_column_name_collision'
+}
+Γ¥î Failed applying 041_doubt_likes.sql: policy "Users can view likes for doubts they can access" 
+for table "doubt_likes" already exists
+Applying migration: 042_enable_realtime_xp.sql...
+Γ¥î Failed applying 042_enable_realtime_xp.sql: relation "xp_log" is already member of publication 
+"supabase_realtime"
+Applying migration: 043_fix_monthly_rewards.sql...
+Γ£à Successfully applied 043_fix_monthly_rewards.sql
+Applying migration: 044_fix_monthly_rewards_global.sql...
+Γ£à Successfully applied 044_fix_monthly_rewards_global.sql
+Applying migration: 045_fix_monthly_rewards_date.sql...
+Γ£à Successfully applied 045_fix_monthly_rewards_date.sql
+Applying migration: 046_notification_triggers.sql...
+Γ£à Successfully applied 046_notification_triggers.sql
+Applying migration: 047_migrate_feedbacks_to_notifications.sql...
+Γ£à Successfully applied 047_migrate_feedbacks_to_notifications.sql
+Applying migration: 048_fix_doubt_likes_trigger.sql...
+Γ£à Successfully applied 048_fix_doubt_likes_trigger.sql
+Applying migration: 049_course_polls.sql...
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "course_polls" already exists, skipping',
+  file: 'parse_utilcmd.c',
+  line: '207',
+  routine: 'transformCreateStmt'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "course_poll_options" already exists, skipping',
+  file: 'parse_utilcmd.c',
+  line: '207',
+  routine: 'transformCreateStmt'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "course_poll_votes" already exists, skipping',
+  file: 'parse_utilcmd.c',
+  line: '207',
+  routine: 'transformCreateStmt'
+}
+Γ¥î Failed applying 049_course_polls.sql: policy "Course participants can view polls" for table 
+"course_polls" already exists
+Applying migration: 050_course_specific_doubts.sql...
+Γ£à Successfully applied 050_course_specific_doubts.sql
+Applying migration: 051_course_enrollment_restriction.sql...
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42701',
+  message: 'column "enrollment_restriction" of relation "courses" already exists, skipping',
+  file: 'tablecmds.c',
+  line: '7471',
+  routine: 'check_for_column_name_collision'
+}
+Γ£à Successfully applied 051_course_enrollment_restriction.sql
+Applying migration: 052_feedback_screenshots.sql...
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42701',
+  message: 'column "image_url" of relation "feedbacks" already exists, skipping',
+  file: 'tablecmds.c',
+  line: '7471',
+  routine: 'check_for_column_name_collision'
+}
+Γ¥î Failed applying 052_feedback_screenshots.sql: policy "Anyone can upload feedback images" for 
+table "objects" already exists
+Applying migration: 053_faculty_professional_details.sql...
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42701',
+  message: 'column "professional_details" of relation "profiles" already exists, skipping',
+  file: 'tablecmds.c',
+  line: '7471',
+  routine: 'check_for_column_name_collision'
+}
+Γ£à Successfully applied 053_faculty_professional_details.sql
+Applying migration: 054_rename_github_to_linkedin.sql...
+Γ¥î Failed applying 054_rename_github_to_linkedin.sql: column "github_username" does not exist
+Applying migration: 055_fix_notifications.sql...
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '00000',
+  message: 'trigger "trigger_notify_on_new_course_poll" for relation "public.course_polls" does not exist, skipping',
+  file: 'dropcmds.c',
+  line: '523',
+  routine: 'does_not_exist_skipping'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '00000',
+  message: 'function notify_on_new_course_poll() does not exist, skipping',
+  file: 'dropcmds.c',
+  line: '523',
+  routine: 'does_not_exist_skipping'
+}
+Γ£à Successfully applied 055_fix_notifications.sql
+Applying migration: 056_enable_realtime_notifications.sql...
+Γ¥î Failed applying 056_enable_realtime_notifications.sql: relation "notifications" is already 
+member of publication "supabase_realtime"
+Applying migration: 057_public_submissions.sql...
+Γ£à Successfully applied 057_public_submissions.sql
+Applying migration: 058_certificates_system.sql...
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42701',
+  message: 'column "is_completed" of relation "courses" already exists, skipping',
+  file: 'tablecmds.c',
+  line: '7471',
+  routine: 'check_for_column_name_collision'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "certificates" already exists, skipping',
+  file: 'parse_utilcmd.c',
+  line: '207',
+  routine: 'transformCreateStmt'
+}
+Γ¥î Failed applying 058_certificates_system.sql: policy "Users can view their own certificates" 
+for table "certificates" already exists
+All migrations finished!

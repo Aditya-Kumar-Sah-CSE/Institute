@@ -1,1 +1,0 @@
-ALTER TABLE lessons ADD COLUMN week_number INTEGER DEFAULT 1;

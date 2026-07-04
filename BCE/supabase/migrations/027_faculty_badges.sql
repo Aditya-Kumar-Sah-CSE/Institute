@@ -1,4 +1,6 @@
 -- Faculty Badges for Course (Batch) Creation
+ALTER TABLE badges ADD COLUMN IF NOT EXISTS bonus_xp INTEGER DEFAULT 0;
+
 INSERT INTO badges (name, icon, description, condition_type, condition_value, bonus_xp) VALUES
 ('First Batch', '🌱', 'Created your 1st course/batch', 'courses_created', 1, 100),
 ('Growing Mentor', '🌟', 'Created your 5th course/batch', 'courses_created', 5, 250),
