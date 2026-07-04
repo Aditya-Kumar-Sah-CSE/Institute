@@ -32,7 +32,7 @@ export default async function DashboardPage() {
   // Fetch enrollments with course details
   const enrollmentsPromise = supabase
     .from('enrollments')
-    .select('progress, status, course_id, courses(id, title, thumbnail_url, description, difficulty, total_xp, is_completed, is_published, profiles(name))')
+    .select('progress, status, course_id, courses(id, title, thumbnail_url, description, difficulty, total_xp, is_published, profiles:created_by(name))')
     .eq('user_id', user.id)
     .order('enrolled_at', { ascending: false });
 
@@ -104,7 +104,7 @@ export default async function DashboardPage() {
     certificatesPromise
   ]);
 
-  const enrolledCourses = enrollments?.filter(e => e.courses).map(e => e.courses as Course) || [];
+  const enrolledCourses = enrollments?.filter(e => e.courses).map(e => e.courses as unknown as Course) || [];
   
   // Create a map of course_id -> certificate_id
   const certificatesMap: Record<string, string> = {};
