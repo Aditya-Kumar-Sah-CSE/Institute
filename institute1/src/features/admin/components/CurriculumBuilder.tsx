@@ -350,7 +350,8 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                     { value: 'code', label: 'Code Snippet' },
                     { value: 'github', label: 'GitHub Repository Link' },
                     { value: 'deploy', label: 'Live Deployment URL' },
-                    { value: 'ui', label: 'Screenshot / UI Image' }
+                    { value: 'ui', label: 'Screenshot / UI Image' },
+                    { value: 'any', label: 'Any (All inputs enabled)' }
                   ]}
                 />
                 <Input name="xp_reward" type="number" label="XP Reward upon approval" defaultValue={editingItem?.xp_reward || 50} required />

@@ -177,7 +177,7 @@ export default async function LessonPage({ params }: { params: Promise<{ courseI
     let answer = formData.get('answer') as string || '';
     const github_link = formData.get('githubUrl') as string || null;
     const deploy_link = formData.get('deployUrl') as string || null;
-    if (assign.type === 'ui') {
+    if (assign.type === 'ui' || assign.type === 'any') {
       const ui_files = formData.getAll('ui_files');
       const uploadedUrls: string[] = [];
       
@@ -213,6 +213,9 @@ export default async function LessonPage({ params }: { params: Promise<{ courseI
     }
     if (assign.type === 'code' && !answer) {
       throw new Error('Code answer cannot be empty.');
+    }
+    if (assign.type === 'any' && !answer && !github_link && !deploy_link) {
+      throw new Error('You must provide at least one answer, GitHub link, Deploy link, or file upload.');
     }
 
     const { error, data: insertedSub } = await sb.from('submissions').upsert({

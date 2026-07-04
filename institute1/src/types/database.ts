@@ -4,7 +4,7 @@
 
 export type UserRole = 'student' | 'admin' | 'instructor';
 export type Difficulty = 'sem 1' | 'sem 2' | 'sem 3' | 'sem 4' | 'sem 5' | 'sem 6' | 'sem 7' | 'sem 8';
-export type AssignmentType = 'mcq' | 'code' | 'ui' | 'github' | 'deploy';
+export type AssignmentType = 'mcq' | 'code' | 'ui' | 'github' | 'deploy' | 'any';
 export type SubmissionStatus = 'pending' | 'approved' | 'rejected';
 export type LevelName = 'Beginner' | 'Novice' | 'Intermediate' | 'Advanced' | 'Expert' | 'Master' | 'Grandmaster' | 'Legend' | 'Mythic';
 

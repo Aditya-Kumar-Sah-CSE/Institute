@@ -69,7 +69,7 @@ export default function AssignmentCard({ assignment, submission, communitySubmis
       {!isCompleted && (
         <form action={actionHandler} className="assignment-form">
           
-          {assignment.type === 'code' && (
+          {(assignment.type === 'code' || assignment.type === 'any') && (
              <TextArea
                name="answer"
                label="Your Answer / Code Snippet"
@@ -81,7 +81,7 @@ export default function AssignmentCard({ assignment, submission, communitySubmis
              />
           )}
 
-          {(assignment.type === 'github' || assignment.requires_github) && (
+          {(assignment.type === 'github' || assignment.requires_github || assignment.type === 'any') && (
             <Input
               name="githubUrl"
               label="GitHub Repository URL (Optional)"
@@ -94,7 +94,7 @@ export default function AssignmentCard({ assignment, submission, communitySubmis
             />
           )}
 
-          {(assignment.type === 'deploy' || assignment.requires_deploy) && (
+          {(assignment.type === 'deploy' || assignment.requires_deploy || assignment.type === 'any') && (
             <Input
               name="deployUrl"
               label="Live Deployment URL (Optional)"
@@ -107,7 +107,7 @@ export default function AssignmentCard({ assignment, submission, communitySubmis
             />
           )}
 
-          {assignment.type === 'ui' && (
+          {(assignment.type === 'ui' || assignment.type === 'any') && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
               <label style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>UI Screenshots / PDFs</label>
               
@@ -142,7 +142,7 @@ export default function AssignmentCard({ assignment, submission, communitySubmis
                     name="ui_files" 
                     accept="image/*,application/pdf" 
                     multiple
-                    required={!answer}
+                    required={!answer && assignment.type !== 'any'}
                     disabled={isPending}
                     style={{ padding: 'var(--space-sm)', background: 'var(--bg-input)', color: 'white', borderRadius: 'var(--radius-sm)', border: '1px solid var(--glass-border)', width: '100%' }}
                   />
