@@ -5,7 +5,7 @@ import Button from '@/components/ui/Button';
 import Image from 'next/image';
 import { revalidatePath } from 'next/cache';
 import Link from 'next/link';
-import { BookOpen, FileText, Users } from 'lucide-react';
+import { BookOpen, FileText, Users, ExternalLink, Table } from 'lucide-react';
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
 
@@ -141,6 +141,13 @@ export default async function AdminDashboardPage() {
             </a>
             <a href="/admin/students" className="btn btn-secondary btn-md" style={{ justifyContent: 'flex-start', gap: '12px' }}>
               <Users className="w-5 h-5 text-neon-magenta" /> User Administration
+            </a>
+            <hr style={{ border: 'none', borderBottom: '1px solid var(--glass-border)', margin: 'var(--space-xs) 0' }} />
+            <a href="https://institute-ashen.vercel.app/admission" target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-md" style={{ justifyContent: 'flex-start', gap: '12px', background: 'rgba(0, 242, 254, 0.1)', border: '1px solid var(--neon-cyan)', color: 'var(--neon-cyan)' }}>
+              <ExternalLink className="w-5 h-5" /> Pin Admission form to student dashboard
+            </a>
+            <a href="https://docs.google.com/spreadsheets/d/1tyjANcp-NPEzQk1qKJGKirsqKpqe3iPSmdkovjcy6bc/edit?usp=sharing" target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-md" style={{ justifyContent: 'flex-start', gap: '12px', background: 'rgba(57, 255, 20, 0.1)', border: '1px solid var(--neon-lime)', color: 'var(--neon-lime)' }}>
+              <Table className="w-5 h-5" /> View Admission Responses
             </a>
           </div>
         </Card>
