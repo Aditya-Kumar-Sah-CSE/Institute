@@ -27,7 +27,7 @@ export default async function DashboardPage() {
 
   if (!user) return null;
 
-  const profilePromise = supabase.from('profiles').select('id, name, xp, streak_days, last_active_at, role').eq('id', user.id).single();
+  const profilePromise = supabase.from('profiles').select('id, name, xp, streak_days, last_active_at, role, admission_filled').eq('id', user.id).single();
   
   // Fetch enrollments with course details
   const enrollmentsPromise = supabase
@@ -201,6 +201,21 @@ export default async function DashboardPage() {
 
         {pollAlerts && pollAlerts.length > 0 && (
           <PollAlerts alerts={pollAlerts} />
+        )}
+
+        {profile?.role === 'student' && !profile.admission_filled && (
+          <div style={{ background: 'rgba(255, 0, 0, 0.1)', border: '1px solid var(--neon-red)', padding: 'var(--space-md)', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--space-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xs)' }}>
+              <strong style={{ color: 'var(--neon-red)', fontSize: 'var(--text-lg)', display: 'flex', alignItems: 'center' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                Mandatory Action Required
+              </strong>
+            </div>
+            <p style={{ color: 'var(--text-primary)', margin: 0 }}>You have not completed your Admission Registration Form yet. This is mandatory for all students.</p>
+            <a href="/admission" style={{ display: 'inline-block', alignSelf: 'flex-start', background: 'var(--neon-red)', color: 'white', padding: '10px 16px', borderRadius: '4px', textDecoration: 'none', fontWeight: 'bold', marginTop: 'var(--space-xs)' }}>
+              Fill Admission Form Now
+            </a>
+          </div>
         )}
 
         {dashboardPolls && dashboardPolls.length > 0 && (
