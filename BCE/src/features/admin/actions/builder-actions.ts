@@ -86,6 +86,26 @@ export async function addLesson(courseId: string, formData: FormData) {
 
   if (error) return { error: error.message };
 
+  // Notify enrolled students
+  const { data: enrollments } = await supabase
+    .from('enrollments')
+    .select('user_id')
+    .eq('course_id', courseId)
+    .eq('status', 'approved');
+
+  if (enrollments && enrollments.length > 0) {
+    const { data: course } = await supabase.from('courses').select('title').eq('id', courseId).single();
+    if (course) {
+      const notifications = enrollments.map(e => ({
+        user_id: e.user_id,
+        type: 'notice',
+        message: `New Lesson Unlocked: "${title}" in course ${course.title}`,
+        link: `/courses/${courseId}`
+      }));
+      await supabase.from('notifications').insert(notifications);
+    }
+  }
+
   revalidatePath(`/admin/courses/${courseId}/builder`);
   revalidatePath(`/instructor/courses/${courseId}/builder`);
   return { success: true };
@@ -174,6 +194,26 @@ export async function addAssignment(lessonId: string, courseId: string, formData
   });
 
   if (error) return { error: error.message };
+
+  // Notify enrolled students
+  const { data: enrollments } = await supabase
+    .from('enrollments')
+    .select('user_id')
+    .eq('course_id', courseId)
+    .eq('status', 'approved');
+
+  if (enrollments && enrollments.length > 0) {
+    const { data: course } = await supabase.from('courses').select('title').eq('id', courseId).single();
+    if (course) {
+      const notifications = enrollments.map(e => ({
+        user_id: e.user_id,
+        type: 'notice',
+        message: `New Assignment Added: "${title}" in course ${course.title}`,
+        link: `/courses/${courseId}`
+      }));
+      await supabase.from('notifications').insert(notifications);
+    }
+  }
 
   revalidatePath(`/admin/courses/${courseId}/builder`);
   revalidatePath(`/instructor/courses/${courseId}/builder`);

@@ -96,6 +96,33 @@ export default function DashboardProfileCard({ profile, appData }: DashboardProf
         alignItems: 'center'
       }}>
         <h2 style={{ fontSize: 'var(--text-2xl)', marginBottom: '4px' }}>{profile.name}</h2>
+        <div style={{
+          display: 'inline-block',
+          padding: '2px 10px',
+          borderRadius: '12px',
+          fontSize: '11px',
+          fontWeight: 'bold',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px',
+          marginBottom: 'var(--space-md)',
+          background: profile.role === 'admin' 
+            ? (profile.email === 'iambestadi@gmail.com' ? 'rgba(255, 42, 133, 0.1)' : 'rgba(255, 215, 0, 0.1)')
+            : profile.role === 'instructor' 
+              ? 'rgba(176, 38, 255, 0.1)' 
+              : 'rgba(0, 240, 255, 0.1)',
+          color: profile.role === 'admin'
+            ? (profile.email === 'iambestadi@gmail.com' ? 'var(--neon-pink)' : 'var(--neon-gold)')
+            : profile.role === 'instructor'
+              ? 'var(--neon-purple)'
+              : 'var(--neon-cyan)',
+          border: '1px solid currentColor'
+        }}>
+          {profile.role === 'admin' 
+            ? (profile.email === 'iambestadi@gmail.com' ? 'Developer' : 'Admin')
+            : profile.role === 'instructor' 
+              ? 'Faculty' 
+              : 'Student'}
+        </div>
         {profile.email && (
           <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 'var(--space-md)' }}>
             {profile.email}

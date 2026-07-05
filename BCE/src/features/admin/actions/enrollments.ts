@@ -67,7 +67,7 @@ export async function adminRejectEnrollment(enrollmentId: string) {
   
   const { data: enrollment } = await supabase
     .from('enrollments')
-    .select('course_id')
+    .select('user_id, course_id, courses(title)')
     .eq('id', enrollmentId)
     .single();
 
@@ -75,6 +75,16 @@ export async function adminRejectEnrollment(enrollmentId: string) {
     .from('enrollments')
     .update({ status: 'rejected' })
     .eq('id', enrollmentId);
+
+  if (!error && enrollment) {
+    const courseTitle = Array.isArray(enrollment.courses) ? enrollment.courses[0]?.title : (enrollment.courses as { title: string } | null)?.title || 'the course';
+    await supabase.from('notifications').insert({
+      user_id: enrollment.user_id,
+      type: 'system',
+      message: `Your enrollment in ${courseTitle} has been rejected.`,
+      link: `/catalog`
+    });
+  }
 
   if (error) return { error: error.message };
 

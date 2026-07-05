@@ -22,11 +22,27 @@ export async function reviewSubmissionAction(formData: FormData) {
     // Check for any new badges earned from this submission or XP gain
     const { checkBadges } = await import('@/features/gamification/actions/gamification');
     await checkBadges(sub.user_id);
+
+    // Notify the student
+    await sb.from('notifications').insert({
+      user_id: sub.user_id,
+      type: 'notice',
+      message: `Your assignment "${sub.assignments.title}" has been approved! Earned ${sub.assignments.xp_reward} XP.`,
+      link: '/dashboard'
+    });
   } else {
     await sb.from('submissions').update({
       status: 'rejected',
       feedback
     }).eq('id', submissionId);
+
+    // Notify the student
+    await sb.from('notifications').insert({
+      user_id: sub.user_id,
+      type: 'notice',
+      message: `Your assignment "${sub.assignments.title}" was returned. Instructor Feedback: ${feedback}`,
+      link: '/dashboard'
+    });
   }
   
   revalidatePath('/admin/submissions');

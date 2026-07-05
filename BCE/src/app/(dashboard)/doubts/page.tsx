@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import Card from '@/components/ui/Card';
+import HubDoubtCard from '@/app/(dashboard)/batch/[batchId]/doubts/components/HubDoubtCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,26 +16,118 @@ export default async function DoubtsRedirectPage() {
   if (!profile) return <div>Profile not found.</div>;
 
   if (profile.role === 'admin' || profile.role === 'instructor') {
-    // For faculty, redirect to a default batch or a faculty hub (for now just redirect to their profile to select a batch)
-    // You could create a faculty dashboard for all doubts later.
+    // 1. Get courses taught by this user that are active (not closed)
+    const { data: teachingCourses } = await supabase
+      .from('courses')
+      .select('id')
+      .or(`instructor_id.eq.${user.id},created_by.eq.${user.id}`)
+      .eq('is_deleted', false)
+      .eq('is_published', true);
+      
+    const courseIds = teachingCourses?.map(c => c.id) || [];
+
+    let doubtsQuery = supabase
+      .from('doubts')
+      .select(`
+        *, 
+        author:profiles(name, avatar_url, role), 
+        course:courses(id, title), 
+        lesson:lessons(id, title),
+        view_count:doubt_views(count),
+        replies:doubt_replies(count)
+      `)
+      .order('created_at', { ascending: false })
+      .limit(30);
+
+    // Apply filter: If they teach courses, only show those doubts.
+    // If they have 0 courses (even if admin), show none as requested.
+    if (courseIds.length > 0) {
+      doubtsQuery = doubtsQuery.in('course_id', courseIds);
+    } else {
+      doubtsQuery = doubtsQuery.eq('id', '00000000-0000-0000-0000-000000000000'); // Force empty
+    }
+
+    const { data: doubts, error } = await doubtsQuery;
+
     return (
-      <div style={{ padding: 'var(--space-xl)', textAlign: 'center' }}>
-        <h2>Faculty Doubts View</h2>
-        <p>Please navigate to a specific batch or lesson to view doubts.</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
+        <div>
+          <h1 style={{ fontSize: 'var(--text-3xl)', margin: 0, background: 'linear-gradient(45deg, var(--neon-blue), var(--neon-purple))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            Faculty Doubts Hub
+          </h1>
+          <p className="text-secondary" style={{ marginTop: 'var(--space-2xs)' }}>
+             Review and resolve doubts from the courses you teach.
+          </p>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+          {doubts && doubts.length > 0 ? (
+            doubts.map((doubt: any) => (
+              <HubDoubtCard key={doubt.id} doubt={doubt} batchId={doubt.batch || 'global'} />
+            ))
+          ) : (
+            <Card variant="glass" style={{ textAlign: 'center', padding: 'var(--space-2xl)' }}>
+              <span style={{ fontSize: '3rem', display: 'block', marginBottom: 'var(--space-md)' }}>✨</span>
+              <h3 style={{ color: 'var(--text-primary)' }}>No active doubts</h3>
+              <p className="text-secondary">Everything is perfectly clear right now!</p>
+            </Card>
+          )}
+        </div>
       </div>
     );
   }
 
-  if (!profile.graduation_period) {
-    return (
-      <div style={{ padding: 'var(--space-xl)', textAlign: 'center' }}>
-        <h2 style={{ color: 'var(--neon-gold)' }}>Batch Not Assigned</h2>
-        <p className="text-secondary" style={{ marginTop: 'var(--space-md)' }}>
-          You need to have a batch (graduation period) set to access the doubts forum.
+  // For students
+  const { data: enrollments } = await supabase
+    .from('enrollments')
+    .select('course_id')
+    .eq('user_id', user.id);
+
+  const enrolledCourseIds = enrollments?.map(e => e.course_id) || [];
+
+  let studentDoubtsQuery = supabase
+    .from('doubts')
+    .select(`
+      *, 
+      author:profiles(name, avatar_url, role), 
+      course:courses(id, title), 
+      lesson:lessons(id, title),
+      view_count:doubt_views(count),
+      replies:doubt_replies(count)
+    `)
+    .order('created_at', { ascending: false })
+    .limit(30);
+
+  if (enrolledCourseIds.length > 0) {
+    studentDoubtsQuery = studentDoubtsQuery.in('course_id', enrolledCourseIds);
+  } else {
+    studentDoubtsQuery = studentDoubtsQuery.eq('id', '00000000-0000-0000-0000-000000000000');
+  }
+
+  const { data: studentDoubts } = await studentDoubtsQuery;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
+      <div>
+        <h1 style={{ fontSize: 'var(--text-3xl)', margin: 0, background: 'linear-gradient(45deg, var(--neon-blue), var(--neon-purple))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          My Doubts Hub
+        </h1>
+        <p className="text-secondary" style={{ marginTop: 'var(--space-2xs)' }}>
+           Recent doubts and discussions from your enrolled courses.
         </p>
       </div>
-    );
-  }
-
-  redirect(`/batch/${profile.graduation_period}/doubts`);
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+        {studentDoubts && studentDoubts.length > 0 ? (
+          studentDoubts.map((doubt: any) => (
+            <HubDoubtCard key={doubt.id} doubt={doubt} batchId={doubt.batch || 'global'} />
+          ))
+        ) : (
+          <Card variant="glass" style={{ textAlign: 'center', padding: 'var(--space-2xl)' }}>
+            <span style={{ fontSize: '3rem', display: 'block', marginBottom: 'var(--space-md)' }}>📝</span>
+            <h3 style={{ color: 'var(--text-primary)' }}>No active doubts</h3>
+            <p className="text-secondary">It's quiet in your courses right now.</p>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
 }

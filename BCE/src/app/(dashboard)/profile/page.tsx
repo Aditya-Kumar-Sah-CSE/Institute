@@ -42,7 +42,7 @@ export default async function ProfilePage() {
     const { data: certData } = await supabase.from('certificates').select('*, courses(title)').eq('user_id', user.id).order('issued_at', { ascending: false });
     certificates = certData;
   } else {
-    const { data } = await adminSb.from('courses').select('id, title').eq('instructor_id', user.id);
+    const { data } = await adminSb.from('courses').select('id, title').or(`instructor_id.eq.${user.id},created_by.eq.${user.id}`);
     teachingCourses = data;
   }
   
@@ -72,12 +72,7 @@ export default async function ProfilePage() {
           <p className="profile-email">{profile.email}</p>
           {profile.institute_id && (
             <p className="profile-email" style={{ marginTop: 'var(--space-xs)', fontSize: 'var(--text-sm)' }}>
-              Roll No / Reg. No: <span style={{ color: 'var(--text-primary)', fontWeight: 'var(--weight-semibold)' }}>{profile.institute_id}</span>
-            </p>
-          )}
-          {profile.instructor_id && (
-            <p className="profile-email" style={{ marginTop: 'var(--space-xs)', fontSize: 'var(--text-sm)' }}>
-              Instructor ID: <span style={{ color: 'var(--text-primary)', fontWeight: 'var(--weight-semibold)' }}>{profile.instructor_id}</span>
+              Institute ID: <span style={{ color: 'var(--text-primary)', fontWeight: 'var(--weight-semibold)' }}>{profile.institute_id}</span>
             </p>
           )}
           
@@ -224,7 +219,7 @@ export default async function ProfilePage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-muted">You have not created any courses yet.</p>
+                <p className="text-muted">You are not instructing or managing any courses yet.</p>
               )}
             </Card>
           </div>

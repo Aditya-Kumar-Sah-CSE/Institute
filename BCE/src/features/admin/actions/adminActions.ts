@@ -143,6 +143,13 @@ export async function makeAdmin(userId: string) {
       return { error: error.message };
     }
 
+    await supabaseUser.from('notifications').insert({
+      user_id: userId,
+      type: 'system',
+      message: 'Your account has been upgraded to Administrator.',
+      link: '/dashboard'
+    });
+
     revalidatePath('/admin/students');
     return { success: true };
   } catch (err) {
@@ -191,6 +198,13 @@ export async function makeFaculty(userId: string) {
     if (error) {
       return { error: error.message };
     }
+
+    await supabaseUser.from('notifications').insert({
+      user_id: userId,
+      type: 'system',
+      message: 'Your account has been updated to Faculty permissions.',
+      link: '/dashboard'
+    });
 
     revalidatePath('/admin/students');
     return { success: true };
@@ -246,6 +260,13 @@ export async function makeStudent(userId: string) {
       .update({ status: 'rejected' })
       .eq('user_id', userId)
       .in('status', ['pending', 'approved']);
+
+    await supabaseUser.from('notifications').insert({
+      user_id: userId,
+      type: 'system',
+      message: 'Your account has been reverted to Student status.',
+      link: '/dashboard'
+    });
 
     revalidatePath('/admin/students');
     return { success: true };

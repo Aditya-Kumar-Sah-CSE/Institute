@@ -9,6 +9,7 @@ import ConfirmModal from '@/components/ui/ConfirmModal';
 import AskDoubtModal from '@/features/doubts/components/AskDoubtModal';
 import { deleteDoubt } from '@/features/doubts/actions/doubts';
 import { Trash2 } from 'lucide-react';
+import DoubtLikeButton from '@/features/doubts/components/DoubtLikeButton';
 
 interface CourseDoubtsClientProps {
   courseId: string;
@@ -97,9 +98,20 @@ export default function CourseDoubtsClient({ courseId, initialDoubts, currentUse
                   <span suppressHydrationWarning style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
                     Asked by {doubt.author?.name || 'Unknown'} • {new Date(doubt.created_at).toLocaleDateString()}
                   </span>
-                  <div style={{ display: 'flex', gap: 'var(--space-xs)' }}>
-                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>👁️ {doubt.view_count?.[0]?.count || 0}</span>
-                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>💬 {doubt.replies?.[0]?.count || 0}</span>
+                  <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+                    <div style={{ zIndex: 2, position: 'relative' }}>
+                      <DoubtLikeButton 
+                        doubtId={doubt.id} 
+                        initialLikes={doubt.likes_count || 0} 
+                        hasLiked={!!doubt.has_liked} 
+                      />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', height: '32px', padding: '0 12px', borderRadius: '16px', fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: '14px', transform: 'translateY(-1px)' }}>👁️</span> {doubt.view_count?.[0]?.count || 0}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.2)', height: '32px', padding: '0 12px', borderRadius: '16px', fontSize: '13px', fontWeight: 600, color: '#22c55e', whiteSpace: 'nowrap' }}>
+                      Answer ({doubt.replies?.[0]?.count || 0})
+                    </div>
                   </div>
                 </div>
               </Card>

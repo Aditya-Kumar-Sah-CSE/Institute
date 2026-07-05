@@ -106,6 +106,24 @@ export default async function BatchDoubtsPage({
     console.error('Batch Doubts fetch error:', error);
   }
 
+  let userLikes = new Set<string>();
+  if (doubts && doubts.length > 0) {
+    const doubtIds = doubts.map(d => d.id);
+    const { data: likesData } = await supabase
+      .from('doubt_likes')
+      .select('doubt_id')
+      .eq('user_id', user.id)
+      .in('doubt_id', doubtIds);
+      
+    if (likesData) {
+      likesData.forEach(l => userLikes.add(l.doubt_id));
+    }
+    
+    doubts.forEach(d => {
+      d.has_liked = userLikes.has(d.id);
+    });
+  }
+
   const filterOptions = [
     { id: 'all', label: 'Recent' },
     { id: 'unanswered', label: 'Unanswered' },

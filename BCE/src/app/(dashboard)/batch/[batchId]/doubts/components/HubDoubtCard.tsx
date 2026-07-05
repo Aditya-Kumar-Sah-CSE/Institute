@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { User } from 'lucide-react';
+import DoubtLikeButton from '@/features/doubts/components/DoubtLikeButton';
 
 interface HubDoubtCardProps {
   doubt: any;
@@ -12,7 +13,7 @@ export default function HubDoubtCard({ doubt, batchId }: HubDoubtCardProps) {
   const isResolved = doubt.status === 'resolved';
   
   return (
-    <Link href={doubt.lesson_id ? `/courses/${doubt.course_id}/${doubt.lesson_id}/doubt/${doubt.id}` : `/batch/${batchId}/doubts`} style={{ textDecoration: 'none', color: 'inherit' }}>
+    <Link href={doubt.lesson_id ? `/courses/${doubt.course_id}/${doubt.lesson_id}/doubt/${doubt.id}` : `/doubts/${doubt.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
       <div 
         className="glass-card hover-lift" 
         style={{ 
@@ -81,17 +82,21 @@ export default function HubDoubtCard({ doubt, batchId }: HubDoubtCardProps) {
             </span>
           </div>
 
-          <div style={{ display: 'flex', gap: 'var(--space-md)', fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '16px' }}>👍</span> {doubt.likes_count || 0}
-            </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '16px' }}>👁️</span> {doubt.view_count?.[0]?.count || 0}
-            </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '16px' }}>💬</span> {doubt.replies?.[0]?.count || 0}
-            </span>
-            <span suppressHydrationWarning style={{ display: 'flex', alignItems: 'center', fontSize: 'var(--text-xs)' }}>
+          <div style={{ display: 'flex', gap: 'var(--space-sm)', fontSize: 'var(--text-sm)', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+            <div style={{ zIndex: 2, position: 'relative' }}>
+              <DoubtLikeButton 
+                doubtId={doubt.id} 
+                initialLikes={doubt.likes_count || 0} 
+                hasLiked={!!doubt.has_liked} 
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', height: '32px', padding: '0 12px', borderRadius: '16px', fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '14px', transform: 'translateY(-1px)' }}>👁️</span> {doubt.view_count?.[0]?.count || 0}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.2)', height: '32px', padding: '0 12px', borderRadius: '16px', fontSize: '13px', fontWeight: 600, color: '#22c55e', whiteSpace: 'nowrap' }}>
+              Answer ({doubt.replies?.[0]?.count || 0})
+            </div>
+            <span suppressHydrationWarning style={{ display: 'flex', alignItems: 'center', fontSize: 'var(--text-xs)', marginLeft: 'var(--space-xs)' }}>
               {formatDistanceToNow(new Date(doubt.created_at), { addSuffix: true })}
             </span>
           </div>

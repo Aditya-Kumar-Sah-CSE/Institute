@@ -39,7 +39,7 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
   }
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar view-${currentView}`}>
       <div className="sidebar-header">
         <Link href={isAdmin ? '/admin' : '/dashboard'} className="sidebar-logo">
           <span className="sidebar-logo-icon text-neon-cyan">{getIcon('Building', { className: 'w-6 h-6' })}</span>
