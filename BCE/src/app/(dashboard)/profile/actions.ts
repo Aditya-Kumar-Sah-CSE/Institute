@@ -34,3 +34,26 @@ export async function updateBasicProfile(formData: FormData) {
   revalidatePath('/profile');
   return { success: true };
 }
+
+export async function fetchMoreActivityLogs(userId: string, offset: number, limit = 5) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user || user.id !== userId) {
+    throw new Error('Unauthorized');
+  }
+
+  const { data, error } = await supabase
+    .from('xp_log')
+    .select('id, action, xp_amount, created_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) {
+    console.error('Error fetching activity logs:', error);
+    return [];
+  }
+
+  return data;
+}

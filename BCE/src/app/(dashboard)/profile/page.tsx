@@ -16,6 +16,7 @@ import BasicInfoEdit from './components/BasicInfoEdit';
 import ShareProfileButton from '@/components/shared/ShareProfileButton';
 import EnrolledCoursesList from '@/components/shared/EnrolledCoursesList';
 import { getPastMonthlyRewards } from '@/features/gamification/actions/monthly-rewards';
+import RecentActivity from './components/RecentActivity';
 import './Profile.css';
 export const dynamic = 'force-dynamic';
 
@@ -25,31 +26,44 @@ export default async function ProfilePage() {
 
   if (!user) redirect('/login');
 
-  const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-  const { data: allBadges } = await supabase.from('badges').select('*').order('created_at', { ascending: true });
-  const { data: earnedBadges } = await supabase.from('user_badges').select('*, badge:badges(*)').eq('user_id', user.id);
-  const { data: xpLogs } = await supabase.from('xp_log').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10);
-  const { data: companySettings } = await supabase.from('company_settings').select('company_name').single();
   const adminSb = await createAdminClient();
+
+  const [
+    { data: profile },
+    { data: allBadges },
+    { data: earnedBadges },
+    { data: xpLogs },
+    { data: companySettings },
+    { data: appData },
+    monthlyRewards
+  ] = await Promise.all([
+    supabase.from('profiles').select('*').eq('id', user.id).single(),
+    supabase.from('badges').select('*').order('created_at', { ascending: true }),
+    supabase.from('user_badges').select('*, badge:badges(*)').eq('user_id', user.id),
+    supabase.from('xp_log').select('id, action, xp_amount, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5),
+    supabase.from('company_settings').select('company_name').single(),
+    adminSb.from('instructor_applications').select('status').eq('user_id', user.id).order('submitted_at', { ascending: false }).limit(1).maybeSingle(),
+    getPastMonthlyRewards(user.id)
+  ]);
   
   let enrollments = null;
   let teachingCourses = null;
   let certificates = null;
-  if (profile.role === 'student') {
-    const { data } = await supabase.from('enrollments').select('*, course:courses(title, thumbnail_url)').eq('user_id', user.id);
-    enrollments = data;
-    
-    const { data: certData } = await supabase.from('certificates').select('*, courses(title)').eq('user_id', user.id).order('issued_at', { ascending: false });
+
+  if (profile?.role === 'student') {
+    const [
+      { data: enrollmentsData },
+      { data: certData }
+    ] = await Promise.all([
+      supabase.from('enrollments').select('*, course:courses(title, thumbnail_url)').eq('user_id', user.id),
+      supabase.from('certificates').select('*, courses(title)').eq('user_id', user.id).order('issued_at', { ascending: false })
+    ]);
+    enrollments = enrollmentsData;
     certificates = certData;
-  } else {
+  } else if (profile) {
     const { data } = await adminSb.from('courses').select('id, title').or(`instructor_id.eq.${user.id},created_by.eq.${user.id}`);
     teachingCourses = data;
   }
-  
-  const { data: appData, error: appError } = await adminSb.from('instructor_applications').select('status').eq('user_id', user.id).order('submitted_at', { ascending: false }).limit(1).maybeSingle();
-
-  // Fetch monthly rewards
-  const monthlyRewards = await getPastMonthlyRewards(user.id);
   // Sort descending by month_date
   const latestReward = monthlyRewards.length > 0 ? monthlyRewards.sort((a, b) => new Date(b.month_date).getTime() - new Date(a.month_date).getTime())[0] : null;
 
@@ -256,18 +270,7 @@ export default async function ProfilePage() {
           {profile.role === 'student' && (
             <Card variant="glass" className="profile-section">
               <h2 className="section-title-sm">Recent Activity</h2>
-              {xpLogs && xpLogs.length > 0 ? (
-                <ul className="activity-list">
-                  {xpLogs.map(log => (
-                    <li key={log.id} className="activity-item">
-                      <span className="activity-action">{log.action}</span>
-                      <span className="activity-xp text-gradient">+{log.xp_amount} XP</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-muted">No recent activity.</p>
-              )}
+              <RecentActivity logs={xpLogs || []} userId={user.id} />
             </Card>
           )}
         </div>
