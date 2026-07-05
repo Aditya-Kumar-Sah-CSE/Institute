@@ -376,3 +376,48 @@ export async function updateProfessionalInfo(
 
   return { success: true };
 }
+
+export async function uploadAvatarToServer(formData: FormData) {
+  const supabaseAdmin = await createAdminClient();
+  const supabase = await createClient();
+  
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Unauthorized' };
+
+  const file = formData.get('file') as File;
+  if (!file) return { error: 'No file provided' };
+
+  const fileExt = file.name.split('.').pop();
+  const filePath = `${user.id}/avatar_${Date.now()}.${fileExt}`;
+
+  // Upload to Supabase Storage as Admin (bypasses RLS)
+  const { error: uploadError } = await supabaseAdmin.storage
+    .from('avatars')
+    .upload(filePath, file, { upsert: true });
+
+  if (uploadError) return { error: uploadError.message };
+
+  // Get Public URL
+  const { data: { publicUrl } } = supabaseAdmin.storage
+    .from('avatars')
+    .getPublicUrl(filePath);
+
+  // Clean up old avatar
+  const { data: profile } = await supabaseAdmin.from('profiles').select('avatar_url').eq('id', user.id).single();
+  if (profile?.avatar_url && profile.avatar_url !== publicUrl) {
+    const match = profile.avatar_url.match(/\/object\/public\/avatars\/(.+)$/);
+    if (match) {
+      await supabaseAdmin.storage.from('avatars').remove([match[1]]);
+    }
+  }
+
+  // Update Profile
+  const { error: dbError } = await supabaseAdmin
+    .from('profiles')
+    .update({ avatar_url: publicUrl })
+    .eq('id', user.id);
+
+  if (dbError) return { error: dbError.message };
+
+  return { success: true, publicUrl };
+}

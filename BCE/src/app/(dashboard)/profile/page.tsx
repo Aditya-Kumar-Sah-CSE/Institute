@@ -14,6 +14,7 @@ import ProfessionalInfoConnect from './components/ProfessionalInfoConnect';
 import CrownBanner from './components/CrownBanner';
 import BasicInfoEdit from './components/BasicInfoEdit';
 import ShareProfileButton from '@/components/shared/ShareProfileButton';
+import EnrolledCoursesList from '@/components/shared/EnrolledCoursesList';
 import { getPastMonthlyRewards } from '@/features/gamification/actions/monthly-rewards';
 import './Profile.css';
 export const dynamic = 'force-dynamic';
@@ -164,26 +165,7 @@ export default async function ProfilePage() {
 
             <Card variant="glass" className="profile-section">
               <h2 className="section-title-sm">Enrolled Courses</h2>
-              {enrollments && enrollments.length > 0 ? (
-                <div className="enrollments-list">
-                  {enrollments.map((enr: any) => (
-                    <div key={enr.id} className="enrollment-item">
-                      <div className="enrollment-icon">🎓</div>
-                      <div className="enrollment-details">
-                        <h4>{enr.course?.title}</h4>
-                        <div className="enrollment-progress">
-                          <div className="progress-bar-small">
-                            <div className="progress-fill-small" style={{ width: `${Math.round(enr.progress * 100)}%` }} />
-                          </div>
-                          <span className="progress-text">{Math.round(enr.progress * 100)}%</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-muted">No courses enrolled yet.</p>
-              )}
+              <EnrolledCoursesList enrollments={enrollments || []} />
             </Card>
 
             <Card variant="glass" className="profile-section">

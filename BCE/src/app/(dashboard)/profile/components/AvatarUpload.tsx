@@ -2,11 +2,11 @@
 
 import React, { useRef, useState } from 'react';
 import Image from 'next/image';
-import { createClient } from '@/lib/supabase/client';
-import { updateAvatarUrl } from '@/features/auth/actions/auth';
+import { updateAvatarUrl, uploadAvatarToServer } from '@/features/auth/actions/auth';
 import { useRouter } from 'next/navigation';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
+import UserAvatar from '@/components/shared/UserAvatar';
 import { User } from 'lucide-react';
 
 interface AvatarUploadProps {
@@ -42,26 +42,11 @@ export default function AvatarUpload({ userId, currentAvatarUrl, name }: AvatarU
       setIsUploading(true);
       setError(null);
       setIsPreviewOpen(false); // Close preview if open
-      const supabase = createClient();
-      const fileExt = file.name.split('.').pop();
-      const filePath = `${userId}/avatar_${Date.now()}.${fileExt}`;
-
-      // Upload image to storage
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) {
-        throw uploadError;
-      }
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-
-      // Update profile
-      const result = await updateAvatarUrl(userId, publicUrl);
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const result = await uploadAvatarToServer(formData);
       
       if (result.error) {
         throw new Error(result.error);
@@ -130,15 +115,7 @@ export default function AvatarUpload({ userId, currentAvatarUrl, name }: AvatarU
           
           {currentAvatarUrl ? (
             <div style={{ position: 'relative', width: '100%', height: '100%', opacity: isUploading ? 0.5 : 1 }}>
-              <Image 
-                src={currentAvatarUrl} 
-                alt={name} 
-                fill
-                sizes="120px"
-                style={{ objectFit: 'cover' }}
-                priority
-                unoptimized={true}
-              />
+              <UserAvatar url={currentAvatarUrl} name={name} size={120} />
             </div>
           ) : (
             <span className={`profile-avatar-fallback`} style={{ opacity: isUploading ? 0.5 : 1 }}>
@@ -168,14 +145,7 @@ export default function AvatarUpload({ userId, currentAvatarUrl, name }: AvatarU
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-xl)' }}>
           {currentAvatarUrl && (
             <div style={{ position: 'relative', width: '280px', height: '280px', borderRadius: '50%', overflow: 'hidden', border: '4px solid var(--neon-cyan)', boxShadow: 'var(--glow-cyan-strong)' }}>
-              <Image 
-                src={currentAvatarUrl} 
-                alt={name} 
-                fill
-                sizes="280px"
-                style={{ objectFit: 'cover' }}
-                unoptimized={true}
-              />
+               <UserAvatar url={currentAvatarUrl} name={name} size={280} />
             </div>
           )}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)', width: '100%' }}>
