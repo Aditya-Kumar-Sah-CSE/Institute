@@ -7,6 +7,8 @@ import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import ImageUploadButton from '@/components/ui/ImageUploadButton';
 import { replyToDoubt, markReplyAsAccepted, toggleReplyVote, recordDoubtView, toggleDoubtLike } from '@/features/doubts/actions/doubts';
 
+const DEFAULT_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%231a1a2e'/%3E%3Cpath d='M50 55a20 20 0 100-40 20 20 0 000 40zm-30 35a30 30 0 0160 0' fill='%234a4a6a'/%3E%3C/svg%3E";
+
 export default function DiscussionThread({ doubt, replies, currentUser }: any) {
   const [replyText, setReplyText] = useState('');
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
@@ -74,7 +76,7 @@ export default function DiscussionThread({ doubt, replies, currentUser }: any) {
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-sm)' }}>
           <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'flex-start' }}>
-            <img src={reply.author?.avatar_url || '/default-avatar.png'} alt="avatar" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1px solid var(--glass-border)' }} />
+            <img src={reply.author?.avatar_url || DEFAULT_AVATAR} alt="avatar" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1px solid var(--glass-border)' }} onError={(e) => { e.currentTarget.src = DEFAULT_AVATAR; }} />
             <div>
               <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {reply.author?.name} 
@@ -132,7 +134,7 @@ export default function DiscussionThread({ doubt, replies, currentUser }: any) {
             />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <ImageUploadButton onUpload={(markdown) => {
-                setReplyText((prev) => prev + (prev ? '\\n\\n' : '') + markdown);
+                setReplyText((prev) => prev + (prev ? '\n\n' : '') + markdown);
               }} />
               <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
                 <Button onClick={() => handleSubmit(reply.id)} isLoading={isSubmitting}>Submit</Button>
@@ -154,7 +156,7 @@ export default function DiscussionThread({ doubt, replies, currentUser }: any) {
         <h1 style={{ fontSize: 'var(--text-2xl)', marginBottom: 'var(--space-md)', color: 'var(--text-primary)' }}>{doubt.title}</h1>
         
         <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'flex-start', marginBottom: 'var(--space-lg)', paddingBottom: 'var(--space-md)', borderBottom: '1px solid rgba(255,255,255,0.1)', flexWrap: 'wrap' }}>
-          <img src={doubt.author?.avatar_url || '/default-avatar.png'} alt="avatar" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid var(--neon-cyan)' }} />
+          <img src={doubt.author?.avatar_url || DEFAULT_AVATAR} alt="avatar" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid var(--neon-cyan)' }} onError={(e) => { e.currentTarget.src = DEFAULT_AVATAR; }} />
           <div>
             <div style={{ fontWeight: 'bold' }}>{doubt.author?.name}</div>
             <div suppressHydrationWarning style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
@@ -223,7 +225,7 @@ export default function DiscussionThread({ doubt, replies, currentUser }: any) {
           />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <ImageUploadButton onUpload={(markdown) => {
-              setReplyText((prev) => prev + (prev ? '\\n\\n' : '') + markdown);
+              setReplyText((prev) => prev + (prev ? '\n\n' : '') + markdown);
             }} />
             <Button onClick={() => handleSubmit()} isLoading={isSubmitting}>Post Reply</Button>
           </div>

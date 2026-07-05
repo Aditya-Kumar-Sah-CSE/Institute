@@ -14,27 +14,55 @@ export default async function CertificatePage({ params }: { params: Promise<{ id
     redirect('/login');
   }
 
-  // Fetch certificate
-  const { data: cert, error } = await supabase
-    .from('certificates')
-    .select('*, courses(title, created_by), profiles!certificates_user_id_fkey(name, role)')
-    .eq('id', id)
-    .single();
-
-  if (error || !cert) {
-    notFound();
-  }
-
-  // Verify access: Owner, Admin, or Course Instructor
   const { data: currentUserProfile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('name, role')
     .eq('id', user.id)
     .single();
 
-  const isOwner = cert.user_id === user.id;
-  const isAdmin = currentUserProfile?.role === 'admin';
-  const isInstructor = currentUserProfile?.role === 'instructor' && cert.courses?.created_by === user.id;
+  let cert;
+  let isOwner = false;
+  let isAdmin = false;
+  let isInstructor = false;
+
+  if (id === 'dummy') {
+    cert = {
+      id: 'dummy',
+      user_id: user.id,
+      issued_at: new Date().toISOString(),
+      institute_id: 'DUMMY-ID-1234',
+      xp_earned: 5000,
+      course_rank: 1,
+      tasks_completed: 12,
+      total_tasks: 12,
+      days_active: 30,
+      company_name: 'Your Institute',
+      courses: {
+        title: 'Sample Course Title',
+        created_by: user.id
+      },
+      profiles: {
+        name: currentUserProfile?.name || 'John Doe',
+        role: 'student'
+      }
+    };
+    isOwner = true;
+  } else {
+    const { data: fetchedCert, error } = await supabase
+      .from('certificates')
+      .select('*, courses(title, created_by), profiles!certificates_user_id_fkey(name, role)')
+      .eq('id', id)
+      .single();
+
+    if (error || !fetchedCert) {
+      notFound();
+    }
+    cert = fetchedCert;
+
+    isOwner = cert.user_id === user.id;
+    isAdmin = currentUserProfile?.role === 'admin';
+    isInstructor = currentUserProfile?.role === 'instructor' && cert.courses?.created_by === user.id;
+  }
 
   if (!isOwner && !isAdmin && !isInstructor) {
     redirect('/dashboard');

@@ -50,7 +50,7 @@ export default function HubDoubtCard({ doubt, batchId }: HubDoubtCardProps) {
           margin: 0,
           wordBreak: 'break-word'
         }}>
-          {doubt.description}
+          {doubt.description?.replace(/!\[.*?\]\(.*?\)/g, '🖼️ View Image Attached').replace(/\\n/g, ' ').replace(/\n/g, ' ').trim()}
         </p>
 
         {(doubt.course || doubt.lesson) && (

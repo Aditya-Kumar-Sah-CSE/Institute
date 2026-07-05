@@ -19,6 +19,7 @@ interface Notification {
 export default function NotificationBell({ userId }: { userId: string }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -122,27 +123,50 @@ export default function NotificationBell({ userId }: { userId: string }) {
             {notifications.length === 0 ? (
               <div className="notification-empty">No notifications yet.</div>
             ) : (
-              notifications.map((n) => (
-                <Link 
-                  key={n.id} 
-                  href={n.link || '#'} 
-                  className={`notification-item ${n.is_read ? 'read' : 'unread'}`}
-                  onClick={() => handleNotificationClick(n.id, n.link || '#')}
-                >
-                  <div className="notification-icon">
-                    {n.type === 'reply' ? '💬' : 
-                     n.type === 'upvote' ? '👍' : 
-                     n.type === 'notice' ? '📢' : '🔔'}
-                  </div>
-                  <div className="notification-content">
-                    <p>{n.message}</p>
-                    <span suppressHydrationWarning className="notification-time">
-                      {new Date(n.created_at).toLocaleDateString()} {new Date(n.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                    </span>
-                  </div>
-                  {!n.is_read && <div className="unread-dot"></div>}
-                </Link>
-              ))
+              <>
+                {(showAll ? notifications : notifications.slice(0, 5)).map((n) => (
+                  <Link 
+                    key={n.id} 
+                    href={n.link || '#'} 
+                    className={`notification-item ${n.is_read ? 'read' : 'unread'}`}
+                    onClick={() => handleNotificationClick(n.id, n.link || '#')}
+                  >
+                    <div className="notification-icon">
+                      {n.type === 'reply' ? '💬' : 
+                       n.type === 'upvote' ? '👍' : 
+                       n.type === 'notice' ? '📢' : '🔔'}
+                    </div>
+                    <div className="notification-content">
+                      <p>{n.message}</p>
+                      <span suppressHydrationWarning className="notification-time">
+                        {new Date(n.created_at).toLocaleDateString()} {new Date(n.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      </span>
+                    </div>
+                    {!n.is_read && <div className="unread-dot"></div>}
+                  </Link>
+                ))}
+                {!showAll && notifications.length > 5 && (
+                  <button 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setShowAll(true);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      background: 'transparent',
+                      border: 'none',
+                      borderTop: '1px solid var(--glass-border)',
+                      color: 'var(--neon-cyan)',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: 'var(--text-sm)'
+                    }}
+                  >
+                    Read more
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>

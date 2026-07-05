@@ -47,6 +47,7 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
   const [reviewingSubmission, setReviewingSubmission] = useState<any>(null);
   const [expandedAssignments, setExpandedAssignments] = useState<Record<string, boolean>>({});
   const [isCompletingCourse, setIsCompletingCourse] = useState(false);
+  const [showAllLessons, setShowAllLessons] = useState(false);
 
   // Group lessons by date
   const groupedLessons = lessons.reduce((acc, lesson) => {
@@ -61,6 +62,7 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
   }, {} as Record<string, typeof lessons>);
 
   const sortedGroups = Object.keys(groupedLessons).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+  const visibleGroups = showAllLessons ? sortedGroups : sortedGroups.slice(0, 1);
 
   const openLessonModal = (lesson?: Lesson) => {
     setEditingItem(lesson || null);
@@ -164,20 +166,22 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
         </div>
         <div className="curriculum-actions">
           {!course.is_completed && (
-            <Button variant="ghost" onClick={() => setModalType('complete_course')} isLoading={isCompletingCourse} style={{ color: 'var(--neon-gold)', border: '1px solid var(--neon-gold)' }}>Issue Certificate</Button>
+            <>
+              <CreatePollButton courseId={course.id} />
+              <Link href={`/courses/${course.id}`} style={{ textDecoration: 'none' }}>
+                <Button variant="success" size="md" style={{ padding: '12px 24px', fontSize: 'var(--text-md)', fontWeight: 'var(--weight-bold)' }}>
+                  🎯 View Poll and Doubt
+                </Button>
+              </Link>
+            </>
           )}
-          {!course.is_completed && <Button variant="primary" onClick={() => openLessonModal()}>+ Add Day (Lesson)</Button>}
         </div>
       </div>
 
       {!course.is_completed && (
         <div style={{ display: 'flex', justifyContent: 'flex-start', gap: 'var(--space-md)', marginTop: '-var(--space-md)' }}>
-          <CreatePollButton courseId={course.id} />
-          <Link href={`/courses/${course.id}`} style={{ textDecoration: 'none' }}>
-            <Button variant="success" size="md" style={{ padding: '12px 24px', fontSize: 'var(--text-md)', fontWeight: 'var(--weight-bold)' }}>
-              🎯 View Course Doubts
-            </Button>
-          </Link>
+          <Button variant="ghost" onClick={() => setModalType('complete_course')} isLoading={isCompletingCourse} style={{ color: 'var(--neon-gold)', border: '1px solid var(--neon-gold)', padding: '12px 24px', fontSize: 'var(--text-md)', fontWeight: 'var(--weight-bold)' }}>Issue Certificate</Button>
+          <Button variant="primary" onClick={() => openLessonModal()} style={{ padding: '12px 24px', fontSize: 'var(--text-md)', fontWeight: 'var(--weight-bold)' }}>+ Add Day (Lesson)</Button>
         </div>
       )}
 
@@ -188,7 +192,7 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
           </Card>
         )}
 
-        {sortedGroups.map(dateStr => (
+        {visibleGroups.map(dateStr => (
           <div key={`date-${dateStr}`} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
             <h3 style={{ fontSize: 'var(--text-xl)', color: 'var(--neon-gold)', marginTop: 'var(--space-md)', paddingBottom: 'var(--space-xs)', borderBottom: '1px solid var(--glass-border)' }}>{dateStr}</h3>
             {groupedLessons[dateStr].map((lesson) => (
@@ -314,6 +318,18 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
             ))}
           </div>
         ))}
+
+        {!showAllLessons && sortedGroups.length > 1 && (
+          <Button variant="secondary" onClick={() => setShowAllLessons(true)} style={{ marginTop: 'var(--space-md)', padding: '16px', fontWeight: 'bold', width: '100%' }}>
+            View all {lessons.length} lessons
+          </Button>
+        )}
+
+        {showAllLessons && sortedGroups.length > 1 && (
+          <Button variant="ghost" onClick={() => setShowAllLessons(false)} style={{ marginTop: 'var(--space-md)', padding: '16px', fontWeight: 'bold', width: '100%', border: '1px solid var(--glass-border)' }}>
+            View Less
+          </Button>
+        )}
       </div>
 
       {/* MODALS */}

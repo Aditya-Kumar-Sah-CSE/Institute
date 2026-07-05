@@ -11,35 +11,50 @@ export async function enrollInCourse(courseId: string) {
 
   if (!user) return { error: 'Not logged in' };
 
+  // Fetch course details first to check restriction
+  const { data: course } = await supabase.from('courses').select('title, enrollment_restriction').eq('id', courseId).single();
+  const courseName = course?.title || 'the course';
+  const restriction = course?.enrollment_restriction || 'any';
+  const initialStatus = restriction === 'any' ? 'approved' : 'pending';
+
   // Check if already enrolled
   const { data: existing } = await supabase
     .from('enrollments')
-    .select('id')
+    .select('id, status')
     .eq('user_id', user.id)
     .eq('course_id', courseId)
     .single();
 
   if (existing) {
+    if (existing.status === 'pending') {
+      return { success: true, message: 'Enrollment request already pending.' };
+    }
     return { success: true };
   }
 
   const { error } = await supabase.from('enrollments').insert({
     user_id: user.id,
-    course_id: courseId
+    course_id: courseId,
+    status: initialStatus
   });
 
   if (!error) {
-    const { data: course } = await supabase.from('courses').select('title').eq('id', courseId).single();
-    const courseName = course?.title || 'the course';
-
-    await supabase.from('notifications').insert({
-      user_id: user.id,
-      type: 'system',
-      message: `Thank you for enrolling in ${courseName}. Please wait for instructor approval.`,
-      link: '/dashboard'
-    });
-    
-    await awardXP(user.id, XP_VALUES.COURSE_JOIN, 'Joined a Course', 'enrollment', courseId);
+    if (initialStatus === 'pending') {
+      await supabase.from('notifications').insert({
+        user_id: user.id,
+        type: 'system',
+        message: `Thank you for enrolling in ${courseName}. Please wait for instructor approval.`,
+        link: '/dashboard'
+      });
+    } else {
+      await supabase.from('notifications').insert({
+        user_id: user.id,
+        type: 'system',
+        message: `You have successfully enrolled in ${courseName}. Happy learning!`,
+        link: `/courses/${courseId}`
+      });
+      await awardXP(user.id, XP_VALUES.COURSE_JOIN, 'Joined a Course', 'enrollment', courseId);
+    }
   }
 
   if (error) return { error: error.message };
@@ -48,7 +63,12 @@ export async function enrollInCourse(courseId: string) {
   revalidatePath(`/courses/${courseId}`);
   revalidatePath('/dashboard');
   revalidatePath('/', 'layout');
-  return { success: true, message: 'Enrollment request sent. Pending instructor approval.' };
+  
+  if (initialStatus === 'pending') {
+    return { success: true, message: 'Enrollment request sent. Pending instructor approval.' };
+  } else {
+    return { success: true, message: 'Successfully enrolled in course.' };
+  }
 }
 
 export async function enrollInCourseFormAction(courseId: string): Promise<void> {

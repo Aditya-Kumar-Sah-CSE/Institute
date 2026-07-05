@@ -22,6 +22,7 @@ export default function CourseManager({ courses, currentUserId, userRole }: Cour
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [courseFilter, setCourseFilter] = useState<'my_courses' | 'all_courses'>('my_courses');
+  const [showAllCourses, setShowAllCourses] = useState(false);
   const pathname = usePathname();
   const basePath = pathname?.startsWith('/instructor') ? '/instructor' : '/admin';
 
@@ -80,6 +81,8 @@ export default function CourseManager({ courses, currentUserId, userRole }: Cour
     return true;
   });
 
+  const visibleCourses = showAllCourses ? filteredCourses : filteredCourses.slice(0, 2);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
@@ -112,7 +115,7 @@ export default function CourseManager({ courses, currentUserId, userRole }: Cour
           <Card variant="glass" style={{ textAlign: 'center', padding: 'var(--space-xl)' }}>
             <p className="text-secondary">No courses found.</p>
           </Card>
-        ) : filteredCourses.map(course => (
+        ) : visibleCourses.map(course => (
           <Card key={course.id} variant="glass" className="course-card" style={course.is_deleted ? { opacity: 0.7, border: '1px solid var(--neon-red)' } : {}}>
             <div className="course-card-info">
               <h3 style={{ marginBottom: 'var(--space-2xs)' }}>
@@ -145,6 +148,18 @@ export default function CourseManager({ courses, currentUserId, userRole }: Cour
           </Card>
         ))}
       </div>
+
+      {!showAllCourses && filteredCourses.length > 2 && (
+        <Button variant="secondary" onClick={() => setShowAllCourses(true)} style={{ padding: '16px', fontWeight: 'bold', width: '100%' }}>
+          View all {filteredCourses.length} courses
+        </Button>
+      )}
+
+      {showAllCourses && filteredCourses.length > 2 && (
+        <Button variant="ghost" onClick={() => setShowAllCourses(false)} style={{ padding: '16px', fontWeight: 'bold', width: '100%', border: '1px solid var(--glass-border)' }}>
+          View Less
+        </Button>
+      )}
 
       {isModalOpen && (
         <div style={{

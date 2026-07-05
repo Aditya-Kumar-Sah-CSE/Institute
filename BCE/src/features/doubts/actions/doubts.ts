@@ -178,7 +178,7 @@ export async function replyToDoubt(doubtId: string, replyText: string, parentId?
       supabase,
       doubt.user_id,
       isFaculty ? 'faculty_reply' : 'reply',
-      `${profile?.name} replied to your doubt`,
+      `${isFaculty ? 'Your Instructor ' : ''}${profile?.name} replied to your doubt`,
       `/doubts/${doubtId}`
     );
   }
@@ -191,7 +191,7 @@ export async function replyToDoubt(doubtId: string, replyText: string, parentId?
         supabase,
         parentReply.user_id,
         'reply',
-        `${profile?.name} replied to your comment`,
+        `${isFaculty ? 'Your Instructor ' : ''}${profile?.name} replied to your comment`,
         `/doubts/${doubtId}`
       );
     }
@@ -291,12 +291,13 @@ export async function toggleReplyVote(replyId: string, voteType: 'upvote' | 'dow
     if (voteType === 'upvote') {
       const { data: reply } = await supabase.from('doubt_replies').select('user_id, doubt_id').eq('id', replyId).single();
       if (reply && reply.user_id !== user.id) {
-        const { data: profile } = await supabase.from('profiles').select('name').eq('id', user.id).single();
+        const { data: profile } = await supabase.from('profiles').select('name, role').eq('id', user.id).single();
+        const isFaculty = profile?.role === 'admin' || profile?.role === 'instructor';
         await createNotification(
           supabase,
           reply.user_id,
           'upvote',
-          `${profile?.name} upvoted your reply`,
+          `${isFaculty ? 'Your Instructor ' : ''}${profile?.name} upvoted your reply`,
           `/doubts/${reply.doubt_id}`
         );
       }
@@ -367,12 +368,13 @@ export async function toggleDoubtLike(doubtId: string) {
     // Notify author
     const { data: doubt } = await supabase.from('doubts').select('user_id').eq('id', doubtId).single();
     if (doubt && doubt.user_id !== user.id) {
-      const { data: profile } = await supabase.from('profiles').select('name').eq('id', user.id).single();
+      const { data: profile } = await supabase.from('profiles').select('name, role').eq('id', user.id).single();
+      const isFaculty = profile?.role === 'admin' || profile?.role === 'instructor';
       await createNotification(
         supabase,
         doubt.user_id,
         'like',
-        `${profile?.name} liked your doubt`,
+        `${isFaculty ? 'Your Instructor ' : ''}${profile?.name} liked your doubt`,
         `/doubts/${doubtId}`
       );
     }

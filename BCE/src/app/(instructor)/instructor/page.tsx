@@ -129,7 +129,7 @@ export default async function InstructorDashboardPage() {
               <BookOpen className="w-5 h-5 text-neon-cyan" /> Course Manager
             </Link>
             <Link href="/instructor/submissions" className="btn btn-secondary" style={{ justifyContent: 'flex-start', padding: '16px 20px', fontSize: 'var(--text-md)', gap: '12px' }}>
-              <FileText className="w-5 h-5 text-neon-gold" /> Review Student Submissions
+              <FileText className="w-5 h-5 text-neon-gold" /> Review Submissions
             </Link>
           </div>
           <p style={{ marginTop: 'var(--space-lg)', fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
@@ -140,3 +140,5 @@ export default async function InstructorDashboardPage() {
     </div>
   );
 }
+
+
