@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import LevelBadge from '@/components/shared/LevelBadge';
+import UserAvatar from '@/components/shared/UserAvatar';
 import Button from '@/components/ui/Button';
 import { User, Share2 } from 'lucide-react';
 
@@ -82,22 +83,7 @@ export default function DashboardProfileCard({ profile, appData }: DashboardProf
           overflow: 'hidden',
           position: 'relative'
         }}>
-          {profile.avatar_url ? (
-            <Image 
-              src={profile.avatar_url}
-              alt={profile.name}
-              fill
-              sizes="100px"
-              style={{ objectFit: 'cover' }}
-            />
-          ) : (
-            <div style={{
-              width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'var(--bg-elevated)', color: 'var(--neon-cyan)'
-            }}>
-              <User size={48} opacity={0.5} />
-            </div>
-          )}
+          <UserAvatar url={profile.avatar_url} name={profile.name} size={100} />
         </div>
       </div>
 

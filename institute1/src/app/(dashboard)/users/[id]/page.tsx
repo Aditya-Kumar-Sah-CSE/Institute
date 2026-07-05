@@ -7,6 +7,7 @@ import Card from '@/components/ui/Card';
 import Image from 'next/image';
 import ProfileViewTracker from '@/components/shared/ProfileViewTracker';
 import ShareProfileButton from '@/components/shared/ShareProfileButton';
+import UserAvatar from '@/components/shared/UserAvatar';
 import { User } from 'lucide-react';
 import '../../profile/Profile.css';
 
@@ -100,22 +101,13 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
       
       <div className="profile-header glass-card">
         <div style={{ position: 'relative', width: 120, height: 120, borderRadius: '50%', overflow: 'hidden', border: '4px solid var(--glass-border)' }}>
-          {profile.avatar_url ? (
-            <Image src={profile.avatar_url} alt={profile.name || 'User'} fill style={{ objectFit: 'cover' }} />
-          ) : (
-            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem', background: 'var(--glass-bg)', color: 'var(--text-primary)' }}>
-              <User size={64} opacity={0.5} />
-            </div>
-          )}
+          <UserAvatar url={profile.avatar_url} name={profile.name} size={120} />
         </div>
         
         <div className="profile-info-large" style={{ flex: 1, minWidth: '250px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-sm)' }}>
-            <div>
-              <h1 className="profile-name">{profile.name}</h1>
-              <p className="profile-email text-muted" style={{ textTransform: 'capitalize' }}>{profile.role}</p>
-            </div>
-            <ShareProfileButton userId={id} />
+          <div style={{ marginBottom: 'var(--space-sm)' }}>
+            <h1 className="profile-name">{profile.name}</h1>
+            <p className="profile-email text-muted" style={{ textTransform: 'capitalize' }}>{profile.role}</p>
           </div>
           
           {profile.institute_id && (
@@ -147,6 +139,10 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
               </div>
             </div>
           )}
+          
+          <div style={{ marginTop: 'var(--space-lg)' }}>
+            <ShareProfileButton userId={id} />
+          </div>
         </div>
       </div>
 
