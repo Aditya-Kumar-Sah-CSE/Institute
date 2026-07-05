@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import LevelBadge from '@/components/shared/LevelBadge';
 import { User } from 'lucide-react';
@@ -14,6 +14,9 @@ interface LeaderboardTableProps {
 }
 
 export default function LeaderboardTable({ entries, currentUserId }: LeaderboardTableProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const displayedEntries = isExpanded ? entries : entries.slice(0, 5);
+
   return (
     <div className="leaderboard-container glass-card" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <div style={{ minWidth: '600px' }}>
@@ -26,7 +29,7 @@ export default function LeaderboardTable({ entries, currentUserId }: Leaderboard
       </div>
       
       <div className="leaderboard-body">
-        {entries.length > 0 ? entries.map((entry) => {
+        {displayedEntries.length > 0 ? displayedEntries.map((entry) => {
           const isCurrentUser = entry.id === currentUserId;
           const isTop3 = entry.rank <= 3;
           
@@ -71,6 +74,28 @@ export default function LeaderboardTable({ entries, currentUserId }: Leaderboard
           </div>
         )}
       </div>
+
+      {entries.length > 5 && (
+        <div style={{ display: 'flex', justifyContent: 'center', margin: 'var(--space-lg) 0' }}>
+          <button 
+            onClick={() => setIsExpanded(!isExpanded)}
+            style={{
+              background: 'transparent',
+              border: '1px solid var(--glass-border)',
+              color: 'var(--text-secondary)',
+              padding: '6px 16px',
+              borderRadius: 'var(--radius-full)',
+              fontSize: 'var(--text-sm)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseOver={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'; }}
+            onMouseOut={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'transparent'; }}
+          >
+            {isExpanded ? 'Show Less' : `Show More (${entries.length - 5})`}
+          </button>
+        </div>
+      )}
       </div>
     </div>
   );
