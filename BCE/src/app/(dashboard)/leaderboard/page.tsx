@@ -56,9 +56,9 @@ export default async function LeaderboardPage({
   ]);
 
   const rawAdmins = facultyRes.data || [];
-  const developer = rawAdmins.find(fac => fac.email === 'iambestadi@gmail.com');
+  const developer = rawAdmins.find(fac => fac.email === SUPER_ADMIN_EMAIL && SUPER_ADMIN_EMAIL !== '');
   const faculty = rawAdmins.filter(
-    fac => fac.email !== 'iambestadi@gmail.com' && fac.email !== SUPER_ADMIN_EMAIL
+    fac => fac.email !== SUPER_ADMIN_EMAIL || SUPER_ADMIN_EMAIL === ''
   );
 
   const courses = coursesRes.data;

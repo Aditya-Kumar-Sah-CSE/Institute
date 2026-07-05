@@ -1,16 +1,16 @@
-const CACHE_NAME = 'skillarena-v2';
+const CACHE_NAME = 'skillarena-v4';
+
+const APP_SHELL_STATIC = [
+  '/manifest.json',
+  '/icon-192x192.png',
+  '/icon-512x512.png',
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll([
-        '/manifest.json',
-        '/icon-192x192.png',
-        '/icon-512x512.png'
-      ]);
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL_STATIC))
   );
-  self.skipWaiting();
+  self.skipWaiting(); // Phase 14: Ensure installed PWA launches directly
 });
 
 self.addEventListener('activate', (event) => {
@@ -19,7 +19,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
+            return caches.delete(cacheName); // versioned cache invalidation applied
           }
         })
       );
@@ -28,49 +28,83 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  if (event.request.mode === 'navigate') {
+  if (event.request.headers.get('range')) {
+    return;
+  }
+
+  const url = new URL(event.request.url);
+
+  // 1. HTML -> Network First
+  if (event.request.mode === 'navigate' || (event.request.headers.get('accept') || '').includes('text/html')) {
     event.respondWith(
       fetch(event.request).catch(() => {
         return new Response(
-          '<html><body><h1 style="color:white; font-family:sans-serif; text-align:center; margin-top:20%">Offline</h1><p style="color:gray; font-family:sans-serif; text-align:center;">Please check your internet connection.</p></body></html>',
-          { headers: { 'Content-Type': 'text/html' } }
+          '<html><body style="background:rgba(0,0,0,1); display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; margin:0;"><h1 style="color:white; font-family:sans-serif; text-align:center;">Offline</h1><p style="color:gray; font-family:sans-serif; text-align:center;">Please check your internet connection.</p></body></html>',
+          { headers: { 'Content-Type': 'text/html' }, status: 200 }
         );
       })
     );
     return;
   }
 
-  const url = new URL(event.request.url);
-  const isMedia = url.pathname.includes('/storage/v1/object/public/');
-  const isStatic = url.pathname.endsWith('.png') || url.pathname.endsWith('.jpg') || url.pathname.endsWith('.webp') || url.pathname.endsWith('manifest.json');
+  // 2. Images and Fonts -> Cache First
+  const isImageOrFont = 
+    url.pathname.match(/\.(png|jpg|jpeg|svg|webp|gif|ico)$/i) ||
+    url.pathname.match(/\.(woff|woff2|ttf|eot)$/i) ||
+    url.pathname.includes('/storage/v1/object/public/');
 
-  if (isMedia || isStatic) {
+  if (isImageOrFont) {
     event.respondWith(
-      caches.match(event.request).then((response) => {
-        if (response) {
-          return response; // Return from cache immediately
-        }
-        // Fetch from network and put in cache for future
+      caches.match(event.request).then((cachedResponse) => {
+        if (cachedResponse) return cachedResponse;
+        
         return fetch(event.request).then((networkResponse) => {
-          // Check if we received a valid response
-          if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic' && networkResponse.type !== 'cors') {
+          if (!networkResponse || networkResponse.status !== 200 || (networkResponse.type !== 'basic' && networkResponse.type !== 'cors')) {
             return networkResponse;
           }
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
           return networkResponse;
+        }).catch(() => new Response(null, { status: 503 }));
+      })
+    );
+    return;
+  }
+
+  // 3. App Shell JS & CSS (Next.js assets) -> Stale While Revalidate
+  if (url.pathname.startsWith('/_next/static/') || url.pathname.match(/\.(js|css)$/i)) {
+    event.respondWith(
+      caches.match(event.request).then((cachedResponse) => {
+        const fetchPromise = fetch(event.request).then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+          }
+          return networkResponse;
+        }).catch(() => null);
+        
+        return cachedResponse || fetchPromise || new Response(null, { status: 503 });
+      })
+    );
+    return;
+  }
+
+  // 4. API Requests -> Network First (Never cache authenticated data here)
+  if (url.pathname.startsWith('/api/') || url.hostname.includes('supabase.co')) {
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        return new Response(JSON.stringify({ error: 'Service Unavailable (Offline)' }), {
+          status: 503, headers: { 'Content-Type': 'application/json' }
         });
       })
     );
-  } else {
-    // Always fetch from network for HTML/API to keep Next.js middleware working
-    event.respondWith(
-      fetch(event.request).catch(() => {
-        // Return a generic 503 response to avoid 'promise was rejected' network errors
-        return new Response(null, { status: 503, statusText: 'Service Unavailable' });
-      })
-    );
+    return;
   }
+
+  // 5. Default
+  event.respondWith(
+    fetch(event.request).catch(() => new Response(null, { status: 503 }))
+  );
 });

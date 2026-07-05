@@ -121,8 +121,8 @@ export function InstructorRegistrationForm() {
             <h3 style={{ color: 'var(--text-primary)' }}>Professional Profile</h3>
             <Input 
               name="institute_id" 
-              label="Institute ID (Optional)" 
-              placeholder="Enter your Institute ID" 
+              label="Roll No / Reg. No (Optional)" 
+              placeholder="Enter your Roll No" 
               value={formData.institute_id}
               onChange={handleChange}
             />
@@ -239,8 +239,8 @@ export function InstructorApplicationForm({ userEmail }: { userEmail: string }) 
           <h3 style={{ color: 'var(--text-primary)' }}>Professional Profile</h3>
           <Input 
             name="institute_id" 
-            label="Institute ID (Optional)" 
-            placeholder="Enter your Institute ID" 
+            label="Roll No / Reg. No (Optional)" 
+            placeholder="Enter your Roll No" 
           />
           <TextArea 
             name="bio" 

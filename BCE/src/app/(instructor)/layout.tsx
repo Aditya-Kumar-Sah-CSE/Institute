@@ -4,6 +4,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import Navbar from '@/components/layout/Navbar';
 import '../(dashboard)/DashboardLayout.css';
 import { signOut } from '@/features/auth/actions/auth';
+import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 
 export default async function InstructorLayout({
   children,
@@ -49,12 +50,12 @@ export default async function InstructorLayout({
 
   const { data: settings } = await supabase
     .from('company_settings')
-    .select('*')
+    .select('company_name, logo_url')
     .single();
 
   return (
     <div className="dashboard-layout">
-      <Sidebar profile={profile} roleView="instructor" />
+      <Sidebar profile={profile} roleView="instructor" isSuperAdmin={profile.email === SUPER_ADMIN_EMAIL} />
       <div className="dashboard-main">
         <Navbar 
           companyName={settings?.company_name} 

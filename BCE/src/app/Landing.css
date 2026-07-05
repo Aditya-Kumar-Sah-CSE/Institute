@@ -191,6 +191,17 @@
   margin: 0 auto;
 }
 
+.hero-college-name {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  color: var(--human-secondary);
+  margin-bottom: var(--space-lg);
+  animation: pulseGlow 4s infinite alternate;
+}
+
 .hero-badge {
   display: inline-block;
   padding: 6px 16px;
@@ -277,6 +288,41 @@
   margin: 0 auto var(--space-3xl);
   font-size: 1.1rem;
   line-height: 1.6;
+}
+
+.features-keyword-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+.keyword-card {
+  background: var(--landing-card-bg);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: var(--space-md) var(--space-xl);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(10px);
+  cursor: default;
+}
+
+.keyword-card:hover {
+  transform: translateY(-5px);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--landing-card-border);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.3), 0 0 15px rgba(255, 126, 95, 0.15);
+}
+
+.keyword-icon {
+  font-size: 1.3rem;
 }
 
 .features-grid {

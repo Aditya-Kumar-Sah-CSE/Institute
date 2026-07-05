@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import './Sidebar.css';
-import { NAV_ITEMS, ADMIN_NAV_ITEMS, INSTRUCTOR_NAV_ITEMS, SUPER_ADMIN_EMAIL } from '@/lib/constants';
+import { NAV_ITEMS, ADMIN_NAV_ITEMS, INSTRUCTOR_NAV_ITEMS } from '@/lib/constants';
 import { getIcon } from '@/lib/icon-mapper';
 import XPBar from '@/components/shared/XPBar';
 import LevelBadge from '@/components/shared/LevelBadge';
@@ -19,9 +19,10 @@ interface SidebarProps {
   profile: Profile;
   isAdmin?: boolean; // Deprecated, use roleView
   roleView?: 'admin' | 'instructor' | 'student';
+  isSuperAdmin?: boolean;
 }
 
-export default function Sidebar({ profile, isAdmin = false, roleView }: SidebarProps) {
+export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdmin = false }: SidebarProps) {
   const pathname = usePathname();
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const currentView = roleView || (isAdmin ? 'admin' : 'student');
@@ -30,10 +31,10 @@ export default function Sidebar({ profile, isAdmin = false, roleView }: SidebarP
                    NAV_ITEMS;
 
   // Filter restricted tabs for non-super-admins
-  if (currentView === 'admin' && profile.email !== SUPER_ADMIN_EMAIL) {
+  if (currentView === 'admin' && !isSuperAdmin) {
     navItems = navItems.filter(item => item.label !== 'Instructors' && item.label !== 'Admins' && item.label !== 'Feedback');
   }
-  if (currentView === 'instructor' && profile.email !== SUPER_ADMIN_EMAIL) {
+  if (currentView === 'instructor' && !isSuperAdmin) {
     navItems = navItems.filter(item => item.label !== 'Feedback');
   }
 
@@ -132,7 +133,7 @@ export default function Sidebar({ profile, isAdmin = false, roleView }: SidebarP
         {currentView !== 'admin' && profile.role === 'admin' && (
           <a href="/admin" className="sidebar-nav-item sidebar-switch">
             <span className="sidebar-nav-icon">{getIcon('Admin', { className: 'w-5 h-5' })}</span>
-            <span className="sidebar-nav-label">{profile.email === SUPER_ADMIN_EMAIL ? 'Developer Panel' : 'Administration Panel'}</span>
+            <span className="sidebar-nav-label">{isSuperAdmin ? 'Developer Panel' : 'Administration Panel'}</span>
           </a>
         )}
         {currentView !== 'instructor' && ((profile.role === 'instructor' && profile.status === 'active') || profile.role === 'admin') && (

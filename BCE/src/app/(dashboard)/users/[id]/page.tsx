@@ -1,4 +1,4 @@
-import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import XPBar from '@/components/shared/XPBar';
 import LevelBadge from '@/components/shared/LevelBadge';
@@ -64,24 +64,20 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
       earnedBadges = userBadgesRes.data || [];
     }
 
-    // Fetch enrollments or teaching courses securely via admin client (read-only display)
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      const adminSb = await createAdminClient();
-      
-      if (profile.role === 'student') {
-        const { data: enrData } = await adminSb
-          .from('enrollments')
-          .select('*, course:courses(title, thumbnail_url)')
-          .eq('user_id', id);
-        enrollments = enrData;
-      } else {
-        const { data: tcData } = await adminSb
-          .from('courses')
-          .select('id, title, thumbnail_url')
-          .eq('instructor_id', id)
-          .eq('is_published', true);
-        teachingCourses = tcData;
-      }
+    // Fetch enrollments or teaching courses using authenticated client (respects RLS)
+    if (profile.role === 'student') {
+      const { data: enrData } = await supabase
+        .from('enrollments')
+        .select('*, course:courses(title, thumbnail_url)')
+        .eq('user_id', id);
+      enrollments = enrData;
+    } else {
+      const { data: tcData } = await supabase
+        .from('courses')
+        .select('id, title, thumbnail_url')
+        .eq('instructor_id', id)
+        .eq('is_published', true);
+      teachingCourses = tcData;
     }
   } catch (err) {
     console.error('Error fetching extra profile data:', err);
@@ -124,7 +120,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
           
           {profile.institute_id && (
             <p className="profile-email" style={{ marginTop: 'var(--space-xs)', fontSize: 'var(--text-sm)' }}>
-              Institute ID: <span style={{ color: 'var(--neon-cyan)', fontWeight: 'var(--weight-semibold)' }}>{profile.institute_id}</span>
+              Roll No / Reg. No: <span style={{ color: 'var(--neon-cyan)', fontWeight: 'var(--weight-semibold)' }}>{profile.institute_id}</span>
             </p>
           )}
           {profile.instructor_id && (

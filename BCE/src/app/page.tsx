@@ -8,6 +8,8 @@ import { redirect } from 'next/navigation';
 export default async function LandingPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  const { data: settings } = await supabase.from('company_settings').select('company_name').maybeSingle();
+  const companyName = settings?.company_name || 'Smart Learning';
 
   if (user) {
     const { data: profile } = await supabase
@@ -53,6 +55,7 @@ export default async function LandingPage() {
             <div className="glow-blob-2"></div>
           </div>
           <div className="hero-content animate-fade-up delay-100">
+            <span className="hero-college-name">{companyName}</span>
             <span className="hero-badge">New: Real-Time Doubt Resolution</span>
             <h1 className="hero-title">
               Engage Students with <br/>
@@ -72,76 +75,48 @@ export default async function LandingPage() {
           </div>
         </section>
 
+        {/* Workflow Section (How it works) */}
+        <section className="workflow-section" style={{ padding: 'var(--space-4xl) var(--space-lg)', position: 'relative' }}>
+          <h2 className="section-title">How It Transforms Your Campus</h2>
+          <div className="infographics-container" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4xl)', alignItems: 'center', maxWidth: '1200px', margin: '0 auto' }}>
+            <div className="infographic-wrapper animate-fade-up delay-100">
+              <img src="/student%20benifit.png" alt="Student Benefits" style={{ width: '100%', height: 'auto', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.05)' }} />
+            </div>
+            
+            <div className="infographic-wrapper animate-fade-up delay-200">
+              <img src="/faculty%20and%20hod.png" alt="Faculty and HOD Benefits" style={{ width: '100%', height: 'auto', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.05)' }} />
+            </div>
+          </div>
+        </section>
+        
         {/* Features Grid */}
         <section id="features" className="features-section animate-fade-up delay-200">
           <span className="section-tag">Core Features</span>
           <h2 className="section-title">Everything You Need to Succeed</h2>
-          <p className="section-desc">
-            Whether you are a faculty member tracking student performance or a student catching up on lectures, our platform bridges the gap.
-          </p>
           
-          <div className="features-grid">
-            <div className="feature-card">
-              <h3 className="feature-title">Student Engagement</h3>
-              <p className="feature-desc">
-                Gamified learning paths motivate students to participate actively. Earn XP and unlock achievements as you progress.
-              </p>
+          <div className="features-keyword-grid">
+            <div className="keyword-card">
+              <span className="keyword-icon">🎮</span> Gamified Learning
             </div>
             
-            <div className="feature-card">
-              <h3 className="feature-title">Real-Time Progress</h3>
-              <p className="feature-desc">
-                Teachers get instant insights into student performance. Identify struggling students early and provide targeted help.
-              </p>
+            <div className="keyword-card">
+              <span className="keyword-icon">📈</span> Real-Time Analytics
             </div>
             
-            <div className="feature-card">
-              <h3 className="feature-title">Smart Assignments</h3>
-              <p className="feature-desc">
-                Assign tasks, track submissions, and verify results with a single click. Save hours of administrative work.
-              </p>
+            <div className="keyword-card">
+              <span className="keyword-icon">📝</span> Smart Assignments
             </div>
             
-            <div className="feature-card">
-              <h3 className="feature-title">Instant Doubt Resolution</h3>
-              <p className="feature-desc">
-                Students can ask doubts 24/7. Peer-to-peer and faculty answers keep the learning flowing outside classroom hours.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Workflow Section (How it works) */}
-        <section className="workflow-section">
-          <div className="workflow-container">
-            <div className="workflow-step animate-fade-up">
-              <div className="workflow-content">
-                <div className="workflow-number">01</div>
-                <h3>Catch up easily, anytime</h3>
-                <p>
-                  Missed a class? No problem. Access learning content, video lectures, and study materials online before or after offline classes to stay ahead of the curve.
-                </p>
-              </div>
+            <div className="keyword-card">
+              <span className="keyword-icon">💬</span> 24/7 Doubt Resolution
             </div>
 
-            <div className="workflow-step animate-fade-up">
-              <div className="workflow-content">
-                <div className="workflow-number">02</div>
-                <h3>Gamified Competition</h3>
-                <p>
-                  Learning shouldn't be boring. Compete on batch-specific and institute-wide leaderboards. Earn badges, gain XP, and establish your dominance.
-                </p>
-              </div>
+            <div className="keyword-card">
+              <span className="keyword-icon">🏆</span> Global Leaderboards
             </div>
 
-            <div className="workflow-step animate-fade-up">
-              <div className="workflow-content">
-                <div className="workflow-number">03</div>
-                <h3>Seamless Faculty Control</h3>
-                <p>
-                  Instructors can effortlessly manage enrollments, curate courses, and review submissions. The dashboard provides a bird's-eye view of class health.
-                </p>
-              </div>
+            <div className="keyword-card">
+              <span className="keyword-icon">🎓</span> Hybrid Classrooms
             </div>
           </div>
         </section>
@@ -190,7 +165,7 @@ export default async function LandingPage() {
           </div>
         </div>
         <div className="footer-bottom">
-          <p>&copy; {new Date().getFullYear()} Smart Hybrid Learning platform. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} {companyName}. All rights reserved.</p>
           <div style={{ display: 'flex', gap: '1rem' }}>
             <a href="#" style={{ color: 'var(--text-muted)' }}>Twitter</a>
             <a href="#" style={{ color: 'var(--text-muted)' }}>LinkedIn</a>

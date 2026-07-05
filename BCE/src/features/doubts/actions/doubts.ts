@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { awardXP } from '@/features/auth/actions/auth';
 import { XP_VALUES } from '@/lib/constants';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 // Helper to create notifications
 async function createNotification(supabase: any, userId: string, type: string, message: string, link: string) {
@@ -24,6 +25,10 @@ export async function createDoubt(formData: FormData) {
   const { data: profile } = await supabase.from('profiles').select('graduation_period, role, name').eq('id', user.id).single();
 
   if (!profile) return { error: 'Profile not found' };
+
+  // Rate limit: 3 doubts per hour (3600000ms)
+  const rl = checkRateLimit(`createDoubt:${user.id}`, 3, 3600000);
+  if (!rl.success) return { error: rl.error };
   
   if (profile.role !== 'admin' && profile.role !== 'instructor' && !profile.graduation_period) {
     return { error: 'You need to have a batch (graduation period) set to ask doubts.' };
@@ -139,6 +144,10 @@ export async function replyToDoubt(doubtId: string, replyText: string, parentId?
   if (!replyText || !replyText.trim()) {
     return { error: 'Reply text is required' };
   }
+  
+  // Rate limit: 20 replies per hour (3600000ms)
+  const rl = checkRateLimit(`replyDoubt:${user.id}`, 20, 3600000);
+  if (!rl.success) return { error: rl.error };
   
   const { data: profile } = await supabase.from('profiles').select('name, role').eq('id', user.id).single();
   const isFaculty = profile?.role === 'admin' || profile?.role === 'instructor';

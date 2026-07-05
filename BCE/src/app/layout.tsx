@@ -1,10 +1,24 @@
 import type { Metadata, Viewport } from 'next';
+import { Outfit, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
+
+const outfit = Outfit({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-display',
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-mono',
+});
+
 import PwaRegister from '@/components/PwaRegister';
 import PWAInstallPrompt from '@/components/pwa/PWAInstallPrompt';
 import FeedbackWidget from '@/components/shared/FeedbackWidget';
 import XpCelebrator from '@/components/shared/XpCelebrator';
-import { Analytics } from "@vercel/analytics/next";
+import { Analytics } from "@vercel/analytics/react";
 
 export const viewport: Viewport = {
   themeColor: '#000000',
@@ -37,8 +51,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
-      <body suppressHydrationWarning>
+    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning className={`${outfit.variable} ${jetbrainsMono.variable}`}>
+      <body suppressHydrationWarning className={`${outfit.variable} ${jetbrainsMono.variable}`}>
         <PwaRegister />
         <PWAInstallPrompt />
         {children}

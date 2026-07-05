@@ -72,7 +72,8 @@
 .auth-logo {
   font-size: 3rem;
   display: block;
-  margin-bottom: var(--space-md);
+  margin: 0 auto var(--space-md) auto;
+  width: max-content;
   animation: float 3s ease-in-out infinite;
 }
 
