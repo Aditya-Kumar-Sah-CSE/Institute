@@ -24,7 +24,18 @@ export default async function DoubtsRedirectPage() {
       .eq('is_deleted', false)
       .eq('is_published', true);
       
-    const courseIds = teachingCourses?.map(c => c.id) || [];
+    const teachingCourseIds = teachingCourses?.map(c => c.id) || [];
+
+    // 2. Get courses the faculty is enrolled in
+    const { data: enrollments } = await supabase
+      .from('enrollments')
+      .select('course_id')
+      .eq('user_id', user.id);
+      
+    const enrolledCourseIds = enrollments?.map(e => e.course_id) || [];
+    
+    // Combine both sets of course IDs
+    const courseIds = Array.from(new Set([...teachingCourseIds, ...enrolledCourseIds]));
 
     let doubtsQuery = supabase
       .from('doubts')
@@ -39,7 +50,7 @@ export default async function DoubtsRedirectPage() {
       .order('created_at', { ascending: false })
       .limit(30);
 
-    // Apply filter: If they teach courses, only show those doubts.
+    // Apply filter: If they teach courses or are enrolled, only show those doubts.
     // If they have 0 courses (even if admin), show none as requested.
     if (courseIds.length > 0) {
       doubtsQuery = doubtsQuery.in('course_id', courseIds);
@@ -56,7 +67,7 @@ export default async function DoubtsRedirectPage() {
             Faculty Doubts Hub
           </h1>
           <p className="text-secondary" style={{ marginTop: 'var(--space-2xs)' }}>
-             Review and resolve doubts from the courses you teach.
+             Review and resolve doubts from your courses.
           </p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>

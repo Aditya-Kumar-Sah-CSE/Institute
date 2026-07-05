@@ -6,6 +6,7 @@ import Card from '@/components/ui/Card';
 import { User } from 'lucide-react';
 import ReplyForm from './components/ReplyForm';
 import AcceptReplyButton from './components/AcceptReplyButton';
+import ReactMarkdown from 'react-markdown';
 
 export const dynamic = 'force-dynamic';
 
@@ -110,9 +111,17 @@ export default async function DoubtDetailsPage({ params }: { params: Promise<{ i
           </span>
         </div>
         
-        <p style={{ color: 'var(--text-primary)', whiteSpace: 'pre-wrap', lineHeight: 1.6, wordBreak: 'break-word' }}>
-          {doubt.description}
-        </p>
+        <div style={{ color: 'var(--text-primary)', whiteSpace: 'pre-wrap', lineHeight: 1.6, wordBreak: 'break-word' }}>
+          <ReactMarkdown
+            components={{
+              img: ({ node, ...props }) => (
+                <img {...props} style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: 'var(--radius-sm)', marginTop: 'var(--space-sm)' }} />
+              )
+            }}
+          >
+            {doubt.description}
+          </ReactMarkdown>
+        </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', marginTop: 'var(--space-lg)', paddingTop: 'var(--space-md)', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
           {doubt.author?.avatar_url ? (
@@ -146,9 +155,17 @@ export default async function DoubtDetailsPage({ params }: { params: Promise<{ i
                   ✅ Accepted Answer
                 </div>
               )}
-              <p style={{ color: 'var(--text-primary)', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-                {reply.reply_text}
-              </p>
+              <div style={{ color: 'var(--text-primary)', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+                <ReactMarkdown
+                  components={{
+                    img: ({ node, ...props }) => (
+                      <img {...props} style={{ maxWidth: '100%', maxHeight: '300px', borderRadius: 'var(--radius-sm)', marginTop: 'var(--space-sm)' }} />
+                    )
+                  }}
+                >
+                  {reply.reply_text}
+                </ReactMarkdown>
+              </div>
               
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--space-md)', flexWrap: 'wrap', gap: 'var(--space-sm)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>

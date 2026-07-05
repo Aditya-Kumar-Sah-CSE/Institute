@@ -17,6 +17,8 @@ export default function CourseCatalog({ courses, enrollments = {}, certificatesM
   const [enrollmentFilter, setEnrollmentFilter] = useState<'all' | 'enrolled'>('enrolled');
   const [semesterFilter, setSemesterFilter] = useState('all'); // 'all', 'sem 1', 'sem 2', etc.
 
+  const [showAllCourses, setShowAllCourses] = useState(false);
+
   const filteredCourses = useMemo(() => {
     return courses.filter(course => {
       const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -35,6 +37,8 @@ export default function CourseCatalog({ courses, enrollments = {}, certificatesM
       return true;
     });
   }, [courses, searchTerm, enrollmentFilter, semesterFilter, enrollments]);
+
+  const visibleCourses = showAllCourses ? filteredCourses : filteredCourses.slice(0, 2);
 
   return (
     <div className="course-catalog">
@@ -95,17 +99,43 @@ export default function CourseCatalog({ courses, enrollments = {}, certificatesM
       </div>
 
       {filteredCourses.length > 0 ? (
-        <div className="catalog-grid">
-          {filteredCourses.map(course => (
-            <CourseCard 
-              key={course.id} 
-              course={course} 
-              progress={enrollments[course.id]?.progress} 
-              status={enrollments[course.id]?.status}
-              certificateId={certificatesMap[course.id]}
-            />
-          ))}
-        </div>
+        <>
+          <div className="catalog-grid">
+            {visibleCourses.map(course => (
+              <CourseCard 
+                key={course.id} 
+                course={course} 
+                progress={enrollments[course.id]?.progress} 
+                status={enrollments[course.id]?.status}
+                certificateId={certificatesMap[course.id]}
+              />
+            ))}
+          </div>
+          
+          {!showAllCourses && filteredCourses.length > 2 && (
+            <div style={{ marginTop: 'var(--space-lg)' }}>
+              <button 
+                className="btn-secondary" 
+                onClick={() => setShowAllCourses(true)}
+                style={{ width: '100%', padding: '16px', fontWeight: 'bold' }}
+              >
+                Show all {filteredCourses.length} courses
+              </button>
+            </div>
+          )}
+
+          {showAllCourses && filteredCourses.length > 2 && (
+            <div style={{ marginTop: 'var(--space-lg)' }}>
+              <button 
+                className="btn-ghost" 
+                onClick={() => setShowAllCourses(false)}
+                style={{ width: '100%', padding: '16px', fontWeight: 'bold', border: '1px solid var(--glass-border)' }}
+              >
+                Show Less
+              </button>
+            </div>
+          )}
+        </>
       ) : (
         <div className="catalog-empty">
           <span className="empty-icon">🏜️</span>

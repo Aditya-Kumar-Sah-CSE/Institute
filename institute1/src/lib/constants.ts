@@ -67,6 +67,5 @@ export const INSTRUCTOR_NAV_ITEMS = [
   { label: 'Dashboard', href: '/instructor', icon: 'Dashboard' },
   { label: 'My Courses', href: '/instructor/courses', icon: 'Courses' },
   { label: 'Enrollments', href: '/instructor/enrollments', icon: 'Enrollments' },
-  { label: 'Review Student Submissions', href: '/instructor/submissions', icon: 'Submissions' },
-  { label: 'Batch Doubts', href: '/doubts', icon: 'Doubts' },
+  { label: 'Review Submissions', href: '/instructor/submissions', icon: 'Submissions' },
 ];
