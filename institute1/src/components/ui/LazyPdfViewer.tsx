@@ -22,6 +22,9 @@ export default function LazyPdfViewer({ url, title = 'PDF Document' }: LazyPdfVi
   const [numPages, setNumPages] = useState<number>();
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [pdfError, setPdfError] = useState(false);
+
+  const isLikelyImage = /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(url) || url.includes('/images/');
 
   function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
     setNumPages(numPages);
@@ -29,10 +32,34 @@ export default function LazyPdfViewer({ url, title = 'PDF Document' }: LazyPdfVi
   }
 
   const handleLoadClick = async () => {
-    setIsLoading(true);
+    setIsLoading(!isLikelyImage);
     setIsLoaded(true);
-    const mod = await import('react-pdf');
-    mod.pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${mod.pdfjs.version}/build/pdf.worker.min.mjs`;
+    if (!isLikelyImage) {
+      // PRE-CHECK: Try to see if it's actually a PDF by grabbing the first 5 bytes
+      try {
+        const res = await fetch(url, { headers: { Range: 'bytes=0-4' } });
+        if (res.ok || res.status === 206) {
+           const text = await res.text();
+           if (!text.startsWith('%PDF-')) {
+              console.warn('URL file does not have PDF metadata signature, falling back to image view.');
+              setPdfError(true);
+              setIsLoading(false);
+              return;
+           }
+        }
+      } catch (e) {
+         // Ignore fetch errors (e.g. CORS missing headers) and try mounting pdf.js anyway
+      }
+
+      try {
+        const mod = await import('react-pdf');
+        mod.pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${mod.pdfjs.version}/build/pdf.worker.min.mjs`;
+      } catch (err) {
+        console.error('Failed to load react-pdf', err);
+        setPdfError(true);
+        setIsLoading(false);
+      }
+    }
   };
 
   return (
@@ -55,6 +82,13 @@ export default function LazyPdfViewer({ url, title = 'PDF Document' }: LazyPdfVi
             </a>
           </div>
         </div>
+      ) : (isLikelyImage || pdfError) ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-md)', padding: 'var(--space-md)', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)' }}>
+           <img src={url} alt={title} style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain', borderRadius: 'var(--radius-md)' }} />
+           <p className="text-secondary" style={{ fontSize: 'var(--text-sm)' }}>
+             If this file isn't displaying correctly, <a href={url} target="_blank" rel="noreferrer" style={{ color: 'var(--neon-cyan)' }}>click here to download or open it directly</a>.
+           </p>
+        </div>
       ) : (
         <div className="lazy-pdf-viewer-wrapper">
           {isLoading && (
@@ -67,8 +101,13 @@ export default function LazyPdfViewer({ url, title = 'PDF Document' }: LazyPdfVi
             <Document
               file={url}
               onLoadSuccess={onDocumentLoadSuccess}
+              onLoadError={(error) => {
+                 console.warn('PDF loading failed, switching to image fallback:', error);
+                 setPdfError(true);
+                 setIsLoading(false);
+              }}
               loading={<div />}
-              error={<div className="pdf-error">Failed to load PDF. <a href={url} target="_blank" rel="noreferrer">Open directly</a></div>}
+              error={null}
             >
               {!isLoading && (
                 <Page 
@@ -76,7 +115,7 @@ export default function LazyPdfViewer({ url, title = 'PDF Document' }: LazyPdfVi
                   renderTextLayer={false} 
                   renderAnnotationLayer={false}
                   className="pdf-page"
-                  width={Math.min(window.innerWidth - 64, 800)}
+                  width={Math.min(typeof window !== 'undefined' ? window.innerWidth - 64 : 800, 800)}
                 />
               )}
             </Document>

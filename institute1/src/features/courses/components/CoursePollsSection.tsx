@@ -1,7 +1,7 @@
 import React from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { getCoursePolls } from '../actions/polls';
-import PollCard, { Poll } from './PollCard';
+import CoursePollsClient from './CoursePollsClient';
 import CreatePollButton from './CreatePollButton';
 
 interface CoursePollsSectionProps {
@@ -44,11 +44,7 @@ export default async function CoursePollsSection({ courseId, currentUserId, isEn
         <h2 className="section-title" style={{ margin: 0 }}>Course Polls</h2>
         <CreatePollButton courseId={courseId} />
       </div>
-      <div className="polls-flex">
-        {polls.map((poll: any) => (
-          <PollCard key={poll.id} poll={poll as Poll} currentUserId={currentUserId} isFaculty={isFaculty} />
-        ))}
-      </div>
+      <CoursePollsClient polls={polls} currentUserId={currentUserId} isFaculty={isFaculty} />
     </div>
   );
 }

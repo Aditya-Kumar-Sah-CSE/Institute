@@ -246,6 +246,10 @@
   .sidebar-nav-item[href="/admin/notices"] {
     display: none !important;
   }
+  
+  .sidebar.view-admin .sidebar-nav-item[href="/doubts"] {
+    display: none !important;
+  }
 
   .sidebar-nav {
     flex-direction: row;

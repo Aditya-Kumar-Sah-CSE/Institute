@@ -129,6 +129,34 @@ export default function CreatePollModal({ courseId, isOpen, onClose }: CreatePol
           </label>
         </div>
 
+        <div style={{ marginTop: 'var(--space-sm)' }}>
+          <label style={{ display: 'block', marginBottom: 'var(--space-xs)', color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>Poll Expires In</label>
+          <select 
+            value={expiresInDays}
+            onChange={e => setExpiresInDays(Number(e.target.value))}
+            disabled={isPending}
+            style={{ 
+              padding: 'var(--space-sm) var(--space-md)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--glass-border)',
+              background: 'var(--bg-input)',
+              color: 'var(--text-primary)',
+              fontSize: 'var(--text-sm)',
+              width: '100%',
+              outline: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            <option value={1}>1 Day</option>
+            <option value={2}>2 Days</option>
+            <option value={3}>3 Days</option>
+            <option value={5}>5 Days</option>
+            <option value={7}>1 Week</option>
+            <option value={14}>2 Weeks</option>
+            <option value={30}>1 Month</option>
+          </select>
+        </div>
+
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
           <Button type="button" variant="secondary" onClick={onClose} disabled={isPending}>
             Cancel

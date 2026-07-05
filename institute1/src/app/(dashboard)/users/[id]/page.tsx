@@ -29,7 +29,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
     // Fetch the public profile
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, name, avatar_url, xp, level, role, streak_days, social_links, linkedin_url, institute_id, instructor_id, graduation_period, cgpa, sgpa, created_at, professional_details')
+      .select('id, name, email, avatar_url, xp, level, role, streak_days, social_links, linkedin_url, institute_id, instructor_id, graduation_period, cgpa, sgpa, created_at, professional_details')
       .eq('id', id)
       .maybeSingle();
       
@@ -108,7 +108,33 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
         <div className="profile-info-large" style={{ flex: 1, minWidth: '250px' }}>
           <div style={{ marginBottom: 'var(--space-sm)' }}>
             <h1 className="profile-name">{profile.name}</h1>
-            <p className="profile-email text-muted" style={{ textTransform: 'capitalize' }}>{profile.role}</p>
+            <div style={{
+              display: 'inline-block',
+              padding: '2px 10px',
+              borderRadius: '12px',
+              fontSize: '11px',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              marginTop: '4px',
+              background: profile.role === 'admin' 
+                ? (profile.email === 'iambestadi@gmail.com' ? 'rgba(255, 42, 133, 0.1)' : 'rgba(255, 215, 0, 0.1)')
+                : profile.role === 'instructor' 
+                  ? 'rgba(176, 38, 255, 0.1)' 
+                  : 'rgba(0, 240, 255, 0.1)',
+              color: profile.role === 'admin'
+                ? (profile.email === 'iambestadi@gmail.com' ? 'var(--neon-pink)' : 'var(--neon-gold)')
+                : profile.role === 'instructor'
+                  ? 'var(--neon-purple)'
+                  : 'var(--neon-cyan)',
+              border: '1px solid currentColor'
+            }}>
+              {profile.role === 'admin' 
+                ? (profile.email === 'iambestadi@gmail.com' ? 'Developer' : 'Admin')
+                : profile.role === 'instructor' 
+                  ? 'Faculty' 
+                  : 'Student'}
+            </div>
           </div>
           
           {profile.institute_id && (

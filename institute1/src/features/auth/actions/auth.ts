@@ -166,6 +166,17 @@ export async function updatePassword(formData: FormData) {
     return { error: error.message };
   }
 
+  // Retrieve user ID to send a notification
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    await supabase.from('notifications').insert({
+      user_id: user.id,
+      type: 'system',
+      message: 'Your password was successfully updated.',
+      link: '/profile'
+    });
+  }
+
   redirect('/login?message=Password updated successfully. Please sign in with your new password.');
 }
 

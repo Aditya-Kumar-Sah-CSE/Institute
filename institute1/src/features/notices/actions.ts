@@ -75,6 +75,18 @@ export async function createNotice(formData: FormData) {
     return { error: error.message };
   }
   
+  // Notify all users about the new notice (excluding author)
+  const { data: activeUsers } = await supabase.from('profiles').select('id').neq('id', user.id);
+  if (activeUsers && activeUsers.length > 0) {
+    const notifications = activeUsers.map(u => ({
+      user_id: u.id,
+      type: 'notice',
+      message: `Important Announcement: ${title}`,
+      link: '/dashboard'
+    }));
+    await supabase.from('notifications').insert(notifications);
+  }
+  
   revalidatePath('/dashboard');
   revalidatePath('/notices');
   revalidatePath('/admin/notices');

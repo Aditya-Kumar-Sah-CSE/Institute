@@ -14,9 +14,10 @@ export default function UserAvatar({ url, name, size = 100 }: UserAvatarProps) {
   const [error, setError] = useState(false);
 
   if (!url || error) {
+    const initial = name ? name.charAt(0).toUpperCase() : null;
     return (
-      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-elevated)', color: 'var(--neon-cyan)' }}>
-        <User size={size / 2} opacity={0.5} />
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'var(--neon-cyan)', fontWeight: 'bold', fontSize: size * 0.4 }}>
+        {initial ? initial : <User size={size / 2} opacity={0.5} />}
       </div>
     );
   }
@@ -29,6 +30,7 @@ export default function UserAvatar({ url, name, size = 100 }: UserAvatarProps) {
       sizes={`${size}px`}
       style={{ objectFit: 'cover' }}
       onError={() => setError(true)}
+      unoptimized={true}
     />
   );
 }

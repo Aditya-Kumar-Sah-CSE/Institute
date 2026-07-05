@@ -9,7 +9,12 @@ export default function CreatePollButton({ courseId }: { courseId: string }) {
 
   return (
     <>
-      <Button variant="secondary" size="sm" onClick={() => setIsModalOpen(true)}>
+      <Button 
+        variant="danger" 
+        size="md" 
+        onClick={() => setIsModalOpen(true)}
+        style={{ padding: '12px 24px', fontSize: 'var(--text-md)', fontWeight: 'var(--weight-bold)' }}
+      >
         + Create Poll
       </Button>
       <CreatePollModal 

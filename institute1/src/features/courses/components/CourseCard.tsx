@@ -14,6 +14,15 @@ import { enrollInCourse, getTopEnrolledStudents } from '@/features/courses/actio
 import type { Course } from '@/types';
 import './CourseCard.css';
 
+function FallbackAvatar({ src, name, size }: { src?: string | null, name?: string | null, size: number }) {
+  const [error, setError] = useState(false);
+  
+  if (!src || error) {
+    return <span style={{ fontSize: size * 0.4, color: 'var(--neon-cyan)', fontWeight: 'bold' }}>{(name || 'S').charAt(0).toUpperCase()}</span>;
+  }
+  return <img src={src} alt={name || 'User'} width={size} height={size} style={{ objectFit: 'cover', borderRadius: '50%' }} onError={() => setError(true)} />;
+}
+
 interface CourseCardProps {
   course: Course;
   progress?: number; // 0 to 1
@@ -133,11 +142,7 @@ export default function CourseCard({ course, progress, status, certificateId }: 
                   <div style={{ display: 'flex', marginLeft: '8px' }}>
                     {enrolledStudents.map((student, i) => (
                       <div key={student.user_id} style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid var(--glass-bg)', backgroundColor: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: -8, overflow: 'hidden', zIndex: 3 - i }}>
-                        {student.profiles?.avatar_url ? (
-                          <Image src={student.profiles.avatar_url} alt={student.profiles.name || 'User'} width={24} height={24} style={{ objectFit: 'cover' }} />
-                        ) : (
-                          <span style={{ fontSize: 10, color: 'var(--neon-cyan)', fontWeight: 'bold' }}>{(student.profiles?.name || 'S').charAt(0).toUpperCase()}</span>
-                        )}
+                        <FallbackAvatar src={student.profiles?.avatar_url} name={student.profiles?.name} size={24} />
                       </div>
                     ))}
                   </div>
@@ -239,13 +244,9 @@ export default function CourseCard({ course, progress, status, certificateId }: 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)', marginBottom: 'var(--space-lg)' }}>
             {enrolledStudents.map((student) => (
               <div key={student.user_id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', padding: 'var(--space-sm)', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--glass-border)' }}>
-                {student.profiles?.avatar_url ? (
-                  <Image src={student.profiles.avatar_url} alt={student.profiles.name || 'User'} width={36} height={36} style={{ borderRadius: '50%', objectFit: 'cover' }} />
-                ) : (
-                  <div style={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: 'var(--glass-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--neon-cyan)', fontWeight: 'bold' }}>
-                    {(student.profiles?.name || 'S').charAt(0).toUpperCase()}
-                  </div>
-                )}
+                <div style={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: 'var(--glass-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                  <FallbackAvatar src={student.profiles?.avatar_url} name={student.profiles?.name} size={36} />
+                </div>
                 <span style={{ fontSize: '0.95rem', color: 'var(--text-primary)', fontWeight: 500 }}>{student.profiles?.name}</span>
               </div>
             ))}

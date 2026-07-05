@@ -4,12 +4,14 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
+import UserAvatar from '@/components/shared/UserAvatar';
 import { getDifficultyColor } from '@/lib/utils';
 import { enrollInCourseFormAction } from '@/features/courses/actions/enroll';
 import LeaveCourseButton from '@/features/courses/components/LeaveCourseButton';
 import ShareCourseButton from '@/features/courses/components/ShareCourseButton';
 import CoursePollsSection from '@/features/courses/components/CoursePollsSection';
 import CourseDoubtsSection from '@/features/courses/components/CourseDoubtsSection';
+import CurriculumListClient from '@/features/courses/components/CurriculumListClient';
 import './CourseDetail.css';
 
 export default async function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
@@ -67,6 +69,53 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
 
   return (
     <div className="course-detail-page">
+      <div className="course-interactions-row" style={{ display: 'block' }}>
+        <div className="course-interaction-col">
+          <CoursePollsSection 
+            courseId={courseId} 
+            currentUserId={user.id} 
+            isEnrolledOrFaculty={course.created_by === user.id || course.instructor_id === user.id || !!(enrollment && enrollment.status === 'approved')} 
+          />
+        </div>
+      </div>
+
+      <div className="lessons-section">
+        <h2 className="section-title">Course Curriculum</h2>
+        
+        {(() => {
+          if (!lessons || lessons.length === 0) return null;
+          
+          const groupedLessons = lessons.reduce((acc, lesson) => {
+            const dateStr = new Date(lesson.created_at || Date.now()).toLocaleDateString(undefined, {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            });
+            if (!acc[dateStr]) acc[dateStr] = [];
+            acc[dateStr].push(lesson);
+            return acc;
+          }, {} as Record<string, typeof lessons>);
+          
+          const sortedDates = Object.keys(groupedLessons).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+          return (
+            <CurriculumListClient 
+              courseId={courseId}
+              groupedLessons={groupedLessons}
+              sortedDates={sortedDates}
+              completedLessonIds={Array.from(completedLessonIds)}
+              isApproved={!!(enrollment && enrollment.status === 'approved')}
+            />
+          );
+        })()}
+      </div>
+
+      <div style={{ marginTop: 'var(--space-2xl)' }}>
+        <CourseDoubtsSection 
+          courseId={courseId} 
+          isEnrolledOrFaculty={course.created_by === user.id || course.instructor_id === user.id || !!(enrollment && enrollment.status === 'approved')} 
+        />
+      </div>
+
       <div className="course-hero glass-card">
         <div className="course-hero-content">
           <div 
@@ -88,8 +137,10 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
             <span className="text-gradient">⭐ {course.total_xp} Total XP</span>
           </div>
 
+
+
           {userCertificate ? (
-            <Link href={`/certificates/${userCertificate.id}`} style={{ textDecoration: 'none', display: 'inline-block', marginBottom: 'var(--space-xl)' }}>
+            <Link href={`/certificates/${userCertificate.id}`} style={{ textDecoration: 'none', display: 'inline-block', marginBottom: 'var(--space-xl)', width: '100%' }}>
               <div 
                 className="dummy-certificate-preview hover-lift"
                 style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 16px', background: 'rgba(57, 255, 20, 0.1)', border: '1px solid var(--neon-lime)', borderRadius: 'var(--radius-md)', transition: 'all 0.2s', cursor: 'pointer' }}
@@ -102,7 +153,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
               </div>
             </Link>
           ) : (
-            <Link href={`/certificates/dummy?courseId=${courseId}`} style={{ textDecoration: 'none', display: 'inline-block', marginBottom: 'var(--space-xl)' }}>
+            <Link href={`/certificates/dummy?courseId=${courseId}`} style={{ textDecoration: 'none', display: 'inline-block', marginBottom: 'var(--space-xl)', width: '100%' }}>
               <div 
                 className="dummy-certificate-preview hover-lift"
                 style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 16px', background: 'rgba(255, 215, 0, 0.05)', border: '1px solid rgba(255, 215, 0, 0.3)', borderRadius: 'var(--radius-md)', transition: 'all 0.2s', cursor: 'pointer' }}
@@ -151,12 +202,8 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div style={{ display: 'flex', marginLeft: '8px' }}>
                     {enrolledStudents.slice(0, 3).map((student: any, i: number) => (
-                      <div key={student.user_id} style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid var(--glass-bg)', backgroundColor: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: -8, overflow: 'hidden', zIndex: 3 - i }}>
-                        {student.profiles?.avatar_url ? (
-                          <Image src={student.profiles.avatar_url} alt={student.profiles.name || 'User'} width={28} height={28} style={{ objectFit: 'cover' }} />
-                        ) : (
-                          <span style={{ fontSize: 12, color: 'var(--neon-cyan)', fontWeight: 'bold' }}>{(student.profiles?.name || 'S').charAt(0).toUpperCase()}</span>
-                        )}
+                      <div key={student.user_id} style={{ position: 'relative', width: 28, height: 28, borderRadius: '50%', border: '2px solid var(--glass-bg)', backgroundColor: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: -8, overflow: 'hidden', zIndex: 3 - i }}>
+                        <UserAvatar url={student.profiles?.avatar_url} name={student.profiles?.name} size={28} />
                       </div>
                     ))}
                   </div>
@@ -189,108 +236,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
         )}
       </div>
 
-      <div className="course-interactions-row">
-        <div className="course-interaction-col">
-          <CoursePollsSection 
-            courseId={courseId} 
-            currentUserId={user.id} 
-            isEnrolledOrFaculty={course.created_by === user.id || !!(enrollment && enrollment.status === 'approved')} 
-          />
-        </div>
-
-        <div className="course-interaction-col">
-          <CourseDoubtsSection 
-            courseId={courseId} 
-            isEnrolledOrFaculty={course.created_by === user.id || !!(enrollment && enrollment.status === 'approved')} 
-          />
-        </div>
-      </div>
-
-      <div className="lessons-section">
-        <h2 className="section-title">Course Curriculum</h2>
-        
-        {(() => {
-          if (!lessons || lessons.length === 0) return null;
-          
-          const groupedLessons = lessons.reduce((acc, lesson) => {
-            const dateStr = new Date(lesson.created_at || Date.now()).toLocaleDateString(undefined, {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
-            });
-            if (!acc[dateStr]) acc[dateStr] = [];
-            acc[dateStr].push(lesson);
-            return acc;
-          }, {} as Record<string, typeof lessons>);
-          
-          const sortedDates = Object.keys(groupedLessons).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-          let globalLessonIndex = 0;
-
-          return sortedDates.map((dateStr, idx) => (
-            <div key={`date-${dateStr}`} style={{ marginBottom: 'var(--space-xl)' }}>
-              <h3 style={{ fontSize: 'var(--text-xl)', color: 'var(--neon-gold)', marginBottom: 'var(--space-md)', paddingBottom: 'var(--space-xs)', borderBottom: '1px solid var(--glass-border)' }}>
-                Week {idx + 1} - {dateStr}
-              </h3>
-              <div className="lessons-list">
-                {groupedLessons[dateStr].map((lesson: any) => {
-                  const index = globalLessonIndex++;
-                  const isCompleted = completedLessonIds.has(lesson.id);
-                  const isApproved = enrollment && enrollment.status === 'approved';
-                  const isLocked = !isApproved; // Lock all lessons if not approved
-                  const assignmentXp = lesson.assignments?.reduce((sum: number, a: any) => sum + (a.xp_reward || 0), 0) || 0;
-
-                  return (
-                    <Card 
-                      key={lesson.id} 
-                      variant={isLocked ? 'default' : 'glass'}
-                      className={`lesson-list-item ${isLocked ? 'locked' : ''} ${isCompleted ? 'completed' : ''}`}
-                      style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 'var(--space-lg)', padding: 'var(--space-lg)' }}
-                    >
-                      <div className="lesson-number" style={{ flexShrink: 0 }}>{index + 1}</div>
-                      
-                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-                        <h3 style={{ margin: 0, fontSize: 'var(--text-lg)', color: 'var(--text-primary)' }}>{lesson.title}</h3>
-                        
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-sm)', flexWrap: 'wrap', width: '100%' }}>
-                          {isLocked ? (
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 'var(--space-md)', width: '100%' }}>
-                              {isCompleted && <span className="completed-mark" style={{ color: 'var(--neon-lime)', fontWeight: 'bold' }}>✓</span>}
-                              <span className="locked-mark">🔒</span>
-                            </div>
-                          ) : isCompleted ? (
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 'var(--space-md)', width: '100%' }}>
-                              <span className="completed-mark" style={{ color: 'var(--neon-lime)', fontWeight: 'bold' }}>✓</span>
-                              <Link href={`/courses/${courseId}/${lesson.id}`}>
-                                <Button variant="secondary" size="sm">Review / Task</Button>
-                              </Link>
-                            </div>
-                          ) : (
-                            <>
-                              {assignmentXp > 0 ? (
-                                <span className="lesson-reward text-gradient" style={{ fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)' }}>+{assignmentXp} XP</span>
-                              ) : <span style={{ width: '40px' }} />}
-                              <Link href={`/courses/${courseId}/${lesson.id}#assignments`}>
-                                <Button variant="secondary" size="sm">Assignment</Button>
-                              </Link>
-                              
-                              <span className="lesson-reward text-gradient" style={{ fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)' }}>+{lesson.xp_reward} XP</span>
-                              <Link href={`/courses/${courseId}/${lesson.id}`}>
-                                <Button variant="primary" size="sm">Start</Button>
-                              </Link>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
-            </div>
-          ));
-        })()}
-      </div>
-
-      <div id="joined-students" className="enrolled-students-section" style={{ marginTop: 'var(--space-2xl)' }}>
+      <div id="joined-students" className="enrolled-students-section" style={{ marginTop: 'var(--space-xl)' }}>
         <h2 className="section-title">Joined Students</h2>
         {(!enrolledStudents || enrolledStudents.length === 0) ? (
           <p style={{ color: 'var(--text-secondary)' }}>No students have joined this course yet.</p>
@@ -303,19 +249,9 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
                 className="student-card glass-card" 
                 style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', padding: 'var(--space-sm) var(--space-md)', borderRadius: 'var(--radius-md)', textDecoration: 'none', color: 'inherit', transition: 'all 0.2s ease' }}
               >
-                {enrollment.profiles?.avatar_url ? (
-                  <Image 
-                    src={enrollment.profiles.avatar_url} 
-                    alt={enrollment.profiles?.name || 'Student'} 
-                    width={40} 
-                    height={40} 
-                    style={{ borderRadius: '50%', objectFit: 'cover' }} 
-                  />
-                ) : (
-                  <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: 'var(--glass-bg)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--neon-cyan)', fontWeight: 'bold' }}>
-                    {(enrollment.profiles?.name || 'S').charAt(0).toUpperCase()}
-                  </div>
-                )}
+                <div style={{ position: 'relative', width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+                  <UserAvatar url={enrollment.profiles?.avatar_url} name={enrollment.profiles?.name} size={40} />
+                </div>
                 <span style={{ fontWeight: 500 }}>{enrollment.profiles?.name || 'Unknown Student'}</span>
               </Link>
             ))}

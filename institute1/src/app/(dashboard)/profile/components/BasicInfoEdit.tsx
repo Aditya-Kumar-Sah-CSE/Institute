@@ -52,9 +52,9 @@ export default function BasicInfoEdit({ initialName, initialRollNo, initialBatch
           
           <Input 
             name="institute_id" 
-            label="Roll No / Registration No" 
+            label="Institute ID" 
             defaultValue={initialRollNo || ''}
-            placeholder="e.g. 21CS054"
+            placeholder="Roll No / Reg. No (e.g. 21CS054)"
           />
 
           <Input 

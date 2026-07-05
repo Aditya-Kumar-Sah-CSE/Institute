@@ -13,6 +13,7 @@ import {
 import { reviewSubmissionAction } from '@/features/admin/actions/submissions';
 import { completeCourseAndIssueCertificates } from '@/features/courses/actions/certificates';
 import type { Course, Lesson, Assignment, Badge } from '@/types';
+import CreatePollButton from '@/features/courses/components/CreatePollButton';
 import './CurriculumBuilder.css';
 
 interface EditingItem {
@@ -38,7 +39,8 @@ interface CurriculumBuilderProps {
 }
 
 export default function CurriculumBuilder({ course, lessons, submissions = [] }: CurriculumBuilderProps) {
-  const [modalType, setModalType] = useState<'lesson' | 'assignment' | 'submission' | 'complete_course' | null>(null);
+  const [modalType, setModalType] = useState<'lesson' | 'assignment' | 'submission' | 'complete_course' | 'preview' | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
   const [parentLessonId, setParentLessonId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -71,11 +73,17 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
     setModalType('assignment');
   };
 
+  const openPreviewModal = (url: string) => {
+    setPreviewUrl(url);
+    setModalType('preview');
+  };
+
   const closeModal = () => {
     setModalType(null);
     setEditingItem(null);
     setParentLessonId(null);
     setReviewingSubmission(null);
+    setPreviewUrl(null);
   };
 
   const handleLessonSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -162,6 +170,17 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
         </div>
       </div>
 
+      {!course.is_completed && (
+        <div style={{ display: 'flex', justifyContent: 'flex-start', gap: 'var(--space-md)', marginTop: '-var(--space-md)' }}>
+          <CreatePollButton courseId={course.id} />
+          <Link href={`/courses/${course.id}`} style={{ textDecoration: 'none' }}>
+            <Button variant="success" size="md" style={{ padding: '12px 24px', fontSize: 'var(--text-md)', fontWeight: 'var(--weight-bold)' }}>
+              🎯 View Course Doubts
+            </Button>
+          </Link>
+        </div>
+      )}
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
         {lessons.length === 0 && (
           <Card variant="glass" style={{ textAlign: 'center', padding: 'var(--space-2xl)' }}>
@@ -176,8 +195,11 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
               <Card key={lesson.id} variant="glass" style={{ borderLeft: '4px solid var(--neon-cyan)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-md)' }}>
                   <div>
-                    <h3 style={{ fontSize: 'var(--text-lg)' }}>
-                      {lesson.title}
+                    <h3 style={{ fontSize: 'var(--text-lg)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span onClick={() => openPreviewModal(`/courses/${course.id}/${lesson.id}`)} style={{ cursor: 'pointer', color: 'inherit', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseOver={(e) => { e.currentTarget.style.color = 'var(--neon-cyan)'; }} onMouseOut={(e) => { e.currentTarget.style.color = 'inherit'; }}>
+                        {lesson.title}
+                      </span>
+                      <span style={{ fontSize: '0.7em', color: 'var(--text-muted)', userSelect: 'none' }}>↗</span>
                     </h3>
                     <div style={{ display: 'flex', gap: 'var(--space-md)', fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: '4px' }}>
                       <span>⭐ {lesson.xp_reward} XP</span>
@@ -214,7 +236,12 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                           <div key={assign.id} style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--space-sm)' }}>
                               <div>
-                                <div style={{ fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)' }}>{assign.title}</div>
+                                <div style={{ fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <span onClick={() => openPreviewModal(`/courses/${course.id}/${lesson.id}`)} style={{ cursor: 'pointer', color: 'inherit', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseOver={(e) => { e.currentTarget.style.color = 'var(--neon-cyan)'; }} onMouseOut={(e) => { e.currentTarget.style.color = 'inherit'; }}>
+                                    {assign.title}
+                                  </span>
+                                  <span style={{ fontSize: '0.8em', color: 'var(--text-muted)', userSelect: 'none' }}>↗</span>
+                                </div>
                                 <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', display: 'flex', gap: '8px' }}>
                                   <span>Type: {assign.type}</span>
                                   <span>| ⭐ {assign.xp_reward} XP</span>
@@ -296,8 +323,8 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--space-lg)',
           overflowY: 'auto'
         }}>
-          <Card variant="glass" style={{ width: '100%', maxWidth: '600px', background: 'var(--bg-secondary)', maxHeight: '90vh', overflowY: 'auto' }}>
-            {modalType !== 'complete_course' && (
+          <Card variant="glass" style={{ width: '100%', maxWidth: modalType === 'preview' ? '1200px' : '600px', background: 'var(--bg-secondary)', maxHeight: '90vh', overflowY: 'auto' }}>
+            {modalType !== 'complete_course' && modalType !== 'preview' && (
               <h2 style={{ marginBottom: 'var(--space-lg)' }}>
                 {modalType === 'submission' ? 'Review Submission' : editingItem ? 'Edit ' + (modalType === 'lesson' ? 'Lesson' : 'Assignment') : 'Add ' + (modalType === 'lesson' ? 'Lesson' : 'Assignment')}
               </h2>
@@ -467,6 +494,22 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                 <div style={{ display: 'flex', gap: 'var(--space-sm)', justifyContent: 'flex-end', marginTop: 'var(--space-md)' }}>
                   <Button type="button" variant="ghost" onClick={closeModal} disabled={isCompletingCourse}>Cancel</Button>
                   <Button type="button" variant="primary" onClick={executeCompleteCourse} isLoading={isCompletingCourse} style={{ background: 'var(--neon-gold)', color: '#000', borderColor: 'var(--neon-gold)' }}>Yes, Issue Certificates</Button>
+                </div>
+              </div>
+            )}
+            {modalType === 'preview' && previewUrl && (
+              <div style={{ display: 'flex', flexDirection: 'column', height: '80vh', gap: 'var(--space-md)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ margin: 0, fontSize: 'var(--text-xl)', color: 'var(--text-primary)' }}>Live Preview</h3>
+                  <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+                    <a href={previewUrl} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', padding: '0 12px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-primary)', textDecoration: 'none', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-sm)', border: '1px solid var(--glass-border)' }}>
+                      Open in New Tab ↗
+                    </a>
+                    <Button variant="ghost" onClick={closeModal}>Close Preview</Button>
+                  </div>
+                </div>
+                <div style={{ flex: 1, background: '#000', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
+                  <iframe src={previewUrl} style={{ width: '100%', height: '100%', border: 'none' }} title="Live Preview" />
                 </div>
               </div>
             )}
