@@ -98,13 +98,13 @@ export async function createDoubt(formData: FormData) {
     // Fetch course faculty
     const { data: course } = await supabase
       .from('courses')
-      .select('created_by, instructor_id')
+      .select('created_by')
       .eq('id', courseId)
       .single();
 
     if (course) {
       if (course.created_by) userIdsToNotify.add(course.created_by);
-      if (course.instructor_id) userIdsToNotify.add(course.instructor_id);
+
     }
   } else {
     // It's a batch doubt: fetch all users in the batch

@@ -74,7 +74,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
           <CoursePollsSection 
             courseId={courseId} 
             currentUserId={user.id} 
-            isEnrolledOrFaculty={course.created_by === user.id || course.instructor_id === user.id || !!(enrollment && enrollment.status === 'approved')} 
+            isEnrolledOrFaculty={course.created_by === user.id || !!(enrollment && enrollment.status === 'approved')} 
           />
         </div>
       </div>
@@ -112,7 +112,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
       <div style={{ marginTop: 'var(--space-2xl)' }}>
         <CourseDoubtsSection 
           courseId={courseId} 
-          isEnrolledOrFaculty={course.created_by === user.id || course.instructor_id === user.id || !!(enrollment && enrollment.status === 'approved')} 
+          isEnrolledOrFaculty={course.created_by === user.id || !!(enrollment && enrollment.status === 'approved')} 
         />
       </div>
 

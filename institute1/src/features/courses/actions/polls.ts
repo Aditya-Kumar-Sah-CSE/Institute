@@ -53,7 +53,7 @@ export async function createCoursePoll(
     // 3. Notify enrolled students and course creator
     const { data: course } = await supabase
       .from('courses')
-      .select('title, created_by, instructor_id')
+      .select('title, created_by')
       .eq('id', courseId)
       .single();
 
@@ -72,9 +72,6 @@ export async function createCoursePoll(
       
       if (course.created_by) {
         userIdsToNotify.add(course.created_by);
-      }
-      if (course.instructor_id) {
-        userIdsToNotify.add(course.instructor_id);
       }
       
       // Do not notify the person who created the poll

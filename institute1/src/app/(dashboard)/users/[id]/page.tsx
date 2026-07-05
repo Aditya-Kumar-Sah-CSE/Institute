@@ -77,8 +77,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
       const { data: tcData } = await supabase
         .from('courses')
         .select('id, title, thumbnail_url')
-        .eq('instructor_id', id)
-        .eq('is_published', true);
+        .eq('created_by', id);
       teachingCourses = tcData;
     }
   } catch (err) {

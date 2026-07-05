@@ -1,0 +1,1060 @@
+# 🏛️ EduSaaS — Multi-Tenant Institute Management Platform
+## Complete Architecture & Implementation Blueprint (v2.0)
+
+> **Author:** Aditya Kumar Sah (Super Admin: `iambestadi@gmail.com`)
+> **Date:** July 2026 | **Target Scale:** 25–100 Institutes | **Status:** Planning
+
+---
+
+## Table of Contents
+1. [Executive Summary](#1-executive-summary)
+2. [Problem Analysis — Why Current Fork Model Fails](#2-problem-analysis)
+3. [Multi-Tenancy Architecture — Deep Dive](#3-multi-tenancy-architecture)
+4. [Technology Stack — Final Recommendations](#4-technology-stack)
+5. [Database Design — Master + Tenant Schemas](#5-database-design)
+6. [Application Architecture — Next.js App Router](#6-application-architecture)
+7. [Authentication & RBAC System](#7-authentication--rbac)
+8. [Billing & Subscription (Stripe Integration)](#8-billing--subscription)
+9. [Infrastructure & Cloud Deployment (AWS)](#9-infrastructure--cloud-deployment)
+10. [Security & Data Isolation](#10-security--data-isolation)
+11. [CI/CD & DevOps Pipeline](#11-cicd--devops-pipeline)
+12. [Monitoring, Logging & Alerting](#12-monitoring-logging--alerting)
+13. [Cost Estimation (Monthly)](#13-cost-estimation)
+14. [Phased Implementation Roadmap](#14-phased-implementation-roadmap)
+15. [Scalability — From 25 to 100+ Institutes](#15-scalability)
+
+---
+
+## 1. Executive Summary
+
+Build a **production-grade SaaS platform** that lets multiple educational institutes (colleges, universities, coaching centers) register, pay a monthly subscription, and get a **fully isolated, branded learning management system (LMS)**.
+
+### Core Requirements Recap
+| Requirement | Solution |
+|:---|:---|
+| Multiple institutes register on a single app | Single Next.js app with dynamic tenant routing |
+| Monthly payment by each institute | Stripe Billing with per-tenant subscription |
+| Separate database per institute | Schema-per-Tenant inside a single PostgreSQL RDS |
+| Super Admin controls everything | Global admin dashboard at `admin.edusaas.com` |
+| Handle 25 institutes independently | Middleware-based tenant resolver + dynamic DB connections |
+| Existing codebase compatibility | Refactor `institute1` / `BCE` fork into multi-tenant codebase |
+
+---
+
+## 2. Problem Analysis — Why Current Fork Model Fails
+
+Your current approach (`plan_approach_a_fork.md`) duplicates the **entire codebase** for each institute. This has severe scaling issues:
+
+| Problem | Current Fork Model | Proposed SaaS Model |
+|:---|:---|:---|
+| Adding a new institute | Copy codebase + new Supabase project (~55 min manual) | Click "Add Institute" in admin panel (~2 min automated) |
+| Bug fix or feature update | Manually apply to ALL 25 repos ❌ | Deploy once → all 25 institutes get the update ✅ |
+| Code maintenance | 25 separate repos × 12 files per branding change = 300 changes | 1 repo, 1 config table in DB, 0 code changes |
+| Infrastructure cost | 25 Vercel projects + 25 Supabase projects | 1 App + 1 RDS instance (25 schemas inside) |
+| Monthly cost (estimated) | ₹50,000–1,00,000/month | ₹8,000–15,000/month |
+| Developer onboarding | Must understand 25 different repos | Single codebase, single pattern |
+
+> **Verdict:** The fork model is unsustainable at 25+ institutes. A proper multi-tenant SaaS is the only path forward.
+
+---
+
+## 3. Multi-Tenancy Architecture — Deep Dive
+
+### 3.1 Three Multi-Tenancy Models Compared
+
+| Model | Data Isolation | Cost | Complexity | Our Decision |
+|:---|:---|:---|:---|:---|
+| **Shared DB, Shared Schema** (Row-Level Security) | Low — `WHERE tenant_id = ?` on every query | ₹₹ | Low | ❌ Risk of data leaks |
+| **Shared DB, Separate Schemas** ⭐ | High — each tenant has own PostgreSQL schema | ₹₹₹ | Medium | ✅ **RECOMMENDED** |
+| **Separate Databases** | Highest — fully isolated DBs | ₹₹₹₹₹ | High | ❌ Too expensive for 25 |
+
+### 3.2 Why Schema-per-Tenant is the Sweet Spot
+
+```
+Single PostgreSQL RDS Instance (Amazon RDS)
+├── public schema           → Master Database (tenants, billing, super admin)
+├── tenant_institute1       → Institute 1's complete data (students, courses, etc.)
+├── tenant_bce              → BCE's complete data
+├── tenant_xyzuniversity    → XYZ University's complete data
+└── ... (up to 100 schemas in a single RDS instance)
+```
+
+**Benefits:**
+- ✅ **True data isolation** — `SET search_path TO tenant_bce` before any query
+- ✅ **Single RDS bill** — no need for 25 AWS database instances
+- ✅ **Easy backup/restore** per tenant — `pg_dump --schema=tenant_bce`
+- ✅ **Easy tenant removal** — `DROP SCHEMA tenant_bce CASCADE`
+- ✅ **Same Prisma schema** — apply identical migrations to all tenant schemas
+- ✅ **Connection pooling** — PgBouncer shares connections across all tenants
+
+### 3.3 Request Lifecycle (How It Works)
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  Student visits: bce.edusaas.com/dashboard                      │
+│     ↓                                                           │
+│  Next.js Middleware → extracts subdomain "bce"                  │
+│     ↓                                                           │
+│  Master DB lookup → SELECT schema_name FROM tenants             │
+│                     WHERE slug = 'bce' AND status = 'active'    │
+│     ↓                                                           │
+│  Returns: schema_name = "tenant_bce"                            │
+│     ↓                                                           │
+│  Prisma Client → SET search_path TO tenant_bce                  │
+│     ↓                                                           │
+│  All queries scoped to tenant_bce schema automatically          │
+│     ↓                                                           │
+│  Response returned to student (only sees BCE data)               │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 4. Technology Stack — Final Recommendations
+
+### 4.1 Core Stack
+
+| Layer | Technology | Version | Why This Over Alternatives |
+|:---|:---|:---|:---|
+| **Framework** | Next.js (App Router) | 15.x | You already use it. SSR + Server Actions + Middleware for tenant routing |
+| **Language** | TypeScript | 5.x | Type safety critical for multi-tenant DB switching |
+| **ORM** | **Drizzle ORM** | Latest | ⭐ Native dynamic schema switching. Prisma lacks this without hacks |
+| **Database** | PostgreSQL | 16 | Schemas, pg_dump per schema, proven at scale |
+| **Auth** | NextAuth v5 (Auth.js) | 5.x | Full DB control needed for multi-tenant user tables |
+| **Payments** | Stripe Billing | API v2024 | Automated subscriptions, dunning, invoices |
+| **Styling** | Tailwind CSS + Shadcn/ui | 4.x + latest | Your existing stack, fast iteration |
+| **State Management** | Zustand / React Context | Latest | Lightweight, stores tenant config client-side |
+
+### 4.2 Why Drizzle ORM Over Prisma for This Project
+
+| Feature | Prisma | Drizzle ORM |
+|:---|:---|:---|
+| Dynamic `search_path` switching | ❌ Requires raw SQL hacks | ✅ `schema` parameter in config |
+| Connection pooling | External (PgBouncer) | Built-in PostgreSQL pool |
+| Bundle size | 2.2MB | 47KB |
+| Migration per schema | Complex manual scripts | `drizzle-kit push --schema` |
+| Type safety | Generated client | Inferred from schema definition |
+
+### 4.3 Infrastructure Stack (100% FREE TIER — ₹0/month)
+
+| Component | Service (Free Tier) | Free Limit | Why |
+|:---|:---|:---|:---|
+| **Hosting** | Vercel Hobby (Free) | Unlimited deploys, 100GB bandwidth | Best Next.js host, zero config |
+| **Database** | Supabase Free | 500MB, 2 projects | PostgreSQL with dashboard, RLS built-in |
+| **File Storage** | Supabase Storage (Free) | 1GB storage, 2GB bandwidth | Built into Supabase, no extra setup |
+| **CDN** | Cloudflare Free | Unlimited bandwidth | Free SSL, DDoS protection, caching |
+| **Cache** | Upstash Redis (Free) | 10,000 cmds/day, 256MB | Serverless Redis, perfect for Vercel |
+| **DNS** | Cloudflare DNS (Free) | Unlimited queries | Fastest DNS, wildcard subdomain support |
+| **Email** | Resend Free | 3,000 emails/month | Free transactional emails, React templates |
+| **Monitoring** | Sentry Free | 5K errors/month | Error tracking with source maps |
+| **CI/CD** | GitHub Actions Free | 2,000 min/month | Automated testing & deployment |
+| **TOTAL** | | | **₹0/month** |
+
+---
+
+## 5. Database Design — Master + Tenant Schemas
+
+### 5.1 Master Schema (`public`) — Global Data
+
+```sql
+-- ============================================
+-- MASTER SCHEMA (public) — Super Admin Domain
+-- ============================================
+
+CREATE TABLE super_admins (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT UNIQUE NOT NULL,  -- 'iambestadi@gmail.com'
+    password_hash TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE tenants (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,                          -- 'Bihar College of Engineering'
+    slug TEXT UNIQUE NOT NULL,                   -- 'bce' (used in subdomain)
+    schema_name TEXT UNIQUE NOT NULL,            -- 'tenant_bce'
+    domain TEXT,                                 -- Optional custom domain
+    logo_url TEXT,                               -- S3 path to logo
+    primary_color TEXT DEFAULT '#6366f1',        -- Brand color
+    admin_email TEXT NOT NULL,                   -- Institute admin contact
+    
+    -- Subscription & Billing
+    stripe_customer_id TEXT,
+    stripe_subscription_id TEXT,
+    plan_type TEXT DEFAULT 'basic',              -- 'basic', 'pro', 'enterprise'
+    billing_status TEXT DEFAULT 'trial',         -- 'trial', 'active', 'past_due', 'suspended'
+    trial_ends_at TIMESTAMPTZ,
+    current_period_end TIMESTAMPTZ,
+    monthly_amount_inr INTEGER DEFAULT 2999,     -- ₹2,999/month
+    
+    -- Limits
+    max_students INTEGER DEFAULT 500,
+    max_courses INTEGER DEFAULT 50,
+    max_storage_gb INTEGER DEFAULT 10,
+    
+    -- Status
+    status TEXT DEFAULT 'active',                -- 'active', 'suspended', 'deleted'
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE tenant_usage (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID REFERENCES tenants(id),
+    month TEXT NOT NULL,                         -- '2026-07'
+    active_students INTEGER DEFAULT 0,
+    courses_created INTEGER DEFAULT 0,
+    storage_used_mb INTEGER DEFAULT 0,
+    api_calls INTEGER DEFAULT 0,
+    bandwidth_mb INTEGER DEFAULT 0,
+    UNIQUE(tenant_id, month)
+);
+
+CREATE TABLE billing_invoices (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID REFERENCES tenants(id),
+    stripe_invoice_id TEXT,
+    amount_inr INTEGER,
+    status TEXT,                                 -- 'paid', 'open', 'overdue'
+    invoice_url TEXT,
+    period_start TIMESTAMPTZ,
+    period_end TIMESTAMPTZ,
+    paid_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE global_announcements (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    target TEXT DEFAULT 'all',                   -- 'all', 'active', 'trial'
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX idx_tenants_slug ON tenants(slug);
+CREATE INDEX idx_tenants_status ON tenants(status);
+CREATE INDEX idx_tenants_billing ON tenants(billing_status);
+CREATE INDEX idx_usage_tenant_month ON tenant_usage(tenant_id, month);
+```
+
+### 5.2 Tenant Schema (Cloned Per Institute) — Institute Data
+
+```sql
+-- ============================================
+-- TENANT SCHEMA (tenant_xxx) — Per Institute
+-- This is your EXISTING schema from institute1/BCE
+-- ============================================
+
+-- Each tenant schema contains the SAME tables:
+-- profiles, courses, lessons, assignments, submissions,
+-- badges, user_badges, xp_log, enrollments, lesson_progress,
+-- company_settings, notices, feedbacks, feedback_replies,
+-- doubts, doubt_replies, doubt_likes, notifications,
+-- certificates, course_polls, monthly_rewards, etc.
+
+-- Example: creating the schema for a new institute
+CREATE SCHEMA IF NOT EXISTS tenant_bce;
+SET search_path TO tenant_bce;
+
+-- Then run your existing 59 migration files inside this schema
+-- All tables are created WITHIN tenant_bce
+```
+
+### 5.3 Tenant Provisioning Script (Automated)
+
+```typescript
+// lib/tenant-provisioning.ts
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { sql } from 'drizzle-orm';
+import { readFileSync } from 'fs';
+import path from 'path';
+
+export async function provisionNewTenant(
+  slug: string,
+  name: string,
+  adminEmail: string
+) {
+  const schemaName = `tenant_${slug}`;
+  const db = drizzle(process.env.DATABASE_URL!);
+
+  // 1. Create the new schema
+  await db.execute(sql`CREATE SCHEMA IF NOT EXISTS ${sql.raw(schemaName)}`);
+
+  // 2. Set search path to new schema
+  await db.execute(sql`SET search_path TO ${sql.raw(schemaName)}`);
+
+  // 3. Run all 59 migration files in order
+  const migrationDir = path.join(process.cwd(), 'migrations');
+  const files = [
+    '001_create_tables.sql',
+    '002_rls_policies.sql',
+    '003_seed_data.sql',
+    // ... all 59 files (001 through 059)
+  ];
+
+  for (const file of files) {
+    const sqlContent = readFileSync(path.join(migrationDir, file), 'utf-8');
+    await db.execute(sql.raw(sqlContent));
+  }
+
+  // 4. Insert into master tenants table
+  await db.execute(sql`SET search_path TO public`);
+  await db.execute(sql`
+    INSERT INTO tenants (name, slug, schema_name, admin_email)
+    VALUES (${name}, ${slug}, ${schemaName}, ${adminEmail})
+  `);
+
+  // 5. Create admin profile in tenant schema
+  await db.execute(sql`SET search_path TO ${sql.raw(schemaName)}`);
+  await db.execute(sql`
+    UPDATE profiles SET role = 'admin'
+    WHERE email = ${adminEmail}
+  `);
+
+  return { schemaName, success: true };
+}
+```
+
+---
+
+## 5.4 Complete Feature Map — From institute1 Codebase
+
+Below is **every single feature** extracted from the existing `institute1` project that the SaaS platform must support per tenant.
+
+> [!IMPORTANT]
+> This is based on a full scan of `D:\Institute\institute1` — 59 SQL migrations, 10 feature modules, and 16 UI components. **Nothing is missed.**
+
+### 🎓 Student Features (Dashboard)
+
+| # | Feature | Route / Component | Migration Files |
+|:--|:---|:---|:---|
+| 1 | **Dashboard** — XP stats, enrolled courses, progress overview | `(dashboard)/dashboard/page.tsx` | 001 |
+| 2 | **Course Catalog** — Browse & enroll in courses | `(dashboard)/courses/page.tsx` | 001, 007, 051 |
+| 3 | **Course Detail** — Lessons list, progress, week-wise view | `(dashboard)/courses/[courseId]/page.tsx` | 001, 015 |
+| 4 | **Lesson Viewer** — PDF notes, video player, attachments | `(dashboard)/courses/[courseId]/[lessonId]/page.tsx` | 001, 021 |
+| 5 | **Assignments** — Submit assignments (any type), text/file/link | `[lessonId]/components/` | 001, 026, 059 |
+| 6 | **Doubts System** — Ask doubts per lesson, replies, likes, media | `(dashboard)/doubts/page.tsx` | 031–037, 041, 048, 050 |
+| 7 | **Leaderboard** — XP rankings, monthly rewards | `(dashboard)/leaderboard/page.tsx` | 001, 028, 042–045 |
+| 8 | **Certificates** — Course completion certificates | `(dashboard)/certificates/page.tsx` | 058 |
+| 9 | **Notices** — View announcements (with images) | `(dashboard)/notices/page.tsx` | 010, 022 |
+| 10 | **Feedbacks** — Submit feedback (with screenshots) | `(dashboard)/feedbacks/page.tsx` | 008, 009, 052 |
+| 11 | **Profile** — Edit profile, social links, academic info, avatar | `(dashboard)/profile/page.tsx` | 029, 030 |
+| 12 | **Batch System** — View batch-specific content | `(dashboard)/batch/[batchId]/` | 020 |
+| 13 | **Users Directory** — Browse other students | `(dashboard)/users/page.tsx` | 001 |
+| 14 | **Notifications** — Real-time notifications (bell icon) | `features/notifications/` | 046, 047, 055, 056 |
+| 15 | **Admission Form** — Mandatory registration form | `admission/page.tsx` | 030 |
+| 16 | **Course Polls** — Vote on polls within courses | `features/courses/` | 049 |
+
+### 🏫 Institute Admin Features
+
+| # | Feature | Route | Migration Files |
+|:--|:---|:---|:---|
+| 17 | **Admin Dashboard** — Stats overview (students, courses, revenue) | `(admin)/admin/page.tsx` | 001 |
+| 18 | **Manage Courses** — CRUD courses, assign instructors | `(admin)/admin/courses/page.tsx` | 001, 017 |
+| 19 | **Course Builder** — Create/edit lessons, add PDFs/videos | `(admin)/admin/courses/[courseId]/builder/page.tsx` | 001, 014, 021 |
+| 20 | **Manage Students** — View all, leaderboard table | `(admin)/admin/students/page.tsx` | 001 |
+| 21 | **Enrollment Management** — Approve/reject enrollments | `(admin)/admin/enrollments/page.tsx` | 007, 051 |
+| 22 | **Manage Submissions** — Review & grade assignments | `(admin)/admin/submissions/page.tsx` | 001, 018, 057 |
+| 23 | **Instructor Requests** — Approve/reject instructor applications | `(admin)/admin/instructor-requests/page.tsx` | 006 |
+| 24 | **Manage Notices** — CRUD announcements with images | `(admin)/admin/notices/page.tsx` | 010, 022 |
+| 25 | **View Feedbacks** — Read student feedback + replies | `(admin)/admin/feedback/page.tsx` | 008, 009, 052 |
+
+### 👨‍🏫 Instructor Features
+
+| # | Feature | Route | Migration Files |
+|:--|:---|:---|:---|
+| 26 | **Instructor Dashboard** — My courses, student count | `(instructor)/instructor/page.tsx` | 006 |
+| 27 | **My Courses** — View/manage assigned courses | `(instructor)/instructor/courses/page.tsx` | 006, 016 |
+| 28 | **Course Builder** — Add/edit lessons (restricted) | `(instructor)/instructor/courses/[courseId]/builder/` | 014, 024 |
+| 29 | **My Students** — View enrolled students | `(instructor)/instructor/students/page.tsx` | 006 |
+| 30 | **Grade Submissions** — Review & grade student work | `(instructor)/instructor/submissions/page.tsx` | 018 |
+| 31 | **My Enrollments** — Manage course enrollments | `(instructor)/instructor/enrollments/page.tsx` | 007 |
+| 32 | **Manage Notices** — Post instructor-level notices | `(instructor)/instructor/notices/page.tsx` | 010 |
+| 33 | **View Feedbacks** — See course-specific feedback | `(instructor)/instructor/feedback/page.tsx` | 008 |
+
+### 🔐 Auth Features
+
+| # | Feature | Route |
+|:--|:---|:---|
+| 34 | **Login** — Email/password authentication | `(auth)/login/page.tsx` |
+| 35 | **Signup** — Student registration | `(auth)/signup/page.tsx` |
+| 36 | **Forgot Password** — Email recovery flow | `(auth)/forgot-password/page.tsx` |
+| 37 | **Reset Password** — Token-based password reset | `(auth)/reset-password/page.tsx` |
+| 38 | **Apply as Instructor** — Public instructor application | `(public)/apply-instructor/page.tsx` |
+
+### 🎮 Gamification System (Feature Module)
+
+| # | Feature | Migration Files |
+|:--|:---|:---|
+| 39 | **XP System** — Earn XP for actions, real-time updates | 001, 042 |
+| 40 | **Badges** — Course completion, assignment, faculty, realistic | 001, 025, 026, 027 |
+| 41 | **Monthly Rewards** — Top performers awarded monthly | 028, 043, 044, 045 |
+
+### 🧩 UI Component Library
+
+| # | Component | File |
+|:--|:---|:---|
+| 42 | Button (with variants) | `ui/Button.tsx` |
+| 43 | Card | `ui/Card.tsx` |
+| 44 | Input (with validation) | `ui/Input.tsx` |
+| 45 | Modal | `ui/Modal.tsx` |
+| 46 | Confirm Modal | `ui/ConfirmModal.tsx` |
+| 47 | Lazy PDF Viewer | `ui/LazyPdfViewer.tsx` |
+| 48 | Lazy Video Player | `ui/LazyVideoPlayer.tsx` |
+| 49 | Lazy Attachment Viewer | `ui/LazyAttachment.tsx` |
+| 50 | Image Upload Button | `ui/ImageUploadButton.tsx` |
+| 51 | Markdown Renderer | `ui/MarkdownRenderer.tsx` |
+
+### 📱 Platform Features
+
+| # | Feature | Details |
+|:--|:---|:---|
+| 52 | **PWA (Progressive Web App)** | Install prompt, service worker, offline support |
+| 53 | **Branding Bucket** | Per-institute logo/icon storage (migration 019) |
+| 54 | **Soft Delete** | Courses soft-deleted, not permanently removed (017) |
+| 55 | **Public Submissions** | Students can view each other's work (057) |
+| 56 | **Data Pruning** | Automated cleanup of old data (011) |
+| 57 | **Performance Indexes** | 23+ database indexes for fast queries (013, 023, 040) |
+| 58 | **Security Triggers** | Auto-sanitize inputs, RLS policies (002, 012, 014, 018) |
+| 59 | **Faculty Details** | Professional info for instructors (053, 054) |
+
+### 📊 Migration Count Summary
+
+| Category | Migrations | Count |
+|:---|:---|---:|
+| Core tables & RLS | 001–003 | 3 |
+| Course system | 005, 015–017 | 4 |
+| Roles & enrollment | 006–007, 051 | 3 |
+| Feedback & notices | 008–010, 022, 052 | 5 |
+| Security & performance | 011–014, 023, 040 | 6 |
+| Content features | 018–021, 024, 057, 059 | 7 |
+| Gamification | 025–028, 042–045 | 8 |
+| User profiles | 029–030, 038, 053, 054 | 5 |
+| Doubts system | 031–037, 041, 048, 050 | 10 |
+| Notifications & realtime | 046–047, 055–056 | 4 |
+| Certificates & polls | 049, 058 | 2 |
+| Schema reloads & fixes | 033, 035 | 2 |
+| **TOTAL** | | **59** |
+
+---
+
+## 6. Application Architecture — Next.js App Router
+
+### 6.1 Complete Folder Structure
+
+```
+edusaas/
+├── src/
+│   ├── app/
+│   │   ├── (super-admin)/                    # ── SUPER ADMIN PORTAL ──
+│   │   │   ├── layout.tsx                    # Auth guard: only iambestadi@gmail.com
+│   │   │   ├── admin/
+│   │   │   │   ├── page.tsx                  # Global dashboard (revenue, active tenants)
+│   │   │   │   ├── institutes/
+│   │   │   │   │   ├── page.tsx              # List all 25 institutes + status
+│   │   │   │   │   ├── [id]/page.tsx         # Institute detail (usage, billing)
+│   │   │   │   │   └── new/page.tsx          # Add new institute form
+│   │   │   │   ├── billing/
+│   │   │   │   │   ├── page.tsx              # All invoices & revenue
+│   │   │   │   │   └── [id]/page.tsx         # Single institute billing
+│   │   │   │   ├── announcements/page.tsx    # Global announcements
+│   │   │   │   └── settings/page.tsx         # Platform config
+│   │   │
+│   │   ├── [tenant]/                          # ── DYNAMIC TENANT ROUTES ──
+│   │   │   ├── layout.tsx                    # Loads tenant config (logo, colors)
+│   │   │   ├── page.tsx                      # Institute landing page
+│   │   │   ├── (auth)/
+│   │   │   │   ├── login/page.tsx
+│   │   │   │   └── signup/page.tsx
+│   │   │   ├── (dashboard)/
+│   │   │   │   ├── dashboard/page.tsx
+│   │   │   │   ├── courses/[courseId]/page.tsx
+│   │   │   │   ├── assignments/page.tsx
+│   │   │   │   ├── leaderboard/page.tsx
+│   │   │   │   └── notices/page.tsx
+│   │   │   ├── (institute-admin)/
+│   │   │   │   ├── admin/page.tsx            # Institute admin dashboard
+│   │   │   │   ├── students/page.tsx
+│   │   │   │   └── settings/page.tsx         # Branding settings
+│   │   │   ├── (instructor)/
+│   │   │   │   └── instructor/[...path]/page.tsx
+│   │   │   ├── admission/page.tsx
+│   │   │   └── api/                          # Tenant-scoped API routes
+│   │   │
+│   │   ├── api/
+│   │   │   ├── webhooks/stripe/route.ts      # Stripe webhook handler
+│   │   │   ├── tenants/route.ts              # CRUD tenants (super admin)
+│   │   │   └── health/route.ts               # Health check
+│   │   │
+│   │   ├── layout.tsx                        # Root layout
+│   │   └── page.tsx                          # Marketing landing page
+│   │
+│   ├── lib/
+│   │   ├── db/
+│   │   │   ├── master.ts                     # Master DB connection (public schema)
+│   │   │   ├── tenant.ts                     # Dynamic tenant DB connection
+│   │   │   ├── schema/
+│   │   │   │   ├── master-schema.ts          # Drizzle: tenants, billing, etc.
+│   │   │   │   └── tenant-schema.ts          # Drizzle: profiles, courses, etc.
+│   │   │   └── migrations/                   # All 17 SQL migration files
+│   │   ├── auth/
+│   │   │   ├── auth.config.ts                # NextAuth config
+│   │   │   └── tenant-auth-adapter.ts        # Multi-tenant auth adapter
+│   │   ├── stripe/
+│   │   │   ├── client.ts                     # Stripe SDK init
+│   │   │   ├── subscriptions.ts              # Create/cancel/update subs
+│   │   │   └── webhooks.ts                   # Webhook event handlers
+│   │   ├── tenant/
+│   │   │   ├── resolver.ts                   # Resolve tenant from URL/subdomain
+│   │   │   ├── context.ts                    # React context for tenant config
+│   │   │   ├── provisioning.ts               # Auto-create schema + seed
+│   │   │   └── cache.ts                      # Redis cache for tenant config
+│   │   ├── s3/
+│   │   │   └── upload.ts                     # S3 file uploads (scoped per tenant)
+│   │   └── constants.ts
+│   │
+│   ├── components/
+│   │   ├── super-admin/                      # Super admin UI components
+│   │   ├── tenant/                           # Tenant-aware shared components
+│   │   ├── ui/                               # Shadcn components
+│   │   └── layout/
+│   │       ├── Sidebar.tsx                   # Reads tenant config for branding
+│   │       └── TenantHeader.tsx              # Dynamic logo + colors
+│   │
+│   └── middleware.ts                         # 🔑 CRITICAL: Tenant resolver middleware
+│
+├── drizzle.config.ts
+├── next.config.ts
+├── .env.local
+└── package.json
+```
+
+### 6.2 Core: Tenant Resolver Middleware
+
+```typescript
+// src/middleware.ts — THE MOST CRITICAL FILE
+import { NextRequest, NextResponse } from 'next/server';
+import { getTenantBySlug } from '@/lib/tenant/resolver';
+
+export async function middleware(request: NextRequest) {
+  const hostname = request.headers.get('host') || '';
+  const pathname = request.nextUrl.pathname;
+
+  // --- Strategy 1: Subdomain-based routing ---
+  // bce.edusaas.com → tenant = 'bce'
+  const subdomain = hostname.split('.')[0];
+  const isSubdomainTenant = !['www', 'admin', 'api', 'edusaas'].includes(subdomain);
+
+  // --- Strategy 2: Path-based routing (fallback) ---
+  // edusaas.com/bce/dashboard → tenant = 'bce'
+  const pathTenant = pathname.split('/')[1];
+
+  const tenantSlug = isSubdomainTenant ? subdomain : pathTenant;
+
+  // Skip for super-admin, marketing pages, API, and static assets
+  if (['admin', 'api', '_next', 'favicon.ico'].includes(tenantSlug)) {
+    return NextResponse.next();
+  }
+
+  // Resolve tenant from Redis cache or Master DB
+  const tenant = await getTenantBySlug(tenantSlug);
+
+  if (!tenant) {
+    return NextResponse.redirect(new URL('/not-found', request.url));
+  }
+
+  // Check billing status — block suspended tenants
+  if (tenant.billing_status === 'suspended') {
+    return NextResponse.redirect(new URL('/suspended', request.url));
+  }
+
+  // Inject tenant info into request headers for downstream use
+  const response = NextResponse.next();
+  response.headers.set('x-tenant-id', tenant.id);
+  response.headers.set('x-tenant-schema', tenant.schema_name);
+  response.headers.set('x-tenant-slug', tenant.slug);
+
+  return response;
+}
+
+export const config = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+};
+```
+
+### 6.3 Dynamic DB Connection Per Tenant
+
+```typescript
+// lib/db/tenant.ts
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+import { sql } from 'drizzle-orm';
+import { headers } from 'next/headers';
+
+// Shared connection pool (PgBouncer handles the rest)
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 20,  // max connections
+});
+
+export async function getTenantDb() {
+  const headersList = await headers();
+  const schemaName = headersList.get('x-tenant-schema');
+
+  if (!schemaName) throw new Error('No tenant context found');
+
+  const db = drizzle(pool);
+
+  // Switch to tenant's schema
+  await db.execute(sql`SET search_path TO ${sql.raw(schemaName)}`);
+
+  return db;
+}
+
+// Usage in any Server Component or Server Action:
+// const db = await getTenantDb();
+// const students = await db.select().from(profiles);
+// → Automatically queries tenant_bce.profiles (or whichever tenant)
+```
+
+---
+
+## 7. Authentication & RBAC System
+
+### 7.1 Role Hierarchy
+
+```
+Super Admin (iambestadi@gmail.com)
+  └── Can access ALL tenants, billing, provisioning, global settings
+       │
+       ├── Institute Admin (1 per tenant)
+       │     └── Manages their own institute: students, courses, teachers
+       │          │
+       │          ├── Instructor (multiple per tenant)
+       │          │     └── Creates courses, grades assignments
+       │          │
+       │          └── Student (many per tenant)
+       │                └── Enrolls in courses, submits assignments
+       │
+       └── Institute Admin (another tenant)
+             └── ... (completely isolated)
+```
+
+### 7.2 Auth Flow with NextAuth v5
+
+```typescript
+// lib/auth/auth.config.ts
+import NextAuth from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
+
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  providers: [
+    CredentialsProvider({
+      async authorize(credentials) {
+        const { email, password, tenantSlug } = credentials;
+        
+        // 1. Resolve tenant
+        const tenant = await getTenantBySlug(tenantSlug);
+        if (!tenant || tenant.status !== 'active') return null;
+        
+        // 2. Check user in tenant's schema
+        const db = await getTenantDbBySchema(tenant.schema_name);
+        const user = await db.select().from(profiles)
+          .where(eq(profiles.email, email))
+          .limit(1);
+        
+        // 3. Verify password
+        if (!user || !await bcrypt.compare(password, user.password_hash)) {
+          return null;
+        }
+        
+        return {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          tenantId: tenant.id,
+          tenantSlug: tenant.slug,
+          tenantSchema: tenant.schema_name,
+        };
+      }
+    })
+  ],
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.role = user.role;
+        token.tenantId = user.tenantId;
+        token.tenantSlug = user.tenantSlug;
+        token.tenantSchema = user.tenantSchema;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      session.user.role = token.role;
+      session.user.tenantId = token.tenantId;
+      session.user.tenantSlug = token.tenantSlug;
+      return session;
+    }
+  }
+});
+```
+
+---
+
+## 8. Billing & Subscription (Stripe Integration)
+
+### 8.1 Pricing Plans
+
+| Plan | Monthly Price | Max Students | Max Courses | Storage | Features |
+|:---|---:|---:|---:|---:|:---|
+| **Starter** | ₹1,999 | 200 | 20 | 5 GB | Core LMS |
+| **Growth** | ₹3,999 | 500 | 50 | 20 GB | + Admission Forms, Leaderboard |
+| **Enterprise** | ₹7,999 | Unlimited | Unlimited | 100 GB | + API Access, Priority Support |
+
+### 8.2 Stripe Webhook Handler
+
+```typescript
+// app/api/webhooks/stripe/route.ts
+import Stripe from 'stripe';
+
+export async function POST(req: Request) {
+  const body = await req.text();
+  const sig = req.headers.get('stripe-signature')!;
+  const event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+
+  switch (event.type) {
+    case 'customer.subscription.created':
+      // Activate tenant, set billing_status = 'active'
+      await activateTenant(event.data.object.metadata.tenant_id);
+      break;
+
+    case 'invoice.payment_succeeded':
+      // Record payment, extend current_period_end
+      await recordPayment(event.data.object);
+      break;
+
+    case 'invoice.payment_failed':
+      // Set billing_status = 'past_due', send warning email
+      await handlePaymentFailure(event.data.object);
+      break;
+
+    case 'customer.subscription.deleted':
+      // Set billing_status = 'suspended', block access via middleware
+      await suspendTenant(event.data.object.metadata.tenant_id);
+      break;
+  }
+
+  return new Response('OK', { status: 200 });
+}
+```
+
+### 8.3 Billing Lifecycle
+
+```
+Institute Signs Up → 14-day Free Trial
+     ↓
+Trial Ends → Stripe charges card
+     ↓
+Payment Success → billing_status = 'active'
+     ↓
+Monthly Auto-renewal via Stripe
+     ↓
+Payment Fails → billing_status = 'past_due' → 3 retry attempts
+     ↓
+All Retries Fail → billing_status = 'suspended'
+     ↓
+Suspended → Middleware blocks tenant access, shows "Payment Required" page
+     ↓
+Super Admin can manually reactivate or delete tenant
+```
+
+---
+
+## 9. Infrastructure & Cloud Deployment (₹0 FREE TIER)
+
+> [!IMPORTANT]
+> **Production cost = ₹0/month** until you start earning revenue. All services below are on generous free tiers that comfortably support 25 institutes with moderate traffic.
+
+### 9.1 Architecture Diagram (Free Tier Stack)
+
+```
+                    ┌─────────────────────────┐
+                    │   Cloudflare DNS (FREE)  │
+                    │   *.edusaas.com          │
+                    │   + Free SSL + DDoS      │
+                    └───────────┬─────────────┘
+                                │
+                    ┌───────────▼─────────────┐
+                    │   Vercel Hobby (FREE)    │
+                    │   Next.js Edge Runtime   │
+                    │   Auto-scaling           │
+                    │   100GB bandwidth/month  │
+                    └───────────┬─────────────┘
+                                │
+              ┌─────────────────┼──────────────────┐
+              │                 │                   │
+    ┌─────────▼──────┐ ┌───────▼────────┐ ┌───────▼────────┐
+    │  Supabase      │ │  Upstash       │ │  Resend        │
+    │  PostgreSQL    │ │  Redis (FREE)  │ │  Email (FREE)  │
+    │  (FREE)        │ │  Tenant cache  │ │  3K emails/mo  │
+    │                │ │  Session store │ │                │
+    │  ├── public    │ └────────────────┘ └────────────────┘
+    │  ├── tenant_bce│
+    │  ├── tenant_i1 │          ┌────────────────┐
+    │  └── (25 more) │          │  Sentry (FREE) │
+    │                │          │  Error tracking│
+    │  + Storage 1GB │          │  5K events/mo  │
+    └────────────────┘          └────────────────┘
+```
+
+### 9.2 Free Tier Services — Detailed Breakdown
+
+| Service | Free Tier Limits | Enough For 25 Institutes? | Monthly Cost |
+|:---|:---|:---|---:|
+| **Vercel Hobby** | Unlimited deploys, 100GB bandwidth, serverless functions, edge middleware | ✅ Yes — serverless scales to 0, each request = 1 function call | ₹0 |
+| **Supabase Free** | 500MB DB, 1GB storage, 2GB bandwidth, 50K auth users, unlimited API | ✅ Yes — 25 schemas × ~15MB each = ~375MB (within 500MB) | ₹0 |
+| **Upstash Redis Free** | 10,000 commands/day, 256MB data | ✅ Yes — tenant config cache (25 keys, hit rate >95%) | ₹0 |
+| **Cloudflare Free** | Unlimited DNS, Free SSL, DDoS protection, CDN caching | ✅ Yes — handles wildcard subdomains `*.edusaas.com` | ₹0 |
+| **Resend Free** | 3,000 emails/month, 1 domain | ✅ Yes — welcome emails + invoice notifications | ₹0 |
+| **Sentry Free** | 5,000 error events/month, performance monitoring | ✅ Yes — plenty for debugging | ₹0 |
+| **GitHub Actions Free** | 2,000 minutes/month (public repos), 500 min (private) | ✅ Yes — build + deploy takes ~3 min per push | ₹0 |
+| **Stripe** | No monthly fee, 2% per transaction | ✅ Yes — you only pay when you earn | ₹0 |
+| **TOTAL** | | | **₹0/month** |
+
+### 9.3 Free Tier Limits — When to Upgrade
+
+| Service | Free Limit | Upgrade Trigger | Paid Plan Cost |
+|:---|:---|:---|---:|
+| Supabase | 500MB database | >30 institutes OR >500MB data | ₹2,100/month (Pro: 8GB) |
+| Vercel | 100GB bandwidth | >50K daily users across all tenants | ₹1,700/month (Pro) |
+| Upstash Redis | 10K cmds/day | Not likely to hit | ₹800/month (Pay-as-you-go) |
+| Resend | 3K emails/month | >100 new users/month across all | ₹400/month (5K emails) |
+
+> **Bottom Line:** You can run 25 institutes for **₹0/month for 6–12 months** easily. Only upgrade when revenue > ₹50,000/month.
+
+### 9.4 Environment Variables (`.env.local`)
+
+```env
+# Supabase (Free Tier)
+DATABASE_URL=postgresql://postgres:[password]@db.[project-ref].supabase.co:5432/postgres
+NEXT_PUBLIC_SUPABASE_URL=https://[project-ref].supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# Upstash Redis (Free Tier)
+UPSTASH_REDIS_REST_URL=https://[your-redis].upstash.io
+UPSTASH_REDIS_REST_TOKEN=your_token
+
+# Stripe (No monthly fee)
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...
+
+# Resend (Free Tier)
+RESEND_API_KEY=re_...
+
+# Auth
+NEXTAUTH_SECRET=your_random_secret
+NEXTAUTH_URL=https://edusaas.com
+
+# Super Admin
+SUPER_ADMIN_EMAIL=iambestadi@gmail.com
+```
+
+---
+
+## 10. Security & Data Isolation
+
+### 10.1 Security Checklist
+
+| Area | Implementation |
+|:---|:---|
+| **Tenant Isolation** | PostgreSQL schema-level isolation + `SET search_path` enforced per request |
+| **Cross-tenant leaks** | Middleware validates tenant context; DB queries never reference other schemas |
+| **Authentication** | bcrypt password hashing + JWT tokens with `tenantId` claim |
+| **Authorization** | RBAC middleware checks `role` + `tenantId` on every protected route |
+| **API Security** | Rate limiting per tenant (Redis-based), CORS restricted to tenant domains |
+| **Data Encryption** | TLS in transit (CloudFront + RDS), AES-256 encryption at rest (RDS) |
+| **SQL Injection** | Parameterized queries via Drizzle ORM (never raw string interpolation) |
+| **File Isolation** | S3 bucket policy: tenants can only read/write within their `tenants/{slug}/` prefix |
+| **Super Admin** | 2FA enforced, audit log for all admin actions |
+| **Backup** | Automated RDS snapshots + per-schema `pg_dump` for tenant-level restore |
+
+### 10.2 Tenant Suspension Flow
+
+```
+Stripe payment fails (3 retries over 7 days)
+    ↓
+Webhook sets tenant.billing_status = 'suspended'
+    ↓
+Middleware detects 'suspended' status
+    ↓
+All routes for that tenant redirect to /suspended page
+    ↓
+Suspended page shows: "Your subscription has expired. Please contact admin."
+    ↓
+Data is PRESERVED (not deleted). Super admin can reactivate.
+    ↓
+After 90 days of suspension → Super admin can choose to archive (pg_dump) and DROP SCHEMA
+```
+
+---
+
+## 11. CI/CD & DevOps Pipeline (FREE — GitHub Actions + Vercel)
+
+```
+Developer pushes to GitHub (main branch)
+     │
+     ▼
+Vercel Auto-Deploy (FREE, zero-config):
+     │
+     ├── 1. Vercel detects push automatically
+     ├── 2. Runs `next build` on Vercel's servers
+     ├── 3. Type check + lint during build
+     ├── 4. Deploys to edge network globally
+     └── 5. Preview URLs for pull requests
+            │
+            ▼
+       ALL 25 institutes get the update simultaneously
+       (because it's ONE codebase, ONE Vercel project)
+       
+       No Docker. No ECR. No ECS. Just `git push`.
+```
+
+---
+
+## 12. Monitoring, Logging & Alerting (ALL FREE)
+
+| What to Monitor | Tool (Free) | Alert When | Cost |
+|:---|:---|:---|---:|
+| App errors & exceptions | Sentry Free (5K/mo) | Any uncaught error | ₹0 |
+| API response times | Vercel Analytics (built-in) | P95 latency > 500ms | ₹0 |
+| Database health | Supabase Dashboard | Pool > 80% utilized | ₹0 |
+| Tenant signup rate | Super Admin Dashboard (custom) | New signups | ₹0 |
+| Payment failures | Stripe Dashboard + Webhooks | Any failed charge | ₹0 |
+| DB storage usage | Supabase Dashboard | > 400MB (of 500MB free) | ₹0 |
+| Uptime monitoring | UptimeRobot Free (50 monitors) | Any downtime → email alert | ₹0 |
+| Redis cache stats | Upstash Dashboard | > 8K cmds/day (of 10K) | ₹0 |
+
+---
+
+## 13. Cost Estimation (Monthly) — ₹0 Until Revenue
+
+### Phase 1: Free Tier (0–25 Institutes) — ₹0/month
+
+| Institutes | Revenue (₹2,999/inst) | Infra Cost | Stripe Fee (2%) | Net Profit | Margin |
+|---:|---:|---:|---:|---:|---:|
+| 1 | ₹2,999 | ₹0 | ₹60 | ₹2,939 | 98% |
+| 5 | ₹14,995 | ₹0 | ₹300 | ₹14,695 | 98% |
+| 10 | ₹29,990 | ₹0 | ₹600 | ₹29,390 | 98% |
+| 25 | ₹74,975 | ₹0 | ₹1,500 | ₹73,475 | **98%** |
+
+> **Key Insight:** With free-tier services, your only cost is Stripe's 2% transaction fee. From Day 1, almost every rupee is profit.
+
+### Phase 2: After Upgrade (~30+ Institutes) — ~₹4,000/month
+
+| Institutes | Revenue | Infra Cost (Paid tiers) | Stripe Fee | Net Profit | Margin |
+|---:|---:|---:|---:|---:|---:|
+| 30 | ₹89,970 | ₹4,000 | ₹1,800 | ₹84,170 | 94% |
+| 50 | ₹1,49,950 | ₹5,500 | ₹3,000 | ₹1,41,450 | 94% |
+| 100 | ₹2,99,900 | ₹10,000 | ₹6,000 | ₹2,83,900 | **95%** |
+
+> ₹0 production cost means you can **validate the business model risk-free** before investing a single rupee in infrastructure.
+
+---
+
+## 14. Phased Implementation Roadmap
+
+### Phase 1 — Foundation (Week 1–3)
+- [ ] Set up monorepo with Next.js 15 + Drizzle ORM + PostgreSQL
+- [ ] Implement master schema (tenants, billing tables)
+- [ ] Build tenant provisioning script (auto-create schema + seed)
+- [ ] Middleware-based tenant resolver (subdomain + path)
+- [ ] Dynamic DB connection switching per request
+
+### Phase 2 — Port Existing Features (Week 3–5)
+- [ ] Migrate `institute1` code into `[tenant]` dynamic routes
+- [ ] Convert Supabase calls to Drizzle ORM queries
+- [ ] Implement multi-tenant NextAuth (user per tenant schema)
+- [ ] Port: Dashboard, Courses, Assignments, Leaderboard, Notices
+- [ ] Port: Admin panel, Instructor panel, Admission forms
+
+### Phase 3 — Super Admin Portal (Week 5–7)
+- [ ] Build Super Admin dashboard (global metrics)
+- [ ] Institute management CRUD (add/edit/suspend/delete)
+- [ ] Real-time usage monitoring per tenant
+- [ ] Global announcements system
+- [ ] Billing overview & invoice history
+
+### Phase 4 — Billing & Payments (Week 7–8)
+- [ ] Stripe integration (subscription creation, checkout)
+- [ ] Webhook handler for payment events
+- [ ] Auto-suspend on payment failure
+- [ ] Invoice generation & email delivery
+- [ ] 14-day free trial implementation
+
+### Phase 5 — Infrastructure & Security (Week 8–9)
+- [ ] Deploy to Vercel Hobby (free) — connect GitHub repo
+- [ ] Supabase Free project setup (PostgreSQL + Storage)
+- [ ] Cloudflare DNS + Free SSL (`*.edusaas.com`)
+- [ ] Upstash Redis free for tenant config caching
+- [ ] Cloudflare DDoS protection (free, built-in)
+
+### Phase 6 — Launch & Monitoring (Week 9–10)
+- [ ] Sentry free error tracking setup
+- [ ] UptimeRobot free monitoring (50 monitors)
+- [ ] Load testing (simulate 25 concurrent tenants)
+- [ ] Onboard first 5 pilot institutes
+- [ ] Marketing landing page at `edusaas.com`
+
+---
+
+## 15. Scalability — Free to Paid Migration Path
+
+| Scale Milestone | Infrastructure | Monthly Cost |
+|:---|:---|---:|
+| **1–25 institutes** | Vercel Free + Supabase Free + Upstash Free + Cloudflare Free | **₹0** |
+| **25–30 institutes** | Upgrade Supabase to Pro (8GB DB) | ~₹2,100 |
+| **30–50 institutes** | Upgrade Vercel to Pro (more bandwidth) | ~₹3,800 |
+| **50–100 institutes** | Move DB to Neon/PlanetScale OR AWS RDS | ~₹8,000 |
+| **100+ institutes** | Full AWS migration (ECS + RDS + S3) | ~₹15,000 |
+
+> **Strategy:** Stay on free tier as long as possible. Only upgrade the service that hits its limit first. You'll be earning ₹75K+ by the time you need to spend ₹2K on infrastructure.
+
+---
+
+## 16. Super Admin Dashboard — Key Features
+
+The Super Admin (`iambestadi@gmail.com`) sees:
+
+1. **Overview Dashboard**
+   - Total active institutes, total students across all, monthly revenue
+   - Graph: Revenue trend (last 12 months)
+   - Graph: Institute growth (new signups per month)
+
+2. **Institute Management**
+   - Table: All institutes with status (Active/Trial/Suspended)
+   - Actions: Add New, Edit, Suspend, Delete, View Details
+   - Quick stats per institute: students, courses, storage used
+
+3. **Billing Center**
+   - Total MRR (Monthly Recurring Revenue)
+   - Overdue payments list
+   - Invoice history per institute
+   - Stripe dashboard link
+
+4. **Global Announcements**
+   - Push announcements to all or specific institutes
+   - Maintenance mode toggle (block all tenant access)
+
+5. **System Health**
+   - Database connection pool status
+   - API latency metrics
+   - Error rate (last 24h)
+   - Storage usage per tenant
+
+---
+
+> **Next Step:** Review this document. Once approved, we begin Phase 1 — setting up the monorepo with dynamic tenant routing.

@@ -16,13 +16,11 @@ export default async function DoubtsRedirectPage() {
   if (!profile) return <div>Profile not found.</div>;
 
   if (profile.role === 'admin' || profile.role === 'instructor') {
-    // 1. Get courses taught by this user that are active (not closed)
     const { data: teachingCourses } = await supabase
       .from('courses')
       .select('id')
-      .or(`instructor_id.eq.${user.id},created_by.eq.${user.id}`)
-      .eq('is_deleted', false)
-      .eq('is_published', true);
+      .eq('created_by', user.id)
+      .eq('is_deleted', false);
       
     const teachingCourseIds = teachingCourses?.map(c => c.id) || [];
 

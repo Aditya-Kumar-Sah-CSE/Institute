@@ -1,0 +1,24 @@
+# Auditing and Fixing Real-Time Notifications
+
+The user requested an audit of the alerting system to ensure new **Doubts**, **Polls**, and **Lessons** trigger real-time notifications.
+
+## Investigation Results
+1. **Frontend Architecture**: The [NotificationBell](file:///d:/Institute/BCE/src/components/layout/NotificationBell.tsx#19-153) component correctly uses Supabase Realtime natively via `sb.channel().on('postgres_changes', { event: 'INSERT' })`. This means the instant a database row is inserted into the `notifications` table, the UI updates synchronously across all web apps immediately.
+2. **Doubts**: Successfully verified in [features/doubts/actions/doubts.ts](file:///d:/Institute/BCE/src/features/doubts/actions/doubts.ts). Creating and replying to doubts properly aggregates `userIdsToNotify` and inserts rows into `notifications`.
+3. **Polls**: Successfully verified in [features/courses/actions/polls.ts](file:///d:/Institute/BCE/src/features/courses/actions/polls.ts). Creating a poll checks all actively enrolled students and issues `notifications` inserts.
+
+### The Bug
+4. **Lessons**: Found a structural gap in [features/admin/actions/builder-actions.ts](file:///d:/Institute/BCE/src/features/admin/actions/builder-actions.ts). When an instructor or admin creates a new Lesson, the [addLesson](file:///d:/Institute/BCE/src/features/admin/actions/builder-actions.ts#27-93) function successfully writes to the database but **fails** to trigger or insert rows into the `notifications` table for enrolled students. Hence, the realtime pipeline is completely silent. 
+
+## User Review Required
+No major system changes, I will simply patch [builder-actions.ts](file:///d:/Institute/BCE/src/features/admin/actions/builder-actions.ts).
+
+## Proposed Changes
+### Backend / Server Actions
+#### [MODIFY] [features/admin/actions/builder-actions.ts](file:///d:/Institute/BCE/src/features/admin/actions/builder-actions.ts) (BCE & Institute1)
+- Map through all approved enrollments in `courseId` when [addLesson](file:///d:/Institute/BCE/src/features/admin/actions/builder-actions.ts#27-93) achieves a successful insert.
+- Insert a batch array of `{ type: 'notice', message: 'New Lesson Unlocked: [Title]', link: '/courses/[courseId]' }` into `notifications`.
+
+## Verification Plan
+1. Call the updated [builder-actions.ts](file:///d:/Institute/BCE/src/features/admin/actions/builder-actions.ts).
+2. Supabase realtime will natively parse the new row creation because [NotificationBell](file:///d:/Institute/BCE/src/components/layout/NotificationBell.tsx#19-153) watches `INSERT`.

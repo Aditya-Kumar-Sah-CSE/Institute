@@ -1,0 +1,28 @@
+# Optimize "Show More" Expansion Loading
+
+The goal is to optimize the application so that content hidden behind "Show More" (Polls, Curriculum, Doubts) does not slow down the initial page load.
+
+## Current State Analysis
+Right now, the heavy DOM elements for the **entire Curriculum** are fully rendered on the server and sent as HTML to the browser, even though they are hidden behind the "Show More" button. This bloats the initial payload and slows down site speed (LCP/TTFB). 
+
+The Polls and Doubts are mostly optimal already because they use Client Components, meaning the server only sends a tiny JSON array and renders 1 item into HTML. However, the DOM for the Curriculum is huge.
+
+## Proposed Changes
+
+As a Senior Next.js Developer, the most optimal architecture for this is **Client-Side Lazy Rendering** of lightweight JSON payloads, rather than triggering new Network Requests on click (which would cause a loading spinner and feeling of sluggishness).
+
+### 1. Extract Curriculum to Client Component
+We will rip out the mapping logic from [page.tsx](file:///d:/Institute/BCE/src/app/%28dashboard%29/doubts/page.tsx) (Server Component) and place it into a new Client Component `CurriculumListClient`.
+- We will pass the raw `lessons` data (which is a tiny ~2KB JSON payload) to the client.
+- The server will only generate HTML for the **First Week** of the curriculum.
+- When you click "Show More", React will instantaneously render the rest of the curriculum from the JSON without needing a 200ms network round-trip.
+
+### 2. Verify Polls & Doubts
+We will review [CoursePollsClient](file:///d:/Institute/BCE/src/features/courses/components/CoursePollsClient.tsx#13-34) and [CourseDoubtsClient](file:///d:/Institute/BCE/src/features/courses/components/CourseDoubtsClient.tsx#20-146) to ensure they are properly isolating their HTML rendering so that hidden items do not exist in the initial DOM tree (they currently do this perfectly).
+
+## Why this is the best approach
+If we fetched data from the server *only when clicked*, every student clicking "Show More" would have to wait for a loading spinner. By passing tiny JSON data in the initial load but deferring the expensive DOM rendering until the click, we achieve the holy grail: **Instant click response AND tiny initial page loads.**
+
+## User Review Required
+> [!IMPORTANT]
+> Please confirm if you approve of extracting the Curriculum into a Client Component to defer its DOM rendering. If instead you strictly want a full Network Request (API call with a loading spinner) every time "Show More" is clicked, let me know and I will implement server-action pagination instead!

@@ -8,7 +8,6 @@ export default async function CoursesPage() {
   const coursesQuery = supabase
     .from('courses')
     .select('*, profiles(name)')
-    .eq('is_published', true)
     .order('created_at', { ascending: false });
 
   const enrollmentsQuery = user ? supabase

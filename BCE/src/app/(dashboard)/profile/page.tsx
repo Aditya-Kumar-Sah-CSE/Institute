@@ -61,7 +61,7 @@ export default async function ProfilePage() {
     enrollments = enrollmentsData;
     certificates = certData;
   } else if (profile) {
-    const { data } = await adminSb.from('courses').select('id, title').or(`instructor_id.eq.${user.id},created_by.eq.${user.id}`);
+    const { data } = await adminSb.from('courses').select('id, title').eq('created_by', user.id);
     teachingCourses = data;
   }
   // Sort descending by month_date

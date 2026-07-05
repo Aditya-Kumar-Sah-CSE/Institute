@@ -18,7 +18,7 @@ export default async function LeaderboardPage({
   const params = await searchParams;
   const filter = params.filter || 'global';
 
-  const coursesQuery = supabase.from('courses').select('id, title').eq('is_published', true);
+  const coursesQuery = supabase.from('courses').select('id, title');
 
   let profilesQuery;
   let enrollmentsQuery;

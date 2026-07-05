@@ -1,0 +1,44 @@
+# PWA Load Time Optimization (<500ms)
+
+## Problem Description
+The PWA currently takes a long time to open because:
+1. The custom Service Worker ([public/sw.js](file:///d:/Institute/BCE/public/sw.js)) explicitly ignores caching [.js](file:///d:/Institute/BCE/public/sw.js), `.css`, and font files. It only caches images. Every time the app boots, it fetches all Next.js bundles (`/_next/static/`) from the network instead of the local cache, making the PWA boot very slow.
+2. The Next.js applications (`institute1` and `BCE`) lack `loading.tsx` files for their main routes (Landing and Dashboard). Without a `loading.tsx` shell, the server performs database queries before flushing **any** HTML to the client, leading to a long Time To First Byte (TTFB).
+
+## Proposed Changes
+
+### `institute1`
+
+#### [MODIFY] [sw.js](file:///d:/Institute/institute1/public/sw.js)
+- Update the `isStatic` variable to cache Next.js build assets.
+- Add `url.pathname.startsWith('/_next/static/')` and include `.css`, [.js](file:///d:/Institute/BCE/public/sw.js), `.svg`, and `.woff2`.
+- Enable Stale-While-Revalidate pattern for these assets.
+
+#### [NEW] [dashboard loading](file:///d:/Institute/institute1/src/app/(dashboard)/loading.tsx)
+- Create a skeleton loader that matches the layout of the dashboard sidebars/headers. This will be instantly streamed to the client (within ~50ms).
+
+#### [NEW] [landing loading](file:///d:/Institute/institute1/src/app/loading.tsx)
+- Create a global loading UI for the landing page for instant feedback upon navigation.
+
+---
+
+### `BCE`
+
+#### [MODIFY] [sw.js](file:///d:/Institute/BCE/public/sw.js)
+- Same fix as `institute1`: Update cache matching to cache Next.js JS/CSS app shell bundles permanently in the PWA.
+
+#### [NEW] [dashboard loading](file:///d:/Institute/BCE/src/app/(dashboard)/loading.tsx)
+- Add skeleton loader for the dashboard interface.
+
+#### [NEW] [landing loading](file:///d:/Institute/BCE/src/app/loading.tsx)
+- Create global loading UI for instant navigation bridging.
+
+## Verification Plan
+
+### Automated Tests
+- Run `npm run build` in both directories to ensure Next.js compiles correctly with the new `loading.tsx` files.
+
+### Manual Verification
+- The user can open the deployed or local URL to verify the new fast loading state.
+- After a fresh load, they can refresh to trigger the Service Worker and verify in the the Network tab that JS/CSS files (`/_next/static/*`) are served from [(ServiceWorker)](file:///d:/Institute/institute1/src/app/layout.tsx#34-52) cache taking 0-2ms instead of actual network latency.
+- PWA opening on mobile / desktop will instantly show the UI.
