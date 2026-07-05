@@ -1,10 +1,12 @@
+"use client";
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import LevelBadge from '@/components/shared/LevelBadge';
 import Button from '@/components/ui/Button';
-import { User } from 'lucide-react';
+import { User, Share2 } from 'lucide-react';
 
 interface DashboardProfileCardProps {
   profile: any;
@@ -12,16 +14,65 @@ interface DashboardProfileCardProps {
 }
 
 export default function DashboardProfileCard({ profile, appData }: DashboardProfileCardProps) {
+  const router = useRouter();
+
+  if (!profile) return null;
+
+  const handleShare = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const url = typeof window !== 'undefined' ? `${window.location.origin}/profile` : '';
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${profile.name}'s Profile`,
+          url: url
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    } else {
+      navigator.clipboard.writeText(url);
+      alert('Link copied to clipboard!');
+    }
+  };
+
+  const handleProfileClick = () => {
+    router.push('/profile');
+  };
   return (
-    <Card variant="glass" style={{ padding: 0, display: 'flex', flexDirection: 'column', textAlign: 'center' }}>
+    <Card variant="glass" style={{ width: '100%', position: 'relative', padding: 0, display: 'flex', flexDirection: 'column', textAlign: 'center' }}>
       
-      {/* PART 1: Profile Image */}
-      <div style={{ 
-        padding: 'var(--space-xl)', 
-        display: 'flex', 
-        justifyContent: 'center',
-        borderBottom: '1px solid var(--glass-border)'
-      }}>
+      <button 
+        onClick={handleShare}
+        style={{
+          position: 'absolute',
+          top: 'var(--space-md)',
+          right: 'var(--space-md)',
+          background: 'var(--bg-elevated)',
+          border: '1px solid var(--glass-border)',
+          borderRadius: '50%',
+          width: '36px',
+          height: '36px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--text-secondary)',
+          cursor: 'pointer',
+          zIndex: 10
+        }}
+        title="Share Profile"
+      >
+        <Share2 size={16} />
+      </button>
+
+      <div onClick={handleProfileClick} style={{ cursor: 'pointer' }}>
+        {/* PART 1: Profile Image */}
+        <div style={{ 
+          padding: 'var(--space-xl)', 
+          display: 'flex', 
+          justifyContent: 'center',
+          borderBottom: '1px solid var(--glass-border)'
+        }}>
         <div style={{
           width: '100px',
           height: '100px',
@@ -71,11 +122,24 @@ export default function DashboardProfileCard({ profile, appData }: DashboardProf
           </p>
         )}
         
+        {(profile.roll_no || profile.registration_no) && (
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+            Roll No: <span style={{ color: 'var(--text-primary)', fontWeight: 'bold' }}>{profile.roll_no || profile.registration_no}</span>
+          </p>
+        )}
+        
+        {profile.cgpa && (
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+            CGPA: <span style={{ color: 'var(--text-primary)', fontWeight: 'bold' }}>{profile.cgpa}</span>
+          </p>
+        )}
+        
         {profile.graduation_period && (
           <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
             Batch: <span style={{ color: 'var(--text-primary)', fontWeight: 'bold' }}>{profile.graduation_period}</span>
           </p>
         )}
+      </div>
       </div>
 
       {/* PART 3: Badges & Action */}

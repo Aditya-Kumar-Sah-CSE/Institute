@@ -27,7 +27,7 @@ export default async function DashboardPage() {
 
   if (!user) return null;
 
-  const profilePromise = supabase.from('profiles').select('id, name, xp, streak_days, last_active_at, role, admission_filled').eq('id', user.id).single();
+  const profilePromise = supabase.from('profiles').select('*').eq('id', user.id).single();
   
   // Fetch enrollments with course details
   const enrollmentsPromise = supabase

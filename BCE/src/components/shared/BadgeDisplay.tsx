@@ -19,6 +19,7 @@ export default function BadgeDisplay({ allBadges, earnedBadges, compact = false,
   const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
   const [mounted, setMounted] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const popupRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -120,10 +121,12 @@ export default function BadgeDisplay({ allBadges, earnedBadges, compact = false,
     </div>
   ) : null;
 
+  const badgesToShow = isExpanded ? allBadges : allBadges.slice(0, 6);
+
   return (
     <>
       <div className={`badge-display ${compact ? 'badge-compact' : ''} ${className}`}>
-        {allBadges.map((badge) => {
+        {badgesToShow.map((badge) => {
           const isEarned = earnedIds.has(badge.id);
           return (
             <div
@@ -143,6 +146,29 @@ export default function BadgeDisplay({ allBadges, earnedBadges, compact = false,
           );
         })}
       </div>
+
+      {allBadges.length > 6 && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 'var(--space-md)' }}>
+          <button 
+            onClick={() => setIsExpanded(!isExpanded)}
+            style={{
+              background: 'transparent',
+              border: '1px solid var(--glass-border)',
+              color: 'var(--text-secondary)',
+              padding: '6px 16px',
+              borderRadius: 'var(--radius-full)',
+              fontSize: 'var(--text-sm)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              marginTop: '4px'
+            }}
+            onMouseOver={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'var(--bg-elevated)'; }}
+            onMouseOut={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'transparent'; }}
+          >
+            {isExpanded ? 'Show Less' : `Show More (${allBadges.length - 6} Locked)`}
+          </button>
+        </div>
+      )}
 
       {mounted && popupContent && createPortal(popupContent, document.body)}
     </>
