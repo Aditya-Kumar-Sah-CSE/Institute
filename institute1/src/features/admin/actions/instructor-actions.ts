@@ -10,10 +10,9 @@ export async function approveInstructor(applicationId: string, userId: string) {
     
     // Verify Admin
     const { data: { user } } = await sb.auth.getUser();
-    if (!user || user.email !== SUPER_ADMIN_EMAIL) {
-      const { data: profile } = await sb.from('profiles').select('role').eq('id', user?.id || '').single();
-      if (profile?.role !== 'admin') throw new Error('Unauthorized');
-    }
+    if (!user) throw new Error('Unauthorized');
+    const { data: profile } = await sb.from('profiles').select('role').eq('id', user.id).single();
+    if (profile?.role !== 'admin') throw new Error('Unauthorized');
 
     const adminSb = await createAdminClient();
 
@@ -57,10 +56,9 @@ export async function rejectInstructor(applicationId: string, userId: string) {
     
     // Verify Admin
     const { data: { user } } = await sb.auth.getUser();
-    if (!user || user.email !== SUPER_ADMIN_EMAIL) {
-      const { data: profile } = await sb.from('profiles').select('role').eq('id', user?.id || '').single();
-      if (profile?.role !== 'admin') throw new Error('Unauthorized');
-    }
+    if (!user) throw new Error('Unauthorized');
+    const { data: profile } = await sb.from('profiles').select('role').eq('id', user.id).single();
+    if (profile?.role !== 'admin') throw new Error('Unauthorized');
 
     const adminSb = await createAdminClient();
 

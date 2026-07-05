@@ -10,9 +10,7 @@ import './LazyPdfViewer.css';
 const Document = dynamic(() => import('react-pdf').then((mod) => mod.Document), { ssr: false });
 const Page = dynamic(() => import('react-pdf').then((mod) => mod.Page), { ssr: false });
 
-// Setup pdf.js worker (required by react-pdf)
-import { pdfjs } from 'react-pdf';
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+// Worker is initialized dynamically upon loading
 
 interface LazyPdfViewerProps {
   url: string;
@@ -30,9 +28,11 @@ export default function LazyPdfViewer({ url, title = 'PDF Document' }: LazyPdfVi
     setIsLoading(false);
   }
 
-  const handleLoadClick = () => {
+  const handleLoadClick = async () => {
     setIsLoading(true);
     setIsLoaded(true);
+    const mod = await import('react-pdf');
+    mod.pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${mod.pdfjs.version}/build/pdf.worker.min.mjs`;
   };
 
   return (

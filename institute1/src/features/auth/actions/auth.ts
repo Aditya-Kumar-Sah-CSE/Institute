@@ -23,8 +23,9 @@ export async function signUp(formData: FormData) {
   const rl = checkRateLimit(`signUp:${email}`, 5, 600000);
   if (!rl.success) return { error: rl.error };
 
-  if (password.length < 6) {
-    return { error: 'Password must be at least 6 characters' };
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  if (!passwordRegex.test(password)) {
+    return { error: 'Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character (@$!%*?&)' };
   }
 
   const isDev = process.env.NODE_ENV === 'development';
@@ -152,8 +153,9 @@ export async function updatePassword(formData: FormData) {
   const supabase = await createClient();
   const password = formData.get('password') as string;
 
-  if (!password || password.length < 6) {
-    return { error: 'Password must be at least 6 characters' };
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  if (!password || !passwordRegex.test(password)) {
+    return { error: 'Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character (@$!%*?&)' };
   }
 
   const { error } = await supabase.auth.updateUser({

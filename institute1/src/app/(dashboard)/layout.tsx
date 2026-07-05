@@ -6,6 +6,7 @@ import BadgeCelebrator from '@/components/shared/BadgeCelebrator';
 import { updateStreak } from '@/features/gamification/actions/gamification';
 import './DashboardLayout.css';
 import MonthlyCelebrator from '@/components/shared/MonthlyCelebrator';
+import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 import { signOut } from '@/features/auth/actions/auth';
 
 export default async function DashboardLayout({
@@ -21,7 +22,10 @@ export default async function DashboardLayout({
   }
 
   const { getOrCreateProfile } = await import('@/lib/profile');
-  const profile = await getOrCreateProfile(user);
+  const profilePromise = getOrCreateProfile(user);
+  const settingsPromise = supabase.from('company_settings').select('company_name, logo_url').single();
+
+  const [profile, { data: settings }] = await Promise.all([profilePromise, settingsPromise]);
 
   if (!profile) {
     // Edge case if profile isn't created yet (e.g. deleted from DB manually but not from Auth)
@@ -54,14 +58,11 @@ export default async function DashboardLayout({
     updateStreak(user.id).catch(console.error);
   }
 
-  const { data: settings } = await supabase
-    .from('company_settings')
-    .select('*')
-    .single();
+  // Settings are fetched concurrently with profile above
 
   return (
     <div className="dashboard-layout">
-      <Sidebar profile={profile} />
+      <Sidebar profile={profile} roleView="student" isSuperAdmin={profile.email === SUPER_ADMIN_EMAIL} />
       <div className="dashboard-main">
         <Navbar 
           companyName={settings?.company_name} 

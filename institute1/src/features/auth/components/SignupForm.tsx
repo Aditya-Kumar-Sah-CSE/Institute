@@ -8,9 +8,15 @@ import { createClient } from '@/lib/supabase/client';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { Building, User, IdCard, GraduationCap, Mail, Lock } from 'lucide-react';
+import Image from 'next/image';
 import './AuthForms.css';
 
-export default function SignupForm() {
+interface SignupFormProps {
+  companyName?: string;
+  logoUrl?: string;
+}
+
+export default function SignupForm({ companyName, logoUrl }: SignupFormProps) {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -74,9 +80,11 @@ export default function SignupForm() {
           ← Home
         </Link>
         <div className="auth-header">
-          <span className="auth-logo"><Building size={48} className="text-neon-cyan" /></span>
-          <h1 className="auth-title"> Smart Hybrid Learning</h1>
-          <p className="auth-subtitle">Start your journey </p>
+          <span className="auth-logo" style={{ overflow: 'hidden', borderRadius: '8px' }}>
+            <Image src={logoUrl || '/icon-192x192.png'} alt="Logo" width={48} height={48} style={{ objectFit: 'contain' }} unoptimized={true} priority />
+          </span>
+          <h1 className="auth-title">{companyName || 'Smart Hybrid Learning'}</h1>
+          <p className="auth-subtitle">Start your journey</p>
         </div>
 
         <form action={handleSubmit} className="auth-form">
@@ -94,8 +102,8 @@ export default function SignupForm() {
           <Input
             name="institute_id"
             type="text"
-            label="Institute ID"
-            placeholder="Your Institute ID (e.g., 2023CS01)"
+            label="Roll No / Reg. No"
+            placeholder="Your Roll No (e.g., 2023CS01)"
             icon={<IdCard size={18} />}
             required
           />

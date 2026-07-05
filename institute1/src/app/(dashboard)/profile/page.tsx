@@ -12,6 +12,7 @@ import SocialLinksConnect from './components/SocialLinksConnect';
 import AcademicInfoConnect from './components/AcademicInfoConnect';
 import ProfessionalInfoConnect from './components/ProfessionalInfoConnect';
 import CrownBanner from './components/CrownBanner';
+import BasicInfoEdit from './components/BasicInfoEdit';
 import ShareProfileButton from '@/components/shared/ShareProfileButton';
 import { getPastMonthlyRewards } from '@/features/gamification/actions/monthly-rewards';
 import './Profile.css';
@@ -70,7 +71,7 @@ export default async function ProfilePage() {
           <p className="profile-email">{profile.email}</p>
           {profile.institute_id && (
             <p className="profile-email" style={{ marginTop: 'var(--space-xs)', fontSize: 'var(--text-sm)' }}>
-              Institute ID: <span style={{ color: 'var(--text-primary)', fontWeight: 'var(--weight-semibold)' }}>{profile.institute_id}</span>
+              Roll No / Reg. No: <span style={{ color: 'var(--text-primary)', fontWeight: 'var(--weight-semibold)' }}>{profile.institute_id}</span>
             </p>
           )}
           {profile.instructor_id && (
@@ -78,6 +79,12 @@ export default async function ProfilePage() {
               Instructor ID: <span style={{ color: 'var(--text-primary)', fontWeight: 'var(--weight-semibold)' }}>{profile.instructor_id}</span>
             </p>
           )}
+          
+          <BasicInfoEdit 
+            initialName={profile.name} 
+            initialRollNo={profile.institute_id} 
+            initialBatch={profile.graduation_period} 
+          />
         </div>
 
         {/* Center Column: Avatar */}

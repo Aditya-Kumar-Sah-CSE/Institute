@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import html2canvas from 'html2canvas-pro';
 import Image from 'next/image';
 import './BadgeDisplay.css';
 import './BadgeCelebrator.css';
@@ -32,6 +31,7 @@ export default function BadgeDisplay({ allBadges, earnedBadges, compact = false,
     popupRef.current.classList.add('exporting-image');
     
     try {
+      const html2canvas = (await import('html2canvas-pro')).default;
       const canvas = await html2canvas(popupRef.current, {
         backgroundColor: '#1a1a2e',
         scale: 3,
