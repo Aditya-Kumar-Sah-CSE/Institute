@@ -7,8 +7,13 @@ import { redirect } from 'next/navigation';
 
 export default async function LandingPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: settings } = await supabase.from('company_settings').select('company_name').maybeSingle();
+  const [
+    { data: { user } },
+    { data: settings }
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.from('company_settings').select('company_name').maybeSingle()
+  ]);
   const companyName = settings?.company_name || 'Smart Learning';
 
   if (user) {
