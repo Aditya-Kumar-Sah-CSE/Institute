@@ -14,14 +14,21 @@ export default function AdmissionFormClient({
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [formData, setFormData] = useState<Record<string, any>>({});
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const target = e.target as HTMLInputElement;
+    const value = target.type === 'checkbox' ? target.checked : target.value;
+    setFormData(prev => ({ ...prev, [target.name]: value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMsg('');
     
-    const formData = new FormData(e.currentTarget);
-    const data = Object.fromEntries(formData.entries());
+    // Use controlled formData instead of FormData API
+    const data = { ...formData };
 
     // Basic Client-Side Validation for mobile numbers
     const mobileRegex = /^\d{10}$/;
@@ -98,22 +105,22 @@ export default function AdmissionFormClient({
             <div className="form-row">
               <div className="form-group">
                 <label>First Name <span>*</span></label>
-                <input type="text" name="firstName" required placeholder="John" />
+                <input type="text" name="firstName" required placeholder="John" value={formData.firstName || ''} onChange={handleChange} />
               </div>
               <div className="form-group">
                 <label>Middle Name</label>
-                <input type="text" name="middleName" placeholder="Kumar" />
+                <input type="text" name="middleName" placeholder="Kumar" value={formData.middleName || ''} onChange={handleChange} />
               </div>
               <div className="form-group">
                 <label>Last Name <span>*</span></label>
-                <input type="text" name="lastName" required placeholder="Doe" />
+                <input type="text" name="lastName" required placeholder="Doe" value={formData.lastName || ''} onChange={handleChange} />
               </div>
             </div>
 
             <div className="form-row">
               <div className="form-group">
                 <label>Gender <span>*</span></label>
-                <select name="gender" required>
+                <select name="gender" required value={formData.gender || ''} onChange={handleChange}>
                   <option value="">Select Gender</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
@@ -122,18 +129,18 @@ export default function AdmissionFormClient({
               </div>
               <div className="form-group">
                 <label>Mobile Number <span>*</span></label>
-                <input type="tel" name="mobile" required pattern="\d{10}" placeholder="10 Digits" maxLength={10} />
+                <input type="tel" name="mobile" required pattern="\d{10}" placeholder="10 Digits" maxLength={10} value={formData.mobile || ''} onChange={handleChange} />
               </div>
               <div className="form-group">
                 <label>Email Address</label>
-                <input type="email" name="email" placeholder="example@gmail.com" />
+                <input type="email" name="email" placeholder="example@gmail.com" value={formData.email || ''} onChange={handleChange} />
               </div>
             </div>
 
             <div className="form-row">
               <div className="form-group">
                 <label>Branch <span>*</span></label>
-                <select name="branch" required>
+                <select name="branch" required value={formData.branch || ''} onChange={handleChange}>
                   <option value="">Select Branch</option>
                   <option value="CSE">Computer Science & Engineering</option>
                   <option value="ECE">Electronics & Comm. Engineering</option>
@@ -144,7 +151,7 @@ export default function AdmissionFormClient({
               </div>
               <div className="form-group">
                 <label>Roll Number (If Allotted)</label>
-                <input type="text" name="rollNumber" placeholder="E.g. 26CSE01" />
+                <input type="text" name="rollNumber" placeholder="E.g. 26CSE01" value={formData.rollNumber || ''} onChange={handleChange} />
               </div>
             </div>
           </div>
@@ -155,21 +162,21 @@ export default function AdmissionFormClient({
             <div className="form-row">
               <div className="form-group">
                 <label>Father's Name <span>*</span></label>
-                <input type="text" name="fatherName" required placeholder="Full Name" />
+                <input type="text" name="fatherName" required placeholder="Full Name" value={formData.fatherName || ''} onChange={handleChange} />
               </div>
               <div className="form-group">
                 <label>Father's Mobile Number <span>*</span></label>
-                <input type="tel" name="fatherMobile" required pattern="\d{10}" placeholder="10 Digits" maxLength={10} />
+                <input type="tel" name="fatherMobile" required pattern="\d{10}" placeholder="10 Digits" maxLength={10} value={formData.fatherMobile || ''} onChange={handleChange} />
               </div>
             </div>
             <div className="form-row">
               <div className="form-group">
                 <label>Mother's Name <span>*</span></label>
-                <input type="text" name="motherName" required placeholder="Full Name" />
+                <input type="text" name="motherName" required placeholder="Full Name" value={formData.motherName || ''} onChange={handleChange} />
               </div>
               <div className="form-group">
                 <label>Mother's Mobile Number <span>*</span></label>
-                <input type="tel" name="motherMobile" required pattern="\d{10}" placeholder="10 Digits" maxLength={10} />
+                <input type="tel" name="motherMobile" required pattern="\d{10}" placeholder="10 Digits" maxLength={10} value={formData.motherMobile || ''} onChange={handleChange} />
               </div>
             </div>
           </div>
@@ -182,7 +189,7 @@ export default function AdmissionFormClient({
             <div className="form-row">
               <div className="form-group">
                 <label>Class 10 Board <span>*</span></label>
-                <select name="board10" required>
+                <select name="board10" required value={formData.board10 || ''} onChange={handleChange}>
                   <option value="">Select Board</option>
                   <option value="CBSE">CBSE</option>
                   <option value="BSEB">BSEB</option>
@@ -192,21 +199,21 @@ export default function AdmissionFormClient({
               </div>
               <div className="form-group">
                 <label>Passing Year <span>*</span></label>
-                <input type="number" name="year10" required placeholder="YYYY" min="2010" max="2026" />
+                <input type="number" name="year10" required placeholder="YYYY" min="2010" max="2026" value={formData.year10 || ''} onChange={handleChange} />
               </div>
             </div>
             <div className="form-row" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
               <div className="form-group">
                 <label>Marks Obtained <span>*</span></label>
-                <input type="number" name="marks10" required step="0.01" />
+                <input type="number" name="marks10" required step="0.01" value={formData.marks10 || ''} onChange={handleChange} />
               </div>
               <div className="form-group">
                 <label>Total Marks <span>*</span></label>
-                <input type="number" name="total10" required step="0.01" />
+                <input type="number" name="total10" required step="0.01" value={formData.total10 || ''} onChange={handleChange} />
               </div>
               <div className="form-group">
                 <label>Percentage % <span>*</span></label>
-                <input type="number" name="percent10" required step="0.01" max="100" />
+                <input type="number" name="percent10" required step="0.01" max="100" value={formData.percent10 || ''} onChange={handleChange} />
               </div>
             </div>
 
@@ -216,7 +223,7 @@ export default function AdmissionFormClient({
             <div className="form-row">
               <div className="form-group">
                 <label>Class 12 Board <span>*</span></label>
-                <select name="board12" required>
+                <select name="board12" required value={formData.board12 || ''} onChange={handleChange}>
                   <option value="">Select Board</option>
                   <option value="CBSE">CBSE</option>
                   <option value="BSEB">BSEB</option>
@@ -226,21 +233,21 @@ export default function AdmissionFormClient({
               </div>
               <div className="form-group">
                 <label>Passing Year <span>*</span></label>
-                <input type="number" name="year12" required placeholder="YYYY" min="2010" max="2026" />
+                <input type="number" name="year12" required placeholder="YYYY" min="2010" max="2026" value={formData.year12 || ''} onChange={handleChange} />
               </div>
             </div>
             <div className="form-row" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
               <div className="form-group">
                 <label>Marks Obtained <span>*</span></label>
-                <input type="number" name="marks12" required step="0.01" />
+                <input type="number" name="marks12" required step="0.01" value={formData.marks12 || ''} onChange={handleChange} />
               </div>
               <div className="form-group">
                 <label>Total Marks <span>*</span></label>
-                <input type="number" name="total12" required step="0.01" />
+                <input type="number" name="total12" required step="0.01" value={formData.total12 || ''} onChange={handleChange} />
               </div>
               <div className="form-group">
                 <label>Percentage % <span>*</span></label>
-                <input type="number" name="percent12" required step="0.01" max="100" />
+                <input type="number" name="percent12" required step="0.01" max="100" value={formData.percent12 || ''} onChange={handleChange} />
               </div>
             </div>
           </div>
@@ -252,11 +259,11 @@ export default function AdmissionFormClient({
               <label>Do you require Hostel? <span>*</span></label>
               <div className="radio-group">
                 <label className="radio-label">
-                  <input type="radio" name="hostel" value="Yes" required />
+                  <input type="radio" name="hostel" value="Yes" required checked={formData.hostel === 'Yes'} onChange={handleChange} />
                   Yes
                 </label>
                 <label className="radio-label">
-                  <input type="radio" name="hostel" value="No" required />
+                  <input type="radio" name="hostel" value="No" required checked={formData.hostel === 'No'} onChange={handleChange} />
                   No
                 </label>
               </div>
@@ -264,7 +271,7 @@ export default function AdmissionFormClient({
           </div>
 
           <div className="declaration-box">
-            <input type="checkbox" name="declaration" id="declaration" required />
+            <input type="checkbox" name="declaration" id="declaration" required checked={!!formData.declaration} onChange={handleChange} />
             <label htmlFor="declaration" style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', cursor: 'pointer' }}>
               I hereby declare that the information provided by me is true and correct to the best of my knowledge.
             </label>

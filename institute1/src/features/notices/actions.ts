@@ -1,9 +1,22 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
 export async function getNotices(limit?: number) {
+  // Fire-and-forget cleanup of notices older than 3 months
+  try {
+    const adminSupabase = await createAdminClient();
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    
+    // Don't await this so it doesn't block the request
+    adminSupabase.from('notices').delete().lt('created_at', threeMonthsAgo.toISOString())
+      .then(({ error }) => { if (error) console.error('Auto-delete error:', error); });
+  } catch (error) {
+    console.error('Failed to init cleanup routine', error);
+  }
+
   const supabase = await createClient();
   let query = supabase
     .from('notices')

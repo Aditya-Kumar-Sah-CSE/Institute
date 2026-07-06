@@ -48,6 +48,21 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
   const [expandedAssignments, setExpandedAssignments] = useState<Record<string, boolean>>({});
   const [isCompletingCourse, setIsCompletingCourse] = useState(false);
   const [showAllLessons, setShowAllLessons] = useState(false);
+  const [lessonFormData, setLessonFormData] = useState<Record<string, any>>({});
+  const [assignmentFormData, setAssignmentFormData] = useState<Record<string, any>>({});
+
+  const handleLessonChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const target = e.target as HTMLInputElement;
+    if (target.type === 'file') {
+      setLessonFormData(prev => ({ ...prev, [target.name]: target.files?.[0] }));
+    } else {
+      setLessonFormData(prev => ({ ...prev, [target.name]: target.value }));
+    }
+  };
+
+  const handleAssignmentChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    setAssignmentFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
 
   // Group lessons by date
   const groupedLessons = lessons.reduce((acc, lesson) => {
@@ -66,12 +81,26 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
 
   const openLessonModal = (lesson?: Lesson) => {
     setEditingItem(lesson || null);
+    setLessonFormData({
+      title: lesson?.title || '',
+      youtube_url: lesson?.youtube_url || '',
+      xp_reward: lesson?.xp_reward || 20,
+      notes: lesson?.notes || '',
+    });
     setModalType('lesson');
   };
 
   const openAssignmentModal = (lessonId: string, assignment?: Assignment) => {
     setParentLessonId(lessonId);
     setEditingItem(assignment || null);
+    setAssignmentFormData({
+      title: assignment?.title || '',
+      type: assignment?.type || 'ui',
+      xp_reward: assignment?.xp_reward || 50,
+      description: assignment?.description || '',
+      requires_github: assignment?.requires_github ? 'true' : 'false',
+      requires_deploy: assignment?.requires_deploy ? 'true' : 'false'
+    });
     setModalType('assignment');
   };
 
@@ -91,7 +120,12 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
   const handleLessonSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    const formData = new FormData(e.currentTarget);
+    const formData = new FormData();
+    Object.entries(lessonFormData).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') {
+        formData.append(k, v);
+      }
+    });
     
     let res;
     if (editingItem) {
@@ -115,7 +149,10 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
     if (!parentLessonId) return;
 
     setIsLoading(true);
-    const formData = new FormData(e.currentTarget);
+    const formData = new FormData();
+    Object.entries(assignmentFormData).forEach(([k, v]) => {
+      formData.append(k, String(v));
+    });
     
     if (editingItem) {
       await updateAssignment(editingItem.id, course.id, formData);
@@ -351,12 +388,13 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                 <Input 
                   name="title" 
                   label="Lesson Title" 
-                  defaultValue={editingItem ? editingItem.title : ''} 
+                  value={lessonFormData.title || ''} 
+                  onChange={handleLessonChange}
                   required 
                 />
-                <Input name="youtube_url" label="External Link (YouTube, Blog, Forms, etc.) (Optional)" defaultValue={editingItem?.youtube_url || undefined} />
-                <Input name="xp_reward" type="number" label="XP Reward for reading" defaultValue={editingItem?.xp_reward || 20} required />
-                <TextArea name="notes" label="Lesson Content" defaultValue={editingItem?.notes || undefined} style={{ minHeight: '150px' }} />
+                <Input name="youtube_url" label="External Link (YouTube, Blog, Forms, etc.) (Optional)" value={lessonFormData.youtube_url || ''} onChange={handleLessonChange} />
+                <Input name="xp_reward" type="number" label="XP Reward for reading" value={lessonFormData.xp_reward || ''} onChange={handleLessonChange} required />
+                <TextArea name="notes" label="Lesson Content" value={lessonFormData.notes || ''} onChange={handleLessonChange} style={{ minHeight: '150px' }} />
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
                   <label style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>PDF / Image Notes (Optional)</label>
@@ -368,6 +406,7 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                   <input 
                     type="file" 
                     name="pdf_file" 
+                    onChange={handleLessonChange}
                     accept="application/pdf,image/*" 
                     disabled={isLoading}
                     style={{ padding: 'var(--space-sm)', background: 'var(--bg-input)', color: 'white', borderRadius: 'var(--radius-sm)', border: '1px solid var(--glass-border)' }}
@@ -384,11 +423,12 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
 
             {modalType === 'assignment' && (
               <form onSubmit={handleAssignmentSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-                <Input name="title" label="Assignment Title" defaultValue={editingItem?.title} required />
+                <Input name="title" label="Assignment Title" value={assignmentFormData.title || ''} onChange={handleAssignmentChange} required />
                 <Select 
                   name="type" 
                   label="Submission Type" 
-                  defaultValue={editingItem?.type || 'ui'}
+                  value={assignmentFormData.type || ''}
+                  onChange={handleAssignmentChange}
                   options={[
                     { value: 'code', label: 'Code Snippet' },
                     { value: 'github', label: 'GitHub Repository Link' },
@@ -397,20 +437,22 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                     { value: 'any', label: 'Any (All inputs enabled)' }
                   ]}
                 />
-                <Input name="xp_reward" type="number" label="XP Reward upon approval" defaultValue={editingItem?.xp_reward || 50} required />
-                <TextArea name="description" label="Instructions" defaultValue={editingItem?.description || undefined} />
+                <Input name="xp_reward" type="number" label="XP Reward upon approval" value={assignmentFormData.xp_reward || ''} onChange={handleAssignmentChange} required />
+                <TextArea name="description" label="Instructions" value={assignmentFormData.description || ''} onChange={handleAssignmentChange} />
                 
                 <div style={{ display: 'flex', gap: 'var(--space-md)' }}>
                   <Select 
                     name="requires_github" 
                     label="Ask for GitHub Link?" 
-                    defaultValue={editingItem?.requires_github ? 'true' : 'false'}
+                    value={assignmentFormData.requires_github || ''}
+                    onChange={handleAssignmentChange}
                     options={[ { value: 'false', label: 'No' }, { value: 'true', label: 'Yes' } ]}
                   />
                   <Select 
                     name="requires_deploy" 
                     label="Ask for Live URL?" 
-                    defaultValue={editingItem?.requires_deploy ? 'true' : 'false'}
+                    value={assignmentFormData.requires_deploy || ''}
+                    onChange={handleAssignmentChange}
                     options={[ { value: 'false', label: 'No' }, { value: 'true', label: 'Yes' } ]}
                   />
                 </div>

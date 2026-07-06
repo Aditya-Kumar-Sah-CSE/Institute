@@ -23,17 +23,36 @@ export default function CourseManager({ courses, currentUserId, userRole }: Cour
   const [error, setError] = useState('');
   const [courseFilter, setCourseFilter] = useState<'my_courses' | 'all_courses'>('my_courses');
   const [showAllCourses, setShowAllCourses] = useState(false);
+  const [courseFormData, setCourseFormData] = useState<Record<string, any>>({});
   const pathname = usePathname();
   const basePath = pathname?.startsWith('/instructor') ? '/instructor' : '/admin';
 
+  const handleCourseFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    setCourseFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
   const openAdd = () => {
     setEditingCourse(null);
+    setCourseFormData({
+      title: '',
+      description: '',
+      difficulty: 'sem 1',
+      is_published: 'false',
+      enrollment_restriction: 'any'
+    });
     setError('');
     setIsModalOpen(true);
   };
 
   const openEdit = (course: Course) => {
     setEditingCourse(course);
+    setCourseFormData({
+      title: course.title || '',
+      description: course.description || '',
+      difficulty: course.difficulty || 'sem 1',
+      is_published: course.is_published ? 'true' : 'false',
+      enrollment_restriction: course.enrollment_restriction || 'any'
+    });
     setError('');
     setIsModalOpen(true);
   };
@@ -55,7 +74,8 @@ export default function CourseManager({ courses, currentUserId, userRole }: Cour
     setIsLoading(true);
     setError('');
 
-    const formData = new FormData(e.currentTarget);
+    const formData = new FormData();
+    Object.entries(courseFormData).forEach(([k, v]) => formData.append(k, String(v)));
     
     let res;
     if (editingCourse) {
@@ -172,15 +192,16 @@ export default function CourseManager({ courses, currentUserId, userRole }: Cour
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
               {error && <div style={{ color: 'var(--neon-red)', fontSize: 'var(--text-sm)' }}>{error}</div>}
               
-              <Input name="title" label="Course Title" defaultValue={editingCourse?.title} required />
-              <TextArea name="description" label="Description" defaultValue={editingCourse?.description || ''} />
+              <Input name="title" label="Course Title" value={courseFormData.title} onChange={handleCourseFormChange} required />
+              <TextArea name="description" label="Description" value={courseFormData.description} onChange={handleCourseFormChange} />
               
               <div>
                 <Input 
                   name="difficulty" 
                   label="Category / Semester"
                   list="semester-options"
-                  defaultValue={editingCourse?.difficulty || 'sem 1'}
+                  value={courseFormData.difficulty}
+                  onChange={handleCourseFormChange}
                   placeholder="e.g. sem 1, AI, Skill, Web Dev" 
                   required
                 />
@@ -199,7 +220,8 @@ export default function CourseManager({ courses, currentUserId, userRole }: Cour
               <Select 
                 name="is_published" 
                 label="Status" 
-                defaultValue={editingCourse?.is_published ? 'true' : 'false'}
+                value={courseFormData.is_published}
+                onChange={handleCourseFormChange}
                 options={[
                   { value: 'false', label: 'Draft (Hidden)' },
                   { value: 'true', label: 'Published (Visible)' }
@@ -209,7 +231,8 @@ export default function CourseManager({ courses, currentUserId, userRole }: Cour
               <Select 
                 name="enrollment_restriction" 
                 label="Enrollment Restriction" 
-                defaultValue={editingCourse?.enrollment_restriction || 'any'}
+                value={courseFormData.enrollment_restriction}
+                onChange={handleCourseFormChange}
                 options={[
                   { value: 'any', label: 'Anyone can enroll (Auto-approve)' },
                   { value: 'approval', label: 'Requires Approval' }

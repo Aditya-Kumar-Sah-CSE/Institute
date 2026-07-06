@@ -22,6 +22,15 @@ export default function SignupForm({ companyName, logoUrl }: SignupFormProps) {
   const router = useRouter();
   const supabase = createClient();
 
+  const [formData, setFormData] = useState({
+    name: '',
+    institute_id: '',
+    graduation_period: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
@@ -31,20 +40,27 @@ export default function SignupForm({ companyName, logoUrl }: SignupFormProps) {
     });
   }, [router, supabase.auth]);
 
-  async function handleSubmit(formData: FormData) {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    const password = formData.get('password') as string;
-    const confirmPassword = formData.get('confirmPassword') as string;
-
-    if (password !== confirmPassword) {
+    if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       setIsLoading(false);
       return;
     }
 
-    const result = await signUp(formData);
+    const form = new FormData();
+    Object.entries(formData).forEach(([key, value]) => {
+      form.append(key, value);
+    });
+
+    const result = await signUp(form);
     if (result?.error) {
       setError(result.error);
       setIsLoading(false);
@@ -87,7 +103,7 @@ export default function SignupForm({ companyName, logoUrl }: SignupFormProps) {
           <p className="auth-subtitle">Start your journey</p>
         </div>
 
-        <form action={handleSubmit} className="auth-form">
+        <form onSubmit={handleSubmit} className="auth-form">
           {error && <div className="auth-error">{error}</div>}
 
           <Input
@@ -96,16 +112,19 @@ export default function SignupForm({ companyName, logoUrl }: SignupFormProps) {
             label="Full Name"
             placeholder="Your Name"
             icon={<User size={18} />}
+            value={formData.name}
+            onChange={handleChange}
             required
           />
 
           <Input
             name="institute_id"
             type="text"
-            label="Roll No / Reg. No"
+            label="Roll No / Reg. No (Optional)"
             placeholder="Your Roll No (e.g., 2023CS01)"
             icon={<IdCard size={18} />}
-            required
+            value={formData.institute_id}
+            onChange={handleChange}
           />
 
           <Input
@@ -114,6 +133,8 @@ export default function SignupForm({ companyName, logoUrl }: SignupFormProps) {
             label="Graduation Year"
             placeholder="Graduation Year (e.g., 2024-2028)"
             icon={<GraduationCap size={18} />}
+            value={formData.graduation_period}
+            onChange={handleChange}
             required
           />
 
@@ -123,6 +144,8 @@ export default function SignupForm({ companyName, logoUrl }: SignupFormProps) {
             label="Email"
             placeholder="your@email.com"
             icon={<Mail size={18} />}
+            value={formData.email}
+            onChange={handleChange}
             required
           />
 
@@ -132,6 +155,8 @@ export default function SignupForm({ companyName, logoUrl }: SignupFormProps) {
             label="Password"
             placeholder="Min 6 characters"
             icon={<Lock size={18} />}
+            value={formData.password}
+            onChange={handleChange}
             required
             minLength={6}
           />
@@ -142,6 +167,8 @@ export default function SignupForm({ companyName, logoUrl }: SignupFormProps) {
             label="Confirm Password"
             placeholder="••••••••"
             icon={<Lock size={18} />}
+            value={formData.confirmPassword}
+            onChange={handleChange}
             required
           />
 
