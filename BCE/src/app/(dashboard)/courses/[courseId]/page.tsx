@@ -6,12 +6,13 @@ import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { getDifficultyColor } from '@/lib/utils';
-import { enrollInCourseFormAction } from '@/features/courses/actions/enroll';
+import { enrollInCourseFormAction, reapplyEnrollmentFormAction } from '@/features/courses/actions/enroll';
 import LeaveCourseButton from '@/features/courses/components/LeaveCourseButton';
 import ShareCourseButton from '@/features/courses/components/ShareCourseButton';
 import CoursePollsSection from '@/features/courses/components/CoursePollsSection';
 import CourseDoubtsSection from '@/features/courses/components/CourseDoubtsSection';
 import CurriculumListClient from '@/features/courses/components/CurriculumListClient';
+import EnrollCourseButton from '@/features/courses/components/EnrollCourseButton';
 import './CourseDetail.css';
 
 export default async function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
@@ -170,9 +171,11 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
           <div style={{ display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap', alignItems: 'flex-start' }}>
             <div className="course-action" style={{ flex: 1, minWidth: '250px' }}>
               {!enrollment ? (
-                <form action={enrollInCourseFormAction.bind(null, courseId)}>
-                  <Button variant="primary" size="lg" type="submit">Enroll Now (+20 XP ⚡)</Button>
-                </form>
+                <EnrollCourseButton 
+                  courseId={courseId} 
+                  courseTitle={course.title} 
+                  formAction={enrollInCourseFormAction.bind(null, courseId)} 
+                />
               ) : enrollment.status === 'pending' ? (
                 <div className="enrolled-status">
                   <span className="status-text text-warning">⏳ Pending Approval</span>
@@ -219,7 +222,14 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
               ) : (
                 <div />
               )}
-              <ShareCourseButton courseId={courseId} />
+              <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
+                {enrollment?.status === 'rejected' && (
+                  <form action={reapplyEnrollmentFormAction.bind(null, courseId)}>
+                    <Button variant="secondary" type="submit">Request Again</Button>
+                  </form>
+                )}
+                <ShareCourseButton courseId={courseId} />
+              </div>
             </div>
           </div>
         </div>
