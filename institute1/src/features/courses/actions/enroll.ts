@@ -117,3 +117,40 @@ export async function getTopEnrolledStudents(courseId: string, limit: number = 3
 
   return { students: data || [], total: count || 0 };
 }
+
+export async function reapplyEnrollment(courseId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { error: 'Not logged in' };
+
+  // Fetch course details first to check restriction
+  const { data: course } = await supabase.from('courses').select('title, enrollment_restriction').eq('id', courseId).single();
+  const restriction = course?.enrollment_restriction || 'any';
+  const initialStatus = restriction === 'any' ? 'approved' : 'pending';
+
+  const { error } = await supabase
+    .from('enrollments')
+    .update({ status: initialStatus })
+    .eq('user_id', user.id)
+    .eq('course_id', courseId)
+    .eq('status', 'rejected'); // Safety check, only if rejected
+
+  if (error) return { error: error.message };
+
+  revalidatePath('/courses');
+  revalidatePath(`/courses/${courseId}`);
+  revalidatePath('/dashboard');
+  revalidatePath('/', 'layout');
+  
+  if (initialStatus === 'pending') {
+    return { success: true, message: 'Reapplied successfully. Pending instructor approval.' };
+  } else {
+    return { success: true, message: 'Successfully re-enrolled in course.' };
+  }
+}
+
+export async function reapplyEnrollmentFormAction(courseId: string): Promise<void> {
+  await reapplyEnrollment(courseId);
+}
+
