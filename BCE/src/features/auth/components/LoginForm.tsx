@@ -24,6 +24,8 @@ export default function LoginForm({ companyName, logoUrl }: LoginFormProps) {
   const router = useRouter();
   const supabase = createClient();
 
+  const [formData, setFormData] = useState({ email: '', password: '' });
+
   useEffect(() => {
     // Check if user is already logged in (handles browser back button)
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -34,10 +36,20 @@ export default function LoginForm({ companyName, logoUrl }: LoginFormProps) {
     });
   }, [router, supabase.auth]);
 
-  async function handleSubmit(formData: FormData) {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     setIsLoading(true);
     setError('');
-    const result = await signIn(formData);
+
+    const form = new FormData();
+    form.append('email', formData.email);
+    form.append('password', formData.password);
+
+    const result = await signIn(form);
     if (result?.error) {
       setError(result.error);
       setIsLoading(false);
@@ -80,7 +92,7 @@ export default function LoginForm({ companyName, logoUrl }: LoginFormProps) {
           <p className="auth-subtitle">Sign in to continue your learning journey</p>
         </div>
 
-        <form action={handleSubmit} className="auth-form">
+        <form onSubmit={handleSubmit} className="auth-form">
           {message && !error && <div className="auth-success" style={{ color: 'var(--neon-lime)', background: 'rgba(57, 255, 20, 0.1)', padding: 'var(--space-sm)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--neon-lime)' }}>{message}</div>}
           {error && <div className="auth-error">{error}</div>}
 
@@ -90,6 +102,8 @@ export default function LoginForm({ companyName, logoUrl }: LoginFormProps) {
             label="Email"
             placeholder="your@email.com"
             icon={<Mail size={18} />}
+            value={formData.email}
+            onChange={handleChange}
             required
           />
 
@@ -100,6 +114,8 @@ export default function LoginForm({ companyName, logoUrl }: LoginFormProps) {
               label="Password"
               placeholder="••••••••"
               icon={<Lock size={18} />}
+              value={formData.password}
+              onChange={handleChange}
               required
             />
             <div style={{ textAlign: 'right' }}>

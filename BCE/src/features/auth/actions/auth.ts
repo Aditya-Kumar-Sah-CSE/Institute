@@ -15,8 +15,8 @@ export async function signUp(formData: FormData) {
   const institute_id = formData.get('institute_id') as string;
   const graduation_period = formData.get('graduation_period') as string;
 
-  if (!name || !email || !password || !institute_id || !graduation_period) {
-    return { error: 'All fields are required' };
+  if (!name || !email || !password || !graduation_period) {
+    return { error: 'All fields are required except Roll No' };
   }
 
   // Rate limit: 5 signups per email per 10 minutes
