@@ -1,0 +1,27 @@
+# Fix PWA Service Worker Registration Issue
+
+The root cause of the "PWA app not loading" issue is a race condition in the [PwaRegister.tsx](file:///d:/Institute/BCE/src/components/PwaRegister.tsx) component. The component wraps the `navigator.serviceWorker.register('/sw.js')` call inside a `window.addEventListener('load', ...)` callback. In modern Next.js applications using the App Router, the [PwaRegister](file:///d:/Institute/BCE/src/components/PwaRegister.tsx#5-18) component often hydrates and executes its `useEffect` *after* the `window.onload` event has already fired. Consequently, the load event listener is never triggered, the Service Worker is never registered, and the PWA fails to initialize.
+
+## Proposed Changes
+
+We will modify the [PwaRegister.tsx](file:///d:/Institute/BCE/src/components/PwaRegister.tsx) component in both projects to execute the registration without relying on the `load` event listener, as the `useEffect` itself already runs on the client after hydration.
+
+### Project BCE (Smart Learn)
+
+#### [MODIFY] [PwaRegister.tsx](file:///d:/Institute/BCE/src/components/PwaRegister.tsx)
+- Remove `window.addEventListener('load', ...)` wrapper.
+- Call `navigator.serviceWorker.register('/sw.js')` directly inside the `useEffect`.
+
+### Project Institute1 (Smart Learn)
+
+#### [MODIFY] [PwaRegister.tsx](file:///d:/Institute/institute1/src/components/PwaRegister.tsx)
+- Remove `window.addEventListener('load', ...)` wrapper.
+- Call `navigator.serviceWorker.register('/sw.js')` directly inside the `useEffect`.
+
+## Verification Plan
+
+### Automated Tests
+- Run `npm run build` in both `d:\Institute\BCE` and `d:\Institute\institute1` to ensure the build succeeds without TypeScript/ESLint errors.
+
+### Manual Verification
+- We will ask you to start the development servers for both apps and verify in the browser's developer tools (Application -> Service Workers) that the service worker is successfully registered and active.

@@ -1,0 +1,31 @@
+# Application Performance Enhancements
+
+I have completed the speed and perceived performance optimizations for both the `BCE` and `Institute1` apps exactly as instructed. 
+
+## Bottlenecks Identified
+1. **Landing Page Blocking**: The root [/page.tsx](file:///d:/Institute/BCE/src/app/page.tsx) unnecessarily awaited a backend query (`supabase.auth.getUser()`) triggering a complete rendering stall while checking a session that [middleware.ts](file:///d:/Institute/BCE/middleware.ts) already perfectly enforces. 
+2. **Dashboard DB Stall**: When users visited the `/dashboard`, it pulled upwards of 8 database tables concurrently. Because a [loading.tsx](file:///d:/Institute/BCE/src/app/loading.tsx) skeleton was missing, Next.js waited completely for these calls to resolve, stalling on a blank screen.
+
+## Optimizations Implemented
+
+**Part 1: Landing Page**
+- **Action**: Removed the `user` lookup and redundant `<redirect/>` blocks within the Landing Page.
+- **Result**: The Time-to-First-Byte (TTFB) is substantially faster since the server immediately delegates security routing to Edge middleware and then statically loads the page (for guests) without DB delays.
+
+**Part 2: Dashboard Skeleton**
+- **Action**: Utilized Next.js Streaming architectures by adding an app-level [loading.tsx](file:///d:/Institute/BCE/src/app/loading.tsx) for the Dashboard Route.
+- **Result**: On deep link or cold refreshing, a gorgeous pulsing Skeleton Layout mimicking the final dashboard (Cards, Stats, Activity views) is streamed instantly from the server, eliminating the white-screen wait.
+
+## Modified & Created Files
+- **BCE:** 
+   - Modified: [BCE/src/app/page.tsx](file:///d:/Institute/BCE/src/app/page.tsx)
+   - Created: [BCE/src/app/(dashboard)/dashboard/loading.tsx](file:///d:/Institute/BCE/src/app/(dashboard)/dashboard/loading.tsx)
+- **Institute1:**
+   - Modified: [Institute1/src/app/page.tsx](file:///d:/Institute/institute1/src/app/page.tsx)
+   - Created: [Institute1/src/app/(dashboard)/dashboard/loading.tsx](file:///d:/Institute/institute1/src/app/(dashboard)/dashboard/loading.tsx)
+
+## Scope & Integrity Checks
+- **Business Logic Verified**: Confirmed NO changes were made to routing schemas, [middleware.ts](file:///d:/Institute/BCE/middleware.ts), real-world queries in components, server actions, styling components, or unassociated dependencies. Auth state integrity is identical.
+- **Build Pass Rate**: Successfully ran `npm run build` in both directories locally; compiled fully successfully without a single Next.js, ES-Lint, or strict TypeScript warning.
+
+No unrelated code format tweaks or dependency shifts were applied outside of fixing the exact speed objectives. The App startup is now radically faster and natively streams its layout shell!

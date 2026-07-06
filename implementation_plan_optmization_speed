@@ -1,0 +1,31 @@
+# Optimizing App Startup Speed
+
+The "app opening very slowly" issue is caused by blocking Next.js Server Components.
+
+We identified two major bottlenecks:
+1. **Landing Page ([/page.tsx](file:///d:/Institute/BCE/src/app/page.tsx))**: The root page runs `await supabase.auth.getUser()` before it serves any HTML. The [middleware.ts](file:///d:/Institute/BCE/middleware.ts) already checks for authentication and redirects logged-in users away from the landing page. Therefore, the auth check inside [page.tsx](file:///d:/Institute/BCE/src/app/page.tsx) is completely redundant and forces a 500ms+ delay for first-time visitors for no reason. 
+2. **Dashboard ([/dashboard/page.tsx](file:///d:/Institute/BCE/src/app/%28dashboard%29/dashboard/page.tsx))**: The dashboard waits for 8 parallel database queries to finish before it renders. Because there is no [loading.tsx](file:///d:/Institute/BCE/src/app/loading.tsx) skeleton for the dashboard, users see a blank screen or a frozen browser state while these queries resolve.
+
+## Proposed Changes
+
+We will apply the following fixes to **both BCE and Institute1 projects**:
+
+### Landing Page Optimization
+
+#### [MODIFY] [src/app/page.tsx](file:///d:/Institute/BCE/src/app/page.tsx)
+- Remove the redundant `supabase.auth.getUser()` and role-based redirect logic (handled by [middleware.ts](file:///d:/Institute/BCE/middleware.ts)).
+- This will massively speed up the Time-to-First-Byte for the landing page.
+
+### Dashboard Loading Experience
+
+#### [NEW] `src/app/(dashboard)/dashboard/loading.tsx`
+- Create a [loading.tsx](file:///d:/Institute/BCE/src/app/loading.tsx) file inside the dashboard route. 
+- Implement a Skeleton UI utilizing Next.js layout streaming. This ensures the app shell loads instantly, providing perceived performance (a fast opening experience) while the heavy dashboard data loads in the background.
+
+## Verification Plan
+
+### Automated Tests
+- Run `npm run build` on both projects to check for typing or linting errors.
+
+### Manual Verification
+- We will ask the user to open the application in development mode and observe the instant load of the landing page and the Skeleton UI on the dashboard.

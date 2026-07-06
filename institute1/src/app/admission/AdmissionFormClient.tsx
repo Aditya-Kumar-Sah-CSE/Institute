@@ -16,7 +16,7 @@ export default function AdmissionFormClient({
   const [errorMsg, setErrorMsg] = useState('');
   const [formData, setFormData] = useState<Record<string, any>>({});
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const target = e.target as HTMLInputElement;
     const value = target.type === 'checkbox' ? target.checked : target.value;
     setFormData(prev => ({ ...prev, [target.name]: value }));
@@ -219,11 +219,11 @@ export default function AdmissionFormClient({
 
             <div style={{ height: '24px' }}></div>
 
-            <h4 style={{ color: 'var(--neon-cyan)', marginBottom: 'var(--space-sm)' }}>Class 12th Details</h4>
+            <h4 style={{ color: 'var(--neon-cyan)', marginBottom: 'var(--space-sm)' }}>Class 12th Details (Optional)</h4>
             <div className="form-row">
               <div className="form-group">
-                <label>Class 12 Board <span>*</span></label>
-                <select name="board12" required value={formData.board12 || ''} onChange={handleChange}>
+                <label>Class 12 Board</label>
+                <select name="board12" value={formData.board12 || ''} onChange={handleChange}>
                   <option value="">Select Board</option>
                   <option value="CBSE">CBSE</option>
                   <option value="BSEB">BSEB</option>
@@ -232,22 +232,50 @@ export default function AdmissionFormClient({
                 </select>
               </div>
               <div className="form-group">
-                <label>Passing Year <span>*</span></label>
-                <input type="number" name="year12" required placeholder="YYYY" min="2010" max="2026" value={formData.year12 || ''} onChange={handleChange} />
+                <label>Passing Year</label>
+                <input type="number" name="year12" placeholder="YYYY" min="2010" max="2026" value={formData.year12 || ''} onChange={handleChange} />
               </div>
             </div>
             <div className="form-row" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
               <div className="form-group">
-                <label>Marks Obtained <span>*</span></label>
-                <input type="number" name="marks12" required step="0.01" value={formData.marks12 || ''} onChange={handleChange} />
+                <label>Marks Obtained</label>
+                <input type="number" name="marks12" step="0.01" value={formData.marks12 || ''} onChange={handleChange} />
               </div>
               <div className="form-group">
-                <label>Total Marks <span>*</span></label>
-                <input type="number" name="total12" required step="0.01" value={formData.total12 || ''} onChange={handleChange} />
+                <label>Total Marks</label>
+                <input type="number" name="total12" step="0.01" value={formData.total12 || ''} onChange={handleChange} />
               </div>
               <div className="form-group">
-                <label>Percentage % <span>*</span></label>
-                <input type="number" name="percent12" required step="0.01" max="100" value={formData.percent12 || ''} onChange={handleChange} />
+                <label>Percentage %</label>
+                <input type="number" name="percent12" step="0.01" max="100" value={formData.percent12 || ''} onChange={handleChange} />
+              </div>
+            </div>
+
+            <div style={{ height: '24px' }}></div>
+
+            <h4 style={{ color: 'var(--neon-cyan)', marginBottom: 'var(--space-sm)' }}>Diploma / Other Qualifications (Optional)</h4>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Board / University</label>
+                <input type="text" name="diplomaBoard" placeholder="e.g., SBTE Bihar" value={formData.diplomaBoard || ''} onChange={handleChange} />
+              </div>
+              <div className="form-group">
+                <label>Passing Year</label>
+                <input type="number" name="diplomaYear" placeholder="YYYY" min="2010" max="2026" value={formData.diplomaYear || ''} onChange={handleChange} />
+              </div>
+            </div>
+            <div className="form-row" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+              <div className="form-group">
+                <label>Marks Obtained</label>
+                <input type="number" name="diplomaMarks" step="0.01" value={formData.diplomaMarks || ''} onChange={handleChange} />
+              </div>
+              <div className="form-group">
+                <label>Total Marks</label>
+                <input type="number" name="diplomaTotal" step="0.01" value={formData.diplomaTotal || ''} onChange={handleChange} />
+              </div>
+              <div className="form-group">
+                <label>Percentage %</label>
+                <input type="number" name="diplomaPercent" step="0.01" max="100" value={formData.diplomaPercent || ''} onChange={handleChange} />
               </div>
             </div>
           </div>
@@ -267,6 +295,21 @@ export default function AdmissionFormClient({
                   No
                 </label>
               </div>
+            </div>
+          </div>
+
+          {/* SECTION 5: Extra-Curricular */}
+          <div className="form-section">
+            <h3 className="section-title">Section 5: Extra-Curricular</h3>
+            <div className="form-group">
+              <label>Sports Name and Achievement (Optional)</label>
+              <textarea 
+                name="sportsAchievement" 
+                placeholder="ex state level carram, chess, etc." 
+                value={formData.sportsAchievement || ''} 
+                onChange={handleChange}
+                style={{ width: '100%', minHeight: '80px', padding: '10px', background: 'var(--bg-input)', border: '1px solid var(--glass-border)', color: 'white', borderRadius: '4px' }}
+              />
             </div>
           </div>
 

@@ -53,7 +53,7 @@
 
 .company-nav-logo {
   width: 32px;
-  height: 32px;
+  height: auto;
   border-radius: var(--radius-sm);
   object-fit: cover;
 }

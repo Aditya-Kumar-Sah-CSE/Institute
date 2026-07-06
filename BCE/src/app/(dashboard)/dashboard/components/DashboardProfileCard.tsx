@@ -187,7 +187,7 @@ export default function DashboardProfileCard({ profile, appData }: DashboardProf
           <div style={{ width: '100%' }}>
             {profile.role !== 'instructor' && appData?.status !== 'pending' && (
               <Link href={(appData?.status === 'rejected' || appData?.status === 'approved') ? '/apply-instructor?reapply=true' : '/apply-instructor'} style={{ textDecoration: 'none', width: '100%', display: 'block' }}>
-                <Button variant="secondary" size="sm" style={{ width: '100%' }}>
+                <Button variant="secondary" size="sm" style={{ width: '100%', height: '48px', backgroundColor: '#22c55e', color: 'white' }}>
                   Apply as Instructor or Faculty
                 </Button>
               </Link>

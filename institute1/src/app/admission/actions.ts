@@ -21,8 +21,10 @@ export async function submitAdmission(formData: any) {
   try {
     const response = await fetch(url, {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify(formData),
-      // We do not strictly need CORS headers from server-side Node fetch
     });
     
     // We don't necessarily need to parse the response if it succeeds

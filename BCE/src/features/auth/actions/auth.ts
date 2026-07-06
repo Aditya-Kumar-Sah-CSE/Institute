@@ -4,6 +4,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { getLevelFromXP } from '@/lib/utils';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { revalidatePath } from 'next/cache';
 
 
 export async function signUp(formData: FormData) {
@@ -90,7 +91,7 @@ export async function signIn(formData: FormData) {
   const rl = checkRateLimit(`signIn:${email}`, 10, 300000);
   if (!rl.success) return { error: rl.error };
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
@@ -102,7 +103,18 @@ export async function signIn(formData: FormData) {
     return { error: error.message };
   }
 
-  redirect('/');
+  let redirectUrl = '/dashboard';
+  if (data.user) {
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single();
+    if (profile?.role === 'instructor') {
+      redirectUrl = '/instructor';
+    } else if (profile?.role === 'admin') {
+      redirectUrl = '/admin';
+    }
+  }
+
+  revalidatePath('/', 'layout');
+  redirect(redirectUrl);
 }
 
 export async function signOut() {
@@ -127,6 +139,7 @@ export async function signOut() {
     console.error('Error clearing cookies:', error);
   }
 
+  revalidatePath('/', 'layout');
   redirect('/');
 }
 

@@ -3,36 +3,11 @@ import Link from 'next/link';
 import InstallAppButton from '@/components/pwa/InstallAppButton';
 import './Landing.css';
 import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
 
 export default async function LandingPage() {
   const supabase = await createClient();
-  const [
-    { data: { user } },
-    { data: settings }
-  ] = await Promise.all([
-    supabase.auth.getUser(),
-    supabase.from('company_settings').select('company_name').maybeSingle()
-  ]);
+  const { data: settings } = await supabase.from('company_settings').select('company_name').maybeSingle();
   const companyName = settings?.company_name || 'Smart Learning';
-
-  if (user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, status')
-      .eq('id', user.id)
-      .single();
-
-    if (profile?.role === 'instructor' && profile?.status !== 'active') {
-      redirect('/apply-instructor');
-    } else if (profile?.role === 'instructor') {
-      redirect('/instructor');
-    } else if (profile?.role === 'admin') {
-      redirect('/admin');
-    } else {
-      redirect('/dashboard');
-    }
-  }
 
   return (
     <div className="landing-container">

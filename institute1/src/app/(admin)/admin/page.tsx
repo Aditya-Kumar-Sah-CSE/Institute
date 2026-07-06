@@ -162,7 +162,7 @@ export default async function AdminDashboardPage() {
                 {settings?.is_admission_pinned ? "Unpin Admission form from Dashboards" : "Pin Admission form to Dashboards"}
               </button>
             </form>
-            <a href="https://docs.google.com/spreadsheets/d/1tyjANcp-NPEzQk1qKJGKirsqKpqe3iPSmdkovjcy6bc/edit?usp=sharing" target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-md" style={{ justifyContent: 'flex-start', gap: '12px', background: 'rgba(57, 255, 20, 0.1)', border: '1px solid var(--neon-lime)', color: 'var(--neon-lime)' }}>
+            <a href="https://docs.google.com/spreadsheets/d/1EylsjmsbJcJN7w65-oCTqMyrz_YC6o_Akb6_MdDPssU/edit?usp=sharing" target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-md" style={{ justifyContent: 'flex-start', gap: '12px', background: 'rgba(57, 255, 20, 0.1)', border: '1px solid var(--neon-lime)', color: 'var(--neon-lime)' }}>
               <Table className="w-5 h-5" /> View Admission Responses
             </a>
           </div>

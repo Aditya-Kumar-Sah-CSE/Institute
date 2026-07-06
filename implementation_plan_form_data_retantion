@@ -1,0 +1,51 @@
+# Form State Retention Implementation Plan
+
+## Goal Description
+The problem is that several important forms wipe out their input fields (all data removes) when a user submits but a validation error occurs. This is caused by React/Next.js default form handling which can reset uncontrolled `<form action={...}>` inputs, or simply by DOM state loss upon server action failures re-rendering the view.
+
+The goal is to fix this by transitioning all the critical forms to **Controlled Form Components** (binding input value directly to React `useState`). This explicit state binding prevents Next.js or React 19 from accidentally clearing input values and ensures all the data stays intact when an error is returned.
+
+## Proposed Changes
+
+We will implement a `formData` object mapped via `useState` and apply `value={formData.fieldName}` along with an `onChange` handler to all inputs inside the respective forms in **both** the `BCE` and `institute1` projects. 
+
+### BCE Platform
+
+#### [MODIFY] D:\Institute\BCE\src\features\auth\components\SignupForm.tsx
+- Add a `formData` state to track uncontrolled `name`, `institute_id`, `graduation_period`, `email`, `password`, `confirmPassword`.
+- Bind values to the `<Input>` components.
+
+#### [MODIFY] D:\Institute\BCE\src\features\auth\components\LoginForm.tsx
+- Make fields `email` and `password` controlled via `useState`.
+
+#### [MODIFY] D:\Institute\BCE\src\app\admission\AdmissionFormClient.tsx
+- Create a comprehensive `formData` object covering `firstName`, `lastName`, `mobile`, `email`, etc.
+- Attach an `onChange` handler that merges updates.
+- Apply `value` to all standard `<input>` and `<select>` tags.
+
+#### [MODIFY] D:\Institute\BCE\src\features\admin\components\CourseManager.tsx
+- Inside the Modal, track `courseFormData`. 
+- Pre-populate state from `editingCourse` if present, else empty strings.
+
+#### [MODIFY] D:\Institute\BCE\src\features\admin\components\CurriculumBuilder.tsx
+- In `modalType === 'lesson'`, bind lesson inputs to a controlled state.
+- In `modalType === 'assignment'`, bind assignment inputs to controlled state. 
+- Reset the state inside [closeModal](file:///D:/Institute/BCE/src/features/admin/components/CurriculumBuilder.tsx#83-90).
+
+### Institute1 Platform
+
+*(Repeat the EXACT same modifications for identical components in Institute1)*
+- [MODIFY] D:\Institute\institute1\src\features\auth\components\SignupForm.tsx
+- [MODIFY] D:\Institute\institute1\src\features\auth\components\LoginForm.tsx
+- [MODIFY] D:\Institute\institute1\src\app\admission\AdmissionFormClient.tsx
+- [MODIFY] D:\Institute\institute1\src\features\admin\components\CourseManager.tsx
+- [MODIFY] D:\Institute\institute1\src\features\admin\components\CurriculumBuilder.tsx
+
+## Verification Plan
+
+### Manual Verification
+1. Access the Next.js local dev server.
+2. Go to `/login` and enter just an email without a password, submit, ensure the email remains typed.
+3. Access the signup form, fill "Full Name" but mismatch passwords. Submit, and check that "Full Name" isn't wiped.
+4. Go to Admission Form. Fill the Student Name but enter a 5-digit number for mobile (which will throw a 10-digit validation error). Verify Student Name does not clear when the error appears. 
+5. As an Admin, open "Create Course" or "Add Lesson/Assignment". Fill the title but miss a required field. Verify the title input field isn't cleared upon submission failure.

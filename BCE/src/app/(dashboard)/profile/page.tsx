@@ -135,7 +135,7 @@ export default async function ProfilePage() {
               <>
                 {profile.role !== 'instructor' && (!appData || appData.status === 'rejected') && (
                   <Link href={appData?.status === 'rejected' ? '/apply-instructor?reapply=true' : '/apply-instructor'} style={{ textDecoration: 'none' }}>
-                    <Button variant="secondary" size="sm">
+                    <Button variant="secondary" size="sm" style={{ height: "48px", backgroundColor: "#22c55e", color: "white" }}>
                       Apply as Instructor or Faculty
                     </Button>
                   </Link>
