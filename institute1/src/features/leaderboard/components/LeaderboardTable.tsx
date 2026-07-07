@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import LevelBadge from '@/components/shared/LevelBadge';
+import UserAvatar from '@/components/shared/UserAvatar';
 import { User } from 'lucide-react';
 import Link from 'next/link';
 import type { LeaderboardEntry } from '@/types';
@@ -44,11 +45,7 @@ export default function LeaderboardTable({ entries, currentUserId }: Leaderboard
               
               <Link href={isCurrentUser ? '/profile' : `/users/${entry.id}`} className="col-user" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
                 <div className="user-avatar-sm">
-                  {entry.avatar_url ? (
-                    <Image src={entry.avatar_url} alt={entry.name || 'User'} width={40} height={40} style={{ objectFit: 'cover' }} />
-                  ) : (
-                    <span><User size={24} opacity={0.5} /></span>
-                  )}
+                  <UserAvatar url={entry.avatar_url} name={entry.name} size={32} />
                 </div>
                 <span className="user-name" style={{ transition: 'color 0.2s', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--neon-cyan)'} onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}>
                   {entry.name || 'Anonymous User'} {isCurrentUser && '(You)'}
