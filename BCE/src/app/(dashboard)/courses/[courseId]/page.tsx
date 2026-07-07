@@ -13,6 +13,7 @@ import CoursePollsSection from '@/features/courses/components/CoursePollsSection
 import CourseDoubtsSection from '@/features/courses/components/CourseDoubtsSection';
 import CurriculumListClient from '@/features/courses/components/CurriculumListClient';
 import EnrollCourseButton from '@/features/courses/components/EnrollCourseButton';
+import ReapplyCourseButton from '@/features/courses/components/ReapplyCourseButton';
 import './CourseDetail.css';
 
 export default async function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
@@ -222,11 +223,13 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
               ) : (
                 <div />
               )}
-              <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
-                {enrollment?.status === 'rejected' && (
-                  <form action={reapplyEnrollmentFormAction.bind(null, courseId)}>
-                    <Button variant="secondary" type="submit">Request Again</Button>
-                  </form>
+              <div className="course-enroll-actions">
+                {(enrollment?.status === 'rejected' || enrollment?.status === 'pending') && (
+                  <ReapplyCourseButton 
+                    courseTitle={course.title} 
+                    formAction={reapplyEnrollmentFormAction.bind(null, courseId)} 
+                    status={enrollment?.status}
+                  />
                 )}
                 <ShareCourseButton courseId={courseId} />
               </div>

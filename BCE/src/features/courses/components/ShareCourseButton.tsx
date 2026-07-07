@@ -21,8 +21,10 @@ export default function ShareCourseButton({ courseId }: { courseId: string }) {
   };
 
   return (
-    <Button variant="secondary" onClick={handleShare}>
-      {copied ? '✓ Copied!' : '🔗 Share Link'}
-    </Button>
+    <div style={{ flex: 1, width: '100%' }}>
+      <Button variant="secondary" onClick={handleShare} fullWidth>
+        {copied ? '✓ Copied!' : '🔗 Share Link'}
+      </Button>
+    </div>
   );
 }

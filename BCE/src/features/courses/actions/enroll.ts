@@ -12,7 +12,7 @@ export async function enrollInCourse(courseId: string) {
   if (!user) return { error: 'Not logged in' };
 
   // Fetch course details first to check restriction
-  const { data: course } = await supabase.from('courses').select('title, enrollment_restriction').eq('id', courseId).single();
+  const { data: course } = await supabase.from('courses').select('title, enrollment_restriction, created_by').eq('id', courseId).single();
   const courseName = course?.title || 'the course';
   const restriction = course?.enrollment_restriction || 'any';
   const initialStatus = restriction === 'any' ? 'approved' : 'pending';
@@ -40,12 +40,36 @@ export async function enrollInCourse(courseId: string) {
 
   if (!error) {
     if (initialStatus === 'pending') {
-      await supabase.from('notifications').insert({
+      const { data: userProfile } = await supabase.from('profiles').select('name').eq('id', user.id).single();
+      const studentName = userProfile?.name || 'A student';
+      const { data: admins } = await supabase.from('profiles').select('id').eq('role', 'admin');
+      
+      const notifications = [];
+      // Student notification
+      notifications.push({
         user_id: user.id,
         type: 'system',
         message: `Thank you for enrolling in ${courseName}. Please wait for instructor approval.`,
         link: '/dashboard'
       });
+
+      // Faculty/Admin notifications
+      const staffToNotify = new Set(admins?.map((a: any) => a.id) || []);
+      if (course?.created_by) staffToNotify.add(course.created_by);
+      staffToNotify.delete(user.id);
+
+      staffToNotify.forEach(staffId => {
+        notifications.push({
+          user_id: staffId,
+          type: 'enrollment_request',
+          message: `${studentName} has requested to enroll in ${courseName}.`,
+          link: `/courses/${courseId}`
+        });
+      });
+
+      if (notifications.length > 0) {
+        await supabase.from('notifications').insert(notifications);
+      }
     } else {
       await supabase.from('notifications').insert({
         user_id: user.id,
@@ -62,6 +86,8 @@ export async function enrollInCourse(courseId: string) {
   revalidatePath('/courses');
   revalidatePath(`/courses/${courseId}`);
   revalidatePath('/dashboard');
+  revalidatePath('/admin/enrollments');
+  revalidatePath('/instructor/enrollments');
   revalidatePath('/', 'layout');
   
   if (initialStatus === 'pending') {
@@ -125,22 +151,62 @@ export async function reapplyEnrollment(courseId: string) {
   if (!user) return { error: 'Not logged in' };
 
   // Fetch course details first to check restriction
-  const { data: course } = await supabase.from('courses').select('title, enrollment_restriction').eq('id', courseId).single();
+  const { data: course } = await supabase.from('courses').select('title, enrollment_restriction, created_by').eq('id', courseId).single();
   const restriction = course?.enrollment_restriction || 'any';
-  const initialStatus = restriction === 'any' ? 'approved' : 'pending';
+  const courseName = course?.title || 'the course';
+  // Re-applications always require instructor approval
+  const initialStatus = 'pending';
 
   const { error } = await supabase
     .from('enrollments')
-    .update({ status: initialStatus })
+    .update({ 
+      status: initialStatus,
+      enrolled_at: new Date().toISOString() // Bump date to top of admin list
+    })
     .eq('user_id', user.id)
     .eq('course_id', courseId)
     .eq('status', 'rejected'); // Safety check, only if rejected
 
   if (error) return { error: error.message };
 
+  if (initialStatus === 'pending') {
+    const { data: userProfile } = await supabase.from('profiles').select('name').eq('id', user.id).single();
+    const studentName = userProfile?.name || 'A student';
+    const { data: admins } = await supabase.from('profiles').select('id').eq('role', 'admin');
+    
+    const notifications = [];
+    // Student notification
+    notifications.push({
+      user_id: user.id,
+      type: 'system',
+      message: `You have reapplied for ${courseName}. Please wait for instructor approval.`,
+      link: '/dashboard'
+    });
+
+    // Faculty/Admin notifications
+    const staffToNotify = new Set(admins?.map((a: any) => a.id) || []);
+    if (course?.created_by) staffToNotify.add(course.created_by);
+    staffToNotify.delete(user.id);
+
+    staffToNotify.forEach(staffId => {
+      notifications.push({
+        user_id: staffId,
+        type: 'enrollment_request',
+        message: `${studentName} has requested to re-enroll in ${courseName}.`,
+        link: `/courses/${courseId}`
+      });
+    });
+
+    if (notifications.length > 0) {
+      await supabase.from('notifications').insert(notifications);
+    }
+  }
+
   revalidatePath('/courses');
   revalidatePath(`/courses/${courseId}`);
   revalidatePath('/dashboard');
+  revalidatePath('/admin/enrollments');
+  revalidatePath('/instructor/enrollments');
   revalidatePath('/', 'layout');
   
   if (initialStatus === 'pending') {

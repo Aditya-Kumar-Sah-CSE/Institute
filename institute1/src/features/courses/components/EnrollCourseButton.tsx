@@ -10,15 +10,16 @@ interface EnrollCourseButtonProps {
 }
 
 export default function EnrollCourseButton({ courseId, courseTitle, formAction }: EnrollCourseButtonProps) {
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    if (!window.confirm(`Do you want to enroll in ${courseTitle}?`)) {
-      e.preventDefault();
-    }
-  };
-
   return (
-    <form action={formAction} onSubmit={handleSubmit}>
-      <Button variant="primary" size="lg" type="submit">Enroll Now (+20 XP ⚡)</Button>
+    <form action={formAction}>
+      <Button 
+        variant="primary" 
+        size="lg" 
+        type="submit" 
+        confirmMessage={`Do you want to enroll in ${courseTitle}?`}
+      >
+        Enroll Now (+20 XP ⚡)
+      </Button>
     </form>
   );
 }

@@ -66,20 +66,32 @@
 
 .course-meta-actions {
   display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   gap: var(--space-md);
   width: 100%;
   margin-top: var(--space-md);
 }
 
+.course-enroll-actions {
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
+  width: 100%;
+}
+
+.course-enroll-actions > * {
+  flex: 1;
+}
+
 @media (min-width: 768px) {
   .course-meta-actions {
-    flex-direction: column;
     align-items: flex-end;
     width: auto;
     margin-top: 0;
+  }
+  .course-enroll-actions {
+    width: auto;
   }
 }
 

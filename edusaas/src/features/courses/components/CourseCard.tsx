@@ -41,6 +41,7 @@ export default function CourseCard({ course, progress, status, certificateId }: 
 
   const handleEnroll = async (e: React.MouseEvent) => {
     e.preventDefault(); // Stop link navigation
+    if (!window.confirm(`Do you want to enroll in ${course.title}?`)) return;
     setIsEnrolling(true);
     const res = await enrollInCourse(course.id);
     if (res?.success) {
