@@ -13,7 +13,6 @@ import CoursePollsSection from '@/features/courses/components/CoursePollsSection
 import CourseDoubtsSection from '@/features/courses/components/CourseDoubtsSection';
 import CurriculumListClient from '@/features/courses/components/CurriculumListClient';
 import EnrollCourseButton from '@/features/courses/components/EnrollCourseButton';
-import ReapplyCourseButton from '@/features/courses/components/ReapplyCourseButton';
 import './CourseDetail.css';
 
 export default async function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
@@ -183,9 +182,27 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
                   <p style={{ fontSize: '0.9rem', opacity: 0.8 }}>Waiting for instructor to approve your request.</p>
                 </div>
               ) : enrollment.status === 'rejected' ? (
-                <div className="enrolled-status">
-                  <span className="status-text text-danger">❌ Enrollment Rejected</span>
-                  <p style={{ fontSize: '0.9rem', opacity: 0.8 }}>Please contact the instructor for more details.</p>
+                <div className="enrolled-status" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className="status-text text-danger" style={{ marginBottom: 0 }}>❌ Enrollment Rejected</span>
+                  </div>
+                  <p style={{ fontSize: '0.9rem', opacity: 0.8, margin: 0 }}>Please contact the instructor for more details.</p>
+                  <form action={reapplyEnrollmentFormAction.bind(null, courseId)}>
+                    <Button 
+                      type="submit" 
+                      size="sm"
+                      confirmMessage={`Are you sure you want to reset your enrollment request for ${course.title}?`}
+                      style={{ 
+                        background: 'rgba(255, 59, 48, 0.1)', 
+                        border: '1px solid rgba(255, 59, 48, 0.4)', 
+                        color: '#ff4d4f',
+                        marginTop: '4px',
+                        width: '100%'
+                      }}
+                    >
+                      Request Again
+                    </Button>
+                  </form>
                 </div>
               ) : (
                 <div className="enrolled-status">
@@ -224,13 +241,6 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
                 <div />
               )}
               <div className="course-enroll-actions">
-                {(enrollment?.status === 'rejected' || enrollment?.status === 'pending') && (
-                  <ReapplyCourseButton 
-                    courseTitle={course.title} 
-                    formAction={reapplyEnrollmentFormAction.bind(null, courseId)} 
-                    status={enrollment?.status}
-                  />
-                )}
                 <ShareCourseButton courseId={courseId} />
               </div>
             </div>
