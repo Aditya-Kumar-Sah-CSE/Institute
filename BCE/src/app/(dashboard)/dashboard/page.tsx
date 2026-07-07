@@ -11,6 +11,7 @@ import { createAdminClient } from '@/lib/supabase/server';
 import PollAlerts from './components/PollAlerts';
 import DashboardPolls from './components/DashboardPolls';
 import ContinueLearning from './components/ContinueLearning';
+import DashboardAlerts from './components/DashboardAlerts';
 import { getDashboardPolls } from '@/features/courses/actions/polls';
 import { Zap, Flame, CheckCircle, Award } from 'lucide-react';
 
@@ -221,6 +222,8 @@ export default async function DashboardPage() {
             </a>
           </div>
         )}
+
+        <DashboardAlerts courseIds={enrollments?.filter(e => e.status === 'approved').map(e => e.course_id) || []} />
 
         {dashboardPolls && dashboardPolls.length > 0 && (
           <DashboardPolls polls={dashboardPolls} currentUserId={user.id} />

@@ -109,7 +109,7 @@ export default async function AdminDashboardPage() {
         </Link>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-xl)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 'var(--space-xl)' }}>
         <Card variant="glass">
           <h2 style={{ marginBottom: 'var(--space-lg)', fontSize: 'var(--text-xl)' }}>Institute Settings</h2>
           <form action={updateSettings} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
@@ -129,7 +129,7 @@ export default async function AdminDashboardPage() {
                 type="file" 
                 name="logo_file" 
                 accept="image/*" 
-                style={{ padding: 'var(--space-sm)', background: 'var(--bg-input)', color: 'white', borderRadius: 'var(--radius-sm)', border: '1px solid var(--glass-border)' }}
+                style={{ padding: 'var(--space-sm)', background: 'var(--bg-input)', color: 'white', borderRadius: 'var(--radius-sm)', border: '1px solid var(--glass-border)', maxWidth: '100%', boxSizing: 'border-box' }}
               />
                 {settings?.logo_url && (
                   <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
@@ -146,24 +146,36 @@ export default async function AdminDashboardPage() {
         <Card variant="glass">
           <h2 style={{ marginBottom: 'var(--space-lg)', fontSize: 'var(--text-xl)' }}>Quick Actions</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-            <a href="/admin/courses" className="btn btn-secondary btn-md" style={{ justifyContent: 'flex-start', gap: '12px' }}>
-              <BookOpen className="w-5 h-5 text-neon-cyan" /> Manage Courses & Lessons
+            <a href="/admin/courses" className="btn btn-secondary btn-md" style={{ justifyContent: 'flex-start', gap: '12px', height: 'auto', minHeight: '40px', padding: '12px 16px', textAlign: 'left' }}>
+              <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}><BookOpen className="w-5 h-5 text-neon-cyan" /></span>
+              <span style={{ whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.4' }}>Manage Courses & Lessons</span>
             </a>
-            <a href="/admin/submissions" className="btn btn-secondary btn-md" style={{ justifyContent: 'flex-start', gap: '12px' }}>
-              <FileText className="w-5 h-5 text-neon-gold" /> Review Pending Submissions
+            <a href="/admin/submissions" className="btn btn-secondary btn-md" style={{ justifyContent: 'flex-start', gap: '12px', height: 'auto', minHeight: '40px', padding: '12px 16px', textAlign: 'left' }}>
+              <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}><FileText className="w-5 h-5 text-neon-gold" /></span>
+              <span style={{ whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.4' }}>Review Pending Submissions</span>
             </a>
-            <a href="/admin/students" className="btn btn-secondary btn-md" style={{ justifyContent: 'flex-start', gap: '12px' }}>
-              <Users className="w-5 h-5 text-neon-magenta" /> User Administration
+            <a href="/admin/students" className="btn btn-secondary btn-md" style={{ justifyContent: 'flex-start', gap: '12px', height: 'auto', minHeight: '40px', padding: '12px 16px', textAlign: 'left' }}>
+              <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}><Users className="w-5 h-5 text-neon-magenta" /></span>
+              <span style={{ whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.4' }}>User Administration</span>
             </a>
             <hr style={{ border: 'none', borderBottom: '1px solid var(--glass-border)', margin: 'var(--space-xs) 0' }} />
             <form action={toggleAdmissionPin} style={{ width: '100%', display: 'flex' }}>
-              <button type="submit" className="btn btn-secondary btn-md" style={{ width: '100%', justifyContent: 'flex-start', gap: '12px', background: settings?.is_admission_pinned ? 'rgba(255, 0, 0, 0.1)' : 'rgba(0, 242, 254, 0.1)', border: settings?.is_admission_pinned ? '1px solid var(--neon-red)' : '1px solid var(--neon-cyan)', color: settings?.is_admission_pinned ? 'var(--neon-red)' : 'var(--neon-cyan)', cursor: 'pointer' }}>
-                {settings?.is_admission_pinned ? <PinOff className="w-5 h-5" /> : <Pin className="w-5 h-5" />}
-                {settings?.is_admission_pinned ? "Unpin Admission form from Dashboards" : "Pin Admission form to Dashboards"}
+              <button type="submit" className="btn btn-secondary btn-md" style={{ width: '100%', justifyContent: 'flex-start', gap: '12px', background: settings?.is_admission_pinned ? 'rgba(255, 0, 0, 0.1)' : 'rgba(0, 242, 254, 0.1)', border: settings?.is_admission_pinned ? '1px solid var(--neon-red)' : '1px solid var(--neon-cyan)', color: settings?.is_admission_pinned ? 'var(--neon-red)' : 'var(--neon-cyan)', cursor: 'pointer', height: 'auto', minHeight: '40px', padding: '12px 16px', textAlign: 'left' }}>
+                <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                  {settings?.is_admission_pinned ? <PinOff className="w-5 h-5" /> : <Pin className="w-5 h-5" />}
+                </span>
+                <span style={{ whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.4' }}>
+                  {settings?.is_admission_pinned ? "Unpin Admission form from Dashboards" : "Pin Admission form to Dashboards"}
+                </span>
               </button>
             </form>
-            <a href="https://docs.google.com/spreadsheets/d/1EylsjmsbJcJN7w65-oCTqMyrz_YC6o_Akb6_MdDPssU/edit?usp=sharing" target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-md" style={{ justifyContent: 'flex-start', gap: '12px', background: 'rgba(57, 255, 20, 0.1)', border: '1px solid var(--neon-lime)', color: 'var(--neon-lime)' }}>
-              <Table className="w-5 h-5" /> View Admission Responses
+            <a href="https://docs.google.com/spreadsheets/d/1EylsjmsbJcJN7w65-oCTqMyrz_YC6o_Akb6_MdDPssU/edit?usp=sharing" target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-md" style={{ justifyContent: 'flex-start', gap: '12px', background: 'rgba(57, 255, 20, 0.1)', border: '1px solid var(--neon-lime)', color: 'var(--neon-lime)', height: 'auto', minHeight: '40px', padding: '12px 16px', textAlign: 'left' }}>
+              <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                <Table className="w-5 h-5" />
+              </span>
+              <span style={{ whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.4' }}>
+                View Admission Responses
+              </span>
             </a>
           </div>
         </Card>
