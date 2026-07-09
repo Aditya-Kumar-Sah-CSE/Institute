@@ -13,7 +13,7 @@ import {
 import { reviewSubmissionAction } from '@/features/admin/actions/submissions';
 import { completeCourseAndIssueCertificates } from '@/features/courses/actions/certificates';
 import type { Course, Lesson, Assignment, Badge } from '@/types';
-import CreatePollButton from '@/features/courses/components/CreatePollButton';
+import CreatePollWidget from '@/features/courses/components/CreatePollWidget';
 import './CurriculumBuilder.css';
 
 interface EditingItem {
@@ -204,7 +204,7 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
         <div className="curriculum-actions">
           {!course.is_completed && (
             <>
-              <CreatePollButton courseId={course.id} />
+              <CreatePollWidget courseId={course.id} />
               <Link href={`/courses/${course.id}`} style={{ textDecoration: 'none' }}>
                 <Button variant="success" size="md" style={{ padding: '12px 24px', fontSize: 'var(--text-md)', fontWeight: 'var(--weight-bold)' }}>
                   🎯 View Poll and Doubt

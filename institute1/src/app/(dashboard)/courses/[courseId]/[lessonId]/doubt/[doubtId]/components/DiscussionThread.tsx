@@ -5,6 +5,7 @@ import { formatDistanceToNow } from 'date-fns';
 import Button from '@/components/ui/Button';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import ImageUploadButton from '@/components/ui/ImageUploadButton';
+import { Send } from 'lucide-react';
 import { replyToDoubt, markReplyAsAccepted, toggleReplyVote, recordDoubtView, toggleDoubtLike } from '@/features/doubts/actions/doubts';
 
 const DEFAULT_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%231a1a2e'/%3E%3Cpath d='M50 55a20 20 0 100-40 20 20 0 000 40zm-30 35a30 30 0 0160 0' fill='%234a4a6a'/%3E%3C/svg%3E";
@@ -124,22 +125,32 @@ export default function DiscussionThread({ doubt, replies, currentUser }: any) {
         </div>
 
         {activeReplyId === reply.id && (
-          <div style={{ marginTop: 'var(--space-sm)' }}>
+          <div style={{ marginTop: 'var(--space-md)', padding: '6px', background: 'rgba(255, 255, 255, 0.05)', backdropFilter: 'blur(12px)', borderRadius: '32px', border: '1px solid rgba(255, 255, 255, 0.15)', display: 'flex', alignItems: 'flex-end', gap: 'var(--space-xs)', boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)' }}>
+            <div style={{ paddingBottom: '4px', paddingLeft: '4px' }}>
+              <ImageUploadButton iconOnly onUpload={(markdown) => {
+                setReplyText((prev) => prev + (prev ? '\n\n' : '') + markdown);
+              }} />
+            </div>
             <textarea 
               value={replyText} 
               onChange={e => setReplyText(e.target.value)}
-              placeholder="Write your reply... (+5 XP ⚡)"
-              className="input-field"
-              style={{ width: '100%', minHeight: '80px', marginBottom: 'var(--space-sm)' }}
+              placeholder="Message..."
+              style={{ flex: 1, minHeight: '40px', maxHeight: '120px', background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none', resize: 'none', padding: '10px 8px', fontSize: 'var(--text-md)', lineHeight: 1.4 }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(reply.id);
+                }
+              }}
             />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <ImageUploadButton onUpload={(markdown) => {
-                setReplyText((prev) => prev + (prev ? '\n\n' : '') + markdown);
-              }} />
-              <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
-                <Button onClick={() => handleSubmit(reply.id)} isLoading={isSubmitting}>Submit</Button>
-                <Button variant="secondary" onClick={() => setActiveReplyId(null)}>Cancel</Button>
-              </div>
+            <div style={{ paddingBottom: '4px', paddingRight: '4px' }}>
+              <button 
+                onClick={() => handleSubmit(reply.id)} 
+                disabled={isSubmitting || !replyText.trim()}
+                style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--neon-cyan), #00add8)', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', opacity: (!replyText.trim() || isSubmitting) ? 0.5 : 1, transition: 'all 0.2s', paddingRight: '2px', boxShadow: '0 4px 12px rgba(0, 242, 254, 0.4)' }}
+              >
+                <Send size={18} />
+              </button>
             </div>
           </div>
         )}
@@ -209,25 +220,39 @@ export default function DiscussionThread({ doubt, replies, currentUser }: any) {
         </div>
       </div>
 
-      {/* Main Reply Input (Moved to bottom) */}
+      {/* Main Reply Input */}
       {!doubt.status.includes('resolved') && (
-        <div className="glass-card" style={{ padding: 'var(--space-lg)', marginBottom: 'var(--space-xl)', borderTop: '4px solid var(--neon-purple)' }}>
-          <h3 style={{ marginBottom: 'var(--space-2xs)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '1.2em' }}>✍️</span> Add a Reply
-          </h3>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: 'var(--space-md)' }}>Markdown and code blocks are supported.</p>
-          <textarea 
-            value={replyText} 
-            onChange={e => setReplyText(e.target.value)}
-            placeholder="Write your detailed answer here... (Earn +5 XP ⚡)"
-            className="input-field"
-            style={{ width: '100%', minHeight: '120px', marginBottom: 'var(--space-md)', resize: 'vertical' }}
-          />
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <ImageUploadButton onUpload={(markdown) => {
-              setReplyText((prev) => prev + (prev ? '\n\n' : '') + markdown);
-            }} />
-            <Button onClick={() => handleSubmit()} isLoading={isSubmitting}>Post Reply</Button>
+        <div style={{ position: 'sticky', bottom: 'var(--space-md)', zIndex: 10, marginTop: 'var(--space-xl)' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--space-xs)', background: 'rgba(255, 255, 255, 0.08)', backdropFilter: 'blur(16px)', padding: '6px', borderRadius: '32px', border: '1px solid rgba(255, 255, 255, 0.15)', boxShadow: '0 12px 40px rgba(0, 0, 0, 0.4)' }}>
+            <div style={{ paddingBottom: '4px', paddingLeft: '4px' }}>
+              <ImageUploadButton iconOnly onUpload={(markdown) => {
+                setReplyText((prev) => prev + (prev ? '\n\n' : '') + markdown);
+              }} />
+            </div>
+            <textarea 
+              value={replyText} 
+              onChange={e => setReplyText(e.target.value)}
+              placeholder="Write your detailed answer here... (Earn +5 XP ⚡)"
+              style={{ flex: 1, minHeight: '40px', maxHeight: '120px', background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none', resize: 'none', padding: '10px 8px', fontSize: 'var(--text-md)', lineHeight: 1.4 }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit();
+                }
+              }}
+            />
+            <div style={{ paddingBottom: '4px', paddingRight: '4px' }}>
+              <button 
+                onClick={() => handleSubmit()} 
+                disabled={isSubmitting || !replyText.trim()}
+                style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--neon-cyan), #00add8)', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', opacity: (!replyText.trim() || isSubmitting) ? 0.5 : 1, transition: 'all 0.2s', paddingRight: '2px', boxShadow: '0 4px 12px rgba(0, 242, 254, 0.4)' }}
+              >
+                <Send size={18} />
+              </button>
+            </div>
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', marginTop: 'var(--space-sm)', padding: '4px', background: 'rgba(0,0,0,0.4)', borderRadius: '12px', display: 'inline-block', left: '50%', position: 'relative', transform: 'translateX(-50%)', border: '1px solid rgba(255,255,255,0.05)' }}>
+            Markdown & code blocks supported. Press <strong>Enter</strong> to send, <strong>Shift+Enter</strong> for new line.
           </div>
         </div>
       )}

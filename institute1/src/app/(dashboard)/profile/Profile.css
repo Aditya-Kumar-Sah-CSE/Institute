@@ -285,3 +285,16 @@
     text-align: center !important;
   }
 }
+
+.role-text-short {
+  display: none;
+}
+
+@media (max-width: 576px) {
+  .role-text-full {
+    display: none;
+  }
+  .role-text-short {
+    display: inline;
+  }
+}

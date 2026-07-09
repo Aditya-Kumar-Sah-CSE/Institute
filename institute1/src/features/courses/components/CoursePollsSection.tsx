@@ -2,7 +2,7 @@ import React from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { getCoursePolls } from '../actions/polls';
 import CoursePollsClient from './CoursePollsClient';
-import CreatePollButton from './CreatePollButton';
+import CreatePollWidget from './CreatePollWidget';
 import CreateAlertSection from './CreateAlertSection';
 
 interface CoursePollsSectionProps {
@@ -37,10 +37,7 @@ export default async function CoursePollsSection({ courseId, currentUserId, isEn
     return (
       <div style={{ marginBottom: 'var(--space-2xl)' }}>
         {canAlert && <CreateAlertSection courseId={courseId} />}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
-          <h2 className="section-title" style={{ margin: 0 }}>Course Polls</h2>
-          <CreatePollButton courseId={courseId} />
-        </div>
+        <CreatePollWidget courseId={courseId} />
         <div style={{ padding: 'var(--space-lg)', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(255,255,255,0.05)' }}>
           <p style={{ color: 'var(--text-muted)' }}>No active polls for this course.</p>
         </div>
@@ -51,10 +48,7 @@ export default async function CoursePollsSection({ courseId, currentUserId, isEn
   return (
     <div style={{ marginBottom: 'var(--space-2xl)' }}>
       {canAlert && <CreateAlertSection courseId={courseId} />}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
-        <h2 className="section-title" style={{ margin: 0 }}>Course Polls</h2>
-        <CreatePollButton courseId={courseId} />
-      </div>
+      <CreatePollWidget courseId={courseId} />
       <CoursePollsClient polls={polls} currentUserId={currentUserId} isFaculty={isFaculty} />
     </div>
   );
