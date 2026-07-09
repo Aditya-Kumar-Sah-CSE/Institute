@@ -13,6 +13,7 @@ export interface Notice {
   profiles: {
     name: string;
     role: string;
+    email?: string;
   };
 }
 
@@ -63,10 +64,11 @@ export default function NoticeBoard({ notices, emptyMessage = 'No notices availa
                 marginLeft: 'var(--space-xs)',
                 padding: '2px 6px',
                 borderRadius: 'var(--radius-sm)',
-                background: notice.profiles.role === 'admin' ? 'rgba(233, 69, 96, 0.2)' : 'rgba(15, 52, 96, 0.5)',
-                color: notice.profiles.role === 'admin' ? 'var(--neon-red)' : 'var(--neon-blue)'
+                background: notice.profiles.email === 'iambestadi@gmail.com' ? 'rgba(0, 240, 255, 0.2)' : notice.profiles.role === 'admin' ? 'rgba(233, 69, 96, 0.2)' : 'rgba(15, 52, 96, 0.5)',
+                color: notice.profiles.email === 'iambestadi@gmail.com' ? 'var(--neon-cyan)' : notice.profiles.role === 'admin' ? 'var(--neon-red)' : 'var(--neon-blue)',
+                fontWeight: notice.profiles.email === 'iambestadi@gmail.com' ? 'bold' : 'normal'
               }}>
-                {notice.profiles.role.toUpperCase()}
+                {notice.profiles.email === 'iambestadi@gmail.com' ? 'DEVELOPER' : notice.profiles.role.toUpperCase()}
               </span>
             </div>
           </Card>
