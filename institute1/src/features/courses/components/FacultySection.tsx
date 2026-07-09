@@ -23,13 +23,13 @@ export default function FacultySection({ faculty }: FacultySectionProps) {
 
   if (!faculty || faculty.length === 0) return null;
 
-  const displayedFaculty = showAll ? faculty : faculty.slice(0, 2);
+  const displayedFaculty = showAll ? faculty : faculty.slice(0, 1);
 
   return (
     <div style={{ marginBottom: 'var(--space-2xl)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
         <h2 style={{ fontSize: 'var(--text-2xl)', margin: 0 }}>Meet Your Faculty</h2>
-        {faculty.length > 2 && (
+        {faculty.length > 1 && (
           <button 
             onClick={() => setShowAll(!showAll)}
             style={{ 

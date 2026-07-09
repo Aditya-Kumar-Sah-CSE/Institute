@@ -6,9 +6,10 @@ import { Send, Plus, X, BarChart2 } from 'lucide-react';
 
 interface CreatePollWidgetProps {
   courseId: string;
+  hideHeading?: boolean;
 }
 
-export default function CreatePollWidget({ courseId }: CreatePollWidgetProps) {
+export default function CreatePollWidget({ courseId, hideHeading = false }: CreatePollWidgetProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState(['', '']);
@@ -66,8 +67,8 @@ export default function CreatePollWidget({ courseId }: CreatePollWidgetProps) {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
-        <h2 className="section-title" style={{ margin: 0 }}>Course Polls</h2>
+      <div style={{ display: 'flex', justifyContent: hideHeading ? 'flex-end' : 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
+        {!hideHeading && <h2 className="section-title" style={{ margin: 0 }}>Course Polls</h2>}
         {!isExpanded && (
           <button 
             onClick={() => setIsExpanded(true)}

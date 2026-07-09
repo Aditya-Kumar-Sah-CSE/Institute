@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import LeaderboardTable from '@/features/leaderboard/components/LeaderboardTable';
 import CourseFilter from '@/features/leaderboard/components/CourseFilter';
 import FacultySection from '@/features/courses/components/FacultySection';
@@ -32,7 +32,8 @@ export default async function LeaderboardPage({
       .order('xp', { ascending: false })
       .limit(50);
   } else {
-    enrollmentsQuery = supabase
+    const adminClient = await createAdminClient();
+    enrollmentsQuery = adminClient
       .from('enrollments')
       .select('progress, user_id, profiles!inner(id, name, avatar_url, xp, level, role, user_badges(count))')
       .eq('course_id', filter)

@@ -111,7 +111,7 @@ export default async function InstructorDashboardPage() {
                     <h3 style={{ fontSize: 'var(--text-md)', fontWeight: 'var(--weight-semibold)' }}>{course.title}</h3>
                     <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>{course.is_published ? '🟢 Published' : '🟡 Draft'}</p>
                   </div>
-                  <Link href={`/instructor/courses/${course.id}/builder`} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: 'var(--text-sm)', flex: '0 0 auto' }}>
+                  <Link href={`/instructor/courses/${course.id}/builder`} className="btn btn-primary" style={{ padding: '6px 12px', fontSize: 'var(--text-sm)', flex: '0 0 auto' }}>
                     Start Teaching
                   </Link>
                 </div>
