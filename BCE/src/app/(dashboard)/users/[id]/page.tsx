@@ -105,8 +105,8 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
         </div>
         
         <div className="profile-info-large" style={{ flex: 1, minWidth: '250px' }}>
-          <div style={{ marginBottom: 'var(--space-sm)', display: 'flex', alignItems: 'center', gap: 'var(--space-md)', flexWrap: 'wrap', justifyContent: 'inherit' }}>
-            <h1 className="profile-name" style={{ margin: 0 }}>{profile.name}</h1>
+          <div style={{ marginBottom: 'var(--space-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-md)', flexWrap: 'nowrap', width: '100%' }}>
+            <h1 className="profile-name" style={{ margin: 0, textAlign: 'center' }}>{profile.name}</h1>
             <div style={{
               display: 'inline-flex',
               alignItems: 'center',

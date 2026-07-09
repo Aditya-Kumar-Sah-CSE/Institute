@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import Button from '@/components/ui/Button';
+import { Share2, Check } from 'lucide-react';
 
 export default function ShareProfileButton({ userId }: { userId: string }) {
   const [copied, setCopied] = useState(false);
@@ -19,8 +19,25 @@ export default function ShareProfileButton({ userId }: { userId: string }) {
   };
 
   return (
-    <Button variant="secondary" onClick={handleShare}>
-      {copied ? '✓ Copied!' : '🔗 Share Profile'}
-    </Button>
+    <button 
+      onClick={handleShare} 
+      title="Share Profile"
+      style={{ 
+        background: 'transparent', 
+        border: 'none', 
+        color: copied ? '#22c55e' : 'var(--text-secondary)', 
+        cursor: 'pointer',
+        padding: '12px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transition: 'color 0.2s',
+        outline: 'none'
+      }}
+      onMouseOver={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; }}
+      onMouseOut={(e) => { e.currentTarget.style.color = copied ? '#22c55e' : 'var(--text-secondary)'; }}
+    >
+      {copied ? <Check size={24} /> : <Share2 size={24} />}
+    </button>
   );
 }

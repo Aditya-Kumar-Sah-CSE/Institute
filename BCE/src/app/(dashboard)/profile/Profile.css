@@ -284,4 +284,25 @@
     align-items: center !important;
     text-align: center !important;
   }
+
+  .profile-right-column {
+    align-items: center !important;
+  }
+
+  .profile-batch-row {
+    justify-content: center !important;
+  }
+}
+
+.role-text-short {
+  display: none;
+}
+
+@media (max-width: 576px) {
+  .role-text-full {
+    display: none;
+  }
+  .role-text-short {
+    display: inline;
+  }
 }

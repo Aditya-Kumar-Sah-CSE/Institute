@@ -107,15 +107,15 @@ export default async function ProfilePage() {
         </div>
 
         {/* Right Column: Info, Badges & Action */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: 'var(--space-md)' }}>
-          <div style={{ textAlign: 'right' }}>
+        <div className="profile-right-column" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: 'var(--space-md)' }}>
+          <div className="profile-batch-row" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', justifyContent: 'flex-end', width: '100%' }}>
             {profile.graduation_period && (
-              <p className="profile-email" style={{ marginTop: 'var(--space-xs)', fontSize: 'var(--text-sm)' }}>
+              <p className="profile-email" style={{ margin: 0, fontSize: 'var(--text-sm)' }}>
                 Batch: <span style={{ color: 'var(--text-primary)', fontWeight: 'var(--weight-semibold)' }}>{profile.graduation_period}</span>
               </p>
             )}
             {profile.cgpa !== null && profile.cgpa !== undefined && (
-              <p className="profile-email" style={{ marginTop: 'var(--space-xs)', fontSize: 'var(--text-sm)' }}>
+              <p className="profile-email" style={{ margin: 0, fontSize: 'var(--text-sm)' }}>
                 CGPA: <span style={{ color: 'var(--text-primary)', fontWeight: 'var(--weight-semibold)' }}>{profile.cgpa}</span>
               </p>
             )}
@@ -130,18 +130,19 @@ export default async function ProfilePage() {
             </div>
           )}
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', flexWrap: 'nowrap', justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', flexWrap: 'nowrap', justifyContent: 'space-between', width: '100%' }}>
             {profile.role !== 'admin' && (
-              <>
+              <div style={{ flex: '0 0 75%' }}>
                 {profile.role !== 'instructor' && (!appData || appData.status === 'rejected') && (
-                  <Link href={appData?.status === 'rejected' ? '/apply-instructor?reapply=true' : '/apply-instructor'} style={{ textDecoration: 'none' }}>
-                    <Button variant="secondary" size="sm" style={{ height: "48px", backgroundColor: "#22c55e", color: "white" }}>
+                  <Link href={appData?.status === 'rejected' ? '/apply-instructor?reapply=true' : '/apply-instructor'} style={{ textDecoration: 'none', display: 'block', width: '100%' }}>
+                    <Button variant="secondary" size="sm" style={{ height: "48px", backgroundColor: "#22c55e", color: "white", width: '100%' }}>
                       Apply as Instructor or Faculty
                     </Button>
                   </Link>
                 )}
                 {(appData?.status === 'pending' || appData?.status === 'approved' || profile.role === 'instructor') && (
                   <span style={{ 
+                    display: 'inline-block',
                     fontSize: 'var(--text-sm)', 
                     fontWeight: 'var(--weight-bold)', 
                     color: (appData?.status === 'pending') ? '#eab308' : '#22c55e',
@@ -152,9 +153,11 @@ export default async function ProfilePage() {
                     Status: {appData?.status === 'pending' ? 'Pending' : 'Approved as faculty'}
                   </span>
                 )}
-              </>
+              </div>
             )}
-            <ShareProfileButton userId={user.id} />
+            <div style={{ flexShrink: 0 }}>
+              <ShareProfileButton userId={user.id} />
+            </div>
           </div>
         </div>
       </div>
