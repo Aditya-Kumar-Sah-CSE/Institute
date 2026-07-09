@@ -196,27 +196,34 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
-      <div className="curriculum-header">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+        <div className="curriculum-header">
         <div className="curriculum-title-container">
           <h2 style={{ fontSize: 'var(--text-xl)' }}>{course.title} - Curriculum {course.is_completed && <span style={{ padding: '2px 8px', background: 'var(--neon-gold)', color: '#000', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold', marginLeft: '10px' }}>COMPLETED</span>}</h2>
           <p className="text-secondary">Lessons are automatically grouped by date.</p>
         </div>
-        <div className="curriculum-actions">
-          {!course.is_completed && (
-            <>
-              <CreatePollWidget courseId={course.id} />
-              <Link href={`/courses/${course.id}`} style={{ textDecoration: 'none' }}>
-                <Button variant="success" size="md" style={{ padding: '12px 24px', fontSize: 'var(--text-md)', fontWeight: 'var(--weight-bold)' }}>
-                  🎯 View Poll and Doubt
-                </Button>
-              </Link>
-            </>
-          )}
+      </div>
+
+      {/* INSTRUCTOR COURSE POLL PANEL */}
+      {!course.is_completed && (
+        <div style={{ padding: 'var(--space-lg)', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(255,255,255,0.05)' }}>
+          <h2 className="section-title" style={{ margin: '0 0 var(--space-md) 0' }}>Course Polls</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
+            <Link href={`/courses/${course.id}`} style={{ textDecoration: 'none' }}>
+              <Button variant="success" size="md" style={{ padding: '12px 24px', fontSize: 'var(--text-md)', fontWeight: 'var(--weight-bold)' }}>
+                View Polls & Doubts
+              </Button>
+            </Link>
+            <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+              <CreatePollWidget courseId={course.id} hideHeading={true} />
+            </div>
+          </div>
         </div>
+      )}
       </div>
 
       {!course.is_completed && (
-        <div style={{ display: 'flex', justifyContent: 'flex-start', gap: 'var(--space-md)', marginTop: '-var(--space-md)' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-start', gap: 'var(--space-md)' }}>
           <Button variant="ghost" onClick={() => setModalType('complete_course')} isLoading={isCompletingCourse} style={{ color: 'var(--neon-gold)', border: '1px solid var(--neon-gold)', padding: '12px 24px', fontSize: 'var(--text-md)', fontWeight: 'var(--weight-bold)' }}>Issue Certificate</Button>
           <Button variant="primary" onClick={() => openLessonModal()} style={{ padding: '12px 24px', fontSize: 'var(--text-md)', fontWeight: 'var(--weight-bold)' }}>+ Add Day (Lesson)</Button>
         </div>
@@ -260,7 +267,7 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                 <div style={{ background: 'rgba(0,0,0,0.2)', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
                     <h4 style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>Assignments</h4>
-                    {!course.is_completed && <Button variant="secondary" size="sm" onClick={() => openAssignmentModal(lesson.id)}>+ Add Task</Button>}
+                    {!course.is_completed && <Button variant="primary" size="md" style={{ padding: '8px 20px', fontWeight: 'bold', fontSize: '0.95rem' }} onClick={() => openAssignmentModal(lesson.id)}>+ Add Task</Button>}
                   </div>
                   
                   {lesson.assignments.length === 0 ? (
