@@ -80,6 +80,9 @@ export default async function ProfilePage() {
       )}
 
       <div className="profile-header glass-card">
+        <div style={{ position: 'absolute', top: '16px', right: '16px', zIndex: 10 }}>
+          <ShareProfileButton userId={user.id} />
+        </div>
         {/* Left Column: Profile Info */}
         <div className="profile-info-large" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', justifyContent: 'center' }}>
           <h1 className="profile-name">{profile.name}</h1>
@@ -90,11 +93,6 @@ export default async function ProfilePage() {
             </p>
           )}
           
-          <BasicInfoEdit 
-            initialName={profile.name} 
-            initialRollNo={profile.institute_id} 
-            initialBatch={profile.graduation_period} 
-          />
         </div>
 
         {/* Center Column: Avatar */}
@@ -130,33 +128,37 @@ export default async function ProfilePage() {
             </div>
           )}
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', flexWrap: 'nowrap', justifyContent: 'space-between', width: '100%' }}>
-            {profile.role !== 'admin' && (
-              <div style={{ flex: '0 0 75%' }}>
-                {profile.role !== 'instructor' && (!appData || appData.status === 'rejected') && (
-                  <Link href={appData?.status === 'rejected' ? '/apply-instructor?reapply=true' : '/apply-instructor'} style={{ textDecoration: 'none', display: 'block', width: '100%' }}>
-                    <Button variant="secondary" size="sm" style={{ height: "48px", backgroundColor: "#22c55e", color: "white", width: '100%' }}>
-                      Apply as Instructor or Faculty
-                    </Button>
-                  </Link>
-                )}
-                {(appData?.status === 'pending' || appData?.status === 'approved' || profile.role === 'instructor') && (
-                  <span style={{ 
-                    display: 'inline-block',
-                    fontSize: 'var(--text-sm)', 
-                    fontWeight: 'var(--weight-bold)', 
-                    color: (appData?.status === 'pending') ? '#eab308' : '#22c55e',
-                    padding: '0.25rem 0.75rem',
-                    borderRadius: '1rem',
-                    backgroundColor: (appData?.status === 'pending') ? 'rgba(234, 179, 8, 0.1)' : 'rgba(34, 197, 94, 0.1)'
-                  }}>
-                    Status: {appData?.status === 'pending' ? 'Pending' : 'Approved as faculty'}
-                  </span>
-                )}
-              </div>
-            )}
-            <div style={{ flexShrink: 0 }}>
-              <ShareProfileButton userId={user.id} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', flexWrap: 'nowrap', justifyContent: 'space-between', width: '100%', marginTop: 'var(--space-md)' }}>
+            <div style={{ display: 'flex', gap: 'var(--space-md)', width: '100%', alignItems: 'center' }}>
+              {profile.role !== 'admin' && (
+                <div style={{ flex: 1 }}>
+                  {profile.role !== 'instructor' && (!appData || appData.status === 'rejected') && (
+                    <Link href={appData?.status === 'rejected' ? '/apply-instructor?reapply=true' : '/apply-instructor'} style={{ textDecoration: 'none', display: 'block', width: '100%' }}>
+                      <Button variant="secondary" size="sm" style={{ height: "48px", backgroundColor: "#22c55e", color: "white", width: '100%' }}>
+                        Apply as Instructor or Faculty
+                      </Button>
+                    </Link>
+                  )}
+                  {(appData?.status === 'pending' || appData?.status === 'approved' || profile.role === 'instructor') && (
+                    <span style={{ 
+                      display: 'inline-block',
+                      fontSize: 'var(--text-sm)', 
+                      fontWeight: 'var(--weight-bold)', 
+                      color: (appData?.status === 'pending') ? '#eab308' : '#22c55e',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '1rem',
+                      backgroundColor: (appData?.status === 'pending') ? 'rgba(234, 179, 8, 0.1)' : 'rgba(34, 197, 94, 0.1)'
+                    }}>
+                      Status: {appData?.status === 'pending' ? 'Pending' : 'Approved as faculty'}
+                    </span>
+                  )}
+                </div>
+              )}
+              <BasicInfoEdit 
+                initialName={profile.name} 
+                initialRollNo={profile.institute_id} 
+                initialBatch={profile.graduation_period} 
+              />
             </div>
           </div>
         </div>

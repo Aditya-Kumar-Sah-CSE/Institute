@@ -113,35 +113,26 @@ export default function CrownBanner({ rank, companyName = 'Institute', monthDate
     <>
       <div 
         onClick={() => setShowPopup(true)}
+        title={`${companyName} Topper - Click to celebrate!`}
         style={{
-          background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 140, 0, 0.1))',
-          border: '1px solid var(--neon-gold)',
-          borderRadius: 'var(--radius-lg)',
-          padding: 'var(--space-md) var(--space-xl)',
-          marginBottom: 'var(--space-xl)',
           display: 'flex',
+          justifyContent: 'center',
           alignItems: 'center',
-          gap: 'var(--space-md)',
-          boxShadow: '0 0 20px rgba(255, 215, 0, 0.15)',
           cursor: 'pointer',
-          transition: 'all 0.2s ease-in-out'
+          marginBottom: 'var(--space-md)',
+          transition: 'all 0.3s ease-in-out'
         }}
         onMouseEnter={e => {
-          e.currentTarget.style.transform = 'translateY(-2px)';
-          e.currentTarget.style.boxShadow = '0 5px 25px rgba(255, 215, 0, 0.3)';
+          e.currentTarget.style.transform = 'scale(1.15) translateY(-5px)';
         }}
         onMouseLeave={e => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.15)';
+          e.currentTarget.style.transform = 'scale(1) translateY(0)';
         }}
       >
-        <span style={{ fontSize: '2.5rem', filter: 'drop-shadow(0 0 5px rgba(255,215,0,0.8))' }}>👑</span>
-        <div>
-          <h2 style={{ color: 'var(--neon-gold)', fontSize: 'var(--text-xl)', marginBottom: 'var(--space-2xs)' }}>{companyName} Topper - {formattedDate}</h2>
-          <p className="text-secondary" style={{ fontSize: 'var(--text-md)', margin: 0 }}>
-            Congratulations! You ranked <strong>#{rank}</strong> out of all students at {companyName} for {formattedDate}! Click to celebrate! ✨
-          </p>
-        </div>
+        <span style={{ 
+          fontSize: '4rem', 
+          filter: 'drop-shadow(0 0 15px rgba(255,215,0,0.8))',
+        }}>👑</span>
       </div>
       {mounted && popupContent && createPortal(popupContent, document.body)}
     </>
