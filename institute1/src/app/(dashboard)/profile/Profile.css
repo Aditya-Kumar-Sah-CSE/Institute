@@ -284,6 +284,14 @@
     align-items: center !important;
     text-align: center !important;
   }
+
+  .profile-right-column {
+    align-items: center !important;
+  }
+
+  .profile-batch-row {
+    justify-content: center !important;
+  }
 }
 
 .role-text-short {

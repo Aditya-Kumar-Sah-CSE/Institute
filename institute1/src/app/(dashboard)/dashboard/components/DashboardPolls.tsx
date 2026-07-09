@@ -13,8 +13,8 @@ export default function DashboardPolls({ polls, currentUserId }: DashboardPollsP
   
   if (!polls || polls.length === 0) return null;
   
-  const displayedPolls = isExpanded ? polls : polls.slice(0, 2);
-  const hasMore = polls.length > 2;
+  const displayedPolls = isExpanded ? polls : polls.slice(0, 1);
+  const hasMore = polls.length > 1;
 
   return (
     <div style={{ marginBottom: 'var(--space-2xl)' }}>
@@ -37,7 +37,7 @@ export default function DashboardPolls({ polls, currentUserId }: DashboardPollsP
             className="btn btn-secondary btn-sm"
             onClick={() => setIsExpanded(!isExpanded)}
           >
-            {isExpanded ? 'Show Less' : `Show More (${polls.length - 2})`}
+            {isExpanded ? 'Show Less' : `Show More (${polls.length - 1})`}
           </button>
         </div>
       )}
