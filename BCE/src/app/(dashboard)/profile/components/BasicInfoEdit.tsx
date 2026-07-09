@@ -35,7 +35,7 @@ export default function BasicInfoEdit({ initialName, initialRollNo, initialBatch
 
   return (
     <>
-      <Button variant="secondary" size="sm" onClick={() => setIsOpen(true)} style={{ marginTop: '10px' }}>
+      <Button variant="secondary" size="sm" onClick={() => setIsOpen(true)}>
         Edit Profile
       </Button>
 
