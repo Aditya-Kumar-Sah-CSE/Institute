@@ -51,8 +51,6 @@ export default function CurriculumListClient({ courseId, groupedLessons, sortedD
                     variant={isLocked ? 'default' : 'glass'}
                     className={`lesson-list-item ${isLocked ? 'locked' : ''} ${isCompleted ? 'completed' : ''}`}
                   >
-                    <div className="lesson-number" style={{ flexShrink: 0 }}>{index + 1}</div>
-                    
                     <div className="lesson-list-item-content">
                       <h3 className="lesson-list-item-title">{lesson.title}</h3>
                       
@@ -66,7 +64,7 @@ export default function CurriculumListClient({ courseId, groupedLessons, sortedD
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 'var(--space-md)', width: '100%' }}>
                             <span className="completed-mark" style={{ color: 'var(--neon-lime)', fontWeight: 'bold' }}>✓</span>
                             <Link href={`/courses/${courseId}/${lesson.id}`}>
-                              <Button variant="secondary" size="sm">Review / Task</Button>
+                              <Button variant="secondary" size="md" style={{ minHeight: '44px' }}>Review / Task</Button>
                             </Link>
                           </div>
                         ) : (
@@ -75,7 +73,7 @@ export default function CurriculumListClient({ courseId, groupedLessons, sortedD
                               <div className="lesson-action-group">
                                 <span className="lesson-reward text-gradient" style={{ fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)', whiteSpace: 'nowrap' }}>+{assignmentXp} XP</span>
                                 <Link href={`/courses/${courseId}/${lesson.id}#assignments`} style={{ flex: 1, display: 'flex' }}>
-                                  <Button variant="secondary" size="sm" style={{ width: '100%' }}>Assignment</Button>
+                                  <Button variant="secondary" size="md" style={{ width: '100%', minHeight: '44px' }}>Assignment</Button>
                                 </Link>
                               </div>
                             )}
@@ -83,7 +81,7 @@ export default function CurriculumListClient({ courseId, groupedLessons, sortedD
                             <div className="lesson-action-group">
                               <span className="lesson-reward text-gradient" style={{ fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)', whiteSpace: 'nowrap' }}>+{lesson.xp_reward} XP</span>
                               <Link href={`/courses/${courseId}/${lesson.id}`} style={{ flex: 1, display: 'flex' }}>
-                                <Button variant="primary" size="sm" style={{ width: '100%' }}>Start</Button>
+                                <Button variant="primary" size="md" style={{ width: '100%', minHeight: '44px' }}>Start</Button>
                               </Link>
                             </div>
                           </>

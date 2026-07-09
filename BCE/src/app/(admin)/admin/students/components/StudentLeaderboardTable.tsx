@@ -7,6 +7,7 @@ import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import LevelBadge from '@/components/shared/LevelBadge';
 import { formatDistanceToNow } from 'date-fns';
+import { Search } from 'lucide-react';
 import { deleteStudent, deleteEnrollment, makeAdmin, makeFaculty, makeStudent } from '@/features/admin/actions/adminActions';
 import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 import type { LevelName } from '@/types';
@@ -204,7 +205,7 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
             placeholder="Search users by name or email..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            icon="🔍"
+            icon={<Search size={18} style={{ color: 'var(--text-muted)' }} />}
           />
         </div>
         <div style={{ display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap' }}>

@@ -105,17 +105,17 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
         </div>
         
         <div className="profile-info-large" style={{ flex: 1, minWidth: '250px' }}>
-          <div style={{ marginBottom: 'var(--space-sm)' }}>
-            <h1 className="profile-name">{profile.name}</h1>
+          <div style={{ marginBottom: 'var(--space-sm)', display: 'flex', alignItems: 'center', gap: 'var(--space-md)', flexWrap: 'wrap', justifyContent: 'inherit' }}>
+            <h1 className="profile-name" style={{ margin: 0 }}>{profile.name}</h1>
             <div style={{
-              display: 'inline-block',
-              padding: '2px 10px',
-              borderRadius: '12px',
-              fontSize: '11px',
-              fontWeight: 'bold',
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '4px 12px',
+              borderRadius: '16px',
+              fontSize: '12px',
+              fontWeight: 800,
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
-              marginTop: '4px',
               background: profile.role === 'admin' 
                 ? (profile.email === 'iambestadi@gmail.com' ? 'rgba(255, 42, 133, 0.1)' : 'rgba(255, 215, 0, 0.1)')
                 : profile.role === 'instructor' 
@@ -129,10 +129,10 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
               border: '1px solid currentColor'
             }}>
               {profile.role === 'admin' 
-                ? (profile.email === 'iambestadi@gmail.com' ? 'Developer' : 'Admin')
+                ? (profile.email === 'iambestadi@gmail.com' ? <><span className="role-text-full">Developer</span><span className="role-text-short">DEV</span></> : <><span className="role-text-full">Admin</span><span className="role-text-short">ADM</span></>)
                 : profile.role === 'instructor' 
-                  ? 'Faculty' 
-                  : 'Student'}
+                  ? <><span className="role-text-full">Faculty</span><span className="role-text-short">FAC</span></> 
+                  : <><span className="role-text-full">Student</span><span className="role-text-short">STU</span></>}
             </div>
           </div>
           

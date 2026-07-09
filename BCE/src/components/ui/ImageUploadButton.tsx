@@ -3,15 +3,18 @@
 import React, { useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Button from './Button';
+import { Image as ImageIcon } from 'lucide-react';
 
 interface ImageUploadButtonProps {
   onUpload: (markdownImage: string) => void;
   bucketName?: string;
+  iconOnly?: boolean;
 }
 
 export default function ImageUploadButton({ 
   onUpload, 
-  bucketName = 'doubts_media' 
+  bucketName = 'doubts_media',
+  iconOnly = false
 }: ImageUploadButtonProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -20,7 +23,6 @@ export default function ImageUploadButton({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       alert('Please upload an image file.');
       return;
@@ -45,12 +47,10 @@ export default function ImageUploadButton({
         throw error;
       }
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from(bucketName)
         .getPublicUrl(filePath);
 
-      // Create markdown string
       const markdown = `![Image](${publicUrl})`;
       onUpload(markdown);
       
@@ -74,15 +74,20 @@ export default function ImageUploadButton({
         accept="image/*"
         style={{ display: 'none' }}
       />
-      <Button 
+      <button 
         type="button" 
-        variant="secondary" 
         onClick={() => fileInputRef.current?.click()}
-        isLoading={isUploading}
-        style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}
+        disabled={isUploading}
+        title="Attach Image"
+        style={
+          iconOnly 
+          ? { background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', borderRadius: '50%', transition: 'background 0.2s ease', opacity: isUploading ? 0.5 : 1 }
+          : { background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)', cursor: 'pointer', padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px', borderRadius: 'var(--radius-sm)', opacity: isUploading ? 0.5 : 1 }
+        }
       >
-        📷 Attach Image
-      </Button>
+        {isUploading ? <span className="spinner" style={{ width: '16px', height: '16px' }} /> : <ImageIcon size={20} />}
+        {!iconOnly && <span>Attach Image</span>}
+      </button>
     </div>
   );
 }

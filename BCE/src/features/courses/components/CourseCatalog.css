@@ -27,8 +27,16 @@
 
 .catalog-filters {
   display: flex;
-  gap: var(--space-sm);
-  flex-wrap: wrap;
+  gap: var(--space-xs);
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+  padding-bottom: 4px;
+}
+
+.catalog-filters::-webkit-scrollbar {
+  display: none;
 }
 
 .filter-btn {
@@ -39,6 +47,8 @@
   border: 1px solid var(--glass-border);
   background: var(--bg-input);
   transition: all var(--transition-fast);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .filter-btn:hover {

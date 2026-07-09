@@ -7,8 +7,7 @@ import { useRouter } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
-import Image from 'next/image';
-import { BadgeCheck } from 'lucide-react';
+import { BadgeCheck, Share2 } from 'lucide-react';
 import { getDifficultyColor } from '@/lib/utils';
 import { enrollInCourse, getTopEnrolledStudents } from '@/features/courses/actions/enroll';
 import type { Course } from '@/types';
@@ -77,37 +76,15 @@ export default function CourseCard({ course, progress, status, certificateId }: 
     <>
       <Link href={`/courses/${course.id}`} className="course-card-link">
         <Card hover variant="glass" className="course-card">
-          <div className="course-card-image">
-            {course.thumbnail_url ? (
-              <Image 
-                src={course.thumbnail_url} 
-                alt={course.title} 
-                fill
-                sizes="(max-width: 768px) 100vw, 300px"
-                style={{ objectFit: 'cover' }}
-              />
-            ) : (
-              <div className="course-image-placeholder">
-                <span className="course-icon">🎓</span>
-              </div>
-            )}
-            <div 
-              className="course-difficulty" 
-              style={{ backgroundColor: difficultyColor }}
-            >
-              {course.difficulty.charAt(0).toUpperCase() + course.difficulty.slice(1)}
-            </div>
-            <button
-              onClick={handleShare}
-              className="course-share-btn"
-              title="Share Course"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>
-            </button>
-          </div>
-
           <div className="course-card-content">
-            <h3 className="course-title">{course.title}</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-2xs)' }}>
+              <h3 className="course-title" style={{ margin: 0, paddingRight: '8px' }}>{course.title}</h3>
+              <div 
+                style={{ background: 'rgba(46, 204, 113, 0.15)', border: '1px solid rgba(46, 204, 113, 0.3)', padding: '4px 10px', borderRadius: '16px', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--neon-green)', letterSpacing: '0.5px', flexShrink: 0 }}
+              >
+                {course.difficulty}
+              </div>
+            </div>
             {course.profiles?.name && (
               <p className="course-instructor" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 'var(--space-sm)' }}>
                 By {course.profiles.name} <BadgeCheck size={14} style={{ color: 'var(--neon-cyan)' }} />
@@ -120,97 +97,57 @@ export default function CourseCard({ course, progress, status, certificateId }: 
                   : course.description
               ) : 'No description provided.'}
             </p>
-            
-            <div className="course-meta">
-              <span className="course-meta-item">
-                📚 {course.lesson_count} Lessons
-              </span>
-              <span className="course-meta-item text-gradient">
-                ⭐ {course.total_xp} XP
-              </span>
-            </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'var(--space-sm)' }}>
-              {totalEnrolled > 0 ? (
-                <div 
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setIsStudentsModalOpen(true);
-                  }}
-                >
-                  <div style={{ display: 'flex', marginLeft: '8px' }}>
-                    {enrolledStudents.map((student, i) => (
-                      <div key={student.user_id} style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid var(--glass-bg)', backgroundColor: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: -8, overflow: 'hidden', zIndex: 3 - i }}>
-                        <FallbackAvatar src={student.profiles?.avatar_url} name={student.profiles?.name} size={24} />
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-md)', marginTop: 'auto', paddingTop: 'var(--space-md)' }}>
+              <div style={{ flex: '1 1 85%' }}>
+                {progress !== undefined ? (
+                  status === 'pending' ? (
+                    <Button variant="secondary" fullWidth disabled>
+                      Pending Approval
+                    </Button>
+                  ) : status === 'rejected' ? (
+                    <Button variant="danger" fullWidth disabled>
+                      Enrollment Rejected
+                    </Button>
+                  ) : (
+                    <div className="course-progress-wrapper" style={{ marginTop: 0, borderTop: 'none', paddingTop: 0 }}>
+                      <div className="course-progress-info">
+                        <span>Progress</span>
+                        <span>{Math.round(progress * 100)}%</span>
                       </div>
-                    ))}
-                  </div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                    {totalEnrolled} joined
-                  </span>
-                </div>
-              ) : (
-                <div />
-              )}
+                      <div className="course-progress-track">
+                        <div 
+                          className="course-progress-fill" 
+                          style={{ width: `${Math.round(progress * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  )
+                ) : (
+                  <Button 
+                    variant="primary" 
+                    fullWidth 
+                    onClick={handleEnroll} 
+                    isLoading={isEnrolling}
+                  >
+                    Enroll Now
+                  </Button>
+                )}
+              </div>
 
-              <div 
-                style={{ fontSize: '0.75rem', color: 'var(--neon-gold)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(255, 215, 0, 0.1)', border: '1px dashed rgba(255, 215, 0, 0.3)', padding: '2px 8px', borderRadius: '12px' }}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  if (certificateId) {
-                    router.push(`/certificates/${certificateId}`);
-                  } else {
-                    router.push(`/certificates/dummy?courseId=${course.id}`);
-                  }
-                }}
-                title={certificateId ? "View Real Certificate" : "Preview Certificate"}
-              >
-                📜 {certificateId ? 'View Certificate' : 'Certificate'}
+              <div style={{ flexShrink: 0 }}>
+                <button
+                  onClick={handleShare}
+                  style={{ background: 'var(--bg-input)', border: '1px solid var(--glass-border)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', cursor: 'pointer', transition: 'all 0.2s ease' }}
+                  onMouseOver={(e) => { e.currentTarget.style.color = 'var(--neon-cyan)'; e.currentTarget.style.borderColor = 'var(--neon-cyan)'; e.currentTarget.style.transform = 'scale(1.1)'; }}
+                  onMouseOut={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.transform = 'scale(1)'; }}
+                  title="Share Course"
+                >
+                  <Share2 size={16} />
+                </button>
               </div>
             </div>
-
-            {progress !== undefined ? (
-              status === 'pending' ? (
-                <div style={{ marginTop: 'var(--space-md)' }}>
-                  <Button variant="secondary" fullWidth disabled>
-                    Pending Approval
-                  </Button>
-                </div>
-              ) : status === 'rejected' ? (
-                <div style={{ marginTop: 'var(--space-md)' }}>
-                  <Button variant="danger" fullWidth disabled>
-                    Enrollment Rejected
-                  </Button>
-                </div>
-              ) : (
-                <div className="course-progress-wrapper">
-                  <div className="course-progress-info">
-                    <span>Progress</span>
-                    <span>{Math.round(progress * 100)}%</span>
-                  </div>
-                  <div className="course-progress-track">
-                    <div 
-                      className="course-progress-fill" 
-                      style={{ width: `${Math.round(progress * 100)}%` }}
-                    />
-                  </div>
-                </div>
-              )
-            ) : (
-              <div style={{ marginTop: 'var(--space-md)' }}>
-                <Button 
-                  variant="primary" 
-                  fullWidth 
-                  onClick={handleEnroll} 
-                  isLoading={isEnrolling}
-                >
-                  Enroll Now
-                </Button>
-              </div>
-            )}
           </div>
         </Card>
       </Link>

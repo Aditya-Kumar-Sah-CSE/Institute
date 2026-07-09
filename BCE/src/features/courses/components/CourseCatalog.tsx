@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import CourseCard from './CourseCard';
 import Input from '@/components/ui/Input';
+import { Search } from 'lucide-react';
 import type { Course } from '@/types';
 import './CourseCatalog.css';
 
@@ -51,7 +52,7 @@ export default function CourseCatalog({ courses, enrollments = {}, certificatesM
               placeholder="Search courses..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              icon="🔍"
+              icon={<Search size={18} style={{ color: 'var(--text-muted)' }} />}
             />
           </div>
           
@@ -74,7 +75,7 @@ export default function CourseCatalog({ courses, enrollments = {}, certificatesM
         </div>
 
         {/* Bottom bar: Semester Filters */}
-        <div className="catalog-filters" style={{ display: 'flex', gap: 'var(--space-xs)', flexWrap: 'wrap' }}>
+        <div className="catalog-filters">
           {['all', 'sem 1', 'sem 2', 'sem 3', 'sem 4', 'sem 5', 'sem 6', 'sem 7', 'sem 8'].map(f => (
             <button
               key={f}

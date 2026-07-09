@@ -58,45 +58,27 @@ export default function PollCard({ poll, currentUserId, isFaculty = false }: Pol
   const isExpired = poll.expires_at ? new Date(poll.expires_at) < new Date() : false;
 
   const handleOptionChange = (optionId: string) => {
-    if (isExpired) return;
+    if (isExpired || isPending) return;
     
-    setSelectedOptions(prev => {
-      const next = new Set(prev);
-      if (poll.is_multiple_choice) {
-        if (next.has(optionId)) next.delete(optionId);
-        else next.add(optionId);
-      } else {
-        next.clear();
-        next.add(optionId);
-      }
-      return next;
-    });
-  };
+    const nextSet = new Set(selectedOptions);
+    if (poll.is_multiple_choice) {
+      if (nextSet.has(optionId)) nextSet.delete(optionId);
+      else nextSet.add(optionId);
+    } else {
+      nextSet.clear();
+      nextSet.add(optionId);
+    }
+    
+    // Update local state instantly for optimistic UI
+    setSelectedOptions(nextSet);
 
-  const handleVoteSubmit = () => {
-    if (isExpired) return;
+    // Auto-submit vote to server
     startTransition(async () => {
-      const result = await submitPollVote(poll.id, Array.from(selectedOptions), poll.course_id);
+      const result = await submitPollVote(poll.id, Array.from(nextSet), poll.course_id);
       if (result.error) {
         alert(result.error);
       }
     });
-  };
-
-  const hasChanged = () => {
-    // Check if current selectedOptions differs from original votes
-    const originalVotes = new Set<string>();
-    poll.options.forEach(opt => {
-      if (opt.votes.some(v => v.user_id === currentUserId)) {
-        originalVotes.add(opt.id);
-      }
-    });
-    
-    if (originalVotes.size !== selectedOptions.size) return true;
-    for (const optId of selectedOptions) {
-      if (!originalVotes.has(optId)) return true;
-    }
-    return false;
   };
 
   const handleDeleteClick = () => {
@@ -118,47 +100,45 @@ export default function PollCard({ poll, currentUserId, isFaculty = false }: Pol
   const canDelete = isFaculty || poll.created_by === currentUserId;
 
   return (
-    <Card variant="glass" padding="md" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Card variant="glass" padding="md" style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'rgba(46, 204, 113, 0.12)', border: '1px solid rgba(46, 204, 113, 0.4)', boxShadow: '0 4px 20px rgba(46, 204, 113, 0.1)' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)', marginBottom: 'var(--space-md)' }}>
         <h3 style={{ fontSize: 'var(--text-lg)', wordBreak: 'break-word', lineHeight: 1.3, margin: 0, width: '100%' }}>
           {poll.question}
         </h3>
         
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', width: '100%' }}>
-          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', flex: '1 1 50%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            Asked by {poll.profiles?.name || 'Unknown'}
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', fontSize: 'var(--text-xs)', flex: '1 1 50%' }}>
-            <span suppressHydrationWarning style={{ color: 'var(--text-muted)' }}>
-              {formatDistanceToNow(new Date(poll.created_at), { addSuffix: true })}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ flex: '1 1 30%', display: 'flex', justifyContent: 'flex-start' }}>
+            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              Asked by {poll.profiles?.name || 'Unknown'}
             </span>
           </div>
-        </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', width: '100%' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 50%', flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 30%', display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
             {isExpired ? (
-              <span style={{ color: 'var(--neon-pink)', fontWeight: 500, fontSize: 'var(--text-xs)' }}>Ended</span>
+              <span style={{ color: 'var(--neon-pink)', fontWeight: 500, fontSize: 'var(--text-xs)', whiteSpace: 'nowrap' }}>Ended</span>
             ) : poll.expires_at && (
-              <span suppressHydrationWarning style={{ color: 'var(--neon-gold)', fontWeight: 500, fontSize: 'var(--text-xs)', background: 'rgba(255, 215, 0, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>
+              <span suppressHydrationWarning style={{ color: 'var(--neon-gold)', fontWeight: 500, fontSize: 'var(--text-xs)', background: 'rgba(255, 215, 0, 0.1)', padding: '2px 8px', borderRadius: '4px', whiteSpace: 'nowrap' }}>
                 Ends in {formatDistanceToNow(new Date(poll.expires_at))}
               </span>
             )}
-            
+
             {poll.is_multiple_choice && (
-              <span style={{ padding: '2px 6px', background: 'var(--bg-input)', borderRadius: '12px', color: 'var(--text-secondary)', fontSize: 'var(--text-xs)' }}>
+              <span style={{ padding: '2px 6px', background: 'var(--bg-input)', borderRadius: '12px', color: 'var(--text-secondary)', fontSize: 'var(--text-xs)', whiteSpace: 'nowrap' }}>
                 Multiple Choice
               </span>
             )}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flex: '1 1 50%' }}>
+          <div style={{ flex: '1 1 30%', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px' }}>
+            <span suppressHydrationWarning style={{ color: 'var(--text-muted)', fontSize: 'var(--text-xs)', whiteSpace: 'nowrap' }}>
+              {formatDistanceToNow(new Date(poll.created_at), { addSuffix: true })}
+            </span>
+            
             {canDelete && (
               <button 
                 onClick={handleDeleteClick} 
                 disabled={isDeleting || isPending}
-                style={{ background: 'transparent', border: 'none', color: 'var(--neon-pink)', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center', transition: 'opacity 0.2s ease' }}
+                style={{ background: 'transparent', border: 'none', color: 'var(--neon-pink)', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center', transition: 'opacity 0.2s ease', flexShrink: 0 }}
                 title="Delete Poll"
               >
                 <Trash2 size={16} />
@@ -266,11 +246,7 @@ export default function PollCard({ poll, currentUserId, isFaculty = false }: Pol
             </button>
           )}
         </div>
-        {hasChanged() && !isExpired && (
-          <Button variant="primary" size="sm" onClick={handleVoteSubmit} disabled={isPending}>
-            {isPending ? 'Submitting...' : 'Submit Vote'}
-          </Button>
-        )}
+
       </div>
 
       <ConfirmModal
