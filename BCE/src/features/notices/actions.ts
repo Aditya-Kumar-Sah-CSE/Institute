@@ -18,10 +18,10 @@ export async function getNotices(limit?: number) {
   }
 
   const supabase = await createClient();
-  let query = supabase
-    .from('notices')
-    .select('*, profiles(name, role)')
-    .order('created_at', { ascending: false });
+    let query = supabase
+      .from('notices')
+      .select('*, profiles(name, role, email)')
+      .order('created_at', { ascending: false });
     
   if (limit) {
     query = query.limit(limit);
