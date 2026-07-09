@@ -6,6 +6,7 @@ import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import ImageUploadButton from '@/components/ui/ImageUploadButton';
+import { Send } from 'lucide-react';
 
 interface AskDoubtModalProps {
   isOpen: boolean;
@@ -85,16 +86,27 @@ export default function AskDoubtModal({ isOpen, onClose, courseId, lessonId }: A
           </div>
         </div>
 
-        <Input 
-          name="tags" 
-          label="Tags (Comma separated)" 
-          placeholder="e.g. react, hooks, frontend" 
-        />
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-sm)', marginTop: 'var(--space-sm)' }}>
-          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button type="submit" variant="primary" disabled={isSubmitting}>
-            {isSubmitting ? 'Posting...' : 'Post Doubt'}
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-sm)', marginTop: 'var(--space-sm)', alignItems: 'center' }}>
+          <Button type="button" variant="ghost" onClick={onClose} style={{ borderRadius: 'var(--radius-full)' }}>Cancel</Button>
+          <Button 
+            type="submit" 
+            variant="primary" 
+            disabled={isSubmitting}
+            title="Post Doubt"
+            style={{
+              borderRadius: '50%',
+              width: '40px',
+              height: '40px',
+              padding: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}
+          >
+            {isSubmitting ? '...' : <Send size={18} style={{ marginLeft: '-2px' }} />}
           </Button>
         </div>
       </form>
