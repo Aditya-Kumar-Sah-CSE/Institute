@@ -49,8 +49,8 @@ export default function CreateAlertSection({ courseId }: CreateAlertSectionProps
             <span style={{ fontSize: '1.2em' }}>🚨</span> Emergency Alert System
           </h3>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', width: '100%' }}>
-            <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-body)', padding: '4px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255, 59, 48, 0.2)', flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', width: '100%', flexWrap: 'nowrap' }}>
+            <div style={{ display: 'flex', gap: '2px', background: 'var(--bg-body)', padding: '2px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255, 59, 48, 0.2)', flex: 1, minWidth: 0, overflow: 'hidden' }}>
               <button 
                 type="button"
                 onClick={() => setAlertType('cancel')}
@@ -59,16 +59,18 @@ export default function CreateAlertSection({ courseId }: CreateAlertSectionProps
                   flex: 1,
                   display: 'flex',
                   justifyContent: 'center',
-                  padding: '4px 8px', 
+                  padding: '4px', 
                   borderRadius: '4px', 
                   border: 'none', 
                   background: alertType === 'cancel' ? '#ff3b30' : 'transparent',
                   color: alertType === 'cancel' ? '#fff' : 'var(--text-muted)',
                   fontWeight: 'bold',
                   cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                  fontSize: '0.85rem',
+                  fontSize: '0.75rem',
                   transition: 'all 0.2s',
-                  whiteSpace: 'nowrap'
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
                 }}
               >
                 Cancel Class
@@ -81,31 +83,33 @@ export default function CreateAlertSection({ courseId }: CreateAlertSectionProps
                   flex: 1,
                   display: 'flex',
                   justifyContent: 'center',
-                  padding: '4px 8px', 
+                  padding: '4px', 
                   borderRadius: '4px', 
                   border: 'none', 
                   background: alertType === 'asap' ? '#ff9500' : 'transparent',
                   color: alertType === 'asap' ? '#fff' : 'var(--text-muted)',
                   fontWeight: 'bold',
                   cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                  fontSize: '0.85rem',
+                  fontSize: '0.75rem',
                   transition: 'all 0.2s',
-                  whiteSpace: 'nowrap'
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
                 }}
               >
                 Come ASAP
               </button>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: 'rgba(0, 0, 0, 0.2)', padding: '6px 12px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255, 255, 255, 0.1)', flex: 1 }}>
-              <label style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Expires (hrs):</label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1px', background: 'rgba(0, 0, 0, 0.2)', padding: '4px 6px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255, 255, 255, 0.1)', flex: '0 0 auto' }}>
+              <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Expires (hrs):</label>
               <input 
                 type="number" 
                 min="1" 
                 max="168" 
                 value={expiresInHours}
                 onChange={(e) => setExpiresInHours(parseInt(e.target.value) || 12)}
-                style={{ width: '40px', border: 'none', background: 'transparent', color: 'inherit', outline: 'none', textAlign: 'right' }}
+                style={{ width: '28px', border: 'none', background: 'transparent', color: 'inherit', outline: 'none', textAlign: 'right', fontSize: '0.8rem', padding: '0' }}
                 disabled={isSubmitting}
               />
             </div>

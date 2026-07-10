@@ -2,28 +2,30 @@
   position: fixed;
   right: 0;
   top: auto;
-  bottom: 5.5rem;
-  transform: none;
+  bottom: 8.5rem;
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-right: none;
   border-radius: var(--radius-md) 0 0 var(--radius-md);
-  padding: var(--space-md);
+  padding: 8px 4px 8px 0;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   z-index: 999;
-  box-shadow: -4px 0 15px rgba(0, 0, 0, 0.3);
-  transition: all 0.3s ease;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.3);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  width: 24px;
   backdrop-filter: blur(10px);
 }
 
 .feedback-trigger-btn:hover {
   background: var(--bg-surface-hover);
-  padding-right: calc(var(--space-md) + 5px);
-  box-shadow: var(--glow-cyan);
-  border-color: var(--neon-cyan);
+  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.5);
+}
+
+.hint-arrow {
+  color: var(--text-muted);
 }
 
 .feedback-trigger-btn.hidden {

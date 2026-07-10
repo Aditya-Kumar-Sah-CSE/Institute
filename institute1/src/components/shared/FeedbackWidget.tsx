@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { submitFeedback } from '@/features/feedback/actions/feedback';
 import { createClient } from '@/lib/supabase/client';
 import Button from '@/components/ui/Button';
+import { ChevronLeft } from 'lucide-react';
 import './FeedbackWidget.css';
 
 export default function FeedbackWidget() {
@@ -82,9 +83,8 @@ export default function FeedbackWidget() {
         className={`feedback-trigger-btn ${isOpen ? 'hidden' : ''}`} 
         onClick={() => setIsOpen(true)}
         aria-label="Give Feedback"
-        style={{ position: 'fixed' }}
       >
-        <span className="feedback-icon">💬</span>
+        <ChevronLeft size={16} className="hint-arrow" />
       </button>
 
       {/* The Overlay & Panel */}
