@@ -310,7 +310,7 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
                   </td>
                   <td data-label="Email" style={{ padding: 'var(--space-md) var(--space-sm)', color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
                     <div className="td-content" style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{student.email}</div>
+                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{student.email.replace(/@gmail\.com$/, '@...')}</div>
                       {student.role === 'student' && student.graduation_period && (
                         <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '2px', textTransform: 'uppercase' }}>{student.graduation_period} BATCH</div>
                       )}
