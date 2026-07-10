@@ -1,91 +1,103 @@
 /* ============================================
    SkillArena Design Tokens
-   Dark Neon Gaming Theme
+   Dual-Theme UI System (Light and Dark)
    ============================================ */
 
 :root {
+  /* ==========================================
+     LIGHT THEME (Default)
+     ========================================== */
+  
   /* === Backgrounds === */
-  --bg-primary: #06060f;
-  --bg-secondary: #0c0c1d;
-  --bg-card: #10102a;
-  --bg-elevated: #181840;
-  --bg-input: #0e0e22;
-  --bg-hover: #1a1a4a;
-
-  /* === Neon Accents === */
-  --neon-cyan: #00f0ff;
-  --neon-magenta: #ff00e5;
-  --neon-lime: #39ff14;
-  --neon-purple: #b14eff;
-  --neon-orange: #ff6b00;
-  --neon-gold: #ffd700;
-  --neon-red: #ff3366;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-card: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-input: #f1f5f9;
+  --bg-sidebar: #f8fafc;
+  --bg-modal: #ffffff;
+  --bg-overlay: rgba(15, 23, 42, 0.4);
 
   /* === Text === */
-  --text-primary: #eeeeff;
-  --text-secondary: #8888aa;
-  --text-muted: #555577;
-  --text-inverse: #06060f;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --text-disabled: #cbd5e1;
+  --text-inverse: #f8fafc;
 
-  /* === Status === */
-  --status-success: #39ff14;
-  --status-warning: #ffd700;
-  --status-error: #ff3366;
-  --status-info: #00f0ff;
+  /* === Borders === */
+  --border-default: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --border-hover: #94a3b8;
+  --border-focus: #3b82f6;
+  --border-divider: #f1f5f9;
 
-  /* === Gradients === */
-  --gradient-xp: linear-gradient(90deg, #ff00e5, #00f0ff);
-  --gradient-xp-reverse: linear-gradient(90deg, #00f0ff, #ff00e5);
-  --gradient-card: linear-gradient(135deg, rgba(0, 240, 255, 0.06), rgba(255, 0, 229, 0.03));
-  --gradient-hero: radial-gradient(ellipse at 50% 0%, rgba(177, 78, 255, 0.15) 0%, transparent 60%);
-  --gradient-gold: linear-gradient(135deg, #ffd700, #ff6b00);
-  --gradient-silver: linear-gradient(135deg, #c0c0c0, #8888aa);
-  --gradient-bronze: linear-gradient(135deg, #cd7f32, #8b4513);
-  --gradient-sidebar: linear-gradient(180deg, #0c0c1d 0%, #10102a 100%);
-  --gradient-button: linear-gradient(135deg, #00f0ff, #b14eff);
-  --gradient-button-hover: linear-gradient(135deg, #33f5ff, #c77aff);
+  /* === Accent Colors === */
+  --accent-primary: #0ea5e9; /* Professional blue */
+  --accent-secondary: #8b5cf6; 
+  --accent-success: #10b981;
+  --accent-warning: #f59e0b;
+  --accent-error: #ef4444;
+  --accent-info: #3b82f6;
 
-  /* === Glass === */
-  --glass-bg: rgba(255, 255, 255, 0.03);
-  --glass-bg-hover: rgba(255, 255, 255, 0.06);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-border-hover: rgba(255, 255, 255, 0.15);
+  /* === Interactive States === */
+  --interactive-hover: rgba(15, 23, 42, 0.05);
+  --interactive-active: rgba(15, 23, 42, 0.1);
+  --interactive-selected: rgba(14, 165, 233, 0.1);
+  --interactive-pressed: rgba(15, 23, 42, 0.15);
 
-  /* === Shadows & Glows === */
-  --glow-cyan: 0 0 20px rgba(0, 240, 255, 0.3);
-  --glow-cyan-strong: 0 0 30px rgba(0, 240, 255, 0.5), 0 0 60px rgba(0, 240, 255, 0.2);
-  --glow-magenta: 0 0 20px rgba(255, 0, 229, 0.3);
-  --glow-magenta-strong: 0 0 30px rgba(255, 0, 229, 0.5), 0 0 60px rgba(255, 0, 229, 0.2);
-  --glow-purple: 0 0 20px rgba(177, 78, 255, 0.3);
-  --glow-lime: 0 0 20px rgba(57, 255, 20, 0.3);
-  --glow-gold: 0 0 20px rgba(255, 215, 0, 0.3);
-  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
-  --shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.6);
-  --shadow-dropdown: 0 12px 40px rgba(0, 0, 0, 0.7);
+  /* === Shadows (Soft & Clean) === */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-elevated: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-dropdown: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 
-  /* === Spacing (Fluid) === */
-  --space-2xs: 2px;
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: clamp(12px, 2vw, 16px);
-  --space-lg: clamp(16px, 3vw, 24px);
-  --space-xl: clamp(20px, 4vw, 32px);
-  --space-2xl: clamp(32px, 6vw, 48px);
-  --space-3xl: clamp(40px, 8vw, 64px);
-  --space-4xl: clamp(48px, 10vw, 96px);
+  /* === Glassmorphism (Light) === */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-bg-hover: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.4);
+  --glass-border-hover: rgba(255, 255, 255, 0.6);
+
+  /* === Spacing System (8-point scale) === */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  /* Fluid Spacing tokens (Legacy mapped to scale) */
+  --space-2xs: var(--space-1);
+  --space-xs: var(--space-2);
+  --space-sm: var(--space-3);
+  --space-md: var(--space-4);
+  --space-lg: var(--space-6);
+  --space-xl: var(--space-8);
+  --space-2xl: var(--space-12);
+  --space-3xl: var(--space-16);
+  --space-4xl: 96px;
 
   /* === Border Radius === */
   --radius-xs: 4px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
-  --radius-full: 9999px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+  --radius-pill: 9999px;
+  /* Legacy mapping */
+  --radius-full: var(--radius-pill);
 
   /* === Typography === */
   --font-display: 'Outfit', system-ui, -apple-system, sans-serif;
   --font-code: 'JetBrains Mono', 'Fira Code', monospace;
 
+  /* Fluid size clamping where minimal */
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-base: 1rem;
@@ -125,4 +137,129 @@
   --sidebar-collapsed: 72px;
   --navbar-height: 64px;
   --max-content-width: 1200px;
+  
+  /* ==========================================
+     LEGACY SUPPORT (Do not use for new components)
+     ========================================== */
+  --status-success: var(--accent-success);
+  --status-warning: var(--accent-warning);
+  --status-error: var(--accent-error);
+  --status-info: var(--accent-info);
+  --neon-cyan: var(--accent-primary);
+  --neon-magenta: var(--accent-secondary);
+  --neon-lime: var(--accent-success);
+  --neon-purple: var(--accent-secondary);
+  --neon-orange: var(--accent-warning);
+  --neon-gold: var(--accent-warning);
+  --neon-red: var(--accent-error);
+
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  --gradient-xp: linear-gradient(90deg, var(--accent-secondary), var(--accent-primary));
+  --gradient-xp-reverse: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+  --gradient-card: linear-gradient(135deg, rgba(14, 165, 233, 0.05), rgba(139, 92, 246, 0.05));
+  --gradient-hero: radial-gradient(ellipse at 50% 0%, rgba(139, 92, 246, 0.1) 0%, transparent 60%);
+  --gradient-gold: linear-gradient(135deg, #ffd700, #ff6b00);
+  --gradient-silver: linear-gradient(135deg, #e2e8f0, #94a3b8);
+  --gradient-bronze: linear-gradient(135deg, #cd7f32, #8b4513);
+  --gradient-sidebar: linear-gradient(180deg, var(--bg-sidebar) 0%, var(--bg-secondary) 100%);
+  --gradient-button: var(--gradient-primary);
+  --gradient-button-hover: linear-gradient(135deg, #38bdf8, #a78bfa);
+
+  --glow-cyan: var(--shadow-md);
+  --glow-cyan-strong: var(--shadow-lg);
+  --glow-magenta: var(--shadow-md);
+  --glow-magenta-strong: var(--shadow-lg);
+  --glow-purple: var(--shadow-md);
+  --glow-lime: var(--shadow-md);
+  --glow-gold: var(--shadow-md);
+  --shadow-card: var(--shadow-md);
+}
+
+/* ==========================================
+   DARK THEME
+   ========================================== */
+[data-theme='dark'] {
+  /* === Backgrounds === */
+  --bg-primary: #0d0f1e;
+  --bg-secondary: #131526;
+  --bg-surface: #1a1d33;
+  --bg-card: #1f223c;
+  --bg-elevated: #262947;
+  --bg-input: #1a1d33;
+  --bg-sidebar: #0d0f1e;
+  --bg-modal: #1f223c;
+  --bg-overlay: rgba(0, 0, 0, 0.6);
+
+  /* === Text === */
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-disabled: #475569;
+  --text-inverse: #06060f;
+
+  /* === Borders === */
+  --border-default: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.2);
+  --border-hover: rgba(255, 255, 255, 0.3);
+  --border-focus: #00f0ff;
+  --border-divider: rgba(255, 255, 255, 0.05);
+
+  /* === Accent Colors (Neon) === */
+  --accent-primary: #00f0ff; 
+  --accent-secondary: #b14eff;
+  --accent-success: #39ff14;
+  --accent-warning: #ffd700;
+  --accent-error: #ff3366;
+  --accent-info: #00f0ff;
+
+  /* === Interactive States === */
+  --interactive-hover: rgba(255, 255, 255, 0.05);
+  --interactive-active: rgba(255, 255, 255, 0.1);
+  --interactive-selected: rgba(0, 240, 255, 0.1);
+  --interactive-pressed: rgba(255, 255, 255, 0.15);
+
+  /* === Shadows (Soft Depth) === */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.7);
+  --shadow-elevated: 0 16px 32px rgba(0, 0, 0, 0.8), 0 8px 16px rgba(0, 0, 0, 0.5);
+  --shadow-dropdown: 0 24px 48px rgba(0, 0, 0, 0.9);
+
+  /* === Glassmorphism (Dark) === */
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-bg-hover: rgba(255, 255, 255, 0.06);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border-hover: rgba(255, 255, 255, 0.15);
+
+  /* Gradients */
+  --gradient-card: linear-gradient(135deg, rgba(0, 240, 255, 0.06), rgba(177, 78, 255, 0.03));
+  --gradient-hero: radial-gradient(ellipse at 50% 0%, rgba(177, 78, 255, 0.15) 0%, transparent 60%);
+  --gradient-sidebar: linear-gradient(180deg, var(--bg-sidebar) 0%, var(--bg-primary) 100%);
+  --gradient-button-hover: linear-gradient(135deg, #33f5ff, #c77aff);
+
+  /* Legacy Neon Glows - Reduced to normal shadows except specifically strong ones */
+  --glow-cyan: 0 0 10px rgba(0, 240, 255, 0.2);
+  --glow-cyan-strong: 0 0 15px rgba(0, 240, 255, 0.4), 0 0 30px rgba(0, 240, 255, 0.1);
+  --glow-magenta: 0 0 10px rgba(255, 0, 229, 0.2);
+  --glow-magenta-strong: 0 0 15px rgba(255, 0, 229, 0.4), 0 0 30px rgba(255, 0, 229, 0.1);
+  --glow-purple: 0 0 10px rgba(177, 78, 255, 0.2);
+  --glow-lime: 0 0 10px rgba(57, 255, 20, 0.2);
+  --glow-gold: 0 0 10px rgba(255, 215, 0, 0.2);
+}
+
+/* ==========================================
+   MOBILE OLED OVERRIDES (Lift Dark Blacks)
+   ========================================== */
+@media (max-width: 768px) {
+  [data-theme='dark'] {
+    --bg-primary: #14172b;
+    --bg-secondary: #1a1e36;
+    --bg-surface: #222646;
+    --bg-card: #2b2f56;
+    --bg-elevated: #333866;
+    --bg-input: #222646;
+    --bg-sidebar: #14172b;
+    --bg-modal: #2b2f56;
+  }
 }

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import NotificationBell from './NotificationBell';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import './Navbar.css';
 
 import type { Profile } from '@/types';
@@ -63,7 +64,11 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
         </div>
       )}
 
-      <div className="navbar-right">
+      <div className="navbar-right" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+        <div className="desktop-theme-toggle">
+          <ThemeToggle />
+        </div>
+
         {companyName && (
           <Link href={homeLink} className="company-branding-nav desktop-logo" style={{ padding: 'var(--space-xs)' }}>
             {companyLogo ? (
@@ -139,6 +144,25 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
                  <Link href="/profile" onClick={() => setIsMenuOpen(false)}>
                    {getIcon('Profile', { size: 16, className: 'mobile-nav-icon' })} Profile
                  </Link>
+                 
+                 {/* Mobile Theme Toggle Section */}
+                 <div
+                   className="mobile-theme-toggle"
+                   style={{
+                     display: 'flex',
+                     alignItems: 'center',
+                     justifyContent: 'space-between',
+                     padding: 'var(--space-sm) var(--space-md)',
+                     borderTop: '1px solid var(--border-divider)',
+                     borderBottom: '1px solid var(--border-divider)',
+                     marginTop: 'var(--space-xs)',
+                     marginBottom: 'var(--space-xs)'
+                   }}
+                 >
+                   <span style={{ color: 'var(--text-primary)', fontSize: 'var(--text-base)', fontWeight: 'bold' }}>Theme</span>
+                   <ThemeToggle />
+                 </div>
+
                  <form action={signOut} style={{ margin: 0, width: '100%' }}>
                    <button type="submit" className="mobile-logout-btn">
                      {getIcon('Logout', { size: 16, className: 'mobile-nav-icon' })} Logout

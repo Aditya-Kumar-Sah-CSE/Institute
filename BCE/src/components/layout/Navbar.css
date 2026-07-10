@@ -4,7 +4,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--space-xl);
-  background: rgba(6, 6, 15, 0.8);
+  background: color-mix(in srgb, var(--bg-primary) 85%, transparent);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--glass-border);
   position: sticky;
@@ -104,8 +104,8 @@
   top: 100%;
   right: 0;
   margin-top: var(--space-sm);
-  background: #0f1016; /* Fully opaque background */
-  border: 1px solid var(--glass-border);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-divider);
   border-radius: var(--radius-md);
   padding: var(--space-sm);
   display: flex;
@@ -160,6 +160,10 @@
   }
 
   .desktop-logo {
+    display: none !important;
+  }
+
+  .desktop-theme-toggle {
     display: none !important;
   }
 

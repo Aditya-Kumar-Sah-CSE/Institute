@@ -160,8 +160,10 @@ export default function CourseManager({ courses, currentUserId, userRole }: Cour
                   <a href={`${basePath}/courses/${course.id}/builder`} className="btn btn-primary btn-build-curriculum" style={{ padding: '10px 16px', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', minHeight: '40px' }}>
                     <BookOpen size={16} /> Start Teaching
                   </a>
-                  <Button variant="secondary" size="sm" onClick={() => openEdit(course)} className="btn-edit">Edit</Button>
-                  <Button variant="danger" size="sm" onClick={() => handleDelete(course.id)} className="btn-delete">Delete</Button>
+                  <div style={{ display: 'flex', gap: 'var(--space-sm)', width: '100%' }}>
+                    <Button variant="secondary" size="sm" onClick={() => openEdit(course)} className="btn-edit" fullWidth>Edit</Button>
+                    <Button variant="danger" size="sm" onClick={() => handleDelete(course.id)} className="btn-delete" fullWidth>Delete</Button>
+                  </div>
                 </>
               )}
             </div>

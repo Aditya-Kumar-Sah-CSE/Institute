@@ -16,26 +16,26 @@ html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color-scheme: dark;
 }
 
 body {
   font-family: var(--font-display);
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  line-height: var(--leading-normal);
+  line-height: var(--leading-relaxed);
   min-height: 100vh;
   overflow-x: hidden;
+  transition: background-color var(--transition-normal), color var(--transition-normal);
 }
 
 a {
-  color: var(--neon-cyan);
+  color: var(--accent-primary);
   text-decoration: none;
   transition: color var(--transition-fast);
 }
 
 a:hover {
-  color: var(--neon-purple);
+  color: var(--accent-secondary);
 }
 
 button {
@@ -49,9 +49,10 @@ button {
 input, textarea, select {
   font-family: var(--font-display);
   color: var(--text-primary);
-  background: transparent;
-  border: none;
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
   outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 img {
@@ -64,39 +65,60 @@ ul, ol {
   list-style: none;
 }
 
+/* === Typography Hierarchy === */
 h1, h2, h3, h4, h5, h6 {
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
   line-height: var(--leading-tight);
+  margin-bottom: var(--space-4);
+}
+
+h1 { font-size: var(--text-4xl); font-weight: var(--weight-semibold); }
+h2 { font-size: var(--text-3xl); font-weight: var(--weight-semibold); }
+h3 { font-size: var(--text-2xl); font-weight: var(--weight-medium); }
+h4 { font-size: var(--text-xl); font-weight: var(--weight-medium); }
+h5 { font-size: var(--text-lg); font-weight: var(--weight-medium); }
+h6 { font-size: var(--text-base); font-weight: var(--weight-medium); }
+
+p {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-4);
+  line-height: var(--leading-relaxed);
+}
+
+small, .caption {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
 }
 
 /* === Scrollbar === */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
+  background: var(--bg-primary);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--bg-elevated);
+  background: var(--border-default);
   border-radius: var(--radius-full);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--neon-cyan);
+  background: var(--border-hover);
 }
 
 /* === Selection === */
 ::selection {
-  background: rgba(0, 240, 255, 0.3);
+  background: var(--interactive-selected);
   color: var(--text-primary);
 }
 
 /* === Focus Visible === */
 :focus-visible {
-  outline: 2px solid var(--neon-cyan);
+  outline: 2px solid var(--border-focus);
   outline-offset: 2px;
 }
 
@@ -105,7 +127,7 @@ h1, h2, h3, h4, h5, h6 {
   width: 100%;
   max-width: var(--max-content-width);
   margin: 0 auto;
-  padding: 0 var(--space-lg);
+  padding: 0 var(--space-6);
 }
 
 .sr-only {
@@ -121,7 +143,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .text-gradient {
-  background: var(--gradient-xp);
+  background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -129,23 +151,30 @@ h1, h2, h3, h4, h5, h6 {
 
 .glass-card {
   background: var(--glass-bg);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(var(--glass-blur, 12px));
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-normal);
+}
+.glass-card:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--glass-border-hover);
+  box-shadow: var(--shadow-lg);
 }
 
 .neon-text {
-  color: var(--neon-cyan);
-  text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+  color: var(--accent-primary);
+  /* The glow now only applies in data-theme=dark inherently, or if we define glow */
+  text-shadow: 0 0 10px var(--interactive-selected);
 }
 
 @media (max-width: 768px) {
   html {
-    font-size: 14px; /* Scale down typography and rem-based spacings globally */
+    font-size: 14px;
   }
-
   .container {
-    padding: 0 var(--space-md);
+    padding: 0 var(--space-4);
   }
 }
 
@@ -153,7 +182,7 @@ h1, h2, h3, h4, h5, h6 {
 .polls-flex {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  gap: var(--space-4);
 }
 @media (min-width: 768px) {
   .polls-flex {
@@ -161,11 +190,85 @@ h1, h2, h3, h4, h5, h6 {
     flex-wrap: wrap;
   }
   .polls-flex > * {
-    flex: 1 1 calc(50% - var(--space-md));
-    max-width: calc(50% - var(--space-md) / 2);
+    flex: 1 1 calc(50% - var(--space-4));
+    max-width: calc(50% - var(--space-4) / 2);
   }
   .polls-flex > *:only-child {
     flex: 1 1 100%;
     max-width: 100%;
+  }
+}
+
+/* === Dashboard Statistics Grid === */
+.dashboard-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-lg);
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  height: 100%;
+}
+
+.stat-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stat-card-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-card-value {
+  font-size: var(--text-2xl);
+  font-weight: bold;
+  margin-bottom: 2px;
+  line-height: 1.2;
+}
+
+.stat-card-label {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: var(--weight-medium);
+}
+
+@media (max-width: 1024px) {
+  .dashboard-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-sm);
+  }
+  
+  .stat-card {
+    padding: var(--space-md) !important;
+    gap: var(--space-sm) !important;
+  }
+
+  .stat-card-icon {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .stat-card-value {
+    font-size: var(--text-xl);
+  }
+  
+  .stat-card-label {
+    font-size: 9px;
   }
 }
