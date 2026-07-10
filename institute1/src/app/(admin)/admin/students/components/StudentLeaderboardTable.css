@@ -43,9 +43,9 @@
     flex-direction: column;
     border: 1px solid var(--glass-border) !important;
     border-radius: var(--radius-lg);
-    margin-bottom: var(--space-md);
+    margin-bottom: 8px;
     background: rgba(255, 255, 255, 0.02);
-    padding: 0;
+    padding: 2px;
     position: relative;
   }
   
@@ -59,16 +59,22 @@
     justify-content: space-between;
     align-items: center;
     border-bottom: none !important;
-    padding: var(--space-md) !important;
+    padding: 6px 8px !important;
     width: 100%;
+    box-sizing: border-box;
     text-align: left;
     font-size: var(--text-md) !important;
-    padding-right: 140px !important; /* Ensure name doesn't overlap absolute email */
+    padding-right: 120px !important; /* Ensure name doesn't overlap absolute email */
   }
   
   /* Remove the "Name" text label prefix on mobile */
   .responsive-table td[data-label="Name"]::before {
     display: none;
+  }
+
+  /* Force exact 9 character truncation for name in mobile view */
+  .responsive-table td[data-label="Name"] .hover-underline {
+    max-width: 9ch !important;
   }
 
   /* Add '...' click indicator */
