@@ -293,8 +293,8 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
                   onClick={() => setSelectedStudent(student)}
                 >
                   <td data-label="Name" style={{ padding: 'var(--space-md) var(--space-sm)', fontWeight: 'var(--weight-semibold)' }}>
-                    <div className="td-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', maxWidth: '100%', overflow: 'hidden' }}>
-                      <span className="hover-underline" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%', display: 'block' }}>{student.name}</span>
+                    <div className="td-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: '100%', overflow: 'hidden' }}>
+                      <span className="hover-underline" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', display: 'block' }}>{student.name}</span>
                       <span style={{ 
                         fontSize: '0.65rem', 
                         padding: '2px 6px', 

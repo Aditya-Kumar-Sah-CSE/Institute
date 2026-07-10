@@ -91,8 +91,8 @@ export default async function AdminStudentsPage() {
       </div>
 
       {/* Student Table */}
-      <Card variant="glass" padding="lg">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-xl)' }}>
+      <Card variant="glass" padding="sm">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-md)' }}>
           <h2 style={{ fontSize: 'var(--text-xl)', margin: 0 }}>
             Administration & Leaderboard
           </h2>
