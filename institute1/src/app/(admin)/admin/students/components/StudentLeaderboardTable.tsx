@@ -9,7 +9,6 @@ import LevelBadge from '@/components/shared/LevelBadge';
 import { formatDistanceToNow } from 'date-fns';
 import { Search } from 'lucide-react';
 import { deleteStudent, deleteEnrollment, makeAdmin, makeFaculty, makeStudent } from '@/features/admin/actions/adminActions';
-import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 import type { LevelName } from '@/types';
 
 interface EnrollmentDetail {
@@ -34,6 +33,7 @@ interface StudentDetail {
   last_active_at: string | null;
   role: string;
   status: string;
+  graduation_period?: string | null;
   enrollments: EnrollmentDetail[] | null;
 }
 
@@ -41,16 +41,16 @@ interface StudentLeaderboardTableProps {
   students: StudentDetail[];
   isInstructor: boolean;
   currentUserId?: string;
+  superAdminEmail: string;
 }
 
 import './StudentLeaderboardTable.css';
 
-export default function StudentLeaderboardTable({ students, isInstructor, currentUserId }: StudentLeaderboardTableProps) {
+export default function StudentLeaderboardTable({ students, isInstructor, currentUserId, superAdminEmail }: StudentLeaderboardTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'student' | 'instructor' | 'admin'>('all');
   const [enrollmentFilter, setEnrollmentFilter] = useState<'all' | 'enrolled'>('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 25;
+  const [visibleCount, setVisibleCount] = useState(5);
   const [selectedStudent, setSelectedStudent] = useState<StudentDetail | null>(null);
   const [adminPromotionTarget, setAdminPromotionTarget] = useState<{ id: string, name: string } | null>(null);
   const [makeFacultyTarget, setMakeFacultyTarget] = useState<{ id: string, name: string } | null>(null);
@@ -72,12 +72,11 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
     return matchesSearch && matchesRole && matchesEnrollment;
   });
 
-  const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
-  const paginatedStudents = filteredStudents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const paginatedStudents = filteredStudents.slice(0, visibleCount);
 
   // Reset page to 1 when filters change
   React.useEffect(() => {
-    setCurrentPage(1);
+    setVisibleCount(5);
   }, [searchTerm, roleFilter, enrollmentFilter]);
 
   const handleDeleteStudentClick = (studentId: string, studentName: string, role: string) => {
@@ -234,7 +233,7 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
             onClick={() => setRoleFilter('all')}
             size="sm"
           >
-            All Members
+            ALL
           </Button>
           <Button 
             variant={roleFilter === 'student' ? 'primary' : 'secondary'} 
@@ -294,24 +293,27 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
                   onClick={() => setSelectedStudent(student)}
                 >
                   <td data-label="Name" style={{ padding: 'var(--space-md) var(--space-sm)', fontWeight: 'var(--weight-semibold)' }}>
-                    <div className="td-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                      <span className="hover-underline" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{student.name}</span>
+                    <div className="td-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', maxWidth: '100%', overflow: 'hidden' }}>
+                      <span className="hover-underline" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%', display: 'block' }}>{student.name}</span>
                       <span style={{ 
                         fontSize: '0.65rem', 
                         padding: '2px 6px', 
                         borderRadius: '4px', 
                         marginTop: '4px',
-                        background: student.role === 'instructor' ? 'rgba(255, 165, 2, 0.2)' : 'rgba(46, 213, 115, 0.2)',
-                        color: student.role === 'instructor' ? '#ffa502' : '#2ed573',
+                        background: student.email === superAdminEmail ? 'rgba(177, 78, 255, 0.2)' : student.role === 'instructor' ? 'rgba(255, 165, 2, 0.2)' : 'rgba(46, 213, 115, 0.2)',
+                        color: student.email === superAdminEmail ? 'var(--neon-purple)' : student.role === 'instructor' ? '#ffa502' : '#2ed573',
                         textTransform: 'uppercase'
                       }}>
-                        {student.role}
+                        {student.email === superAdminEmail ? 'developer' : student.role}
                       </span>
                     </div>
                   </td>
                   <td data-label="Email" style={{ padding: 'var(--space-md) var(--space-sm)', color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
-                    <div className="td-content" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {student.email}
+                    <div className="td-content" style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{student.email}</div>
+                      {student.role === 'student' && student.graduation_period && (
+                        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '2px', textTransform: 'uppercase' }}>{student.graduation_period} BATCH</div>
+                      )}
                     </div>
                   </td>
                   <td data-label="Level" style={{ padding: 'var(--space-md) var(--space-sm)' }} onClick={(e) => e.stopPropagation()}>
@@ -341,7 +343,7 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
                     <div className="td-content">
                       {isInstructor ? (
                         <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Restricted</span>
-                      ) : student.email === SUPER_ADMIN_EMAIL ? (
+                      ) : student.email === superAdminEmail ? (
                         <span style={{ fontSize: 'var(--text-xs)', color: 'var(--neon-purple)', fontWeight: 'bold' }}>Developer</span>
                       ) : (
                         <Button 
@@ -368,29 +370,31 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
         )}
       </div>
 
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
+      {/* Show More / Less Controls */}
+      {filteredStudents.length > 5 && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--space-md)' }}>
           <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
-            Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredStudents.length)} of {filteredStudents.length} entries
+            Showing {paginatedStudents.length} of {filteredStudents.length} entries
           </div>
           <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
-            <Button 
-              variant="secondary" 
-              size="sm" 
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-            >
-              Previous
-            </Button>
-            <Button 
-              variant="secondary" 
-              size="sm" 
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-            >
-              Next
-            </Button>
+            {visibleCount > 5 && (
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                onClick={() => setVisibleCount(5)}
+              >
+                Show Less
+              </Button>
+            )}
+            {visibleCount < filteredStudents.length && (
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                onClick={() => setVisibleCount(prev => prev + 5)}
+              >
+                Show More
+              </Button>
+            )}
           </div>
         </div>
       )}
@@ -521,7 +525,7 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
 
             {/* Modal Actions */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--space-md)' }}>
-              {!isInstructor && selectedStudent.email !== SUPER_ADMIN_EMAIL ? (
+              {!isInstructor && selectedStudent.email !== superAdminEmail ? (
                 <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
                   {selectedStudent.role === 'admin' ? (
                     <Button 
