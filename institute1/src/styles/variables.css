@@ -82,6 +82,28 @@
   --space-3xl: var(--space-16);
   --space-4xl: 96px;
 
+  /* Professional Mobile Fluid UI Scaling */
+  @media (max-width: 768px) {
+    /* Do not crush small base spacing (<= 16px); they are essential for readability */
+    
+    /* Mid-range layout padding (cards, section bounds) from 24px -> 20px */
+    --space-6: 20px;  
+    
+    /* Wide elements from 32px -> 24px */
+    --space-8: 24px;  
+    
+    /* Huge section breakers from 48px -> 32px */
+    --space-12: 32px; 
+    
+    /* Hero/massive wrappers from 64px -> 48px */
+    --space-16: 48px; 
+    --space-4xl: 64px;
+
+    /* Slightly compress card borders on narrow screens */
+    --radius-lg: 10px;
+    --radius-xl: 14px;
+  }
+
   /* === Border Radius === */
   --radius-xs: 4px;
   --radius-sm: 6px;

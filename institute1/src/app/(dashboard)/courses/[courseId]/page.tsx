@@ -127,21 +127,19 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
           </div>
           <h1 className="course-title-large">{course.title}</h1>
           {course.profiles?.name && (
-            <p className="course-instructor-large" style={{ color: 'var(--neon-cyan)', marginBottom: 'var(--space-md)', fontWeight: 500 }}>
+            <p className="course-instructor-large" style={{ color: 'var(--neon-cyan)', fontWeight: 500, margin: '2px 0 8px 0' }}>
               Instructor: {course.profiles.name}
             </p>
           )}
-          <p className="course-desc-large">{course.description}</p>
+          <p className="course-desc-large" style={{ marginBottom: '8px' }}>{course.description}</p>
           
-          <div className="course-stats" style={{ marginBottom: 'var(--space-md)' }}>
+          <div className="course-stats" style={{ marginBottom: '16px' }}>
             <span>📚 {lessons?.length || 0} Lessons</span>
             <span className="text-gradient">⭐ {course.total_xp} Total XP</span>
           </div>
 
-
-
           {userCertificate ? (
-            <Link href={`/certificates/${userCertificate.id}`} style={{ textDecoration: 'none', display: 'inline-block', marginBottom: 'var(--space-xl)', width: '100%' }}>
+            <Link href={`/certificates/${userCertificate.id}`} style={{ textDecoration: 'none', display: 'inline-block', marginBottom: '16px', width: '100%' }}>
               <div 
                 className="dummy-certificate-preview hover-lift"
                 style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 16px', background: 'rgba(57, 255, 20, 0.1)', border: '1px solid var(--neon-lime)', borderRadius: 'var(--radius-md)', transition: 'all 0.2s', cursor: 'pointer' }}
@@ -154,7 +152,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
               </div>
             </Link>
           ) : (
-            <Link href={`/certificates/dummy?courseId=${courseId}`} style={{ textDecoration: 'none', display: 'inline-block', marginBottom: 'var(--space-xl)', width: '100%' }}>
+            <Link href={`/certificates/dummy?courseId=${courseId}`} style={{ textDecoration: 'none', display: 'inline-block', marginBottom: '16px', width: '100%' }}>
               <div 
                 className="dummy-certificate-preview hover-lift"
                 style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 16px', background: 'rgba(255, 215, 0, 0.05)', border: '1px solid rgba(255, 215, 0, 0.3)', borderRadius: 'var(--radius-md)', transition: 'all 0.2s', cursor: 'pointer' }}

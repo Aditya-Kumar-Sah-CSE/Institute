@@ -67,7 +67,7 @@ export default function CreatePollWidget({ courseId, hideHeading = false }: Crea
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: hideHeading ? 'flex-end' : 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
+      <div style={{ display: 'flex', justifyContent: hideHeading ? 'flex-end' : 'space-between', alignItems: 'center', marginBottom: hideHeading ? 0 : 'var(--space-lg)' }}>
         {!hideHeading && <h2 className="section-title" style={{ margin: 0 }}>Course Polls</h2>}
         {!isExpanded && (
           <button 
@@ -87,7 +87,7 @@ export default function CreatePollWidget({ courseId, hideHeading = false }: Crea
             }}
           >
             <BarChart2 size={18} />
-            Create Poll
+            Create
           </button>
         )}
       </div>

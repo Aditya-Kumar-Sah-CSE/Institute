@@ -208,13 +208,13 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
       {!course.is_completed && (
         <div style={{ padding: 'var(--space-lg)', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(255,255,255,0.05)' }}>
           <h2 className="section-title" style={{ margin: '0 0 var(--space-md) 0' }}>Course Polls</h2>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
-            <Link href={`/courses/${course.id}`} style={{ textDecoration: 'none' }}>
-              <Button variant="success" size="md" style={{ padding: '12px 24px', fontSize: 'var(--text-md)', fontWeight: 'var(--weight-bold)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'nowrap', gap: 'var(--space-sm)' }}>
+            <Link href={`/courses/${course.id}`} style={{ textDecoration: 'none', flexShrink: 1, overflow: 'hidden' }}>
+              <Button variant="success" size="sm" style={{ padding: '8px 12px', fontSize: '0.85rem', fontWeight: 'var(--weight-bold)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', maxWidth: '100%' }}>
                 View Polls & Doubts
               </Button>
             </Link>
-            <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end' }}>
               <CreatePollWidget courseId={course.id} hideHeading={true} />
             </div>
           </div>
