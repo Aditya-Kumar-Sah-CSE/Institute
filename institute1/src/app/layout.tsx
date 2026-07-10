@@ -56,7 +56,7 @@ export default function RootLayout({
       <body suppressHydrationWarning className={`${outfit.variable} ${jetbrainsMono.variable}`}>
         <PwaRegister />
         <PWAInstallPrompt />
-        <ThemeProvider attribute="data-theme" defaultTheme="system" enableSystem disableTransitionOnChange={false}>
+        <ThemeProvider attribute="data-theme" defaultTheme="dark" enableSystem={false} disableTransitionOnChange={false}>
           {children}
           <XpCelebrator />
           <FeedbackWidget />
