@@ -72,9 +72,9 @@
     display: none;
   }
 
-  /* Force exact 9 character truncation for name in mobile view */
+  /* Force exactly 12 character truncation for name in mobile view */
   .responsive-table td[data-label="Name"] .hover-underline {
-    max-width: 9ch !important;
+    max-width: 12ch !important;
   }
 
   /* Add '...' click indicator */
@@ -98,7 +98,7 @@
     border: none !important;
     padding: 0 !important;
     font-size: 0.75rem !important;
-    max-width: 45%; 
+    max-width: 16ch !important; 
     height: auto;
   }
   
