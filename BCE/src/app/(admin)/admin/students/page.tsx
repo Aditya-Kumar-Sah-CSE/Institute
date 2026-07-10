@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import Card from '@/components/ui/Card';
 import StudentLeaderboardTable from './components/StudentLeaderboardTable';
 import Link from 'next/link';
+import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 
 export default async function AdminStudentsPage() {
   const supabase = await createClient();
@@ -96,7 +97,12 @@ export default async function AdminStudentsPage() {
             Administration & Leaderboard
           </h2>
         </div>
-        <StudentLeaderboardTable students={allUsers || []} isInstructor={isInstructor} currentUserId={user?.id} />
+        <StudentLeaderboardTable 
+          students={allUsers || []} 
+          isInstructor={isInstructor} 
+          currentUserId={user?.id} 
+          superAdminEmail={SUPER_ADMIN_EMAIL} 
+        />
       </Card>
     </div>
   );
