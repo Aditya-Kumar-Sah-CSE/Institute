@@ -19,7 +19,41 @@ export default function AdmissionFormClient({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const target = e.target as HTMLInputElement;
     const value = target.type === 'checkbox' ? target.checked : target.value;
-    setFormData(prev => ({ ...prev, [target.name]: value }));
+    const name = target.name;
+    
+    setFormData(prev => {
+      const next = { ...prev, [name]: value };
+
+      // Strictly 10 digits for mobile inputs
+      if (['mobile', 'fatherMobile', 'motherMobile'].includes(name) && typeof value === 'string') {
+        next[name] = value.replace(/\D/g, '').slice(0, 10);
+      }
+
+      // Auto-calculate percentages
+      if (name === 'marks10' || name === 'total10') {
+        const marks = parseFloat(next.marks10);
+        const total = parseFloat(next.total10);
+        if (!isNaN(marks) && !isNaN(total) && total > 0) {
+          next.percent10 = ((marks / total) * 100).toFixed(2);
+        }
+      }
+      if (name === 'marks12' || name === 'total12') {
+        const marks = parseFloat(next.marks12);
+        const total = parseFloat(next.total12);
+        if (!isNaN(marks) && !isNaN(total) && total > 0) {
+          next.percent12 = ((marks / total) * 100).toFixed(2);
+        }
+      }
+      if (name === 'diplomaMarks' || name === 'diplomaTotal') {
+        const marks = parseFloat(next.diplomaMarks);
+        const total = parseFloat(next.diplomaTotal);
+        if (!isNaN(marks) && !isNaN(total) && total > 0) {
+          next.diplomaPercent = ((marks / total) * 100).toFixed(2);
+        }
+      }
+
+      return next;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -132,22 +166,22 @@ export default function AdmissionFormClient({
                 <input type="tel" name="mobile" required pattern="\d{10}" placeholder="10 Digits" maxLength={10} value={formData.mobile || ''} onChange={handleChange} />
               </div>
               <div className="form-group">
-                <label>Email Address</label>
-                <input type="email" name="email" placeholder="example@gmail.com" value={formData.email || ''} onChange={handleChange} />
+                <label>Email Address <span>*</span></label>
+                <input type="email" name="email" required placeholder="example@gmail.com" value={formData.email || ''} onChange={handleChange} />
               </div>
             </div>
 
             <div className="form-row">
               <div className="form-group">
                 <label>Branch <span>*</span></label>
-                <select name="branch" required value={formData.branch || ''} onChange={handleChange}>
-                  <option value="">Select Branch</option>
+                <input type="text" name="branch" required list="branch-options" placeholder="Select or type branch" value={formData.branch || ''} onChange={handleChange} />
+                <datalist id="branch-options">
                   <option value="CSE">Computer Science & Engineering</option>
                   <option value="ECE">Electronics & Comm. Engineering</option>
                   <option value="CE">Civil Engineering</option>
                   <option value="ME">Mechanical Engineering</option>
                   <option value="EE">Electrical Engineering</option>
-                </select>
+                </datalist>
               </div>
               <div className="form-group">
                 <label>Roll Number (If Allotted)</label>
