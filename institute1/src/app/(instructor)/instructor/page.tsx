@@ -126,7 +126,7 @@ export default async function InstructorDashboardPage() {
               <div className="stat-card-value" style={{ color: 'var(--accent-info)' }}>
                 {enrollmentRequestsCount}
               </div>
-              <div className="text-secondary stat-card-label">Enrollment Requests</div>
+              <div className="text-secondary stat-card-label">St. Approval</div>
             </div>
           </Card>
         </Link>
