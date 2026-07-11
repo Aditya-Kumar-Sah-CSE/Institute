@@ -2,8 +2,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 
 import Card from '@/components/ui/Card';
 import Link from 'next/link';
-import { BookOpen, FileText, Users } from 'lucide-react';
-
+import { BookOpen, FileText, Users, UserPlus } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
 export default async function InstructorDashboardPage() {
@@ -22,6 +21,7 @@ export default async function InstructorDashboardPage() {
 
   let studentCount = 0;
   let pendingReviewsCount = 0;
+  let enrollmentRequestsCount = 0;
 
   if (courseIds.length > 0) {
     // Total Students (unique enrollments in instructor's courses)
@@ -32,6 +32,14 @@ export default async function InstructorDashboardPage() {
       .eq('status', 'approved');
     const uniqueUsers = new Set(enrollments?.map(e => e.user_id));
     studentCount = uniqueUsers.size;
+
+    // Enrollment Requests
+    const { data: pendingEnrollments } = await supabase
+      .from('enrollments')
+      .select('id')
+      .in('course_id', courseIds)
+      .eq('status', 'pending');
+    enrollmentRequestsCount = pendingEnrollments?.length || 0;
 
     // Pending Reviews
     const { data: lessons } = await supabase.from('lessons').select('id').in('course_id', courseIds);
@@ -66,7 +74,7 @@ export default async function InstructorDashboardPage() {
         <p className="text-secondary">Manage your courses, lessons, and students.</p>
       </div>
 
-      <div className="dashboard-stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))' }}>
+      <div className="dashboard-stats-grid">
         <Link href={courseIds.length > 0 ? `/leaderboard?filter=${courseIds[0]}` : '/leaderboard'} style={{ textDecoration: 'none' }}>
           <Card variant="glass" padding="lg" className="stat-card hover-lift" style={{ height: '100%' }}>
             <div className="stat-card-icon" style={{ background: 'color-mix(in srgb, var(--accent-primary) 10%, transparent)', color: 'var(--accent-primary)' }}>
@@ -105,6 +113,20 @@ export default async function InstructorDashboardPage() {
                 {pendingReviewsCount}
               </div>
               <div className="text-secondary stat-card-label">Pending Reviews</div>
+            </div>
+          </Card>
+        </Link>
+        
+        <Link href="/instructor/enrollments" style={{ textDecoration: 'none' }}>
+          <Card variant="glass" padding="lg" className="stat-card hover-lift" style={{ height: '100%' }}>
+            <div className="stat-card-icon" style={{ background: 'color-mix(in srgb, var(--accent-info) 10%, transparent)', color: 'var(--accent-info)' }}>
+              <UserPlus size={24} />
+            </div>
+            <div className="stat-card-content">
+              <div className="stat-card-value" style={{ color: 'var(--accent-info)' }}>
+                {enrollmentRequestsCount}
+              </div>
+              <div className="text-secondary stat-card-label">Enrollment Requests</div>
             </div>
           </Card>
         </Link>
