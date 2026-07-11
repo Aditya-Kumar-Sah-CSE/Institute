@@ -28,7 +28,8 @@ export default async function InstructorDashboardPage() {
     const { data: enrollments } = await supabase
       .from('enrollments')
       .select('user_id')
-      .in('course_id', courseIds);
+      .in('course_id', courseIds)
+      .eq('status', 'approved');
     const uniqueUsers = new Set(enrollments?.map(e => e.user_id));
     studentCount = uniqueUsers.size;
 
