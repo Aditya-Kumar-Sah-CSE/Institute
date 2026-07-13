@@ -14,8 +14,8 @@ export async function POST(req: NextRequest) {
     const url = formData.get('url') as string || '';
     const file = formData.get('file') as File | null;
     
-    if (!file) {
-      // If no file, just redirect to the app root or handle text appropriately
+    if (!file && !url && !text) {
+      // If no file and no text/url, redirect to root
       return NextResponse.redirect(new URL('/', req.url), { status: 303 });
     }
 
@@ -51,27 +51,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.redirect(new URL('/login', req.url), { status: 303 });
     }
 
-    const fileExt = file.name.split('.').pop() || 'pdf';
-    const filePath = `temp/${user.id}/${Date.now()}.${fileExt}`;
+    let finalPublicUrl = url || text || '';
+    let finalFileName = title || 'Shared Link';
 
-    // Compute public URL instantly without waiting for upload
-    const { data: { publicUrl } } = supabase.storage
-      .from('lesson_notes')
-      .getPublicUrl(filePath);
+    if (file && file.size > 0 && file.name) {
+      const fileExt = file.name.split('.').pop() || 'pdf';
+      const filePath = `temp/${user.id}/${Date.now()}.${fileExt}`;
 
-    // Start background upload using 'after'
-    after(async () => {
-      console.log('Starting background upload for:', filePath);
-      const { error } = await supabase.storage
+      // Compute public URL instantly without waiting for upload
+      finalPublicUrl = supabase.storage
         .from('lesson_notes')
-        .upload(filePath, file, { upsert: true });
+        .getPublicUrl(filePath).data.publicUrl;
         
-      if (error) {
-        console.error('Background upload error:', error);
-      } else {
-        console.log('Background upload completed successfully.');
-      }
-    });
+      finalFileName = file.name || title || 'Shared File';
+
+      // Start background upload using 'after'
+      after(async () => {
+        console.log('Starting background upload for:', filePath);
+        const { error } = await supabase.storage
+          .from('lesson_notes')
+          .upload(filePath, file, { upsert: true });
+          
+        if (error) {
+          console.error('Background upload error:', error);
+        } else {
+          console.log('Background upload completed successfully.');
+        }
+      });
+    }
       
     const { data: profile } = await supabase
       .from('profiles')
@@ -89,8 +96,8 @@ export async function POST(req: NextRequest) {
       redirectUrl = new URL('/instructor/share-upload', req.url);
     }
     
-    redirectUrl.searchParams.set('fileUrl', publicUrl);
-    redirectUrl.searchParams.set('fileName', file.name || title || 'Shared File');
+    redirectUrl.searchParams.set('fileUrl', finalPublicUrl);
+    redirectUrl.searchParams.set('fileName', finalFileName);
     
     return NextResponse.redirect(redirectUrl, { status: 303 });
 

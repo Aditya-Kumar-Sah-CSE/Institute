@@ -37,8 +37,16 @@ export default function AskDoubtModal({ isOpen, onClose, courseId, lessonId, ini
   };
 
   const isPdf = initialFileUrl?.split('?')[0].toLowerCase().endsWith('.pdf');
+  const isImageMatch = initialFileUrl?.match(/\.(jpeg|jpg|gif|png|webp)(\?|#|$)/i);
+  const isImage = !!isImageMatch || initialFileUrl?.includes('storage/v1/object/public/lesson_notes/'); // Fallback for supabase uploads if extension is missed, though we append it. But wait, we shouldn't assume it's image if it's text. Let's just stick to the regex and assume Supabase files are images if not pdf. Wait.
+
+  // Actually, better logic:
   const defaultMarkdown = initialFileUrl 
-    ? (isPdf ? `\n\n[View Shared File](${initialFileUrl})` : `\n\n![Shared Image](${initialFileUrl})`) 
+    ? (isPdf 
+        ? `\n\n[View Shared File](${initialFileUrl})` 
+        : isImageMatch 
+            ? `\n\n![Shared Image](${initialFileUrl})` 
+            : `\n\n[Shared Link](${initialFileUrl})`) 
     : '';
 
   return (
