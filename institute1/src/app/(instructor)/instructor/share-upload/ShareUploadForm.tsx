@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import LazyAttachment from '@/components/ui/LazyAttachment';
 
 export default function ShareUploadForm({ 
   fileUrl, 
@@ -129,11 +130,27 @@ export default function ShareUploadForm({
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         
         {fileUrl && (
-          <div style={{ padding: '1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)' }}>
-            <strong>Uploaded File:</strong> <br/>
-            <a href={fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>
-              {fileName || 'View File'}
-            </a>
+          <div style={{ padding: 'var(--space-md)', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+            <span style={{ fontSize: 'var(--text-sm)', fontWeight: 'bold' }}>Uploaded Content Preview:</span>
+            {(() => {
+              const url = fileUrl.split('?')[0].toLowerCase();
+              const isPdf = url.endsWith('.pdf');
+              const isImage = url.match(/\.(jpeg|jpg|gif|png|webp)$/i) || fileUrl.includes('storage/v1/object/public/lesson_notes/');
+              
+              if (isPdf || isImage) {
+                return (
+                  <div style={{ maxWidth: '300px', width: '100%' }}>
+                    <LazyAttachment url={fileUrl} type={isPdf ? 'pdf' : 'image'} title={fileName || 'Shared File'} />
+                  </div>
+                );
+              }
+              // Normal URL Link
+              return (
+                <a href={fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--neon-cyan)', wordBreak: 'break-all' }}>
+                  {fileName || fileUrl}
+                </a>
+              );
+            })()}
           </div>
         )}
 
