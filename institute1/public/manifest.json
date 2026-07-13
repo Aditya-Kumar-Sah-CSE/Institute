@@ -21,9 +21,14 @@
           "name": "file",
           "accept": [
             "application/pdf",
+            ".pdf",
             "image/jpeg",
+            ".jpg",
+            ".jpeg",
             "image/png",
-            "image/webp"
+            ".png",
+            "image/webp",
+            ".webp"
           ]
         }
       ]
