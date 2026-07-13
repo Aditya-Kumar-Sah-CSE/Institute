@@ -6,6 +6,18 @@ import { after } from 'next/server';
 
 export async function POST(req: NextRequest) {
   try {
+    const contentLength = req.headers.get('content-length');
+    
+    // Safety check BEFORE reading formData which will crash if it's too large.
+    // Set to 15MB to fulfill maximum size requirements gracefully.
+    if (contentLength && parseInt(contentLength, 10) > 15 * 1024 * 1024) {
+      console.warn('Share target rejected because payload is too large (> 15MB).');
+      // We don't have the user yet so we just redirect to the home/dashboard with an error message
+      // and they'll naturally route appropriately if they log in.
+      const errorUrl = new URL('/dashboard?error=FileTooLarge', req.url);
+      return NextResponse.redirect(errorUrl, { status: 303 });
+    }
+
     const formData = await req.formData();
     
     // Web Share Target fields typically include: title, text, url, file
