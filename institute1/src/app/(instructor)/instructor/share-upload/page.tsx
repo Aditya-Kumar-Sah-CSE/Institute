@@ -24,7 +24,7 @@ export default async function ShareUploadPage(props: {
     .order('created_at', { ascending: false });
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
+    <div style={{ padding: '1rem', maxWidth: '800px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
       <div className="page-header" style={{ marginBottom: '2rem' }}>
         <h1 className="text-gradient">Share Material Upload</h1>
         <p style={{ color: 'var(--text-secondary)' }}>

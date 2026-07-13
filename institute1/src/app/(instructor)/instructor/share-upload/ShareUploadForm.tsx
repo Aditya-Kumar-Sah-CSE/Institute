@@ -100,7 +100,7 @@ export default function ShareUploadForm({
   };
 
   return (
-    <div style={{ backgroundColor: 'var(--bg-card)', padding: '2rem', borderRadius: 'var(--radius-lg)' }}>
+    <div style={{ backgroundColor: 'var(--bg-card)', padding: '1.25rem', borderRadius: 'var(--radius-lg)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         
         {fileUrl && (
@@ -130,17 +130,17 @@ export default function ShareUploadForm({
         {selectedCourse && (
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Action</label>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <input type="radio" checked={actionChoice === 'new_lesson'} onChange={() => setActionChoice('new_lesson')} />
-                Add New Lesson
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', cursor: 'pointer' }}>
+                <input type="radio" checked={actionChoice === 'new_lesson'} onChange={() => setActionChoice('new_lesson')} style={{ scale: 1.2 }} />
+                Add New Lesson/Material
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <input type="radio" checked={actionChoice === 'existing_lesson'} onChange={() => setActionChoice('existing_lesson')} />
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', cursor: 'pointer' }}>
+                <input type="radio" checked={actionChoice === 'existing_lesson'} onChange={() => setActionChoice('existing_lesson')} style={{ scale: 1.2 }} />
                 Update Existing Lesson Material
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <input type="radio" checked={actionChoice === 'new_assignment'} onChange={() => setActionChoice('new_assignment')} />
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', cursor: 'pointer' }}>
+                <input type="radio" checked={actionChoice === 'new_assignment'} onChange={() => setActionChoice('new_assignment')} style={{ scale: 1.2 }} />
                 Add Assignment to Existing Lesson
               </label>
             </div>
