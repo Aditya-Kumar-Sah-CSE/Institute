@@ -64,8 +64,22 @@ export async function POST(req: NextRequest) {
       .from('lesson_notes')
       .getPublicUrl(filePath);
       
-    // Redirect to the Share Upload UI with the file info in the query params
-    const redirectUrl = new URL('/instructor/share-upload', req.url);
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    let redirectUrl: URL;
+    const isStudent = profile?.role === 'user' || profile?.role === 'student';
+
+    if (isStudent) {
+      redirectUrl = new URL('/dashboard/share-doubt', req.url);
+    } else {
+      // Redirect to the Share Upload UI for instructors
+      redirectUrl = new URL('/instructor/share-upload', req.url);
+    }
+    
     redirectUrl.searchParams.set('fileUrl', publicUrl);
     redirectUrl.searchParams.set('fileName', file.name || title || 'Shared File');
     

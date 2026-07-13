@@ -13,9 +13,10 @@ interface AskDoubtModalProps {
   onClose: () => void;
   courseId?: string;
   lessonId?: string;
+  initialFileUrl?: string | null;
 }
 
-export default function AskDoubtModal({ isOpen, onClose, courseId, lessonId }: AskDoubtModalProps) {
+export default function AskDoubtModal({ isOpen, onClose, courseId, lessonId, initialFileUrl }: AskDoubtModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -34,6 +35,11 @@ export default function AskDoubtModal({ isOpen, onClose, courseId, lessonId }: A
     }
     setIsSubmitting(false);
   };
+
+  const isPdf = initialFileUrl?.split('?')[0].toLowerCase().endsWith('.pdf');
+  const defaultMarkdown = initialFileUrl 
+    ? (isPdf ? `\n\n[View Shared File](${initialFileUrl})` : `\n\n![Shared Image](${initialFileUrl})`) 
+    : '';
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Ask a Doubt (+10 XP ⚡)">
@@ -59,6 +65,7 @@ export default function AskDoubtModal({ isOpen, onClose, courseId, lessonId }: A
             id="doubt-description" 
             rows={5} 
             required 
+            defaultValue={defaultMarkdown}
             placeholder="Explain your doubt in detail... (Ask to earn +10 XP!)"
             style={{ 
               background: 'rgba(255, 255, 255, 0.05)', 

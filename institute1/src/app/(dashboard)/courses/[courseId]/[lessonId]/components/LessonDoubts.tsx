@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import AskDoubtModal from '@/features/doubts/components/AskDoubtModal';
@@ -14,6 +15,15 @@ interface LessonDoubtsProps {
 
 export default function LessonDoubts({ courseId, lessonId, doubts }: LessonDoubtsProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const searchParams = useSearchParams();
+  const askDoubtParam = searchParams.get('askDoubt');
+  const sharedFileUrl = searchParams.get('sharedFileUrl');
+
+  useEffect(() => {
+    if (askDoubtParam === 'true') {
+      setIsModalOpen(true);
+    }
+  }, [askDoubtParam]);
 
   return (
     <div style={{ marginTop: 'var(--space-2xl)' }}>
@@ -67,6 +77,7 @@ export default function LessonDoubts({ courseId, lessonId, doubts }: LessonDoubt
         onClose={() => setIsModalOpen(false)} 
         courseId={courseId}
         lessonId={lessonId}
+        initialFileUrl={sharedFileUrl}
       />
     </div>
   );
