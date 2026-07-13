@@ -63,7 +63,10 @@ export default function AssignmentCard({ assignment, submission, communitySubmis
       </div>
 
       <div className="assignment-desc" style={{ whiteSpace: 'pre-wrap' }}>
-        {assignment.description}
+        {(() => {
+          const urlRegex = /(https?:\/\/[^\s]+)/g;
+          return (assignment.description || '').replace(urlRegex, '').trim();
+        })()}
         {(() => {
           const urlRegex = /(https?:\/\/[^\s]+)/g;
           const descriptionUrls = (assignment.description || '').match(urlRegex) || [];
