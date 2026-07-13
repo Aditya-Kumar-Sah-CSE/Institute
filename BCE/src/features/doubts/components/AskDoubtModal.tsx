@@ -13,9 +13,10 @@ interface AskDoubtModalProps {
   onClose: () => void;
   courseId?: string;
   lessonId?: string;
+  initialFileUrl?: string | null;
 }
 
-export default function AskDoubtModal({ isOpen, onClose, courseId, lessonId }: AskDoubtModalProps) {
+export default function AskDoubtModal({ isOpen, onClose, courseId, lessonId, initialFileUrl }: AskDoubtModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -34,6 +35,19 @@ export default function AskDoubtModal({ isOpen, onClose, courseId, lessonId }: A
     }
     setIsSubmitting(false);
   };
+
+  const isPdf = initialFileUrl?.split('?')[0].toLowerCase().endsWith('.pdf');
+  const isImageMatch = initialFileUrl?.match(/\.(jpeg|jpg|gif|png|webp)(\?|#|$)/i);
+  const isImage = !!isImageMatch || initialFileUrl?.includes('storage/v1/object/public/lesson_notes/'); // Fallback for supabase uploads if extension is missed, though we append it. But wait, we shouldn't assume it's image if it's text. Let's just stick to the regex and assume Supabase files are images if not pdf. Wait.
+
+  // Actually, better logic:
+  const defaultMarkdown = initialFileUrl 
+    ? (isPdf 
+        ? `\n\n[View Shared File](${initialFileUrl})` 
+        : isImageMatch 
+            ? `\n\n![Shared Image](${initialFileUrl})` 
+            : `\n\n[Shared Link](${initialFileUrl})`) 
+    : '';
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Ask a Doubt (+10 XP ⚡)">
@@ -59,6 +73,7 @@ export default function AskDoubtModal({ isOpen, onClose, courseId, lessonId }: A
             id="doubt-description" 
             rows={5} 
             required 
+            defaultValue={defaultMarkdown}
             placeholder="Explain your doubt in detail... (Ask to earn +10 XP!)"
             style={{ 
               background: 'rgba(255, 255, 255, 0.05)', 

@@ -61,31 +61,46 @@
   .lesson-actions-container {
     flex-direction: row;
     flex-wrap: nowrap;
-    align-items: center;
+    align-items: stretch;
     justify-content: space-between;
-    gap: 10%;
+    gap: 8px;
     width: 100%;
     margin-top: var(--space-md);
+    overflow: hidden;
   }
 
   .lesson-actions-container > * {
     flex: 1;
-    width: 45%;
+    min-width: 0; /* Prevents flex children from overflowing */
   }
 
   .lesson-action-group {
     width: 100%;
-    justify-content: space-between;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     background: rgba(255,255,255,0.03);
-    padding: 8px 12px;
+    padding: 6px 4px;
     border-radius: var(--radius-md);
     border: 1px solid rgba(255,255,255,0.1);
+    gap: 4px;
+  }
+  
+  .lesson-action-group .lesson-reward {
+    text-align: center;
+    font-size: 12px !important;
   }
 
   .lesson-action-group a,
   .lesson-action-group button {
+    width: 100%;
     flex: 1;
     text-align: center;
     justify-content: center;
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+    font-size: 13px !important;
+    white-space: normal;
+    word-break: break-word;
   }
 }

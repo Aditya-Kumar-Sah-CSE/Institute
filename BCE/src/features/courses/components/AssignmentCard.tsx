@@ -63,7 +63,26 @@ export default function AssignmentCard({ assignment, submission, communitySubmis
       </div>
 
       <div className="assignment-desc" style={{ whiteSpace: 'pre-wrap' }}>
-        {assignment.description}
+        {(() => {
+          const urlRegex = /(https?:\/\/[^\s]+)/g;
+          return (assignment.description || '').replace(urlRegex, '').trim();
+        })()}
+        {(() => {
+          const urlRegex = /(https?:\/\/[^\s]+)/g;
+          const descriptionUrls = (assignment.description || '').match(urlRegex) || [];
+          if (descriptionUrls.length === 0) return null;
+          
+          return (
+            <div style={{ marginTop: 'var(--space-sm)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--space-sm)' }}>
+                {descriptionUrls.map((url, idx) => {
+                  const isPdf = url.split('?')[0].toLowerCase().endsWith('.pdf');
+                  return <LazyAttachment key={`desc-att-${idx}`} url={url} type={isPdf ? 'pdf' : 'image'} title={`Attachment ${idx + 1}`} />;
+                })}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {!isCompleted && (

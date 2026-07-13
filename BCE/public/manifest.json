@@ -8,6 +8,32 @@
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
+  "share_target": {
+    "action": "/api/pwa-share-target",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "file",
+          "accept": [
+            "application/pdf",
+            ".pdf",
+            "image/jpeg",
+            ".jpg",
+            ".jpeg",
+            "image/png",
+            ".png",
+            "image/webp",
+            ".webp"
+          ]
+        }
+      ]
+    }
+  },
   "icons": [
     {
       "src": "/icon-192x192.png",

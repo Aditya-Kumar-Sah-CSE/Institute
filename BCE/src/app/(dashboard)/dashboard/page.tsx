@@ -22,7 +22,8 @@ interface DashboardEnrollment {
   courses: Course | null;
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  const searchParams = await props.searchParams;
   const supabase = await createClient();
   const user = await getUser();
 
@@ -138,8 +139,16 @@ export default async function DashboardPage() {
            </div>
         )}
         <div className="dashboard-welcome">
+          {searchParams?.error === 'FileTooLarge' && (
+            <div style={{ background: 'rgba(255, 0, 0, 0.1)', border: '1px solid var(--neon-red)', padding: 'var(--space-md)', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--space-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+              <strong style={{ color: 'var(--neon-red)', fontSize: 'var(--text-lg)' }}>
+                Upload Failed: File Too Large
+              </strong>
+              <p style={{ color: 'var(--text-primary)', margin: 0 }}>The file you tried to share exceeds the 15MB server limit. Please share a smaller file.</p>
+            </div>
+          )}
           <h1 className="text-gradient" style={{ fontSize: 'var(--text-4xl)', marginBottom: 'var(--space-xs)' }}>
-            Welcome back, {profile?.name.split(' ')[0]}!
+            Welcome back, {profile?.name?.split(' ')[0] || 'Student'}!
           </h1>
           <p className="text-secondary" style={{ fontSize: 'var(--text-lg)' }}>
             Ready to continue your learning journey?
