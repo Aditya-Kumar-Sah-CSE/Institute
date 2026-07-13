@@ -68,7 +68,7 @@ export default async function DoubtDetailsPage({ params }: { params: Promise<{ i
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(var(--space-md), 4vw, var(--space-lg))' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
         <Link href="/doubts" style={{ color: 'var(--text-secondary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
           ← Back
@@ -142,7 +142,7 @@ export default async function DoubtDetailsPage({ params }: { params: Promise<{ i
         </div>
       </Card>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)', marginLeft: 'var(--space-md)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)', marginLeft: 'clamp(0px, 4vw, var(--space-md))' }}>
         <h3 style={{ fontSize: 'var(--text-lg)', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: 'var(--space-xs)' }}>
           {replies?.length || 0} Replies
         </h3>
@@ -198,7 +198,7 @@ export default async function DoubtDetailsPage({ params }: { params: Promise<{ i
       </div>
 
       {doubt.status !== 'resolved' && (
-        <Card variant="glass" style={{ marginLeft: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
+        <Card variant="glass" style={{ marginLeft: 'clamp(0px, 4vw, var(--space-md))', marginTop: 'var(--space-md)' }}>
           <h4 style={{ marginBottom: 'var(--space-sm)' }}>Your Reply</h4>
           {canReply ? (
             <ReplyForm doubtId={doubt.id} />
