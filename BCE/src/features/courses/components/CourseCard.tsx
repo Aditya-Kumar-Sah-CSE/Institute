@@ -13,13 +13,15 @@ import { enrollInCourse, getTopEnrolledStudents } from '@/features/courses/actio
 import type { Course } from '@/types';
 import './CourseCard.css';
 
+import Image from 'next/image';
+
 function FallbackAvatar({ src, name, size }: { src?: string | null, name?: string | null, size: number }) {
   const [error, setError] = useState(false);
   
   if (!src || error) {
     return <span style={{ fontSize: size * 0.4, color: 'var(--neon-cyan)', fontWeight: 'bold' }}>{(name || 'S').charAt(0).toUpperCase()}</span>;
   }
-  return <img src={src} alt={name || 'User'} width={size} height={size} style={{ objectFit: 'cover', borderRadius: '50%' }} onError={() => setError(true)} />;
+  return <Image src={src} alt={name || 'User'} width={size} height={size} style={{ objectFit: 'cover', borderRadius: '50%' }} onError={() => setError(true)} />;
 }
 
 interface CourseCardProps {

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Card from '@/components/ui/Card';
+import Image from 'next/image';
 
 export interface Notice {
   id: string;
@@ -49,12 +50,13 @@ export default function NoticeBoard({ notices, emptyMessage = 'No notices availa
             </div>
             <p style={{ margin: '0 0 var(--space-md) 0', whiteSpace: 'pre-wrap' }}>{notice.content}</p>
             {notice.image_url && (
-              <div style={{ marginBottom: 'var(--space-md)' }}>
-                <img 
+              <div style={{ marginBottom: 'var(--space-md)', position: 'relative', width: '100%', height: '400px', cursor: 'pointer' }} onClick={() => setSelectedImage(notice.image_url!)}>
+                <Image 
                   src={notice.image_url} 
                   alt="Notice attachment" 
-                  style={{ maxWidth: '100%', borderRadius: 'var(--radius-md)', maxHeight: '400px', objectFit: 'contain', cursor: 'pointer' }} 
-                  onClick={() => setSelectedImage(notice.image_url!)}
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  style={{ objectFit: 'contain', borderRadius: 'var(--radius-md)' }} 
                 />
               </div>
             )}
@@ -85,11 +87,15 @@ export default function NoticeBoard({ notices, emptyMessage = 'No notices availa
           }}
           onClick={() => setSelectedImage(null)}
         >
-          <img 
-            src={selectedImage} 
-            alt="Preview" 
-            style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 'var(--radius-md)' }} 
-          />
+          <div style={{ position: 'relative', width: '90vw', height: '90vh' }}>
+            <Image 
+              src={selectedImage} 
+              alt="Preview" 
+              fill
+              sizes="90vw"
+              style={{ objectFit: 'contain', borderRadius: 'var(--radius-md)' }} 
+            />
+          </div>
           <button 
             onClick={() => setSelectedImage(null)}
             style={{
