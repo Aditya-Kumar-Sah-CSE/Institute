@@ -66,14 +66,14 @@ export default function DiscussionThread({ doubt, replies, currentUser }: any) {
     
     return (
       <div key={reply.id} style={{ 
-        marginLeft: isNested ? 'var(--space-xl)' : 0,
+        marginLeft: isNested ? 'clamp(1rem, 5vw, var(--space-xl))' : 0,
         marginTop: isNested ? 'var(--space-sm)' : 'var(--space-md)',
-        padding: isNested ? 0 : 'var(--space-md)',
+        padding: isNested ? 0 : 'clamp(var(--space-sm), 3vw, var(--space-md))',
         background: isNested ? 'transparent' : 'rgba(255,255,255,0.02)',
         borderRadius: '12px',
         border: reply.is_accepted ? '2px solid var(--neon-green)' : (isNested ? 'none' : '1px solid rgba(255,255,255,0.1)'),
         borderLeft: isNested ? '2px solid rgba(255,255,255,0.1)' : undefined,
-        paddingLeft: isNested ? 'var(--space-md)' : 'var(--space-md)'
+        paddingLeft: isNested ? 'clamp(8px, 3vw, var(--space-md))' : 'clamp(var(--space-sm), 3vw, var(--space-md))'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-sm)' }}>
           <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'flex-start' }}>
@@ -161,10 +161,10 @@ export default function DiscussionThread({ doubt, replies, currentUser }: any) {
   };
 
   return (
-    <div style={{ padding: 'var(--space-md)' }}>
+    <div style={{ padding: 'clamp(var(--space-xs), 3vw, var(--space-md))' }}>
       {/* Original Doubt */}
-      <div className="glass-card" style={{ padding: 'var(--space-xl)', marginBottom: 'var(--space-xl)' }}>
-        <h1 style={{ fontSize: 'var(--text-2xl)', marginBottom: 'var(--space-md)', color: 'var(--text-primary)' }}>{doubt.title}</h1>
+      <div className="glass-card" style={{ padding: 'clamp(var(--space-md), 5vw, var(--space-xl))', marginBottom: 'clamp(var(--space-lg), 5vw, var(--space-xl))' }}>
+        <h1 style={{ fontSize: 'clamp(var(--text-xl), 5vw, var(--text-2xl))', marginBottom: 'var(--space-md)', color: 'var(--text-primary)' }}>{doubt.title}</h1>
         
         <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'flex-start', marginBottom: 'var(--space-lg)', paddingBottom: 'var(--space-md)', borderBottom: '1px solid rgba(255,255,255,0.1)', flexWrap: 'wrap' }}>
           <img src={doubt.author?.avatar_url || DEFAULT_AVATAR} alt="avatar" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid var(--neon-cyan)' }} onError={(e) => { e.currentTarget.src = DEFAULT_AVATAR; }} />
