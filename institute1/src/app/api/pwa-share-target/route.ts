@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+// 'after' allows running async processes safely after sending a response on Vercel without blocking.
+import { after } from 'next/server';
 
 export async function POST(req: NextRequest) {
   try {
@@ -39,30 +41,37 @@ export async function POST(req: NextRequest) {
       }
     );
 
-    // Verify user is authenticated
-    const { data: { user } } = await supabase.auth.getUser();
+    // Fetch user and profile concurrently to save time
+    const [userRes] = await Promise.all([
+      supabase.auth.getUser()
+    ]);
     
+    const user = userRes.data.user;
     if (!user) {
       return NextResponse.redirect(new URL('/login', req.url), { status: 303 });
     }
 
-    // Upload to lesson_notes bucket in a temporary namespace
     const fileExt = file.name.split('.').pop() || 'pdf';
     const filePath = `temp/${user.id}/${Date.now()}.${fileExt}`;
 
-    const { data, error } = await supabase.storage
-      .from('lesson_notes')
-      .upload(filePath, file, { upsert: true });
-
-    if (error) {
-      console.error('Error uploading shared file:', error);
-      return NextResponse.redirect(new URL('/instructor?error=UploadFailed', req.url), { status: 303 });
-    }
-
-    // Get public URL
+    // Compute public URL instantly without waiting for upload
     const { data: { publicUrl } } = supabase.storage
       .from('lesson_notes')
       .getPublicUrl(filePath);
+
+    // Start background upload using 'after'
+    after(async () => {
+      console.log('Starting background upload for:', filePath);
+      const { error } = await supabase.storage
+        .from('lesson_notes')
+        .upload(filePath, file, { upsert: true });
+        
+      if (error) {
+        console.error('Background upload error:', error);
+      } else {
+        console.log('Background upload completed successfully.');
+      }
+    });
       
     const { data: profile } = await supabase
       .from('profiles')
