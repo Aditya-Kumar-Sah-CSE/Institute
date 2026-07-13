@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
     const isStudent = profile?.role === 'user' || profile?.role === 'student';
 
     if (isStudent) {
-      redirectUrl = new URL('/dashboard/share-doubt', req.url);
+      redirectUrl = new URL('/share-doubt', req.url);
     } else {
       // Redirect to the Share Upload UI for instructors
       redirectUrl = new URL('/instructor/share-upload', req.url);
