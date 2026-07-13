@@ -2,12 +2,11 @@ import { createClient, getUser } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Sidebar from '@/components/layout/Sidebar';
 import Navbar from '@/components/layout/Navbar';
-import BadgeCelebrator from '@/components/shared/BadgeCelebrator';
-import { updateStreak } from '@/features/gamification/actions/gamification';
-import './DashboardLayout.css';
-import MonthlyCelebrator from '@/components/shared/MonthlyCelebrator';
 import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 import { signOut } from '@/features/auth/actions/auth';
+import { updateStreak } from '@/features/gamification/actions/gamification';
+import BadgeCelebrator from '@/components/shared/BadgeCelebrator';
+import MonthlyCelebrator from '@/components/shared/MonthlyCelebrator';
 
 export default async function DashboardLayout({
   children,

@@ -14,12 +14,12 @@ const jetbrainsMono = JetBrains_Mono({
   variable: '--font-mono',
 });
 
+import { Analytics } from "@vercel/analytics/react";
+import { ThemeProvider } from '@/components/ThemeProvider';
 import PwaRegister from '@/components/PwaRegister';
 import PWAInstallPrompt from '@/components/pwa/PWAInstallPrompt';
 import FeedbackWidget from '@/components/shared/FeedbackWidget';
 import XpCelebrator from '@/components/shared/XpCelebrator';
-import { Analytics } from "@vercel/analytics/react";
-import { ThemeProvider } from '@/components/ThemeProvider';
 
 export const viewport: Viewport = {
   themeColor: '#000000',

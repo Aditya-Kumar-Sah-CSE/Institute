@@ -23,13 +23,14 @@ export const dynamic = 'force-dynamic';
 export default async function ProfilePage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  const { getOrCreateProfile } = await import('@/lib/profile');
 
   if (!user) redirect('/login');
 
   const adminSb = await createAdminClient();
 
   const [
-    { data: profile },
+    profile,
     { data: allBadges },
     { data: earnedBadges },
     { data: xpLogs },
@@ -37,7 +38,7 @@ export default async function ProfilePage() {
     { data: appData },
     monthlyRewards
   ] = await Promise.all([
-    supabase.from('profiles').select('*').eq('id', user.id).single(),
+    getOrCreateProfile(user),
     supabase.from('badges').select('*').order('created_at', { ascending: true }),
     supabase.from('user_badges').select('*, badge:badges(*)').eq('user_id', user.id),
     supabase.from('xp_log').select('id, action, xp_amount, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5),

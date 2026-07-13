@@ -3,17 +3,19 @@ import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import CourseCard from '@/features/courses/components/CourseCard';
 import { getNotices } from '@/features/notices/actions';
-import NoticeBoard from '@/features/notices/components/NoticeBoard';
 import type { Notice } from '@/features/notices/components/NoticeBoard';
 import type { Course } from '@/types';
-import DashboardProfileCard from './components/DashboardProfileCard';
 import { createAdminClient } from '@/lib/supabase/server';
-import PollAlerts from './components/PollAlerts';
-import DashboardPolls from './components/DashboardPolls';
-import ContinueLearning from './components/ContinueLearning';
-import DashboardAlerts from './components/DashboardAlerts';
 import { getDashboardPolls } from '@/features/courses/actions/polls';
 import { Zap, Flame, CheckCircle, Award } from 'lucide-react';
+import dynamic from 'next/dynamic';
+
+const NoticeBoard = dynamic(() => import('@/features/notices/components/NoticeBoard'), { loading: () => <div className="skeleton-dash" style={{ height: '300px', borderRadius: '12px' }}></div> });
+const DashboardProfileCard = dynamic(() => import('./components/DashboardProfileCard'), { loading: () => <div className="skeleton-dash" style={{ height: '300px', borderRadius: '12px' }}></div> });
+const PollAlerts = dynamic(() => import('./components/PollAlerts'));
+const DashboardPolls = dynamic(() => import('./components/DashboardPolls'), { loading: () => <div className="skeleton-dash" style={{ height: '200px', borderRadius: '12px' }}></div> });
+const ContinueLearning = dynamic(() => import('./components/ContinueLearning'), { loading: () => <div className="skeleton-dash" style={{ height: '250px', borderRadius: '12px' }}></div> });
+const DashboardAlerts = dynamic(() => import('./components/DashboardAlerts'));
 
 interface DashboardEnrollment {
   progress: number;
@@ -29,7 +31,8 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
 
   if (!user) return null;
 
-  const profilePromise = supabase.from('profiles').select('*').eq('id', user.id).single();
+  const { getOrCreateProfile } = await import('@/lib/profile');
+  const profilePromise = getOrCreateProfile(user);
   
   // Fetch enrollments with course details
   const enrollmentsPromise = supabase
@@ -72,7 +75,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
   // Fetch unread poll alerts
   const pollAlertsPromise = supabase
     .from('notifications')
-    .select('*')
+    .select('id, message, created_at, link')
     .eq('user_id', user.id)
     .eq('is_read', false)
     .like('message', '%posted a new poll in%')
