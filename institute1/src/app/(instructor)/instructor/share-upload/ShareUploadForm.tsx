@@ -19,10 +19,15 @@ export default function ShareUploadForm({
   const [selectedCourse, setSelectedCourse] = useState('');
   const [lessons, setLessons] = useState<any[]>([]);
   const [selectedLesson, setSelectedLesson] = useState('');
+  const [targetLevel, setTargetLevel] = useState<'course' | 'notice'>('course');
   const [actionChoice, setActionChoice] = useState<'new_lesson' | 'existing_lesson' | 'new_assignment'>('new_lesson');
   
   const [newLessonTitle, setNewLessonTitle] = useState('');
   const [newAssignmentTitle, setNewAssignmentTitle] = useState('');
+  
+  const [newNoticeTitle, setNewNoticeTitle] = useState('');
+  const [newNoticeContent, setNewNoticeContent] = useState('');
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -41,16 +46,36 @@ export default function ShareUploadForm({
       }
     }
     fetchLessons();
-  }, [selectedCourse]);
+  }, [selectedCourse, supabase]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCourse) return alert('Please select a course.');
     if (!fileUrl) return alert('No file uploaded.');
 
     setIsSubmitting(true);
 
     try {
+      if (targetLevel === 'notice') {
+        if (!newNoticeTitle) return alert('Please provide a notice title.');
+        if (!newNoticeContent) return alert('Please provide notice content.');
+        
+        const { data: userData } = await supabase.auth.getUser();
+        
+        const { error } = await supabase.from('notices').insert({
+          title: newNoticeTitle,
+          content: newNoticeContent,
+          image_url: fileUrl,
+          author_id: userData.user?.id
+        });
+        if (error) throw error;
+        
+        router.push(`/notices`);
+        return;
+      }
+
+      // Course Logic below
+      if (!selectedCourse) return alert('Please select a course.');
+
       if (actionChoice === 'new_lesson') {
         if (!newLessonTitle) return alert('Please provide a lesson title.');
         const sortOrder = lessons.length > 0 ? lessons[lessons.length - 1].sort_order + 1 : 1;
@@ -113,19 +138,62 @@ export default function ShareUploadForm({
         )}
 
         <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Select Course</label>
-          <select 
-            value={selectedCourse} 
-            onChange={(e) => setSelectedCourse(e.target.value)}
-            style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-            required
-          >
-            <option value="">-- Choose a Course --</option>
-            {courses.map(course => (
-              <option key={course.id} value={course.id}>{course.title}</option>
-            ))}
-          </select>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Share Target Level</label>
+          <div style={{ display: 'flex', gap: '1rem', backgroundColor: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: 'var(--radius-md)' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: targetLevel === 'course' ? 'bold' : 'normal', color: targetLevel === 'course' ? 'var(--neon-cyan)' : 'inherit' }}>
+              <input type="radio" checked={targetLevel === 'course'} onChange={() => setTargetLevel('course')} style={{ scale: 1.2 }} />
+              Course Material
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: targetLevel === 'notice' ? 'bold' : 'normal', color: targetLevel === 'notice' ? 'var(--neon-pink)' : 'inherit' }}>
+              <input type="radio" checked={targetLevel === 'notice'} onChange={() => setTargetLevel('notice')} style={{ scale: 1.2 }} />
+              Campus Notice
+            </label>
+          </div>
         </div>
+
+        {targetLevel === 'notice' && (
+          <>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Notice Title</label>
+              <input 
+                type="text" 
+                value={newNoticeTitle} 
+                onChange={(e) => setNewNoticeTitle(e.target.value)}
+                placeholder="e.g. Important Announcement"
+                style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                required
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Notice Content</label>
+              <textarea 
+                value={newNoticeContent} 
+                onChange={(e) => setNewNoticeContent(e.target.value)}
+                rows={4}
+                placeholder="Enter details about this notice..."
+                style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', resize: 'vertical' }}
+                required
+              />
+            </div>
+          </>
+        )}
+
+        {targetLevel === 'course' && (
+          <>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Select Course</label>
+              <select 
+                value={selectedCourse} 
+                onChange={(e) => setSelectedCourse(e.target.value)}
+                style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                required={targetLevel === 'course'}
+              >
+                <option value="">-- Choose a Course --</option>
+                {courses.map(course => (
+                  <option key={course.id} value={course.id}>{course.title}</option>
+                ))}
+              </select>
+            </div>
 
         {selectedCourse && (
           <div>
@@ -192,9 +260,12 @@ export default function ShareUploadForm({
           </div>
         )}
 
+          </>
+        )}
+
         <button 
           type="submit" 
-          disabled={isSubmitting || !selectedCourse}
+          disabled={isSubmitting || (targetLevel === 'course' && !selectedCourse) || (targetLevel === 'notice' && (!newNoticeTitle || !newNoticeContent))}
           style={{ 
             marginTop: '1rem',
             padding: '0.75rem 1.5rem', 
