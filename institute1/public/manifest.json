@@ -1,6 +1,6 @@
 {
-  "name": "Smart Learn",
-  "short_name": "Smart Learning",
+  "name": "Institute1 / BEU",
+  "short_name": "Institute1 BEU",
   "description": "Smart Hybrid Learning & Student Engagement Platform",
   "start_url": "/",
   "id": "/",
@@ -8,6 +8,27 @@
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
+  "share_target": {
+    "action": "/api/pwa-share-target",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "file",
+          "accept": [
+            "application/pdf",
+            "image/jpeg",
+            "image/png",
+            "image/webp"
+          ]
+        }
+      ]
+    }
+  },
   "icons": [
     {
       "src": "/icon-192x192.png",
