@@ -23,7 +23,7 @@ export default function NotFound() {
         <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-xl)', lineHeight: '1.6' }}>
           We couldn't find the page you're looking for. The student profile or page might have been removed, or the link is incorrect.
         </p>
-        <div style={{ display: 'flex', gap: 'var(--space-md)', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)', justifyContent: 'center' }}>
           <Link href="/dashboard" style={{ textDecoration: 'none' }}>
             <Button>Back to Dashboard</Button>
           </Link>
