@@ -7,16 +7,19 @@ import LazyAttachment from '@/components/ui/LazyAttachment';
 import { Select } from '@/components/ui/Input';
 
 export default function ShareUploadForm({ 
-  fileUrl, 
-  fileName, 
+  attachments = [], 
   courses 
 }: { 
-  fileUrl: string; 
-  fileName: string; 
+  attachments: { url: string; name: string }[]; 
   courses: any[] 
 }) {
   const router = useRouter();
   const supabase = createClient();
+  const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
+
+  // Fallback string values for legacy UI/logic
+  const fileUrl = attachments.length > 0 ? attachments[0].url : '';
+  const fileName = attachments.length > 0 ? attachments[0].name : '';
 
   const [selectedCourse, setSelectedCourse] = useState('');
   const [lessons, setLessons] = useState<any[]>([]);
@@ -52,7 +55,7 @@ export default function ShareUploadForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fileUrl) return alert('No file uploaded.');
+    if (attachments.length === 0) return alert('No file uploaded.');
 
     setIsSubmitting(true);
 
@@ -66,7 +69,7 @@ export default function ShareUploadForm({
         const { error } = await supabase.from('notices').insert({
           title: newNoticeTitle,
           content: newNoticeContent,
-          image_url: fileUrl,
+          image_url: attachments.map(a => a.url),
           author_id: userData.user?.id
         });
         if (error) throw error;
@@ -86,8 +89,8 @@ export default function ShareUploadForm({
         const { error } = await supabase.from('lessons').insert({
           course_id: selectedCourse,
           title: newLessonTitle,
-          pdf_url: fileUrl,
-          notes: fileName,
+          pdf_url: attachments.map(a => a.url),
+          notes: attachments.map(a => a.name).join(', ') || 'Course Material',
           sort_order: sortOrder,
           week_number: weekNumber,
           xp_reward: 10
@@ -97,7 +100,7 @@ export default function ShareUploadForm({
       } else if (actionChoice === 'existing_lesson') {
         if (!selectedLesson) return alert('Please select an existing lesson.');
         const { error } = await supabase.from('lessons').update({
-          pdf_url: fileUrl
+          pdf_url: attachments.map(a => a.url)
         }).eq('id', selectedLesson);
         if (error) throw error;
 
@@ -109,7 +112,7 @@ export default function ShareUploadForm({
           lesson_id: selectedLesson,
           type: 'any',
           title: newAssignmentTitle,
-          description: `Review the attached file for this assignment: ${fileUrl}`,
+          description: `Review the attached file(s) for this assignment: ${attachments.map(a => a.url).join(', ')}`,
           xp_reward: 50,
           requires_github: false,
           requires_deploy: false
@@ -130,28 +133,61 @@ export default function ShareUploadForm({
     <div style={{ backgroundColor: 'var(--bg-card)', padding: '1.25rem', borderRadius: 'var(--radius-lg)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         
-        {fileUrl && (
+        {attachments.length > 0 && (
           <div style={{ padding: 'var(--space-md)', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-            <span style={{ fontSize: 'var(--text-sm)', fontWeight: 'bold' }}>Uploaded Content Preview:</span>
-            {(() => {
-              const url = fileUrl.split('?')[0].toLowerCase();
-              const isPdf = url.endsWith('.pdf');
-              const isImage = url.match(/\.(jpeg|jpg|gif|png|webp)$/i) || fileUrl.includes('storage/v1/object/public/lesson_notes/');
-              
-              if (isPdf || isImage) {
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 'var(--text-sm)', fontWeight: 'bold' }}>Uploaded Content Preview</span>
+              {attachments.length > 1 && (
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-card)', padding: '2px 8px', borderRadius: '12px' }}>
+                  {currentPreviewIndex + 1} / {attachments.length}
+                </span>
+              )}
+            </div>
+
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}>
+              {attachments.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setCurrentPreviewIndex(prev => prev === 0 ? attachments.length - 1 : prev - 1)}
+                  style={{ position: 'absolute', left: 0, zIndex: 10, background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  aria-label="Previous image"
+                >
+                  &#8592;
+                </button>
+              )}
+
+              {(() => {
+                const currentFile = attachments[currentPreviewIndex];
+                const url = currentFile.url.split('?')[0].toLowerCase();
+                const isPdf = url.endsWith('.pdf');
+                const isImage = url.match(/\.(jpeg|jpg|gif|png|webp)$/i) || currentFile.url.includes('storage/v1/object/public/lesson_notes/');
+                
+                if (isPdf || isImage) {
+                  return (
+                    <div style={{ maxWidth: '300px', width: '100%', margin: '0 40px', overflow: 'hidden', borderRadius: 'var(--radius-md)' }}>
+                      <LazyAttachment url={currentFile.url} type={isPdf ? 'pdf' : 'image'} title={currentFile.name || 'Shared File'} />
+                    </div>
+                  );
+                }
+                // Normal URL Link
                 return (
-                  <div style={{ maxWidth: '300px', width: '100%' }}>
-                    <LazyAttachment url={fileUrl} type={isPdf ? 'pdf' : 'image'} title={fileName || 'Shared File'} />
-                  </div>
+                  <a href={currentFile.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--neon-cyan)', wordBreak: 'break-all', margin: '0 40px' }}>
+                    {currentFile.name || currentFile.url}
+                  </a>
                 );
-              }
-              // Normal URL Link
-              return (
-                <a href={fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--neon-cyan)', wordBreak: 'break-all' }}>
-                  {fileName || fileUrl}
-                </a>
-              );
-            })()}
+              })()}
+
+              {attachments.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setCurrentPreviewIndex(prev => prev === attachments.length - 1 ? 0 : prev + 1)}
+                  style={{ position: 'absolute', right: 0, zIndex: 10, background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  aria-label="Next image"
+                >
+                  &#8594;
+                </button>
+              )}
+            </div>
           </div>
         )}
 
