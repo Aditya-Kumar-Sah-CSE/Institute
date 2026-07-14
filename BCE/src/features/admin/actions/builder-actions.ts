@@ -2,6 +2,7 @@
 
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { validateFiles, uploadFiles, serializeAttachmentUrls } from '@/lib/attachments';
 
 // Authorization helper — verifies the user has admin or instructor role
 async function requireBuilderRole() {
@@ -55,22 +56,28 @@ export async function addLesson(courseId: string, formData: FormData) {
   if (!title) return { error: 'Lesson title is required' };
 
   let pdf_url = null;
-  if (pdf_file && pdf_file.size > 0) {
-    const fileExt = pdf_file.name.split('.').pop();
-    const filePath = `notes/lesson_${courseId}_${Date.now()}.${fileExt}`;
+  const pdf_files = formData.getAll('pdf_file') as File[];
+  const validFiles = pdf_files.filter(f => f && f.size > 0);
+
+  if (validFiles.length > 0) {
+    const valResult = validateFiles(validFiles, { maxFiles: 10 });
+    if (!valResult.valid) {
+      return { error: valResult.error };
+    }
 
     const adminSupabase = await createAdminClient();
-    const { error: uploadError } = await adminSupabase.storage
-      .from('lesson_notes')
-      .upload(filePath, pdf_file, { upsert: true });
+    const { urls, errors } = await uploadFiles({
+      files: validFiles,
+      supabase: adminSupabase,
+      bucketName: 'lesson_notes',
+      pathPrefix: `lesson_${courseId}`
+    });
 
-    if (uploadError) return { error: `Failed to upload note: ${uploadError.message}` };
+    if (errors.length > 0 && urls.length === 0) {
+      return { error: `Failed to upload notes: ${errors[0]}` };
+    }
 
-    const { data: { publicUrl } } = adminSupabase.storage
-      .from('lesson_notes')
-      .getPublicUrl(filePath);
-    
-    pdf_url = publicUrl;
+    pdf_url = serializeAttachmentUrls(urls);
   }
 
   const { error } = await supabase.from('lessons').insert({
@@ -132,22 +139,28 @@ export async function updateLesson(lessonId: string, courseId: string, formData:
   if (!isNaN(sort_order)) updateData.sort_order = sort_order;
   if (!isNaN(week_number)) updateData.week_number = week_number;
 
-  if (pdf_file && pdf_file.size > 0) {
-    const fileExt = pdf_file.name.split('.').pop();
-    const filePath = `notes/lesson_${courseId}_${Date.now()}.${fileExt}`;
+  const pdf_files = formData.getAll('pdf_file') as File[];
+  const validFiles = pdf_files.filter(f => f && f.size > 0);
+
+  if (validFiles.length > 0) {
+    const valResult = validateFiles(validFiles, { maxFiles: 10 });
+    if (!valResult.valid) {
+      return { error: valResult.error };
+    }
 
     const adminSupabase = await createAdminClient();
-    const { error: uploadError } = await adminSupabase.storage
-      .from('lesson_notes')
-      .upload(filePath, pdf_file, { upsert: true });
+    const { urls, errors } = await uploadFiles({
+      files: validFiles,
+      supabase: adminSupabase,
+      bucketName: 'lesson_notes',
+      pathPrefix: `lesson_${courseId}`
+    });
 
-    if (uploadError) return { error: `Failed to upload note: ${uploadError.message}` };
+    if (errors.length > 0 && urls.length === 0) {
+      return { error: `Failed to upload note: ${errors[0]}` };
+    }
 
-    const { data: { publicUrl } } = adminSupabase.storage
-      .from('lesson_notes')
-      .getPublicUrl(filePath);
-    
-    updateData.pdf_url = publicUrl;
+    updateData.pdf_url = serializeAttachmentUrls(urls);
   }
 
   const { error } = await supabase.from('lessons').update(updateData).eq('id', lessonId);

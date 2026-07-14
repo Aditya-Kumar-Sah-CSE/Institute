@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import LazyAttachment from '@/components/ui/LazyAttachment';
+import { Select } from '@/components/ui/Input';
 
 export default function ShareUploadForm({ 
   fileUrl, 
@@ -198,18 +199,14 @@ export default function ShareUploadForm({
         {targetLevel === 'course' && (
           <>
             <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Select Course</label>
-              <select 
+              <Select 
+                label="Select Course"
+                name="course"
                 value={selectedCourse} 
                 onChange={(e) => setSelectedCourse(e.target.value)}
-                style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                options={[{ value: '', label: '-- Choose a Course --' }, ...courses.map(course => ({ value: course.id, label: course.title }))]}
                 required={targetLevel === 'course'}
-              >
-                <option value="">-- Choose a Course --</option>
-                {courses.map(course => (
-                  <option key={course.id} value={course.id}>{course.title}</option>
-                ))}
-              </select>
+              />
             </div>
 
         {selectedCourse && (
@@ -248,18 +245,14 @@ export default function ShareUploadForm({
 
         {(actionChoice === 'existing_lesson' || actionChoice === 'new_assignment') && selectedCourse && (
           <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Select Existing Lesson</label>
-            <select 
+            <Select 
+              label="Select Existing Lesson"
+              name="lesson"
               value={selectedLesson} 
               onChange={(e) => setSelectedLesson(e.target.value)}
-              style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+              options={[{ value: '', label: '-- Choose a Lesson --' }, ...lessons.map(lesson => ({ value: lesson.id, label: lesson.title }))]}
               required
-            >
-              <option value="">-- Choose a Lesson --</option>
-              {lessons.map(lesson => (
-                <option key={lesson.id} value={lesson.id}>{lesson.title}</option>
-              ))}
-            </select>
+            />
           </div>
         )}
 

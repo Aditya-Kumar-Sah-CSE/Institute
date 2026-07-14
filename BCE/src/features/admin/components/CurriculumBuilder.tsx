@@ -54,7 +54,7 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
   const handleLessonChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const target = e.target as HTMLInputElement;
     if (target.type === 'file') {
-      setLessonFormData(prev => ({ ...prev, [target.name]: target.files?.[0] }));
+      setLessonFormData(prev => ({ ...prev, [target.name]: target.files }));
     } else {
       setLessonFormData(prev => ({ ...prev, [target.name]: target.value }));
     }
@@ -122,7 +122,9 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
     setIsLoading(true);
     const formData = new FormData();
     Object.entries(lessonFormData).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && v !== '') {
+      if (k === 'pdf_file' && v instanceof FileList) {
+        Array.from(v).forEach(file => formData.append(k, file));
+      } else if (v !== undefined && v !== null && v !== '') {
         formData.append(k, v);
       }
     });
@@ -415,6 +417,7 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                     name="pdf_file" 
                     onChange={handleLessonChange}
                     accept="application/pdf,image/*" 
+                    multiple
                     disabled={isLoading}
                     style={{ padding: 'var(--space-sm)', background: 'var(--bg-input)', color: 'white', borderRadius: 'var(--radius-sm)', border: '1px solid var(--glass-border)' }}
                   />

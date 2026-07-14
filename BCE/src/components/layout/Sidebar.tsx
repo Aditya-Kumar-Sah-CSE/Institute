@@ -12,7 +12,7 @@ import XPBar from '@/components/shared/XPBar';
 import LevelBadge from '@/components/shared/LevelBadge';
 import Modal from '@/components/ui/Modal';
 import type { Profile } from '@/types';
-import { LogOut, User } from 'lucide-react';
+import { LogOut, User, Download } from 'lucide-react';
 import { signOut } from '@/features/auth/actions/auth';
 
 interface SidebarProps {
@@ -25,6 +25,37 @@ interface SidebarProps {
 export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdmin = false }: SidebarProps) {
   const pathname = usePathname();
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+  
+  React.useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone) {
+        setIsInstallable(false);
+      } else {
+        setIsInstallable(true);
+      }
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setIsInstallable(false);
+    }
+    setDeferredPrompt(null);
+  };
+
   const currentView = roleView || (isAdmin ? 'admin' : 'student');
   let navItems = currentView === 'admin' ? ADMIN_NAV_ITEMS : 
                    currentView === 'instructor' ? INSTRUCTOR_NAV_ITEMS : 
@@ -141,6 +172,12 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
             <span className="sidebar-nav-icon">{getIcon('Instructors', { className: 'w-5 h-5' })}</span>
             <span className="sidebar-nav-label">Instructor Panel</span>
           </a>
+        )}
+        {isInstallable && (
+          <button onClick={handleInstallClick} className="sidebar-nav-item sidebar-install" style={{ marginBottom: 'var(--space-xs)', background: 'rgba(56, 189, 248, 0.1)', color: 'var(--neon-cyan)', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+            <span className="sidebar-nav-icon"><Download className="w-5 h-5" /></span>
+            <span className="sidebar-nav-label">Install App</span>
+          </button>
         )}
         <form action={signOut}>
           <button type="submit" className="sidebar-nav-item sidebar-logout">

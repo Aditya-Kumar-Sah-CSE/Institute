@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Card from '@/components/ui/Card';
 import Image from 'next/image';
+import { parseAttachmentUrls } from '@/lib/attachments';
 
 export interface Notice {
   id: string;
@@ -49,17 +50,30 @@ export default function NoticeBoard({ notices, emptyMessage = 'No notices availa
               </span>
             </div>
             <p style={{ margin: '0 0 var(--space-md) 0', whiteSpace: 'pre-wrap' }}>{notice.content}</p>
-            {notice.image_url && (
-              <div style={{ marginBottom: 'var(--space-md)', position: 'relative', width: '100%', height: '400px', cursor: 'pointer' }} onClick={() => setSelectedImage(notice.image_url!)}>
-                <Image 
-                  src={notice.image_url} 
-                  alt="Notice attachment" 
-                  fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  style={{ objectFit: 'contain', borderRadius: 'var(--radius-md)' }} 
-                />
-              </div>
-            )}
+            {(() => {
+              const urls = parseAttachmentUrls(notice.image_url);
+              if (urls.length === 0) return null;
+              
+              return (
+                <div style={{ marginBottom: 'var(--space-md)', display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
+                  {urls.map((url, idx) => (
+                    <div 
+                      key={idx} 
+                      style={{ position: 'relative', width: urls.length === 1 ? '100%' : '150px', height: urls.length === 1 ? '400px' : '150px', cursor: 'pointer', borderRadius: 'var(--radius-md)', overflow: 'hidden' }} 
+                      onClick={() => setSelectedImage(url)}
+                    >
+                      <Image 
+                        src={url} 
+                        alt={`Notice attachment ${idx + 1}`} 
+                        fill
+                        sizes={urls.length === 1 ? "(max-width: 768px) 100vw, 50vw" : "150px"}
+                        style={{ objectFit: 'contain' }} 
+                      />
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
             <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
               Posted by <strong style={{ color: 'var(--text-primary)' }}>{notice.profiles.name}</strong> 
               <span style={{ 

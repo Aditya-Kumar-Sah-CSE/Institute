@@ -6,6 +6,7 @@ import Button from '@/components/ui/Button';
 import Input, { TextArea } from '@/components/ui/Input';
 import { createNotice, deleteNotice } from '../actions';
 import type { Notice } from './NoticeBoard';
+import { parseAttachmentUrls } from '@/lib/attachments';
 
 interface NoticeManagerProps {
   notices: Notice[];
@@ -51,8 +52,8 @@ export default function NoticeManager({ notices, currentUserId, currentUserRole 
             <Input name="title" label="Notice Title" required placeholder="e.g. System Maintenance" />
             <TextArea name="content" label="Notice Content" required placeholder="Enter your announcement here..." style={{ minHeight: '100px' }} />
             <div>
-              <label style={{ display: 'block', marginBottom: 'var(--space-xs)', color: 'var(--text-secondary)' }}>Attach Image (optional)</label>
-              <input type="file" name="image" accept="image/*" style={{ color: 'var(--text-primary)' }} />
+              <label style={{ display: 'block', marginBottom: 'var(--space-xs)', color: 'var(--text-secondary)' }}>Attach Images (optional, max 5)</label>
+              <input type="file" name="image" accept="image/*" multiple style={{ color: 'var(--text-primary)' }} />
             </div>
             {error && <p style={{ color: 'var(--neon-red)' }}>{error}</p>}
             <Button type="submit" variant="primary" disabled={loading}>
@@ -76,16 +77,23 @@ export default function NoticeManager({ notices, currentUserId, currentUserRole 
                       <div style={{ flex: 1 }}>
                         <h3 style={{ color: 'var(--neon-cyan)', margin: '0 0 var(--space-xs) 0' }}>{notice.title}</h3>
                         <p style={{ margin: '0 0 var(--space-xs) 0', whiteSpace: 'pre-wrap' }}>{notice.content}</p>
-                        {notice.image_url && (
-                          <div style={{ margin: 'var(--space-sm) 0' }}>
-                            <img 
-                              src={notice.image_url} 
-                              alt="Notice attachment" 
-                              style={{ maxWidth: '100%', borderRadius: 'var(--radius-md)', maxHeight: '200px', objectFit: 'contain', cursor: 'pointer' }} 
-                              onClick={() => setSelectedImage(notice.image_url!)}
-                            />
-                          </div>
-                        )}
+                        {(() => {
+                          const urls = parseAttachmentUrls(notice.image_url);
+                          if (urls.length === 0) return null;
+                          return (
+                            <div style={{ margin: 'var(--space-sm) 0', display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
+                              {urls.map((url, idx) => (
+                                <img 
+                                  key={idx}
+                                  src={url} 
+                                  alt={`Notice attachment ${idx + 1}`} 
+                                  style={{ maxWidth: urls.length === 1 ? '100%' : '150px', borderRadius: 'var(--radius-md)', maxHeight: '200px', objectFit: 'contain', cursor: 'pointer' }} 
+                                  onClick={() => setSelectedImage(url)}
+                                />
+                              ))}
+                            </div>
+                          );
+                        })()}
                         <div suppressHydrationWarning style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
                           Posted by {notice.profiles.name} ({notice.profiles.role}) on {new Date(notice.created_at).toLocaleString()}
                         </div>
