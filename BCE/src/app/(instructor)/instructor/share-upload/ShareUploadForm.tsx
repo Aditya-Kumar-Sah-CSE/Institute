@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import LazyAttachment from '@/components/ui/LazyAttachment';
 import { Select } from '@/components/ui/Input';
+import ImageUploadButton from '@/components/ui/ImageUploadButton';
+import { Trash2 } from 'lucide-react';
 
 export default function ShareUploadForm({ 
   attachments = [], 
@@ -15,11 +17,20 @@ export default function ShareUploadForm({
 }) {
   const router = useRouter();
   const supabase = createClient();
+  
+  const [localAttachments, setLocalAttachments] = useState(attachments);
   const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
 
-  // Fallback string values for legacy UI/logic
-  const fileUrl = attachments.length > 0 ? attachments[0].url : '';
-  const fileName = attachments.length > 0 ? attachments[0].name : '';
+  useEffect(() => {
+    setLocalAttachments(attachments);
+  }, [attachments]);
+
+  // Adjust preview index if items are deleted out of bounds
+  useEffect(() => {
+    if (currentPreviewIndex >= localAttachments.length && localAttachments.length > 0) {
+      setCurrentPreviewIndex(localAttachments.length - 1);
+    }
+  }, [localAttachments.length, currentPreviewIndex]);
 
   const [selectedCourse, setSelectedCourse] = useState('');
   const [lessons, setLessons] = useState<any[]>([]);
@@ -29,10 +40,8 @@ export default function ShareUploadForm({
   
   const [newLessonTitle, setNewLessonTitle] = useState('');
   const [newAssignmentTitle, setNewAssignmentTitle] = useState('');
-  
   const [newNoticeTitle, setNewNoticeTitle] = useState('');
   const [newNoticeContent, setNewNoticeContent] = useState('');
-  
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -55,7 +64,7 @@ export default function ShareUploadForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (attachments.length === 0) return alert('No file uploaded.');
+    if (localAttachments.length === 0) return alert('No file uploaded. Please add at least one item.');
 
     setIsSubmitting(true);
 
@@ -69,7 +78,7 @@ export default function ShareUploadForm({
         const { error } = await supabase.from('notices').insert({
           title: newNoticeTitle,
           content: newNoticeContent,
-          image_url: attachments.map(a => a.url),
+          image_url: localAttachments.map(a => a.url),
           author_id: userData.user?.id
         });
         if (error) throw error;
@@ -89,8 +98,8 @@ export default function ShareUploadForm({
         const { error } = await supabase.from('lessons').insert({
           course_id: selectedCourse,
           title: newLessonTitle,
-          pdf_url: attachments.map(a => a.url),
-          notes: attachments.map(a => a.name).join(', ') || 'Course Material',
+          pdf_url: localAttachments.map(a => a.url),
+          notes: localAttachments.map(a => a.name).join(', ') || 'Course Material',
           sort_order: sortOrder,
           week_number: weekNumber,
           xp_reward: 10
@@ -100,7 +109,7 @@ export default function ShareUploadForm({
       } else if (actionChoice === 'existing_lesson') {
         if (!selectedLesson) return alert('Please select an existing lesson.');
         const { error } = await supabase.from('lessons').update({
-          pdf_url: attachments.map(a => a.url)
+          pdf_url: localAttachments.map(a => a.url)
         }).eq('id', selectedLesson);
         if (error) throw error;
 
@@ -112,7 +121,7 @@ export default function ShareUploadForm({
           lesson_id: selectedLesson,
           type: 'any',
           title: newAssignmentTitle,
-          description: `Review the attached file(s) for this assignment: ${attachments.map(a => a.url).join(', ')}`,
+          description: `Review the attached file(s) for this assignment: ${localAttachments.map(a => a.url).join(', ')}`,
           xp_reward: 50,
           requires_github: false,
           requires_deploy: false
@@ -133,63 +142,89 @@ export default function ShareUploadForm({
     <div style={{ backgroundColor: 'var(--bg-card)', padding: '1.25rem', borderRadius: 'var(--radius-lg)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         
-        {attachments.length > 0 && (
-          <div style={{ padding: 'var(--space-md)', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 'var(--text-sm)', fontWeight: 'bold' }}>Uploaded Content Preview</span>
-              {attachments.length > 1 && (
-                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-card)', padding: '2px 8px', borderRadius: '12px' }}>
-                  {currentPreviewIndex + 1} / {attachments.length}
-                </span>
-              )}
-            </div>
-
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}>
-              {attachments.length > 1 && (
-                <button
+        <div style={{ padding: 'var(--space-md)', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+            <span style={{ fontSize: 'var(--text-sm)', fontWeight: 'bold' }}>
+              Uploaded Content Preview {localAttachments.length > 0 && `(${localAttachments.length})`}
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <ImageUploadButton 
+                bucketName="lesson_notes"
+                onUpload={(md) => {
+                  const urls = md.split('\\n\\n').map(m => m.match(/\\((.*?)\\)/)?.[1]).filter(Boolean) as string[];
+                  if (urls.length > 0) {
+                    setLocalAttachments(prev => [...prev, ...urls.map(url => ({ url, name: `Added Image` }))]);
+                    setCurrentPreviewIndex(localAttachments.length);
+                  }
+                }}
+              />
+              {localAttachments.length > 0 && (
+                <button 
                   type="button"
-                  onClick={() => setCurrentPreviewIndex(prev => prev === 0 ? attachments.length - 1 : prev - 1)}
-                  style={{ position: 'absolute', left: 0, zIndex: 10, background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  aria-label="Previous image"
+                  onClick={() => {
+                    setLocalAttachments(prev => prev.filter((_, i) => i !== currentPreviewIndex));
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '6px 12px', background: 'rgba(233, 69, 96, 0.1)', color: 'var(--neon-red)', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '12px' }}
                 >
-                  &#8592;
+                  <Trash2 size={14} /> Remove Selected
                 </button>
               )}
+            </div>
+          </div>
 
+          {localAttachments.length === 0 ? (
+            <div style={{ padding: 'var(--space-xl)', textAlign: 'center', color: 'var(--text-secondary)' }}>
+              No images or files attached yet.
+            </div>
+          ) : (
+            <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              
               {(() => {
-                const currentFile = attachments[currentPreviewIndex];
+                if (!localAttachments[currentPreviewIndex]) return null;
+                const currentFile = localAttachments[currentPreviewIndex];
                 const url = currentFile.url.split('?')[0].toLowerCase();
                 const isPdf = url.endsWith('.pdf');
-                const isImage = url.match(/\.(jpeg|jpg|gif|png|webp)$/i) || currentFile.url.includes('storage/v1/object/public/lesson_notes/');
+                const isImage = url.match(/\\.(jpeg|jpg|gif|png|webp)$/i) || currentFile.url.includes('storage/v1/object/public/lesson_notes/');
                 
                 if (isPdf || isImage) {
                   return (
-                    <div style={{ maxWidth: '400px', width: '100%', margin: '0 clamp(10px, 4vw, 40px)', overflow: 'hidden', borderRadius: 'var(--radius-md)' }}>
+                    <div style={{ width: '100%', display: 'flex', justifyContent: 'center', margin: 0, padding: 0 }}>
                       <LazyAttachment url={currentFile.url} type={isPdf ? 'pdf' : 'image'} title={currentFile.name || 'Shared File'} />
                     </div>
                   );
                 }
-                // Normal URL Link
                 return (
-                  <a href={currentFile.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--neon-cyan)', wordBreak: 'break-all', margin: '0 clamp(10px, 4vw, 40px)' }}>
+                  <a href={currentFile.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--neon-cyan)', wordBreak: 'break-all' }}>
                     {currentFile.name || currentFile.url}
                   </a>
                 );
               })()}
 
-              {attachments.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => setCurrentPreviewIndex(prev => prev === attachments.length - 1 ? 0 : prev + 1)}
-                  style={{ position: 'absolute', right: 0, zIndex: 10, background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  aria-label="Next image"
-                >
-                  &#8594;
-                </button>
+              {localAttachments.length > 1 && (
+                <div style={{ display: 'flex', gap: '20px', marginTop: 'min(var(--space-md), 4vh)', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPreviewIndex(prev => prev === 0 ? localAttachments.length - 1 : prev - 1)}
+                    style={{ background: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', width: '36px', height: '36px', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    &lt;
+                  </button>
+                  <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                    {currentPreviewIndex + 1} of {localAttachments.length}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPreviewIndex(prev => prev === localAttachments.length - 1 ? 0 : prev + 1)}
+                    style={{ background: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', width: '36px', height: '36px', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    &gt;
+                  </button>
+                </div>
               )}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         <div>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Share Target Level</label>
@@ -234,16 +269,16 @@ export default function ShareUploadForm({
 
         {targetLevel === 'course' && (
           <>
-            <div>
-              <Select 
-                label="Select Course"
-                name="course"
-                value={selectedCourse} 
-                onChange={(e) => setSelectedCourse(e.target.value)}
-                options={[{ value: '', label: '-- Choose a Course --' }, ...courses.map(course => ({ value: course.id, label: course.title }))]}
-                required={targetLevel === 'course'}
-              />
-            </div>
+            <Select 
+              label="Select Course"
+              value={selectedCourse} 
+              onChange={(e) => setSelectedCourse(e.target.value)}
+              options={[
+                { value: '', label: '-- Choose a Course --' },
+                ...courses.map((course: any) => ({ value: course.id, label: course.title }))
+              ]}
+              required={targetLevel === 'course'}
+            />
 
         {selectedCourse && (
           <div>
@@ -280,16 +315,16 @@ export default function ShareUploadForm({
         )}
 
         {(actionChoice === 'existing_lesson' || actionChoice === 'new_assignment') && selectedCourse && (
-          <div>
-            <Select 
-              label="Select Existing Lesson"
-              name="lesson"
-              value={selectedLesson} 
-              onChange={(e) => setSelectedLesson(e.target.value)}
-              options={[{ value: '', label: '-- Choose a Lesson --' }, ...lessons.map(lesson => ({ value: lesson.id, label: lesson.title }))]}
-              required
-            />
-          </div>
+          <Select 
+            label="Select Existing Lesson"
+            value={selectedLesson} 
+            onChange={(e) => setSelectedLesson(e.target.value)}
+            options={[
+              { value: '', label: '-- Choose a Lesson --' },
+              ...lessons.map((lesson: any) => ({ value: lesson.id, label: lesson.title }))
+            ]}
+            required
+          />
         )}
 
         {actionChoice === 'new_assignment' && selectedLesson && (
@@ -311,7 +346,7 @@ export default function ShareUploadForm({
 
         <button 
           type="submit" 
-          disabled={isSubmitting || (targetLevel === 'course' && !selectedCourse) || (targetLevel === 'notice' && (!newNoticeTitle || !newNoticeContent))}
+          disabled={isSubmitting || localAttachments.length === 0 || (targetLevel === 'course' && !selectedCourse) || (targetLevel === 'notice' && (!newNoticeTitle || !newNoticeContent))}
           style={{ 
             marginTop: '1rem',
             padding: '0.75rem 1.5rem', 
@@ -321,7 +356,7 @@ export default function ShareUploadForm({
             borderRadius: 'var(--radius-md)',
             fontWeight: 'bold',
             cursor: isSubmitting ? 'not-allowed' : 'pointer',
-            opacity: isSubmitting ? 0.7 : 1
+            opacity: (isSubmitting || localAttachments.length === 0) ? 0.7 : 1
           }}
         >
           {isSubmitting ? 'Saving...' : 'Save & Continue'}
@@ -331,3 +366,4 @@ export default function ShareUploadForm({
     </div>
   );
 }
+
