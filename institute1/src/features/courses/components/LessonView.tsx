@@ -5,7 +5,9 @@ import DOMPurify from 'dompurify';
 import { getYouTubeEmbedUrl } from '@/lib/utils';
 import LazyVideoPlayer from '@/components/ui/LazyVideoPlayer';
 import LazyPdfViewer from '@/components/ui/LazyPdfViewer';
+import LazyAttachment from '@/components/ui/LazyAttachment';
 import type { Lesson } from '@/types';
+import { parseAttachmentUrls } from '@/lib/attachments';
 import './LessonView.css';
 
 interface LessonViewProps {
@@ -85,9 +87,26 @@ export default function LessonView({ lesson, isCompleted, onComplete }: LessonVi
         </div>
       )}
 
-      {lesson.pdf_url && (
-        <LazyPdfViewer url={lesson.pdf_url} title={`${lesson.title} Materials`} />
-      )}
+      {(() => {
+        const urls = parseAttachmentUrls(lesson.pdf_url);
+        if (urls.length === 0) return null;
+        return (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 'var(--space-md)' }}>
+            {urls.map((url, idx) => {
+              const isPdf = url.split('?')[0].toLowerCase().endsWith('.pdf');
+              return (
+                <div key={idx} style={{ marginBottom: 'var(--space-md)' }}>
+                  {isPdf ? (
+                    <LazyPdfViewer url={url} title={`${lesson.title} Material ${idx + 1}`} />
+                  ) : (
+                    <LazyAttachment url={url} type="image" title={`${lesson.title} Material ${idx + 1}`} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {!isCompleted && onComplete && (
         <div className="lesson-actions">

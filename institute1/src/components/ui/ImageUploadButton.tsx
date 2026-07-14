@@ -4,6 +4,7 @@ import React, { useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Button from './Button';
 import { Image as ImageIcon } from 'lucide-react';
+import { uploadFiles } from '@/lib/attachments';
 
 interface ImageUploadButtonProps {
   onUpload: (markdownImage: string) => void;
@@ -20,11 +21,18 @@ export default function ImageUploadButton({
   const [isUploading, setIsUploading] = useState(false);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
-    if (!file.type.startsWith('image/')) {
-      alert('Please upload an image file.');
+    const maxFiles = 5;
+    if (files.length > maxFiles) {
+      alert(`You can only attach up to ${maxFiles} images at once.`);
+      return;
+    }
+
+    const invalidType = files.some(f => !f.type.startsWith('image/'));
+    if (invalidType) {
+      alert('Please upload only image files.');
       return;
     }
 
@@ -32,27 +40,22 @@ export default function ImageUploadButton({
       setIsUploading(true);
       const supabase = createClient();
       
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      const { urls, errors } = await uploadFiles({
+        files,
+        supabase,
+        bucketName
+      });
 
-      const { data, error } = await supabase.storage
-        .from(bucketName)
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (error) {
-        throw error;
+      if (errors.length > 0) {
+         console.error('Errors during image upload:', errors);
       }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(filePath);
-
-      const markdown = `![Image](${publicUrl})`;
-      onUpload(markdown);
+      if (urls.length > 0) {
+        const markdown = urls.map(url => `![Image](${url})`).join('\n\n');
+        onUpload(markdown);
+      } else {
+        if (errors.length > 0) alert('Images failed to upload.');
+      }
       
     } catch (error: any) {
       console.error('Error uploading image:', error);
@@ -72,6 +75,7 @@ export default function ImageUploadButton({
         ref={fileInputRef}
         onChange={handleFileChange}
         accept="image/*"
+        multiple
         style={{ display: 'none' }}
       />
       <button 

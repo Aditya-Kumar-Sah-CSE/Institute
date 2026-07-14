@@ -2,6 +2,7 @@
 
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { validateFiles, uploadFiles, serializeAttachmentUrls } from '@/lib/attachments';
 
 export async function getNotices(limit?: number) {
   // Fire-and-forget cleanup of notices older than 3 months
@@ -52,28 +53,31 @@ export async function createNotice(formData: FormData) {
     return { error: 'Not authenticated' };
   }
 
-  const image = formData.get('image') as File | null;
+  const images = formData.getAll('image') as File[];
+  const validImages = images.filter(img => img && img.size > 0);
   let image_url = null;
 
-  if (image && image.size > 0) {
-    const fileExt = image.name.split('.').pop();
-    const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-    const filePath = `${user.id}/${fileName}`;
-
-    const { error: uploadError, data } = await supabase.storage
-      .from('notices_media')
-      .upload(filePath, image);
-
-    if (uploadError) {
-      console.error('Error uploading image:', uploadError);
-      return { error: 'Failed to upload image' };
+  if (validImages.length > 0) {
+    const valResult = validateFiles(validImages, { maxFiles: 5 });
+    if (!valResult.valid) {
+      return { error: valResult.error };
     }
 
-    const { data: { publicUrl } } = supabase.storage
-      .from('notices_media')
-      .getPublicUrl(filePath);
+    const { urls, errors } = await uploadFiles({
+      files: validImages,
+      supabase,
+      bucketName: 'notices_media',
+      pathPrefix: user.id
+    });
 
-    image_url = publicUrl;
+    if (errors.length > 0) {
+      console.error('Errors uploading notice images:', errors);
+      if (urls.length === 0) {
+        return { error: 'Failed to upload images' };
+      }
+    }
+
+    image_url = serializeAttachmentUrls(urls);
   }
   
   const { error } = await supabase.from('notices').insert({

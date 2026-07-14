@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Button from '@/components/ui/Button';
 import LazyAttachment from '@/components/ui/LazyAttachment';
+import { Select } from '@/components/ui/Input';
 
 export default function ShareDoubtForm({ 
   fileUrl, 
@@ -87,39 +88,31 @@ export default function ShareDoubtForm({
           </div>
         )}
 
-        <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: 'var(--text-primary)' }}>Select Course</label>
-          <select 
-            value={selectedCourse} 
-            onChange={(e) => {
-              setSelectedCourse(e.target.value);
-              setSelectedLesson('');
-            }}
-            style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-            required
-          >
-            <option value="">-- Choose a Course --</option>
-            {courses.map(course => (
-              <option key={course.id} value={course.id}>{course.title}</option>
-            ))}
-          </select>
-        </div>
+        <Select 
+          label="Select Course"
+          value={selectedCourse} 
+          onChange={(e) => {
+            setSelectedCourse(e.target.value);
+            setSelectedLesson('');
+          }}
+          options={[
+            { value: '', label: '-- Choose a Course --' },
+            ...courses.map((course: any) => ({ value: course.id, label: course.title }))
+          ]}
+          required
+        />
 
         {selectedCourse && (
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: 'var(--text-primary)' }}>Select Lesson</label>
-            <select 
-              value={selectedLesson} 
-              onChange={(e) => setSelectedLesson(e.target.value)}
-              style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-              required
-            >
-              <option value="">-- Choose a Lesson --</option>
-              {lessons.map(lesson => (
-                <option key={lesson.id} value={lesson.id}>{lesson.title}</option>
-              ))}
-            </select>
-          </div>
+          <Select 
+            label="Select Lesson"
+            value={selectedLesson} 
+            onChange={(e) => setSelectedLesson(e.target.value)}
+            options={[
+              { value: '', label: '-- Choose a Lesson --' },
+              ...lessons.map((lesson: any) => ({ value: lesson.id, label: lesson.title }))
+            ]}
+            required
+          />
         )}
 
         <Button 
