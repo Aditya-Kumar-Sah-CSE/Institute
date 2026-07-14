@@ -164,14 +164,14 @@ export default function ShareUploadForm({
                 
                 if (isPdf || isImage) {
                   return (
-                    <div style={{ maxWidth: '300px', width: '100%', margin: '0 40px', overflow: 'hidden', borderRadius: 'var(--radius-md)' }}>
+                    <div style={{ maxWidth: '400px', width: '100%', margin: '0 clamp(10px, 4vw, 40px)', overflow: 'hidden', borderRadius: 'var(--radius-md)' }}>
                       <LazyAttachment url={currentFile.url} type={isPdf ? 'pdf' : 'image'} title={currentFile.name || 'Shared File'} />
                     </div>
                   );
                 }
                 // Normal URL Link
                 return (
-                  <a href={currentFile.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--neon-cyan)', wordBreak: 'break-all', margin: '0 40px' }}>
+                  <a href={currentFile.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--neon-cyan)', wordBreak: 'break-all', margin: '0 clamp(10px, 4vw, 40px)' }}>
                     {currentFile.name || currentFile.url}
                   </a>
                 );

@@ -59,15 +59,23 @@ export default function NoticeBoard({ notices, emptyMessage = 'No notices availa
                   {urls.map((url, idx) => (
                     <div 
                       key={idx} 
-                      style={{ position: 'relative', width: urls.length === 1 ? '100%' : '150px', height: urls.length === 1 ? '400px' : '150px', cursor: 'pointer', borderRadius: 'var(--radius-md)', overflow: 'hidden' }} 
+                      style={{ 
+                        position: 'relative', 
+                        width: urls.length === 1 ? '100%' : 'clamp(100px, calc(50% - var(--space-sm)), 150px)', 
+                        height: urls.length === 1 ? 'clamp(200px, 60vw, 400px)' : 'clamp(100px, calc(50vw - var(--space-md)), 150px)', 
+                        cursor: 'pointer', 
+                        borderRadius: 'var(--radius-md)', 
+                        overflow: 'hidden',
+                        backgroundColor: 'var(--bg-secondary)'
+                      }} 
                       onClick={() => setSelectedImage(url)}
                     >
                       <Image 
                         src={url} 
                         alt={`Notice attachment ${idx + 1}`} 
                         fill
-                        sizes={urls.length === 1 ? "(max-width: 768px) 100vw, 50vw" : "150px"}
-                        style={{ objectFit: 'contain' }} 
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                        style={{ objectFit: urls.length === 1 ? 'contain' : 'cover' }} 
                       />
                     </div>
                   ))}
