@@ -61,7 +61,7 @@ export default function GlobalLoading() {
           fill
           sizes="120px"
           priority
-          style={{ objectFit: 'contain', position: 'relative', zIndex: 2 }}
+          style={{ objectFit: 'contain', zIndex: 2 }}
         />
       </div>
 

@@ -26,7 +26,7 @@ export default async function LandingPage() {
             alt="Company Logo" 
             width={40} 
             height={40} 
-            style={{ objectFit: 'contain', borderRadius: '8px' }}
+            style={{ objectFit: 'contain', borderRadius: '8px', width: 'auto', height: 'auto' }}
             unoptimized
           />
         </div>
