@@ -31,10 +31,10 @@ export const metadata: Metadata = {
   description: "To transform traditional classrooms into intelligent, data-driven learning environments where every student receives continuous guidance, every teacher gains actionable insights, and every institute can deliver a more engaging and effective educational experience.",
 
   keywords: ['full stack', 'web development', 'Student Engagement platform', 'gamified', 'coding', 'institute'],
-  manifest: '/manifest.json',
+  manifest: '/manifest.json?v=2',
   icons: {
-    icon: '/icon-192x192.png',
-    apple: '/icon-192x192.png',
+    icon: '/icon-192x192.png?v=2',
+    apple: '/icon-192x192.png?v=2',
   },
   appleWebApp: {
     capable: true,
