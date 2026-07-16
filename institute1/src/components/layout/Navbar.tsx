@@ -48,7 +48,7 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
         {companyName && (
           <Link href={homeLink} className="company-branding-nav mobile-logo" style={{ padding: 'var(--space-xs)' }}>
             {companyLogo ? (
-              <Image unoptimized src={companyLogo} alt={companyName} width={32} height={32} className="company-nav-logo" style={{ width: 'auto', height: '32px', objectFit: 'contain' }} priority />
+              <Image unoptimized src={companyLogo} alt={companyName} width={32} height={32} className="company-nav-logo" style={{ width: '32px', height: '32px', objectFit: 'contain' }} priority />
             ) : (
               <Image unoptimized src="/icon-192x192.png" alt={companyName} width={32} height={32} className="company-nav-logo" priority />
             )}
@@ -72,7 +72,7 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
         {companyName && (
           <Link href={homeLink} className="company-branding-nav desktop-logo" style={{ padding: 'var(--space-xs)' }}>
             {companyLogo ? (
-              <Image unoptimized src={companyLogo} alt={companyName || 'App'} width={32} height={32} className="company-nav-logo" style={{ width: 'auto', height: '32px', objectFit: 'contain' }} priority />
+              <Image unoptimized src={companyLogo} alt={companyName || 'App'} width={32} height={32} className="company-nav-logo" style={{ width: '32px', height: '32px', objectFit: 'contain' }} priority />
             ) : (
               <Image unoptimized src="/icon-192x192.png" alt={companyName || 'App'} width={32} height={32} className="company-nav-logo" priority />
             )}
