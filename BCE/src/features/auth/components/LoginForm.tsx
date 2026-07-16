@@ -113,7 +113,7 @@ export default function LoginForm({ companyName, logoUrl }: LoginFormProps) {
         </Link>
         <div className="auth-header">
           <span className="auth-logo" style={{ overflow: 'hidden', borderRadius: '8px' }}>
-            <Image src={logoUrl || '/icon-192x192.png'} alt="Logo" width={48} height={48} style={{ objectFit: 'contain' }} unoptimized={true} priority />
+            <Image src={logoUrl || '/icon-192x192.png'} alt="Logo" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain' }} unoptimized={true} priority />
           </span>
           <h1 className="auth-title">{companyName ? `Sign in to ${companyName}` : 'Welcome Back'}</h1>
           <p className="auth-subtitle">Sign in to continue your learning journey</p>
