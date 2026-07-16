@@ -124,7 +124,7 @@ export default function SignupForm({ companyName, logoUrl }: SignupFormProps) {
         </Link>
         <div className="auth-header">
           <span className="auth-logo" style={{ overflow: 'hidden', borderRadius: '8px' }}>
-            <Image src={logoUrl || '/icon-192x192.png'} alt="Logo" width={48} height={48} style={{ objectFit: 'contain', width: 'auto', height: 'auto' }} unoptimized={true} priority />
+            <Image src={logoUrl || '/icon-192x192.png'} alt="Logo" width={48} height={48} style={{ objectFit: 'contain' }} unoptimized={true} priority />
           </span>
           <h1 className="auth-title">{companyName || 'Smart Hybrid Learning'}</h1>
           <p className="auth-subtitle">Start your journey</p>
