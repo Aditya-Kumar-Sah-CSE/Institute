@@ -1,0 +1,63 @@
+# Goal Description
+This is a comprehensive, production-ready implementation plan for the **Campus Chat, Group Chat, Hall of Fame Stories, and Activity Feed**. It outlines the normalized database schema, scalability implementations, breaking changes, migration strategy, security risks, and technical requirements needed for an enterprise-grade experience (WhatsApp/Discord/Instagram style features).
+
+## Architecture Review
+The proposed features require scaling heavily on real-time infrastructure. Currently, `institute1` relies on Supabase for the database layer. 
+- Real-time changes, Typing indicators, and Presence (online/offline) will run heavily on **Supabase Realtime (Channels and Presence)**.
+- Virtualization (e.g. `react-virtuoso`) will be mandatory for the chat frontend to handle thousands of messages gracefully without layout shifts.
+- Caching will be handled by React Query / Next.js Server Actions with optimistic state updates to ensure zero UI lag.
+- Normalized data will ensure that queries scaling up to 10k+ students won't cause table locking or N+1 fetch bottlenecks.
+
+## User Review Required
+> [!IMPORTANT]
+> **Data Migration**: Since we just created a basic MVP migration ([071_chat_and_status.sql](file:///d:/Institute/institute1/supabase/migrations/071_chat_and_status.sql)), we can either drop those tables (since this is still development) and create the new normalized schema, OR we write a complex alteration script. Let me know if it's safe to just `DROP` the MVP tables from `071` via a new migration or edit the old one. We assume they can be dropped.
+
+## Proposed Changes
+
+### Database Normalized Redesign
+We will structure a completely normalized schema optimized for billions of operations.
+
+#### [NEW] `072_v2_advanced_communication.sql`
+**Base Tables**:
+- `chat_conversations`: [id](file:///d:/Institute/institute1/src/components/layout/Sidebar.tsx#25-192), `type` (personal, group), `name`, `description`, `icon_url`, `is_private`, `join_requires_approval`, `settings_jsonb`, `created_at`.
+- `chat_members`: `conversation_id`, `user_id`, `role` (admin, moderator, member, pending), `mute_until`, `last_read_message_id`, `created_at`.
+- `chat_messages`: [id](file:///d:/Institute/institute1/src/components/layout/Sidebar.tsx#25-192), `conversation_id`, `sender_id`, `content`, `attachment_type` (text, image, lesson, doubt, etc), `attachment_link`, `reply_to_id`, `is_edited`, `is_pinned`, `deleted_for_everyone`, `created_at`.
+- `message_reactions`: `message_id`, `user_id`, `emoji`, `created_at`.
+
+**Presence & Read Receipts** (Tracked via Supabase Realtime Presence, but long-term persistence in DB):
+- `message_deliveries`: `message_id`, `user_id`, `status` (delivered, read), `updated_at`.
+
+**Stories (Hall of Fame)**:
+- `hall_of_fame`: [id](file:///d:/Institute/institute1/src/components/layout/Sidebar.tsx#25-192), `user_id`, `category` (Badge, Leaderboard, XP, Certificate), `reference_id` (e.g. badge_id), `caption`, `is_hidden`, `expires_at`, `created_at`.
+- `story_views`: `story_id`, `viewer_id`, `viewed_at` (avoids duplicated view counts).
+- `story_reactions`: `story_id`, `user_id`, `reaction`, `created_at`.
+
+**Activity Feed** (Separated from chat):
+- `activity_feed`: [id](file:///d:/Institute/institute1/src/components/layout/Sidebar.tsx#25-192), `user_id`, `activity_type` (earned_badge, course_completed, poll_created), `metadata` JSONB, `created_at`. 
+
+### Migration & Rollback Strategy
+- **Migration Strategy:** The new SQL file will use `CREATE TABLE IF NOT EXISTS` and `ALTER` statements safely. However, we will drop the MVP tables from earlier to keep things absolutely clean and normalized.
+- **Rollback Strategy:** A corresponding `rollback_072.sql` script can be maintained, which specifically cascades and deletes all these tables entirely if deployment breaks other features.
+
+### Security Enhancements & RLS
+- Strictly lock down `chat_messages` insertion to verify `auth.uid()` belongs to an *accepted* member in `chat_members` via helper functions (to avoid complex RLS sub-queries degrading performance).
+- Enable Supabase rate limiter settings against rapid spam message insertions.
+- Implement XSS sanitization utilizing `dompurify` on the client when parsing rich texts, and strict DB limits on `content` length.
+- Attachments will use Supabase Storage with bucket policies allowing access only tightly coupled to chat group roles.
+
+### Performance Optimizations (Scaling to 10k+ users)
+1. **Cursor Pagination**: Used for fetching chat history seamlessly with Infinite Scroll.
+2. **Supabase Realtime Broadcast**: Used to distribute "Typing..." indicators without touching PostgreSQL rows (saving intense DB writes).
+3. **Optimistic Updates**: Using `useOptimistic` hook, messages will append to user UI under 5ms, replacing the ID later once the backend responds.
+4. **Message Virtualization**: The frontend message container will utilize `react-window` or `react-virtuoso` to ensure that having 10,000 DOM chat nodes won't crash the browser.
+
+### Reusable Components Implemented
+- `CampusChatDrawer.tsx` / `GroupSettingsModal.tsx`
+- `AttachmentPreviewer.tsx` (Handles lessons, doubts, assignments)
+- `StoryViewer.tsx` (Extended version of the current StoryCarousel, with drag/swipe listeners).
+- `VirtualizedMessageList.tsx`
+
+## Verification Plan
+1. Validate Supabase Schema via local DB push to monitor trigger integrity.
+2. Test Realtime latency across two parallel logged-in users under the "Student" and "Faculty" roles.
+3. Validate Leaderboard direct integrations for "Share Achievement to Story" buttons.

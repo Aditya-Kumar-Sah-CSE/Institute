@@ -12,7 +12,7 @@ import XPBar from '@/components/shared/XPBar';
 import LevelBadge from '@/components/shared/LevelBadge';
 import Modal from '@/components/ui/Modal';
 import type { Profile } from '@/types';
-import { LogOut, User, Download } from 'lucide-react';
+import { LogOut, User, Download, X, MoreVertical, ChevronRight, ChevronDown, ChevronLeft } from 'lucide-react';
 import { signOut } from '@/features/auth/actions/auth';
 
 interface SidebarProps {
@@ -27,6 +27,24 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstallable, setIsInstallable] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isNavWrapped, setIsNavWrapped] = useState(false);
+
+  useEffect(() => {
+    if (isCollapsed) {
+      document.documentElement.style.setProperty('--sidebar-width', '0px');
+      document.body.classList.add('sidebar-is-collapsed');
+    } else {
+      document.documentElement.style.removeProperty('--sidebar-width');
+      document.body.classList.remove('sidebar-is-collapsed');
+    }
+  }, [isCollapsed]);
+
+  useEffect(() => {
+    const expandHandler = () => setIsCollapsed(false);
+    window.addEventListener('expandSidebar', expandHandler);
+    return () => window.removeEventListener('expandSidebar', expandHandler);
+  }, []);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -45,6 +63,13 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
   }, []);
+
+  const handleNavClick = () => {
+    // Only auto-collapse if it's NOT the mobile bottom navbar (<=768px)
+    if (typeof window !== 'undefined' && window.innerWidth > 768) {
+      setIsCollapsed(true);
+    }
+  };
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
@@ -69,9 +94,23 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
     navItems = navItems.filter(item => item.label !== 'Feedback');
   }
 
+  if (isCollapsed) {
+    return null; // The toggle button is now in Navbar.tsx
+  }
+
+  const isChatRoute = pathname.includes('/chat');
+
   return (
-    <aside className={`sidebar view-${currentView}`}>
-      <div className="sidebar-header">
+    <aside className={`sidebar view-${currentView} ${isChatRoute ? 'chat-active' : ''} ${isNavWrapped ? 'mobile-collapsed' : ''}`}>
+      <div className="sidebar-header" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+        <button 
+          onClick={() => setIsCollapsed(true)} 
+          className="desktop-only-btn"
+          style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0, marginLeft: '-8px' }}
+          title="Collapse Sidebar"
+        >
+          <X size={20} />
+        </button>
         <Link href={isAdmin ? '/admin' : '/dashboard'} className="sidebar-logo">
           <span className="sidebar-logo-icon text-neon-cyan">{getIcon('Building', { className: 'w-6 h-6' })}</span>
           <span className="sidebar-logo-text">Smart  Learning</span>
@@ -139,11 +178,19 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
       )}
 
       <nav className="sidebar-nav">
+        <button 
+          className="wrap-toggle-btn"
+          onClick={() => setIsNavWrapped(!isNavWrapped)}
+          style={{ background: 'none', border: 'none', color: 'var(--neon-cyan)', padding: 0, margin: 0, cursor: 'pointer', alignItems: 'center', justifyContent: 'center' }}
+        >
+          {isNavWrapped ? <ChevronRight size={18} /> : <ChevronLeft size={24} />}
+        </button>
         {navItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}
             className={`sidebar-nav-item ${pathname === item.href ? 'active' : ''}`}
+            onClick={handleNavClick}
           >
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span className="sidebar-nav-icon">{getIcon(item.icon, { className: 'w-5 h-5' })}</span>
@@ -156,19 +203,19 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
 
       <div className="sidebar-footer">
         {currentView !== 'student' && (
-          <a href="/dashboard" className="sidebar-nav-item sidebar-switch">
+          <a href="/dashboard" className="sidebar-nav-item sidebar-switch" onClick={handleNavClick}>
             <span className="sidebar-nav-icon">{getIcon('Instructors', { className: 'w-5 h-5' })}</span>
             <span className="sidebar-nav-label">Student View</span>
           </a>
         )}
         {currentView !== 'admin' && profile.role === 'admin' && (
-          <a href="/admin" className="sidebar-nav-item sidebar-switch">
+          <a href="/admin" className="sidebar-nav-item sidebar-switch" onClick={handleNavClick}>
             <span className="sidebar-nav-icon">{getIcon('Admin', { className: 'w-5 h-5' })}</span>
             <span className="sidebar-nav-label">{isSuperAdmin ? 'Developer Panel' : 'Administration Panel'}</span>
           </a>
         )}
         {currentView !== 'instructor' && ((profile.role === 'instructor' && profile.status === 'active') || profile.role === 'admin') && (
-          <a href="/instructor" className="sidebar-nav-item sidebar-switch">
+          <a href="/instructor" className="sidebar-nav-item sidebar-switch" onClick={handleNavClick}>
             <span className="sidebar-nav-icon">{getIcon('Instructors', { className: 'w-5 h-5' })}</span>
             <span className="sidebar-nav-label">Instructor Panel</span>
           </a>

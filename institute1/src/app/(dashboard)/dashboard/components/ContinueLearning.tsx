@@ -25,8 +25,8 @@ export default function ContinueLearning({ enrollments, certificatesMap }: Conti
     (enr) => enr.courses !== null
   );
 
-  const displayedEnrollments = isExpanded ? validEnrollments : validEnrollments.slice(0, 2);
-  const hasMore = validEnrollments.length > 2;
+  const displayedEnrollments = isExpanded ? validEnrollments : validEnrollments.slice(0, 4);
+  const hasMore = validEnrollments.length > 4;
 
   return (
     <div>
@@ -48,7 +48,7 @@ export default function ContinueLearning({ enrollments, certificatesMap }: Conti
                 className="btn btn-secondary btn-md"
                 onClick={() => setIsExpanded(!isExpanded)}
               >
-                {isExpanded ? 'Show Less' : `Show More (${validEnrollments.length - 2})`}
+                {isExpanded ? 'Show Less' : `Show More (${validEnrollments.length - 4})`}
               </button>
             </div>
           )}

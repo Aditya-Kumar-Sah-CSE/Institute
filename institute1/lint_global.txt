@@ -1,0 +1,852 @@
+
+> skillarena@0.1.0 lint
+> eslint
+
+
+D:\Institute\institute1\src\app\(admin)\admin\courses\[courseId]\builder\page.tsx
+   5:8   warning  'Card' is defined but never used          @typescript-eslint/no-unused-vars
+   6:10  warning  'User' is defined but never used          @typescript-eslint/no-unused-vars
+  40:70  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  41:20  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\app\(admin)\admin\courses\page.tsx
+   3:10  warning  'SUPER_ADMIN_EMAIL' is defined but never used     @typescript-eslint/no-unused-vars
+  11:7   error    'query' is never reassigned. Use 'const' instead  prefer-const
+
+D:\Institute\institute1\src\app\(admin)\admin\feedback\page.tsx
+   8:10  warning  'SUPER_ADMIN_EMAIL' is defined but never used                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+  79:21  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+D:\Institute\institute1\src\app\(admin)\admin\instructor-requests\ActionButtons.tsx
+  16:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  27:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\app\(admin)\admin\instructor-requests\page.tsx
+  6:10  warning  'approveInstructor' is defined but never used  @typescript-eslint/no-unused-vars
+  7:10  warning  'SUPER_ADMIN_EMAIL' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Institute\institute1\src\app\(admin)\admin\page.tsx
+  8:37  warning  'ExternalLink' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Institute\institute1\src\app\(admin)\admin\students\components\StudentLeaderboardTable.tsx
+  79:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Institute\institute1\src\app\(admin)\admin\students\components\StudentLeaderboardTable.tsx:79:5
+  77 |   // Reset page to 1 when filters change
+  78 |   React.useEffect(() => {
+> 79 |     setVisibleCount(5);
+     |     ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  80 |   }, [searchTerm, roleFilter, enrollmentFilter]);
+  81 |
+  82 |   const handleDeleteStudentClick = (studentId: string, studentName: string, role: string) => {  react-hooks/set-state-in-effect
+
+D:\Institute\institute1\src\app\(admin)\admin\students\page.tsx
+  4:8  warning  'Link' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Institute\institute1\src\app\(admin)\admin\submissions\page.tsx
+   2:8   warning  'Card' is defined but never used                  @typescript-eslint/no-unused-vars
+  26:17  warning  'profile' is assigned a value but never used      @typescript-eslint/no-unused-vars
+  28:7   error    'query' is never reassigned. Use 'const' instead  prefer-const
+
+D:\Institute\institute1\src\app\(admin)\layout.tsx
+  31:53   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  31:62   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  31:100  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  31:127  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+D:\Institute\institute1\src\app\(dashboard)\batch\[batchId]\doubts\components\HubDoubtCard.tsx
+   8:10  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  12:47  warning  'batchId' is defined but never used                                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+  74:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+D:\Institute\institute1\src\app\(dashboard)\batch\[batchId]\doubts\page.tsx
+    7:8   warning  'Button' is defined but never used                               @typescript-eslint/no-unused-vars
+   40:18  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  109:7   error    'userLikes' is never reassigned. Use 'const' instead             prefer-const
+  167:30  error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  174:45  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+D:\Institute\institute1\src\app\(dashboard)\courses\[courseId]\[lessonId]\components\LessonDoubts.tsx
+  13:11  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  24:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Institute\institute1\src\app\(dashboard)\courses\[courseId]\[lessonId]\components\LessonDoubts.tsx:24:7
+  22 |   useEffect(() => {
+  23 |     if (askDoubtParam === 'true') {
+> 24 |       setIsModalOpen(true);
+     |       ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  25 |     }
+  26 |   }, [askDoubtParam]);
+  27 |  react-hooks/set-state-in-effect
+
+D:\Institute\institute1\src\app\(dashboard)\courses\[courseId]\[lessonId]\doubt\[doubtId]\components\DiscussionThread.tsx
+    5:8   warning  'Button' is defined but never used                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+   13:75  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   45:47  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   49:21  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   50:39  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   52:25  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   64:31  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   65:44  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   80:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  158:45  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  170:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  179:34  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\app\(dashboard)\courses\[courseId]\[lessonId]\doubt\[doubtId]\page.tsx
+  39:43  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  43:33  warning  'repliesErr' is assigned a value but never used                  @typescript-eslint/no-unused-vars
+
+D:\Institute\institute1\src\app\(dashboard)\courses\[courseId]\[lessonId]\page.tsx
+  54:7   error  'doubtsQuery' is never reassigned. Use 'const' instead  prefer-const
+  77:23  error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\app\(dashboard)\courses\[courseId]\page.tsx
+    6:8   warning  'Card' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+   90:59  error    Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\Institute\institute1\src\app\(dashboard)\courses\[courseId]\page.tsx:90:59
+  88 |           
+  89 |           const groupedLessons = lessons.reduce((acc, lesson) => {
+> 90 |             const dateStr = new Date(lesson.created_at || Date.now()).toLocaleDateString(undefined, {
+     |                                                           ^^^^^^^^^^ Cannot call impure function
+  91 |               year: 'numeric',
+  92 |               month: 'long',
+  93 |               day: 'numeric'  react-hooks/purity
+  223:65  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-explicit-any
+  266:48  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\app\(dashboard)\dashboard\components\ContinueLearning.tsx
+  16:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\app\(dashboard)\dashboard\components\DashboardPolls.tsx
+   4:15  warning  'Poll' is defined but never used                                                                                                                                                                 @typescript-eslint/no-unused-vars
+   7:10  error    Unexpected any. Specify a different type                                                                                                                                                         @typescript-eslint/no-explicit-any
+  17:23  error    React Hook "React.useMemo" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+
+D:\Institute\institute1\src\app\(dashboard)\dashboard\components\DashboardProfileCard.tsx
+   3:8   warning  'Image' is defined but never used         @typescript-eslint/no-unused-vars
+  10:10  warning  'User' is defined but never used          @typescript-eslint/no-unused-vars
+  13:12  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  14:12  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\app\(dashboard)\dashboard\components\PollAlerts.tsx
+  6:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\app\(dashboard)\dashboard\page.tsx
+    4:8   warning  'CourseCard' is defined but never used                @typescript-eslint/no-unused-vars
+   23:11  warning  'DashboardEnrollment' is defined but never used       @typescript-eslint/no-unused-vars
+  119:9   warning  'enrolledCourses' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\Institute\institute1\src\app\(dashboard)\doubts\[id]\page.tsx
+  117:23  warning  'node' is defined but never used                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+  118:17  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  118:17  warning  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images                                                                                                                                                                                jsx-a11y/alt-text
+  128:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  151:31  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  161:29  warning  'node' is defined but never used                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+  162:23  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  162:23  warning  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images                                                                                                                                                                                jsx-a11y/alt-text
+  173:21  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+D:\Institute\institute1\src\app\(dashboard)\doubts\page.tsx
+   59:27  warning  'error' is assigned a value but never used                       @typescript-eslint/no-unused-vars
+   73:32  error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  129:37  error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  136:45  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+D:\Institute\institute1\src\app\(dashboard)\feedbacks\page.tsx
+  109:21  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+D:\Institute\institute1\src\app\(dashboard)\layout.tsx
+  36:53   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  36:62   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  36:100  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  36:127  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+D:\Institute\institute1\src\app\(dashboard)\leaderboard\page.tsx
+  131:19  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+D:\Institute\institute1\src\app\(dashboard)\profile\components\AvatarUpload.tsx
+  4:8  warning  'Image' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Institute\institute1\src\app\(dashboard)\profile\components\CrownBanner.tsx
+  13:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Institute\institute1\src\app\(dashboard)\profile\components\CrownBanner.tsx:13:5
+  11 |
+  12 |   useEffect(() => {
+> 13 |     setMounted(true);
+     |     ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  14 |   }, []);
+  15 |
+  16 |   const dateObj = new Date(monthDate);  react-hooks/set-state-in-effect
+  72:22  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\Institute\institute1\src\app\(dashboard)\profile\components\CrownBanner.tsx:72:22
+  70 |         {[...Array(50)].map((_, i) => (
+  71 |           <div suppressHydrationWarning key={i} className={`confetti ${i % 2 === 0 ? 'confetti-gold' : 'confetti-silver'}`} style={{ 
+> 72 |             left: `${Math.random() * 100}vw`,
+     |                      ^^^^^^^^^^^^^ Cannot call impure function
+  73 |             animationDuration: `${Math.random() * 3 + 2}s`,
+  74 |             animationDelay: `${Math.random() * 2}s`
+  75 |           }} />                                                                                                                    react-hooks/purity
+  73:35  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\Institute\institute1\src\app\(dashboard)\profile\components\CrownBanner.tsx:73:35
+  71 |           <div suppressHydrationWarning key={i} className={`confetti ${i % 2 === 0 ? 'confetti-gold' : 'confetti-silver'}`} style={{ 
+  72 |             left: `${Math.random() * 100}vw`,
+> 73 |             animationDuration: `${Math.random() * 3 + 2}s`,
+     |                                   ^^^^^^^^^^^^^ Cannot call impure function
+  74 |             animationDelay: `${Math.random() * 2}s`
+  75 |           }} />
+  76 |         ))}                                                                                                                                   react-hooks/purity
+  74:32  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\Institute\institute1\src\app\(dashboard)\profile\components\CrownBanner.tsx:74:32
+  72 |             left: `${Math.random() * 100}vw`,
+  73 |             animationDuration: `${Math.random() * 3 + 2}s`,
+> 74 |             animationDelay: `${Math.random() * 2}s`
+     |                                ^^^^^^^^^^^^^ Cannot call impure function
+  75 |           }} />
+  76 |         ))}
+  77 |       </div>                                                                                                                                                                                                                                                               react-hooks/purity
+
+D:\Institute\institute1\src\app\(dashboard)\profile\components\ProfessionalInfoConnect.tsx
+  12:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\app\(dashboard)\profile\components\SocialLinksConnect.tsx
+  45:40  warning  '_' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Institute\institute1\src\app\(dashboard)\profile\page.tsx
+  190:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  232:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\app\(dashboard)\share-doubt\ShareDoubtForm.tsx
+   17:12  error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+   23:42  error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+   43:6   warning  React Hook useEffect has a missing dependency: 'supabase'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  100:37  error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+  112:39  error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\app\(dashboard)\share-doubt\page.tsx
+  26:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\app\(dashboard)\users\[id]\page.tsx
+    2:10  warning  'notFound' is defined but never used                             @typescript-eslint/no-unused-vars
+    7:8   warning  'Image' is defined but never used                                @typescript-eslint/no-unused-vars
+   12:10  warning  'User' is defined but never used                                 @typescript-eslint/no-unused-vars
+   51:22  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  302:47  error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\app\(instructor)\instructor\feedback\page.tsx
+  68:21  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+D:\Institute\institute1\src\app\(instructor)\instructor\share-upload\ShareUploadForm.tsx
+   16:12  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-explicit-any
+   25:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Institute\institute1\src\app\(instructor)\instructor\share-upload\ShareUploadForm.tsx:25:5
+  23 |
+  24 |   useEffect(() => {
+> 25 |     setLocalAttachments(attachments);
+     |     ^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  26 |   }, [attachments]);
+  27 |
+  28 |   // Adjust preview index if items are deleted out of bounds                                                                                               react-hooks/set-state-in-effect
+   31:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Institute\institute1\src\app\(instructor)\instructor\share-upload\ShareUploadForm.tsx:31:7
+  29 |   useEffect(() => {
+  30 |     if (currentPreviewIndex >= localAttachments.length && localAttachments.length > 0) {
+> 31 |       setCurrentPreviewIndex(localAttachments.length - 1);
+     |       ^^^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  32 |     }
+  33 |   }, [localAttachments.length, currentPreviewIndex]);
+  34 |  react-hooks/set-state-in-effect
+   36:42  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-explicit-any
+  133:19  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-explicit-any
+  278:41  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-explicit-any
+  324:39  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\app\(instructor)\instructor\submissions\page.tsx
+  1:24  warning  'createAdminClient' is defined but never used  @typescript-eslint/no-unused-vars
+  3:8   warning  'Card' is defined but never used               @typescript-eslint/no-unused-vars
+
+D:\Institute\institute1\src\app\(instructor)\layout.tsx
+  31:53   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  31:62   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  31:100  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  31:127  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+D:\Institute\institute1\src\app\(public)\apply-instructor\ApplyForms.tsx
+    7:10   warning  'handleRegister' is defined but never used  @typescript-eslint/no-unused-vars
+   30:60   error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+   34:41   error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+   68:19   error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+  114:103  error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\app\admission\AdmissionFormClient.tsx
+   17:59  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   97:19  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  121:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  198:30  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                                          react/no-unescaped-entities
+  202:30  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                                          react/no-unescaped-entities
+  208:30  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                                          react/no-unescaped-entities
+  212:30  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                                          react/no-unescaped-entities
+
+D:\Institute\institute1\src\app\admission\actions.ts
+   5:49  error    Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+  32:11  warning  'text' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  44:17  error    Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\app\api\auth\callback\route.ts
+  8:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\app\components\GallerySection.tsx
+  44:20  warning  'setExpanded' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  76:9   warning  'visible' is assigned a value but never used      @typescript-eslint/no-unused-vars
+  77:9   warning  'hasMore' is assigned a value but never used      @typescript-eslint/no-unused-vars
+
+D:\Institute\institute1\src\app\not-found.tsx
+  24:20  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  24:40  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+D:\Institute\institute1\src\app\page.tsx
+   6:74  warning  'CheckCircle2' is defined but never used      @typescript-eslint/no-unused-vars
+  17:9   warning  'tagline' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\Institute\institute1\src\components\ThemeToggle.tsx
+  13:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Institute\institute1\src\components\ThemeToggle.tsx:13:5
+  11 |   // Avoid hydration mismatch by waiting for mount
+  12 |   useEffect(() => {
+> 13 |     setMounted(true);
+     |     ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  14 |   }, []);
+  15 |
+  16 |   if (!mounted) {  react-hooks/set-state-in-effect
+
+D:\Institute\institute1\src\components\layout\NotificationBell.tsx
+  93:54  warning  'link' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Institute\institute1\src\components\layout\Sidebar.tsx
+   7:10  warning  'createClient' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+  15:37  warning  'MoreVertical' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+  28:56  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+  57:89  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+  58:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Institute\institute1\src\components\layout\Sidebar.tsx:58:7
+  56 |
+  57 |     if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone) {
+> 58 |       setIsInstallable(false);
+     |       ^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  59 |     }
+  60 |
+  61 |     return () => {  react-hooks/set-state-in-effect
+
+D:\Institute\institute1\src\components\shared\BadgeCelebrator.tsx
+   8:52  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @typescript-eslint/no-explicit-any
+   9:52  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @typescript-eslint/no-explicit-any
+  23:7   error    Error: Cannot access variable before it is declared
+
+`showNextBadge` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+D:\Institute\institute1\src\components\shared\BadgeCelebrator.tsx:23:7
+  21 |   useEffect(() => {
+  22 |     if (unseenBadges.length > 0 && !currentBadge) {
+> 23 |       showNextBadge();
+     |       ^^^^^^^^^^^^^ `showNextBadge` accessed before it is declared
+  24 |     }
+  25 |   }, [unseenBadges, currentBadge]);
+  26 |
+
+D:\Institute\institute1\src\components\shared\BadgeCelebrator.tsx:27:3
+  25 |   }, [unseenBadges, currentBadge]);
+  26 |
+> 27 |   const showNextBadge = () => {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 28 |     if (unseenBadges.length === 0) return;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 29 |     
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 39 |     // just let it fire, if currentBadge is already null it's safe.
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 40 |   };
+     | ^^^^^ `showNextBadge` is declared here
+  41 |
+  42 |   const dismissCurrentBadge = (badgeId: string) => {
+  43 |     // Mark as seen in DB ONLY when it is dismissed so they don't lose it if they reload too fast  react-hooks/immutability
+  25:6   warning  React Hook useEffect has a missing dependency: 'showNextBadge'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     react-hooks/exhaustive-deps
+  34:11  warning  'timer' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+  57:22  error    Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\Institute\institute1\src\components\shared\BadgeCelebrator.tsx:57:22
+  55 |         {[...Array(30)].map((_, i) => (
+  56 |           <div suppressHydrationWarning key={i} className="star" style={{ 
+> 57 |             left: `${Math.random() * 100}vw`,
+     |                      ^^^^^^^^^^^^^ Cannot call impure function
+  58 |             animationDuration: `${Math.random() * 2 + 2}s`,
+  59 |             animationDelay: `${Math.random() * 2}s`
+  60 |           }}>                                                                                                                                                                                                                                                                                                                                                                                                                                                             react-hooks/purity
+  58:35  error    Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\Institute\institute1\src\components\shared\BadgeCelebrator.tsx:58:35
+  56 |           <div suppressHydrationWarning key={i} className="star" style={{ 
+  57 |             left: `${Math.random() * 100}vw`,
+> 58 |             animationDuration: `${Math.random() * 2 + 2}s`,
+     |                                   ^^^^^^^^^^^^^ Cannot call impure function
+  59 |             animationDelay: `${Math.random() * 2}s`
+  60 |           }}>
+  61 |             ⭐                                                                                                                                                                                                                                                                                                                                                                                                                                                                          react-hooks/purity
+  59:32  error    Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\Institute\institute1\src\components\shared\BadgeCelebrator.tsx:59:32
+  57 |             left: `${Math.random() * 100}vw`,
+  58 |             animationDuration: `${Math.random() * 2 + 2}s`,
+> 59 |             animationDelay: `${Math.random() * 2}s`
+     |                                ^^^^^^^^^^^^^ Cannot call impure function
+  60 |           }}>
+  61 |             ⭐
+  62 |           </div>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       react-hooks/purity
+
+D:\Institute\institute1\src\components\shared\BadgeDisplay.tsx
+  26:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Institute\institute1\src\components\shared\BadgeDisplay.tsx:26:5
+  24 |
+  25 |   useEffect(() => {
+> 26 |     setMounted(true);
+     |     ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  27 |   }, []);
+  28 |
+  29 |   const handleShare = async () => {  react-hooks/set-state-in-effect
+  78:22  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\Institute\institute1\src\components\shared\BadgeDisplay.tsx:78:22
+  76 |         {[...Array(30)].map((_, i) => (
+  77 |           <div suppressHydrationWarning key={i} className="star" style={{ 
+> 78 |             left: `${Math.random() * 100}vw`,
+     |                      ^^^^^^^^^^^^^ Cannot call impure function
+  79 |             animationDuration: `${Math.random() * 2 + 2}s`,
+  80 |             animationDelay: `${Math.random() * 2}s`
+  81 |           }}>                                                                                                                                                                              react-hooks/purity
+  79:35  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\Institute\institute1\src\components\shared\BadgeDisplay.tsx:79:35
+  77 |           <div suppressHydrationWarning key={i} className="star" style={{ 
+  78 |             left: `${Math.random() * 100}vw`,
+> 79 |             animationDuration: `${Math.random() * 2 + 2}s`,
+     |                                   ^^^^^^^^^^^^^ Cannot call impure function
+  80 |             animationDelay: `${Math.random() * 2}s`
+  81 |           }}>
+  82 |             ⭐                                                                                                                                                                                           react-hooks/purity
+  80:32  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\Institute\institute1\src\components\shared\BadgeDisplay.tsx:80:32
+  78 |             left: `${Math.random() * 100}vw`,
+  79 |             animationDuration: `${Math.random() * 2 + 2}s`,
+> 80 |             animationDelay: `${Math.random() * 2}s`
+     |                                ^^^^^^^^^^^^^ Cannot call impure function
+  81 |           }}>
+  82 |             ⭐
+  83 |           </div>                                                                                                                                                                                                                                                        react-hooks/purity
+
+D:\Institute\institute1\src\components\shared\EnrolledCoursesList.tsx
+   4:77  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  16:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\components\shared\MonthlyCelebrator.tsx
+  22:11  error  Error: Cannot access variable before it is declared
+
+`dismissReward` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+D:\Institute\institute1\src\components\shared\MonthlyCelebrator.tsx:22:11
+  20 |         // Auto-dismiss after 8 seconds
+  21 |         setTimeout(() => {
+> 22 |           dismissReward(rewards[0].id);
+     |           ^^^^^^^^^^^^^ `dismissReward` accessed before it is declared
+  23 |         }, 8000);
+  24 |       }
+  25 |     };
+
+D:\Institute\institute1\src\components\shared\MonthlyCelebrator.tsx:29:3
+  27 |   }, []);
+  28 |
+> 29 |   const dismissReward = (rewardId: string) => {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 30 |     markMonthlyRewardSeen(rewardId).catch(console.error);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 31 |     setUnseenReward(null);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 32 |   };
+     | ^^^^^ `dismissReward` is declared here
+  33 |
+  34 |   if (!unseenReward) return null;
+  35 |  react-hooks/immutability
+  41:22  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\Institute\institute1\src\components\shared\MonthlyCelebrator.tsx:41:22
+  39 |         {[...Array(50)].map((_, i) => (
+  40 |           <div suppressHydrationWarning key={i} className={`confetti ${i % 2 === 0 ? 'confetti-gold' : 'confetti-silver'}`} style={{ 
+> 41 |             left: `${Math.random() * 100}vw`,
+     |                      ^^^^^^^^^^^^^ Cannot call impure function
+  42 |             animationDuration: `${Math.random() * 3 + 2}s`,
+  43 |             animationDelay: `${Math.random() * 2}s`
+  44 |           }} />                                                                                                                                                                                                                          react-hooks/purity
+  42:35  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\Institute\institute1\src\components\shared\MonthlyCelebrator.tsx:42:35
+  40 |           <div suppressHydrationWarning key={i} className={`confetti ${i % 2 === 0 ? 'confetti-gold' : 'confetti-silver'}`} style={{ 
+  41 |             left: `${Math.random() * 100}vw`,
+> 42 |             animationDuration: `${Math.random() * 3 + 2}s`,
+     |                                   ^^^^^^^^^^^^^ Cannot call impure function
+  43 |             animationDelay: `${Math.random() * 2}s`
+  44 |           }} />
+  45 |         ))}                                                                                                                                                                                                                                         react-hooks/purity
+  43:32  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\Institute\institute1\src\components\shared\MonthlyCelebrator.tsx:43:32
+  41 |             left: `${Math.random() * 100}vw`,
+  42 |             animationDuration: `${Math.random() * 3 + 2}s`,
+> 43 |             animationDelay: `${Math.random() * 2}s`
+     |                                ^^^^^^^^^^^^^ Cannot call impure function
+  44 |           }} />
+  45 |         ))}
+  46 |       </div>                                                                                                                                                                                                                                                                                                                                                                     react-hooks/purity
+
+D:\Institute\institute1\src\components\shared\XpCelebrator.tsx
+   8:44  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-explicit-any
+  13:18  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-explicit-any
+  60:22  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\Institute\institute1\src\components\shared\XpCelebrator.tsx:60:22
+  58 |         {[...Array(30)].map((_, i) => (
+  59 |           <div suppressHydrationWarning key={i} className="star" style={{ 
+> 60 |             left: `${Math.random() * 100}vw`,
+     |                      ^^^^^^^^^^^^^ Cannot call impure function
+  61 |             animationDuration: `${Math.random() * 2 + 2}s`,
+  62 |             animationDelay: `${Math.random() * 2}s`
+  63 |           }}>  react-hooks/purity
+  61:35  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\Institute\institute1\src\components\shared\XpCelebrator.tsx:61:35
+  59 |           <div suppressHydrationWarning key={i} className="star" style={{ 
+  60 |             left: `${Math.random() * 100}vw`,
+> 61 |             animationDuration: `${Math.random() * 2 + 2}s`,
+     |                                   ^^^^^^^^^^^^^ Cannot call impure function
+  62 |             animationDelay: `${Math.random() * 2}s`
+  63 |           }}>
+  64 |             ⚡               react-hooks/purity
+  62:32  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\Institute\institute1\src\components\shared\XpCelebrator.tsx:62:32
+  60 |             left: `${Math.random() * 100}vw`,
+  61 |             animationDuration: `${Math.random() * 2 + 2}s`,
+> 62 |             animationDelay: `${Math.random() * 2}s`
+     |                                ^^^^^^^^^^^^^ Cannot call impure function
+  63 |           }}>
+  64 |             ⚡
+  65 |           </div>                                                                            react-hooks/purity
+
+D:\Institute\institute1\src\components\ui\ImageUploadButton.tsx
+   5:8   warning  'Button' is defined but never used        @typescript-eslint/no-unused-vars
+  60:21  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\components\ui\LazyAttachment.tsx
+  5:30  warning  'Download' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Institute\institute1\src\components\ui\LazyPdfViewer.tsx
+  50:16  warning  'e' is defined but never used                                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+  87:12  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  89:30  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                                          react/no-unescaped-entities
+
+D:\Institute\institute1\src\components\ui\MarkdownRenderer.tsx
+  27:19  warning  'node' is defined but never used                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+  27:65  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  32:19  error    Do not pass children as props. Instead, nest children between the opening and closing tags                                                                                                                                                                                               react/no-children-prop
+  44:18  warning  'node' is defined but never used                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+  45:20  warning  'node' is defined but never used                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+  45:40  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  45:40  warning  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images                                                                                                                                                                                jsx-a11y/alt-text
+  67:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+D:\Institute\institute1\src\features\activity\actions\activity.ts
+  27:67  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\features\activity\components\ActivityFeed.tsx
+  31:35  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  71:36  warning  'idx' is defined but never used           @typescript-eslint/no-unused-vars
+
+D:\Institute\institute1\src\features\admin\actions\builder-actions.ts
+   36:9   warning  'pdf_file' is assigned a value but never used           @typescript-eslint/no-unused-vars
+  127:7   error    'sort_order' is never reassigned. Use 'const' instead   prefer-const
+  128:7   error    'week_number' is never reassigned. Use 'const' instead  prefer-const
+  129:9   warning  'pdf_file' is assigned a value but never used           @typescript-eslint/no-unused-vars
+  131:21  error    Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\features\admin\actions\instructor-actions.ts
+   5:10  warning  'SUPER_ADMIN_EMAIL' is defined but never used  @typescript-eslint/no-unused-vars
+  47:17  error    Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+  86:17  error    Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\features\admin\components\CourseManager.tsx
+  26:71  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\features\admin\components\CurriculumBuilder.tsx
+    5:8   warning  'Image' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+   15:43  warning  'Badge' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+   38:17  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+   47:66  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+   51:71  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+   52:79  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+   69:51  error    Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\Institute\institute1\src\features\admin\components\CurriculumBuilder.tsx:69:51
+  67 |   // Group lessons by date
+  68 |   const groupedLessons = lessons.reduce((acc, lesson) => {
+> 69 |     const dateStr = new Date(lesson.created_at || Date.now()).toLocaleDateString(undefined, {
+     |                                                   ^^^^^^^^^^ Cannot call impure function
+  70 |       year: 'numeric',
+  71 |       month: 'long',
+  72 |       day: 'numeric'  react-hooks/purity
+  180:9   error    Error: This value cannot be modified
+
+Modifying a value returned from 'useState()', which should not be modified directly. Use the setter function to update instead.
+
+D:\Institute\institute1\src\features\admin\components\CurriculumBuilder.tsx:180:9
+  178 |       const feedback = formData.get('feedback');
+  179 |       if (reviewingSubmission) {
+> 180 |         reviewingSubmission.status = action === 'approve' ? 'approved' : 'rejected';
+      |         ^^^^^^^^^^^^^^^^^^^ `reviewingSubmission` cannot be modified
+  181 |         reviewingSubmission.feedback = feedback;
+  182 |       }
+  183 |       closeModal();                                                                                                                                                                        react-hooks/immutability
+  261:98  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+  326:41  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @next/next/no-img-element
+
+D:\Institute\institute1\src\features\admin\components\JoinedStudentsList.tsx
+   8:76  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  20:46  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  24:17  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+D:\Institute\institute1\src\features\admin\components\SubmissionsListClient.tsx
+  8:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\features\auth\components\LoginForm.tsx
+  10:10  warning  'Building' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Institute\institute1\src\features\auth\components\SignupForm.tsx
+  10:10  warning  'Building' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Institute\institute1\src\features\chat\actions\chat.ts
+   5:46  warning  'ChatMember' is defined but never used    @typescript-eslint/no-unused-vars
+  79:97  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\features\chat\components\ChatInterface.tsx
+    6:88   warning  'X' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+   18:20   warning  'setIsTyping' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+   21:56   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-explicit-any
+   23:35   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-explicit-any
+   56:29   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-explicit-any
+   59:6    warning  React Hook useEffect has missing dependencies: 'fetchChatsClient' and 'supabase.auth'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          react-hooks/exhaustive-deps
+  105:6    warning  React Hook useEffect has a missing dependency: 'fetchMessagesClient'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             react-hooks/exhaustive-deps
+  120:39   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-explicit-any
+  127:6    warning  React Hook useEffect has a missing dependency: 'supabase'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        react-hooks/exhaustive-deps
+  192:6    warning  React Hook useEffect has a missing dependency: 'supabase'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        react-hooks/exhaustive-deps
+  204:151  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-explicit-any
+  212:21   warning  'key' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+  235:6    warning  React Hook useEffect has missing dependencies: 'fetchMessagesClient', 'isTyping', and 'supabase'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               react-hooks/exhaustive-deps
+  241:6    warning  React Hook useEffect has missing dependencies: 'activeChat' and 'currentUserId'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                react-hooks/exhaustive-deps
+  251:9    error    'optimisticId' is never reassigned. Use 'const' instead                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            prefer-const
+  372:52   error    Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\Institute\institute1\src\features\chat\components\ChatInterface.tsx:372:52
+  370 |                     </h4>
+  371 |                     <span style={{ fontSize: '11px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+> 372 |                       {new Date(chat.updated_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+      |                                                    ^^^^^^^^^^ Cannot call impure function
+  373 |                     </span>
+  374 |                   </div>
+  375 |                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>  react-hooks/purity
+
+D:\Institute\institute1\src\features\chat\components\NewChatModal.tsx
+  18:38  error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+  38:6   warning  React Hook useEffect has a missing dependency: 'supabase'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  71:27  warning  'error' is assigned a value but never used                                                                   @typescript-eslint/no-unused-vars
+
+D:\Institute\institute1\src\features\courses\actions\alerts.ts
+   39:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  108:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\features\courses\actions\certificates.ts
+  128:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  130:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\features\courses\actions\enroll.ts
+  57:53  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\features\courses\actions\polls.ts
+   94:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  170:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  223:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\features\courses\components\AssignmentCard.tsx
+  15:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\features\courses\components\CourseCard.tsx
+  34:64  warning  'certificateId' is defined but never used             @typescript-eslint/no-unused-vars
+  35:9   warning  'difficultyColor' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  39:60  error    Unexpected any. Specify a different type              @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\features\courses\components\CourseDoubtsClient.tsx
+  16:18  error    Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  26:9   warning  'router' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\Institute\institute1\src\features\courses\components\CourseDoubtsSection.tsx
+  36:7  error  'userLikes' is never reassigned. Use 'const' instead  prefer-const
+
+D:\Institute\institute1\src\features\courses\components\CreateAlertSection.tsx
+  37:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\features\courses\components\CreatePollWidget.tsx
+  61:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\features\courses\components\CurriculumListClient.tsx
+  43:23  warning  'index' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  46:82  error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\features\courses\components\EnrollCourseButton.tsx
+  12:46  warning  'courseId' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Institute\institute1\src\features\courses\components\PollCard.tsx
+  5:8  warning  'Button' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Institute\institute1\src\features\doubts\actions\doubts.ts
+   10:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  409:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\features\doubts\components\AskDoubtModal.tsx
+  41:9  warning  'isImage' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\Institute\institute1\src\features\gamification\actions\monthly-rewards.ts
+  4:10  warning  'revalidatePath' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Institute\institute1\src\features\hall-of-fame\components\StoryCarousel.tsx
+  5:51  warning  'createStory' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Institute\institute1\src\features\leaderboard\components\LeaderboardTable.tsx
+  4:8   warning  'Image' is defined but never used  @typescript-eslint/no-unused-vars
+  7:10  warning  'User' is defined but never used   @typescript-eslint/no-unused-vars
+
+D:\Institute\institute1\src\features\notices\components\NoticeManager.tsx
+   86:33  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  125:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+D:\Institute\institute1\src\lib\attachments.ts
+    1:10  warning  'createClient' is defined but never used  @typescript-eslint/no-unused-vars
+   49:12  warning  'e' is defined but never used             @typescript-eslint/no-unused-vars
+   76:13  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  104:17  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  128:13  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\lib\icon-mapper.tsx
+  18:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\lib\profile.ts
+  4:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Institute\institute1\src\types\database.ts
+  218:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  318:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 272 problems (167 errors, 105 warnings)
+  8 errors and 0 warnings potentially fixable with the `--fix` option.
+

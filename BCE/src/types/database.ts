@@ -202,3 +202,123 @@ export interface Feedback {
   replied_at: string | null;
   created_at: string;
 }
+
+// ==============================
+// GLOBAL CHAT
+// ==============================
+
+export interface ChatConversation {
+  id: string;
+  type: 'personal' | 'group';
+  name: string | null;
+  description: string | null;
+  icon_url: string | null;
+  is_private: boolean;
+  join_requires_approval: boolean;
+  settings_jsonb: any;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  
+  // Custom joined fields for frontend selection
+  members?: ChatMember[];
+}
+
+export interface ChatMember {
+  conversation_id: string;
+  user_id: string;
+  role: 'owner' | 'admin' | 'moderator' | 'member' | 'pending';
+  mute_until: string | null;
+  last_read_message_id: string | null;
+  joined_at: string;
+  
+  profile?: Profile;
+}
+
+export interface ChatMessage {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  content: string | null;
+  attachment_type: 'text' | 'image' | 'video' | 'pdf' | 'audio' | 'lesson' | 'assignment' | 'notice' | 'course' | 'doubt' | null;
+  attachment_link: string | null;
+  reply_to_id: string | null;
+  is_edited: boolean;
+  is_pinned: boolean;
+  deleted_for_everyone: boolean;
+  created_at: string;
+  updated_at: string;
+  
+  // Custom joined fields
+  sender?: Profile;
+  reactions?: MessageReaction[];
+  deliveries?: MessageDelivery[];
+  reply_to?: ChatMessage;
+}
+
+export interface MessageReaction {
+  message_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: string;
+}
+
+export interface MessageDelivery {
+  message_id: string;
+  user_id: string;
+  status: 'delivered' | 'read';
+  updated_at: string;
+}
+
+// ==============================
+// HALL OF FAME / STORIES V2
+// ==============================
+
+export interface HallOfFameStory {
+  id: string;
+  user_id: string;
+  category: 'badge' | 'leaderboard' | 'xp' | 'certificate' | 'course' | 'faculty';
+  reference_id: string | null;
+  caption: string | null;
+  image_url?: string | null;
+  is_hidden: boolean;
+  created_at: string;
+  expires_at: string;
+  
+  profile?: Profile;
+  views?: StoryView[];
+  reactions?: StoryReaction[];
+  _count?: {
+    views?: number;
+    reactions?: number;
+  };
+}
+
+export interface StoryView {
+  story_id: string;
+  viewer_id: string;
+  viewed_at: string;
+}
+
+export interface StoryReaction {
+  story_id: string;
+  user_id: string;
+  reaction: string;
+  created_at: string;
+}
+
+// ==============================
+// ACTIVITY FEED
+// ==============================
+
+export interface ActivityFeedItem {
+  id: string;
+  user_id: string;
+  activity_type: string;
+  metadata: any;
+  created_at: string;
+  
+  profile?: Profile;
+}
+

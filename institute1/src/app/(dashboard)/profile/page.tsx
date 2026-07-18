@@ -11,13 +11,14 @@ import LinkedinConnect from './components/LinkedinConnect';
 import SocialLinksConnect from './components/SocialLinksConnect';
 import AcademicInfoConnect from './components/AcademicInfoConnect';
 import ProfessionalInfoConnect from './components/ProfessionalInfoConnect';
-import CrownBanner from './components/CrownBanner';
+import { DynamicCrownBanner as CrownBanner } from '@/components/DynamicWrappers';
 import BasicInfoEdit from './components/BasicInfoEdit';
 import ShareProfileButton from '@/components/shared/ShareProfileButton';
 import EnrolledCoursesList from '@/components/shared/EnrolledCoursesList';
 import { getPastMonthlyRewards } from '@/features/gamification/actions/monthly-rewards';
 import RecentActivity from './components/RecentActivity';
 import './Profile.css';
+
 export const dynamic = 'force-dynamic';
 
 export default async function ProfilePage() {

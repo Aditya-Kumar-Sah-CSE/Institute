@@ -16,10 +16,12 @@ const jetbrainsMono = JetBrains_Mono({
 
 import { Analytics } from "@vercel/analytics/react";
 import { ThemeProvider } from '@/components/ThemeProvider';
-import PwaRegister from '@/components/PwaRegister';
-import PWAInstallPrompt from '@/components/pwa/PWAInstallPrompt';
-import FeedbackWidget from '@/components/shared/FeedbackWidget';
-import XpCelebrator from '@/components/shared/XpCelebrator';
+import { 
+  DynamicPwaRegister as PwaRegister, 
+  DynamicPWAInstallPrompt as PWAInstallPrompt, 
+  DynamicFeedbackWidget as FeedbackWidget, 
+  DynamicXpCelebrator as XpCelebrator 
+} from '@/components/DynamicWrappers';
 
 export const viewport: Viewport = {
   themeColor: '#000000',

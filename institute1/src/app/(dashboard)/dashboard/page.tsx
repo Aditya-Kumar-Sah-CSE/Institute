@@ -16,6 +16,9 @@ const PollAlerts = dynamic(() => import('./components/PollAlerts'));
 const DashboardPolls = dynamic(() => import('./components/DashboardPolls'), { loading: () => <div className="skeleton-dash" style={{ height: '200px', borderRadius: '12px' }}></div> });
 const ContinueLearning = dynamic(() => import('./components/ContinueLearning'), { loading: () => <div className="skeleton-dash" style={{ height: '250px', borderRadius: '12px' }}></div> });
 const DashboardAlerts = dynamic(() => import('./components/DashboardAlerts'));
+const ActivityFeed = dynamic(() => import('@/features/activity/components/ActivityFeed'), { 
+  loading: () => <div className="skeleton-dash" style={{ height: '300px', borderRadius: '12px' }}></div> 
+});
 
 interface DashboardEnrollment {
   progress: number;
@@ -141,6 +144,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
              </pre>
            </div>
         )}
+
         <div className="dashboard-welcome">
           {searchParams?.error === 'FileTooLarge' && (
             <div style={{ background: 'rgba(255, 0, 0, 0.1)', border: '1px solid var(--neon-red)', padding: 'var(--space-md)', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--space-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
@@ -260,6 +264,9 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
           
           <div className="dashboard-bottom-col">
             <DashboardProfileCard profile={profile} appData={appData} />
+            <div style={{ marginTop: 'var(--space-2xl)' }}>
+              <ActivityFeed />
+            </div>
           </div>
         </div>
       </div>

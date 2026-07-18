@@ -6,6 +6,7 @@ import Image from 'next/image';
 import './BadgeDisplay.css';
 import './BadgeCelebrator.css';
 import type { Badge, UserBadge } from '@/types';
+import { createClient } from '@/lib/supabase/client';
 
 interface BadgeDisplayProps {
   allBadges: Badge[];
@@ -17,20 +18,21 @@ interface BadgeDisplayProps {
 export default function BadgeDisplay({ allBadges, earnedBadges, compact = false, className = '' }: BadgeDisplayProps) {
   const earnedIds = new Set(earnedBadges.map(ub => ub.badge_id));
   const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
-  const [mounted, setMounted] = useState(false);
+  const [mounted, setMounted] = useState(() => typeof window !== 'undefined');
   const [isSharing, setIsSharing] = useState(false);
+  const [isAddingToStory, setIsAddingToStory] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const popupRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    if (!mounted) {
+       setMounted(true);
+    }
+  }, [mounted]);
 
-  const handleShare = async () => {
-    if (!popupRef.current || !selectedBadge) return;
-    setIsSharing(true);
+  const generateImage = async () => {
+    if (!popupRef.current) return null;
     popupRef.current.classList.add('exporting-image');
-    
     try {
       const html2canvas = (await import('html2canvas-pro')).default;
       const canvas = await html2canvas(popupRef.current, {
@@ -40,7 +42,55 @@ export default function BadgeDisplay({ allBadges, earnedBadges, compact = false,
         useCORS: true,
         ignoreElements: (element) => element.classList.contains('no-share'),
       });
-      
+      return canvas;
+    } finally {
+      popupRef.current.classList.remove('exporting-image');
+    }
+  };
+
+  const handleAddToStory = async () => {
+     if (!selectedBadge) return;
+     setIsAddingToStory(true);
+     try {
+       const canvas = await generateImage();
+       if (!canvas) throw new Error("Failed to generate image");
+       
+       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.8));
+       if (!blob) throw new Error("Failed to create blob");
+
+       const formData = new FormData();
+       formData.append('referenceId', selectedBadge.id);
+       formData.append('category', 'badge');
+       formData.append('caption', `Earned the ${selectedBadge.name} badge!`);
+       formData.append('image', blob);
+
+       const res = await fetch('/api/hall-of-fame/story', {
+           method: 'POST',
+           body: formData
+       });
+
+       if (!res.ok) {
+           const errData = await res.json();
+           throw new Error(errData.error || 'Failed to upload story');
+       }
+       
+       alert('Successfully added to your Story!');
+     } catch (e: any) {
+       console.error("Story Error:", e);
+       alert(`Failed to add to story. Hint: ${e.message}`);
+     } finally {
+       setIsAddingToStory(false);
+     }
+  };
+
+  const handleShare = async () => {
+    if (!selectedBadge) return;
+    setIsSharing(true);
+    
+    try {
+      const canvas = await generateImage();
+      if (!canvas) throw new Error("Failed to generate canvas");
+
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
       if (!blob) throw new Error('Failed to create image blob');
 
@@ -63,9 +113,8 @@ export default function BadgeDisplay({ allBadges, earnedBadges, compact = false,
       }
     } catch (error) {
       console.error('Error sharing:', error);
-      alert('Failed to share image.');
+      alert('Failed to construct image.');
     } finally {
-      popupRef.current?.classList.remove('exporting-image');
       setIsSharing(false);
     }
   };
@@ -75,9 +124,9 @@ export default function BadgeDisplay({ allBadges, earnedBadges, compact = false,
       <div className="falling-stars">
         {[...Array(30)].map((_, i) => (
           <div suppressHydrationWarning key={i} className="star" style={{ 
-            left: `${Math.random() * 100}vw`,
-            animationDuration: `${Math.random() * 2 + 2}s`,
-            animationDelay: `${Math.random() * 2}s`
+            left: `${(i * 17) % 100}vw`,
+            animationDuration: `${2 + ((i * 11) % 3)}s`,
+            animationDelay: `${((i * 7) % 20) / 10}s`
           }}>
             ⭐
           </div>
@@ -94,29 +143,49 @@ export default function BadgeDisplay({ allBadges, earnedBadges, compact = false,
           )}
         </div>
         <h3 className="badge-name">{selectedBadge.name}</h3>
-        <p className="badge-desc">{selectedBadge.description}</p>
-        <button 
-          className="no-share"
-          onClick={handleShare}
-          disabled={isSharing}
-          style={{
-            marginTop: 'var(--space-lg)',
-            background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-blue))',
-            border: 'none',
-            borderRadius: 'var(--radius-full)',
-            padding: 'var(--space-sm) var(--space-xl)',
-            color: 'white',
-            fontWeight: 'bold',
-            cursor: isSharing ? 'wait' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--space-xs)',
-            margin: 'var(--space-xl) auto 0 auto',
-            boxShadow: '0 4px 15px rgba(0, 240, 255, 0.3)'
-          }}
-        >
-          {isSharing ? 'Generating...' : '📸 Share on Socials'}
-        </button>
+        <p style={{ marginTop: 'var(--space-md)', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+          {selectedBadge.description}
+        </p>
+
+        <div className="no-share" style={{ display: 'flex', gap: 'var(--space-md)', justifyContent: 'center', marginTop: 'var(--space-xl)', flexWrap: 'wrap' }}>
+          <button 
+            onClick={handleAddToStory}
+            disabled={isAddingToStory || isSharing}
+            style={{
+              background: 'linear-gradient(135deg, var(--neon-magenta), var(--neon-purple))',
+              border: 'none',
+              borderRadius: 'var(--radius-full)',
+              padding: 'var(--space-sm) var(--space-lg)',
+              color: 'white',
+              fontWeight: 'bold',
+              cursor: (isAddingToStory || isSharing) ? 'wait' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              boxShadow: '0 4px 15px rgba(177, 78, 255, 0.3)'
+            }}
+          >
+            {isAddingToStory ? 'Posting...' : '🌟 Add to Story'}
+          </button>
+
+          <button 
+            onClick={handleShare}
+            disabled={isSharing || isAddingToStory}
+            style={{
+              background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-blue, #3b82f6))',
+              border: 'none',
+              borderRadius: 'var(--radius-full)',
+              padding: 'var(--space-sm) var(--space-lg)',
+              color: 'white',
+              fontWeight: 'bold',
+              cursor: (isSharing || isAddingToStory) ? 'wait' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              boxShadow: '0 4px 15px rgba(0, 240, 255, 0.3)'
+            }}
+          >
+            {isSharing ? 'Generating...' : '📸 Share'}
+          </button>
+        </div>
       </div>
     </div>
   ) : null;

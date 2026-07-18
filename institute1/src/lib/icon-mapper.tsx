@@ -31,6 +31,7 @@ export function getIcon(name: string, props?: any) {
     case 'Admin': return <Shield {...props} />;
     case 'Building': return <Building {...props} />;
     case 'Logout': return <LogOut {...props} />;
+    case 'Chat': return <MessageSquare {...props} />;
     default: return <LayoutDashboard {...props} />;
   }
 }

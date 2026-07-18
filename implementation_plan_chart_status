@@ -1,0 +1,59 @@
+# Goal Description
+Implement a production-ready, industry-level Chat and "Hall of Fame" Status (Story) feature for the Student Dashboard, similar to WhatsApp.
+1. **Chat Feature**: Allows personal chats between users (students, faculty, admins) and group chats (with auto-join or permission-required settings).
+2. **Hall of Fame (Status/Story)**: A feature at the top of the dashboard where students can share their recently earned rewards/badges, which will be visible as a "status" or "story". Any logged-in user can view and "like" these status updates.
+
+## Proposed Changes
+
+### Database Migrations
+We will create a new Supabase migration (e.g. `071_chat_and_status.sql`) to introduce the following schemas:
+
+#### [NEW] `d:\Institute\institute1\supabase\migrations\071_chat_and_status.sql`
+- **chats**: Stores chat threads. Fields: `id`, `type` (personal, group), `name` (for group chats), `is_open` (true = auto join, false = permission required), `created_at`.
+- **chat_participants**: Junction table connecting `profiles` to `chats`. Fields: `chat_id`, `user_id`, `role` (admin/member), `status` (pending/accepted).
+- **chat_messages**: Stores individual messages. Fields: `id`, `chat_id`, `sender_id`, `content`, `created_at`.
+- **hall_of_fame_stories**: Stores the status/stories. Fields: `id`, `user_id`, `badge_id` (reference to reward), `caption` TEXT, `created_at` (default now), `expires_at` (now + 24 hours).
+- **story_likes**: Stores likes for stories. Fields: `story_id`, `user_id`, `created_at`.
+- Will include Row Level Security (RLS) policies to ensure privacy and security.
+
+### Backend & Type Updates
+#### [MODIFY] `d:\Institute\institute1\src\types\database.types.ts`
+- Generate and export types for the new tables (`Chat`, `ChatMessage`, `ChatParticipant`, `Story`, `StoryLike`) to ensure type safety on the frontend.
+
+#### [NEW] `d:\Institute\institute1\src\features\chat\actions\chat.ts`
+- Server actions to fetch chats, create groups, request to join, send messages, and fetch messages.
+
+#### [NEW] `d:\Institute\institute1\src\features\hall-of-fame\actions\stories.ts`
+- Server actions to publish a new story/status from a reward earned, fetch active stories (not expired), and toggle "like" of a story.
+
+### Frontend Components (UI)
+#### [NEW] `d:\Institute\institute1\src\features\hall-of-fame\components\StoryCarousel.tsx` (or similar)
+- Shows a horizontal list of circular avatar components at the very top of the dashboard, exactly like WhatsApp or Instagram stories.
+- Unviewed stories will have a glowing border.
+- Clicking on a story opens a full-screen story viewer overlay showing the badge, achievement caption, and a "Like" button with a real-time like count.
+
+#### [NEW] `d:\Institute\institute1\src\app\(dashboard)\dashboard\components\WhatsAppWidget.tsx` (or route `d:\Institute\institute1\src\app\(dashboard)\dashboard\chat`)
+- Option A: Implement chat as a floating widget or side-drawer.
+- Option B: Create a full-page chat dedicated route (`/dashboard/chat`) with left sidebar for chat list and right side for active chat thread. 
+- Includes group creation modal, user selection, and real-time messaging using Supabase Realtime channels.
+
+#### [MODIFY] [d:\Institute\institute1\src\app\(dashboard)\dashboard\page.tsx](file:///Institute/institute1/src/app/%28dashboard%29/dashboard/page.tsx)
+- Import and place the `StoryCarousel` component at the very top of the dashboard.
+
+## User Review Required
+> [!IMPORTANT]
+> 1. Should the **Chat** be a dedicated full page (e.g., `/dashboard/chat`) or a small pop-up widget that sits on the bottom right of the screen?
+> 2. For the **Hall of Fame (Status/Story)**, do you want these to expire after 24 hours (like WhatsApp), or do they stay permanently in a "Hall of Fame" section?
+> 3. Should the Realtime feature be implemented using Supabase Realtime for instant messaging?
+
+## Verification Plan
+
+### Automated Tests
+- Test RLS policies to ensure users can only see chats they participate in.
+- Type check the entire codebase `npm run type-check`.
+
+### Manual Verification
+- Login as Student A, upload a Story based on an achievement.
+- Login as Student B, see Student A's story at the top of the dashboard, View it, and Like it.
+- Login as Student B, send a direct message to Student A.
+- Login as Student A, create a new Group Chat, set it to "Permission Required". Student B requests to join, Student A approves. Verify messages sync in real time.

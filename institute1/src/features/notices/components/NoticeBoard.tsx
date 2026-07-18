@@ -24,6 +24,60 @@ interface NoticeBoardProps {
   emptyMessage?: string;
 }
 
+function NoticeAttachments({ urls, onSelectImage }: { urls: string[], onSelectImage: (url: string) => void }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  if (!isExpanded) {
+    return (
+      <div 
+        onClick={() => setIsExpanded(true)}
+        className="text-neon-cyan text-sm cursor-pointer hover:underline mb-4 inline-flex items-center gap-1 font-medium bg-cyan-900/10 px-3 py-1.5 rounded-full border border-cyan-900/30 transition-colors"
+        style={{ cursor: 'pointer' }}
+      >
+        See more ({urls.length} attachment{urls.length > 1 ? 's' : ''})
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div style={{ marginBottom: 'var(--space-md)', display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
+        {urls.map((url, idx) => (
+          <div 
+            key={idx} 
+            style={{ 
+              position: 'relative', 
+              width: urls.length === 1 ? '200px' : 'clamp(100px, calc(50% - var(--space-sm)), 150px)', 
+              height: urls.length === 1 ? '200px' : 'clamp(100px, calc(50vw - var(--space-md)), 150px)', 
+              cursor: 'pointer', 
+              borderRadius: 'var(--radius-md)', 
+              overflow: 'hidden',
+              backgroundColor: 'var(--bg-secondary)',
+              border: '1px solid var(--border-default)'
+            }} 
+            onClick={() => onSelectImage(url)}
+          >
+            <Image 
+              src={url} 
+              alt={`Notice attachment ${idx + 1}`} 
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
+              style={{ objectFit: 'cover' }} 
+            />
+          </div>
+        ))}
+      </div>
+      <div 
+        onClick={() => setIsExpanded(false)}
+        className="text-neon-cyan text-sm cursor-pointer hover:underline mb-4 inline-flex items-center gap-1 font-medium bg-cyan-900/10 px-3 py-1.5 rounded-full border border-cyan-900/30 transition-colors"
+        style={{ cursor: 'pointer', marginTop: '-8px' }}
+      >
+        See less
+      </div>
+    </>
+  );
+}
+
 export default function NoticeBoard({ notices, emptyMessage = 'No notices available.' }: NoticeBoardProps) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
@@ -37,7 +91,7 @@ export default function NoticeBoard({ notices, emptyMessage = 'No notices availa
 
   return (
     <>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 350px), 1fr))', gap: 'var(--space-md)', minWidth: 0 }}>
         {notices.map((notice) => (
           <Card key={notice.id} variant="glass" padding="md">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-sm)' }}>
@@ -54,33 +108,7 @@ export default function NoticeBoard({ notices, emptyMessage = 'No notices availa
               const urls = parseAttachmentUrls(notice.image_url);
               if (urls.length === 0) return null;
               
-              return (
-                <div style={{ marginBottom: 'var(--space-md)', display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
-                  {urls.map((url, idx) => (
-                    <div 
-                      key={idx} 
-                      style={{ 
-                        position: 'relative', 
-                        width: urls.length === 1 ? '100%' : 'clamp(100px, calc(50% - var(--space-sm)), 150px)', 
-                        height: urls.length === 1 ? 'clamp(200px, 60vw, 400px)' : 'clamp(100px, calc(50vw - var(--space-md)), 150px)', 
-                        cursor: 'pointer', 
-                        borderRadius: 'var(--radius-md)', 
-                        overflow: 'hidden',
-                        backgroundColor: 'var(--bg-secondary)'
-                      }} 
-                      onClick={() => setSelectedImage(url)}
-                    >
-                      <Image 
-                        src={url} 
-                        alt={`Notice attachment ${idx + 1}`} 
-                        fill
-                        sizes="(max-width: 768px) 100vw, 50vw"
-                        style={{ objectFit: urls.length === 1 ? 'contain' : 'cover' }} 
-                      />
-                    </div>
-                  ))}
-                </div>
-              );
+              return <NoticeAttachments urls={urls} onSelectImage={setSelectedImage} />;
             })()}
             <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
               Posted by <strong style={{ color: 'var(--text-primary)' }}>{notice.profiles.name}</strong> 
