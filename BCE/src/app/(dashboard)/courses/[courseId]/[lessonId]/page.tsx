@@ -51,7 +51,7 @@ export default async function LessonPage({ params }: { params: Promise<{ courseI
   if (!lesson) notFound();
 
   // Fetch doubts for this lesson based on user's batch (or all if admin/instructor)
-  let doubtsQuery = supabase
+  const doubtsQuery = supabase
     .from('doubts')
     .select('*, author:profiles(name, avatar_url, role), view_count:doubt_views(count), replies:doubt_replies(count)')
     .eq('lesson_id', lessonId)

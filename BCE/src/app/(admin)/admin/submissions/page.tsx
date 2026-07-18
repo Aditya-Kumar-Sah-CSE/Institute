@@ -25,7 +25,7 @@ export default async function SubmissionsPage(props: {
   const { data: { user } } = await supabase.auth.getUser();
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single();
 
-  let query = adminSupabase
+  const query = adminSupabase
     .from('submissions')
     .select('*, profiles(name, email), assignments(title, type, xp_reward)', { count: 'exact' })
     .eq('status', 'pending')

@@ -8,7 +8,7 @@ export default async function AdminCoursesPage() {
   const { data: { user } } = await supabase.auth.getUser();
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single();
 
-  let query = supabase.from('courses').select('*, profiles(name)').order('created_at', { ascending: false });
+  const query = supabase.from('courses').select('*, profiles(name)').order('created_at', { ascending: false });
   
   const { data: courses } = await query;
 

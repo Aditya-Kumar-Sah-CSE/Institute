@@ -33,7 +33,7 @@ export default async function CourseDoubtsSection({ courseId, isEnrolledOrFacult
     console.error('Error fetching course doubts:', error);
   }
 
-  let userLikes = new Set<string>();
+  const userLikes = new Set<string>();
   if (doubts && doubts.length > 0 && currentUserId) {
     const doubtIds = doubts.map(d => d.id);
     const { data: likesData } = await supabase

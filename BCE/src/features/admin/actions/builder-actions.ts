@@ -124,8 +124,8 @@ export async function updateLesson(lessonId: string, courseId: string, formData:
   const youtube_url = formData.get('youtube_url') as string;
   const notes = formData.get('notes') as string;
   const xp_reward = parseInt(formData.get('xp_reward') as string || '20');
-  let sort_order = parseInt(formData.get('sort_order') as string);
-  let week_number = parseInt(formData.get('week_number') as string);
+  const sort_order = parseInt(formData.get('sort_order') as string);
+  const week_number = parseInt(formData.get('week_number') as string);
   const pdf_file = formData.get('pdf_file') as File | null;
 
   const updateData: any = {

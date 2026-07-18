@@ -255,7 +255,7 @@ export default function ChatInterface() {
     setMsgInput('');
     
     // Add optimistic message
-    let optimisticId = Date.now().toString();
+    const optimisticId = Date.now().toString();
     if (currentUserId) {
       const optimisticMessage = {
       id: optimisticId,
