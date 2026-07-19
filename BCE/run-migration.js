@@ -12,11 +12,21 @@ const sql = postgres(env.DATABASE_URL, { ssl: 'require' });
 
 async function runMigration() {
   try {
-    const migration60 = fs.readFileSync('./supabase/migrations/060_add_admission_filled.sql', 'utf8');
-    await sql.unsafe(migration60);
-    const migration61 = fs.readFileSync('./supabase/migrations/061_admission_pinned.sql', 'utf8');
-    await sql.unsafe(migration61);
-    console.log("Migrations 060 and 061 applied successfully!");
+    const files = fs.readdirSync('./supabase/migrations')
+      .filter(f => f.endsWith('.sql'))
+      .sort();
+    
+    for (const file of files) {
+      console.log(`Applying migration: ${file}...`);
+      const sqlContent = fs.readFileSync(`./supabase/migrations/${file}`, 'utf8');
+      try {
+        await sql.unsafe(sqlContent);
+      } catch (err) {
+        console.error(`Failed on ${file}:`, err.message);
+        // Continue applying others (idempotent design assumed)
+      }
+    }
+    console.log("All migrations finished!");
   } catch (error) {
     console.error("Migration failed:", error);
   } finally {

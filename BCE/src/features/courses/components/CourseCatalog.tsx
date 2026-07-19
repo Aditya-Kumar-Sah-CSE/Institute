@@ -42,7 +42,7 @@ export default function CourseCatalog({ courses, enrollments = {}, certificatesM
   const visibleCourses = showAllCourses ? filteredCourses : filteredCourses.slice(0, 2);
 
   return (
-    <div className="course-catalog">
+    <div className="course-catalog" style={{ paddingBottom: '40px' }}>
       <div className="catalog-header" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
         
         {/* Top bar: Search + Enrollment Toggle */}
