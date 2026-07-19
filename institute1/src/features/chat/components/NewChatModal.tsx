@@ -74,13 +74,22 @@ export default function NewChatModal({ isOpen, onClose, onChatCreated }: NewChat
         is_private: true
       }).select().single();
 
-      if (conv) {
+      if (error) {
+        console.error('Group creation error:', error);
+        alert(`Failed to create group: ${error.message}`);
+      } else if (conv) {
         // Add members
         const members = [
-          { conversation_id: conv.id, user_id: session.user.id, role: 'admin' },
+          { conversation_id: conv.id, user_id: session.user.id, role: 'owner' },
           ...selectedUsers.map(uid => ({ conversation_id: conv.id, user_id: uid, role: 'member' }))
         ];
-        await supabase.from('chat_members').insert(members);
+        const { error: membersError } = await supabase.from('chat_members').insert(members);
+        
+        if (membersError) {
+          console.error('Error adding members:', membersError);
+          alert(`Created group, but failed to add members: ${membersError.message}`);
+        }
+        
         onChatCreated(conv.id);
         onClose();
       }
