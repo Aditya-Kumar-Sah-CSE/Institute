@@ -1,0 +1,7 @@
+﻿M	"d:\\Institute\\BCE\\src/app/(dashboard)/DashboardLayout.css"
+M	"d:\\Institute\\BCE\\src/app/api/hall-of-fame/story/route.ts"
+M	"d:\\Institute\\BCE\\src/components/layout/Navbar.css"
+M	"d:\\Institute\\BCE\\src/components/layout/Navbar.tsx"
+M	"d:\\Institute\\BCE\\src/features/chat/components/NewChatModal.tsx"
+M	"d:\\Institute\\BCE\\src/features/hall-of-fame/actions/stories.ts"
+M	"d:\\Institute\\BCE\\src/features/hall-of-fame/components/StoryCarousel.tsx"

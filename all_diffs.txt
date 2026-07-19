@@ -1,0 +1,15 @@
+d:\Institute\institute1\.env.local
+d:\Institute\institute1\build_error.txt
+d:\Institute\institute1\build_stats.txt
+d:\Institute\institute1\lint_output.txt
+d:\Institute\institute1\next-env.d.ts
+d:\Institute\institute1\run-migration.js
+d:\Institute\institute1\public\manifest.json
+d:\Institute\institute1\public\sw.js
+d:\Institute\institute1\src\app\(dashboard)\DashboardLayout.css
+d:\Institute\institute1\src\app\api\hall-of-fame\story\route.ts
+d:\Institute\institute1\src\components\layout\Navbar.css
+d:\Institute\institute1\src\components\layout\Navbar.tsx
+d:\Institute\institute1\src\features\chat\components\NewChatModal.tsx
+d:\Institute\institute1\src\features\hall-of-fame\actions\stories.ts
+d:\Institute\institute1\src\features\hall-of-fame\components\StoryCarousel.tsx

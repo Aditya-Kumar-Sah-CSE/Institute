@@ -1,0 +1,370 @@
+﻿diff d:\Institute\institute1\src d:\Institute\BCE\src
+Common subdirectories : ['app', 'components', 'features', 'lib', 'styles', 'types']
+
+diff d:\Institute\institute1\src\app d:\Institute\BCE\src\app
+Identical files : ['Landing.css', 'globals.css', 'layout.tsx', 'loading.tsx', 'not-found.tsx', 'page.tsx']
+Common subdirectories : ['(admin)', '(auth)', '(dashboard)', '(instructor)', '(public)', 'admission', 'api', 'components']
+
+diff d:\Institute\institute1\src\app\(admin) d:\Institute\BCE\src\app\(admin)
+Identical files : ['layout.tsx']
+Common subdirectories : ['admin']
+
+diff d:\Institute\institute1\src\app\(admin)\admin d:\Institute\BCE\src\app\(admin)\admin
+Identical files : ['page.tsx']
+Common subdirectories : ['components', 'courses', 'enrollments', 'feedback', 'instructor-requests', 'notices', 'students', 'submissions']
+
+diff d:\Institute\institute1\src\app\(admin)\admin\components d:\Institute\BCE\src\app\(admin)\admin\components
+Identical files : ['ExpandableSettingsCard.tsx']
+
+diff d:\Institute\institute1\src\app\(admin)\admin\courses d:\Institute\BCE\src\app\(admin)\admin\courses
+Identical files : ['page.tsx']
+Common subdirectories : ['[courseId]']
+
+diff d:\Institute\institute1\src\app\(admin)\admin\courses\[courseId] d:\Institute\BCE\src\app\(admin)\admin\courses\[courseId]
+Common subdirectories : ['builder']
+
+diff d:\Institute\institute1\src\app\(admin)\admin\courses\[courseId]\builder d:\Institute\BCE\src\app\(admin)\admin\courses\[courseId]\builder
+Identical files : ['page.tsx']
+
+diff d:\Institute\institute1\src\app\(admin)\admin\enrollments d:\Institute\BCE\src\app\(admin)\admin\enrollments
+Identical files : ['page.tsx']
+
+diff d:\Institute\institute1\src\app\(admin)\admin\feedback d:\Institute\BCE\src\app\(admin)\admin\feedback
+Identical files : ['page.tsx']
+
+diff d:\Institute\institute1\src\app\(admin)\admin\instructor-requests d:\Institute\BCE\src\app\(admin)\admin\instructor-requests
+Identical files : ['ActionButtons.tsx', 'page.tsx']
+
+diff d:\Institute\institute1\src\app\(admin)\admin\notices d:\Institute\BCE\src\app\(admin)\admin\notices
+Identical files : ['page.tsx']
+
+diff d:\Institute\institute1\src\app\(admin)\admin\students d:\Institute\BCE\src\app\(admin)\admin\students
+Identical files : ['page.tsx']
+Common subdirectories : ['components']
+
+diff d:\Institute\institute1\src\app\(admin)\admin\students\components d:\Institute\BCE\src\app\(admin)\admin\students\components
+Identical files : ['StudentLeaderboardTable.css', 'StudentLeaderboardTable.tsx']
+
+diff d:\Institute\institute1\src\app\(admin)\admin\submissions d:\Institute\BCE\src\app\(admin)\admin\submissions
+Identical files : ['page.tsx']
+
+diff d:\Institute\institute1\src\app\(auth) d:\Institute\BCE\src\app\(auth)
+Identical files : ['layout.tsx']
+Common subdirectories : ['forgot-password', 'login', 'reset-password', 'signup']
+
+diff d:\Institute\institute1\src\app\(auth)\forgot-password d:\Institute\BCE\src\app\(auth)\forgot-password
+Identical files : ['page.tsx']
+
+diff d:\Institute\institute1\src\app\(auth)\login d:\Institute\BCE\src\app\(auth)\login
+Identical files : ['page.tsx']
+
+diff d:\Institute\institute1\src\app\(auth)\reset-password d:\Institute\BCE\src\app\(auth)\reset-password
+Identical files : ['page.tsx']
+
+diff d:\Institute\institute1\src\app\(auth)\signup d:\Institute\BCE\src\app\(auth)\signup
+Identical files : ['page.tsx']
+
+diff d:\Institute\institute1\src\app\(dashboard) d:\Institute\BCE\src\app\(dashboard)
+Identical files : ['layout.tsx', 'loading.tsx']
+Differing files : ['DashboardLayout.css']
+Common subdirectories : ['batch', 'certificates', 'courses', 'dashboard', 'doubts', 'feedbacks', 'leaderboard', 'notices', 'profile', 'share-doubt', 'users']
+
+diff d:\Institute\institute1\src\app\(dashboard)\batch d:\Institute\BCE\src\app\(dashboard)\batch
+Common subdirectories : ['[batchId]']
+
+diff d:\Institute\institute1\src\app\(dashboard)\batch\[batchId] d:\Institute\BCE\src\app\(dashboard)\batch\[batchId]
+Common subdirectories : ['doubts']
+
+diff d:\Institute\institute1\src\app\(dashboard)\batch\[batchId]\doubts d:\Institute\BCE\src\app\(dashboard)\batch\[batchId]\doubts
+Identical files : ['page.tsx']
+Common subdirectories : ['components']
+
+diff d:\Institute\institute1\src\app\(dashboard)\batch\[batchId]\doubts\components d:\Institute\BCE\src\app\(dashboard)\batch\[batchId]\doubts\components
+Identical files : ['HubDoubtCard.tsx']
+
+diff d:\Institute\institute1\src\app\(dashboard)\certificates d:\Institute\BCE\src\app\(dashboard)\certificates
+Common subdirectories : ['[id]']
+
+diff d:\Institute\institute1\src\app\(dashboard)\certificates\[id] d:\Institute\BCE\src\app\(dashboard)\certificates\[id]
+Identical files : ['Certificate.css', 'PrintButton.tsx', 'page.tsx']
+
+diff d:\Institute\institute1\src\app\(dashboard)\courses d:\Institute\BCE\src\app\(dashboard)\courses
+Identical files : ['page.tsx']
+Common subdirectories : ['[courseId]']
+
+diff d:\Institute\institute1\src\app\(dashboard)\courses\[courseId] d:\Institute\BCE\src\app\(dashboard)\courses\[courseId]
+Identical files : ['CourseDetail.css', 'page.tsx']
+Common subdirectories : ['[lessonId]']
+
+diff d:\Institute\institute1\src\app\(dashboard)\courses\[courseId]\[lessonId] d:\Institute\BCE\src\app\(dashboard)\courses\[courseId]\[lessonId]
+Identical files : ['page.tsx']
+Common subdirectories : ['components', 'doubt']
+
+diff d:\Institute\institute1\src\app\(dashboard)\courses\[courseId]\[lessonId]\components d:\Institute\BCE\src\app\(dashboard)\courses\[courseId]\[lessonId]\components
+Identical files : ['LessonDoubts.tsx']
+
+diff d:\Institute\institute1\src\app\(dashboard)\courses\[courseId]\[lessonId]\doubt d:\Institute\BCE\src\app\(dashboard)\courses\[courseId]\[lessonId]\doubt
+Common subdirectories : ['[doubtId]']
+
+diff d:\Institute\institute1\src\app\(dashboard)\courses\[courseId]\[lessonId]\doubt\[doubtId] d:\Institute\BCE\src\app\(dashboard)\courses\[courseId]\[lessonId]\doubt\[doubtId]
+Identical files : ['page.tsx']
+Common subdirectories : ['components']
+
+diff d:\Institute\institute1\src\app\(dashboard)\courses\[courseId]\[lessonId]\doubt\[doubtId]\components d:\Institute\BCE\src\app\(dashboard)\courses\[courseId]\[lessonId]\doubt\[doubtId]\components
+Identical files : ['DiscussionThread.tsx']
+
+diff d:\Institute\institute1\src\app\(dashboard)\dashboard d:\Institute\BCE\src\app\(dashboard)\dashboard
+Identical files : ['loading.tsx', 'page.tsx']
+Common subdirectories : ['chat', 'components']
+
+diff d:\Institute\institute1\src\app\(dashboard)\dashboard\chat d:\Institute\BCE\src\app\(dashboard)\dashboard\chat
+Identical files : ['page.tsx']
+
+diff d:\Institute\institute1\src\app\(dashboard)\dashboard\components d:\Institute\BCE\src\app\(dashboard)\dashboard\components
+Identical files : ['ContinueLearning.tsx', 'DashboardAlerts.tsx', 'DashboardPolls.tsx', 'DashboardProfileCard.tsx', 'PollAlerts.tsx']
+
+diff d:\Institute\institute1\src\app\(dashboard)\doubts d:\Institute\BCE\src\app\(dashboard)\doubts
+Identical files : ['page.tsx']
+Common subdirectories : ['[id]']
+
+diff d:\Institute\institute1\src\app\(dashboard)\doubts\[id] d:\Institute\BCE\src\app\(dashboard)\doubts\[id]
+Identical files : ['page.tsx']
+Common subdirectories : ['components']
+
+diff d:\Institute\institute1\src\app\(dashboard)\doubts\[id]\components d:\Institute\BCE\src\app\(dashboard)\doubts\[id]\components
+Identical files : ['AcceptReplyButton.tsx', 'ReplyForm.tsx']
+
+diff d:\Institute\institute1\src\app\(dashboard)\feedbacks d:\Institute\BCE\src\app\(dashboard)\feedbacks
+Identical files : ['page.tsx']
+
+diff d:\Institute\institute1\src\app\(dashboard)\leaderboard d:\Institute\BCE\src\app\(dashboard)\leaderboard
+Identical files : ['page.tsx']
+
+diff d:\Institute\institute1\src\app\(dashboard)\notices d:\Institute\BCE\src\app\(dashboard)\notices
+Identical files : ['page.tsx']
+
+diff d:\Institute\institute1\src\app\(dashboard)\profile d:\Institute\BCE\src\app\(dashboard)\profile
+Identical files : ['Profile.css', 'actions.ts', 'page.tsx']
+Common subdirectories : ['components']
+
+diff d:\Institute\institute1\src\app\(dashboard)\profile\components d:\Institute\BCE\src\app\(dashboard)\profile\components
+Identical files : ['AcademicInfoConnect.tsx', 'AvatarUpload.tsx', 'BasicInfoEdit.tsx', 'CrownBanner.tsx', 'LinkedinConnect.tsx', 'ProfessionalInfoConnect.tsx', 'RecentActivity.tsx', 'SocialLinksConnect.tsx']
+
+diff d:\Institute\institute1\src\app\(dashboard)\share-doubt d:\Institute\BCE\src\app\(dashboard)\share-doubt
+Identical files : ['ShareDoubtForm.tsx', 'page.tsx']
+
+diff d:\Institute\institute1\src\app\(dashboard)\users d:\Institute\BCE\src\app\(dashboard)\users
+Common subdirectories : ['[id]']
+
+diff d:\Institute\institute1\src\app\(dashboard)\users\[id] d:\Institute\BCE\src\app\(dashboard)\users\[id]
+Identical files : ['page.tsx']
+
+diff d:\Institute\institute1\src\app\(instructor) d:\Institute\BCE\src\app\(instructor)
+Identical files : ['layout.tsx']
+Common subdirectories : ['instructor']
+
+diff d:\Institute\institute1\src\app\(instructor)\instructor d:\Institute\BCE\src\app\(instructor)\instructor
+Identical files : ['page.tsx']
+Common subdirectories : ['courses', 'enrollments', 'feedback', 'notices', 'share-upload', 'students', 'submissions']
+
+diff d:\Institute\institute1\src\app\(instructor)\instructor\courses d:\Institute\BCE\src\app\(instructor)\instructor\courses
+Identical files : ['page.tsx']
+Common subdirectories : ['[courseId]']
+
+diff d:\Institute\institute1\src\app\(instructor)\instructor\courses\[courseId] d:\Institute\BCE\src\app\(instructor)\instructor\courses\[courseId]
+Common subdirectories : ['builder']
+
+diff d:\Institute\institute1\src\app\(instructor)\instructor\courses\[courseId]\builder d:\Institute\BCE\src\app\(instructor)\instructor\courses\[courseId]\builder
+Identical files : ['page.tsx']
+
+diff d:\Institute\institute1\src\app\(instructor)\instructor\enrollments d:\Institute\BCE\src\app\(instructor)\instructor\enrollments
+Identical files : ['page.tsx']
+
+diff d:\Institute\institute1\src\app\(instructor)\instructor\feedback d:\Institute\BCE\src\app\(instructor)\instructor\feedback
+Identical files : ['page.tsx']
+
+diff d:\Institute\institute1\src\app\(instructor)\instructor\notices d:\Institute\BCE\src\app\(instructor)\instructor\notices
+Identical files : ['page.tsx']
+
+diff d:\Institute\institute1\src\app\(instructor)\instructor\share-upload d:\Institute\BCE\src\app\(instructor)\instructor\share-upload
+Identical files : ['ShareUploadForm.tsx', 'page.tsx']
+
+diff d:\Institute\institute1\src\app\(instructor)\instructor\students d:\Institute\BCE\src\app\(instructor)\instructor\students
+Identical files : ['page.tsx']
+
+diff d:\Institute\institute1\src\app\(instructor)\instructor\submissions d:\Institute\BCE\src\app\(instructor)\instructor\submissions
+Identical files : ['page.tsx']
+
+diff d:\Institute\institute1\src\app\(public) d:\Institute\BCE\src\app\(public)
+Common subdirectories : ['apply-instructor']
+
+diff d:\Institute\institute1\src\app\(public)\apply-instructor d:\Institute\BCE\src\app\(public)\apply-instructor
+Identical files : ['ApplyForms.tsx', 'actions.ts', 'page.tsx']
+
+diff d:\Institute\institute1\src\app\admission d:\Institute\BCE\src\app\admission
+Identical files : ['AdmissionFormClient.tsx', 'actions.ts', 'admission.css', 'page.tsx']
+
+diff d:\Institute\institute1\src\app\api d:\Institute\BCE\src\app\api
+Common subdirectories : ['auth', 'gamification', 'hall-of-fame', 'pwa-share-target']
+
+diff d:\Institute\institute1\src\app\api\auth d:\Institute\BCE\src\app\api\auth
+Common subdirectories : ['callback']
+
+diff d:\Institute\institute1\src\app\api\auth\callback d:\Institute\BCE\src\app\api\auth\callback
+Identical files : ['route.ts']
+
+diff d:\Institute\institute1\src\app\api\gamification d:\Institute\BCE\src\app\api\gamification
+Common subdirectories : ['badges', 'monthly']
+
+diff d:\Institute\institute1\src\app\api\gamification\badges d:\Institute\BCE\src\app\api\gamification\badges
+Identical files : ['route.ts']
+
+diff d:\Institute\institute1\src\app\api\gamification\monthly d:\Institute\BCE\src\app\api\gamification\monthly
+Identical files : ['route.ts']
+
+diff d:\Institute\institute1\src\app\api\hall-of-fame d:\Institute\BCE\src\app\api\hall-of-fame
+Common subdirectories : ['story']
+
+diff d:\Institute\institute1\src\app\api\hall-of-fame\story d:\Institute\BCE\src\app\api\hall-of-fame\story
+Differing files : ['route.ts']
+
+diff d:\Institute\institute1\src\app\api\pwa-share-target d:\Institute\BCE\src\app\api\pwa-share-target
+Identical files : ['route.ts']
+
+diff d:\Institute\institute1\src\app\components d:\Institute\BCE\src\app\components
+Identical files : ['ExploreMoreWrapper.tsx', 'GallerySection.tsx', 'ShowMoreWrapper.tsx']
+
+diff d:\Institute\institute1\src\components d:\Institute\BCE\src\components
+Identical files : ['DynamicWrappers.tsx', 'PwaRegister.tsx', 'ThemeProvider.tsx', 'ThemeToggle.tsx']
+Common subdirectories : ['layout', 'pwa', 'shared', 'ui']
+
+diff d:\Institute\institute1\src\components\layout d:\Institute\BCE\src\components\layout
+Identical files : ['NotificationBell.css', 'NotificationBell.tsx', 'Sidebar.css', 'Sidebar.tsx']
+Differing files : ['Navbar.css', 'Navbar.tsx']
+
+diff d:\Institute\institute1\src\components\pwa d:\Institute\BCE\src\components\pwa
+Identical files : ['InstallAppButton.tsx', 'PWAInstallPrompt.css', 'PWAInstallPrompt.tsx']
+
+diff d:\Institute\institute1\src\components\shared d:\Institute\BCE\src\components\shared
+Identical files : ['BadgeCelebrator.css', 'BadgeCelebrator.tsx', 'BadgeDisplay.css', 'BadgeDisplay.tsx', 'EnrolledCoursesList.tsx', 'FeedbackWidget.css', 'FeedbackWidget.tsx', 'FloatingShareMenu.tsx', 'LevelBadge.css', 'LevelBadge.tsx', 'MonthlyCelebrator.css', 'MonthlyCelebrator.tsx', 'ProfileViewTracker.tsx', 'ShareProfileButton.tsx', 'UserAvatar.tsx', 'XPBar.css', 'XPBar.tsx', 'XpCelebrator.tsx']
+
+diff d:\Institute\institute1\src\components\ui d:\Institute\BCE\src\components\ui
+Identical files : ['AutoScrollMarquee.tsx', 'Button.css', 'Button.tsx', 'Card.css', 'Card.tsx', 'ConfirmModal.tsx', 'HeroIllustration.tsx', 'ImageUploadButton.tsx', 'Input.css', 'Input.tsx', 'LazyAttachment.tsx', 'LazyPdfViewer.css', 'LazyPdfViewer.tsx', 'LazyVideoPlayer.css', 'LazyVideoPlayer.tsx', 'MarkdownRenderer.tsx', 'Modal.css', 'Modal.tsx']
+
+diff d:\Institute\institute1\src\features d:\Institute\BCE\src\features
+Common subdirectories : ['activity', 'admin', 'auth', 'chat', 'courses', 'doubts', 'feedback', 'gamification', 'hall-of-fame', 'instructor', 'leaderboard', 'notices', 'notifications']
+
+diff d:\Institute\institute1\src\features\activity d:\Institute\BCE\src\features\activity
+Common subdirectories : ['actions', 'components']
+
+diff d:\Institute\institute1\src\features\activity\actions d:\Institute\BCE\src\features\activity\actions
+Identical files : ['activity.ts']
+
+diff d:\Institute\institute1\src\features\activity\components d:\Institute\BCE\src\features\activity\components
+Identical files : ['ActivityFeed.tsx']
+
+diff d:\Institute\institute1\src\features\admin d:\Institute\BCE\src\features\admin
+Common subdirectories : ['actions', 'components']
+
+diff d:\Institute\institute1\src\features\admin\actions d:\Institute\BCE\src\features\admin\actions
+Identical files : ['adminActions.ts', 'builder-actions.ts', 'course-actions.ts', 'enrollments.ts', 'instructor-actions.ts', 'submissions.ts']
+
+diff d:\Institute\institute1\src\features\admin\components d:\Institute\BCE\src\features\admin\components
+Identical files : ['CourseManager.css', 'CourseManager.tsx', 'CurriculumBuilder.css', 'CurriculumBuilder.tsx', 'JoinedStudentsList.tsx', 'SubmissionsListClient.tsx']
+
+diff d:\Institute\institute1\src\features\auth d:\Institute\BCE\src\features\auth
+Common subdirectories : ['actions', 'components']
+
+diff d:\Institute\institute1\src\features\auth\actions d:\Institute\BCE\src\features\auth\actions
+Identical files : ['auth.ts']
+
+diff d:\Institute\institute1\src\features\auth\components d:\Institute\BCE\src\features\auth\components
+Identical files : ['AuthForms.css', 'ForgotPasswordForm.tsx', 'LoginForm.tsx', 'ResetPasswordForm.tsx', 'SignupForm.tsx']
+
+diff d:\Institute\institute1\src\features\chat d:\Institute\BCE\src\features\chat
+Common subdirectories : ['actions', 'components']
+
+diff d:\Institute\institute1\src\features\chat\actions d:\Institute\BCE\src\features\chat\actions
+Identical files : ['chat.ts']
+
+diff d:\Institute\institute1\src\features\chat\components d:\Institute\BCE\src\features\chat\components
+Identical files : ['ChatComposer.tsx', 'ChatInterface.css', 'ChatInterface.tsx', 'ChatSidebar.tsx', 'EmptyChatState.tsx', 'MessageBubble.tsx']
+Differing files : ['NewChatModal.tsx']
+
+diff d:\Institute\institute1\src\features\courses d:\Institute\BCE\src\features\courses
+Common subdirectories : ['actions', 'components']
+
+diff d:\Institute\institute1\src\features\courses\actions d:\Institute\BCE\src\features\courses\actions
+Identical files : ['alerts.ts', 'certificates.ts', 'enroll.ts', 'polls.ts']
+
+diff d:\Institute\institute1\src\features\courses\components d:\Institute\BCE\src\features\courses\components
+Identical files : ['AssignmentCard.css', 'AssignmentCard.tsx', 'CourseCard.css', 'CourseCard.tsx', 'CourseCatalog.css', 'CourseCatalog.tsx', 'CourseDoubtsClient.tsx', 'CourseDoubtsSection.tsx', 'CoursePollsClient.tsx', 'CoursePollsSection.tsx', 'CreateAlertSection.tsx', 'CreatePollWidget.tsx', 'CurriculumExpandable.tsx', 'CurriculumListClient.css', 'CurriculumListClient.tsx', 'EnrollCourseButton.tsx', 'FacultySection.tsx', 'LeaveCourseButton.tsx', 'LessonView.css', 'LessonView.tsx', 'PollCard.tsx', 'ShareCourseButton.tsx']
+
+diff d:\Institute\institute1\src\features\doubts d:\Institute\BCE\src\features\doubts
+Common subdirectories : ['actions', 'components']
+
+diff d:\Institute\institute1\src\features\doubts\actions d:\Institute\BCE\src\features\doubts\actions
+Identical files : ['doubts.ts']
+
+diff d:\Institute\institute1\src\features\doubts\components d:\Institute\BCE\src\features\doubts\components
+Identical files : ['AskDoubtModal.tsx', 'DoubtLikeButton.tsx']
+
+diff d:\Institute\institute1\src\features\feedback d:\Institute\BCE\src\features\feedback
+Common subdirectories : ['actions']
+
+diff d:\Institute\institute1\src\features\feedback\actions d:\Institute\BCE\src\features\feedback\actions
+Identical files : ['feedback.ts', 'profile-views.ts']
+
+diff d:\Institute\institute1\src\features\gamification d:\Institute\BCE\src\features\gamification
+Common subdirectories : ['actions']
+
+diff d:\Institute\institute1\src\features\gamification\actions d:\Institute\BCE\src\features\gamification\actions
+Identical files : ['gamification.ts', 'monthly-rewards.ts']
+
+diff d:\Institute\institute1\src\features\hall-of-fame d:\Institute\BCE\src\features\hall-of-fame
+Common subdirectories : ['actions', 'components']
+
+diff d:\Institute\institute1\src\features\hall-of-fame\actions d:\Institute\BCE\src\features\hall-of-fame\actions
+Differing files : ['stories.ts']
+
+diff d:\Institute\institute1\src\features\hall-of-fame\components d:\Institute\BCE\src\features\hall-of-fame\components
+Identical files : ['StoryCarousel.css']
+Differing files : ['StoryCarousel.tsx']
+
+diff d:\Institute\institute1\src\features\instructor d:\Institute\BCE\src\features\instructor
+Common subdirectories : ['actions']
+
+diff d:\Institute\institute1\src\features\instructor\actions d:\Institute\BCE\src\features\instructor\actions
+Identical files : ['enrollments.ts']
+
+diff d:\Institute\institute1\src\features\leaderboard d:\Institute\BCE\src\features\leaderboard
+Common subdirectories : ['components']
+
+diff d:\Institute\institute1\src\features\leaderboard\components d:\Institute\BCE\src\features\leaderboard\components
+Identical files : ['CourseFilter.tsx', 'Leaderboard.css', 'LeaderboardTable.tsx']
+
+diff d:\Institute\institute1\src\features\notices d:\Institute\BCE\src\features\notices
+Identical files : ['actions.ts']
+Common subdirectories : ['components']
+
+diff d:\Institute\institute1\src\features\notices\components d:\Institute\BCE\src\features\notices\components
+Identical files : ['NoticeBoard.tsx', 'NoticeManager.tsx']
+
+diff d:\Institute\institute1\src\features\notifications d:\Institute\BCE\src\features\notifications
+Common subdirectories : ['actions']
+
+diff d:\Institute\institute1\src\features\notifications\actions d:\Institute\BCE\src\features\notifications\actions
+Identical files : ['notifications.ts']
+
+diff d:\Institute\institute1\src\lib d:\Institute\BCE\src\lib
+Identical files : ['attachments.ts', 'constants.ts', 'icon-mapper.tsx', 'profile.ts', 'rate-limit.ts', 'utils.ts']
+Common subdirectories : ['supabase']
+
+diff d:\Institute\institute1\src\lib\supabase d:\Institute\BCE\src\lib\supabase
+Identical files : ['client.ts', 'middleware.ts', 'server.ts']
+
+diff d:\Institute\institute1\src\styles d:\Institute\BCE\src\styles
+Identical files : ['animations.css', 'variables.css']
+
+diff d:\Institute\institute1\src\types d:\Institute\BCE\src\types
+Identical files : ['database.ts', 'index.ts']
