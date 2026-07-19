@@ -81,13 +81,14 @@ export async function sendChatMessage(conversationId: string, content: string, a
   const { data: userData } = await supabase.auth.getUser();
   if (!userData?.user) throw new Error('Not authenticated');
 
-  // In production, we'd wrap this with real-time broadcast and optimistic updates
+  if (!content.trim()) throw new Error('Message cannot be empty');
+
   const { error } = await supabase
     .from('chat_messages')
     .insert({
       conversation_id: conversationId,
       sender_id: userData.user.id,
-      content,
+      content: content.trim(),
       attachment_type: attachmentType || null,
       attachment_link: attachmentLink || null
     });
@@ -100,4 +101,50 @@ export async function sendChatMessage(conversationId: string, content: string, a
     .eq('id', conversationId);
 
   revalidatePath(`/dashboard/chat`);
+}
+
+/**
+ * Creates a new group conversation server-side.
+ * Runs with the authenticated Supabase client so RLS policies pass correctly.
+ */
+export async function createGroupChat(groupName: string, memberIds: string[]) {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData?.user) throw new Error('Not authenticated');
+
+  const currentUserId = userData.user.id;
+
+  if (!groupName.trim()) throw new Error('Group name is required');
+  if (memberIds.length === 0) throw new Error('At least one member is required');
+
+  // Create conversation
+  const { data: conv, error: convError } = await supabase
+    .from('chat_conversations')
+    .insert({
+      type: 'group',
+      name: groupName.trim(),
+      is_private: true,
+      created_by: currentUserId,
+    })
+    .select('id')
+    .single();
+
+  if (convError) throw new Error(`Failed to create group: ${convError.message}`);
+
+  // Deduplicate members and always include the creator as owner
+  const uniqueMemberIds = Array.from(new Set(memberIds.filter(id => id !== currentUserId)));
+  const members = [
+    { conversation_id: conv.id, user_id: currentUserId, role: 'owner' },
+    ...uniqueMemberIds.map(uid => ({ conversation_id: conv.id, user_id: uid, role: 'member' })),
+  ];
+
+  const { error: membersError } = await supabase.from('chat_members').insert(members);
+  if (membersError) {
+    // Rollback the group creation if members fail
+    await supabase.from('chat_conversations').delete().eq('id', conv.id);
+    throw new Error(`Failed to add members: ${membersError.message}`);
+  }
+
+  revalidatePath('/dashboard/chat');
+  return conv.id;
 }
