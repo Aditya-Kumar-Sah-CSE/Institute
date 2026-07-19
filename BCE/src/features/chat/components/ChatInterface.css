@@ -1,0 +1,105 @@
+.chat-container {
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  /* Chat item hover effects */
+  .chat-list-item {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Empty state animation */
+  .empty-chat-state svg {
+    animation: bounce-subtle 2s infinite ease-in-out;
+  }
+}
+
+@keyframes bounce-subtle {
+  0%, 100% {
+    transform: translateY(0) rotate(-12deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(-12deg);
+  }
+}
+
+/* Chat Layout Base Classes */
+.chat-container {
+  display: flex;
+  height: calc(100vh - 120px);
+  width: 100%;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border-default);
+  font-family: var(--font-sans);
+}
+
+.chat-sidebar {
+  width: 33%;
+  min-width: 280px;
+  max-width: 350px;
+  border-right: 1px solid var(--border-divider);
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  position: relative;
+}
+
+.mobile-back-btn {
+  display: none !important;
+}
+
+/* Mobile Responsive Overrides */
+@media (max-width: 768px) {
+  .chat-container {
+    height: calc(100dvh - 80px); /* Bottom navbar is explicitly hidden, so we snap composer precisely to bottom */
+    border-radius: 0;
+    border: none;
+    border-top: 1px solid var(--border-divider);
+  }
+
+  .chat-sidebar {
+    width: 100% !important;
+    min-width: unset !important;
+    max-width: unset !important;
+    border-right: none;
+  }
+
+  .chat-main {
+    width: 100% !important;
+  }
+
+  .mobile-back-btn {
+    display: flex !important;
+    padding: 8px;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    cursor: pointer;
+    margin-right: 12px;
+  }
+
+  /* Split View Logic: Hide elements based on active state */
+  .chat-container.mobile-chat-active .chat-sidebar {
+    display: none !important;
+  }
+  
+  .chat-container.mobile-sidebar-active .chat-main {
+    display: none !important;
+  }
+}

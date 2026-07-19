@@ -1,6 +1,5 @@
 const postgres = require('postgres');
 const fs = require('fs');
-const path = require('path');
 
 const envFile = fs.readFileSync('.env.local', 'utf8');
 const env = {};
@@ -13,28 +12,13 @@ const sql = postgres(env.DATABASE_URL, { ssl: 'require' });
 
 async function runMigration() {
   try {
-    const migrationsDir = './supabase/migrations';
-    const files = fs.readdirSync(migrationsDir)
-                    .filter(f => f.endsWith('.sql'))
-                    .sort(); // Sort alphabetically (001, 002, etc.)
-
-    for (const file of files) {
-      console.log(`Applying migration: ${file}...`);
-      const migration = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
-      
-      try {
-        await sql.unsafe(migration);
-        console.log(`✅ Successfully applied ${file}`);
-      } catch (err) {
-        console.error(`❌ Failed applying ${file}:`, err.message);
-        // Depending on your need, you can either throw err to stop or continue.
-        // throw err; 
-      }
-    }
-    
-    console.log("All migrations finished!");
+    const migration60 = fs.readFileSync('./supabase/migrations/060_add_admission_filled.sql', 'utf8');
+    await sql.unsafe(migration60);
+    const migration61 = fs.readFileSync('./supabase/migrations/061_admission_pinned.sql', 'utf8');
+    await sql.unsafe(migration61);
+    console.log("Migrations 060 and 061 applied successfully!");
   } catch (error) {
-    console.error("Migration process failed:", error);
+    console.error("Migration failed:", error);
   } finally {
     await sql.end();
   }

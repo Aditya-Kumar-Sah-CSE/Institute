@@ -12,6 +12,7 @@ import type { Profile } from '@/types';
 import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 import { getIcon } from '@/lib/icon-mapper';
 import { signOut } from '@/features/auth/actions/auth';
+import { MoreVertical } from 'lucide-react';
 
 interface NavbarProps {
   title?: string;
@@ -43,41 +44,33 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
 
   return (
     <header className="dashboard-navbar">
-      <div className="navbar-left">
-        <h1 className="navbar-title">{pageTitle}</h1>
+      <div className="navbar-left" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
         {companyName && (
-          <Link href={homeLink} className="company-branding-nav mobile-logo" style={{ padding: 'var(--space-xs)' }}>
+          <Link href={homeLink} className="company-branding-nav" style={{ padding: 'var(--space-xs)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
             {companyLogo ? (
               <Image unoptimized src={companyLogo} alt={companyName} width={32} height={32} className="company-nav-logo" style={{ width: '32px', height: '32px', objectFit: 'contain' }} priority />
             ) : (
-              <Image unoptimized src="/icon-192x192.png" alt={companyName} width={32} height={32} className="company-nav-logo" style={{ width: '32px', height: '32px', objectFit: 'contain' }} priority />
+              <Image unoptimized src="/icon-192x192.png" alt={companyName} width={32} height={32} className="company-nav-logo" priority />
             )}
+            <span className="company-nav-name hidden md:block" style={{ fontWeight: 'bold' }}>{companyName}</span>
           </Link>
         )}
+        <h1 className="navbar-title" style={{ marginLeft: 'var(--space-2)' }}>{pageTitle}</h1>
       </div>
 
-      {companyName && (
-        <div className="navbar-center">
-          <Link href={homeLink} className="company-branding-nav" style={{ background: 'transparent', border: 'none' }}>
-            <span className="company-nav-name">{companyName}</span>
-          </Link>
-        </div>
-      )}
-
       <div className="navbar-right" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+        <button 
+          onClick={() => window.dispatchEvent(new Event('expandSidebar'))}
+          className="open-sidebar-btn desktop-only-btn"
+          style={{ padding: '8px', background: 'var(--bg-card)', border: '1px solid var(--border-default)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer' }}
+          title="Open Sidebar"
+        >
+          <MoreVertical size={24} />
+        </button>
+
         <div className="desktop-theme-toggle">
           <ThemeToggle />
         </div>
-
-        {companyName && (
-          <Link href={homeLink} className="company-branding-nav desktop-logo" style={{ padding: 'var(--space-xs)' }}>
-            {companyLogo ? (
-              <Image unoptimized src={companyLogo} alt={companyName || 'App'} width={32} height={32} className="company-nav-logo" style={{ width: '32px', height: '32px', objectFit: 'contain' }} priority />
-            ) : (
-              <Image unoptimized src="/icon-192x192.png" alt={companyName || 'App'} width={32} height={32} className="company-nav-logo" style={{ width: '32px', height: '32px', objectFit: 'contain' }} priority />
-            )}
-          </Link>
-        )}
 
         {/* Notification Bell */}
         {profile && (

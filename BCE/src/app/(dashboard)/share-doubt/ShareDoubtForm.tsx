@@ -88,31 +88,31 @@ export default function ShareDoubtForm({
           </div>
         )}
 
-        <div>
-          <Select 
-            label="Select Course"
-            name="course"
-            value={selectedCourse} 
-            onChange={(e) => {
-              setSelectedCourse(e.target.value);
-              setSelectedLesson('');
-            }}
-            options={[{ value: '', label: '-- Choose a Course --' }, ...courses.map(course => ({ value: course.id, label: course.title }))]}
-            required
-          />
-        </div>
+        <Select 
+          label="Select Course"
+          value={selectedCourse} 
+          onChange={(e) => {
+            setSelectedCourse(e.target.value);
+            setSelectedLesson('');
+          }}
+          options={[
+            { value: '', label: '-- Choose a Course --' },
+            ...courses.map((course: any) => ({ value: course.id, label: course.title }))
+          ]}
+          required
+        />
 
         {selectedCourse && (
-          <div>
-            <Select 
-              label="Select Lesson"
-              name="lesson"
-              value={selectedLesson} 
-              onChange={(e) => setSelectedLesson(e.target.value)}
-              options={[{ value: '', label: '-- Choose a Lesson --' }, ...lessons.map(lesson => ({ value: lesson.id, label: lesson.title }))]}
-              required
-            />
-          </div>
+          <Select 
+            label="Select Lesson"
+            value={selectedLesson} 
+            onChange={(e) => setSelectedLesson(e.target.value)}
+            options={[
+              { value: '', label: '-- Choose a Lesson --' },
+              ...lessons.map((lesson: any) => ({ value: lesson.id, label: lesson.title }))
+            ]}
+            required
+          />
         )}
 
         <Button 

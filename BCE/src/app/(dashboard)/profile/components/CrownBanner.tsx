@@ -5,13 +5,15 @@ import '@/components/shared/MonthlyCelebrator.css';
 
 export default function CrownBanner({ rank, companyName = 'Institute', monthDate }: { rank: number; companyName?: string; monthDate: string }) {
   const [showPopup, setShowPopup] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [mounted, setMounted] = useState(() => typeof window !== 'undefined');
   const [isSharing, setIsSharing] = useState(false);
   const popupRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    if (!mounted) {
+      setMounted(true);
+    }
+  }, [mounted]);
 
   const dateObj = new Date(monthDate);
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -69,9 +71,9 @@ export default function CrownBanner({ rank, companyName = 'Institute', monthDate
       <div className="confetti-container">
         {[...Array(50)].map((_, i) => (
           <div suppressHydrationWarning key={i} className={`confetti ${i % 2 === 0 ? 'confetti-gold' : 'confetti-silver'}`} style={{ 
-            left: `${Math.random() * 100}vw`,
-            animationDuration: `${Math.random() * 3 + 2}s`,
-            animationDelay: `${Math.random() * 2}s`
+            left: `${(i * 37) % 100}vw`,
+            animationDuration: `${2 + ((i * 13) % 3)}s`,
+            animationDelay: `${((i * 17) % 20) / 10}s`
           }} />
         ))}
       </div>

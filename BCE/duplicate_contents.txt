@@ -1,0 +1,1359 @@
+
+
+==================== 001_create_tables.sql ====================
+-- Enable required extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- ==========================================
+-- USERS & PROFILES
+-- ==========================================
+CREATE TABLE profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  avatar_url TEXT,
+  github_username TEXT,
+  xp INTEGER DEFAULT 0,
+  level TEXT DEFAULT 'Beginner',
+  role TEXT DEFAULT 'student' CHECK (role IN ('student', 'admin', 'instructor')),
+  streak_days INTEGER DEFAULT 0,
+  last_active_at TIMESTAMPTZ DEFAULT NOW(),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Handle automatic profile creation on user signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, name, email)
+  VALUES (
+    new.id, 
+    new.raw_user_meta_data->>'name', 
+    new.email
+  );
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger to call the function on signup
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+
+-- ==========================================
+-- COMPANY SETTINGS
+-- ==========================================
+CREATE TABLE company_settings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_name TEXT NOT NULL DEFAULT 'Smart Learning',
+  logo_url TEXT,
+  tagline TEXT DEFAULT 'Smart Hybrid Learning & Student Engagement Platform',
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+-- ==========================================
+-- COURSES & LESSONS
+-- ==========================================
+CREATE TABLE courses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  description TEXT,
+  difficulty TEXT CHECK (difficulty IN ('sem 1', 'sem 2', 'sem 3', 'sem 4', 'sem 5', 'sem 6', 'sem 7', 'sem 8')),
+  thumbnail_url TEXT,
+  tags TEXT[],
+  total_xp INTEGER DEFAULT 0,
+  lesson_count INTEGER DEFAULT 0,
+  is_published BOOLEAN DEFAULT false,
+  created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE lessons (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  youtube_url TEXT,
+  notes TEXT,
+  xp_reward INTEGER DEFAULT 10,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+-- ==========================================
+-- ASSIGNMENTS & SUBMISSIONS
+-- ==========================================
+CREATE TABLE assignments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  lesson_id UUID REFERENCES lessons(id) ON DELETE CASCADE,
+  type TEXT CHECK (type IN ('mcq', 'code', 'ui', 'github', 'deploy')),
+  title TEXT NOT NULL,
+  description TEXT,
+  question JSONB,          
+  expected_output TEXT,
+  xp_reward INTEGER DEFAULT 50,
+  requires_github BOOLEAN DEFAULT false,
+  requires_deploy BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE submissions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  assignment_id UUID REFERENCES assignments(id) ON DELETE CASCADE,
+  answer JSONB,
+  github_link TEXT,
+  deploy_link TEXT,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  score INTEGER DEFAULT 0,
+  feedback TEXT,
+  submitted_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, assignment_id) -- One submission per assignment per user (can update)
+);
+
+
+-- ==========================================
+-- GAMIFICATION (BADGES, XP LOG)
+-- ==========================================
+CREATE TABLE badges (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  description TEXT,
+  icon TEXT NOT NULL,
+  condition_type TEXT,
+  condition_value INTEGER,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE user_badges (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  badge_id UUID REFERENCES badges(id) ON DELETE CASCADE,
+  earned_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, badge_id)
+);
+
+CREATE TABLE xp_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  action TEXT NOT NULL,
+  xp_amount INTEGER NOT NULL,
+  source_type TEXT,
+  source_id UUID,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+-- ==========================================
+-- PROGRESS TRACKING
+-- ==========================================
+CREATE TABLE enrollments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
+  progress REAL DEFAULT 0,
+  enrolled_at TIMESTAMPTZ DEFAULT NOW(),
+  completed_at TIMESTAMPTZ,
+  UNIQUE(user_id, course_id)
+);
+
+CREATE TABLE lesson_progress (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  lesson_id UUID REFERENCES lessons(id) ON DELETE CASCADE,
+  completed BOOLEAN DEFAULT false,
+  completed_at TIMESTAMPTZ,
+  UNIQUE(user_id, lesson_id)
+);
+
+-- Create initial settings record
+INSERT INTO company_settings (company_name, tagline) VALUES ('Smart Learning', 'Smart Hybrid Learning & Student Engagement Platform');
+
+
+==================== 002_rls_policies.sql ====================
+-- Enable Row Level Security
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE company_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE courses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE lessons ENABLE ROW LEVEL SECURITY;
+ALTER TABLE assignments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE submissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE badges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_badges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE xp_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE enrollments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE lesson_progress ENABLE ROW LEVEL SECURITY;
+
+-- Helper function to check if user is admin
+CREATE OR REPLACE FUNCTION is_admin() RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM profiles 
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
+-- ==========================================
+-- POLICIES
+-- ==========================================
+
+-- PROFILES
+DROP POLICY IF EXISTS "Profiles are viewable by everyone" ON profiles;
+CREATE POLICY "Profiles are viewable by everyone" ON profiles FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
+CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Admins can update all profiles" ON profiles;
+CREATE POLICY "Admins can update all profiles" ON profiles FOR UPDATE USING (is_admin());
+
+
+-- COMPANY SETTINGS
+DROP POLICY IF EXISTS "Settings viewable by everyone" ON company_settings;
+CREATE POLICY "Settings viewable by everyone" ON company_settings FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Admins can update settings" ON company_settings;
+CREATE POLICY "Admins can update settings" ON company_settings FOR UPDATE USING (is_admin());
+
+
+-- COURSES
+DROP POLICY IF EXISTS "Published courses viewable by everyone" ON courses;
+CREATE POLICY "Published courses viewable by everyone" ON courses FOR SELECT USING (is_published = true OR is_admin());
+
+DROP POLICY IF EXISTS "Admins can manage courses" ON courses;
+CREATE POLICY "Admins can manage courses" ON courses FOR ALL USING (is_admin());
+
+
+-- LESSONS & ASSIGNMENTS
+DROP POLICY IF EXISTS "Lessons viewable by everyone" ON lessons;
+CREATE POLICY "Lessons viewable by everyone" ON lessons FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Assignments viewable by everyone" ON assignments;
+CREATE POLICY "Assignments viewable by everyone" ON assignments FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Admins can manage lessons" ON lessons;
+CREATE POLICY "Admins can manage lessons" ON lessons FOR ALL USING (is_admin());
+
+DROP POLICY IF EXISTS "Admins can manage assignments" ON assignments;
+CREATE POLICY "Admins can manage assignments" ON assignments FOR ALL USING (is_admin());
+
+
+-- SUBMISSIONS
+DROP POLICY IF EXISTS "Users view own submissions" ON submissions;
+CREATE POLICY "Users view own submissions" ON submissions FOR SELECT USING (auth.uid() = user_id OR is_admin());
+
+DROP POLICY IF EXISTS "Users manage own submissions" ON submissions;
+CREATE POLICY "Users manage own submissions" ON submissions FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users update own submissions" ON submissions;
+CREATE POLICY "Users update own submissions" ON submissions FOR UPDATE USING (auth.uid() = user_id OR is_admin());
+
+
+-- BADGES
+DROP POLICY IF EXISTS "Badges viewable by everyone" ON badges;
+CREATE POLICY "Badges viewable by everyone" ON badges FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Admins can manage badges" ON badges;
+CREATE POLICY "Admins can manage badges" ON badges FOR ALL USING (is_admin());
+
+
+-- USER BADGES
+DROP POLICY IF EXISTS "User badges viewable by everyone" ON user_badges;
+CREATE POLICY "User badges viewable by everyone" ON user_badges FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Admins manage user badges" ON user_badges;
+CREATE POLICY "Admins manage user badges" ON user_badges FOR ALL USING (is_admin());
+
+
+-- XP LOG
+DROP POLICY IF EXISTS "Users view own xp log" ON xp_log;
+CREATE POLICY "Users view own xp log" ON xp_log FOR SELECT USING (auth.uid() = user_id OR is_admin());
+
+DROP POLICY IF EXISTS "Admins manage xp log" ON xp_log;
+CREATE POLICY "Admins manage xp log" ON xp_log FOR ALL USING (is_admin());
+
+
+-- ENROLLMENTS & PROGRESS
+DROP POLICY IF EXISTS "Users view own enrollments" ON enrollments;
+CREATE POLICY "Users view own enrollments" ON enrollments FOR SELECT USING (auth.uid() = user_id OR is_admin());
+
+DROP POLICY IF EXISTS "Users view own progress" ON lesson_progress;
+CREATE POLICY "Users view own progress" ON lesson_progress FOR SELECT USING (auth.uid() = user_id OR is_admin());
+
+DROP POLICY IF EXISTS "Users manage own enrollments" ON enrollments;
+DROP POLICY IF EXISTS "Users insert own enrollments" ON enrollments;
+DROP POLICY IF EXISTS "Users update own enrollments" ON enrollments;
+DROP POLICY IF EXISTS "Users delete own enrollments" ON enrollments;
+
+CREATE POLICY "Users insert own enrollments" ON enrollments FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users update own enrollments" ON enrollments FOR UPDATE USING (auth.uid() = user_id OR is_admin());
+CREATE POLICY "Users delete own enrollments" ON enrollments FOR DELETE USING (auth.uid() = user_id OR is_admin());
+
+DROP POLICY IF EXISTS "Users manage own progress" ON lesson_progress;
+CREATE POLICY "Users manage own progress" ON lesson_progress FOR ALL USING (auth.uid() = user_id OR is_admin());
+
+
+==================== 018_instructor_submissions_rls.sql ====================
+-- Update submissions RLS policy so instructors can view submissions for their own courses
+-- Currently it's: (auth.uid() = user_id OR is_admin())
+-- We need to add: OR (user is instructor of the course)
+
+DROP POLICY IF EXISTS "Users view own submissions" ON submissions;
+
+CREATE POLICY "Users view own submissions" ON submissions 
+FOR SELECT USING (
+  auth.uid() = user_id 
+  OR is_admin()
+  OR EXISTS (
+    SELECT 1 FROM assignments
+    JOIN lessons ON lessons.id = assignments.lesson_id
+    JOIN courses ON courses.id = lessons.course_id
+    WHERE assignments.id = submissions.assignment_id
+    AND courses.created_by = auth.uid()
+  )
+);
+
+-- Also update update policy so instructors can approve/reject
+DROP POLICY IF EXISTS "Users update own submissions" ON submissions;
+
+CREATE POLICY "Users update own submissions" ON submissions 
+FOR UPDATE USING (
+  auth.uid() = user_id 
+  OR is_admin()
+  OR EXISTS (
+    SELECT 1 FROM assignments
+    JOIN lessons ON lessons.id = assignments.lesson_id
+    JOIN courses ON courses.id = lessons.course_id
+    WHERE assignments.id = submissions.assignment_id
+    AND courses.created_by = auth.uid()
+  )
+);
+
+-- Also update delete policy so instructors can delete approved submissions
+DROP POLICY IF EXISTS "Users delete own submissions" ON submissions;
+
+CREATE POLICY "Users delete own submissions" ON submissions 
+FOR DELETE USING (
+  auth.uid() = user_id 
+  OR is_admin()
+  OR EXISTS (
+    SELECT 1 FROM assignments
+    JOIN lessons ON lessons.id = assignments.lesson_id
+    JOIN courses ON courses.id = lessons.course_id
+    WHERE assignments.id = submissions.assignment_id
+    AND courses.created_by = auth.uid()
+  )
+);
+
+
+==================== 020_add_institute_id.sql ====================
+-- Add institute_id to profiles table
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS institute_id TEXT;
+
+-- Update the handle_new_user function to include institute_id
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, name, email, institute_id)
+  VALUES (
+    new.id, 
+    new.raw_user_meta_data->>'name', 
+    new.email,
+    new.raw_user_meta_data->>'institute_id'
+  );
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
+==================== 038_add_grad_to_handle_new_user.sql ====================
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, name, email, institute_id, graduation_period)
+  VALUES (
+    new.id, 
+    new.raw_user_meta_data->>'name', 
+    new.email,
+    new.raw_user_meta_data->>'institute_id',
+    new.raw_user_meta_data->>'graduation_period'
+  );
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
+==================== 028_monthly_rewards.sql ====================
+-- Create monthly_rewards table
+CREATE TABLE IF NOT EXISTS monthly_rewards (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  month_date DATE NOT NULL,
+  rank INTEGER NOT NULL,
+  is_seen BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, month_date)
+);
+
+ALTER TABLE monthly_rewards ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users view own monthly rewards" ON monthly_rewards FOR SELECT USING (auth.uid() = user_id OR is_admin());
+CREATE POLICY "Admins manage monthly rewards" ON monthly_rewards FOR ALL USING (is_admin());
+
+-- Function to dynamically compute top 10 XP gainers for the previous month
+CREATE OR REPLACE FUNCTION get_and_award_last_month_winners()
+RETURNS VOID AS $$
+DECLARE
+  v_target_month DATE;
+  v_winners_exist BOOLEAN;
+BEGIN
+  -- Determine the first day of the previous month
+  v_target_month := date_trunc('month', NOW() - INTERVAL '1 month')::DATE;
+
+  -- Check if winners for this month are already computed
+  SELECT EXISTS (
+    SELECT 1 FROM monthly_rewards WHERE month_date = v_target_month
+  ) INTO v_winners_exist;
+
+  -- If not computed, compute and insert top 10
+  IF NOT v_winners_exist THEN
+    INSERT INTO monthly_rewards (user_id, month_date, rank)
+    SELECT 
+      user_id,
+      v_target_month,
+      row_number() OVER (ORDER BY SUM(xp_amount) DESC) as rank
+    FROM xp_log
+    WHERE created_at >= v_target_month
+      AND created_at < v_target_month + INTERVAL '1 month'
+    GROUP BY user_id
+    HAVING SUM(xp_amount) > 0
+    ORDER BY SUM(xp_amount) DESC
+    LIMIT 10;
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
+==================== 043_fix_monthly_rewards.sql ====================
+CREATE OR REPLACE FUNCTION get_and_award_last_month_winners()
+RETURNS VOID AS $$
+DECLARE
+  v_target_month DATE;
+  v_winners_exist BOOLEAN;
+BEGIN
+  -- Determine the first day of the previous month
+  v_target_month := date_trunc('month', NOW() - INTERVAL '1 month')::DATE;
+
+  -- Check if winners for this month are already computed
+  SELECT EXISTS (
+    SELECT 1 FROM monthly_rewards WHERE month_date = v_target_month
+  ) INTO v_winners_exist;
+
+  -- If not computed, compute and insert top 10
+  IF NOT v_winners_exist THEN
+    INSERT INTO monthly_rewards (user_id, month_date, rank)
+    SELECT 
+      x.user_id,
+      v_target_month,
+      row_number() OVER (ORDER BY SUM(x.xp_amount) DESC) as rank
+    FROM xp_log x
+    JOIN profiles p ON x.user_id = p.id
+    WHERE x.created_at >= v_target_month
+      AND x.created_at < v_target_month + INTERVAL '1 month'
+      AND p.role = 'student'
+      AND p.email != 'iambestadi@gmail.com'
+    GROUP BY x.user_id
+    HAVING SUM(x.xp_amount) > 0
+    ORDER BY SUM(x.xp_amount) DESC
+    LIMIT 10;
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Clear recent wrongly computed rewards so they recalculate correctly
+DELETE FROM monthly_rewards WHERE month_date = date_trunc('month', NOW() - INTERVAL '1 month')::DATE;
+
+
+==================== 044_fix_monthly_rewards_global.sql ====================
+CREATE OR REPLACE FUNCTION get_and_award_last_month_winners()
+RETURNS VOID AS $$
+DECLARE
+  v_target_month DATE;
+  v_winners_exist BOOLEAN;
+BEGIN
+  -- We use date_trunc('month', NOW()) because the crown is awarded on the 1st of the current month,
+  -- based on their global leaderboard standing at that moment. The crown lasts for the current month.
+  -- Wait, the previous logic used NOW() - 1 month. The user says "on the 1st, whoever is top 10, gets the crown for the next month".
+  -- So we label it with the current month (e.g. July 1st -> July crown).
+  -- Let's use the current month as the label:
+  v_target_month := date_trunc('month', NOW())::DATE;
+
+  -- Check if winners for this month are already computed
+  SELECT EXISTS (
+    SELECT 1 FROM monthly_rewards WHERE month_date = v_target_month
+  ) INTO v_winners_exist;
+
+  -- If not computed, compute and insert top 10 from the global leaderboard (profiles table)
+  IF NOT v_winners_exist THEN
+    INSERT INTO monthly_rewards (user_id, month_date, rank)
+    SELECT 
+      id as user_id,
+      v_target_month,
+      row_number() OVER (ORDER BY xp DESC) as rank
+    FROM profiles
+    WHERE role = 'student'
+      AND email != 'iambestadi@gmail.com'
+      AND xp > 0
+    ORDER BY xp DESC
+    LIMIT 10;
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Clear any previously computed rewards for both current and previous month just in case,
+-- so the system correctly assigns the global top 10 when re-triggered.
+DELETE FROM monthly_rewards;
+
+
+==================== 045_fix_monthly_rewards_date.sql ====================
+CREATE OR REPLACE FUNCTION get_and_award_last_month_winners()
+RETURNS VOID AS $$
+DECLARE
+  v_target_month DATE;
+  v_winners_exist BOOLEAN;
+BEGIN
+  -- We use date_trunc('month', NOW() - INTERVAL '1 month') because the crown awarded
+  -- on the 1st of the month represents the winner for the PREVIOUS month (e.g. awarded July 1st for June).
+  v_target_month := date_trunc('month', NOW() - INTERVAL '1 month')::DATE;
+
+  -- Check if winners for this month are already computed
+  SELECT EXISTS (
+    SELECT 1 FROM monthly_rewards WHERE month_date = v_target_month
+  ) INTO v_winners_exist;
+
+  -- If not computed, compute and insert top 10 from the global leaderboard (profiles table)
+  IF NOT v_winners_exist THEN
+    INSERT INTO monthly_rewards (user_id, month_date, rank)
+    SELECT 
+      id as user_id,
+      v_target_month,
+      row_number() OVER (ORDER BY xp DESC) as rank
+    FROM profiles
+    WHERE role = 'student'
+      AND email != 'iambestadi@gmail.com'
+      AND xp > 0
+    ORDER BY xp DESC
+    LIMIT 10;
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Clear any previously computed rewards (like the wrong July ones) so they recalculate for June
+DELETE FROM monthly_rewards;
+
+
+==================== 041_doubt_likes.sql ====================
+-- Add doubt_likes table
+CREATE TABLE IF NOT EXISTS public.doubt_likes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    doubt_id UUID REFERENCES public.doubts(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::TEXT, NOW()) NOT NULL,
+    UNIQUE(doubt_id, user_id)
+);
+
+-- Add likes_count to doubts table
+ALTER TABLE public.doubts ADD COLUMN IF NOT EXISTS likes_count INTEGER DEFAULT 0;
+
+-- Enable RLS
+ALTER TABLE public.doubt_likes ENABLE ROW LEVEL SECURITY;
+
+-- Policies for doubt_likes
+CREATE POLICY "Users can view likes for doubts they can access"
+    ON public.doubt_likes
+    FOR SELECT
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.doubts 
+            WHERE id = public.doubt_likes.doubt_id 
+            AND public.has_batch_access(public.doubts.batch)
+        )
+    );
+
+CREATE POLICY "Users can like doubts they can access"
+    ON public.doubt_likes
+    FOR INSERT
+    WITH CHECK (
+        auth.uid() = user_id AND
+        EXISTS (
+            SELECT 1 FROM public.doubts 
+            WHERE id = doubt_id 
+            AND public.has_batch_access(public.doubts.batch)
+        )
+    );
+
+CREATE POLICY "Users can unlike their own likes"
+    ON public.doubt_likes
+    FOR DELETE
+    USING (auth.uid() = user_id);
+
+-- Trigger to update likes_count
+CREATE OR REPLACE FUNCTION public.update_doubt_likes_count()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        UPDATE public.doubts SET likes_count = likes_count + 1 WHERE id = NEW.doubt_id;
+        RETURN NEW;
+    ELSIF TG_OP = 'DELETE' THEN
+        UPDATE public.doubts SET likes_count = likes_count - 1 WHERE id = OLD.doubt_id;
+        RETURN OLD;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS update_doubt_likes_count_trigger ON public.doubt_likes;
+
+CREATE TRIGGER update_doubt_likes_count_trigger
+    AFTER INSERT OR DELETE ON public.doubt_likes
+    FOR EACH ROW EXECUTE PROCEDURE public.update_doubt_likes_count();
+
+
+==================== 048_fix_doubt_likes_trigger.sql ====================
+-- Fix doubt likes count trigger by adding SECURITY DEFINER
+-- This ensures the trigger runs with elevated privileges and bypasses RLS
+-- when updating the likes_count on the doubts table, which regular users
+-- might not have UPDATE permissions for.
+
+CREATE OR REPLACE FUNCTION public.update_doubt_likes_count()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        UPDATE public.doubts SET likes_count = likes_count + 1 WHERE id = NEW.doubt_id;
+        RETURN NEW;
+    ELSIF TG_OP = 'DELETE' THEN
+        UPDATE public.doubts SET likes_count = likes_count - 1 WHERE id = OLD.doubt_id;
+        RETURN OLD;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
+==================== 031_doubts_system.sql ====================
+-- Create doubts table
+CREATE TABLE IF NOT EXISTS public.doubts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    batch TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'resolved')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::TEXT, NOW()) NOT NULL
+);
+
+-- Create doubt_replies table
+CREATE TABLE IF NOT EXISTS public.doubt_replies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    doubt_id UUID REFERENCES public.doubts(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    reply_text TEXT NOT NULL,
+    is_accepted BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::TEXT, NOW()) NOT NULL
+);
+
+-- Enable RLS
+ALTER TABLE public.doubts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.doubt_replies ENABLE ROW LEVEL SECURITY;
+
+-- Helper function to check if user has access to a batch
+CREATE OR REPLACE FUNCTION public.has_batch_access(target_batch TEXT)
+RETURNS BOOLEAN AS $$
+DECLARE
+    user_role TEXT;
+    user_batch TEXT;
+BEGIN
+    SELECT role, graduation_period INTO user_role, user_batch 
+    FROM public.profiles 
+    WHERE id = auth.uid();
+    
+    IF user_role IN ('admin', 'instructor') THEN
+        RETURN TRUE;
+    END IF;
+    
+    RETURN user_batch = target_batch;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- RLS for Doubts
+CREATE POLICY "Users can view doubts in their batch or all if admin/instructor"
+    ON public.doubts
+    FOR SELECT
+    USING (public.has_batch_access(batch));
+
+CREATE POLICY "Users can insert doubts in their batch"
+    ON public.doubts
+    FOR INSERT
+    WITH CHECK (public.has_batch_access(batch));
+
+CREATE POLICY "Users can update their own doubts or if admin/instructor"
+    ON public.doubts
+    FOR UPDATE
+    USING (auth.uid() = user_id OR (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'instructor'))));
+
+CREATE POLICY "Users can delete their own doubts or if admin/instructor"
+    ON public.doubts
+    FOR DELETE
+    USING (auth.uid() = user_id OR (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'instructor'))));
+
+
+-- RLS for Doubt Replies
+CREATE POLICY "Users can view replies for doubts they can access"
+    ON public.doubt_replies
+    FOR SELECT
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.doubts 
+            WHERE id = public.doubt_replies.doubt_id 
+            AND public.has_batch_access(public.doubts.batch)
+        )
+    );
+
+CREATE POLICY "Users can insert replies for doubts they can access"
+    ON public.doubt_replies
+    FOR INSERT
+    WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.doubts 
+            WHERE id = doubt_id 
+            AND public.has_batch_access(public.doubts.batch)
+        )
+    );
+
+CREATE POLICY "Users can update their own replies or if admin/instructor"
+    ON public.doubt_replies
+    FOR UPDATE
+    USING (auth.uid() = user_id OR (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'instructor'))));
+
+CREATE POLICY "Users can delete their own replies or if admin/instructor"
+    ON public.doubt_replies
+    FOR DELETE
+    USING (auth.uid() = user_id OR (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'instructor'))));
+
+-- Allow the creator of the doubt to mark a reply as accepted
+CREATE POLICY "Doubt creators can accept replies"
+    ON public.doubt_replies
+    FOR UPDATE
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.doubts 
+            WHERE id = public.doubt_replies.doubt_id 
+            AND public.doubts.user_id = auth.uid()
+        )
+    );
+
+
+==================== 050_course_specific_doubts.sql ====================
+-- ==========================================
+-- RESTRICT DOUBT REPLIES TO ENROLLED STUDENTS
+-- ==========================================
+
+-- Drop the existing insert policy for doubt_replies
+DROP POLICY IF EXISTS "Users can insert replies for doubts they can access" ON public.doubt_replies;
+
+-- Recreate with strict course enrollment check
+CREATE POLICY "Users can insert replies for doubts they can access"
+    ON public.doubt_replies
+    FOR INSERT
+    WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.doubts d
+            WHERE d.id = doubt_id 
+            AND public.has_batch_access(d.batch)
+            AND (
+                d.course_id IS NULL 
+                OR EXISTS (
+                    SELECT 1 FROM public.enrollments e 
+                    WHERE e.course_id = d.course_id 
+                    AND e.user_id = auth.uid() 
+                    AND e.status = 'approved'
+                )
+                OR EXISTS (
+                    SELECT 1 FROM public.courses c
+                    WHERE c.id = d.course_id AND c.created_by = auth.uid()
+                )
+                OR EXISTS (
+                    SELECT 1 FROM public.profiles p
+                    WHERE p.id = auth.uid() AND p.role IN ('admin', 'instructor')
+                )
+            )
+        )
+    );
+
+
+==================== 071_chat_and_status.sql ====================
+-- ==========================================
+-- CHAT SYSTEM
+-- ==========================================
+
+CREATE TABLE chats (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  type TEXT NOT NULL CHECK (type IN ('personal', 'group')),
+  name TEXT, -- Nullable, used for groups
+  is_open BOOLEAN DEFAULT true, -- If false, requires permission to join (for groups)
+  created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE chat_participants (
+  chat_id UUID REFERENCES chats(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  role TEXT DEFAULT 'member' CHECK (role IN ('admin', 'member')),
+  status TEXT DEFAULT 'accepted' CHECK (status IN ('pending', 'accepted')),
+  last_read_at TIMESTAMPTZ DEFAULT NOW(),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY(chat_id, user_id)
+);
+
+CREATE TABLE chat_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  chat_id UUID REFERENCES chats(id) ON DELETE CASCADE,
+  sender_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  is_edited BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for performance
+CREATE INDEX idx_chat_participants_user_id ON chat_participants(user_id);
+CREATE INDEX idx_chat_messages_chat_id ON chat_messages(chat_id);
+CREATE INDEX idx_chat_messages_sender_id ON chat_messages(sender_id);
+
+-- Enable RLS
+ALTER TABLE chats ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_participants ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
+
+
+-- ==========================================
+-- RLS POLICIES FOR CHAT
+-- ==========================================
+
+-- Chats: participants can read the chat record
+CREATE POLICY "Participants can view their chats" ON chats
+  FOR SELECT USING (
+    id IN (
+      SELECT chat_id FROM chat_participants 
+      WHERE user_id = auth.uid() AND status = 'accepted'
+    )
+  );
+
+CREATE POLICY "Authenticated users can create chats" ON chats
+  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+-- Subquery for group updates
+CREATE POLICY "Admins can update their group chats" ON chats
+  FOR UPDATE USING (
+    id IN (
+      SELECT chat_id FROM chat_participants 
+      WHERE user_id = auth.uid() AND role = 'admin'
+    )
+  );
+
+
+-- Chat Participants
+CREATE POLICY "Users can view participants of their chats" ON chat_participants
+  FOR SELECT USING (
+    chat_id IN (
+      SELECT chat_id FROM chat_participants WHERE user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can add themselves to open chats or create chats" ON chat_participants
+  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+CREATE POLICY "Admins can update participant status" ON chat_participants
+  FOR UPDATE USING (
+    chat_id IN (
+      SELECT chat_id FROM chat_participants WHERE user_id = auth.uid() AND role = 'admin'
+    ) OR user_id = auth.uid() -- So a user can accept their own invite or leave
+  );
+
+CREATE POLICY "Admins can remove participants" ON chat_participants
+  FOR DELETE USING (
+    chat_id IN (
+      SELECT chat_id FROM chat_participants WHERE user_id = auth.uid() AND role = 'admin'
+    ) OR user_id = auth.uid() -- A user can leave
+  );
+
+
+-- Chat Messages
+CREATE POLICY "Participants can view messages" ON chat_messages
+  FOR SELECT USING (
+    chat_id IN (
+      SELECT chat_id FROM chat_participants 
+      WHERE user_id = auth.uid() AND status = 'accepted'
+    )
+  );
+
+CREATE POLICY "Participants can insert messages" ON chat_messages
+  FOR INSERT WITH CHECK (
+    chat_id IN (
+      SELECT chat_id FROM chat_participants 
+      WHERE user_id = auth.uid() AND status = 'accepted'
+    ) AND sender_id = auth.uid()
+  );
+
+CREATE POLICY "Senders can update their messages" ON chat_messages
+  FOR UPDATE USING (sender_id = auth.uid());
+
+
+-- ==========================================
+-- HALL OF FAME (STATUS/STORIES)
+-- ==========================================
+
+CREATE TABLE hall_of_fame_stories (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  badge_id UUID REFERENCES badges(id) ON DELETE SET NULL, -- Link to reward
+  caption TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  expires_at TIMESTAMPTZ DEFAULT NOW() + INTERVAL '24 hours'
+);
+
+CREATE TABLE story_likes (
+  story_id UUID REFERENCES hall_of_fame_stories(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (story_id, user_id)
+);
+
+CREATE INDEX idx_stories_user_id ON hall_of_fame_stories(user_id);
+CREATE INDEX idx_stories_active ON hall_of_fame_stories(expires_at) WHERE expires_at > NOW();
+
+ALTER TABLE hall_of_fame_stories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE story_likes ENABLE ROW LEVEL SECURITY;
+
+-- Anyone authenticated can view active stories
+CREATE POLICY "Anyone can view active stories" ON hall_of_fame_stories
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Users can create their own stories" ON hall_of_fame_stories
+  FOR INSERT WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Users can delete their own stories" ON hall_of_fame_stories
+  FOR DELETE USING (user_id = auth.uid());
+
+-- Likes
+CREATE POLICY "Anyone can view story likes" ON story_likes
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Users can like stories" ON story_likes
+  FOR INSERT WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Users can unlike stories" ON story_likes
+  FOR DELETE USING (user_id = auth.uid());
+
+-- ==========================================
+-- REALTIME ENABLEMENT
+-- ==========================================
+-- Need to enable realtime for chats to function instantly
+ALTER PUBLICATION supabase_realtime ADD TABLE chats;
+ALTER PUBLICATION supabase_realtime ADD TABLE chat_messages;
+ALTER PUBLICATION supabase_realtime ADD TABLE chat_participants;
+ALTER PUBLICATION supabase_realtime ADD TABLE hall_of_fame_stories;
+ALTER PUBLICATION supabase_realtime ADD TABLE story_likes;
+
+-- ==========================================
+-- HELPER FUNCTIONS
+-- ==========================================
+CREATE OR REPLACE FUNCTION get_direct_chat(user1_id UUID, user2_id UUID)
+RETURNS TABLE(chat_id UUID) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT cp1.chat_id
+  FROM chat_participants cp1
+  JOIN chat_participants cp2 ON cp1.chat_id = cp2.chat_id
+  JOIN chats c ON c.id = cp1.chat_id
+  WHERE c.type = 'personal'
+    AND cp1.user_id = user1_id
+    AND cp2.user_id = user2_id
+  LIMIT 1;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
+
+==================== 072_advanced_chat_system.sql ====================
+-- ==========================================
+-- ROLLBACK MVP TABLES FROM 071
+-- ==========================================
+DROP FUNCTION IF EXISTS get_direct_chat(UUID, UUID);
+DROP TABLE IF EXISTS story_likes CASCADE;
+DROP TABLE IF EXISTS hall_of_fame_stories CASCADE;
+DROP TABLE IF EXISTS chat_messages CASCADE;
+DROP TABLE IF EXISTS chat_participants CASCADE;
+DROP TABLE IF EXISTS chats CASCADE;
+
+-- ==========================================
+-- 1. CAMPUS CHAT SYSTEM (NORMALIZED)
+-- ==========================================
+CREATE TABLE chat_conversations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  type TEXT NOT NULL CHECK (type IN ('personal', 'group')),
+  name TEXT, 
+  description TEXT,
+  icon_url TEXT,
+  is_private BOOLEAN DEFAULT true, -- If false, it's a public auto-join group
+  join_requires_approval BOOLEAN DEFAULT false,
+  settings_jsonb JSONB DEFAULT '{"announcement_mode": false, "allow_attachments": true}'::jsonb,
+  created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ -- Soft delete
+);
+
+CREATE TABLE chat_members (
+  conversation_id UUID REFERENCES chat_conversations(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  role TEXT DEFAULT 'member' CHECK (role IN ('owner', 'admin', 'moderator', 'member', 'pending')),
+  mute_until TIMESTAMPTZ,
+  last_read_message_id UUID, -- For robust read receipts
+  joined_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY(conversation_id, user_id)
+);
+
+CREATE TABLE chat_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id UUID REFERENCES chat_conversations(id) ON DELETE CASCADE,
+  sender_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  content TEXT, -- Nullable if it's only an attachment
+  attachment_type TEXT CHECK (attachment_type IN ('text', 'image', 'video', 'pdf', 'audio', 'lesson', 'assignment', 'notice', 'course', 'doubt')),
+  attachment_link TEXT, -- Could be a URL or an internal resource ID (UUID string)
+  reply_to_id UUID REFERENCES chat_messages(id) ON DELETE SET NULL, -- Self reference for replies
+  is_edited BOOLEAN DEFAULT false,
+  is_pinned BOOLEAN DEFAULT false,
+  deleted_for_everyone BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE message_reactions (
+  message_id UUID REFERENCES chat_messages(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  emoji TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (message_id, user_id, emoji)
+);
+-- Delivery read receipts are tracked optimally by last_read_message_id in chat_members to save DB writes,
+-- but for exact timestamps we can use message_deliveries
+CREATE TABLE message_deliveries (
+  message_id UUID REFERENCES chat_messages(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  status TEXT CHECK (status IN ('delivered', 'read')),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY(message_id, user_id)
+);
+
+-- Indexes for scaling messages
+CREATE INDEX idx_chat_members_user_id ON chat_members(user_id);
+CREATE INDEX idx_chat_messages_conn_id ON chat_messages(conversation_id) WHERE deleted_for_everyone = false;
+CREATE INDEX idx_chat_messages_sender_id ON chat_messages(sender_id);
+CREATE INDEX idx_chat_messages_created ON chat_messages(created_at DESC);
+
+-- ==========================================
+-- 2. HALL OF FAME (STORIES)
+-- ==========================================
+CREATE TABLE hall_of_fame (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  category TEXT NOT NULL CHECK (category IN ('badge', 'leaderboard', 'xp', 'certificate', 'course', 'faculty')),
+  reference_id UUID, -- Depending on category, this links to badges.id, courses.id, etc.
+  caption TEXT,
+  is_hidden BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  expires_at TIMESTAMPTZ DEFAULT NOW() + INTERVAL '24 hours'
+);
+
+CREATE TABLE story_views (
+  story_id UUID REFERENCES hall_of_fame(id) ON DELETE CASCADE,
+  viewer_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  viewed_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (story_id, viewer_id)
+);
+
+CREATE TABLE story_reactions (
+  story_id UUID REFERENCES hall_of_fame(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  reaction TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (story_id, user_id)
+);
+
+CREATE INDEX idx_stories_user_active ON hall_of_fame(user_id, expires_at) WHERE is_hidden = false;
+
+-- ==========================================
+-- 3. ACTIVITY FEED
+-- ==========================================
+CREATE TABLE activity_feed (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  activity_type TEXT NOT NULL,
+  metadata JSONB, -- Stores dynamic keys like { "badge_name": "JS Master", "course_name": "React" }
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_activity_feed_created ON activity_feed(created_at DESC);
+
+-- ==========================================
+-- SECURITY (RLS)
+-- ==========================================
+-- Enable RLS
+ALTER TABLE chat_conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE message_reactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE message_deliveries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hall_of_fame ENABLE ROW LEVEL SECURITY;
+ALTER TABLE story_views ENABLE ROW LEVEL SECURITY;
+ALTER TABLE story_reactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE activity_feed ENABLE ROW LEVEL SECURITY;
+
+
+-- Conversation Security
+CREATE POLICY "Conversations viewable by members" ON chat_conversations
+  FOR SELECT USING (
+    id IN (SELECT conversation_id FROM chat_members WHERE user_id = auth.uid() AND role != 'pending')
+  );
+
+-- Chat Members Security
+CREATE POLICY "Members can view participants" ON chat_members
+  FOR SELECT USING (
+    conversation_id IN (SELECT conversation_id FROM chat_members WHERE user_id = auth.uid())
+  );
+
+-- Chat Messages Security
+CREATE POLICY "Members can view messages" ON chat_messages
+  FOR SELECT USING (
+    conversation_id IN (SELECT conversation_id FROM chat_members WHERE user_id = auth.uid() AND role != 'pending')
+  );
+
+CREATE POLICY "Members can insert messages" ON chat_messages
+  FOR INSERT WITH CHECK (
+    sender_id = auth.uid() AND 
+    conversation_id IN (
+      SELECT conversation_id FROM chat_members 
+      WHERE user_id = auth.uid() AND role != 'pending'
+    )
+  );
+
+CREATE POLICY "Senders can edit their own active messages" ON chat_messages
+  FOR UPDATE USING (
+    sender_id = auth.uid() AND deleted_for_everyone = false 
+    AND (EXTRACT(EPOCH FROM (NOW() - created_at)) / 60) <= 5 -- 5 minutes edit window limit
+  );
+
+
+-- Hall of Fame RLS
+CREATE POLICY "Anyone can view active stories" ON hall_of_fame
+  FOR SELECT USING (auth.role() = 'authenticated' AND is_hidden = false);
+
+CREATE POLICY "Users insert own story" ON hall_of_fame
+  FOR INSERT WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Users edit own story" ON hall_of_fame
+  FOR UPDATE USING (user_id = auth.uid());
+
+
+-- Activity Feed RLS
+CREATE POLICY "Everyone views activity" ON activity_feed
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+
+-- ==========================================
+-- HELPERS & RPCs
+-- ==========================================
+-- Fetch a direct conversation ID between two users efficiently
+CREATE OR REPLACE FUNCTION get_or_create_direct_chat(peer_id UUID)
+RETURNS UUID AS $$
+DECLARE
+  conv_id UUID;
+  me_id UUID := auth.uid();
+BEGIN
+  -- Search for existing personal conversation
+  SELECT cm1.conversation_id INTO conv_id
+  FROM chat_members cm1
+  JOIN chat_members cm2 ON cm1.conversation_id = cm2.conversation_id
+  JOIN chat_conversations c ON c.id = cm1.conversation_id
+  WHERE c.type = 'personal'
+    AND cm1.user_id = me_id
+    AND cm2.user_id = peer_id
+  LIMIT 1;
+
+  -- Create if missing
+  IF conv_id IS NULL THEN
+    INSERT INTO chat_conversations (type, is_private) VALUES ('personal', true) RETURNING id INTO conv_id;
+    INSERT INTO chat_members (conversation_id, user_id, role) VALUES (conv_id, me_id, 'owner'), (conv_id, peer_id, 'member');
+  END IF;
+
+  RETURN conv_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
+-- ==========================================
+-- REALTIME
+-- ==========================================
+ALTER PUBLICATION supabase_realtime ADD TABLE chat_conversations;
+ALTER PUBLICATION supabase_realtime ADD TABLE chat_messages;
+ALTER PUBLICATION supabase_realtime ADD TABLE message_reactions;
+ALTER PUBLICATION supabase_realtime ADD TABLE hall_of_fame;
+ALTER PUBLICATION supabase_realtime ADD TABLE activity_feed;
+
+
+==================== 072_ephemeral_stories.sql ====================
+-- Migration: 072_ephemeral_stories.sql
+-- Description: Creates the architecture for WhatsApp-style 24-hr status/stories generated from achievements.
+
+-- 1. Create the Storage Bucket for Story Images if not exists
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('stories_bucket', 'stories_bucket', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Storage RLS: Anyone can view, Authenticated users can insert
+CREATE POLICY "Public Read Access for Stories" ON storage.objects FOR SELECT USING (bucket_id = 'stories_bucket');
+CREATE POLICY "Authenticated users can upload Stories" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'stories_bucket' AND auth.role() = 'authenticated');
+
+-- 2. Create the core hall_of_fame_stories table
+CREATE TABLE IF NOT EXISTS public.hall_of_fame_stories (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    image_url TEXT NOT NULL,
+    caption TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expires_at TIMESTAMPTZ NOT NULL DEFAULT (now() + interval '24 hours')
+);
+
+-- Enable RLS
+ALTER TABLE public.hall_of_fame_stories ENABLE ROW LEVEL SECURITY;
+
+-- Stories: Anyone can view ACTIVE stories. Users can insert their own.
+CREATE POLICY "Active stories are visible to all users" ON public.hall_of_fame_stories
+    FOR SELECT USING (expires_at > now());
+    
+CREATE POLICY "Users can create their own stories" ON public.hall_of_fame_stories
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+    
+CREATE POLICY "Users can delete their own stories" ON public.hall_of_fame_stories
+    FOR DELETE USING (auth.uid() = user_id);
+
+-- 3. Create story_likes table
+CREATE TABLE IF NOT EXISTS public.story_likes (
+    story_id UUID NOT NULL REFERENCES public.hall_of_fame_stories(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (story_id, user_id)
+);
+
+-- Enable RLS
+ALTER TABLE public.story_likes ENABLE ROW LEVEL SECURITY;
+
+-- Likes: Anyone can see likes, users can toggle their own
+CREATE POLICY "Likes are visible to all users" ON public.story_likes
+    FOR SELECT USING (true);
+    
+CREATE POLICY "Users can insert their own likes" ON public.story_likes
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+    
+CREATE POLICY "Users can delete their own likes" ON public.story_likes
+    FOR DELETE USING (auth.uid() = user_id);
+
+-- 4. Create indexes for performance fetching active stories
+CREATE INDEX IF NOT EXISTS idx_stories_expires_at ON public.hall_of_fame_stories(expires_at);
+CREATE INDEX IF NOT EXISTS idx_stories_user_id ON public.hall_of_fame_stories(user_id);
+
+
+==================== 073_add_image_to_stories.sql ====================
+-- Migration: 073_add_image_to_stories.sql
+-- Description: Production-ready ephemeral stories storage architecture with zero-trust RLS.
+
+-- 1. Add image_url to the existing hall_of_fame idempotently
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='hall_of_fame' AND column_name='image_url') THEN
+        ALTER TABLE public.hall_of_fame ADD COLUMN image_url TEXT;
+    END IF;
+END $$;
+
+-- 2. Create the Storage Bucket idempotently with constraints
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'stories_bucket', 
+  'stories_bucket', 
+  true, 
+  5242880, -- 5MB limit
+  ARRAY['image/png', 'image/jpeg', 'image/webp']
+)
+ON CONFLICT (id) DO UPDATE SET 
+  public = true, 
+  file_size_limit = 5242880, 
+  allowed_mime_types = ARRAY['image/png', 'image/jpeg', 'image/webp'];
+
+-- 3. Idempotent Storage RLS Policies
+DO $$
+BEGIN
+    DROP POLICY IF EXISTS "Public Read Access for Stories" ON storage.objects;
+    DROP POLICY IF EXISTS "Authenticated users can upload Stories" ON storage.objects;
+    DROP POLICY IF EXISTS "Users can update their own Stories" ON storage.objects;
+    DROP POLICY IF EXISTS "Users can delete their own Stories" ON storage.objects;
+END $$;
+
+-- SELECT: Anyone can view public storage
+CREATE POLICY "Public Read Access for Stories" ON storage.objects 
+  FOR SELECT USING (bucket_id = 'stories_bucket');
+
+-- INSERT: Must route perfectly into the `{user_id}/` subdirectory
+CREATE POLICY "Authenticated users can upload Stories" ON storage.objects 
+  FOR INSERT WITH CHECK (
+    bucket_id = 'stories_bucket' 
+    AND auth.role() = 'authenticated'
+    AND (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- UPDATE: Users can modify their own routed files
+CREATE POLICY "Users can update their own Stories" ON storage.objects 
+  FOR UPDATE USING (
+    bucket_id = 'stories_bucket' 
+    AND auth.role() = 'authenticated'
+    AND (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- DELETE: Users can prune their own routed files
+CREATE POLICY "Users can delete their own Stories" ON storage.objects 
+  FOR DELETE USING (
+    bucket_id = 'stories_bucket' 
+    AND auth.role() = 'authenticated'
+    AND (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- 4. Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_hall_of_fame_img ON public.hall_of_fame(image_url) WHERE image_url IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_hall_of_fame_created_at ON public.hall_of_fame(created_at DESC);
+
+-- 5. Hardened Cleanup Strategy (RPC)
+-- This function empowers an automated pg_cron job or edge function to scrub orphans and expired rows
+CREATE OR REPLACE FUNCTION delete_expired_stories()
+RETURNS void AS $$
+BEGIN
+  -- Safe deletion of standard table records
+  DELETE FROM public.hall_of_fame WHERE expires_at < NOW();
+  -- NOTE: Storage obj cleanup is handled off-band via Supabase Storage Edge Triggers mapped to DELETE cascades
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

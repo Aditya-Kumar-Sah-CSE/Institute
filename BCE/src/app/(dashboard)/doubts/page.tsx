@@ -16,7 +16,6 @@ export default async function DoubtsRedirectPage() {
   if (!profile) return <div>Profile not found.</div>;
 
   if (profile.role === 'admin' || profile.role === 'instructor') {
-    // 1. Get courses taught by this user that are active (not closed)
     const { data: teachingCourses } = await supabase
       .from('courses')
       .select('id')

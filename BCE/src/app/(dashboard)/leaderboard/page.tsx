@@ -6,6 +6,11 @@ import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 import type { LeaderboardEntry, LevelName } from '@/types';
 import Card from '@/components/ui/Card';
 import { User } from 'lucide-react';
+import dynamic from 'next/dynamic';
+
+const StoryCarousel = dynamic(() => import('@/features/hall-of-fame/components/StoryCarousel'), { 
+  loading: () => <div className="skeleton-dash" style={{ height: '100px', borderRadius: '12px' }}></div> 
+});
 
 export default async function LeaderboardPage({
   searchParams
@@ -113,6 +118,8 @@ export default async function LeaderboardPage({
         <h1 className="text-gradient">Hall of Fame</h1>
         <p className="text-secondary">Compete on institute-wide and batch-specific leaderboards and earn your spot on the leaderboard.</p>
       </div>
+
+      {<StoryCarousel currentUserId={user?.id} />}
 
       {developer && (
         <div style={{ marginBottom: 'var(--space-md)' }}>

@@ -1,0 +1,60 @@
+﻿
+> skillarena@0.1.0 build
+> next build
+
+Γû▓ Next.js 16.2.9 (Turbopack)
+- Environments: .env.local
+- Experiments (use with caution):
+  ┬╖ serverActions
+
+  Creating an optimized production build ...
+node.exe : 
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:Stri 
+   ng) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+> Build error occurred
+Error: Turbopack build failed with 1 errors:
+./src/features/chat/components/ChatInterface.tsx:9:
+1
+Module not found: Can't resolve 'react-virtuoso'
+  [90m 7 |[0m [36mimport[0m [33mImage[0m 
+[36mfrom[0m [32m'next/image'[0m;
+  [90m 8 |[0m [36mimport[0m 
+[33mUserAvatar[0m [36mfrom[0m 
+[32m'@/components/shared/UserAvatar'[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { 
+[33mVirtuoso[0m } [36mfrom[0m 
+[32m'react-virtuoso'[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m 
+[33mNewChatModal[0m [36mfrom[0m 
+[32m'./NewChatModal'[0m;
+  [90m11 |[0m [36mimport[0m 
+[33mEmptyChatState[0m [36mfrom[0m 
+[32m'./EmptyChatState'[0m;
+  [90m12 |[0m [36mimport[0m 
+[33mMessageBubble[0m [36mfrom[0m 
+[32m'./MessageBubble'[0m;
+
+
+
+Import trace:
+  Server Component:
+    
+./src/features/chat/components/ChatInterface.tsx
+    ./src/app/(dashboard)/dashboard/chat/page.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (./src/features/chat/components/Ch
+atInterface.tsx:9:1)
+    at <unknown> 
+(https://nextjs.org/docs/messages/module-not-found)
