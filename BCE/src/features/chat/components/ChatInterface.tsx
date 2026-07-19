@@ -340,7 +340,14 @@ export default function ChatInterface() {
                        const isOnline = peer ? onlineUsers.has(peer.user_id) : false;
                        return (
                          <p style={{ margin: 0, fontSize: '12px', color: isOnline ? 'var(--neon-lime)' : 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                           <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: isOnline ? 'var(--neon-lime)' : 'var(--text-muted)', boxShadow: isOnline ? '0 0 8px var(--neon-lime)' : 'none' }}></span>
+                           <style>{`
+                             @keyframes neon-pulse-dot {
+                               0% { box-shadow: 0 0 8px var(--neon-lime); }
+                               50% { box-shadow: 0 0 16px var(--neon-lime); }
+                               100% { box-shadow: 0 0 8px var(--neon-lime); }
+                             }
+                           `}</style>
+                           <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: isOnline ? 'var(--neon-lime)' : 'var(--text-muted)', animation: isOnline ? 'neon-pulse-dot 2s infinite' : 'none' }}></span>
                            {isOnline ? 'Online' : 'Offline'}
                          </p>
                        );

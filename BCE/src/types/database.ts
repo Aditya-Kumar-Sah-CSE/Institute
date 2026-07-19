@@ -272,41 +272,73 @@ export interface MessageDelivery {
 }
 
 // ==============================
-// HALL OF FAME / STORIES V2
+// ==============================
+// STORIES (STATUS V3)
 // ==============================
 
-export interface HallOfFameStory {
+export type StoryPrivacyLevel = 'everyone' | 'contacts' | 'close_friends' | 'only_me' | 'custom';
+export type StoryMediaType = 'image' | 'video' | 'text';
+
+export interface Story {
   id: string;
   user_id: string;
-  category: 'badge' | 'leaderboard' | 'xp' | 'certificate' | 'course' | 'faculty';
-  reference_id: string | null;
+  visibility: StoryPrivacyLevel;
+  is_archived: boolean;
+  created_at: string;
+  updated_at: string;
+  expires_at: string;
+  deleted_at: string | null;
+  
+  // Joined relational data
+  profile?: Profile;
+  items?: StoryItem[];
+}
+
+export interface StoryItem {
+  id: string;
+  story_id: string;
+  media_url: string | null;
+  thumbnail_url: string | null;
+  media_type: StoryMediaType;
   caption: string | null;
-  image_url?: string | null;
-  is_hidden: boolean;
+  duration: number;
+  order_index: number;
   created_at: string;
   expires_at: string;
+  deleted_at: string | null;
   
-  profile?: Profile;
+  // Joined stats
   views?: StoryView[];
   reactions?: StoryReaction[];
-  _count?: {
-    views?: number;
-    reactions?: number;
-  };
+  replies?: StoryReply[];
 }
 
 export interface StoryView {
-  story_id: string;
+  id: string;
+  story_item_id: string;
   viewer_id: string;
   viewed_at: string;
+  viewer?: Profile;
 }
 
 export interface StoryReaction {
-  story_id: string;
+  id: string;
+  story_item_id: string;
   user_id: string;
-  reaction: string;
+  emoji: string;
   created_at: string;
+  user?: Profile;
 }
+
+export interface StoryReply {
+  id: string;
+  story_item_id: string;
+  sender_id: string;
+  message: string;
+  created_at: string;
+  sender?: Profile;
+}
+
 
 // ==============================
 // ACTIVITY FEED

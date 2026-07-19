@@ -125,15 +125,15 @@ export default function ChatSidebar({
                   alignItems: 'flex-start', 
                   gap: 'var(--space-md)', 
                   padding: '12px', 
-                  marginBottom: '6px', 
                   borderRadius: 'var(--radius-md)', 
                   cursor: 'pointer', 
-                  background: isActive ? 'rgba(0, 240, 255, 0.08)' : 'transparent', 
-                  border: isActive ? '1px solid rgba(0, 240, 255, 0.3)' : '1px solid transparent',
-                  transition: 'all 0.2s ease'
+                  background: isActive ? 'linear-gradient(90deg, rgba(0, 240, 255, 0.15) 0%, transparent 100%)' : 'transparent', 
+                  borderLeft: isActive ? '3px solid var(--neon-cyan)' : '3px solid transparent',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  backdropFilter: isActive ? 'blur(10px)' : 'none'
                 }}
-                onMouseOver={e => !isActive && (e.currentTarget.style.background = 'var(--bg-elevated)')}
-                onMouseOut={e => !isActive && (e.currentTarget.style.background = 'transparent')}
+                onMouseOver={e => !isActive && (e.currentTarget.style.background = 'var(--bg-elevated)', e.currentTarget.style.transform = 'scale(1.02)')}
+                onMouseOut={e => !isActive && (e.currentTarget.style.background = 'transparent', e.currentTarget.style.transform = 'scale(1)')}
               >
                 <div style={{ position: 'relative', width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)' }}>
                   {getChatAvatar(chat)}
