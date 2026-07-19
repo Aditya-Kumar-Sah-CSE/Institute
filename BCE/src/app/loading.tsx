@@ -1,29 +1,13 @@
 'use client';
 
-import Image from 'next/image';
-import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
-
+/**
+ * Global Loading / Splash Screen
+ * 
+ * PERF: No network calls here. Uses static public assets only.
+ * The logo and name are baked into the public folder — 
+ * fetching them from the DB during loading defeats the purpose of a splash screen.
+ */
 export default function GlobalLoading() {
-  const [logoUrl, setLogoUrl] = useState('/icon-192x192.png');
-  const [companyName, setCompanyName] = useState('Smart Learn');
-
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const supabase = createClient();
-        const { data } = await supabase.from('company_settings').select('company_name, logo_url').single();
-        if (data) {
-          if (data.logo_url) setLogoUrl(data.logo_url);
-          if (data.company_name) setCompanyName(data.company_name);
-        }
-      } catch (err) {
-        console.error('Failed to load company settings for splash screen:', err);
-      }
-    };
-    fetchSettings();
-  }, []);
-
   return (
     <div style={{ 
       display: 'flex', 
@@ -55,13 +39,13 @@ export default function GlobalLoading() {
           borderRadius: '50%',
           animation: 'glow-pulse 2s ease-in-out infinite'
         }} />
-        <Image 
-          src={logoUrl} 
-          alt={`${companyName} Logo`} 
-          fill
-          sizes="120px"
-          priority
-          style={{ objectFit: 'contain', zIndex: 2 }}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/icon-192x192.png"
+          alt="App Logo"
+          width={120}
+          height={120}
+          style={{ objectFit: 'contain', zIndex: 2, position: 'relative', width: '100%', height: '100%' }}
         />
       </div>
 
@@ -75,7 +59,7 @@ export default function GlobalLoading() {
           WebkitTextFillColor: 'transparent',
           letterSpacing: '1px'
         }}>
-          {companyName}
+          Smart Learn
         </h2>
         <div style={{ display: 'flex', gap: '6px' }}>
           {[0, 1, 2].map((i) => (

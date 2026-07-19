@@ -1,10 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  compress: true,
+  poweredByHeader: false,
 
   allowedDevOrigins: ['172.17.41.247', 'localhost', '127.0.0.1'],
   images: {
+    formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       {
         protocol: 'https',
@@ -20,7 +22,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'lh3.googleusercontent.com', // Common for Google auth avatars
+        hostname: 'lh3.googleusercontent.com',
         port: '',
         pathname: '/**',
       }
@@ -34,3 +36,4 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+

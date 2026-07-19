@@ -1,4 +1,9 @@
 import React from 'react';
+
+// ISR: Serve from CDN cache, revalidate every hour.
+// The landing page Supabase call (company_name, tagline) runs at build/revalidation only — not per-request.
+export const revalidate = 3600;
+
 import Link from 'next/link';
 import Image from 'next/image';
 import InstallAppButton from '@/components/pwa/InstallAppButton';
