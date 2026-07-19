@@ -8,7 +8,7 @@ import Card from '@/components/ui/Card';
 import { User } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
-const StoryCarousel = dynamic(() => import('@/features/hall-of-fame/components/StoryCarousel'), { 
+const StoryCarousel = dynamic(() => import('@/features/stories/components/StoryCarousel'), { 
   loading: () => <div className="skeleton-dash" style={{ height: '100px', borderRadius: '12px' }}></div> 
 });
 
@@ -114,15 +114,22 @@ export default async function LeaderboardPage({
 
   return (
     <div className="leaderboard-page" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
-      <div className="page-header">
-        <h1 className="text-gradient">Hall of Fame</h1>
-        <p className="text-secondary">Compete on institute-wide and batch-specific leaderboards and earn your spot on the leaderboard.</p>
+      <div className="page-header" style={{ marginBottom: 0 }}>
+        <h1 className="text-gradient" style={{ margin: 0 }}>Hall of Fame</h1>
       </div>
 
-      {<StoryCarousel currentUserId={user?.id} />}
+      <div style={{ marginTop: 0 }}>
+         {<StoryCarousel currentUserId={user?.id} currentUserAvatar={user?.user_metadata?.avatar_url} />}
+      </div>
+
+      <div className="leaderboard-filters" style={{ display: 'flex', gap: 'var(--space-md)' }}>
+        <CourseFilter courses={courses || []} currentFilter={filter} />
+      </div>
+
+      <LeaderboardTable entries={entries} currentUserId={user?.id} />
 
       {developer && (
-        <div style={{ marginBottom: 'var(--space-md)' }}>
+        <div style={{ marginBottom: 'var(--space-md)', marginTop: 'var(--space-2xl)' }}>
           <h2 style={{ fontSize: 'var(--text-2xl)', margin: 0, marginBottom: 'var(--space-lg)' }}>Meet Developer</h2>
           <a href="https://portfolio-two-ashen-zseywond41.vercel.app/" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
             <Card variant="glass" padding="md" className="hover-lift" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', textAlign: 'left', gap: 'var(--space-md)', width: '100%', maxWidth: '350px' }}>
@@ -147,12 +154,6 @@ export default async function LeaderboardPage({
       )}
 
       {faculty.length > 0 && <FacultySection faculty={faculty} />}
-
-      <div className="leaderboard-filters" style={{ display: 'flex', gap: 'var(--space-md)' }}>
-        <CourseFilter courses={courses || []} currentFilter={filter} />
-      </div>
-
-      <LeaderboardTable entries={entries} currentUserId={user?.id} />
     </div>
   );
 }
