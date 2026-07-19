@@ -56,10 +56,12 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
   const [makeFacultyTarget, setMakeFacultyTarget] = useState<{ id: string, name: string } | null>(null);
   const [makeStudentTarget, setMakeStudentTarget] = useState<{ id: string, name: string } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string, name: string, role: string } | null>(null);
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
   const [isPending, startTransition] = useTransition();
 
   // Search and Role filter logic
   const filteredStudents = students.filter(student => {
+    if (deletedIds.has(student.id)) return false;
     const matchesSearch = student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           student.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === 'all' || student.role === roleFilter;
@@ -91,6 +93,7 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
         if (result.error) {
           alert(`Error deleting user: ${result.error}`);
         } else {
+          setDeletedIds(prev => new Set(prev).add(deleteTarget.id));
           setSelectedStudent(null);
           setDeleteTarget(null);
         }
