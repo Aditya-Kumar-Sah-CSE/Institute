@@ -1,0 +1,79 @@
+﻿
+> skillarena@0.1.0 build
+> next build
+
+Γû▓ Next.js 16.2.9 (Turbopack)
+- Environments: .env.local
+- Experiments (use with caution):
+  ┬╖ serverActions
+
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 13.5s
+  Running TypeScript ...
+node.exe : Failed to type check.
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Faile 
+   d to type check.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+./src/components/shared/FloatingShareMenu.tsx:94:13
+Type error: Type '{ hidden: { opacity: number; 
+scale: number; y: number; }; visible: { opacity: 
+number; scale: number; y: number; transition: { 
+type: string; stiffness: number; damping: number; 
+mass: number; duration: number; }; }; exit: { ...; 
+}; }' is not assignable to type 'Variants'.
+  Property 'visible' is incompatible with index 
+signature.
+    Type '{ opacity: number; scale: number; y: 
+number; transition: { type: string; stiffness: 
+number; damping: number; mass: number; duration: 
+number; }; }' is not assignable to type 'Variant'.
+      Type '{ opacity: number; scale: number; y: 
+number; transition: { type: string; stiffness: 
+number; damping: number; mass: number; duration: 
+number; }; }' is not assignable to type 
+'TargetAndTransition'.
+        Type '{ opacity: number; scale: number; y: 
+number; transition: { type: string; stiffness: 
+number; damping: number; mass: number; duration: 
+number; }; }' is not assignable to type '{ 
+transition?: Transition<any> | undefined; 
+transitionEnd?: ResolvedValues$1 | undefined; }'.
+          Types of property 'transition' are 
+incompatible.
+            Type '{ type: string; stiffness: 
+number; damping: number; mass: number; duration: 
+number; }' is not assignable to type 
+'Transition<any> | undefined'.
+              Type '{ type: string; stiffness: 
+number; damping: number; mass: number; duration: 
+number; }' is not assignable to type 
+'TransitionWithValueOverrides<any>'.
+                Type '{ type: string; stiffness: 
+number; damping: number; mass: number; duration: 
+number; }' is not assignable to type 
+'ValueAnimationTransition<any>'.
+                  Types of property 'type' are 
+incompatible.
+                    Type 'string' is not 
+assignable to type 'AnimationGeneratorType | 
+undefined'.
+
+  [90m92 |[0m         {isOpen && (
+  [90m93 |[0m           <motion.div
+[31m[1m>[0m [90m94 |[0m             
+variants={menuVariants}
+  [90m   |[0m             [31m[1m^[0m
+  [90m95 |[0m             
+initial=[32m"hidden"[0m
+  [90m96 |[0m             
+animate=[32m"visible"[0m
+  [90m97 |[0m             exit=[32m"exit"[0m
+Next.js build worker exited with code: 1 and 
+signal: null

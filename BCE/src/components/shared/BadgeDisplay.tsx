@@ -75,6 +75,7 @@ export default function BadgeDisplay({ allBadges, earnedBadges, compact = false,
        }
        
        alert('Successfully added to your Story!');
+       window.dispatchEvent(new CustomEvent('story-added'));
      } catch (e: any) {
        console.error("Story Error:", e);
        alert(`Failed to add to story. Hint: ${e.message}`);
@@ -197,6 +198,7 @@ export default function BadgeDisplay({ allBadges, earnedBadges, compact = false,
       <div className={`badge-display ${compact ? 'badge-compact' : ''} ${className}`}>
         {badgesToShow.map((badge) => {
           const isEarned = earnedIds.has(badge.id);
+          const displayName = badge.name.length > 18 ? badge.name.substring(0, 18) + '...' : badge.name;
           return (
             <div
               key={badge.id}
@@ -206,11 +208,11 @@ export default function BadgeDisplay({ allBadges, earnedBadges, compact = false,
               title={`${badge.name}: ${badge.description || ''}`}
             >
               {badge.icon.startsWith('http') ? (
-                <Image src={badge.icon} alt={badge.name} width={32} height={32} className="badge-icon" style={{ objectFit: 'contain' }} />
+                <Image src={badge.icon} alt={badge.name} width={56} height={56} className="badge-icon" style={{ objectFit: 'contain' }} />
               ) : (
                 <span className="badge-icon">{badge.icon}</span>
               )}
-              {!compact && <span className="badge-name">{badge.name}</span>}
+              {!compact && <span className="badge-name">{displayName}</span>}
             </div>
           );
         })}

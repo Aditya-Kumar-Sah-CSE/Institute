@@ -10,7 +10,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL_STATIC))
   );
-  self.skipWaiting(); // Phase 14: Ensure installed PWA launches directly
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
@@ -19,7 +19,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName); // versioned cache invalidation applied
+            return caches.delete(cacheName);
           }
         })
       );
@@ -28,6 +28,7 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Support for range requests (e.g., Safari video)
   if (event.request.headers.get('range')) {
     return;
   }
@@ -96,7 +97,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 4. API Requests -> Network First (Never cache authenticated data here)
+  // 4. API Requests -> Network First (No caching of authenticated user data here)
   if (url.pathname.startsWith('/api/') || url.hostname.includes('supabase.co')) {
     event.respondWith(
       fetch(event.request).catch(() => {
@@ -108,7 +109,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 5. Default
+  // 5. Default -> Network First
   event.respondWith(
     fetch(event.request).catch(() => new Response(null, { status: 503 }))
   );

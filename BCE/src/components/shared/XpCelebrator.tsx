@@ -60,6 +60,7 @@ export default function XpCelebrator() {
       }
       
       alert('Successfully added to your Story!');
+      window.dispatchEvent(new CustomEvent('story-added'));
     } catch (e: any) {
       console.error("Story Error:", e);
       alert(`Failed to add to story. Hint: ${e.message}`);
@@ -110,30 +111,31 @@ export default function XpCelebrator() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      channel = supabase
-        .channel('xp_toast')
-        .on(
-          'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'xp_log', filter: `user_id=eq.${user.id}` },
-          (payload) => {
-            const newEvent = payload.new as XpEvent;
-            setXpEvents(prev => [...prev, newEvent]);
-            
-            setTimeout(() => {
-              setXpEvents(prev => prev.filter(e => e.id !== newEvent.id));
-            }, 10000);
-          }
-        )
-        .subscribe();
-    };
-
-    setupRealtime();
-
-    return () => {
-      if (channel) {
-        supabase.removeChannel(channel);
-      }
-    };
+        const uniqueId = Math.random().toString(36).substring(2, 9);
+        channel = supabase
+          .channel(`xp_toast_${user.id}_${uniqueId}`)
+          .on(
+            'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'xp_log', filter: `user_id=eq.${user.id}` },
+            (payload) => {
+              const newEvent = payload.new as XpEvent;
+              setXpEvents(prev => [...prev, newEvent]);
+              
+              setTimeout(() => {
+                setXpEvents(prev => prev.filter(e => e.id !== newEvent.id));
+              }, 10000);
+            }
+          )
+          .subscribe();
+      };
+  
+      setupRealtime();
+  
+      return () => {
+        if (channel) {
+          supabase.removeChannel(channel);
+        }
+      };
   }, []);
 
   const dismissEvent = (id: string) => {

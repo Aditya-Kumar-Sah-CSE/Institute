@@ -188,19 +188,19 @@
     align-items: center;
   }
   
-  .company-nav-name {
-    display: block; /* Show company name on mobile */
-    flex: 1;
+  .company-nav-name-mobile {
+    display: block; /* Show company name on mobile center */
     text-align: center;
-    font-size: var(--text-base);
     white-space: normal; /* Wrap text */
     line-height: 1.2;
-    padding: 0 var(--space-xs);
-    
-    /* Fix visibility issue on mobile */
     background: none !important;
     -webkit-text-fill-color: var(--text-primary) !important;
     color: var(--text-primary) !important;
+  }
+  
+  /* Hide desktop text in mobile */
+  .company-nav-name.desktop-only {
+    display: none !important;
   }
 
   .mobile-menu-container {

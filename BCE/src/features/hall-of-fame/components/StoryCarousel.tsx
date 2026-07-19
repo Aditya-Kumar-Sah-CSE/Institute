@@ -1,19 +1,38 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { fetchActiveStories, toggleStoryReaction, createStory } from '@/features/hall-of-fame/actions/stories';
 import type { HallOfFameStory } from '@/types/database';
-import { Plus, X, Heart, Trophy, User } from 'lucide-react';
+import { Plus, X, Heart, Trophy, User, Upload } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import './StoryCarousel.css';
 
 export default function StoryCarousel({ currentUserId }: { currentUserId?: string }) {
   const [stories, setStories] = useState<HallOfFameStory[]>([]);
   const [activeStoryIndex, setActiveStoryIndex] = useState<number | null>(null);
   const [isPaused, setIsPaused] = useState(false);
+  const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
+  const shareMenuRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
-    fetchActiveStories().then(setStories);
+    fetchActiveStories().then(st => {
+      console.log('--- AUDIT CLIENT: Initial Load fetchActiveStories result size:', st?.length);
+      setStories(st);
+    });
+
+    const handleNewStory = () => {
+      console.log('--- AUDIT CLIENT: story-added event triggered in StoryCarousel');
+      fetchActiveStories().then(st => {
+         console.log('--- AUDIT CLIENT: Event triggered fetchActiveStories result size:', st?.length);
+         setStories(st);
+      });
+    };
+    window.addEventListener('story-added', handleNewStory);
+    
+    return () => {
+      window.removeEventListener('story-added', handleNewStory);
+    };
   }, []);
 
   useEffect(() => {
@@ -27,6 +46,19 @@ export default function StoryCarousel({ currentUserId }: { currentUserId?: strin
     }, 5000);
     return () => clearTimeout(timer);
   }, [activeStoryIndex, stories.length, isPaused]);
+
+  // Close share menu on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (shareMenuRef.current && !shareMenuRef.current.contains(event.target as Node)) {
+        setIsShareMenuOpen(false);
+      }
+    }
+    if (isShareMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isShareMenuOpen]);
 
   const handleToggleLike = async (story: HallOfFameStory) => {
     if (!currentUserId) return;
@@ -61,44 +93,115 @@ export default function StoryCarousel({ currentUserId }: { currentUserId?: strin
 
   return (
     <>
-      {/* Horizontal Carousel */}
-      <div className="story-carousel-container w-full overflow-x-auto no-scrollbar flex items-center gap-4 py-4 px-2 mb-6">
-        
-        {/* Share Achievement Button */}
-        <div className="story-item flex flex-col items-center gap-2 cursor-pointer group flex-shrink-0" onClick={() => alert('Earn badges in lessons to share your achievements to the Hall of Fame!')}>
-          <div className="relative w-16 h-16 rounded-full border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center bg-gray-50 dark:bg-dark-paper group-hover:border-neon-cyan group-hover:bg-cyan-50 dark:group-hover:bg-cyan-900/20 transition-colors">
-            <Plus size={24} className="text-gray-400 group-hover:text-neon-cyan transition-colors" />
+      {/* Rectangular Box with Glassmorphism */}
+      <div className="relative mb-6" ref={shareMenuRef}>
+        <div className="story-carousel-container w-full bg-slate-900/60 dark:bg-slate-900/60 backdrop-blur-md border border-slate-700/50 rounded-2xl shadow-xl shadow-black/20 overflow-x-auto no-scrollbar flex items-center gap-5 py-6 px-5 relative z-10">
+          
+          {/* Your Story Button (Instagram Style) */}
+          <div 
+            className="flex flex-col items-center gap-2 cursor-pointer group flex-shrink-0 relative" 
+            onClick={() => setIsShareMenuOpen(!isShareMenuOpen)}
+          >
+            <div className="relative w-16 h-16">
+               <div className="w-full h-full rounded-full overflow-hidden border border-slate-700 dark:border-slate-700 bg-slate-800 flex items-center justify-center p-[2px]">
+                   <div className="w-full h-full rounded-full bg-slate-700 flex items-center justify-center overflow-hidden">
+                       <User size={30} className="text-slate-400" />
+                   </div>
+               </div>
+               {/* Blue Plus Overlay */}
+               <div className="absolute -bottom-1 -right-0 w-[24px] h-[24px] bg-blue-500 rounded-full border-2 border-slate-900 dark:border-slate-900 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
+                 <Plus size={16} className="text-white stroke-[3px]" />
+               </div>
+            </div>
+            <span className="text-[11px] font-medium text-slate-300 mt-1">Your Story</span>
           </div>
-          <span className="text-xs font-medium text-gray-600 dark:text-gray-400 text-center leading-tight">Share<br/>Achievement</span>
-        </div>
 
-        {/* Existing Stories */}
-        {stories.map((story, index) => {
-          const profile = story.profile;
-          const imageSrc = profile?.avatar_url;
-          return (
-            <div 
-              key={story.id} 
-              className="story-item flex flex-col items-center gap-2 cursor-pointer flex-shrink-0 relative group"
-              onClick={() => setActiveStoryIndex(index)}
-            >
-              <div className="story-ring relative w-16 h-16 rounded-full p-[3px] bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 group-hover:scale-105 transition-transform duration-300 shadow-md shadow-pink-500/20">
-                <div className="w-full h-full bg-white dark:bg-dark-paper rounded-full p-[2px]">
-                  <div className="w-full h-full rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
-                    {imageSrc ? (
-                      <Image src={imageSrc} alt="avatar" width={100} height={100} className="w-full h-full object-cover" />
-                    ) : (
-                       <User size={32} className="text-gray-400" />
-                    )}
+          {/* Existing Stories (Instagram style rings) */}
+          {stories.map((story, index) => {
+            const profile = story.profile;
+            const imageSrc = profile?.avatar_url;
+            return (
+              <div 
+                key={story.id} 
+                className="flex flex-col items-center gap-2 cursor-pointer flex-shrink-0 group"
+                onClick={() => setActiveStoryIndex(index)}
+              >
+                <div className="story-ring relative w-16 h-16 rounded-full p-[3px] bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 group-hover:scale-105 transition-transform duration-300 shadow-md shadow-pink-500/20">
+                  <div className="w-full h-full bg-white dark:bg-[#0F172A] rounded-full p-[2px]">
+                    <div className="w-full h-full rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+                      {imageSrc ? (
+                        <Image src={imageSrc} alt="avatar" width={100} height={100} className="w-full h-full object-cover" />
+                      ) : (
+                         <User size={28} className="text-gray-400" />
+                      )}
+                    </div>
                   </div>
                 </div>
+                <span className="text-[11px] font-medium text-slate-300 w-16 truncate text-center mt-1">
+                  {profile?.name || 'Student'}
+                </span>
               </div>
-              <span className="text-xs font-semibold text-gray-800 dark:text-gray-300 w-16 truncate text-center">
-                {profile?.name || 'Student'}
-              </span>
-            </div>
-          );
-        })}
+            );
+          })}
+
+        </div>
+
+        {/* Render Share Menu POPUP Outside the overflow-x-auto container! */}
+        <AnimatePresence>
+          {isShareMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 25, mass: 0.8 }}
+              className="absolute left-4 top-[120px] w-[240px] rounded-[20px] overflow-hidden z-50 shadow-2xl"
+              style={{
+                background: 'rgba(15, 23, 42, 0.85)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+                boxShadow: '0 20px 50px -10px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)',
+                border: '1px solid rgba(59, 130, 246, 0.3)'
+              }}
+            >
+              <div className="flex flex-col p-2 space-y-1">
+                {/* Share Action */}
+                <motion.button
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.05, duration: 0.2 }}
+                  className="group relative flex items-center w-full p-3 rounded-2xl text-left bg-transparent hover:bg-blue-500/12 transition-colors duration-200"
+                  onClick={() => { setIsShareMenuOpen(false); alert('Material sharing modal coming soon!'); }}
+                >
+                   <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 group-hover:scale-110 transition-transform duration-200">
+                     <Upload size={20} className="stroke-2" />
+                   </div>
+                   <div className="ml-3 flex flex-col">
+                     <span className="font-semibold text-[15px] leading-snug text-slate-100 group-hover:text-blue-500 transition-colors">Share</span>
+                     <span className="text-[12px] leading-tight text-slate-400 mt-[2px] group-hover:text-blue-200/70 transition-colors">Material, PDF, Link</span>
+                   </div>
+                </motion.button>
+
+                {/* Achievement Action */}
+                <motion.button
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1, duration: 0.2 }}
+                  whileHover={{ y: -2 }}
+                  className="group relative flex items-center w-full p-3 rounded-2xl text-left bg-transparent hover:bg-blue-500/12 transition-colors duration-200"
+                  onClick={() => { setIsShareMenuOpen(false); alert('Earn badges to share to the Hall of Fame!'); }}
+                >
+                   <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 group-hover:scale-110 group-hover:text-amber-400 transition-all duration-200" style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(217,119,6,0.1))' }}>
+                     <Trophy size={20} className="stroke-2" />
+                   </div>
+                   <div className="ml-3 flex flex-col">
+                     <span className="font-semibold text-[15px] leading-snug text-slate-100 group-hover:text-amber-400 transition-colors">Achievement</span>
+                     <span className="text-[12px] leading-tight text-slate-400 mt-[2px] group-hover:text-amber-200/70 transition-colors">Badges, XP, Rank</span>
+                   </div>
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Full Screen Viewer Viewer */}
