@@ -50,10 +50,11 @@ export default function NoticeManager({ notices, currentUserId, currentUserRole 
           <h2 style={{ marginBottom: 'var(--space-md)' }}>Post New Notice</h2>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
             <Input name="title" label="Notice Title" required placeholder="e.g. System Maintenance" />
+            <Input type="datetime-local" name="expires_at" label="Expiration Date (Defaults to 6 months)" />
             <TextArea name="content" label="Notice Content" required placeholder="Enter your announcement here..." style={{ minHeight: '100px' }} />
-            <div>
+            <div style={{ width: '100%', maxWidth: '100%', overflow: 'hidden' }}>
               <label style={{ display: 'block', marginBottom: 'var(--space-xs)', color: 'var(--text-secondary)' }}>Attach Images (optional, max 5)</label>
-              <input type="file" name="image" accept="image/*" multiple style={{ color: 'var(--text-primary)' }} />
+              <input type="file" name="image" accept="image/*" multiple style={{ color: 'var(--text-primary)', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }} />
             </div>
             {error && <p style={{ color: 'var(--neon-red)' }}>{error}</p>}
             <Button type="submit" variant="primary" disabled={loading}>

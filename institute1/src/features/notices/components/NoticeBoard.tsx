@@ -11,6 +11,7 @@ export interface Notice {
   content: string;
   author_id: string;
   created_at: string;
+  expires_at?: string;
   image_url?: string;
   profiles: {
     name: string;
@@ -96,12 +97,19 @@ export default function NoticeBoard({ notices, emptyMessage = 'No notices availa
           <Card key={notice.id} variant="glass" padding="md">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-sm)' }}>
               <h3 style={{ color: 'var(--neon-cyan)', margin: 0 }}>{notice.title}</h3>
-              <span suppressHydrationWarning style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
-                {new Date(notice.created_at).toLocaleDateString(undefined, {
-                  year: 'numeric', month: 'short', day: 'numeric',
-                  hour: '2-digit', minute: '2-digit'
-                })}
-              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                <span suppressHydrationWarning style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
+                  {new Date(notice.created_at).toLocaleDateString(undefined, {
+                    year: 'numeric', month: 'short', day: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                  })}
+                </span>
+                {notice.expires_at && (
+                  <span suppressHydrationWarning style={{ fontSize: 'var(--text-xs)', color: 'var(--neon-orange)' }}>
+                    Expires: {new Date(notice.expires_at).toLocaleDateString()}
+                  </span>
+                )}
+              </div>
             </div>
             <p style={{ margin: '0 0 var(--space-md) 0', whiteSpace: 'pre-wrap' }}>{notice.content}</p>
             {(() => {

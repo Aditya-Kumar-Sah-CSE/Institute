@@ -5,15 +5,12 @@ import { revalidatePath } from 'next/cache';
 import { validateFiles, uploadFiles, serializeAttachmentUrls } from '@/lib/attachments';
 
 export async function getNotices(limit?: number) {
-  // Fire-and-forget cleanup of notices older than 3 months
+  // Fire-and-forget cleanup of expired notices
   try {
     const adminSupabase = await createAdminClient();
-    const threeMonthsAgo = new Date();
-    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-    
     // Don't await this so it doesn't block the request
-    adminSupabase.from('notices').delete().lt('created_at', threeMonthsAgo.toISOString())
-      .then(({ error }) => { if (error) console.error('Auto-delete error:', error); });
+    adminSupabase.from('notices').delete().lt('expires_at', new Date().toISOString())
+      .then(({ error }) => { if (error) console.error('Auto-delete expired notices error:', error); });
   } catch (error) {
     console.error('Failed to init cleanup routine', error);
   }
@@ -80,11 +77,22 @@ export async function createNotice(formData: FormData) {
     image_url = serializeAttachmentUrls(urls);
   }
   
+  const expiresAtStr = formData.get('expires_at') as string;
+  let expires_at;
+  if (expiresAtStr) {
+    expires_at = new Date(expiresAtStr).toISOString();
+  } else {
+    const date = new Date();
+    date.setMonth(date.getMonth() + 6);
+    expires_at = date.toISOString();
+  }
+
   const { error } = await supabase.from('notices').insert({
     title,
     content,
     author_id: user.id,
-    image_url
+    image_url,
+    expires_at
   });
   
   if (error) {

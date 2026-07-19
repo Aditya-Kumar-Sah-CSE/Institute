@@ -251,7 +251,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
 
         <div className="dashboard-bottom-row">
           <div className="dashboard-bottom-col">
-            {notices && notices.length > 0 && (
+            {notices && (
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
                   <h2 style={{ fontSize: 'var(--text-2xl)' }}>Recent Notices</h2>
