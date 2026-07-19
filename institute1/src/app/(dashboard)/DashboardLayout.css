@@ -29,7 +29,7 @@
   .dashboard-main {
     margin-left: 0;
     margin-right: 0;
-    padding-bottom: calc(80px + env(safe-area-inset-bottom, 16px));
+    padding-bottom: calc(120px + env(safe-area-inset-bottom, 16px));
   }
   
   .dashboard-content {
