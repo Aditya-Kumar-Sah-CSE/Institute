@@ -3,6 +3,55 @@
 import { createClient } from '@/lib/supabase/server';
 import type { Story, StoryItem, StoryPrivacyLevel, StoryMediaType } from '@/types/database';
 
+// ─── Constants ──────────────────────────────────────────────────────────────
+const STORY_BUCKET = 'story_media';
+const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20 MB
+const ALLOWED_MIME_TYPES = [
+  'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+  'video/mp4', 'video/webm', 'video/quicktime',
+];
+
+// ─── Server-Side Upload Action ───────────────────────────────────────────────
+/**
+ * Receives a raw File object from the client, validates it, then uploads it
+ * server-side using the authenticated server Supabase client.
+ * Never exposes the service-role key; uses session-bound authenticated client.
+ */
+export async function uploadStoryMedia(formData: FormData): Promise<{ url: string; mediaType: StoryMediaType }> {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData?.user) throw new Error('Not authenticated');
+
+  const file = formData.get('file') as File | null;
+  if (!file || file.size === 0) throw new Error('No file provided');
+
+  // Validate type
+  if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+    throw new Error(`File type "${file.type}" is not allowed. Allowed: ${ALLOWED_MIME_TYPES.join(', ')}`);
+  }
+
+  // Validate size
+  if (file.size > MAX_FILE_SIZE_BYTES) {
+    throw new Error(`File is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum is 20MB.`);
+  }
+
+  const userId = userData.user.id;
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
+  const uniqueName = `${crypto.randomUUID()}-${Date.now()}.${ext}`;
+  const filePath = `${userId}/${uniqueName}`; // Must be under user_id/ for RLS to pass
+
+  const { error: uploadError } = await supabase.storage
+    .from(STORY_BUCKET)
+    .upload(filePath, file, { upsert: false, contentType: file.type });
+
+  if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+
+  const { data: { publicUrl } } = supabase.storage.from(STORY_BUCKET).getPublicUrl(filePath);
+
+  const mediaType: StoryMediaType = file.type.startsWith('video/') ? 'video' : 'image';
+  return { url: publicUrl, mediaType };
+}
+
 /**
  * Ensures a user has an active 24h story container, creating one if it doesn't exist or is expired.
  */
@@ -162,7 +211,19 @@ export async function deleteStoryItem(itemId: string) {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData?.user) throw new Error('Not authenticated');
 
-  // Verify ownership via RLS or explicit check
+  // Explicitly verify that this item belongs to the current user via story ownership
+  // Prevents enumeration attacks where a user deletes others' story items by ID
+  const { data: item } = await supabase
+    .from('story_items')
+    .select('id, story:stories(user_id)')
+    .eq('id', itemId)
+    .single();
+
+  if (!item) throw new Error('Story item not found');
+
+  const ownerId = (item.story as any)?.user_id;
+  if (ownerId !== userData.user.id) throw new Error('Forbidden: you do not own this item');
+
   const { error } = await supabase
     .from('story_items')
     .update({ deleted_at: new Date().toISOString() })
