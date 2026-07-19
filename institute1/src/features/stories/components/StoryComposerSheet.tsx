@@ -2,10 +2,8 @@
 
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Image as ImageIcon, Video, Type, X, ChevronRight, UploadCloud, Loader2 } from 'lucide-react';
-import { uploadFiles } from '@/lib/attachments';
-import { createClient } from '@/lib/supabase/client';
-import { createStoryItem } from '@/features/stories/actions/stories';
+import { Image as ImageIcon, Type, X, Loader2 } from 'lucide-react';
+import { uploadStoryMedia, createStoryItem } from '@/features/stories/actions/stories';
 
 interface StoryComposerSheetProps {
   isOpen: boolean;
@@ -13,51 +11,56 @@ interface StoryComposerSheetProps {
   onStoryAdded: () => void;
 }
 
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm', 'video/quicktime'];
+const MAX_SIZE_MB = 20;
+
 export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: StoryComposerSheetProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
     
-    // Simplistic handling for Demo purposes, multiple files allowed and queued
+    setError(null);
+
+    // Client-side pre-validation (mirrors server validation for fast feedback)
+    for (const file of files) {
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        setError(`File type "${file.type}" is not supported.`);
+        return;
+      }
+      if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+        setError(`File "${file.name}" is too large. Maximum is ${MAX_SIZE_MB}MB.`);
+        return;
+      }
+    }
+
     try {
       setIsUploading(true);
-      const supabase = createClient();
       
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Unauthenticated user");
+      // Upload each file sequentially via the server action (no anon key exposed)
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append('file', file);
 
-      const { urls, errors } = await uploadFiles({
-        files,
-        supabase,
-        bucketName: 'story_media',
-        pathPrefix: user.id
-      });
+        // This runs on the server — authenticated, validated, RLS-compliant
+        const { url, mediaType } = await uploadStoryMedia(formData);
 
-      if (urls.length > 0) {
-        for (let i = 0; i < urls.length; i++) {
-           const file = files[i];
-           const isVideo = file.type.startsWith('video/');
-           await createStoryItem({
-             mediaUrl: urls[i],
-             thumbnailUrl: null, // Need ffmpeg processing for thumbs natively, dropping for prototype simplicity
-             mediaType: isVideo ? 'video' : 'image',
-             caption: '', // Additional step to open a caption editor could be injected here
-           });
-        }
-        onStoryAdded(); // trigger sync
-        onClose(); 
-      }
-      
-      if (errors.length) {
-         alert('Some files failed to upload to story_media bucket');
+        await createStoryItem({
+          mediaUrl: url,
+          thumbnailUrl: null,
+          mediaType,
+          caption: '',
+        });
       }
 
+      onStoryAdded();
+      onClose();
     } catch (err: any) {
-      console.error(err);
-      alert('Upload initialization failed.');
+      console.error('[StoryComposerSheet] Upload error:', err);
+      setError(err?.message || 'Upload failed. Please try again.');
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -74,7 +77,7 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={!isUploading ? onClose : undefined}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200]"
+            style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 200 }}
           />
           
           {/* Bottom Sheet */}
@@ -83,35 +86,48 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 max-w-xl mx-auto bg-slate-100 dark:bg-slate-900 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.3)] z-[201] overflow-hidden flex flex-col"
+            style={{ position: 'fixed', bottom: 0, left: 0, right: 0, maxWidth: '36rem', margin: '0 auto', borderRadius: '1.5rem 1.5rem 0 0', zIndex: 201, overflow: 'hidden' }}
+            className="bg-slate-100 dark:bg-slate-900 shadow-[0_-10px_40px_rgba(0,0,0,0.3)]"
           >
             {/* Handle Bar */}
-            <div className="w-full flex justify-center pt-3 pb-2 touch-none">
+            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '0.75rem', paddingBottom: '0.5rem' }}>
               <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full" />
             </div>
             
-            <div className="p-6 pt-2">
-              <div className="flex justify-between items-center mb-6">
+            <div style={{ padding: '0.5rem 1.5rem 1.5rem' }}>
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                 <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-neon-cyan to-neon-purple">
                   Create Status
                 </h2>
-                <button onClick={onClose} disabled={isUploading} className="p-2 bg-slate-200 dark:bg-slate-800 rounded-full text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
-                   <X size={20} />
+                <button
+                  onClick={onClose}
+                  disabled={isUploading}
+                  style={{ padding: '0.5rem', borderRadius: '9999px', cursor: 'pointer' }}
+                  className="bg-slate-200 dark:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+                >
+                  <X size={20} />
                 </button>
               </div>
 
+              {/* Error Banner */}
+              {error && (
+                <div style={{ marginBottom: '1rem', padding: '0.75rem 1rem', borderRadius: '0.75rem', backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: '0.875rem' }}>
+                  {error}
+                </div>
+              )}
+
               {isUploading ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2.5rem 0', gap: '1rem' }}>
-                   <Loader2 size={40} className="text-cyan-500 animate-spin" />
-                   <p className="text-slate-600 dark:text-slate-300 font-medium">Uploading media securely...</p>
+                  <Loader2 size={40} className="text-cyan-500 animate-spin" />
+                  <p className="text-slate-600 dark:text-slate-300 font-medium">Uploading media securely...</p>
                 </div>
               ) : (
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', padding: '1rem 0' }}>
-                  
-                  {/* Photo/Video Gallery Icon */}
+                  {/* Gallery */}
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-                    <button 
-                      onClick={() => fileInputRef.current?.click()} 
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
                       style={{ width: '4rem', height: '4rem', borderRadius: '9999px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid #a5f3fc', backgroundColor: 'rgba(207, 250, 254, 0.4)' }}
                       className="hover:scale-105 active:scale-95 transition-all shadow-sm"
                     >
@@ -120,19 +136,19 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
                     <span style={{ fontSize: '0.75rem', fontWeight: 600 }} className="text-slate-600 dark:text-slate-400">Gallery</span>
                   </div>
 
-                  <input 
-                    type="file" 
-                    accept="image/*,video/*" 
-                    multiple 
-                    style={{ display: 'none' }} 
-                    ref={fileInputRef} 
-                    onChange={handleFileSelect} 
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
+                    multiple
+                    style={{ display: 'none' }}
+                    ref={fileInputRef}
+                    onChange={handleFileSelect}
                   />
 
-                  {/* Text Status Icon */}
+                  {/* Text Status (placeholder) */}
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-                    <button 
-                      onClick={() => alert('Text composer view coming shortly')} 
+                    <button
+                      onClick={() => alert('Text status coming soon!')}
                       style={{ width: '4rem', height: '4rem', borderRadius: '9999px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid #e9d5ff', backgroundColor: 'rgba(243, 232, 255, 0.4)' }}
                       className="hover:scale-105 active:scale-95 transition-all shadow-sm"
                     >
@@ -140,11 +156,16 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
                     </button>
                     <span style={{ fontSize: '0.75rem', fontWeight: 600 }} className="text-slate-600 dark:text-slate-400">Text</span>
                   </div>
-
                 </div>
               )}
+
+              {/* Info line */}
+              {!isUploading && (
+                <p style={{ textAlign: 'center', fontSize: '0.75rem', color: '#94a3b8', marginTop: '1rem' }}>
+                  Images & videos up to {MAX_SIZE_MB}MB • Disappears after 24h
+                </p>
+              )}
             </div>
-            
           </motion.div>
         </React.Fragment>
       )}
