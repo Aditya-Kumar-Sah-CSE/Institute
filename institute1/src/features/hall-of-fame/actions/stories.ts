@@ -20,9 +20,11 @@ export async function fetchActiveStories(): Promise<HallOfFameStory[]> {
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching active stories:', error);
+    console.error('--- AUDIT DB Error fetching active stories:', error);
     return [];
   }
+
+  console.log('--- AUDIT DB fetchActiveStories Result Count:', data?.length);
 
   // Optional: manually join reference_id if needed, or wait until expanded component.
   return (data || []) as unknown as HallOfFameStory[];
@@ -38,7 +40,15 @@ export async function createStory(
   const { data: userData } = await supabase.auth.getUser();
   if (!userData?.user) throw new Error('Not authenticated');
 
-  const { error } = await supabase
+  console.log('--- AUDIT DB createStory payload:', {
+    user_id: userData.user.id,
+    reference_id: categoryId,
+    category: categoryType,
+    caption,
+    expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+  });
+
+  const { data, error } = await supabase
     .from('hall_of_fame')
     .insert({
       user_id: userData.user.id,
@@ -46,12 +56,16 @@ export async function createStory(
       category: categoryType,
       caption,
       image_url: imageUrl,
-      is_hidden: false
-    });
+      is_hidden: false,
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    })
+    .select();
+
+  console.log('--- AUDIT DB createStory Result:', { error, data });
 
   if (error) throw new Error(error.message);
 
-  revalidatePath('/dashboard');
+  revalidatePath('/', 'layout');
 }
 
 export async function toggleStoryReaction(storyId: string, currentlyReacted: boolean, reactionType: string = 'like') {

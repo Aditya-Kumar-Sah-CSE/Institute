@@ -21,17 +21,22 @@ export async function POST(request: Request) {
     const fileName = `${user.id}/${Date.now()}.webp`;
     
     // Secure server-side upload bypassing payload limits since it traverses FormData
-    const { error: uploadError } = await supabase.storage
+    console.log('--- AUDIT API: Uploading image to bucket stories_bucket:', fileName);
+    const { error: uploadError, data: uploadData } = await supabase.storage
       .from('stories_bucket')
       .upload(fileName, image, { contentType: 'image/webp' });
+
+    console.log('--- AUDIT API: Storage Upload Result:', { uploadError, uploadData });
 
     if (uploadError) throw new Error(`Upload Error: ${uploadError.message}`);
 
     const { data: publicUrlData } = supabase.storage.from('stories_bucket').getPublicUrl(fileName);
+    console.log('--- AUDIT API: Extracted Public URL:', publicUrlData.publicUrl);
     
     await createStory(referenceId, category, caption, publicUrlData.publicUrl);
     
-    return NextResponse.json({ success: true });
+    console.log('--- AUDIT API: createStory complete. Returning success.');
+    return NextResponse.json({ success: true, url: publicUrlData.publicUrl });
   } catch (error: any) {
     console.error("Story API Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

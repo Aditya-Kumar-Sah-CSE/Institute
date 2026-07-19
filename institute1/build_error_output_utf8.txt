@@ -1,0 +1,39 @@
+﻿
+> skillarena@0.1.0 build
+> next build
+
+Γû▓ Next.js 16.2.9 (Turbopack)
+- Environments: .env.local
+- Experiments (use with caution):
+  ┬╖ serverActions
+
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 17.5s
+  Running TypeScript ...
+node.exe : Failed to type check.
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Faile 
+   d to type check.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+./audit-stories.ts:2:20
+Type error: Cannot find module 'dotenv' or its 
+corresponding type declarations.
+
+  [90m1 |[0m [36mimport[0m { createClient } 
+[36mfrom[0m [32m'@supabase/supabase-js'[0m;
+[31m[1m>[0m [90m2 |[0m [36mimport[0m dotenv 
+[36mfrom[0m [32m'dotenv'[0m;
+  [90m  |[0m                    [31m[1m^[0m
+  [90m3 |[0m dotenv.config({ path: 
+[32m'.env.local'[0m });
+  [90m4 |[0m
+  [90m5 |[0m [36mconst[0m supabase = 
+createClient(
+Next.js build worker exited with code: 1 and 
+signal: null

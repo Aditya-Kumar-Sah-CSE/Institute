@@ -1,0 +1,23 @@
+[
+  {
+    "id": "dabb332a-2116-476a-b7e1-981e04ec9b4e",
+    "caption": "Earned the Beginner Scholar badge!",
+    "user_id": "cb4b6c98-e2eb-435f-87ad-ab967eb0217a",
+    "is_hidden": false,
+    "expires_at": "2026-07-20T00:58:09.724062+00:00"
+  },
+  {
+    "id": "18187de4-b6fb-4f93-b60b-ed2baeefbc1d",
+    "caption": "Earned the Dedicated Learner badge!",
+    "user_id": "cb4b6c98-e2eb-435f-87ad-ab967eb0217a",
+    "is_hidden": false,
+    "expires_at": "2026-07-20T03:58:44.905+00:00"
+  },
+  {
+    "id": "0372ae90-f581-4ddc-aad4-37c2f2117c21",
+    "caption": "Earned the First Day badge!",
+    "user_id": "cb4b6c98-e2eb-435f-87ad-ab967eb0217a",
+    "is_hidden": false,
+    "expires_at": "2026-07-20T05:47:26.828+00:00"
+  }
+]
