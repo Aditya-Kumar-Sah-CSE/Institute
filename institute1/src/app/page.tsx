@@ -19,8 +19,34 @@ import LandingNavbar from '@/components/landing/LandingNavbar';
 import './Landing.css';
 import './Pricing.css';
 import { createClient } from '@/lib/supabase/server';
+import { getTenantConfig, generateTenantBaseUrl } from '@/lib/tenant/tenantResolver';
+import { redirect } from 'next/navigation';
 
-export default async function LandingPage() {
+export default async function LandingPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ __tenant_slug?: string; __routing_mode?: string }>;
+}) {
+  const { tenant: headerTenant, routingMode: headerMode } = await getTenantConfig();
+
+  // Fallback: middleware injects tenant as a hidden query param during path rewrites
+  let tenant = headerTenant;
+  let routingMode = headerMode;
+  if (!tenant && searchParams) {
+    const sp = await searchParams;
+    if (sp?.__tenant_slug) {
+      const { resolveTenantCache } = await import('@/lib/tenant/tenantCache');
+      tenant = await resolveTenantCache(sp.__tenant_slug, sp.__routing_mode || 'development');
+      routingMode = sp.__routing_mode || 'development';
+    }
+  }
+
+  // If a tenant is viewing their root domain/route, send them to login.
+  if (tenant) {
+    const baseUrl = generateTenantBaseUrl(tenant.slug, routingMode);
+    redirect(`${baseUrl}/login`);
+  }
+
   const supabase = await createClient();
   const companyName = 'Smart Learning';
 
