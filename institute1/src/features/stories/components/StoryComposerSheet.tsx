@@ -46,14 +46,18 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
         formData.append('file', file);
 
         // This runs on the server — authenticated, validated, RLS-compliant
-        const { url, mediaType } = await uploadStoryMedia(formData);
+        const uploadRes = await uploadStoryMedia(formData);
+        if (!uploadRes.success) throw new Error(uploadRes.error);
 
-        await createStoryItem({
+        const { url, mediaType } = uploadRes.data;
+
+        const createRes = await createStoryItem({
           mediaUrl: url,
           thumbnailUrl: null,
           mediaType,
           caption: '',
         });
+        if (!createRes.success) throw new Error(createRes.error);
       }
 
       onStoryAdded();

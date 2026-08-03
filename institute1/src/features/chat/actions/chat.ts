@@ -134,7 +134,7 @@ export async function createGroupChat(groupName: string, memberIds: string[]) {
   // Deduplicate members and always include the creator as owner
   const uniqueMemberIds = Array.from(new Set(memberIds.filter(id => id !== currentUserId)));
   const members = [
-    { conversation_id: conv.id, user_id: currentUserId, role: 'owner' },
+    { conversation_id: conv.id, user_id: currentUserId, role: 'founder' },
     ...uniqueMemberIds.map(uid => ({ conversation_id: conv.id, user_id: uid, role: 'member' })),
   ];
 
@@ -147,4 +147,59 @@ export async function createGroupChat(groupName: string, memberIds: string[]) {
 
   revalidatePath('/dashboard/chat');
   return conv.id;
+}
+
+export async function updateGroupRole(conversationId: string, targetUserId: string, newRole: 'founder' | 'co-founder' | 'admin' | 'member') {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData?.user) throw new Error('Not authenticated');
+
+  // Verify permission
+  const { data: myMember } = await supabase.from('chat_members')
+    .select('role')
+    .eq('conversation_id', conversationId)
+    .eq('user_id', userData.user.id)
+    .single();
+
+  if (!myMember || !['founder', 'co-founder'].includes(myMember.role)) {
+    throw new Error('Not enough permissions');
+  }
+
+  if (myMember.role === 'co-founder' && newRole === 'founder') {
+     throw new Error('Co-founders cannot promote someone to Founder');
+  }
+
+  const { error } = await supabase.from('chat_members')
+    .update({ role: newRole })
+    .eq('conversation_id', conversationId)
+    .eq('user_id', targetUserId);
+    
+  if (error) throw error;
+  return true;
+}
+
+export async function removeGroupMember(conversationId: string, targetUserId: string) {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData?.user) throw new Error('Not authenticated');
+
+  if (userData.user.id !== targetUserId) {
+    const { data: myMember } = await supabase.from('chat_members')
+      .select('role')
+      .eq('conversation_id', conversationId)
+      .eq('user_id', userData.user.id)
+      .single();
+
+    if (!myMember || !['founder', 'co-founder', 'admin'].includes(myMember.role)) {
+      throw new Error('Not enough permissions to kick members');
+    }
+  }
+
+  const { error } = await supabase.from('chat_members')
+    .delete()
+    .eq('conversation_id', conversationId)
+    .eq('user_id', targetUserId);
+    
+  if (error) throw error;
+  return true;
 }

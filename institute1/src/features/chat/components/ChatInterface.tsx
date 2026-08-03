@@ -12,6 +12,7 @@ import EmptyChatState from './EmptyChatState';
 import MessageBubble from './MessageBubble';
 import ChatComposer from './ChatComposer';
 import ChatSidebar from './ChatSidebar';
+import ChatInfoPanel from './ChatInfoPanel';
 import { useRouter } from 'next/navigation';
 import './ChatInterface.css';
 
@@ -27,6 +28,7 @@ export default function ChatInterface() {
   const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
   const [suggestedUsers, setSuggestedUsers] = useState<any[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+  const [showInfoPanel, setShowInfoPanel] = useState<boolean>(false);
   const activeChannelRef = useRef<any>(null);
   const supabase = createClient();
 
@@ -322,7 +324,10 @@ export default function ChatInterface() {
         {activeChat ? (
           <>
             {/* Chat header */}
-            <div style={{ height: '64px', borderBottom: '1px solid var(--border-divider)', display: 'flex', alignItems: 'center', padding: '0 var(--space-lg)', justifyContent: 'space-between', background: 'var(--bg-secondary)', zIndex: 10 }}>
+            <div 
+              onClick={() => activeChat.type === 'group' && setShowInfoPanel(true)}
+              style={{ height: '64px', borderBottom: '1px solid var(--border-divider)', display: 'flex', alignItems: 'center', padding: '0 var(--space-lg)', justifyContent: 'space-between', background: 'var(--bg-secondary)', zIndex: 10, cursor: activeChat.type === 'group' ? 'pointer' : 'default' }}
+            >
                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
                  <button className="mobile-back-btn" onClick={() => setActiveChat(null)}>
                    <ArrowLeft size={20} />
@@ -375,9 +380,66 @@ export default function ChatInterface() {
                      alignToBottom={true}
                      initialTopMostItemIndex={messages.length > 0 ? messages.length - 1 : 0}
                      style={{ height: '100%' }}
-                     itemContent={(index, msg) => (
-                       <MessageBubble key={msg.id} msg={msg} isMine={msg.sender_id === currentUserId} />
-                     )}
+                     itemContent={(index, msg) => {
+                       const prevMsg = index > 0 ? messages[index - 1] : null;
+                       const nextMsg = index < messages.length - 1 ? messages[index + 1] : null;
+                       
+                       const msgDate = new Date(msg.created_at);
+                       let showDateHeader = false;
+                       if (!prevMsg) {
+                          showDateHeader = true;
+                       } else {
+                          const prevDate = new Date(prevMsg.created_at);
+                          if (msgDate.toDateString() !== prevDate.toDateString()) {
+                             showDateHeader = true;
+                          }
+                       }
+                       
+                       const isMine = msg.sender_id === currentUserId;
+                       const isPrevSameUser = prevMsg?.sender_id === msg.sender_id;
+                       const isNextSameUser = nextMsg?.sender_id === msg.sender_id;
+                       
+                       const prevTimeDiff = prevMsg ? Math.abs(msgDate.getTime() - new Date(prevMsg.created_at).getTime()) : 0;
+                       const nextTimeDiff = nextMsg ? Math.abs(new Date(nextMsg.created_at).getTime() - msgDate.getTime()) : 0;
+                       
+                       const isGroupStart = !isPrevSameUser || prevTimeDiff > 5 * 60000 || showDateHeader;
+                       const isGroupEnd = !isNextSameUser || nextTimeDiff > 5 * 60000 || (index < messages.length - 1 && new Date(messages[index + 1].created_at).toDateString() !== msgDate.toDateString());
+                       
+                       const showAvatar = isGroupEnd && !isMine;
+                       const showSenderName = isGroupStart && !isMine && activeChat?.type === 'group';
+                       
+                       let dateHeaderStr = '';
+                       if (showDateHeader) {
+                         const today = new Date();
+                         const yesterday = new Date();
+                         yesterday.setDate(yesterday.getDate() - 1);
+                         
+                         if (msgDate.toDateString() === today.toDateString()) dateHeaderStr = 'Today';
+                         else if (msgDate.toDateString() === yesterday.toDateString()) dateHeaderStr = 'Yesterday';
+                         else dateHeaderStr = new Intl.DateTimeFormat('en-US', { day: 'numeric', month: 'short', year: 'numeric' }).format(msgDate);
+                       }
+                       
+                       return (
+                         <React.Fragment key={msg.id}>
+                           {showDateHeader && (
+                             <div style={{ display: 'flex', justifyContent: 'center', margin: '24px 0 16px' }}>
+                               <span style={{ background: 'var(--bg-elevated)', padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', boxShadow: '0 1px 2px rgba(0,0,0,0.1)', border: '1px solid var(--border-default)' }}>
+                                 {dateHeaderStr}
+                               </span>
+                             </div>
+                           )}
+                           <MessageBubble 
+                             msg={msg} 
+                             isMine={isMine} 
+                             isGroupStart={isGroupStart}
+                             isGroupEnd={isGroupEnd}
+                             showAvatar={showAvatar}
+                             showSenderName={showSenderName}
+                             readStatus="seen"
+                           />
+                         </React.Fragment>
+                       );
+                     }}
                    />
                  </div>
                )}
@@ -390,6 +452,14 @@ export default function ChatInterface() {
               handleSend={handleSend} 
               isSomeoneTyping={typingUsers.length > 0} 
             />
+            {activeChat.type === 'group' && currentUserId && (
+              <ChatInfoPanel 
+                chatId={activeChat.id}
+                isOpen={showInfoPanel}
+                onClose={() => setShowInfoPanel(false)}
+                currentUserId={currentUserId}
+              />
+            )}
           </>
         ) : (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>

@@ -228,7 +228,7 @@ export interface ChatConversation {
 export interface ChatMember {
   conversation_id: string;
   user_id: string;
-  role: 'owner' | 'admin' | 'moderator' | 'member' | 'pending';
+  role: 'founder' | 'co-founder' | 'admin' | 'member' | 'pending';
   mute_until: string | null;
   last_read_message_id: string | null;
   joined_at: string;

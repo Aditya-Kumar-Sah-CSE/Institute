@@ -133,7 +133,8 @@ export default function StoryViewerCanvas({
     if (!currentItem || !confirm('Delete this story?')) return;
     try {
       setIsPaused(true);
-      await deleteStoryItem(currentItem.id);
+      const res = await deleteStoryItem(currentItem.id);
+      if (!res?.success) throw new Error(res?.error || 'Deletion failed');
       onRefreshFeed();
       onClose(); // Exit cleanly
     } catch (e) {
@@ -145,8 +146,10 @@ export default function StoryViewerCanvas({
   const handleLike = async () => {
     if (!currentItem) return;
     try {
-      await toggleReaction(currentItem.id, '❤️');
-      onRefreshFeed();
+      const res = await toggleReaction(currentItem.id, '❤️');
+      if (res?.success) {
+        onRefreshFeed();
+      }
     } catch (e) {
        console.error(e);
     }

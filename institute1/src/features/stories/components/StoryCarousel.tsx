@@ -30,8 +30,12 @@ export default function StoryCarousel({ currentUserId, currentUserAvatar }: { cu
 
   const loadFeed = async () => {
     try {
-      const data = await fetchStoryFeed();
-      setFeed(data);
+      const result = await fetchStoryFeed();
+      if (result.success) {
+        setFeed(result.data);
+      } else {
+        console.error("Failed to fetch stories:", result.error);
+      }
     } catch(e) {
       console.error(e);
     } finally {
