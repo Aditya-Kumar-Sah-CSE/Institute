@@ -1,11 +1,21 @@
 'use client';
 import React, { useState } from 'react';
+import dynamic from 'next/dynamic';
 
-export default function ExploreMoreWrapper({ children }: { children: React.ReactNode }) {
+const DynamicBelowTheFoldContent = dynamic(
+  () => import('./BelowTheFoldContent'),
+  { ssr: false }
+);
+
+export default function ExploreMoreWrapper({ companyName }: { companyName: string }) {
   const [expanded, setExpanded] = useState(false);
 
   if (expanded) {
-    return <div className="animate-fade-up">{children}</div>;
+    return (
+      <div className="animate-fade-up">
+        <DynamicBelowTheFoldContent companyName={companyName} />
+      </div>
+    );
   }
 
   return (

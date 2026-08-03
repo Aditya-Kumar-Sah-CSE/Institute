@@ -1,6 +1,14 @@
 import type { Metadata, Viewport } from 'next';
 import { Outfit, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
+import { ThemeProvider } from '@/components/ThemeProvider';
+import dynamic from 'next/dynamic';
+import { 
+  DynamicPwaRegister as PwaRegister, 
+  DynamicPWAInstallPrompt as PWAInstallPrompt, 
+  DynamicFeedbackWidget as FeedbackWidget, 
+  DynamicXpCelebrator as XpCelebrator 
+} from '@/components/DynamicWrappers';
 
 const outfit = Outfit({
   subsets: ['latin'],
@@ -14,14 +22,7 @@ const jetbrainsMono = JetBrains_Mono({
   variable: '--font-mono',
 });
 
-import { Analytics } from "@vercel/analytics/react";
-import { ThemeProvider } from '@/components/ThemeProvider';
-import { 
-  DynamicPwaRegister as PwaRegister, 
-  DynamicPWAInstallPrompt as PWAInstallPrompt, 
-  DynamicFeedbackWidget as FeedbackWidget, 
-  DynamicXpCelebrator as XpCelebrator 
-} from '@/components/DynamicWrappers';
+import { Analytics } from '@vercel/analytics/react';
 
 export const viewport: Viewport = {
   themeColor: '#000000',

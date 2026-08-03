@@ -1,0 +1,65 @@
+﻿
+> skillarena@0.1.0 build
+> next build
+
+Γû▓ Next.js 16.2.9 (Turbopack)
+- Environments: .env.local
+- Experiments (use with caution):
+  ┬╖ serverActions
+
+  Creating an optimized production build ...
+node.exe : 
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo      
+        : NotSpecifi    
+ed: (:String) [],     
+RemoteException
+    + FullyQualifiedEr  
+  rorId : NativeComm    
+andError
+ 
+> Build error occurred
+Error: Turbopack build 
+failed with 1 errors:
+./src/app/layout.tsx:25:
+19
+`ssr: false` is not 
+allowed with 
+`next/dynamic` in 
+Server Components. 
+Please move it into a 
+Client Component.
+  [90m23 |[0m ...
+  [90m24 |[0m ...
+[31m[1m>[0m [90m25 
+|[0m ...namic(() => [3
+6mimport[0m([32m'@verc
+el/analytics/react'[0m)
+.then(mod => mod.[33mAn
+alytics[0m), { ssr: 
+[36mfalse[0m });
+  [90m   |[0m    [31m
+[1m^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^[
+0m
+  [90m26 |[0m ...
+  [90m27 |[0m ...t: 
+[33mViewport[0m = {
+  [90m28 |[0m 
+...[32m00'[0m,
+
+Ecmascript file had an 
+error
+
+
+    at <unknown> (./src/
+app/layout.tsx:25:19)
