@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from 'next';
 import { Outfit, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { TenantProvider } from '@/lib/tenant/tenantContext';
+import { getTenantConfig, generateTenantBaseUrl } from '@/lib/tenant/tenantResolver';
 import dynamic from 'next/dynamic';
 import { 
   DynamicPwaRegister as PwaRegister, 
@@ -49,20 +51,25 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { tenant, routingMode } = await getTenantConfig();
+  const baseUrl = generateTenantBaseUrl(tenant?.slug || null, routingMode);
+
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning className={`${outfit.variable} ${jetbrainsMono.variable}`}>
       <body suppressHydrationWarning className={`${outfit.variable} ${jetbrainsMono.variable}`}>
         <PwaRegister />
         <PWAInstallPrompt />
         <ThemeProvider attribute="data-theme" defaultTheme="dark" enableSystem={false} disableTransitionOnChange={false}>
-          {children}
-          <XpCelebrator />
-          <FeedbackWidget />
+          <TenantProvider tenant={tenant} routingMode={routingMode} baseUrl={baseUrl}>
+            {children}
+            <XpCelebrator />
+            <FeedbackWidget />
+          </TenantProvider>
         </ThemeProvider>
         <Analytics />
       </body>

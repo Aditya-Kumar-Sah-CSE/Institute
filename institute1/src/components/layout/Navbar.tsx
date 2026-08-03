@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
+import { TenantLink as Link } from '@/lib/tenant/tenantContext';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import NotificationBell from './NotificationBell';

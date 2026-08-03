@@ -13,10 +13,11 @@ import {
   Shield,
   Building,
   LogOut,
-  CreditCard
+  CreditCard,
+  LucideProps
 } from 'lucide-react';
 
-export function getIcon(name: string, props?: any) {
+export function getIcon(name: string, props?: LucideProps) {
   switch (name) {
     case 'Dashboard': return <LayoutDashboard {...props} />;
     case 'Courses': return <BookOpen {...props} />;

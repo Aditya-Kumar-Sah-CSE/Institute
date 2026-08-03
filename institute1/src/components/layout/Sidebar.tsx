@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { TenantLink as Link } from '@/lib/tenant/tenantContext';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -203,22 +203,22 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
 
       <div className="sidebar-footer">
         {currentView !== 'student' && (
-          <a href="/dashboard" className="sidebar-nav-item sidebar-switch" onClick={handleNavClick}>
+          <Link href="/dashboard" className="sidebar-nav-item sidebar-switch" onClick={handleNavClick}>
             <span className="sidebar-nav-icon">{getIcon('Instructors', { className: 'w-5 h-5' })}</span>
             <span className="sidebar-nav-label">Student View</span>
-          </a>
+          </Link>
         )}
         {currentView !== 'admin' && profile.role === 'admin' && (
-          <a href="/admin" className="sidebar-nav-item sidebar-switch" onClick={handleNavClick}>
+          <Link href="/admin" className="sidebar-nav-item sidebar-switch" onClick={handleNavClick}>
             <span className="sidebar-nav-icon">{getIcon('Admin', { className: 'w-5 h-5' })}</span>
             <span className="sidebar-nav-label">{isSuperAdmin ? 'Developer Panel' : 'Administration Panel'}</span>
-          </a>
+          </Link>
         )}
         {currentView !== 'instructor' && ((profile.role === 'instructor' && profile.status === 'active') || profile.role === 'admin') && (
-          <a href="/instructor" className="sidebar-nav-item sidebar-switch" onClick={handleNavClick}>
+          <Link href="/instructor" className="sidebar-nav-item sidebar-switch" onClick={handleNavClick}>
             <span className="sidebar-nav-icon">{getIcon('Instructors', { className: 'w-5 h-5' })}</span>
             <span className="sidebar-nav-label">Instructor Panel</span>
-          </a>
+          </Link>
         )}
         {isInstallable && (
           <button type="button" onClick={handleInstallClick} className="sidebar-nav-item" style={{ color: 'var(--neon-lime)', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px' }}>

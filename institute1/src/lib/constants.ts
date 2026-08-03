@@ -56,6 +56,7 @@ export const NAV_ITEMS = [
 export const ADMIN_NAV_ITEMS = [
   { label: 'Overview', href: '/admin', icon: 'Dashboard' },
   { label: 'Institutions', href: '/admin/institutions', icon: 'Building' },
+  { label: 'Domain Settings', href: '/admin/domain-settings', icon: 'Building' },
   { label: 'Courses', href: '/admin/courses', icon: 'Courses' },
   { label: 'Enrollments', href: '/admin/enrollments', icon: 'Enrollments' },
   { label: 'Administration', href: '/admin/students', icon: 'Students' },

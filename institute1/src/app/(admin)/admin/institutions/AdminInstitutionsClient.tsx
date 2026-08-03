@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { approveInstitution, rejectInstitution } from '@/features/admin/actions/institutionActions';
@@ -8,6 +9,9 @@ import { approveInstitution, rejectInstitution } from '@/features/admin/actions/
 export default function AdminInstitutionsClient({ requests, institutions }: { requests: any[], institutions: any[] }) {
   const [activeTab, setActiveTab] = useState<'requests' | 'active'>('requests');
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+  
+  const pendingRequests = requests.filter(r => r.status === 'pending');
 
   const handleApprove = (id: string, name: string) => {
     if (!window.confirm(`Are you sure you want to approve "${name}" and deploy their infrastructure?`)) return;
@@ -18,6 +22,7 @@ export default function AdminInstitutionsClient({ requests, institutions }: { re
         alert(res.error);
       } else {
         alert(res.message || 'Approved successfully!');
+        router.refresh();
       }
     });
   };
@@ -31,6 +36,7 @@ export default function AdminInstitutionsClient({ requests, institutions }: { re
               alert(res.error);
           } else {
               alert('Rejected successfully.');
+              router.refresh();
           }
       });
   };
@@ -49,7 +55,7 @@ export default function AdminInstitutionsClient({ requests, institutions }: { re
           onClick={() => setActiveTab('requests')}
           style={{ padding: '0.75rem 1rem', background: 'transparent', border: 'none', color: activeTab === 'requests' ? 'var(--neon-cyan)' : 'var(--text-secondary)', borderBottom: activeTab === 'requests' ? '2px solid var(--neon-cyan)' : '2px solid transparent', fontWeight: 600, cursor: 'pointer' }}
         >
-          Registration Requests ({requests.filter(r => r.status === 'pending').length})
+          Registration Requests ({pendingRequests.length})
         </button>
         <button 
           onClick={() => setActiveTab('active')}
@@ -61,10 +67,10 @@ export default function AdminInstitutionsClient({ requests, institutions }: { re
 
       {activeTab === 'requests' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {requests.length === 0 ? (
+          {pendingRequests.length === 0 ? (
             <Card padding="md"><p>No requests found.</p></Card>
           ) : (
-            requests.map(req => (
+            pendingRequests.map(req => (
               <Card key={req.id} padding="md" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderLeft: req.status === 'pending' ? '4px solid var(--neon-orange)' : req.status === 'approved' ? '4px solid var(--neon-lime)' : '4px solid var(--neon-pink)' }}>
                 <div>
                   <h3 style={{ margin: '0 0 0.5rem 0' }}>{req.institute_name}</h3>

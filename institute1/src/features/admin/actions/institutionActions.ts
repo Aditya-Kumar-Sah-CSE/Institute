@@ -8,6 +8,18 @@ function generateSlug(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 }
 
+async function generateUniqueSlug(supabaseAdmin: any, baseSlug: string) {
+  let uniqueSlug = baseSlug;
+  let counter = 1;
+  while (true) {
+    const { data } = await supabaseAdmin.from('institutions').select('id').eq('slug', uniqueSlug).maybeSingle();
+    if (!data) break;
+    counter++;
+    uniqueSlug = `${baseSlug}-${counter}`;
+  }
+  return uniqueSlug;
+}
+
 export async function approveInstitution(requestId: string) {
   try {
     const supabase = await createClient();
@@ -41,7 +53,11 @@ export async function approveInstitution(requestId: string) {
     }
 
     // 1. Create Institution
-    const slug = generateSlug(req.institute_name);
+    const baseSlug = generateSlug(req.institute_name);
+    const slug = await generateUniqueSlug(supabaseAdmin, baseSlug);
+    const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'smartlearn.in';
+    const primary_domain = `${slug}.${ROOT_DOMAIN}`;
+
     // Determine plan using a mapping or default
     // We'll skip plan mapping right now and do it manually if needed, or query plan by name later.
 
@@ -50,7 +66,7 @@ export async function approveInstitution(requestId: string) {
       .insert({
         name: req.institute_name,
         slug: slug,
-        domain: `${slug}.smartlearn.ai`,
+        primary_domain: primary_domain,
         status: 'active'
       })
       .select()
@@ -74,8 +90,9 @@ export async function approveInstitution(requestId: string) {
       }
     });
 
-    if (userErr && !userErr.message.includes('already registered')) {
-        // Handle case where admin exists vs not
+    if (userErr) {
+        // Rollback Institution Creation
+        await supabaseAdmin.from('institutions').delete().eq('id', newInst.id);
         return { error: `Failed to create admin user: ${userErr.message}` };
     }
 
@@ -90,10 +107,19 @@ export async function approveInstitution(requestId: string) {
     }
 
     // 3. Update request status
-    await supabaseAdmin
+    const { error: statusUpdateError } = await supabaseAdmin
       .from('institution_requests')
       .update({ status: 'approved' })
       .eq('id', requestId);
+
+    if (statusUpdateError) {
+      // Rollback Auth User and Institution
+      if (newUser?.user?.id) {
+        await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
+      }
+      await supabaseAdmin.from('institutions').delete().eq('id', newInst.id);
+      return { error: `Failed to finalize request status: ${statusUpdateError.message}. Entire operation rolled back.` };
+    }
 
     revalidatePath('/admin/institutions');
     
