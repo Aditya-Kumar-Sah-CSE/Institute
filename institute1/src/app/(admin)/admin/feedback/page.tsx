@@ -1,169 +1,114 @@
-import { getFeedbacks } from '@/features/feedback/actions/feedback';
-import Button from '@/components/ui/Button';
-import Card from '@/components/ui/Card';
-import Link from 'next/link';
-import type { Feedback } from '@/types';
-import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
-import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
+import React from 'react';
+import { fetchAllSupportTickets, resolveSupportTicket } from '@/features/support/actions';
+import { CheckCircle, Search, Mail, Clock, ShieldAlert, MessageSquare } from 'lucide-react';
+import styles from '../payment-model/payment.module.css';
 
-export default async function AdminFeedbackPage(props: {
-  searchParams: Promise<{ page?: string }>
-}) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    redirect('/dashboard');
-  }
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-  if (profile?.role !== 'admin') {
-    redirect('/dashboard');
-  }
+export const metadata = {
+  title: 'Support Feedback | Super Admin',
+  description: 'Manage institutional feedback and support requests.',
+};
 
-  const searchParams = await props.searchParams;
-  const page = parseInt(searchParams.page || '1', 10);
-
-  const { data: feedbacks, count, limit, error } = await getFeedbacks(page);
-  const totalPages = Math.ceil((count || 0) / (limit || 20));
-
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'Bug': return 'var(--neon-pink)';
-      case 'Issue': return 'var(--neon-cyan)';
-      case 'Doubt': return 'var(--neon-purple)';
-      default: return 'var(--text-secondary)';
-    }
-  };
+export default async function AdminFeedbackPage() {
+  const tickets = await fetchAllSupportTickets();
 
   return (
-    <div className="admin-feedback-page">
-      <div className="page-header" style={{ marginBottom: 'var(--space-xl)' }}>
-        <h1 className="text-gradient">User Feedback</h1>
-        <p className="text-secondary">View and resolve bugs, issues, and doubts submitted by users.</p>
+    <div className={styles.container}>
+      <div className={styles.header}>
+        <div>
+          <h1 className={styles.title}>Feedback & Support Hub</h1>
+          <p className={styles.subtitle}>Review direct messages passed through the global contact portal.</p>
+        </div>
+        <div className={styles.headerActions}>
+          <div className={styles.searchWrapper}>
+            <Search size={18} className={styles.searchIcon} />
+            <input type="text" placeholder="Search unread tickets..." className={styles.searchInput} disabled />
+          </div>
+        </div>
       </div>
 
-      {error && <div className="error-message">{error}</div>}
-
-      {!feedbacks || feedbacks.length === 0 ? (
-        <Card variant="glass" className="empty-state">
-          <p>No feedback submissions found.</p>
-        </Card>
+      {tickets.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '6rem 2rem', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px dashed var(--border)' }}>
+          <MessageSquare size={48} color="var(--text-muted)" style={{ margin: '0 auto 1.5rem auto' }} />
+          <h3 style={{ color: 'var(--text-primary)', fontSize: '1.25rem', marginBottom: '8px' }}>Inbox Empty</h3>
+          <p style={{ color: 'var(--text-secondary)' }}>You have successfully reviewed all outstanding feedback!</p>
+        </div>
       ) : (
-        <div className="feedback-grid" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-          {(feedbacks as unknown as Feedback[]).map((fb) => (
-            <Card key={fb.id} variant="glass" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)', opacity: fb.status === 'resolved' ? 0.6 : 1 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <h3 style={{ margin: '0 0 var(--space-xs) 0', display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
-                    {fb.name} <span style={{ fontSize: '0.8rem', padding: '2px 8px', borderRadius: '12px', background: 'rgba(255,255,255,0.1)' }}>{fb.role}</span>
-                  </h3>
-                  <span style={{ 
-                    fontSize: '0.85rem', 
-                    fontWeight: 600, 
-                    color: getCategoryColor(fb.category),
-                    textTransform: 'uppercase',
-                    letterSpacing: '1px'
-                  }}>
-                    {fb.category}
-                  </span>
-                </div>
-                <div suppressHydrationWarning style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  {new Date(fb.created_at).toLocaleString()}
-                </div>
-              </div>
-              
-              <div style={{ background: 'rgba(0,0,0,0.2)', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', margin: 'var(--space-sm) 0' }}>
-                {fb.message}
-                {fb.image_url && (
-                  <div style={{ marginTop: 'var(--space-md)' }}>
-                    <img 
-                      src={fb.image_url} 
-                      alt="Feedback Screenshot" 
-                      style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: '8px', border: '1px solid var(--glass-border)' }} 
-                    />
-                  </div>
-                )}
-              </div>
-
-              {fb.admin_reply && (
-                <div style={{ background: 'rgba(var(--neon-cyan-rgb), 0.1)', borderLeft: '3px solid var(--neon-cyan)', padding: 'var(--space-md)', borderRadius: 'var(--radius-sm)', margin: 'var(--space-sm) 0' }}>
-                  <p suppressHydrationWarning style={{ margin: '0 0 var(--space-xs) 0', fontSize: '0.8rem', color: 'var(--neon-cyan)', fontWeight: 600 }}>Reply sent on {fb.replied_at ? new Date(fb.replied_at).toLocaleDateString() : ''}:</p>
-                  <p style={{ margin: 0 }}>{fb.admin_reply}</p>
-                </div>
-              )}
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-                {fb.status === 'open' ? (
-                  <form action={async (formData) => {
-                    'use server';
-                    const reply = formData.get('reply') as string;
-                    if (reply) {
-                      const { replyToFeedback } = await import('@/features/feedback/actions/feedback');
-                      await replyToFeedback(fb.id, reply);
-                    } else {
-                      const { resolveFeedback } = await import('@/features/feedback/actions/feedback');
-                      await resolveFeedback(fb.id);
-                    }
-                  }} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-                    <textarea 
-                      name="reply" 
-                      placeholder="Write a reply to the user..." 
-                      rows={2}
-                      style={{ 
-                        width: '100%', 
-                        padding: 'var(--space-sm)', 
-                        background: 'rgba(0,0,0,0.3)', 
-                        border: '1px solid var(--border-color)', 
-                        color: 'white',
-                        borderRadius: 'var(--radius-sm)'
-                      }}
-                    />
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-sm)' }}>
-                      <Button variant="primary" type="submit" confirmMessage="Are you sure you want to resolve this doubt/feedback?">Reply & Resolve</Button>
-                      <Button variant="danger" formAction={async () => {
-                        'use server';
-                        const { deleteFeedback } = await import('@/features/feedback/actions/feedback');
-                        await deleteFeedback(fb.id);
-                      }} confirmMessage="Are you sure you want to delete this doubt/feedback?">Delete</Button>
-                    </div>
-                  </form>
-                ) : (
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-sm)' }}>
-                    <span style={{ color: 'var(--text-secondary)', padding: 'var(--space-xs) var(--space-md)' }}>✅ Resolved</span>
-                    <form action={async () => {
-                      'use server';
-                      const { deleteFeedback } = await import('@/features/feedback/actions/feedback');
-                      await deleteFeedback(fb.id);
-                    }}>
-                      <Button variant="danger" type="submit" confirmMessage="Are you sure you want to delete this doubt/feedback?">Delete</Button>
-                    </form>
-                  </div>
-                )}
-              </div>
-            </Card>
-          ))}
-
-          {totalPages > 1 && (
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 'var(--space-sm)', marginTop: 'var(--space-lg)' }}>
-              {page > 1 && (
-                <Link href={`/admin/feedback?page=${page - 1}`}>
-                  <Button variant="secondary" size="sm">Previous Page</Button>
-                </Link>
-              )}
-              <span style={{ padding: 'var(--space-xs) var(--space-sm)', color: 'var(--text-secondary)' }}>
-                Page {page} of {totalPages}
-              </span>
-              {page < totalPages && (
-                <Link href={`/admin/feedback?page=${page + 1}`}>
-                  <Button variant="secondary" size="sm">Next Page</Button>
-                </Link>
-              )}
-            </div>
-          )}
+        <div className={styles.tableCard}>
+          <div className={styles.tableHeader}>
+            <h3 className={styles.tableTitle}><ShieldAlert size={18} /> Support Queue ({tickets.filter((t: any) => t.status === 'Pending').length} Pending)</h3>
+          </div>
+          
+          <div className={styles.tableContainer}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Identity</th>
+                  <th>Topic</th>
+                  <th>Payload</th>
+                  <th>Timestamp</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tickets.map((ticket: any) => (
+                  <tr key={ticket.id} className={styles.tableRow}>
+                    <td>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{ticket.name}</span>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                           <a href={`mailto:${ticket.email}`} style={{ color: 'var(--accent-blue)', textDecoration: 'none' }}>{ticket.email}</a>
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                       <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.85rem' }}>{ticket.subject || 'General Request'}</span>
+                    </td>
+                    <td style={{ maxWidth: '300px' }}>
+                       <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', margin: 0 }}>
+                         {ticket.message}
+                       </p>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                        <Clock size={14} />
+                        {new Date(ticket.created_at).toLocaleDateString()}
+                      </div>
+                    </td>
+                    <td>
+                      <span style={{
+                        padding: '4px 12px',
+                        borderRadius: '12px',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        background: ticket.status === 'Resolved' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                        color: ticket.status === 'Resolved' ? 'var(--accent-emerald)' : 'var(--accent-amber)',
+                        border: `1px solid ${ticket.status === 'Resolved' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`
+                      }}>
+                        {ticket.status}
+                      </span>
+                    </td>
+                    <td>
+                      {ticket.status !== 'Resolved' ? (
+                        <form action={async () => {
+                          'use server';
+                          await resolveSupportTicket(ticket.id);
+                        }}>
+                          <button type="submit" className={styles.actionButton} style={{ color: 'var(--accent-emerald)', borderColor: 'rgba(16, 185, 129, 0.3)' }}>
+                            <CheckCircle size={16} /> Mark Handled
+                          </button>
+                        </form>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600 }}>Archived</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
   );
 }
-
-

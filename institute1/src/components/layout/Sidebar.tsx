@@ -65,8 +65,8 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
   }, []);
 
   const handleNavClick = () => {
-    // Only auto-collapse if it's NOT the mobile bottom navbar (<=768px)
-    if (typeof window !== 'undefined' && window.innerWidth > 768) {
+    // Only auto-collapse on tablet drawer viewports (between 768px and 1024px)
+    if (typeof window !== 'undefined' && window.innerWidth > 768 && window.innerWidth < 1024) {
       setIsCollapsed(true);
     }
   };

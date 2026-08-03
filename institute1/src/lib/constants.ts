@@ -55,6 +55,7 @@ export const NAV_ITEMS = [
 
 export const ADMIN_NAV_ITEMS = [
   { label: 'Overview', href: '/admin', icon: 'Dashboard' },
+  { label: 'Institutions', href: '/admin/institutions', icon: 'Building' },
   { label: 'Courses', href: '/admin/courses', icon: 'Courses' },
   { label: 'Enrollments', href: '/admin/enrollments', icon: 'Enrollments' },
   { label: 'Administration', href: '/admin/students', icon: 'Students' },
@@ -62,6 +63,7 @@ export const ADMIN_NAV_ITEMS = [
   { label: 'Batch Doubts', href: '/doubts', icon: 'Doubts' },
   { label: 'Feedback', href: '/admin/feedback', icon: 'Feedback' },
   { label: 'Notices', href: '/admin/notices', icon: 'Notices' },
+  { label: 'Payment', href: '/admin/payment-model', icon: 'Payments' },
 ];
 
 export const INSTRUCTOR_NAV_ITEMS = [

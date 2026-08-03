@@ -109,47 +109,6 @@ export default function BelowTheFoldContent({ companyName }: BelowTheFoldContent
           </AutoScrollMarquee>
         </section>
       </main>
-
-      {/* Footer */}
-      <footer className="landing-footer">
-        <div className="footer-content">
-          <div className="footer-brand">
-            <div className="landing-logo">
-              <span className="logo-text">{companyName}</span>
-            </div>
-            <p className="footer-desc">
-              Bridging the gap between online and offline education. Created by Aditya.
-            </p>
-          </div>
-          <div className="footer-links">
-            <div className="link-group">
-              <h4>Platform</h4>
-              <Link href="/courses">Courses</Link>
-              <Link href="/leaderboard">Leaderboard</Link>
-              <Link href="/login">Student Login</Link>
-              <Link href="/apply-instructor">Faculty Apply</Link>
-            </div>
-            <div className="link-group">
-              <h4>Connect</h4>
-              <a href="https://portfolio-two-ashen-zseywond41.vercel.app/" target="_blank" rel="noopener noreferrer">Meet Developer</a>
-              <a href="mailto:iambestadi@gmail.com">Contact Support</a>
-            </div>
-            <div className="link-group">
-              <h4>Legal</h4>
-              <Link href="#">Terms of Service</Link>
-              <Link href="#">Privacy Policy</Link>
-            </div>
-          </div>
-        </div>
-        <div className="footer-bottom">
-          <p>&copy; {new Date().getFullYear()} {companyName}. All rights reserved.</p>
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <a href="#" style={{ color: 'var(--text-muted)' }}>Twitter</a>
-            <a href="#" style={{ color: 'var(--text-muted)' }}>LinkedIn</a>
-            <a href="#" style={{ color: 'var(--text-muted)' }}>GitHub</a>
-          </div>
-        </div>
-      </footer>
     </>
   );
 }

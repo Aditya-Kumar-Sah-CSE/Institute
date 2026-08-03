@@ -2,7 +2,7 @@
    Database Types
    ============================================ */
 
-export type UserRole = 'student' | 'admin' | 'instructor';
+export type UserRole = 'student' | 'admin' | 'instructor' | 'super_admin';
 export type Difficulty = 'sem 1' | 'sem 2' | 'sem 3' | 'sem 4' | 'sem 5' | 'sem 6' | 'sem 7' | 'sem 8';
 export type AssignmentType = 'mcq' | 'code' | 'ui' | 'github' | 'deploy' | 'any';
 export type SubmissionStatus = 'pending' | 'approved' | 'rejected';

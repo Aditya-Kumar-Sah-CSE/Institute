@@ -2,6 +2,7 @@ import { createClient, getUser } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Sidebar from '@/components/layout/Sidebar';
 import Navbar from '@/components/layout/Navbar';
+import './DashboardLayout.css';
 import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 import { signOut } from '@/features/auth/actions/auth';
 import { updateStreak } from '@/features/gamification/actions/gamification';
