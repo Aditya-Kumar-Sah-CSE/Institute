@@ -2,6 +2,7 @@ import { createClient, getUser } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Sidebar from '@/components/layout/Sidebar';
 import Navbar from '@/components/layout/Navbar';
+import { getTenantConfig } from '@/lib/tenant/tenantResolver';
 import './DashboardLayout.css';
 import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 import { signOut } from '@/features/auth/actions/auth';
@@ -45,6 +46,28 @@ export default async function DashboardLayout({
         </form>
       </div>
     );
+  }
+
+  const { tenant } = await getTenantConfig();
+
+  // Strict Muti-Tenant Isolation
+  if (profile.email !== SUPER_ADMIN_EMAIL && tenant) {
+    if (profile.institution_id !== tenant.id) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: '20px', textAlign: 'center', color: 'white' }}>
+          <div>
+            <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Unauthorized Multi-Tenant Access</h3>
+            <p style={{ color: '#9ca3af' }}>Your account ({profile.email}) is not registered with <strong>{tenant.name}</strong>.</p>
+            <p style={{ color: '#9ca3af' }}>Secure tenant isolation is active.</p>
+          </div>
+          <form action={signOut}>
+            <button type="submit" style={{ padding: '10px 20px', background: 'var(--accent-red, #ff4444)', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
+              Sign Out to Switch Institutions
+            </button>
+          </form>
+        </div>
+      );
+    }
   }
 
   // Optimize: Only update streak and check badges if it's a new day

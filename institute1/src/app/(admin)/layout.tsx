@@ -5,6 +5,7 @@ import Navbar from '@/components/layout/Navbar';
 import '../(dashboard)/DashboardLayout.css';
 import { signOut } from '@/features/auth/actions/auth';
 import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
+import { getTenantConfig } from '@/lib/tenant/tenantResolver';
 
 export default async function AdminLayout({
   children,
@@ -45,6 +46,28 @@ export default async function AdminLayout({
 
   if (profile.role !== 'admin' && !isSuperAdmin) {
     redirect('/dashboard');
+  }
+
+  const { tenant } = await getTenantConfig();
+
+  // Strict Muti-Tenant Isolation
+  if (!isSuperAdmin && tenant) {
+    if (profile.institution_id !== tenant.id) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: '20px', textAlign: 'center', color: 'white' }}>
+          <div>
+            <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Unauthorized Admin Environment</h3>
+            <p style={{ color: '#9ca3af' }}>Your admin account ({profile.email}) is configured for a different institution ecosystem.</p>
+            <p style={{ color: '#9ca3af' }}>You cannot access <strong>{tenant.name}</strong>'s remote configurations.</p>
+          </div>
+          <form action={signOut}>
+            <button type="submit" style={{ padding: '10px 20px', background: 'var(--accent-red, #ff4444)', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
+              Sign Out Securely
+            </button>
+          </form>
+        </div>
+      );
+    }
   }
 
   let companyName = null;
