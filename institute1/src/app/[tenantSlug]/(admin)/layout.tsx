@@ -90,7 +90,13 @@ export default async function AdminLayout({
 
   return (
     <div className="dashboard-layout">
-      <Sidebar profile={profile} isAdmin={true} isSuperAdmin={isSuperAdmin} />
+      <Sidebar 
+        profile={profile} 
+        isAdmin={true} 
+        isSuperAdmin={isSuperAdmin} 
+        companyName={companyName} 
+        companyLogo={companyLogo} 
+      />
       <div className="dashboard-main">
         <Navbar 
           companyName={companyName} 

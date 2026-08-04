@@ -64,7 +64,13 @@ export default async function InstructorLayout({
 
   return (
     <div className="dashboard-layout">
-      <Sidebar profile={profile} roleView="instructor" isSuperAdmin={profile.email === SUPER_ADMIN_EMAIL} />
+      <Sidebar 
+        profile={profile} 
+        roleView="instructor" 
+        isSuperAdmin={profile.email === SUPER_ADMIN_EMAIL} 
+        companyName={tenant?.name || settings?.company_name}
+        companyLogo={tenant?.logo || settings?.logo_url}
+      />
       <div className="dashboard-main">
         <Navbar 
           companyName={tenant?.name || settings?.company_name} 
