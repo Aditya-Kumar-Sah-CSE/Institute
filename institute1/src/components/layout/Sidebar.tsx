@@ -127,7 +127,7 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
           ) : (
             <span className="sidebar-logo-icon text-neon-cyan">{getIcon('Building', { className: 'w-6 h-6' })}</span>
           )}
-          <span className="sidebar-logo-text">{companyName || 'Smart Learning'}</span>
+          <span className="sidebar-logo-text" suppressHydrationWarning>{companyName || 'Smart Learning'}</span>
         </Link>
       </div>
 

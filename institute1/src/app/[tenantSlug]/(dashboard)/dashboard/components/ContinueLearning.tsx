@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import Link from 'next/link';
+import { TenantLink as Link } from '@/lib/tenant/TenantProvider';
 import CourseCard from '@/features/courses/components/CourseCard';
 import Card from '@/components/ui/Card';
 import type { Course } from '@/types';
