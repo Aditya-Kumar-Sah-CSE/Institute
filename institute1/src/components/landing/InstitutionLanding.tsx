@@ -84,11 +84,11 @@ export default function InstitutionLanding({
 
         {mobileMenuOpen && (
           <div className="inst-mobile-dropdown">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', borderBottom: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', borderBottom: '1px solid var(--inst-nav-border)' }}>
               <span style={{ fontWeight: 600 }}>Theme Option</span>
               <ThemeToggle />
             </div>
-            <div style={{ padding: '1rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'center' }}>
+            <div style={{ padding: '1rem', borderBottom: '1px solid var(--inst-nav-border)', display: 'flex', justifyContent: 'center' }}>
               <InstallAppButton variant="primary" className="inst-nav-btn" />
             </div>
             <a href={`${baseUrl}/login`} onClick={() => setMobileMenuOpen(false)}>
