@@ -122,11 +122,20 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
           <X size={20} />
         </button>
         <Link href={isAdmin ? '/admin' : '/dashboard'} className="sidebar-logo" suppressHydrationWarning>
-          {companyLogo ? (
-            <Image src={companyLogo} alt={companyName || 'Institution Logo'} width={28} height={28} unoptimized className="rounded" style={{ objectFit: 'contain' }} suppressHydrationWarning />
-          ) : (
+          <div style={{ display: companyLogo ? 'block' : 'none' }}>
+            <img 
+              src={companyLogo || 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='} 
+              alt={companyName || 'Institution Logo'} 
+              width={28} 
+              height={28} 
+              className="rounded" 
+              style={{ objectFit: 'contain' }} 
+              suppressHydrationWarning 
+            />
+          </div>
+          <div style={{ display: !companyLogo ? 'block' : 'none' }} suppressHydrationWarning>
             <span className="sidebar-logo-icon text-neon-cyan" suppressHydrationWarning>{getIcon('Building', { className: 'w-6 h-6' })}</span>
-          )}
+          </div>
           <span className="sidebar-logo-text" suppressHydrationWarning>{companyName || 'Smart Learning'}</span>
         </Link>
       </div>
