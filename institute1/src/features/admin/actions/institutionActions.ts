@@ -153,3 +153,32 @@ export async function rejectInstitution(requestId: string) {
       return { error: e.message };
   }
 }
+
+export async function deleteInstitution(institutionId: string) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user || user.email !== SUPER_ADMIN_EMAIL) {
+      return { error: 'Unauthorized.' };
+    }
+    
+    const { createClient: createAdminClient } = await import('@supabase/supabase-js');
+    const supabaseAdmin = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    
+    const { error } = await supabaseAdmin
+      .from('institutions')
+      .delete()
+      .eq('id', institutionId);
+      
+    if (error) return { error: error.message };
+    
+    revalidatePath('/admin/institutions');
+    return { success: true };
+  } catch (e: any) {
+      return { error: e.message };
+  }
+}

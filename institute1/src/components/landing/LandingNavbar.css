@@ -90,7 +90,7 @@
   height: 44px;
   padding: 0 1.25rem;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-default);
   background: transparent;
   color: var(--text-primary);
   font-size: 0.95rem;
@@ -99,7 +99,7 @@
   transition: all 0.2s ease;
 }
 .nav-login-btn:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--interactive-hover);
 }
 
 .nav-register-btn {

@@ -16,6 +16,7 @@ import {
 import AutoScrollMarquee from '@/components/ui/AutoScrollMarquee';
 import ExploreMoreWrapper from './components/ExploreMoreWrapper';
 import LandingNavbar from '@/components/landing/LandingNavbar';
+import TypewriterEffect from '@/components/ui/TypewriterEffect';
 import './Landing.css';
 import './Pricing.css';
 import { createClient } from '@/lib/supabase/server';
@@ -48,7 +49,9 @@ export default async function LandingPage({
   }
 
   const supabase = await createClient();
-  const companyName = 'Smart Learning';
+  const { data: settings } = await supabase.from('company_settings').select('*').single();
+  const companyName = settings?.company_name || 'Smart Learning';
+  const logoUrl = settings?.logo_url || '/images/smart_learning%20logo.png';
 
   // Fetch dynamic plans for the Pricing section
   const { data: plansData } = await supabase
@@ -62,7 +65,7 @@ export default async function LandingPage({
   return (
     <div className="landing-container b2b-enterprise">
       {/* Navigation */}
-      <LandingNavbar />
+      <LandingNavbar companyName={companyName} logoUrl={logoUrl} />
 
       <main className="landing-main">
         {/* HERO SECTION — B2B INST */}
@@ -82,7 +85,13 @@ export default async function LandingPage({
 
               <h1 className="hero-title animate-fade-up delay-100" style={{ marginTop: '1.5rem', fontSize: 'clamp(3rem, 5vw, 4.5rem)', lineHeight: 1.1 }}>
                 <span style={{ color: 'var(--text-primary)' }}>Transform Your</span><br />
-                <span className="text-gradient-human">Institution Today</span>
+                <TypewriterEffect 
+                  words={['Institution Today', 'School Today', 'College Today', 'University Today', 'Coaching Center Today']} 
+                  className="text-gradient-human" 
+                  typingSpeed={80}
+                  deletingSpeed={50}
+                  delayBeforeDelete={2500}
+                />
               </h1>
               
               <p className="hero-subtitle animate-fade-up delay-200" style={{ marginLeft: 0, marginTop: '2rem', maxWidth: '600px', fontSize: '1.25rem', color: 'var(--text-secondary)' }}>
@@ -124,19 +133,19 @@ export default async function LandingPage({
           <p className="trusted-strip-text" style={{ color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.85rem', letterSpacing: '2px', fontWeight: 700, marginBottom: '2rem' }}>Built for modern</p>
           <AutoScrollMarquee className="features-marquee-wrapper" innerClassName="" style={{ display: 'flex', gap: '1.5rem', width: 'max-content', padding: '0 1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px', background: 'var(--bg-surface)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-              <Building size={18} color="#94a3b8" /> <span style={{ fontSize: '1.15rem', fontWeight: 600, color: '#e2e8f0' }}>Schools</span>
+              <Building size={18} color="var(--text-muted)" /> <span style={{ fontSize: '1.15rem', fontWeight: 600, color: 'var(--text-primary)' }}>Schools</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px', background: 'var(--bg-surface)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-              <GraduationCap size={18} color="#94a3b8" /> <span style={{ fontSize: '1.15rem', fontWeight: 600, color: '#e2e8f0' }}>Colleges</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+              <GraduationCap size={18} color="var(--text-muted)" /> <span style={{ fontSize: '1.15rem', fontWeight: 600, color: 'var(--text-primary)' }}>Colleges</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px', background: 'var(--bg-surface)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-              <Building size={18} color="#94a3b8" /> <span style={{ fontSize: '1.15rem', fontWeight: 600, color: '#e2e8f0' }}>Universities</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+              <Building size={18} color="var(--text-muted)" /> <span style={{ fontSize: '1.15rem', fontWeight: 600, color: 'var(--text-primary)' }}>Universities</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px', background: 'var(--bg-surface)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-              <Users size={18} color="#94a3b8" /> <span style={{ fontSize: '1.15rem', fontWeight: 600, color: '#e2e8f0' }}>Coaching Centers</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+              <Users size={18} color="var(--text-muted)" /> <span style={{ fontSize: '1.15rem', fontWeight: 600, color: 'var(--text-primary)' }}>Coaching Centers</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px', background: 'var(--bg-surface)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', marginRight: '1.5rem' }}>
-              <MonitorPlay size={18} color="#94a3b8" /> <span style={{ fontSize: '1.15rem', fontWeight: 600, color: '#e2e8f0' }}>EdTech Orgs</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', marginRight: '1.5rem' }}>
+              <MonitorPlay size={18} color="var(--text-muted)" /> <span style={{ fontSize: '1.15rem', fontWeight: 600, color: 'var(--text-primary)' }}>EdTech Orgs</span>
             </div>
 
           </AutoScrollMarquee>
@@ -302,7 +311,7 @@ export default async function LandingPage({
           
           <div className="footer-brand-col" style={{ flex: '1 1 300px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-              <Image src="/images/smart_learning%20logo.png" alt="Company Logo" width={32} height={32} style={{ borderRadius: '6px' }} />
+              <Image src={logoUrl} alt="Company Logo" width={32} height={32} style={{ borderRadius: '6px' }} />
               <span style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--text-primary)' }}>{companyName}</span>
             </div>
             <p style={{ fontSize: '0.9rem', lineHeight: 1.3 }}>

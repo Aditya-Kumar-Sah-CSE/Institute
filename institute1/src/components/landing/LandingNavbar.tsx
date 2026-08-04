@@ -6,7 +6,7 @@ import { Menu, X } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import './LandingNavbar.css';
 
-export default function LandingNavbar() {
+export default function LandingNavbar({ companyName = 'Smart Learning', logoUrl = '/images/smart_learning%20logo.png' }: { companyName?: string, logoUrl?: string }) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -23,13 +23,13 @@ export default function LandingNavbar() {
         {/* Left: Logo */}
         <div className="navbar-logo">
           <Image 
-            src="/images/smart_learning%20logo.png" 
-            alt="Smart Learning AI" 
+            src={logoUrl} 
+            alt={companyName} 
             width={40} 
             height={40} 
             className="logo-img"
           />
-          <span className="logo-text">Smart Learning </span>
+          <span className="logo-text">{companyName}</span>
         </div>
 
         {/* Center: Navigation Links (Desktop) */}
@@ -60,7 +60,7 @@ export default function LandingNavbar() {
       <div className={`mobile-drawer-overlay ${mobileMenuOpen ? 'open' : ''}`} onClick={() => setMobileMenuOpen(false)}>
         <div className={`mobile-drawer ${mobileMenuOpen ? 'open' : ''}`} onClick={(e) => e.stopPropagation()}>
           <div className="drawer-header">
-            <span className="logo-text">Smart Learning AI</span>
+            <span className="logo-text">{companyName}</span>
             <button className="drawer-close" onClick={() => setMobileMenuOpen(false)}>
               <X size={28} />
             </button>

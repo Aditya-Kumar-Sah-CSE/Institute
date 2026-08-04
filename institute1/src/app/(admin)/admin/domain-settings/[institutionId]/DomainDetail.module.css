@@ -1,12 +1,14 @@
 /* Domain Management Premium UI */
 
 .page {
+  width: 100%;
   max-width: 1100px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 2rem;
-  padding-bottom: 4rem;
+  padding: 0 1rem 4rem 1rem;
+  box-sizing: border-box;
 }
 
 /* Header */
@@ -106,6 +108,8 @@
   position: relative;
   overflow: hidden;
   transition: border-color 0.2s ease;
+  min-width: 0;
+  width: 100%;
 }
 
 .section:hover {
@@ -154,6 +158,8 @@
   margin-bottom: 0.75rem;
   gap: 1rem;
   flex-wrap: wrap;
+  min-width: 0;
+  width: 100%;
 }
 
 .urlLabel {
@@ -171,6 +177,7 @@
   color: var(--neon-cyan, #00ffdc);
   word-break: break-all;
   flex: 1;
+  min-width: 0;
 }
 
 .urlValueNone {
@@ -535,14 +542,26 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1.5rem;
+  min-width: 0;
+}
+.twoCol > div {
+  min-width: 0;
+  width: 100%;
 }
 
-@media (max-width: 768px) {
-  .twoCol { grid-template-columns: 1fr; }
-  .header { flex-direction: column; text-align: center; }
+@media (max-width: 1024px) {
+  .page {
+    padding: 0 0 4rem 0;
+  }
+  .twoCol { grid-template-columns: 1fr; gap: 1rem; }
+  .header { flex-direction: column; text-align: center; padding: 1.5rem 1rem; border-radius: 0; }
   .headerMeta { justify-content: center; }
-  .urlRow { flex-direction: column; align-items: flex-start; }
-  .slugInputRow { flex-direction: column; }
+  .section { padding: 1.25rem 1rem; overflow-wrap: break-word; border-radius: 0; border-left: none; border-right: none; margin: 0 -1rem; }
+  .urlRow { flex-direction: column; align-items: flex-start; gap: 0.75rem; padding: 1rem; }
+  .slugInputRow { flex-direction: column; align-items: stretch; }
+  .slugInputWrapper { min-width: 100%; }
+  .domainInputRow > div { min-width: 100%; }
+  .urlLabel { min-width: auto; }
 }
 
 /* Preview */
@@ -579,6 +598,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
 }
 
 .previewContent {

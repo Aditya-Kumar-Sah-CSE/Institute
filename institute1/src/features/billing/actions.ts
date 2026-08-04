@@ -132,17 +132,17 @@ export async function fetchRevenueMetrics() {
   noStore();
   const { supabase } = await authenticateAdminOrSuper();
   
-  const [plans, subs, payments] = await Promise.all([
+  const [plans, subs, payments, institutions] = await Promise.all([
     supabase.from('pricing_plans').select('id, name', { count: 'exact' }).eq('is_deleted', false),
     supabase.from('subscriptions').select('id, status, pricing_plans(monthly_price)'),
-    supabase.from('transactions').select('amount, status').eq('status', 'successful')
+    supabase.from('transactions').select('amount, status').eq('status', 'successful'),
+    supabase.from('institutions').select('*', { count: 'exact', head: true })
   ]);
   
   const totalRevenue = payments.data?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0;
   
   let mrr = 0;
   let activeSubsCount = 0;
-  let trialSubsCount = 0;
 
   subs.data?.forEach(s => {
     if (s.status === 'active' || s.status === 'paid') {
@@ -150,10 +150,11 @@ export async function fetchRevenueMetrics() {
       if (s.pricing_plans && (s.pricing_plans as any).monthly_price) {
          mrr += Number((s.pricing_plans as any).monthly_price);
       }
-    } else if (s.status === 'trial') {
-      trialSubsCount++;
     }
   });
+
+  const totalInstitutions = institutions.count || 0;
+  const trialSubsCount = Math.max(0, totalInstitutions - activeSubsCount);
 
   return {
     totalPlans: plans.count || 0,

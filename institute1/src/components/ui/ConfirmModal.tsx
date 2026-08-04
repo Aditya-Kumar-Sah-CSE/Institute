@@ -14,6 +14,7 @@ interface ConfirmModalProps {
   cancelText?: string;
   isDestructive?: boolean;
   isPending?: boolean;
+  hideCancel?: boolean;
 }
 
 export default function ConfirmModal({
@@ -25,19 +26,22 @@ export default function ConfirmModal({
   confirmText = 'Confirm',
   cancelText = 'Cancel',
   isDestructive = false,
-  isPending = false
+  isPending = false,
+  hideCancel = false
 }: ConfirmModalProps) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm">
       <div style={{ padding: 'var(--space-md) 0' }}>
-        <p style={{ color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+        <p style={{ color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
           {message}
         </p>
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-md)', marginTop: 'var(--space-lg)' }}>
-        <Button variant="ghost" onClick={onClose} disabled={isPending}>
-          {cancelText}
-        </Button>
+        {!hideCancel && (
+          <Button variant="ghost" onClick={onClose} disabled={isPending}>
+            {cancelText}
+          </Button>
+        )}
         <Button 
           variant={isDestructive ? 'danger' : 'primary'} 
           onClick={onConfirm}

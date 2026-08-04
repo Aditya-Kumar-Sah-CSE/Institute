@@ -31,25 +31,31 @@ export const viewport: Viewport = {
   colorScheme: 'dark',
 };
 
-export const metadata: Metadata = {
-  title: 'Smart Hybrid Learning | Student Engagement Platform',
-  description: "To transform traditional classrooms into intelligent, data-driven learning environments where every student receives continuous guidance, every teacher gains actionable insights, and every institute can deliver a more engaging and effective educational experience.",
+export async function generateMetadata(): Promise<Metadata> {
+  const { createClient } = await import('@/lib/supabase/server');
+  const supabase = await createClient();
+  const { data: settings } = await supabase.from('company_settings').select('company_name, logo_url').single();
+  const companyName = settings?.company_name || 'Smart Hybrid Learning';
 
-  keywords: ['full stack', 'web development', 'Student Engagement platform', 'gamified', 'coding', 'institute'],
-  manifest: '/manifest.json?v=2',
-  icons: {
-    icon: '/icon-192x192.png?v=2',
-    apple: '/icon-192x192.png?v=2',
-  },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'default',
-    title: 'Smart Hybrid Learning',
-  },
-  formatDetection: {
-    telephone: false,
-  },
-};
+  return {
+    title: `${companyName} | Student Engagement Platform`,
+    description: "To transform traditional classrooms into intelligent, data-driven learning environments where every student receives continuous guidance, every teacher gains actionable insights, and every institute can deliver a more engaging and effective educational experience.",
+    keywords: ['full stack', 'web development', 'Student Engagement platform', 'gamified', 'coding', 'institute'],
+    manifest: '/manifest.json?v=2',
+    icons: {
+      icon: settings?.logo_url ? settings.logo_url : '/icon-192x192.png?v=2',
+      apple: settings?.logo_url ? settings.logo_url : '/icon-192x192.png?v=2',
+    },
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: 'default',
+      title: companyName,
+    },
+    formatDetection: {
+      telephone: false,
+    },
+  };
+}
 
 export default async function RootLayout({
   children,
