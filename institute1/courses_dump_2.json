@@ -1,0 +1,63 @@
+[
+  {
+    "title": "DE ",
+    "institution_id": "a090da9b-dc71-478d-849b-182398e8a298",
+    "profiles": null
+  },
+  {
+    "title": "DAA",
+    "institution_id": null,
+    "profiles": {
+      "name": "Ramesh ",
+      "institution_id": null
+    }
+  },
+  {
+    "title": "DSA",
+    "institution_id": null,
+    "profiles": {
+      "name": "test",
+      "institution_id": null
+    }
+  },
+  {
+    "title": "COA",
+    "institution_id": null,
+    "profiles": {
+      "name": "Aditya Kumar Sah",
+      "institution_id": "a090da9b-dc71-478d-849b-182398e8a298"
+    }
+  },
+  {
+    "title": "Maths II",
+    "institution_id": null,
+    "profiles": {
+      "name": "test",
+      "institution_id": null
+    }
+  },
+  {
+    "title": "COA ",
+    "institution_id": null,
+    "profiles": {
+      "name": "Ramesh ",
+      "institution_id": null
+    }
+  },
+  {
+    "title": "Computer Network",
+    "institution_id": null,
+    "profiles": {
+      "name": "Rahul",
+      "institution_id": null
+    }
+  },
+  {
+    "title": "DBMS [sem 4]   (2024-2028 ) ",
+    "institution_id": "a090da9b-dc71-478d-849b-182398e8a298",
+    "profiles": {
+      "name": "Aditya Kumar Sah",
+      "institution_id": "a090da9b-dc71-478d-849b-182398e8a298"
+    }
+  }
+]
