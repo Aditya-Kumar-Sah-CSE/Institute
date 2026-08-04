@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Outfit, JetBrains_Mono } from 'next/font/google';
+// cache-buster to reset Next.js turbopack stale module graph
 import './globals.css';
 import '@/components/landing/InstitutionLanding.css';
 import { ThemeProvider } from '@/components/ThemeProvider';
@@ -37,12 +38,15 @@ export async function generateMetadata(): Promise<Metadata> {
   const supabase = await createClient();
   const { data: settings } = await supabase.from('company_settings').select('company_name, logo_url').single();
   const companyName = settings?.company_name || 'Smart Hybrid Learning';
+  
+  const { tenant } = await getTenantConfig();
+  const manifestUrl = tenant ? `/api/manifest?tenantId=${tenant.id}` : '/manifest.json?v=2';
 
   return {
-    title: `${companyName} | Student Engagement Platform`,
+    title: tenant ? `${tenant.name} | Digital Learning Portal` : `${companyName} | Student Engagement Platform`,
     description: "To transform traditional classrooms into intelligent, data-driven learning environments where every student receives continuous guidance, every teacher gains actionable insights, and every institute can deliver a more engaging and effective educational experience.",
     keywords: ['full stack', 'web development', 'Student Engagement platform', 'gamified', 'coding', 'institute'],
-    manifest: '/manifest.json?v=2',
+    manifest: manifestUrl,
     icons: {
       icon: settings?.logo_url ? settings.logo_url : '/icon-192x192.png?v=2',
       apple: settings?.logo_url ? settings.logo_url : '/icon-192x192.png?v=2',

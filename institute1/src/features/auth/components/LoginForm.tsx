@@ -78,8 +78,8 @@ export default function LoginForm({ companyName, logoUrl, baseUrl }: LoginFormPr
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function handleSubmit(e?: React.FormEvent | React.KeyboardEvent) {
+    if (e) e.preventDefault();
     setIsLoading(true);
     setError('');
 
@@ -151,7 +151,7 @@ export default function LoginForm({ companyName, logoUrl, baseUrl }: LoginFormPr
           <p className="auth-subtitle">Sign in to continue your learning journey</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="auth-form">
+        <div className="auth-form" onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(e); }}>
           {message && !error && <div className="auth-success" style={{ color: 'var(--neon-lime)', background: 'rgba(57, 255, 20, 0.1)', padding: 'var(--space-sm)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--neon-lime)' }}>{message}</div>}
           {error && <div className="auth-error">{error}</div>}
 
@@ -182,7 +182,7 @@ export default function LoginForm({ companyName, logoUrl, baseUrl }: LoginFormPr
             </div>
           </div>
 
-          <Button type="submit" fullWidth isLoading={isLoading} size="lg">
+          <Button type="button" fullWidth isLoading={isLoading} size="lg" onClick={() => handleSubmit()}>
             Sign In
           </Button>
 
@@ -212,7 +212,7 @@ export default function LoginForm({ companyName, logoUrl, baseUrl }: LoginFormPr
             <GoogleIcon />
             Continue with Google
           </Button>
-        </form>
+        </div>
 
         <div className="auth-footer">
           <p>

@@ -6,6 +6,8 @@ import {
   GraduationCap, BookOpen, ShieldCheck, Users, 
   ArrowRight, Menu, X, LogIn
 } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import InstallAppButton from '@/components/pwa/InstallAppButton';
 import './InstitutionLanding.css';
 
 interface Tenant {
@@ -64,7 +66,9 @@ export default function InstitutionLanding({
             <span className="inst-brand-name">{tenant.name}</span>
           </Link>
 
-          <div className="inst-nav-actions desktop-only">
+          <div className="inst-nav-actions desktop-only" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <ThemeToggle />
+            <InstallAppButton variant="primary" />
             <a href={`${baseUrl}/login`} className="inst-nav-btn outline">
               <LogIn size={18} /> Login
             </a>
@@ -77,6 +81,13 @@ export default function InstitutionLanding({
 
         {mobileMenuOpen && (
           <div className="inst-mobile-dropdown">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', borderBottom: '1px solid var(--border)' }}>
+              <span style={{ fontWeight: 600 }}>Theme Option</span>
+              <ThemeToggle />
+            </div>
+            <div style={{ padding: '1rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'center' }}>
+              <InstallAppButton variant="primary" className="inst-nav-btn" />
+            </div>
             <a href={`${baseUrl}/login`} onClick={() => setMobileMenuOpen(false)}>
               <LogIn size={18} /> Login
             </a>

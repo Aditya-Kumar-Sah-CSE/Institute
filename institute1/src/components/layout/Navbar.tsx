@@ -1,4 +1,5 @@
 'use client';
+// cache-buster to reset Next.js turbopack stale module graph
 
 import React from 'react';
 import { TenantLink as Link } from '@/lib/tenant/TenantProvider';
