@@ -72,6 +72,9 @@ export default function InstitutionLanding({
             <a href={`${baseUrl}/login`} className="inst-nav-btn outline">
               <LogIn size={18} /> Login
             </a>
+            <a href={`${baseUrl}/signup`} className="inst-nav-btn">
+              Sign Up
+            </a>
           </div>
 
           <button className="inst-mobile-toggle" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
@@ -90,6 +93,9 @@ export default function InstitutionLanding({
             </div>
             <a href={`${baseUrl}/login`} onClick={() => setMobileMenuOpen(false)}>
               <LogIn size={18} /> Login
+            </a>
+            <a href={`${baseUrl}/signup`} onClick={() => setMobileMenuOpen(false)} style={{ color: 'var(--tenant-primary)', fontWeight: 'bold' }}>
+              Sign Up
             </a>
           </div>
         )}
@@ -117,45 +123,7 @@ export default function InstitutionLanding({
         </div>
       </section>
 
-      {/* Portal Cards */}
-      <section className="inst-portals">
-        <h2 className="inst-section-title">Access Your Portal</h2>
-        <p className="inst-section-sub">Select your role to continue to the dashboard.</p>
-        <div className="inst-portal-grid">
-          <a href={`${baseUrl}/login?role=student`} className="inst-portal-card">
-            <div className="inst-portal-icon" style={{ backgroundColor: `${primaryColor}12`, color: primaryColor }}>
-              <Users size={28} />
-            </div>
-            <h3>Student Portal</h3>
-            <p>View courses, attendance, assignments, doubts, and results.</p>
-            <span className="inst-portal-go" style={{ color: primaryColor }}>
-              Open <ArrowRight size={16} />
-            </span>
-          </a>
 
-          <a href={`${baseUrl}/login?role=instructor`} className="inst-portal-card">
-            <div className="inst-portal-icon" style={{ backgroundColor: `${primaryColor}12`, color: primaryColor }}>
-              <BookOpen size={28} />
-            </div>
-            <h3>Faculty Portal</h3>
-            <p>Manage classes, mark attendance, grade assignments, and share content.</p>
-            <span className="inst-portal-go" style={{ color: primaryColor }}>
-              Open <ArrowRight size={16} />
-            </span>
-          </a>
-
-          <a href={`${baseUrl}/login?role=admin`} className="inst-portal-card">
-            <div className="inst-portal-icon" style={{ backgroundColor: `${primaryColor}12`, color: primaryColor }}>
-              <ShieldCheck size={28} />
-            </div>
-            <h3>Admin Dashboard</h3>
-            <p>Monitor analytics, manage users, courses, and institution settings.</p>
-            <span className="inst-portal-go" style={{ color: primaryColor }}>
-              Open <ArrowRight size={16} />
-            </span>
-          </a>
-        </div>
-      </section>
 
       {/* Footer */}
       <footer className="inst-footer">
