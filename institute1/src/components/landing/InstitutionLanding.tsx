@@ -72,7 +72,7 @@ export default function InstitutionLanding({
             <a href={`${baseUrl}/login`} className="inst-nav-btn outline">
               <LogIn size={18} /> Login
             </a>
-            <a href={`${baseUrl}/signup`} className="inst-nav-btn">
+            <a href={`${baseUrl}/signup`} className="inst-nav-btn primary">
               Sign Up
             </a>
           </div>
