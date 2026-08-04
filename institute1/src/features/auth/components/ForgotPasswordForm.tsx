@@ -8,7 +8,13 @@ import Input from '@/components/ui/Input';
 import { LockKeyhole, Mail } from 'lucide-react';
 import './AuthForms.css';
 
-export default function ForgotPasswordForm({ baseUrl }: { baseUrl?: string }) {
+interface ForgotPasswordFormProps {
+  baseUrl?: string;
+  companyName?: string;
+  logoUrl?: string;
+}
+
+export default function ForgotPasswordForm({ baseUrl, companyName, logoUrl }: ForgotPasswordFormProps) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -55,8 +61,14 @@ export default function ForgotPasswordForm({ baseUrl }: { baseUrl?: string }) {
           ← Back to Login
         </Link>
         <div className="auth-header">
-          <span className="auth-logo"><LockKeyhole size={48} className="text-neon-cyan" /></span>
-          <h1 className="auth-title">Reset Password</h1>
+          <span className="auth-logo" style={{ overflow: 'hidden', borderRadius: '8px', display: 'inline-block' }}>
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" style={{ width: 'auto', height: '48px', objectFit: 'contain' }} />
+            ) : (
+              <LockKeyhole size={48} className="text-neon-cyan" />
+            )}
+          </span>
+          <h1 className="auth-title">{companyName || 'Reset Password'}</h1>
           <p className="auth-subtitle">Enter your email to receive a password reset link</p>
         </div>
 

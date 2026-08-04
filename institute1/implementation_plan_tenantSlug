@@ -1,0 +1,214 @@
+# Full Tenant-Based Routing Migration
+
+Migrate every page from root-based routing (`/admin/courses`) to tenant-based routing (`/[tenantSlug]/admin/courses`). The tenant slug becomes the first path segment for **all** authenticated and most public routes.
+
+> [!IMPORTANT]
+> This is a **large architectural refactor** touching 50+ files. The middleware will no longer rewrite/strip slugs — instead, Next.js App Router will natively resolve the `[tenantSlug]` dynamic segment. This is fundamentally different from the current approach.
+
+## Current Architecture vs Target
+
+| Layer | Current | Target |
+|---|---|---|
+| App Router | `app/(admin)/admin/*`, `app/(dashboard)/*`, `app/(instructor)/instructor/*` | `app/[tenantSlug]/(admin)/admin/*`, `app/[tenantSlug]/(dashboard)/*`, `app/[tenantSlug]/(instructor)/instructor/*` |
+| Middleware | Strips slug via rewrite (`/bce/admin` → `/admin`) | Passes through natively (`/bce/admin` resolves to `app/[tenantSlug]/(admin)/admin`) |
+| Links | Relative `/admin/courses`, prefixed by [TenantLink](file:///d:/Institute/institute1/src/lib/tenant/TenantProvider.tsx#60-77) context | Direct `/${tenantSlug}/admin/courses` via `routes.ts` helper |
+| Auth redirect | Server Action reads headers → `baseUrl + /admin` | Server Action reads headers → `/${slug}/admin` |
+
+---
+
+## Proposed Changes
+
+### Phase 1: Core Infrastructure
+
+---
+
+#### [NEW] [routes.ts](file:///d:/Institute/institute1/src/lib/routes.ts)
+Centralized route helper with typed functions:
+```ts
+export const routes = {
+  admin: (t: string) => `/${t}/admin`,
+  adminCourses: (t: string) => `/${t}/admin/courses`,
+  dashboard: (t: string) => `/${t}/dashboard`,
+  courses: (t: string) => `/${t}/courses`,
+  // ... every route
+}
+```
+
+#### [MODIFY] [middleware.ts](file:///d:/Institute/institute1/middleware.ts)
+- **Remove** `RESERVED_FIRST_SEGMENTS` blocklist and the rewrite logic
+- Middleware will **only** extract slug + inject headers (`x-tenant-slug`, `x-tenant-id`, `x-routing-mode`)
+- No more `NextResponse.rewrite()` — the App Router natively handles `[tenantSlug]`
+- Add backward-compat: if user hits bare `/admin`, look up their profile's institution and redirect to `/${slug}/admin`
+
+#### [MODIFY] [tenantResolver.ts](file:///d:/Institute/institute1/src/lib/tenant/tenantResolver.ts)
+- [generateTenantBaseUrl()](file:///d:/Institute/institute1/src/lib/tenant/tenantResolver.ts#28-32) always returns `/${slug}` regardless of routing mode (dev/wildcard/custom all use path-based now)
+
+#### [MODIFY] [TenantProvider.tsx](file:///d:/Institute/institute1/src/lib/tenant/TenantProvider.tsx)
+- Add `tenantSlug` and `tenantId` to context (currently only exposes `baseUrl`)
+- [useTenant()](file:///d:/Institute/institute1/src/lib/tenant/TenantProvider.tsx#48-51) returns `{ tenantSlug, tenantId, tenant, baseUrl }`
+
+---
+
+### Phase 2: App Router Restructure
+
+---
+
+#### Move all route groups under `app/[tenantSlug]/`
+
+```
+app/
+├── [tenantSlug]/
+│   ├── layout.tsx          ← NEW: reads params.tenantSlug, provides TenantContext
+│   ├── (admin)/
+│   │   ├── layout.tsx      ← MOVED from app/(admin)/layout.tsx
+│   │   └── admin/...       ← MOVED from app/(admin)/admin/...
+│   ├── (dashboard)/
+│   │   ├── layout.tsx      ← MOVED from app/(dashboard)/layout.tsx
+│   │   └── dashboard/...   ← MOVED
+│   │   └── courses/...     ← MOVED
+│   │   └── doubts/...      ← MOVED
+│   │   └── notices/...     ← MOVED
+│   │   └── profile/...     ← MOVED
+│   │   └── leaderboard/... ← MOVED
+│   ├── (instructor)/
+│   │   ├── layout.tsx      ← MOVED from app/(instructor)/layout.tsx
+│   │   └── instructor/...  ← MOVED
+│   ├── (auth)/
+│   │   ├── layout.tsx      ← MOVED
+│   │   └── login/...       ← MOVED
+│   │   └── signup/...      ← MOVED
+│   │   └── forgot-password/← MOVED
+│   │   └── reset-password/ ← MOVED
+│   ├── page.tsx            ← tenant landing page
+├── layout.tsx              ← root layout (fonts, ThemeProvider, global CSS)
+├── page.tsx                ← SaaS landing page (no tenant)
+├── api/...                 ← unchanged (API routes stay at root)
+├── (public)/...            ← unchanged (apply-institution, apply-instructor)
+├── institution-not-found/  ← unchanged
+├── not-found.tsx           ← unchanged
+```
+
+#### [NEW] [app/[tenantSlug]/layout.tsx](file:///d:/Institute/institute1/src/app/[tenantSlug]/layout.tsx)
+- Reads `params.tenantSlug`
+- Fetches tenant from DB via `resolveTenantCache()`
+- If tenant not found → redirect to `/institution-not-found`
+- Wraps children in `<TenantProvider>`
+
+#### [MODIFY] All existing layouts ([(admin)](file:///d:/Institute/institute1/src/lib/supabase/middleware.ts#17-28), [(dashboard)](file:///d:/Institute/institute1/src/lib/supabase/middleware.ts#17-28), [(instructor)](file:///d:/Institute/institute1/src/lib/supabase/middleware.ts#17-28))
+- Remove [getTenantConfig()](file:///d:/Institute/institute1/src/lib/tenant/tenantResolver.ts#4-27) calls (tenant comes from parent `[tenantSlug]/layout.tsx`)
+- Remove redundant [TenantProvider](file:///d:/Institute/institute1/src/lib/tenant/TenantProvider.tsx#30-47) from root [layout.tsx](file:///d:/Institute/institute1/src/app/layout.tsx)
+
+---
+
+### Phase 3: Navigation Updates
+
+---
+
+#### [MODIFY] [constants.ts](file:///d:/Institute/institute1/src/lib/constants.ts)
+- `NAV_ITEMS`, `ADMIN_NAV_ITEMS`, `INSTRUCTOR_NAV_ITEMS` keep relative paths (`/admin/courses`)
+- [TenantLink](file:///d:/Institute/institute1/src/lib/tenant/TenantProvider.tsx#60-77) already prepends `baseUrl` — no change needed here if [TenantLink](file:///d:/Institute/institute1/src/lib/tenant/TenantProvider.tsx#60-77) works correctly
+
+#### [MODIFY] [Sidebar.tsx](file:///d:/Institute/institute1/src/components/layout/Sidebar.tsx)
+- Already uses [TenantLink](file:///d:/Institute/institute1/src/lib/tenant/TenantProvider.tsx#60-77) — verify all links go through it
+
+#### [MODIFY] [Navbar.tsx](file:///d:/Institute/institute1/src/components/layout/Navbar.tsx)
+- Already uses [TenantLink](file:///d:/Institute/institute1/src/lib/tenant/TenantProvider.tsx#60-77) — verify all links go through it
+
+#### [MODIFY] [NotificationBell.tsx](file:///d:/Institute/institute1/src/components/layout/NotificationBell.tsx)
+- Uses raw `Link from 'next/link'` — switch to [TenantLink](file:///d:/Institute/institute1/src/lib/tenant/TenantProvider.tsx#60-77)
+
+#### [MODIFY] [InstitutionLanding.tsx](file:///d:/Institute/institute1/src/components/landing/InstitutionLanding.tsx)
+- Uses raw `Link from 'next/link'` — switch to [TenantLink](file:///d:/Institute/institute1/src/lib/tenant/TenantProvider.tsx#60-77)
+
+#### Files with `router.push()` / `router.replace()`:
+- [CourseCard.tsx](file:///d:/Institute/institute1/src/features/courses/components/CourseCard.tsx) — use [useTenant()](file:///d:/Institute/institute1/src/lib/tenant/TenantProvider.tsx#48-51) + routes helper
+- [ChatSidebar.tsx](file:///d:/Institute/institute1/src/features/chat/components/ChatSidebar.tsx)
+- [ChatInterface.tsx](file:///d:/Institute/institute1/src/features/chat/components/ChatInterface.tsx)
+- [LeaderboardTable.tsx](file:///d:/Institute/institute1/src/features/leaderboard/components/LeaderboardTable.tsx)
+- [CourseFilter.tsx](file:///d:/Institute/institute1/src/features/leaderboard/components/CourseFilter.tsx)
+- [ShareDoubtForm.tsx](file:///d:/Institute/institute1/src/app/(dashboard)/share-doubt/ShareDoubtForm.tsx)
+- [DashboardProfileCard.tsx](file:///d:/Institute/institute1/src/app/(dashboard)/dashboard/components/DashboardProfileCard.tsx)
+- [ApplyForms.tsx](file:///d:/Institute/institute1/src/app/(public)/apply-instructor/ApplyForms.tsx)
+- [ShareUploadForm.tsx](file:///d:/Institute/institute1/src/app/(instructor)/instructor/share-upload/ShareUploadForm.tsx)
+- [ImpersonationBanner.tsx](file:///d:/Institute/institute1/src/components/admin/ImpersonationBanner.tsx)
+- [LoginForm.tsx](file:///d:/Institute/institute1/src/features/auth/components/LoginForm.tsx)
+- [SignupForm.tsx](file:///d:/Institute/institute1/src/features/auth/components/SignupForm.tsx)
+
+---
+
+### Phase 4: Server Actions & Auth
+
+---
+
+#### [MODIFY] [auth.ts](file:///d:/Institute/institute1/src/features/auth/actions/auth.ts)
+- [signIn()](file:///d:/Institute/institute1/src/features/auth/actions/auth.ts#91-136): redirect to `/${slug}/admin` or `/${slug}/dashboard` based on role
+- [signUp()](file:///d:/Institute/institute1/src/features/auth/actions/auth.ts#11-90): redirect to `/${slug}/login`
+- [signOut()](file:///d:/Institute/institute1/src/features/auth/actions/auth.ts#137-174): redirect to `/${slug}/login`
+- All read tenant from headers (already does this)
+
+#### [MODIFY] [notices/actions.ts](file:///d:/Institute/institute1/src/features/notices/actions.ts)
+- `revalidatePath` calls need tenant prefix
+
+#### Other server actions with `revalidatePath`:
+- Scan all `revalidatePath('/dashboard')` → `revalidatePath('/${slug}/dashboard')` calls
+
+---
+
+### Phase 5: API Routes & Auth Callback
+
+---
+
+#### [MODIFY] [auth/callback/route.ts](file:///d:/Institute/institute1/src/app/api/auth/callback/route.ts)
+- After auth callback, redirect to `/${slug}/dashboard` instead of `/dashboard`
+
+#### [MODIFY] [pwa-share-target/route.ts](file:///d:/Institute/institute1/src/app/api/pwa-share-target/route.ts)
+- Update redirect target
+
+---
+
+### Phase 6: Backward Compatibility
+
+---
+
+#### [MODIFY] [middleware.ts](file:///d:/Institute/institute1/middleware.ts)
+Add legacy route detection: if authenticated user hits `/admin`, `/dashboard`, `/instructor` (bare root routes), look up their institution slug and 302-redirect to `/${slug}/admin` etc. If no tenant can be inferred → redirect to `/institution-not-found`.
+
+---
+
+### Phase 7: Cleanup
+
+---
+
+- Delete the `[tenantOverride]` directory (if it got recreated)
+- Remove old auth page param extraction logic
+- Remove `searchParams.__tenant_slug` fallback from root [page.tsx](file:///d:/Institute/institute1/src/app/page.tsx)
+
+---
+
+## Verification Plan
+
+### Build Verification
+```
+npm run build
+```
+Must compile with **zero errors** and show routes like:
+```
+├ ƒ /[tenantSlug]/admin
+├ ƒ /[tenantSlug]/admin/courses
+├ ƒ /[tenantSlug]/dashboard
+├ ƒ /[tenantSlug]/instructor
+...
+```
+
+### Manual Testing (User)
+1. Start dev server: `npm run dev`
+2. Navigate to `http://localhost:3000/bce-bhagalpur/login` → should see login page with BCE branding
+3. Login as admin → should redirect to `http://localhost:3000/bce-bhagalpur/admin`
+4. Click "Courses" in admin sidebar → URL should be `http://localhost:3000/bce-bhagalpur/admin/courses`
+5. Click "Student View" → URL should be `http://localhost:3000/bce-bhagalpur/dashboard`
+6. Navigate to `http://localhost:3000/admin` (bare) → should redirect to `http://localhost:3000/bce-bhagalpur/admin` (if logged in)
+7. Navigate to `http://localhost:3000/` → should show SaaS landing page (no tenant)
+8. Navigate to `http://localhost:3000/bce-bhagalpur/` → should show institution landing page
+
+> [!CAUTION]
+> This is a large migration. I recommend we go phase-by-phase and test after each one rather than doing everything at once. Would you like me to proceed with this plan, or would you prefer any adjustments?

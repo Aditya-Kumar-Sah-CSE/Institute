@@ -3,9 +3,11 @@
 import React, { useState, useEffect, useTransition } from 'react';
 import Modal from '@/components/ui/Modal';
 import { createClient } from '@/lib/supabase/client';
+import { useTenant } from '@/lib/tenant/TenantProvider';
 import { createGroupChat } from '@/features/chat/actions/chat';
-import { Search, UserPlus, Users, Loader2, Check, AlertCircle } from 'lucide-react';
+import { Search, UserPlus, Users, Loader2, Check, AlertCircle, UserCircle } from 'lucide-react';
 import Image from 'next/image';
+import { TenantLink } from '@/lib/tenant/TenantProvider';
 
 interface NewChatModalProps {
   isOpen: boolean;
@@ -21,7 +23,9 @@ export default function NewChatModal({ isOpen, onClose, onChatCreated }: NewChat
   const [groupName, setGroupName] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [scope, setScope] = useState<'my_institute' | 'global'>('my_institute');
   const [isPending, startTransition] = useTransition();
+  const { tenantId } = useTenant();
   const supabase = createClient();
 
   // Reset state when modal opens
@@ -31,6 +35,7 @@ export default function NewChatModal({ isOpen, onClose, onChatCreated }: NewChat
       setSearch('');
       setGroupName('');
       setSelectedUsers([]);
+      setScope('my_institute');
       setError(null);
     }
   }, [isOpen]);
@@ -39,17 +44,26 @@ export default function NewChatModal({ isOpen, onClose, onChatCreated }: NewChat
     if (!isOpen) return;
     const fetchUsers = async () => {
       setIsFetching(true);
-      const { data } = await supabase
+      
+      let query = supabase
         .from('profiles')
-        .select('id, name, avatar_url, role')
-        .ilike('name', `%${search}%`)
-        .limit(20);
+        .select('id, name, avatar_url, role, institutions(name)')
+        .ilike('name', `%${search}%`);
+      
+      if (scope === 'my_institute' && tenantId) {
+        query = query.eq('institution_id', tenantId);
+      } else if (scope === 'global' && tenantId) {
+        query = query.neq('institution_id', tenantId);
+      }
+      
+      const { data } = await query.limit(50);
+        
       setUsers(data || []);
       setIsFetching(false);
     };
     const timer = setTimeout(fetchUsers, 300);
     return () => clearTimeout(timer);
-  }, [search, isOpen]);
+  }, [search, isOpen, scope, tenantId]);
 
   const handleCreateDirectChat = async (userId: string) => {
     setError(null);
@@ -152,6 +166,34 @@ export default function NewChatModal({ isOpen, onClose, onChatCreated }: NewChat
         />
       </div>
 
+      {/* Scope Toggle */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: 'var(--space-md)' }}>
+        <button
+          onClick={() => setScope('my_institute')}
+          style={{
+            flex: 1, padding: '8px', fontSize: '13px', borderRadius: 'var(--radius-md)', fontWeight: 600,
+            background: scope === 'my_institute' ? 'rgba(0,240,255,0.1)' : 'var(--bg-secondary)',
+            color: scope === 'my_institute' ? 'var(--neon-cyan)' : 'var(--text-secondary)',
+            border: `1px solid ${scope === 'my_institute' ? 'var(--neon-cyan)' : 'var(--border-divider)'}`,
+            cursor: 'pointer', transition: 'all 0.2s'
+          }}
+        >
+          My Institute
+        </button>
+        <button
+          onClick={() => setScope('global')}
+          style={{
+            flex: 1, padding: '8px', fontSize: '13px', borderRadius: 'var(--radius-md)', fontWeight: 600,
+            background: scope === 'global' ? 'rgba(0,240,255,0.1)' : 'var(--bg-secondary)',
+            color: scope === 'global' ? 'var(--neon-cyan)' : 'var(--text-secondary)',
+            border: `1px solid ${scope === 'global' ? 'var(--neon-cyan)' : 'var(--border-divider)'}`,
+            cursor: 'pointer', transition: 'all 0.2s'
+          }}
+        >
+          Global Network
+        </button>
+      </div>
+
       {/* Selected members badges (group mode) */}
       {mode === 'group' && selectedUsers.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: 'var(--space-sm)' }}>
@@ -187,36 +229,75 @@ export default function NewChatModal({ isOpen, onClose, onChatCreated }: NewChat
         ) : users.length === 0 ? (
           <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px', padding: 'var(--space-md)' }}>No users found</p>
         ) : (
-          users.map(user => {
-            const isSelected = selectedUsers.includes(user.id);
-            return (
-              <div
-                key={user.id}
-                onClick={() => mode === 'direct' ? handleCreateDirectChat(user.id) : toggleUserSelection(user.id)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px',
-                  borderRadius: 'var(--radius-md)', cursor: 'pointer',
-                  background: isSelected ? 'rgba(0,240,255,0.08)' : 'var(--bg-secondary)',
-                  border: `1px solid ${isSelected ? 'var(--neon-cyan)' : 'var(--border-divider)'}`,
-                  transition: 'all 0.15s'
-                }}
-              >
-                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
-                  {user.avatar_url ? (
-                    <Image src={user.avatar_url} alt={user.name} fill style={{ objectFit: 'cover' }} unoptimized />
-                  ) : (
-                    <Users size={18} color="var(--text-muted)" />
-                  )}
+          (() => {
+            // Group users by institution
+            const grouped: Record<string, any[]> = {};
+            users.forEach(u => {
+              const instName = u.institutions?.name || 'Platform Users';
+              if (!grouped[instName]) grouped[instName] = [];
+              grouped[instName].push(u);
+            });
+            
+            return Object.entries(grouped).map(([instName, instUsers]) => (
+              <div key={instName} style={{ marginBottom: 'var(--space-sm)' }}>
+                <div style={{ 
+                  padding: '6px 12px', 
+                  fontSize: '12px', 
+                  fontWeight: 700, 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '0.05em', 
+                  color: 'var(--text-secondary)',
+                  borderBottom: '1px solid var(--border-divider)',
+                  marginBottom: 'var(--space-xs)'
+                }}>
+                  {instName}
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</h4>
-                  <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'capitalize' }}>{user.role}</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {instUsers.map(user => {
+                    const isSelected = selectedUsers.includes(user.id);
+                    return (
+                      <div
+                        key={user.id}
+                        onClick={() => mode === 'direct' ? handleCreateDirectChat(user.id) : toggleUserSelection(user.id)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px',
+                          borderRadius: 'var(--radius-md)', cursor: 'pointer',
+                          background: isSelected ? 'rgba(0,240,255,0.08)' : 'var(--bg-secondary)',
+                          border: `1px solid ${isSelected ? 'var(--neon-cyan)' : 'var(--border-divider)'}`,
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
+                          {user.avatar_url ? (
+                            <Image src={user.avatar_url} alt={user.name} fill style={{ objectFit: 'cover' }} unoptimized />
+                          ) : (
+                            <Users size={18} color="var(--text-muted)" />
+                          )}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</h4>
+                          <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'capitalize' }}>{user.role}</p>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span onClick={(e) => e.stopPropagation()}>
+                            <TenantLink 
+                              href={`/dashboard/users/${user.id}`} 
+                              className="text-slate-400 hover:text-[var(--neon-cyan)] transition-colors p-1" 
+                              title="View Profile"
+                            >
+                               <UserCircle size={15} />
+                            </TenantLink>
+                          </span>
+                          {mode === 'direct' && <UserPlus size={15} color="var(--text-muted)" />}
+                          {mode === 'group' && isSelected && <Check size={15} color="var(--neon-cyan)" />}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                {mode === 'direct' && <UserPlus size={15} color="var(--text-muted)" />}
-                {mode === 'group' && isSelected && <Check size={15} color="var(--neon-cyan)" />}
               </div>
-            );
-          })
+            ));
+          })()
         )}
       </div>
 

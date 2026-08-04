@@ -4,6 +4,7 @@ import React from 'react';
 import { Plus, Search, User as UserIcon, Users, LayoutDashboard } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { useTenant } from '@/lib/tenant/TenantProvider';
 import type { ChatConversation } from '@/types/database';
 
 interface ChatSidebarProps {
@@ -28,6 +29,7 @@ export default function ChatSidebar({
   getChatName
 }: ChatSidebarProps) {
   const router = useRouter();
+  const { baseUrl } = useTenant();
 
   return (
     <div className="chat-sidebar">
@@ -35,7 +37,7 @@ export default function ChatSidebar({
         <h2 style={{ fontSize: 'var(--text-xl)', margin: 0, fontWeight: 'bold', color: 'var(--neon-cyan)' }}>Messages</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <button 
-            onClick={() => router.push('/dashboard')}
+            onClick={() => router.push(`${baseUrl}/dashboard`)}
             style={{ padding: '8px', borderRadius: '50%', background: 'var(--bg-elevated)', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
             title="Go to Dashboard"
             onMouseOver={e => { e.currentTarget.style.background = 'var(--neon-cyan)'; e.currentTarget.style.color = '#000'; }}

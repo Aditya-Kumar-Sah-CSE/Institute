@@ -97,6 +97,9 @@ export default function SignupForm({ companyName, logoUrl, tenantId, baseUrl }: 
     Object.entries(formData).forEach(([key, value]) => {
       form.append(key, value);
     });
+    if (baseUrl) {
+      form.append('baseUrl', baseUrl);
+    }
 
     const result = await signUp(form);
     if (result?.error) {

@@ -4,7 +4,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { validateFiles, uploadFiles, serializeAttachmentUrls } from '@/lib/attachments';
 
-export async function getNotices(limit?: number) {
+export async function getNotices(limit?: number, institutionId?: string) {
   // Fire-and-forget cleanup of expired notices
   try {
     const adminSupabase = await createAdminClient();
@@ -25,6 +25,10 @@ export async function getNotices(limit?: number) {
     query = query.limit(limit);
   }
   
+  if (institutionId) {
+    query = query.eq('institution_id', institutionId);
+  }
+  
   const { data, error } = await query;
   
   if (error) {
@@ -38,6 +42,7 @@ export async function getNotices(limit?: number) {
 export async function createNotice(formData: FormData) {
   const title = formData.get('title') as string;
   const content = formData.get('content') as string;
+  const institution_id = formData.get('institution_id') as string | null;
   
   if (!title || !content) {
     return { error: 'Title and content are required' };
@@ -92,7 +97,8 @@ export async function createNotice(formData: FormData) {
     content,
     author_id: user.id,
     image_url,
-    expires_at
+    expires_at,
+    institution_id
   });
   
   if (error) {

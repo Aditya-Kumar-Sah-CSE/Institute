@@ -2,7 +2,7 @@
 // cache-buster to reset Next.js turbopack stale module graph
 
 import React, { useState, useEffect } from 'react';
-import { TenantLink as Link } from '@/lib/tenant/TenantProvider';
+import { TenantLink as Link, useTenant } from '@/lib/tenant/TenantProvider';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -21,9 +21,11 @@ interface SidebarProps {
   isAdmin?: boolean; // Deprecated, use roleView
   roleView?: 'admin' | 'instructor' | 'student';
   isSuperAdmin?: boolean;
+  companyName?: string | null;
+  companyLogo?: string | null;
 }
 
-export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdmin = false }: SidebarProps) {
+export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdmin = false, companyName, companyLogo }: SidebarProps) {
   const pathname = usePathname();
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -120,8 +122,12 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
           <X size={20} />
         </button>
         <Link href={isAdmin ? '/admin' : '/dashboard'} className="sidebar-logo">
-          <span className="sidebar-logo-icon text-neon-cyan">{getIcon('Building', { className: 'w-6 h-6' })}</span>
-          <span className="sidebar-logo-text">Smart  Learning</span>
+          {companyLogo ? (
+            <Image src={companyLogo} alt={companyName || 'Institution Logo'} width={28} height={28} unoptimized className="rounded" style={{ objectFit: 'contain' }} />
+          ) : (
+            <span className="sidebar-logo-icon text-neon-cyan">{getIcon('Building', { className: 'w-6 h-6' })}</span>
+          )}
+          <span className="sidebar-logo-text">{companyName || 'Smart Learning'}</span>
         </Link>
       </div>
 

@@ -5,7 +5,8 @@ import { redirect } from 'next/navigation';
 import { getLevelFromXP } from '@/lib/utils';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { revalidatePath } from 'next/cache';
-
+import { headers } from 'next/headers';
+import { getTenantConfig, generateTenantBaseUrl } from '@/lib/tenant/tenantResolver';
 
 export async function signUp(formData: FormData) {
   const supabase = await createClient();
@@ -46,7 +47,10 @@ export async function signUp(formData: FormData) {
       return { error: adminAuthError.message };
     }
 
-    redirect('/login?message=Account created successfully (Local Auto-Confirmed). Please sign in.');
+    const { tenant, routingMode } = await getTenantConfig();
+    const baseUrl = generateTenantBaseUrl(tenant?.slug || null, routingMode);
+
+    redirect(`${baseUrl}/login?message=Account created successfully (Local Auto-Confirmed). Please sign in.`);
   } else {
     // Production: standard signup flow requiring email confirmation
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3002';
@@ -74,7 +78,13 @@ export async function signUp(formData: FormData) {
     // Sign out the user so they must manually sign in as per requested flow
     await supabase.auth.signOut();
   
-    redirect('/login?message=Account created successfully. Please check your email to confirm.');
+    let baseUrl = formData.get('baseUrl') as string | null;
+    if (baseUrl === null) {
+      const { tenant, routingMode } = await getTenantConfig();
+      baseUrl = generateTenantBaseUrl(tenant?.slug || null, routingMode);
+    }
+
+    redirect(`${baseUrl}/login?message=Account created successfully. Please check your email to confirm.`);
   }
 }
 
@@ -104,13 +114,19 @@ export async function signIn(formData: FormData) {
     return { error: error.message };
   }
 
-  let redirectUrl = '/dashboard';
+  let baseUrl = formData.get('baseUrl') as string | null;
+  if (baseUrl === null) {
+    const { tenant, routingMode } = await getTenantConfig();
+    baseUrl = generateTenantBaseUrl(tenant?.slug || null, routingMode);
+  }
+
+  let redirectUrl = `${baseUrl}/dashboard`;
   if (data.user) {
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single();
     if (profile?.role === 'instructor') {
-      redirectUrl = '/instructor';
+      redirectUrl = `${baseUrl}/instructor`;
     } else if (profile?.role === 'admin') {
-      redirectUrl = '/admin';
+      redirectUrl = `${baseUrl}/admin`;
     }
   }
 
@@ -118,7 +134,8 @@ export async function signIn(formData: FormData) {
   redirect(redirectUrl);
 }
 
-export async function signOut() {
+export async function signOut(formDataOrOverride?: FormData | string) {
+  // ... existing signout logic
   try {
     const supabase = await createClient();
     await supabase.auth.signOut();
@@ -127,7 +144,6 @@ export async function signOut() {
   }
 
   try {
-    // Clear all Supabase auth cookies explicitly
     const { cookies } = await import('next/headers');
     const cookieStore = await cookies();
     const allCookies = cookieStore.getAll();
@@ -140,8 +156,20 @@ export async function signOut() {
     console.error('Error clearing cookies:', error);
   }
 
+  let baseUrl: string | null | undefined = undefined;
+  if (typeof formDataOrOverride === 'string') {
+    baseUrl = formDataOrOverride;
+  } else if (formDataOrOverride instanceof FormData) {
+    baseUrl = formDataOrOverride.get('baseUrl') as string | null;
+  }
+
+  if (baseUrl === undefined || baseUrl === null) {
+    const { tenant, routingMode } = await getTenantConfig();
+    baseUrl = generateTenantBaseUrl(tenant?.slug || null, routingMode);
+  }
+
   revalidatePath('/', 'layout');
-  redirect('/');
+  redirect(`${baseUrl}/`);
 }
 
 export async function resetPasswordRequest(formData: FormData) {
@@ -191,7 +219,10 @@ export async function updatePassword(formData: FormData) {
     });
   }
 
-  redirect('/login?message=Password updated successfully. Please sign in with your new password.');
+  const { tenant, routingMode } = await getTenantConfig();
+  const baseUrl = generateTenantBaseUrl(tenant?.slug || null, routingMode);
+
+  redirect(`${baseUrl}/login?message=Password updated successfully. Please sign in with your new password.`);
 }
 
 export async function getProfile() {

@@ -5,7 +5,7 @@ import Image from 'next/image';
 import LevelBadge from '@/components/shared/LevelBadge';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { User, MessageSquare, Loader2, ChevronLeft, ChevronDown } from 'lucide-react';
-import Link from 'next/link';
+import { TenantLink as Link, useTenant } from '@/lib/tenant/TenantProvider';
 import { useRouter } from 'next/navigation';
 import { createDirectChat } from '@/features/chat/actions/chat';
 import type { LeaderboardEntry } from '@/types';
@@ -20,13 +20,14 @@ export default function LeaderboardTable({ entries, currentUserId }: Leaderboard
   const [isExpanded, setIsExpanded] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const router = useRouter();
+  const { baseUrl } = useTenant();
   const [isSpawningChat, setIsSpawningChat] = useState<string | null>(null);
 
   const startChat = async (userId: string) => {
     setIsSpawningChat(userId);
     try {
       await createDirectChat(userId);
-      router.push('/dashboard/chat');
+      router.push(`${baseUrl}/dashboard/chat`);
     } catch(err) {
       console.error(err);
       setIsSpawningChat(null);

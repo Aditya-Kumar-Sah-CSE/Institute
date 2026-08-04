@@ -8,4 +8,4 @@ export const DynamicXpCelebrator = dynamic(() => import('@/components/shared/XpC
 export const DynamicFeedbackWidget = dynamic(() => import('@/components/shared/FeedbackWidget'), { ssr: false });
 export const DynamicPwaRegister = dynamic(() => import('@/components/PwaRegister'), { ssr: false });
 export const DynamicPWAInstallPrompt = dynamic(() => import('@/components/pwa/PWAInstallPrompt'), { ssr: false });
-export const DynamicCrownBanner = dynamic(() => import('@/app/(dashboard)/profile/components/CrownBanner'), { ssr: false });
+export const DynamicCrownBanner = dynamic(() => import('@/app/[tenantSlug]/(dashboard)/profile/components/CrownBanner'), { ssr: false });

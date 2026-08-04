@@ -1,10 +1,10 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Users, UserMinus, Shield, Pen, Loader2, MoreVertical, UserPlus } from 'lucide-react';
+import { X, Users, UserMinus, Shield, Pen, Loader2, MoreVertical, UserPlus, ShieldHalf, ArrowDownToLine, Trash2, Camera, Check, XCircle } from 'lucide-react';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
-import { updateGroupRole, removeGroupMember } from '@/features/chat/actions/chat';
+import { updateGroupRole, removeGroupMember, updateGroupSettings } from '@/features/chat/actions/chat';
 import type { ChatMember } from '@/types/database'; 
 
 interface ChatInfoPanelProps {
@@ -20,6 +20,12 @@ type UITypeMember = ChatMember & { profile?: { id: string, name: string, avatar_
 export default function ChatInfoPanel({ chatId, isOpen, onClose, currentUserId }: ChatInfoPanelProps) {
   const [members, setMembers] = useState<UITypeMember[]>([]);
   const [chatName, setChatName] = useState<string>('');
+  const [chatIconUrl, setChatIconUrl] = useState<string | null>(null);
+  const [showImagePreview, setShowImagePreview] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [saving, setSaving] = useState(false);
+  
   const [loading, setLoading] = useState(false);
   const supabase = createClient();
   
@@ -28,8 +34,12 @@ export default function ChatInfoPanel({ chatId, isOpen, onClose, currentUserId }
   const fetchInfo = async () => {
     setLoading(true);
     // Fetch Chat info
-    const { data: c } = await supabase.from('chat_conversations').select('name').eq('id', chatId).single();
-    if (c?.name) setChatName(c.name);
+    const { data: c } = await supabase.from('chat_conversations').select('name, icon_url').eq('id', chatId).single();
+    if (c?.name) {
+      setChatName(c.name);
+      setEditName(c.name);
+    }
+    if (c?.icon_url) setChatIconUrl(c.icon_url);
 
     // Fetch members
     const { data: m } = await supabase
@@ -84,6 +94,47 @@ export default function ChatInfoPanel({ chatId, isOpen, onClose, currentUserId }
      }
   };
 
+  const handleSaveGroupSettings = async () => {
+    if (!editName.trim()) return;
+    setSaving(true);
+    try {
+      await updateGroupSettings(chatId, { name: editName });
+      setChatName(editName);
+      setIsEditing(false);
+    } catch (e: any) {
+      alert(e.message || 'Failed to update name');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setSaving(true);
+      const fileExt = file.name.split('.').pop();
+      const filePath = `group-icons/${chatId}-${Math.random()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('branding')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from('branding').getPublicUrl(filePath);
+      const newUrl = data.publicUrl;
+
+      await updateGroupSettings(chatId, { icon_url: newUrl });
+      setChatIconUrl(newUrl);
+    } catch (e: any) {
+      alert(e.message || 'Error uploading image');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // Sort: Founder first, then co-founders, admins, members
   const roleWeights = { 'founder': 0, 'co-founder': 1, 'admin': 2, 'member': 3, 'pending': 4 };
   const sortedMembers = [...members].sort((a,b) => {
@@ -93,15 +144,19 @@ export default function ChatInfoPanel({ chatId, isOpen, onClose, currentUserId }
   });
 
   return (
+    <>
     <AnimatePresence>
       {isOpen && (
-        <>
           <motion.div 
+             key="chat-info-overlay"
              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
              onClick={onClose}
              style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 40 }}
           />
+      )}
+      {isOpen && (
           <motion.div
+             key="chat-info-panel-content"
              initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
              style={{ 
@@ -123,11 +178,51 @@ export default function ChatInfoPanel({ chatId, isOpen, onClose, currentUserId }
              ) : (
                <div style={{ flex: 1, overflowY: 'auto' }}>
                  {/* Group Header Info */}
-                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 0 24px', borderBottom: '1px solid var(--border-divider)' }}>
-                   <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'center' }}>
-                      <Users size={40} color="var(--text-muted)" />
+                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 0 24px', borderBottom: '1px solid var(--border-divider)', position: 'relative' }}>
+                   {isPrivileged && !isEditing && (
+                     <button onClick={() => setIsEditing(true)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '6px', borderRadius: '50%' }} className="hover:bg-white/10 transition">
+                       <Pen size={18} />
+                     </button>
+                   )}
+                   
+                   <div style={{ position: 'relative' }}>
+                     <div 
+                       onClick={() => chatIconUrl && setShowImagePreview(true)}
+                       style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'center', overflow: 'hidden', cursor: chatIconUrl ? 'pointer' : 'default' }}
+                     >
+                        {chatIconUrl ? (
+                          <Image src={chatIconUrl} alt="Group Icon" width={80} height={80} className="w-full h-full object-cover" unoptimized />
+                        ) : (
+                          <Users size={40} color="var(--text-muted)" />
+                        )}
+                     </div>
+                     {isPrivileged && (
+                       <label style={{ position: 'absolute', bottom: 0, right: 0, background: 'var(--neon-cyan)', color: '#000', borderRadius: '50%', padding: '6px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+                         {saving && !isEditing ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
+                         <input type="file" accept="image/*" style={{ display: 'none' }} disabled={saving} onChange={(e) => handleImageUpload(e)} />
+                       </label>
+                     )}
                    </div>
-                   <h2 style={{ marginTop: '16px', marginBottom: '4px', fontSize: '20px', fontWeight: 'bold', color: 'var(--text-primary)' }}>{chatName}</h2>
+
+                   {isEditing ? (
+                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '16px', width: '80%' }}>
+                        <input 
+                          type="text" 
+                          value={editName} 
+                          onChange={(e) => setEditName(e.target.value)} 
+                          autoFocus
+                          style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--neon-cyan)', color: 'var(--text-primary)', outline: 'none' }}
+                        />
+                        <button onClick={handleSaveGroupSettings} disabled={saving} style={{ background: 'var(--neon-cyan)', color: '#000', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>
+                           {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                        </button>
+                        <button onClick={() => { setIsEditing(false); setEditName(chatName); }} disabled={saving} style={{ background: 'transparent', color: 'var(--text-muted)', border: 'none', padding: '8px', cursor: 'pointer' }}>
+                           <XCircle size={18} />
+                        </button>
+                     </div>
+                   ) : (
+                     <h2 style={{ marginTop: '16px', marginBottom: '4px', fontSize: '20px', fontWeight: 'bold', color: 'var(--text-primary)' }}>{chatName}</h2>
+                   )}
                    <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px' }}>Group • {members.length} participants</p>
                  </div>
                  
@@ -184,17 +279,29 @@ export default function ChatInfoPanel({ chatId, isOpen, onClose, currentUserId }
                                    </button>
                                    
                                    {activeMenuId === m.user_id && (
-                                      <div style={{ position: 'absolute', right: 0, top: '28px', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-default)', borderRadius: '8px', zIndex: 60, width: '160px', overflow: 'hidden', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}>
+                                      <div style={{ 
+                                        position: 'absolute', right: 0, top: '100%', marginTop: '8px',
+                                        backgroundColor: 'var(--bg-elevated)', 
+                                        border: '1px solid var(--border-divider)', 
+                                        borderRadius: 'var(--radius-lg)', 
+                                        zIndex: 60, width: 'max-content', minWidth: '190px', maxWidth: '80vw', overflow: 'hidden', 
+                                        boxShadow: '0 12px 30px rgba(0,0,0,0.6)',
+                                        backdropFilter: 'blur(10px)',
+                                        display: 'flex', flexDirection: 'column'
+                                      }}>
                                         {currentUserMember.role === 'founder' && m.role !== 'co-founder' && (
-                                           <button onClick={() => handleRoleChange(m.user_id, 'co-founder')} className="w-full text-left px-4 py-2.5 text-sm hover:bg-slate-700 transition border-b border-white/5">Make Co-Founder</button>
-                                        )}
-                                        {m.role !== 'admin' && (
-                                           <button onClick={() => handleRoleChange(m.user_id, 'admin')} className="w-full text-left px-4 py-2.5 text-sm hover:bg-slate-700 transition border-b border-white/5">Make Admin</button>
+                                           <button onClick={() => handleRoleChange(m.user_id, 'co-founder')} className="hover:bg-[rgba(0,240,255,0.08)] hover:text-[var(--neon-cyan)] transition-colors" style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left', padding: '12px 16px', fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer' }}>
+                                             <Shield size={16} /> Make Co-Founder
+                                           </button>
                                         )}
                                         {m.role !== 'member' && (
-                                           <button onClick={() => handleRoleChange(m.user_id, 'member')} className="w-full text-left px-4 py-2.5 text-sm hover:bg-slate-700 transition border-b border-white/5">Demote to Member</button>
+                                           <button onClick={() => handleRoleChange(m.user_id, 'member')} className="hover:bg-white/5 hover:text-[var(--text-primary)] transition-colors" style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left', padding: '12px 16px', fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer' }}>
+                                             <ArrowDownToLine size={16} /> Demote to Member
+                                           </button>
                                         )}
-                                        <button onClick={() => handleKick(m.user_id)} className="w-full text-left px-4 py-2.5 text-sm hover:bg-red-500/10 text-red-400 transition">Remove from Group</button>
+                                        <button onClick={() => handleKick(m.user_id)} className="hover:bg-red-500/10 hover:text-red-300 transition-colors" style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left', padding: '12px 16px', fontSize: '13px', fontWeight: 500, color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+                                          <UserMinus size={16} /> Remove from Group
+                                        </button>
                                       </div>
                                    )}
                                 </div>
@@ -214,8 +321,27 @@ export default function ChatInfoPanel({ chatId, isOpen, onClose, currentUserId }
                </div>
              )}
           </motion.div>
-        </>
       )}
     </AnimatePresence>
+    
+    {/* Fullscreen Image Preview */}
+    <AnimatePresence>
+      {showImagePreview && chatIconUrl && (
+        <motion.div 
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          onClick={() => setShowImagePreview(false)}
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', padding: '20px' }}
+        >
+          <button onClick={() => setShowImagePreview(false)} style={{ position: 'absolute', top: '24px', right: '24px', background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', padding: '8px', borderRadius: '50%', cursor: 'pointer' }}>
+             <X size={24} />
+          </button>
+          
+          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} transition={{ type: 'spring', damping: 25, stiffness: 300 }} style={{ position: 'relative', width: '100%', maxWidth: '600px', aspectRatio: '1/1' }}>
+             <Image src={chatIconUrl} alt="Enlarged Group Icon" fill className="object-contain" unoptimized />
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+    </>
   );
 }

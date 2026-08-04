@@ -3,6 +3,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
+import { getTenantConfig, generateTenantBaseUrl } from '@/lib/tenant/tenantResolver';
 
 export async function handleRegister(formData: FormData) {
   const sb = await createClient();
@@ -20,11 +21,15 @@ export async function handleRegister(formData: FormData) {
   });
 
   if (authError || !authData.user) {
-    redirect('/apply-instructor?error=' + encodeURIComponent(authError?.message || 'Failed to create account'));
+    const { tenant, routingMode } = await getTenantConfig();
+    const baseUrl = generateTenantBaseUrl(tenant?.slug || null, routingMode);
+    redirect(`${baseUrl}/apply-instructor?error=` + encodeURIComponent(authError?.message || 'Failed to create account'));
   }
 
   // After registration, user is logged in. Redirect to the same page to show the second form.
-  redirect('/apply-instructor');
+  const { tenant, routingMode } = await getTenantConfig();
+  const baseUrl = generateTenantBaseUrl(tenant?.slug || null, routingMode);
+  redirect(`${baseUrl}/apply-instructor`);
 }
 
 export async function handleSubmitApplication(formData: FormData) {

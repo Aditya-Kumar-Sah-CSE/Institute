@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { getTenantConfig, generateTenantBaseUrl } from '@/lib/tenant/tenantResolver';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -11,10 +12,18 @@ export async function GET(request: Request) {
   const next = searchParams.get('next') ?? '/';
   const redirectTo = searchParams.get('redirect_to') ?? next;
 
+  const { tenant, routingMode } = await getTenantConfig();
+  const baseUrl = generateTenantBaseUrl(tenant?.slug || null, routingMode);
+
   // Prevent open redirect: only allow relative paths starting with /
-  const safeRedirect = (redirectTo.startsWith('/') && !redirectTo.startsWith('//'))
+  let safeRedirect = (redirectTo.startsWith('/') && !redirectTo.startsWith('//'))
     ? redirectTo
     : '/';
+
+  // If redirect doesn't already have the base url, add it
+  if (baseUrl && safeRedirect.startsWith('/') && !safeRedirect.startsWith(baseUrl)) {
+    safeRedirect = `${baseUrl}${safeRedirect}`;
+  }
 
   if (token_hash && type) {
     const supabase = await createClient();
@@ -31,5 +40,5 @@ export async function GET(request: Request) {
   }
 
   // return the user to an error page with some instructions
-  return NextResponse.redirect(`${origin}/login?message=Could not authenticate user. Please try requesting a new link.`);
+  return NextResponse.redirect(`${origin}${baseUrl || ''}/login?message=Could not authenticate user. Please try requesting a new link.`);
 }

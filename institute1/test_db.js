@@ -13,13 +13,11 @@ const keyMatch = envFile.match(/SUPABASE_SERVICE_ROLE_KEY=(.*)/) || envFile.matc
 const supabase = createClient(urlMatch[1].trim(), keyMatch[1].trim());
 
 async function check() {
-  const { data: admins } = await supabase.from('profiles').select('id, email, role, institution_id').eq('role', 'admin');
-  console.log("Admins:");
-  console.dir(admins, { depth: null });
-  
-  const { data: insts } = await supabase.from('institutions').select('id, name, slug, logo');
-  console.log("\nInstitutions:");
-  console.dir(insts, { depth: null });
+  const { data: courses } = await supabase
+    .from('courses')
+    .select('title, created_by, profiles(name, institution_id)');
+  require('fs').writeFileSync('courses_dump.json', JSON.stringify(courses, null, 2));
+  console.log("Wrote to courses_dump.json");
 }
 
 check().catch(console.error);

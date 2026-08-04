@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
-import Link from 'next/link';
+import { TenantLink as Link } from '@/lib/tenant/TenantProvider';
 import { createClient } from '@/lib/supabase/client';
 import { markNotificationAsRead, markAllNotificationsAsRead } from '@/features/notifications/actions/notifications';
 import './NotificationBell.css';

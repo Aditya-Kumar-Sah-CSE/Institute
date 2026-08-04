@@ -4,9 +4,6 @@ import { resolveTenantCache } from './tenantCache';
 export async function getTenantConfig() {
   const headersList = await headers();
 
-  // After NextResponse.rewrite(), Next.js exposes injected request headers under:
-  //   1. The original header name (works in wildcard/custom domain modes — no rewrite)
-  //   2. x-middleware-request-[name] prefix (present after path rewrites in dev/Vercel)
   const slug =
     headersList.get('x-tenant-slug') ||
     headersList.get('x-middleware-request-x-tenant-slug') ||
@@ -17,7 +14,7 @@ export async function getTenantConfig() {
     headersList.get('x-middleware-request-x-routing-mode') ||
     'root';
 
-  if (!slug || routingMode === 'root') {
+  if (!slug) {
     return { tenant: null, routingMode: 'root' };
   }
 
@@ -25,7 +22,11 @@ export async function getTenantConfig() {
   return { tenant, routingMode };
 }
 
-export function generateTenantBaseUrl(slug: string | null, routingMode: string | null) {
-  if (routingMode === 'development' && slug) return `/${slug}`;
+/**
+ * Generate the base URL prefix for a tenant.
+ * In the new architecture, the slug is ALWAYS in the path.
+ */
+export function generateTenantBaseUrl(slug: string | null, _routingMode?: string | null) {
+  if (slug) return `/${slug}`;
   return '';
 }

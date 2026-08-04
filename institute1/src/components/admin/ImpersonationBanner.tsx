@@ -4,6 +4,7 @@ import React, { useTransition } from 'react';
 import { ShieldAlert, LogOut } from 'lucide-react';
 import { stopImpersonation } from '@/features/admin/actions/impersonate';
 import { useRouter } from 'next/navigation';
+import { useTenant } from '@/lib/tenant/TenantProvider';
 
 export default function ImpersonationBanner({
   tenantName,
@@ -12,11 +13,12 @@ export default function ImpersonationBanner({
 }) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const { baseUrl } = useTenant();
 
   const handleExit = () => {
     startTransition(async () => {
       await stopImpersonation();
-      router.push('/admin/institutions');
+      router.push(`${baseUrl}/admin/institutions`);
       router.refresh();
     });
   };

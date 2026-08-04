@@ -17,12 +17,16 @@ export type TenantConfig = {
 
 type TenantContextType = {
   tenant: TenantConfig | null;
+  tenantSlug: string;
+  tenantId: string | null;
   routingMode: string;
   baseUrl: string;
 };
 
 const TenantContext = createContext<TenantContextType>({
   tenant: null,
+  tenantSlug: '',
+  tenantId: null,
   routingMode: 'root',
   baseUrl: ''
 });
@@ -33,13 +37,19 @@ export function TenantProvider({
   routingMode, 
   baseUrl 
 }: { 
-  children: ReactNode, 
+  children: ReactNode,
   tenant: TenantConfig | null,
   routingMode: string,
   baseUrl: string
 }) {
   return (
-    <TenantContext.Provider value={{ tenant, routingMode, baseUrl }}>
+    <TenantContext.Provider value={{ 
+      tenant, 
+      tenantSlug: tenant?.slug || '',
+      tenantId: tenant?.id || null,
+      routingMode, 
+      baseUrl 
+    }}>
       {children}
     </TenantContext.Provider>
   );
@@ -49,27 +59,32 @@ export function useTenant() {
   return useContext(TenantContext);
 }
 
-interface TenantLinkProps extends LinkProps {
+interface TenantLinkProps extends Omit<LinkProps, 'href'> {
   href: string;
   children: ReactNode;
   className?: string;
-  onClick?: () => void;
+  onClick?: (e?: any) => void;
   style?: React.CSSProperties;
+  title?: string;
+  target?: string;
+  id?: string;
 }
 
-export function TenantLink({ href, children, className, onClick, style, ...props }: TenantLinkProps) {
+export function TenantLink({ href, children, className, onClick, style, title, target, id, ...props }: TenantLinkProps) {
   const { baseUrl } = useTenant();
   
   // External links skip base url
   const isExternal = href.startsWith('http://') || href.startsWith('https://');
   
-  // Prevent double slashes
-  const formattedHref = (isExternal || href === '') 
+  // Prevent double-prefixing: if href already starts with baseUrl, don't prefix again
+  const alreadyPrefixed = baseUrl && href.startsWith(baseUrl);
+  
+  const formattedHref = (isExternal || href === '' || alreadyPrefixed) 
     ? href 
     : `${baseUrl}${href.startsWith('/') ? href : '/' + href}`;
 
   return (
-    <Link href={formattedHref} className={className} onClick={onClick} style={style} {...props}>
+    <Link href={formattedHref} className={className} onClick={onClick} style={style} title={title} target={target} id={id} {...props}>
       {children}
     </Link>
   );

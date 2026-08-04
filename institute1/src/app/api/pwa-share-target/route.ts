@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 // 'after' allows running async processes safely after sending a response on Vercel without blocking.
 import { after } from 'next/server';
+import { getTenantConfig, generateTenantBaseUrl } from '@/lib/tenant/tenantResolver';
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,7 +15,9 @@ export async function POST(req: NextRequest) {
       console.warn('Share target rejected because payload is too large (> 15MB).');
       // We don't have the user yet so we just redirect to the home/dashboard with an error message
       // and they'll naturally route appropriately if they log in.
-      const errorUrl = new URL('/dashboard?error=FileTooLarge', req.url);
+      const { tenant, routingMode } = await getTenantConfig();
+      const baseUrl = generateTenantBaseUrl(tenant?.slug || null, routingMode);
+      const errorUrl = new URL(`${baseUrl || ''}/dashboard?error=FileTooLarge`, req.url);
       return NextResponse.redirect(errorUrl, { status: 303 });
     }
 
@@ -27,8 +30,9 @@ export async function POST(req: NextRequest) {
     const files = formData.getAll('file') as File[];
     
     if (files.length === 0 && !url && !text) {
-      // If no file and no text/url, redirect to root
-      return NextResponse.redirect(new URL('/', req.url), { status: 303 });
+      const { tenant, routingMode } = await getTenantConfig();
+      const baseUrl = generateTenantBaseUrl(tenant?.slug || null, routingMode);
+      return NextResponse.redirect(new URL(`${baseUrl || ''}/`, req.url), { status: 303 });
     }
 
     const cookieStore = await cookies();
@@ -60,7 +64,9 @@ export async function POST(req: NextRequest) {
     
     const user = userRes.data.user;
     if (!user) {
-      return NextResponse.redirect(new URL('/login', req.url), { status: 303 });
+      const { tenant, routingMode } = await getTenantConfig();
+      const baseUrl = generateTenantBaseUrl(tenant?.slug || null, routingMode);
+      return NextResponse.redirect(new URL(`${baseUrl || ''}/login`, req.url), { status: 303 });
     }
 
     const attachments: { url: string; name: string }[] = [];
@@ -112,14 +118,17 @@ export async function POST(req: NextRequest) {
       .eq('id', user.id)
       .single();
 
+    const { tenant, routingMode } = await getTenantConfig();
+    const baseUrl = generateTenantBaseUrl(tenant?.slug || null, routingMode);
+
     let redirectUrl: URL;
     const isStudent = profile?.role === 'user' || profile?.role === 'student';
 
     if (isStudent) {
-      redirectUrl = new URL('/share-doubt', req.url);
+      redirectUrl = new URL(`${baseUrl}/share-doubt`, req.url);
     } else {
       // Redirect to the Share Upload UI for instructors
-      redirectUrl = new URL('/instructor/share-upload', req.url);
+      redirectUrl = new URL(`${baseUrl}/instructor/share-upload`, req.url);
     }
     
     redirectUrl.searchParams.set('files', encodeURIComponent(JSON.stringify(attachments)));
@@ -128,6 +137,8 @@ export async function POST(req: NextRequest) {
 
   } catch (err) {
     console.error('Share Target Error:', err);
-    return NextResponse.redirect(new URL('/instructor?error=ShareFailed', req.url), { status: 303 });
+    const { tenant, routingMode } = await getTenantConfig();
+    const baseUrl = generateTenantBaseUrl(tenant?.slug || null, routingMode);
+    return NextResponse.redirect(new URL(`${baseUrl || ''}/instructor?error=ShareFailed`, req.url), { status: 303 });
   }
 }

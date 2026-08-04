@@ -38,6 +38,7 @@ export default function Input({
           type={inputType}
           className={`input-field ${icon ? 'has-icon' : ''} ${isPassword ? 'has-password-toggle' : ''}`}
           style={isPassword ? { paddingRight: '2.5rem' } : undefined}
+          suppressHydrationWarning
           {...props}
         />
         {isPassword && (

@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getUser } from '@/lib/supabase/server';
+import { getTenantConfig, generateTenantBaseUrl } from '@/lib/tenant/tenantResolver';
 
 /**
  * PWA Smart Start Page
@@ -14,9 +15,12 @@ import { getUser } from '@/lib/supabase/server';
  */
 export default async function PwaStartPage() {
   const user = await getUser();
+  const { tenant, routingMode } = await getTenantConfig();
+  const baseUrl = generateTenantBaseUrl(tenant?.slug || null, routingMode);
+
   if (user) {
-    redirect('/dashboard');
+    redirect(`${baseUrl}/dashboard`);
   } else {
-    redirect('/');
+    redirect(`${baseUrl}/`);
   }
 }

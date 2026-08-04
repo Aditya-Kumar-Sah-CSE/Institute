@@ -35,13 +35,18 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // Public routes that don't require auth
-  const publicRoutes = ['/', '/login', '/signup', '/apply-instructor'];
-  const isPublicRoute = publicRoutes.includes(pathname);
-
   // Tenant prefix resolution for redirects
   const tenantSlug = request.headers.get('x-tenant-slug');
   const routingMode = request.headers.get('x-routing-mode');
+
+  let effectivePathname = pathname;
+  if (routingMode === 'development' && tenantSlug && pathname.startsWith(`/${tenantSlug}`)) {
+    effectivePathname = pathname.replace(`/${tenantSlug}`, '') || '/';
+  }
+
+  // Public routes that don't require auth
+  const publicRoutes = ['/', '/login', '/signup', '/apply-instructor'];
+  const isPublicRoute = publicRoutes.includes(effectivePathname);
 
   const getTenantUrl = (targetPath: string) => {
     const newUrl = request.nextUrl.clone();
@@ -92,7 +97,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   // If authenticated and trying to access login/signup/landing
-  if (user && (pathname === '/login' || pathname === '/signup' || pathname === '/')) {
+  if (user && (effectivePathname === '/login' || effectivePathname === '/signup' || effectivePathname === '/')) {
     // Redirect based on role
     if (userRole === 'instructor') {
       return redirectWithCookies(getTenantUrl('/instructor'));
@@ -104,23 +109,23 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Admin route protection
-  if (user && pathname.startsWith('/admin')) {
+  if (user && effectivePathname.startsWith('/admin')) {
     if (userRole !== 'admin' && userRole !== 'super_admin') {
       return redirectWithCookies(getTenantUrl('/dashboard'));
     }
     
     // Strict isolation: Institute Admins cannot access Super Admin governance pages
     if (userRole === 'admin') {
-      if (pathname.startsWith('/admin/institutions') || 
-          pathname.startsWith('/admin/domain-settings') || 
-          pathname.startsWith('/admin/payment-model')) {
+      if (effectivePathname.startsWith('/admin/institutions') || 
+          effectivePathname.startsWith('/admin/domain-settings') || 
+          effectivePathname.startsWith('/admin/payment-model')) {
         return redirectWithCookies(getTenantUrl('/admin'));
       }
     }
   }
 
   // Instructor route protection
-  if (user && pathname.startsWith('/instructor') && pathname !== '/apply-instructor') {
+  if (user && effectivePathname.startsWith('/instructor') && effectivePathname !== '/apply-instructor') {
     if (userRole !== 'instructor' && userRole !== 'admin' && userRole !== 'super_admin') {
       return redirectWithCookies(getTenantUrl('/dashboard'));
     }

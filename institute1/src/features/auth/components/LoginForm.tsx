@@ -86,6 +86,9 @@ export default function LoginForm({ companyName, logoUrl, baseUrl }: LoginFormPr
     const form = new FormData();
     form.append('email', formData.email);
     form.append('password', formData.password);
+    if (baseUrl) {
+      form.append('baseUrl', baseUrl);
+    }
 
     const result = await signIn(form);
     if (result?.error) {

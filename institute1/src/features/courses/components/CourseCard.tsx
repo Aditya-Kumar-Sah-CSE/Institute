@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
+import { TenantLink as Link, useTenant } from '@/lib/tenant/TenantProvider';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Card from '@/components/ui/Card';
@@ -39,6 +39,7 @@ export default function CourseCard({ course, progress, status, certificateId }: 
   const [enrolledStudents, setEnrolledStudents] = useState<any[]>([]);
   const [totalEnrolled, setTotalEnrolled] = useState(0);
   const router = useRouter();
+  const { baseUrl } = useTenant();
 
   useEffect(() => {
     getTopEnrolledStudents(course.id, 3).then(res => {
@@ -64,7 +65,7 @@ export default function CourseCard({ course, progress, status, certificateId }: 
   const handleShare = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const url = `${window.location.origin}/courses/${course.id}`;
+    const url = `${window.location.origin}${baseUrl}/courses/${course.id}`;
     try {
       await navigator.clipboard.writeText(url);
       setAlertMessage('Course link copied to clipboard!');
@@ -200,7 +201,7 @@ export default function CourseCard({ course, progress, status, certificateId }: 
                 e.preventDefault();
                 e.stopPropagation();
                 setIsStudentsModalOpen(false);
-                router.push(`/courses/${course.id}#joined-students`);
+                router.push(`${baseUrl}/courses/${course.id}#joined-students`);
               }}
             >
               View all {totalEnrolled} joined students

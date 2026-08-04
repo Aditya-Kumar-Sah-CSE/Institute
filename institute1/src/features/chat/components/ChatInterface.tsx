@@ -14,10 +14,12 @@ import ChatComposer from './ChatComposer';
 import ChatSidebar from './ChatSidebar';
 import ChatInfoPanel from './ChatInfoPanel';
 import { useRouter } from 'next/navigation';
+import { useTenant } from '@/lib/tenant/TenantProvider';
 import './ChatInterface.css';
 
 export default function ChatInterface() {
   const router = useRouter();
+  const { baseUrl } = useTenant();
   const [chats, setChats] = useState<ChatConversation[]>([]);
   const [activeChat, setActiveChat] = useState<ChatConversation | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -360,7 +362,7 @@ export default function ChatInterface() {
                  </div>
                </div>
                 <button 
-                  onClick={() => router.push('/dashboard')} 
+                  onClick={() => router.push(`${baseUrl}/dashboard`)} 
                   style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', color: 'var(--neon-cyan)', padding: '8px', borderRadius: '50%', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   title="Go to Dashboard"
                 >

@@ -61,6 +61,7 @@ export default function CourseCatalog({ courses, enrollments = {}, certificatesM
               className={`btn-ghost ${enrollmentFilter === 'all' ? 'active' : ''}`}
               style={{ padding: '8px 16px', borderRadius: '4px', background: enrollmentFilter === 'all' ? 'var(--bg-secondary)' : 'transparent', color: enrollmentFilter === 'all' ? 'var(--text-primary)' : 'var(--text-secondary)', border: 'none', cursor: 'pointer', fontSize: 'var(--text-sm)', fontWeight: enrollmentFilter === 'all' ? 'var(--weight-semibold)' : 'normal' }}
               onClick={() => setEnrollmentFilter('all')}
+              suppressHydrationWarning
             >
               All Courses
             </button>
@@ -68,6 +69,7 @@ export default function CourseCatalog({ courses, enrollments = {}, certificatesM
               className={`btn-ghost ${enrollmentFilter === 'enrolled' ? 'active' : ''}`}
               style={{ padding: '8px 16px', borderRadius: '4px', background: enrollmentFilter === 'enrolled' ? 'var(--bg-secondary)' : 'transparent', color: enrollmentFilter === 'enrolled' ? 'var(--text-primary)' : 'var(--text-secondary)', border: 'none', cursor: 'pointer', fontSize: 'var(--text-sm)', fontWeight: enrollmentFilter === 'enrolled' ? 'var(--weight-semibold)' : 'normal' }}
               onClick={() => setEnrollmentFilter('enrolled')}
+              suppressHydrationWarning
             >
               My Enrolled
             </button>
@@ -81,6 +83,7 @@ export default function CourseCatalog({ courses, enrollments = {}, certificatesM
               key={f}
               className={`filter-btn ${semesterFilter === f ? 'active' : ''}`}
               onClick={() => setSemesterFilter(f)}
+              suppressHydrationWarning
               style={{
                 padding: '6px 12px',
                 borderRadius: 'var(--radius-full)',

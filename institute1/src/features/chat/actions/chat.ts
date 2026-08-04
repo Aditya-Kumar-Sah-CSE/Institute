@@ -113,6 +113,9 @@ export async function createGroupChat(groupName: string, memberIds: string[]) {
   if (!userData?.user) throw new Error('Not authenticated');
 
   const currentUserId = userData.user.id;
+  
+  const { data: profile } = await supabase.from('profiles').select('institution_id').eq('id', currentUserId).single();
+  const institutionId = profile?.institution_id || null;
 
   if (!groupName.trim()) throw new Error('Group name is required');
   if (memberIds.length === 0) throw new Error('At least one member is required');
@@ -125,6 +128,7 @@ export async function createGroupChat(groupName: string, memberIds: string[]) {
       name: groupName.trim(),
       is_private: true,
       created_by: currentUserId,
+      institution_id: institutionId
     })
     .select('id')
     .single();
@@ -201,5 +205,35 @@ export async function removeGroupMember(conversationId: string, targetUserId: st
     .eq('user_id', targetUserId);
     
   if (error) throw error;
+  return true;
+}
+
+export async function updateGroupSettings(conversationId: string, updates: { name?: string, icon_url?: string }) {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData?.user) throw new Error('Not authenticated');
+
+  // Verify permission
+  const { data: myMember } = await supabase.from('chat_members')
+    .select('role')
+    .eq('conversation_id', conversationId)
+    .eq('user_id', userData.user.id)
+    .single();
+
+  if (!myMember || !['founder', 'co-founder', 'admin'].includes(myMember.role)) {
+    throw new Error('Not enough permissions to edit group settings');
+  }
+
+  const { error } = await supabase
+    .from('chat_conversations')
+    .update({ 
+       ...(updates.name && { name: updates.name.trim() }),
+       ...(updates.icon_url !== undefined && { icon_url: updates.icon_url }),
+       updated_at: new Date().toISOString()
+    })
+    .eq('id', conversationId);
+
+  if (error) throw error;
+  revalidatePath('/dashboard/chat');
   return true;
 }

@@ -1,8 +1,6 @@
-import { unstable_cache } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 
-export const resolveTenantCache = unstable_cache(
-  async (slug: string, routingMode: string) => {
+export const resolveTenantCache = async (slug: string, routingMode: string) => {
     // Create an admin client bypassing RLS specifically for fetching basic tenant info.
     // We shouldn't use the standard Server Component client if RLS expects user session to fetch institution,
     // because unauthenticated users (e.g. login page) also need this data!
@@ -16,7 +14,7 @@ export const resolveTenantCache = unstable_cache(
 
     let query = supabaseAdmin
       .from('institutions')
-      .select('id, name, slug, status, plan_id, primary_domain, custom_domain')
+      .select('id, name, slug, status, plan_id, primary_domain, custom_domain, logo')
       .eq('status', 'active');
       
     if (routingMode === 'custom') {
@@ -32,7 +30,4 @@ export const resolveTenantCache = unstable_cache(
     }
 
     return data;
-  },
-  ['tenant-resolution'],
-  { revalidate: 300, tags: ['tenant'] } // Revalidates every 5 minutes
-);
+};

@@ -12,9 +12,10 @@ interface NoticeManagerProps {
   notices: Notice[];
   currentUserId: string;
   currentUserRole: string;
+  institutionId?: string;
 }
 
-export default function NoticeManager({ notices, currentUserId, currentUserRole }: NoticeManagerProps) {
+export default function NoticeManager({ notices, currentUserId, currentUserRole, institutionId }: NoticeManagerProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -24,6 +25,9 @@ export default function NoticeManager({ notices, currentUserId, currentUserRole 
     setLoading(true);
     setError(null);
     const formData = new FormData(e.currentTarget);
+    if (institutionId) {
+      formData.append('institution_id', institutionId);
+    }
     
     const result = await createNotice(formData);
     if (result.error) {

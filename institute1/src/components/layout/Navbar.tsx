@@ -2,7 +2,7 @@
 // cache-buster to reset Next.js turbopack stale module graph
 
 import React from 'react';
-import { TenantLink as Link } from '@/lib/tenant/TenantProvider';
+import { TenantLink as Link, useTenant } from '@/lib/tenant/TenantProvider';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import NotificationBell from './NotificationBell';
@@ -25,6 +25,7 @@ interface NavbarProps {
 
 export default function Navbar({ title, companyName, companyLogo, profile, currentView = 'student' }: NavbarProps) {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const { tenant } = useTenant();
   const pathname = usePathname();
   const pageTitle = title || (pathname === '/dashboard' ? 'Dashboard' : 
                     pathname.startsWith('/admin') ? 'Admin Panel' :
@@ -43,18 +44,21 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
     }
   }
 
+  const navName = tenant?.name || companyName;
+  const navLogo = tenant?.logo || companyLogo;
+
   return (
     <header className="dashboard-navbar" style={{ padding: '0 var(--space-md)' }}>
       <div className="navbar-left" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-        {companyName && (
+        {navName && (
           <Link href={homeLink} className="company-branding-nav" style={{ padding: '0', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            {companyLogo ? (
-              <Image unoptimized src={companyLogo} alt={companyName} width={32} height={32} className="company-nav-logo" style={{ width: '32px', height: '32px', objectFit: 'contain' }} priority />
+            {navLogo ? (
+              <Image unoptimized src={navLogo} alt={navName} width={32} height={32} className="company-nav-logo" style={{ width: 'auto', height: '32px', objectFit: 'contain' }} priority />
             ) : (
-              <Image unoptimized src="/icon-192x192.png" alt={companyName} width={32} height={32} className="company-nav-logo" priority />
+              <Image unoptimized src="/icon-192x192.png" alt={navName} width={32} height={32} className="company-nav-logo" style={{ width: 'auto', height: '32px', objectFit: 'contain' }} priority />
             )}
             {/* Desktop only company name */}
-            <span className="company-nav-name desktop-only hidden md:block" style={{ fontWeight: 'bold' }}>{companyName}</span>
+            <span className="company-nav-name desktop-only hidden md:block" style={{ fontWeight: 'bold' }}>{navName}</span>
           </Link>
         )}
         <h1 className="navbar-title desktop-only hidden md:block" style={{ marginLeft: 'var(--space-2)' }}>{pageTitle}</h1>
