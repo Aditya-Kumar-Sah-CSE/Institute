@@ -62,7 +62,11 @@ export default function InstitutionLanding({
       <nav className="inst-nav">
         <div className="inst-nav-inner">
           <Link href="/" className="inst-brand">
-            <LogoAvatar name={tenant.name} size={36} />
+            {tenant.logo ? (
+              <img src={tenant.logo} alt={tenant.name} style={{ width: '36px', height: '36px', objectFit: 'contain', borderRadius: '4px' }} />
+            ) : (
+              <LogoAvatar name={tenant.name} size={36} />
+            )}
             <span className="inst-brand-name">{tenant.name}</span>
           </Link>
 
@@ -129,7 +133,11 @@ export default function InstitutionLanding({
       <footer className="inst-footer">
         <div className="inst-footer-inner">
           <div className="inst-footer-brand">
-            <LogoAvatar name={tenant.name} size={28} />
+            {tenant.logo ? (
+              <img src={tenant.logo} alt={tenant.name} style={{ width: '28px', height: '28px', objectFit: 'contain', borderRadius: '4px' }} />
+            ) : (
+              <LogoAvatar name={tenant.name} size={28} />
+            )}
             <span>{tenant.name}</span>
           </div>
           <p className="inst-footer-copy">

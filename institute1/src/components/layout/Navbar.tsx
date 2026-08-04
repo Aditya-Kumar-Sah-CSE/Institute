@@ -65,9 +65,9 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
       </div>
 
       <div className="navbar-center mobile-only md:hidden">
-        {companyName && (
+        {navName && (
           <span className="company-nav-name-mobile" style={{ fontWeight: 'bold', fontSize: 'var(--text-lg)', color: 'var(--text-primary)' }}>
-            {companyName}
+            {navName}
           </span>
         )}
       </div>
