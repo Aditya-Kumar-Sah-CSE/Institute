@@ -16,15 +16,22 @@ import ResetPasswordPage from '../(auth)/reset-password/page';
 export default async function TenantPage({
   params,
 }: {
-  params: Promise<{ tenantOverride: string }>;
+  params: Promise<{ tenantOverride: string | string[] }>;
 }) {
   const { tenantOverride } = await params;
+
+  // Next.js App Router explicitly swallows middleware rewrites if a catch-all route returns a valid
+  // component. To force Next.js to honor `NextResponse.rewrite("/login")` or `/dashboard`, we
+  // natively reject any URL path beyond the first segment by invoking `notFound()`.
+  if (Array.isArray(tenantOverride) && tenantOverride.length > 1) {
+    notFound();
+  }
 
   // 1. Try header-based resolution first (works when middleware injects headers)
   let { tenant, routingMode } = await getTenantConfig();
   
   // 2. Fallback: extract slug directly
-  const slug = tenantOverride;
+  const slug = Array.isArray(tenantOverride) ? tenantOverride[0] : tenantOverride;
   if (!tenant && slug) {
     tenant = await resolveTenantCache(slug, 'development');
     routingMode = 'subpath';
