@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { TenantLink as Link } from '@/lib/tenant/tenantContext';
+import { TenantLink as Link } from '@/lib/tenant/TenantProvider';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -88,7 +88,14 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
 
   // Filter restricted tabs for non-super-admins
   if (currentView === 'admin' && !isSuperAdmin) {
-    navItems = navItems.filter(item => item.label !== 'Instructors' && item.label !== 'Admins' && item.label !== 'Feedback');
+    navItems = navItems.filter(item => 
+      item.label !== 'Instructors' && 
+      item.label !== 'Admins' && 
+      item.label !== 'Feedback' &&
+      item.label !== 'Institutions' &&
+      item.label !== 'Domain Settings' &&
+      item.label !== 'Payment'
+    );
   }
   if (currentView === 'instructor' && !isSuperAdmin) {
     navItems = navItems.filter(item => item.label !== 'Feedback');
@@ -185,20 +192,23 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
         >
           {isNavWrapped ? <ChevronRight size={18} /> : <ChevronLeft size={24} />}
         </button>
-        {navItems.map((item) => (
+        {navItems.map((item) => {
+          const isActive = pathname === item.href || (item.href !== '/' && pathname.endsWith(item.href));
+          return (
           <Link
             key={item.href}
             href={item.href}
-            className={`sidebar-nav-item ${pathname === item.href ? 'active' : ''}`}
+            className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
             onClick={handleNavClick}
           >
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span className="sidebar-nav-icon">{getIcon(item.icon, { className: 'w-5 h-5' })}</span>
             </div>
             <span className="sidebar-nav-label">{item.label}</span>
-            {pathname === item.href && <span className="sidebar-nav-indicator" />}
+            {isActive && <span className="sidebar-nav-indicator" />}
           </Link>
-        ))}
+          );
+        })}
       </nav>
 
       <div className="sidebar-footer">

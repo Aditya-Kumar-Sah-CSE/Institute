@@ -9,12 +9,15 @@ export default async function AdminStudentsPage() {
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single();
+  const { data: profile } = await supabase.from('profiles').select('role, institution_id').eq('id', user?.id).single();
   const isInstructor = profile?.role === 'instructor';
+
+  const isSuperAdmin = profile?.role === 'super_admin';
+  const instId = profile?.institution_id;
 
   // Fetch all users and their enrollments to calculate progress
   // We need all users to show member breakdown, but only students for the table
-  const { data: allUsers } = await supabase
+  let usersQuery = supabase
     .from('profiles')
     .select(`
       *,
@@ -30,6 +33,12 @@ export default async function AdminStudentsPage() {
       )
     `)
     .order('xp', { ascending: false });
+
+  if (!isSuperAdmin && instId) {
+    usersQuery = usersQuery.eq('institution_id', instId);
+  }
+
+  const { data: allUsers } = await usersQuery;
 
   const students = allUsers?.filter(u => u.role === 'student') || [];
   const instructors = allUsers?.filter(u => u.role === 'instructor') || [];

@@ -1,0 +1,327 @@
+/* Institution Landing – Simple & Clean */
+
+.inst-landing {
+  background: #0a0a0f;
+  color: #e8e8ed;
+  min-height: 100vh;
+  font-family: inherit;
+  overflow-x: hidden;
+}
+.inst-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--tenant-primary, #6366f1);
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+/* ── Nav ── */
+.inst-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(10, 10, 15, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.inst-nav-inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0.85rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.inst-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+.inst-logo-wrap {
+  background: #fff;
+  border-radius: 8px;
+  padding: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+}
+.inst-logo-wrap img {
+  border-radius: 6px;
+  object-fit: contain;
+}
+.inst-brand-name {
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: -0.3px;
+}
+.inst-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.inst-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.5rem 1.1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.inst-nav-btn.outline {
+  border: 1px solid var(--tenant-primary, #6366f1);
+  color: var(--tenant-primary, #6366f1);
+  background: transparent;
+}
+.inst-nav-btn.outline:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.inst-mobile-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: #e8e8ed;
+  cursor: pointer;
+  padding: 4px;
+}
+.inst-mobile-dropdown {
+  display: none;
+  padding: 1rem 1.5rem 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.inst-mobile-dropdown a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  color: #e8e8ed;
+  text-decoration: none;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.04);
+}
+.desktop-only {
+  display: flex;
+}
+
+/* ── Hero ── */
+.inst-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 7rem 1.5rem 4rem;
+  min-height: 55vh;
+}
+.inst-hero-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.inst-hero-inner {
+  position: relative;
+  z-index: 1;
+  max-width: 640px;
+}
+.inst-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.4rem 1rem;
+  border: 1px solid;
+  border-radius: 100px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  letter-spacing: 0.2px;
+}
+.inst-hero-title {
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 800;
+  line-height: 1.15;
+  margin: 0 0 1rem 0;
+  letter-spacing: -1px;
+}
+.inst-hero-sub {
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: #9ca3af;
+  max-width: 480px;
+  margin: 0 auto 2rem;
+}
+.inst-hero-ctas {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.inst-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.85rem 1.75rem;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.15s, filter 0.15s;
+}
+.inst-cta:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+}
+.inst-cta.primary {
+  color: #fff;
+  box-shadow: 0 8px 24px -8px var(--tenant-primary, #6366f1);
+}
+
+/* ── Portal Cards ── */
+.inst-portals {
+  padding: 4rem 1.5rem 5rem;
+  max-width: 1120px;
+  margin: 0 auto;
+}
+.inst-section-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  text-align: center;
+  margin: 0 0 0.5rem 0;
+  letter-spacing: -0.5px;
+}
+.inst-section-sub {
+  text-align: center;
+  color: #9ca3af;
+  margin: 0 0 2.5rem 0;
+  font-size: 1rem;
+}
+.inst-portal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.25rem;
+}
+.inst-portal-card {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  padding: 2rem 1.75rem;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+.inst-portal-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+}
+.inst-portal-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+}
+.inst-portal-card h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+}
+.inst-portal-card p {
+  color: #9ca3af;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  margin: 0 0 1.25rem 0;
+  flex-grow: 1;
+}
+.inst-portal-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* ── Footer ── */
+.inst-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 1.5rem;
+}
+.inst-footer-inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.inst-footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.inst-footer-brand img {
+  border-radius: 6px;
+  background: #fff;
+  padding: 2px;
+}
+.inst-footer-copy {
+  color: #6b7280;
+  font-size: 0.82rem;
+  margin: 0;
+}
+.inst-footer-copy strong {
+  color: #d1d5db;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none !important;
+  }
+  .inst-mobile-toggle {
+    display: block;
+  }
+  .inst-mobile-dropdown {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .inst-hero {
+    padding: 5rem 1.25rem 3rem;
+    min-height: auto;
+  }
+  .inst-hero-title {
+    font-size: 2rem;
+  }
+  .inst-portals {
+    padding: 3rem 1.25rem 4rem;
+  }
+  .inst-portal-grid {
+    grid-template-columns: 1fr;
+  }
+  .inst-footer-inner {
+    flex-direction: column;
+    text-align: center;
+  }
+}

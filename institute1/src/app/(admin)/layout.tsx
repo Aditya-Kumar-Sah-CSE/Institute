@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Sidebar from '@/components/layout/Sidebar';
 import Navbar from '@/components/layout/Navbar';
@@ -39,22 +39,35 @@ export default async function AdminLayout({
     );
   }
 
-  if (profile.role !== 'admin') {
+  const isDbSuperAdmin = profile.role === 'super_admin';
+  const isSuperAdminEmail = user.email === SUPER_ADMIN_EMAIL;
+  const isSuperAdmin = isDbSuperAdmin || isSuperAdminEmail;
+
+  if (profile.role !== 'admin' && !isSuperAdmin) {
     redirect('/dashboard');
   }
 
-  const { data: settings } = await supabase
-    .from('company_settings')
-    .select('company_name, logo_url')
-    .single();
+  let companyName = null;
+  let companyLogo = null;
+
+  if (isSuperAdmin) {
+    const { data: settings } = await supabase.from('company_settings').select('company_name, logo_url').single();
+    companyName = settings?.company_name;
+    companyLogo = settings?.logo_url;
+  } else if (profile.institution_id) {
+    const adminSb = await createAdminClient();
+    const { data: inst } = await adminSb.from('institutions').select('name, logo').eq('id', profile.institution_id).single();
+    companyName = inst?.name;
+    companyLogo = inst?.logo;
+  }
 
   return (
     <div className="dashboard-layout">
-      <Sidebar profile={profile} isAdmin={true} isSuperAdmin={profile.email === SUPER_ADMIN_EMAIL} />
+      <Sidebar profile={profile} isAdmin={true} isSuperAdmin={isSuperAdmin} />
       <div className="dashboard-main">
         <Navbar 
-          companyName={settings?.company_name} 
-          companyLogo={settings?.logo_url} 
+          companyName={companyName} 
+          companyLogo={companyLogo} 
           profile={profile}
           currentView="admin"
         />

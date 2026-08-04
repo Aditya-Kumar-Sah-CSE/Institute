@@ -26,7 +26,16 @@ export async function approveInstitution(requestId: string) {
     
     // Auth Check
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user || user.email !== SUPER_ADMIN_EMAIL) {
+    if (!user) return { error: 'Unauthorized.' };
+    
+    // Check if the user is explicitly set as the super admin email, OR if they have the super_admin database role
+    let isSuperAdmin = user.email === SUPER_ADMIN_EMAIL;
+    if (!isSuperAdmin) {
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+      isSuperAdmin = profile?.role === 'super_admin';
+    }
+    
+    if (!isSuperAdmin) {
       return { error: 'Unauthorized: Only Super Admin can approve institutions.' };
     }
 
@@ -66,6 +75,7 @@ export async function approveInstitution(requestId: string) {
       .insert({
         name: req.institute_name,
         slug: slug,
+        logo: req.logo_url, // Pipe the pending logo into production
         primary_domain: primary_domain,
         status: 'active'
       })
@@ -135,8 +145,14 @@ export async function rejectInstitution(requestId: string) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Unauthorized.' };
+    let isSuperAdmin = user.email === SUPER_ADMIN_EMAIL;
+    if (!isSuperAdmin) {
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+      isSuperAdmin = profile?.role === 'super_admin';
+    }
     
-    if (!user || user.email !== SUPER_ADMIN_EMAIL) {
+    if (!isSuperAdmin) {
       return { error: 'Unauthorized.' };
     }
     
@@ -158,8 +174,14 @@ export async function deleteInstitution(institutionId: string) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Unauthorized.' };
+    let isSuperAdmin = user.email === SUPER_ADMIN_EMAIL;
+    if (!isSuperAdmin) {
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+      isSuperAdmin = profile?.role === 'super_admin';
+    }
     
-    if (!user || user.email !== SUPER_ADMIN_EMAIL) {
+    if (!isSuperAdmin) {
       return { error: 'Unauthorized.' };
     }
     
@@ -168,6 +190,15 @@ export async function deleteInstitution(institutionId: string) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
+    
+    // Cleanup: First delete all users bound to this institution to prevent foreign key errors and ghost auth accounts
+    const { data: tenantUsers } = await supabaseAdmin.from('profiles').select('id').eq('institution_id', institutionId);
+    
+    if (tenantUsers && tenantUsers.length > 0) {
+       for (const u of tenantUsers) {
+          await supabaseAdmin.auth.admin.deleteUser(u.id);
+       }
+    }
     
     const { error } = await supabaseAdmin
       .from('institutions')

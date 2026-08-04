@@ -16,7 +16,7 @@ export const resolveTenantCache = unstable_cache(
 
     let query = supabaseAdmin
       .from('institutions')
-      .select('id, name, slug, status, plan_id, primary_domain, custom_domain, logo, theme')
+      .select('id, name, slug, status, plan_id, primary_domain, custom_domain')
       .eq('status', 'active');
       
     if (routingMode === 'custom') {

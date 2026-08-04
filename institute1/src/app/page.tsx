@@ -1,7 +1,7 @@
 import React from 'react';
 
-// ISR: Serve from CDN cache, revalidate every hour.
-export const revalidate = 3600;
+// Removed ISR revalidate to prevent dynamic rewrite crash
+// export const revalidate = 3600;
 
 import Link from 'next/link';
 import Image from 'next/image';
@@ -16,9 +16,11 @@ import {
 import AutoScrollMarquee from '@/components/ui/AutoScrollMarquee';
 import ExploreMoreWrapper from './components/ExploreMoreWrapper';
 import LandingNavbar from '@/components/landing/LandingNavbar';
+import InstitutionLanding from '@/components/landing/InstitutionLanding';
 import TypewriterEffect from '@/components/ui/TypewriterEffect';
 import './Landing.css';
 import './Pricing.css';
+import '@/components/landing/InstitutionLanding.css';
 import { createClient } from '@/lib/supabase/server';
 import { getTenantConfig, generateTenantBaseUrl } from '@/lib/tenant/tenantResolver';
 import { redirect } from 'next/navigation';
@@ -42,16 +44,15 @@ export default async function LandingPage({
     }
   }
 
-  // If a tenant is viewing their root domain/route, send them to login.
+  // If a tenant is viewing their root domain/route, render their custom landing page.
   if (tenant) {
-    const baseUrl = generateTenantBaseUrl(tenant.slug, routingMode);
-    redirect(`${baseUrl}/login`);
+    return <InstitutionLanding tenant={tenant} routingMode={routingMode as any} />;
   }
 
   const supabase = await createClient();
   const { data: settings } = await supabase.from('company_settings').select('*').single();
   const companyName = settings?.company_name || 'Smart Learning';
-  const logoUrl = settings?.logo_url || '/images/smart_learning%20logo.png';
+  const logoUrl = settings?.logo_url || '/images/smart_learning_logo.png';
 
   // Fetch dynamic plans for the Pricing section
   const { data: plansData } = await supabase

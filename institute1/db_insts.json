@@ -1,0 +1,20 @@
+[
+  {
+    "id": "a090da9b-dc71-478d-849b-182398e8a298",
+    "name": "Main Campus",
+    "slug": "main-campus",
+    "logo": null
+  },
+  {
+    "id": "6e758b0a-302e-440e-8afc-a701e4d338cb",
+    "name": "BCE Bhagalpur",
+    "slug": "bce-bhagalpur",
+    "logo": "https://cmvvlshtrouyqxdrvlth.supabase.co/storage/v1/object/public/branding/logo-1785833894105-bce-bhagalpur-qe1gk.png"
+  },
+  {
+    "id": "d0cbd0b7-0d1b-4cc2-9ebd-c3d41aa2b36c",
+    "name": "BCE Bhagalpur",
+    "slug": "bce-bhagalpur-1",
+    "logo": null
+  }
+]

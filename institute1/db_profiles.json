@@ -1,0 +1,20 @@
+[
+  {
+    "id": "856f5a09-fced-4322-b513-c419a2d7a34b",
+    "email": "iambestadi@gmail.com",
+    "institution_id": "a090da9b-dc71-478d-849b-182398e8a298",
+    "role": "admin"
+  },
+  {
+    "id": "6d12694a-cda5-4366-b6bc-3cd7856e5076",
+    "email": "adityakumarsah8709@gmail.com",
+    "institution_id": "d0cbd0b7-0d1b-4cc2-9ebd-c3d41aa2b36c",
+    "role": "admin"
+  },
+  {
+    "id": "979ecf8d-f23b-4d7f-ba03-2b4deb2297c7",
+    "email": "ram@gmail.com",
+    "institution_id": "a090da9b-dc71-478d-849b-182398e8a298",
+    "role": "admin"
+  }
+]

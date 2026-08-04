@@ -9,8 +9,8 @@ export type TenantConfig = {
   slug: string;
   primary_domain: string | null;
   custom_domain: string | null;
-  logo: string | null;
-  theme: any | null;
+  logo?: string | null;
+  theme?: any | null;
   status: string;
   plan_id: string | null;
 };

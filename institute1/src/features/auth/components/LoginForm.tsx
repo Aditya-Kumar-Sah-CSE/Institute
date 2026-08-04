@@ -1,4 +1,5 @@
 'use client';
+// cache-buster to reset Next.js turbopack stale module graph
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -8,7 +9,6 @@ import { createClient } from '@/lib/supabase/client';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { Building, Mail, Lock } from 'lucide-react';
-import Image from 'next/image';
 import './AuthForms.css';
 
 const GoogleIcon = () => (
@@ -23,9 +23,37 @@ const GoogleIcon = () => (
 interface LoginFormProps {
   companyName?: string;
   logoUrl?: string;
+  baseUrl?: string;
 }
 
-export default function LoginForm({ companyName, logoUrl }: LoginFormProps) {
+function LogoAvatar({ name, size = 48 }: { name: string; size?: number }) {
+  const initials = (name || 'S L')
+    .split(' ')
+    .map(w => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        borderRadius: '8px',
+        backgroundColor: 'var(--neon-cyan)',
+        color: '#000',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontWeight: 800,
+        fontSize: size * 0.42,
+      }}
+    >
+      {initials}
+    </div>
+  );
+}
+
+export default function LoginForm({ companyName, logoUrl, baseUrl }: LoginFormProps) {
   const searchParams = useSearchParams();
   const message = searchParams.get('message');
   const [error, setError] = useState('');
@@ -40,11 +68,11 @@ export default function LoginForm({ companyName, logoUrl }: LoginFormProps) {
     // Check if user is already logged in (handles browser back button)
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        router.push('/');
+        router.push(`${baseUrl || ''}/dashboard`);
         router.refresh();
       }
     });
-  }, [router, supabase.auth]);
+  }, [router, supabase.auth, baseUrl]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -93,7 +121,7 @@ export default function LoginForm({ companyName, logoUrl }: LoginFormProps) {
 
       <div className="auth-card" style={{ position: 'relative' }}>
         <Link 
-          href="/" 
+          href={baseUrl || "/"} 
           style={{ 
             position: 'absolute', 
             top: 'var(--space-md)', 
@@ -112,8 +140,12 @@ export default function LoginForm({ companyName, logoUrl }: LoginFormProps) {
           ← Home
         </Link>
         <div className="auth-header">
-          <span className="auth-logo" style={{ overflow: 'hidden', borderRadius: '8px' }}>
-            <Image src={logoUrl || '/icon-192x192.png'} alt="Logo" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain' }} unoptimized={true} priority />
+          <span className="auth-logo" style={{ overflow: 'hidden', borderRadius: '8px', display: 'inline-block' }}>
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" style={{ width: 'auto', height: '48px', objectFit: 'contain' }} />
+            ) : (
+              <LogoAvatar name={companyName || 'Smart Learning'} />
+            )}
           </span>
           <h1 className="auth-title">{companyName ? `Sign in to ${companyName}` : 'Welcome Back'}</h1>
           <p className="auth-subtitle">Sign in to continue your learning journey</p>
@@ -146,7 +178,7 @@ export default function LoginForm({ companyName, logoUrl }: LoginFormProps) {
               required
             />
             <div style={{ textAlign: 'right' }}>
-              <Link href="/forgot-password" style={{ fontSize: 'var(--text-sm)', color: 'var(--neon-cyan)', textDecoration: 'none' }}>Forgot Password?</Link>
+              <Link href={`${baseUrl || ''}/forgot-password`} style={{ fontSize: 'var(--text-sm)', color: 'var(--neon-cyan)', textDecoration: 'none' }}>Forgot Password?</Link>
             </div>
           </div>
 
@@ -185,7 +217,7 @@ export default function LoginForm({ companyName, logoUrl }: LoginFormProps) {
         <div className="auth-footer">
           <p>
             Don&apos;t have an account?{' '}
-            <Link href="/signup" className="auth-link">Sign Up</Link>
+            <Link href={`${baseUrl || ''}/signup`} className="auth-link">Sign Up</Link>
           </p>
         </div>
       </div>

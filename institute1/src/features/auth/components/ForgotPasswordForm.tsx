@@ -8,7 +8,7 @@ import Input from '@/components/ui/Input';
 import { LockKeyhole, Mail } from 'lucide-react';
 import './AuthForms.css';
 
-export default function ForgotPasswordForm() {
+export default function ForgotPasswordForm({ baseUrl }: { baseUrl?: string }) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -36,7 +36,7 @@ export default function ForgotPasswordForm() {
 
       <div className="auth-card" style={{ position: 'relative' }}>
         <Link 
-          href="/login" 
+          href={`${baseUrl || ''}/login`} 
           style={{ 
             position: 'absolute', 
             top: 'var(--space-md)', 

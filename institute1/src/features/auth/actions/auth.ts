@@ -14,6 +14,7 @@ export async function signUp(formData: FormData) {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
   const institute_id = formData.get('institute_id') as string;
+  const institution_id = formData.get('institution_id') as string | null;
   const graduation_period = formData.get('graduation_period') as string;
 
   if (!name || !email || !password || !graduation_period) {
@@ -38,7 +39,7 @@ export async function signUp(formData: FormData) {
       email,
       password,
       email_confirm: true,
-      user_metadata: { name, institute_id, graduation_period },
+      user_metadata: { name, institute_id, graduation_period, institution_id },
     });
 
     if (adminAuthError) {
@@ -54,7 +55,7 @@ export async function signUp(formData: FormData) {
       email,
       password,
       options: {
-        data: { name, institute_id, graduation_period },
+        data: { name, institute_id, graduation_period, institution_id },
         emailRedirectTo: `${siteUrl}/api/auth/callback`,
       },
     });

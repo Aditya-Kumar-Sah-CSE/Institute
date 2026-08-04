@@ -1,0 +1,25 @@
+# Multi-Tenant Auth Architecture Plan
+
+The goal is to provide a true SaaS experience where each institution has its own isolated login/signup flow, and admins can seamlessly access their accounts.
+
+## Proposed Changes
+
+### 1. Institute-Specific Login & Signup Pages
+Currently, `/login` and `/signup` are global. We will make them context-aware:
+- Modify `src/app/(auth)/login/page.tsx` and `src/app/(auth)/signup/page.tsx` to call [getTenantConfig()](file:///d:/Institute/institute1/src/lib/tenant/tenantResolver.ts#4-27).
+- If a tenant is present (e.g., accessed via `/bce-bhagalpur/login`), update the UI to show the **Institute's Name** (e.g., "Sign in to BCE Bhagalpur") and adjust branding.
+- **Hidden Tenant Linking**: When signing up on a tenant domain, the `institution_id` will be passed invisibly via a hidden form field. This ensures any student signing up from `bce-bhagalpur` is automatically linked to the `bce-bhagalpur` institution in the database, avoiding cross-tenant data leaks.
+
+### 2. Admin "Direct Login" SaaS Workflow
+Currently, when a SuperAdmin approves an institution request, a random password is generated for the new Admin, preventing them from doing a "direct login" because they don't know the password.
+- **[MODIFY] [ApplyInstitutionClient.tsx](file:///d:/Institute/institute1/src/app/%28public%29/apply-institution/ApplyInstitutionClient.tsx)**: Add a `password` field so the applicant sets their Admin password upfront during the request.
+- **[MODIFY] [actions.ts](file:///d:/Institute/institute1/src/app/%28public%29/apply-institution/actions.ts)**: Store the password (or handle it securely). Since we shouldn't store plain text passwords in an approval queue, we will upgrade the [submitInstitutionRequest](file:///d:/Institute/institute1/src/app/%28public%29/apply-institution/actions.ts#5-39) action to immediately achieve a self-serve SaaS flow! We will create the institution and admin user *immediately* upon registration, skipping the manual SuperAdmin approval queue. This matches standard SaaS platforms where organizations are created instantly.
+
+### 3. Auth Actions Updates
+- **[MODIFY] [src/features/auth/actions/auth.ts](file:///d:/Institute/institute1/src/features/auth/actions/auth.ts)**: Update the [signUp](file:///d:/Institute/institute1/src/features/auth/actions/auth.ts#10-79) action to accept and write the `institution_id` directly to the `profiles` table so new students are bound to their respective academies.
+
+## User Review Required
+> [!IMPORTANT]
+> To enable "direct login" immediately upon institute registration like a standard SaaS, I propose making Institute Registration **instant** (Self-Service). Instead of going into an approval queue, applying for an institution will immediately create it and the admin account. Do you approve of bypassing the manual SuperAdmin approval for this SaaS workflow?
+
+I will start executing the changes once you confirm the plan.

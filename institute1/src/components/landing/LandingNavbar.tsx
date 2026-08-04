@@ -6,7 +6,7 @@ import { Menu, X } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import './LandingNavbar.css';
 
-export default function LandingNavbar({ companyName = 'Smart Learning', logoUrl = '/images/smart_learning%20logo.png' }: { companyName?: string, logoUrl?: string }) {
+export default function LandingNavbar({ companyName = 'Smart Learning', logoUrl = '/images/smart_learning_logo.png' }: { companyName?: string, logoUrl?: string }) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 

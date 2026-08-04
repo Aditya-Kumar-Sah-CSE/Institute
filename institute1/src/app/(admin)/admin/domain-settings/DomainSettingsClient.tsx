@@ -5,9 +5,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { connectCustomDomain } from '@/features/admin/actions/domainActions';
 import { CheckCircle2, Globe, Shield, RefreshCw } from 'lucide-react';
-import type { TenantConfig } from '@/lib/tenant/tenantContext';
-
-export default function DomainSettingsClient({ tenant }: { tenant: TenantConfig }) {
+export default function DomainSettingsClient({ tenant }: { tenant: any }) {
   const [customDomain, setCustomDomain] = useState(tenant.custom_domain || '');
   const [isPending, startTransition] = useTransition();
 

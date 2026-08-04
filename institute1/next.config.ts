@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
 
   allowedDevOrigins: ['172.17.41.247', 'localhost', '127.0.0.1'],
   images: {
+    unoptimized: process.env.NODE_ENV === 'development',
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       {

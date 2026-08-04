@@ -8,7 +8,6 @@ import { createClient } from '@/lib/supabase/client';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { Building, User, IdCard, GraduationCap, Mail, Lock } from 'lucide-react';
-import Image from 'next/image';
 import './AuthForms.css';
 
 const GoogleIcon = () => (
@@ -23,9 +22,38 @@ const GoogleIcon = () => (
 interface SignupFormProps {
   companyName?: string;
   logoUrl?: string;
+  tenantId?: string;
+  baseUrl?: string;
 }
 
-export default function SignupForm({ companyName, logoUrl }: SignupFormProps) {
+function LogoAvatar({ name, size = 48 }: { name: string; size?: number }) {
+  const initials = (name || 'S L')
+    .split(' ')
+    .map(w => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        borderRadius: '8px',
+        backgroundColor: 'var(--neon-cyan)',
+        color: '#000',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontWeight: 800,
+        fontSize: size * 0.42,
+      }}
+    >
+      {initials}
+    </div>
+  );
+}
+
+export default function SignupForm({ companyName, logoUrl, tenantId, baseUrl }: SignupFormProps) {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -44,11 +72,11 @@ export default function SignupForm({ companyName, logoUrl }: SignupFormProps) {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        router.push('/');
+        router.push(`${baseUrl || ''}/dashboard`);
         router.refresh();
       }
     });
-  }, [router, supabase.auth]);
+  }, [router, supabase.auth, baseUrl]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -104,7 +132,7 @@ export default function SignupForm({ companyName, logoUrl }: SignupFormProps) {
 
       <div className="auth-card" style={{ position: 'relative' }}>
         <Link 
-          href="/" 
+          href={baseUrl || "/"} 
           style={{ 
             position: 'absolute', 
             top: 'var(--space-md)', 
@@ -123,8 +151,12 @@ export default function SignupForm({ companyName, logoUrl }: SignupFormProps) {
           ← Home
         </Link>
         <div className="auth-header">
-          <span className="auth-logo" style={{ overflow: 'hidden', borderRadius: '8px' }}>
-            <Image src={logoUrl || '/icon-192x192.png'} alt="Logo" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain' }} unoptimized={true} priority />
+          <span className="auth-logo" style={{ overflow: 'hidden', borderRadius: '8px', display: 'inline-block' }}>
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" style={{ width: 'auto', height: '48px', objectFit: 'contain' }} />
+            ) : (
+              <LogoAvatar name={companyName || 'Smart Learning'} />
+            )}
           </span>
           <h1 className="auth-title">{companyName || 'Smart Hybrid Learning'}</h1>
           <p className="auth-subtitle">Start your journey</p>
@@ -132,6 +164,9 @@ export default function SignupForm({ companyName, logoUrl }: SignupFormProps) {
 
         <form onSubmit={handleSubmit} className="auth-form">
           {error && <div className="auth-error">{error}</div>}
+          
+          {/* Include tenantId implicitly if it exists */}
+          {tenantId && <input type="hidden" name="institution_id" value={tenantId} />}
 
           <Input
             name="name"
@@ -234,7 +269,7 @@ export default function SignupForm({ companyName, logoUrl }: SignupFormProps) {
         <div className="auth-footer">
           <p>
             Already have an account?{' '}
-            <Link href="/login" className="auth-link">Sign In</Link>
+            <Link href={`${baseUrl || ''}/login`} className="auth-link">Sign In</Link>
           </p>
         </div>
       </div>

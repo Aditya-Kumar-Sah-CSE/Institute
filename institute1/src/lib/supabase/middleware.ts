@@ -39,6 +39,21 @@ export async function updateSession(request: NextRequest) {
   const publicRoutes = ['/', '/login', '/signup', '/apply-instructor'];
   const isPublicRoute = publicRoutes.includes(pathname);
 
+  // Tenant prefix resolution for redirects
+  const tenantSlug = request.headers.get('x-tenant-slug');
+  const routingMode = request.headers.get('x-routing-mode');
+
+  const getTenantUrl = (targetPath: string) => {
+    const newUrl = request.nextUrl.clone();
+    // Only prefix in development mode (e.g. localhost:3000/bce-bhagalpur)
+    if (routingMode === 'development' && tenantSlug) {
+      newUrl.pathname = `/${tenantSlug}${targetPath}`;
+    } else {
+      newUrl.pathname = targetPath;
+    }
+    return newUrl;
+  };
+
   // Helper function to redirect while preserving cookies
   const redirectWithCookies = (url: URL) => {
     const redirectResponse = NextResponse.redirect(url);
@@ -51,9 +66,7 @@ export async function updateSession(request: NextRequest) {
 
   // If not authenticated and trying to access protected route
   if (!user && !isPublicRoute) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/login';
-    return redirectWithCookies(url);
+    return redirectWithCookies(getTenantUrl('/login'));
   }
 
   // We fetch the actual database role from profiles to prevent out-of-sync JWT metadata redirect loops.
@@ -71,37 +84,45 @@ export async function updateSession(request: NextRequest) {
     } else {
       userRole = user?.user_metadata?.role || 'student';
     }
+    
+    // Explicit escape hatch: if testing locally with the super admin email, upgrade role
+    if (user.email === process.env.SUPER_ADMIN_EMAIL) {
+        userRole = 'super_admin';
+    }
   }
 
   // If authenticated and trying to access login/signup/landing
   if (user && (pathname === '/login' || pathname === '/signup' || pathname === '/')) {
-    const url = request.nextUrl.clone();
     // Redirect based on role
     if (userRole === 'instructor') {
-      url.pathname = '/instructor';
-    } else if (userRole === 'admin') {
-      url.pathname = '/admin';
+      return redirectWithCookies(getTenantUrl('/instructor'));
+    } else if (userRole === 'admin' || userRole === 'super_admin') {
+      return redirectWithCookies(getTenantUrl('/admin'));
     } else {
-      url.pathname = '/dashboard';
+      return redirectWithCookies(getTenantUrl('/dashboard'));
     }
-    return redirectWithCookies(url);
   }
 
   // Admin route protection
   if (user && pathname.startsWith('/admin')) {
-    if (userRole !== 'admin') {
-      const url = request.nextUrl.clone();
-      url.pathname = '/dashboard';
-      return redirectWithCookies(url);
+    if (userRole !== 'admin' && userRole !== 'super_admin') {
+      return redirectWithCookies(getTenantUrl('/dashboard'));
+    }
+    
+    // Strict isolation: Institute Admins cannot access Super Admin governance pages
+    if (userRole === 'admin') {
+      if (pathname.startsWith('/admin/institutions') || 
+          pathname.startsWith('/admin/domain-settings') || 
+          pathname.startsWith('/admin/payment-model')) {
+        return redirectWithCookies(getTenantUrl('/admin'));
+      }
     }
   }
 
   // Instructor route protection
   if (user && pathname.startsWith('/instructor') && pathname !== '/apply-instructor') {
-    if (userRole !== 'instructor' && userRole !== 'admin') {
-      const url = request.nextUrl.clone();
-      url.pathname = '/dashboard';
-      return redirectWithCookies(url);
+    if (userRole !== 'instructor' && userRole !== 'admin' && userRole !== 'super_admin') {
+      return redirectWithCookies(getTenantUrl('/dashboard'));
     }
   }
 

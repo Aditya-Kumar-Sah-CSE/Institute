@@ -9,6 +9,36 @@ export default function ApplyInstitutionClient({ plans }: { plans: any[] }) {
   const [isPending, startTransition] = useTransition();
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [createdSlug, setCreatedSlug] = useState<string | null>(null);
+
+  const [formState, setFormState] = useState({
+    institute_name: '',
+    admin_name: '',
+    admin_email: '',
+    admin_password: '',
+    phone: '',
+    students_count: '100',
+    faculty_count: '5',
+    plan_selected: '',
+    message: ''
+  });
+
+  React.useEffect(() => {
+    const saved = localStorage.getItem('apply-inst-form');
+    if (saved) {
+      try {
+        setFormState(JSON.parse(saved));
+      } catch (e) {}
+    }
+  }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target as any;
+    if (type === 'file') return;
+    const newState = { ...formState, [name]: value };
+    setFormState(newState);
+    localStorage.setItem('apply-inst-form', JSON.stringify(newState));
+  };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -21,6 +51,7 @@ export default function ApplyInstitutionClient({ plans }: { plans: any[] }) {
         setErrorMsg(result.error);
       } else {
         setSuccess(true);
+        localStorage.removeItem('apply-inst-form');
       }
     });
   };
@@ -32,11 +63,13 @@ export default function ApplyInstitutionClient({ plans }: { plans: any[] }) {
           <CheckCircle size={64} color="#10b981" style={{ margin: '0 auto 1.5rem auto' }} />
           <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '1rem' }}>Application Submitted!</h1>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', lineHeight: 1.6 }}>
-            Thank you for your interest in Smart Learn AI. Our team will review your application and contact the institute administrator email soon.
+            Your institution platform request has been received and is pending Super Admin review. You will be notified once it is approved.
           </p>
-          <Link href="/">
-            <button className="btn-human-ghost">Return to Homepage</button>
-          </Link>
+          <div style={{ display: 'flex', gap: '1rem', justifyItems: 'center', justifyContent: 'center' }}>
+            <Link href="/">
+              <button className="btn-human-ghost">Return Home</button>
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -65,38 +98,48 @@ export default function ApplyInstitutionClient({ plans }: { plans: any[] }) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>Institution Name *</label>
-                <input required name="institute_name" type="text" style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-primary)' }} placeholder="e.g. Stanford University" />
+                <input required name="institute_name" value={formState.institute_name} onChange={handleChange} type="text" style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-primary)' }} placeholder="e.g. Stanford University" />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>Institution Logo</label>
+                <input name="logo" type="file" accept="image/*" style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-primary)', cursor: 'pointer' }} />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>Admin Full Name *</label>
-                <input required name="admin_name" type="text" style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-primary)' }} placeholder="Jane Doe" />
+                <input required name="admin_name" value={formState.admin_name} onChange={handleChange} type="text" style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-primary)' }} placeholder="Jane Doe" />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>Admin Email *</label>
-                <input required name="admin_email" type="email" style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-primary)' }} placeholder="admin@stanford.edu" />
+                <input required name="admin_email" value={formState.admin_email} onChange={handleChange} type="email" style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-primary)' }} placeholder="admin@stanford.edu" />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>Admin Password *</label>
+                <input required name="admin_password" value={formState.admin_password} onChange={handleChange} type="password" minLength={6} style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-primary)' }} placeholder="Set admin password" />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>Phone Number</label>
-                <input name="phone" type="tel" style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-primary)' }} placeholder="+1 234 567 8900" />
+                <input name="phone" value={formState.phone} onChange={handleChange} type="tel" style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-primary)' }} placeholder="+1 234 567 8900" />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>Expected Students</label>
-                <input name="students_count" type="number" min="0" defaultValue={100} style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-primary)' }} />
+                <input name="students_count" value={formState.students_count} onChange={handleChange} type="number" min="0" style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-primary)' }} />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>Expected Faculty</label>
-                <input name="faculty_count" type="number" min="0" defaultValue={5} style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-primary)' }} />
+                <input name="faculty_count" value={formState.faculty_count} onChange={handleChange} type="number" min="0" style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-primary)' }} />
               </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>Plan Selection (Optional)</label>
-              <select name="plan_selected" style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-primary)' }}>
+              <select name="plan_selected" value={formState.plan_selected} onChange={handleChange} style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-primary)' }}>
                 <option value="">Not Sure Yet (Let's Talk)</option>
                 {plans?.length > 0 ? (
                   plans.map(plan => (
@@ -114,7 +157,7 @@ export default function ApplyInstitutionClient({ plans }: { plans: any[] }) {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>Additional Message</label>
-              <textarea name="message" rows={4} style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-primary)', resize: 'vertical' }} placeholder="Any specific requirements or questions?"></textarea>
+              <textarea name="message" value={formState.message} onChange={handleChange} rows={4} style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-primary)', resize: 'vertical' }} placeholder="Any specific requirements or questions?"></textarea>
             </div>
 
             <button disabled={isPending} type="submit" className="btn-human" style={{ alignSelf: 'flex-start', padding: '1rem 3rem', fontSize: '1.125rem' }}>

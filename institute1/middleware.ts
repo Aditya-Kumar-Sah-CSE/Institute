@@ -8,6 +8,10 @@ const RESERVED_FIRST_SEGMENTS = new Set([
   'api', 'login', 'signup', '_next', 'favicon.ico',
   'manifest.json', 'robots.txt', 'apply-instructor',
   'institution-not-found', 'institution-disabled', 'contact', 'landing',
+  'admin', 'dashboard', 'instructor', 'forgot-password', 'reset-password',
+  'admission', 'pwa-start', 'apply-institution',
+  'batch', 'certificates', 'courses', 'doubts', 'feedbacks',
+  'leaderboard', 'notices', 'profile', 'share-doubt', 'users'
 ]);
 
 function extractTenantInfo(request: NextRequest): {
@@ -24,10 +28,12 @@ function extractTenantInfo(request: NextRequest): {
     const slug = segments[1];
     if (slug && !RESERVED_FIRST_SEGMENTS.has(slug) && !slug.startsWith('_') && !slug.includes('.')) {
       const rest = segments.slice(2).join('/');
+      // Only rewrite when there are sub-routes (e.g., /bce-bhagalpur/login → /login).
+      // For the tenant root (/bce-bhagalpur), don't rewrite — let the catch-all route handle it.
       return {
         tenantSlug: slug,
         routingMode: 'development',
-        rewritePathname: '/' + rest,
+        rewritePathname: rest ? '/' + rest : null,
       };
     }
   }
@@ -52,63 +58,82 @@ function extractTenantInfo(request: NextRequest): {
 }
 
 export async function middleware(request: NextRequest) {
-  const { tenantSlug, routingMode, rewritePathname } = extractTenantInfo(request);
+  try {
+    const { tenantSlug, routingMode, rewritePathname } = extractTenantInfo(request);
 
-  // 1. Build a modified request with tenant headers injected
-  const requestHeaders = new Headers(request.headers);
-  if (tenantSlug) {
-    requestHeaders.set('x-tenant-slug', tenantSlug);
-    requestHeaders.set('x-routing-mode', routingMode);
-  }
+    // 1. Build a modified request with tenant headers injected
+    const requestHeaders = new Headers(request.headers);
+    
+    // Check if superadmin impersonation cookie exists
+    const impersonatedSlug = request.cookies.get('impersonated_tenant_slug')?.value;
+    const effectiveTenantSlug = impersonatedSlug || tenantSlug;
 
-  // 2. Run Supabase auth session check on the original request —
-  //    but we must also pass the modified path if we're rewriting
-  let authRequest = request;
-  if (rewritePathname !== null) {
-    // Tell Supabase the effective (rewritten) pathname for route protection logic
-    const clonedUrl = request.nextUrl.clone();
-    clonedUrl.pathname = rewritePathname;
-    authRequest = new NextRequest(clonedUrl, {
-      headers: requestHeaders,
-    });
-  }
+    if (effectiveTenantSlug) {
+      requestHeaders.set('x-tenant-slug', effectiveTenantSlug);
+      requestHeaders.set('x-routing-mode', routingMode);
+      if (impersonatedSlug) {
+        requestHeaders.set('x-is-impersonating', 'true');
+      }
+    }
 
-  const supabaseResponse = await updateSession(authRequest);
+    // 2. Run Supabase auth session check on the original request —
+    //    but we must also pass the modified path if we're rewriting
+    let authRequest = request;
+    if (rewritePathname !== null) {
+      // Tell Supabase the effective (rewritten) pathname for route protection logic
+      const clonedUrl = request.nextUrl.clone();
+      clonedUrl.pathname = rewritePathname;
+      authRequest = new NextRequest(clonedUrl, {
+        headers: requestHeaders,
+      });
+    }
 
-  // 3. If Supabase issued a redirect (e.g. unauthenticated → /login), honor it
-  if (supabaseResponse.status === 302 || supabaseResponse.status === 307) {
-    return supabaseResponse;
-  }
+    const supabaseResponse = await updateSession(authRequest);
 
-  // 4. If we need to rewrite the path (dev mode slug stripping), do that now
-  if (rewritePathname !== null) {
-    const rewriteUrl = request.nextUrl.clone();
-    rewriteUrl.pathname = rewritePathname;
-    // Also inject slug as a hidden query param so Server Components can read it after rewrite
-    rewriteUrl.searchParams.set('__tenant_slug', tenantSlug!);
-    rewriteUrl.searchParams.set('__routing_mode', routingMode);
+    // 3. If Supabase issued a redirect (e.g. unauthenticated → /login), honor it
+    if (supabaseResponse.status === 302 || supabaseResponse.status === 307) {
+      return supabaseResponse;
+    }
 
-    const rewriteResponse = NextResponse.rewrite(rewriteUrl, {
+    // 4. If we need to rewrite the path (dev mode slug stripping), do that now
+    if (rewritePathname !== null) {
+      const rewriteUrl = new URL(rewritePathname, request.url);
+      
+      // Also inject slug as a hidden query param so Server Components can read it after rewrite
+      rewriteUrl.searchParams.set('__tenant_slug', tenantSlug!);
+      rewriteUrl.searchParams.set('__routing_mode', routingMode);
+      
+      // Copy existing search params
+      request.nextUrl.searchParams.forEach((val, key) => {
+        if (!rewriteUrl.searchParams.has(key)) {
+          rewriteUrl.searchParams.set(key, val);
+        }
+      });
+
+      const rewriteResponse = NextResponse.rewrite(rewriteUrl.toString(), {
+        request: { headers: requestHeaders },
+      });
+
+      // Copy auth cookies from Supabase response
+      supabaseResponse.headers.getSetCookie().forEach((cookie) => {
+        rewriteResponse.headers.append('Set-Cookie', cookie);
+      });
+
+      return rewriteResponse;
+    }
+
+    // 5. No rewrite needed — return Supabase response (already has tenant + auth state)
+    // But we still need to propagate our tenant headers into the next request
+    const finalResponse = NextResponse.next({
       request: { headers: requestHeaders },
     });
-
-    // Copy auth cookies from Supabase response
     supabaseResponse.headers.getSetCookie().forEach((cookie) => {
-      rewriteResponse.headers.append('Set-Cookie', cookie);
+      finalResponse.headers.append('Set-Cookie', cookie);
     });
-
-    return rewriteResponse;
+    return finalResponse;
+  } catch (err: any) {
+    return NextResponse.json({ error: String(err), stack: err.stack, customMiddlewareError: true }, { status: 500 });
   }
-
-  // 5. No rewrite needed — return Supabase response (already has tenant + auth state)
-  // But we still need to propagate our tenant headers into the next request
-  const finalResponse = NextResponse.next({
-    request: { headers: requestHeaders },
-  });
-  supabaseResponse.headers.getSetCookie().forEach((cookie) => {
-    finalResponse.headers.append('Set-Cookie', cookie);
-  });
-  return finalResponse;
 }
 
 export const config = {

@@ -1,8 +1,9 @@
 import type { Metadata, Viewport } from 'next';
 import { Outfit, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
+import '@/components/landing/InstitutionLanding.css';
 import { ThemeProvider } from '@/components/ThemeProvider';
-import { TenantProvider } from '@/lib/tenant/tenantContext';
+import { TenantProvider } from '@/lib/tenant/TenantProvider';
 import { getTenantConfig, generateTenantBaseUrl } from '@/lib/tenant/tenantResolver';
 import dynamic from 'next/dynamic';
 import { 
