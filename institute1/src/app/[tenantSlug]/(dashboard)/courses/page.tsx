@@ -10,11 +10,11 @@ export default async function CoursesPage() {
 
   let coursesQuery = supabase
     .from('courses')
-    .select('*, profiles!inner(name, institution_id)')
+    .select('*, profiles(name)')
     .order('created_at', { ascending: false });
 
   if (tenant) {
-    coursesQuery = coursesQuery.eq('profiles.institution_id', tenant.id);
+    coursesQuery = coursesQuery.eq('institution_id', tenant.id);
   }
 
   const enrollmentsQuery = user ? supabase

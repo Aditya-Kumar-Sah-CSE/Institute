@@ -15,9 +15,15 @@ const supabase = createClient(urlMatch[1].trim(), keyMatch[1].trim());
 async function check() {
   const { data: courses } = await supabase
     .from('courses')
-    .select('title, created_by, profiles(name, institution_id)');
-  require('fs').writeFileSync('courses_dump.json', JSON.stringify(courses, null, 2));
-  console.log("Wrote to courses_dump.json");
+    .update({ institution_id: null })
+    .in('title', ['DAA', 'DSA', 'COA', 'Maths II', 'COA ', 'Computer Network']);
+  console.log("Disconnected test courses from BCE.");
+  
+  const { data: profs } = await supabase
+    .from('profiles')
+    .update({ institution_id: null })
+    .in('name', ['test', 'Ramesh ', 'Rahul']);
+  console.log("Disconnected test profiles from BCE.");
 }
 
 check().catch(console.error);

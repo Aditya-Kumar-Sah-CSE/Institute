@@ -68,9 +68,10 @@ interface TenantLinkProps extends Omit<LinkProps, 'href'> {
   title?: string;
   target?: string;
   id?: string;
+  suppressHydrationWarning?: boolean;
 }
 
-export function TenantLink({ href, children, className, onClick, style, title, target, id, ...props }: TenantLinkProps) {
+export function TenantLink({ href, children, className, onClick, style, title, target, id, suppressHydrationWarning, ...props }: TenantLinkProps) {
   const { baseUrl } = useTenant();
   
   // External links skip base url
@@ -84,7 +85,7 @@ export function TenantLink({ href, children, className, onClick, style, title, t
     : `${baseUrl}${href.startsWith('/') ? href : '/' + href}`;
 
   return (
-    <Link href={formattedHref} className={className} onClick={onClick} style={style} title={title} target={target} id={id} {...props}>
+    <Link href={formattedHref} className={className} onClick={onClick} style={style} title={title} target={target} id={id} suppressHydrationWarning={suppressHydrationWarning} {...props}>
       {children}
     </Link>
   );
