@@ -10,8 +10,14 @@ export default function PlanManager({ isSuperAdmin, initialPlans }: { isSuperAdm
   const [plans, setPlans] = useState<any[]>(initialPlans);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<any>(null);
+  const [viewingSubscribersFor, setViewingSubscribersFor] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  // Sync state aggressively with Next.js router transitions 
+  useEffect(() => {
+    setPlans(initialPlans);
+  }, [initialPlans]);
 
   // Default Form State
   const defaultForm = {
@@ -96,9 +102,13 @@ export default function PlanManager({ isSuperAdmin, initialPlans }: { isSuperAdm
       <div className={styles.sectionHeader}>
          <div>
            <h2 className={styles.sectionTitle}>
-             Pricing Plans <span className={styles.badgeCount}>{plans.length}</span>
+             {isSuperAdmin ? 'Pricing Plans' : 'Premium Plans'} <span className={styles.badgeCount}>{plans.length}</span>
            </h2>
-           <p className={styles.sectionSubtitle}>Manage tiers and billing dimensions for SaaS institutions.</p>
+           <p className={styles.sectionSubtitle}>
+              {isSuperAdmin 
+                 ? 'Manage tiers and billing dimensions for SaaS institutions.' 
+                 : 'These premium plans are uniquely provided by Smart Learning (Super Admin: iambestadi@gmail.com).'}
+           </p>
          </div>
          {isSuperAdmin && plans.length > 0 && (
            <button onClick={openCreate} className={styles.primaryButton}>
@@ -141,11 +151,13 @@ export default function PlanManager({ isSuperAdmin, initialPlans }: { isSuperAdm
                        Active Tier
                      </span>
                      
-                     <div className={styles.planCardActions}>
-                        <button onClick={() => openEdit(p)} className={styles.planActionButton}><Edit2 size={16}/></button>
-                        <button onClick={() => handleDuplicate(p)} className={styles.planActionButton}><Copy size={16}/></button>
-                        <button onClick={() => handleDelete(p.id)} className={`${styles.planActionButton} ${styles.danger}`}><Trash2 size={16}/></button>
-                     </div>
+                     {isSuperAdmin && (
+                       <div className={styles.planCardActions}>
+                          <button onClick={() => openEdit(p)} className={styles.planActionButton}><Edit2 size={16}/></button>
+                          <button onClick={() => handleDuplicate(p)} className={styles.planActionButton}><Copy size={16}/></button>
+                          <button onClick={() => handleDelete(p.id)} className={`${styles.planActionButton} ${styles.danger}`}><Trash2 size={16}/></button>
+                       </div>
+                     )}
                   </div>
                   
                   <h3 className={styles.planCardTitle}>{p.name}</h3>
@@ -184,8 +196,11 @@ export default function PlanManager({ isSuperAdmin, initialPlans }: { isSuperAdm
                   <div className={styles.planMetrics}>
                      <div>
                        <div className={styles.planFeatureLabel} style={{marginBottom: '2px'}}>Subscribers</div>
-                       <div style={{fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)'}}>
-                         {p.subscriptions ? p.subscriptions.filter((s:any) => s.status === 'active' || s.status === 'paid').length : 0} Active
+                       <div 
+                         style={{fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)', cursor: p.subscriptions?.length ? 'pointer' : 'default', textDecoration: p.subscriptions?.length ? 'underline' : 'none', textUnderlineOffset: '4px' }}
+                         onClick={() => { if(p.subscriptions?.length) setViewingSubscribersFor(p) }}
+                       >
+                         {p.subscriptions ? p.subscriptions.filter((s:any) => s.status === 'active' || s.status === 'paid' || s.status === 'trial').length : 0} Active
                        </div>
                      </div>
                      <div style={{textAlign: 'right'}}>
@@ -297,6 +312,53 @@ export default function PlanManager({ isSuperAdmin, initialPlans }: { isSuperAdm
                    </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* SUBSCRIBERS VIEWER MODAL */}
+      <AnimatePresence>
+        {viewingSubscribersFor && (
+          <div className={styles.modalOverlay} onClick={() => setViewingSubscribersFor(null)}>
+            <motion.div 
+               initial={{ opacity: 0, y: 30, scale: 0.95 }} 
+               animate={{ opacity: 1, y: 0, scale: 1 }} 
+               exit={{ opacity: 0, scale: 0.95 }} 
+               className={styles.modalContent} 
+               onClick={e => e.stopPropagation()}
+               style={{ maxWidth: '400px' }}
+            >
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: 'linear-gradient(90deg, var(--accent-emerald), var(--accent-blue))' }} />
+              
+              <div className={styles.modalHeader}>
+                 <h3 className={styles.modalTitle}>{viewingSubscribersFor.name} Tenants</h3>
+                 <button type="button" onClick={() => setViewingSubscribersFor(null)} className={styles.modalClose}><XCircle size={20}/></button>
+              </div>
+              
+              <div className={styles.modalBody} style={{ padding: '24px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {viewingSubscribersFor.subscriptions.filter((s:any) => s.status === 'active' || s.status === 'paid' || s.status === 'trial').length === 0 ? (
+                    <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '16px' }}>No active subscribers.</p>
+                  ) : (
+                    viewingSubscribersFor.subscriptions.filter((s:any) => s.status === 'active' || s.status === 'paid' || s.status === 'trial').map((sub: any) => (
+                      <div key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                         {sub.institutions?.logo ? (
+                           <img src={sub.institutions.logo} alt="Logo" style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '8px', background: '#fff' }} />
+                         ) : (
+                           <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'var(--accent-emerald-subtle)', color: 'var(--accent-emerald)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                             {sub.institutions?.name ? sub.institutions.name.charAt(0).toUpperCase() : 'U'}
+                           </div>
+                         )}
+                         <div style={{ display: 'flex', flexDirection: 'column' }}>
+                           <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{sub.institutions?.name || 'Unknown Institution'}</span>
+                           <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{sub.status === 'trial' ? 'Trial Mode' : 'Subscribed'}</span>
+                         </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
             </motion.div>
           </div>
         )}

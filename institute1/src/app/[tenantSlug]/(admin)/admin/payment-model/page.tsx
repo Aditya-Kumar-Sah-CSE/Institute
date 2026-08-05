@@ -5,6 +5,7 @@ import BillingStatsCards from './components/BillingStatsCards';
 import PlanManager from './components/PlanManager';
 import RevenueCharts from './components/RevenueCharts';
 import SubscriptionManager from './components/SubscriptionManager';
+import ActivePlanCard from './components/ActivePlanCard';
 import CouponsManager from './components/CouponsManager';
 import PaymentConfigurations from './components/PaymentConfigurations';
 import RecentTransactions from './components/RecentTransactions';
@@ -48,51 +49,49 @@ export default async function PaymentModelDashboardPage() {
           </p>
         </div>
         
-        {isSuperAdmin ? (
-          <DashboardHeaderActions />
-        ) : (
-           <div className={styles.readOnlyBadge}>
-             <Lock size={16} style={{ color: 'var(--accent-amber)' }} />
-             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className={styles.pulseDot} />
-                <span style={{ color: '#fff' }}>Read-Only Mode</span>
-             </div>
-           </div>
-        )}
+        {isSuperAdmin && <DashboardHeaderActions />}
       </div>
 
       <div className={`${styles.maxContent} ${styles.section}`}>
-        <section>
-          <BillingStatsCards metrics={metrics} />
-        </section>
-        
-        <section>
-           <RevenueCharts />
-        </section>
+        {isSuperAdmin && (
+          <>
+            <section>
+              <BillingStatsCards metrics={metrics} />
+            </section>
+            <section>
+               <RevenueCharts />
+            </section>
+          </>
+        )}
 
         <section>
           <PlanManager isSuperAdmin={isSuperAdmin} initialPlans={plans || []} />
         </section>
         
         <section>
-          <SubscriptionManager isSuperAdmin={isSuperAdmin} initialSubs={subs || []} />
+          {isSuperAdmin ? (
+            <SubscriptionManager isSuperAdmin={isSuperAdmin} initialSubs={subs || []} />
+          ) : (
+            <ActivePlanCard subscription={subs && subs.length > 0 ? subs[0] : null} />
+          )}
         </section>
         
-        <section>
-          <CouponsManager isSuperAdmin={isSuperAdmin} initialCoupons={coupons || []} />
-        </section>
-        
-        <section>
-          <PaymentConfigurations isSuperAdmin={isSuperAdmin} initialSettings={settings} />
-        </section>
-
-        <section>
-          <RecentTransactions isSuperAdmin={isSuperAdmin} />
-        </section>
-
-        <section>
-          <AuditLogs isSuperAdmin={isSuperAdmin} />
-        </section>
+        {isSuperAdmin && (
+          <>
+            <section>
+              <CouponsManager isSuperAdmin={isSuperAdmin} initialCoupons={coupons || []} />
+            </section>
+            <section>
+              <PaymentConfigurations isSuperAdmin={isSuperAdmin} initialSettings={settings} />
+            </section>
+            <section>
+              <RecentTransactions isSuperAdmin={isSuperAdmin} />
+            </section>
+            <section>
+              <AuditLogs isSuperAdmin={isSuperAdmin} />
+            </section>
+          </>
+        )}
       </div>
       
     </div>

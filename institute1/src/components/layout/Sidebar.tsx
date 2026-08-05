@@ -1,5 +1,5 @@
 'use client';
-// cache-buster to reset Next.js turbopack stale module graph: forces true client rebuild
+// cache-buster to reset Next.js turbopack stale module graph: forces true client rebuild - trigger v2
 
 import React, { useState, useEffect } from 'react';
 import { TenantLink as Link, useTenant } from '@/lib/tenant/TenantProvider';
@@ -96,8 +96,7 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
       item.label !== 'Admins' && 
       item.label !== 'Feedback' &&
       item.label !== 'Institutions' &&
-      item.label !== 'Domain Settings' &&
-      item.label !== 'Payment'
+      item.label !== 'Domain Settings'
     );
   }
   if (currentView === 'instructor' && !isSuperAdmin) {

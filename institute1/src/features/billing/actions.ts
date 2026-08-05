@@ -37,7 +37,7 @@ export async function authenticateAdminOrSuper() {
     throw new Error('Unauthorized');
   }
   
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+  const { data: profile } = await supabase.from('profiles').select('role, institution_id').eq('id', user.id).single();
   
   const isSuper = (user.email === SUPER_ADMIN_EMAIL || profile?.role === 'super_admin');
   const isAdmin = (profile?.role === 'admin');
@@ -46,7 +46,7 @@ export async function authenticateAdminOrSuper() {
     throw new Error('Forbidden: Dashboard Access Required');
   }
 
-  return { supabase, user, isSuperAdmin: isSuper };
+  return { supabase, user, isSuperAdmin: isSuper, institutionId: profile?.institution_id };
 }
 
 // ==========================================
@@ -59,7 +59,7 @@ export async function fetchPlans() {
   
   const { data, error } = await supabase
     .from('pricing_plans')
-    .select('*, subscriptions(id, status, total_paid)')
+    .select('*, subscriptions(id, status, total_paid, institutions(name, logo))')
     .eq('is_deleted', false)
     .order('created_at', { ascending: true });
     
@@ -246,11 +246,21 @@ export async function savePaymentSettings(data: any) {
 
 export async function fetchSubscriptions() {
   noStore();
-  const { supabase } = await authenticateAdminOrSuper();
-  const { data, error } = await supabase
+  const { supabase, isSuperAdmin, institutionId } = await authenticateAdminOrSuper();
+  let query = supabase
     .from('subscriptions')
-    .select('*, pricing_plans(*), profiles(name, email)')
+    .select('*, pricing_plans(*)')
     .order('created_at', { ascending: false });
+
+  if (!isSuperAdmin) {
+    if (institutionId) {
+       query = query.eq('institution_id', institutionId);
+    } else {
+       query = query.eq('institution_id', '00000000-0000-0000-0000-000000000000');
+    }
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
   return data;
 }

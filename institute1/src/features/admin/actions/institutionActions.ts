@@ -116,6 +116,31 @@ export async function approveInstitution(requestId: string) {
        }).eq('id', newUser.user.id);
     }
 
+    // 2.5 Provision Subscription automatically based on the requested plan
+    let planId = null;
+    if (req.plan_selected) {
+       const { data: requestedPlan } = await supabaseAdmin.from('pricing_plans').select('id').ilike('name', `%${req.plan_selected}%`).is('is_deleted', false).maybeSingle();
+       if (requestedPlan) planId = requestedPlan.id;
+    }
+    if (!planId) {
+       const { data: freePlan } = await supabaseAdmin.from('pricing_plans').select('id').ilike('name', '%free%').is('is_deleted', false).maybeSingle();
+       if (freePlan) planId = freePlan.id;
+    }
+    if (!planId) {
+       const { data: fallbackPlan } = await supabaseAdmin.from('pricing_plans').select('id').is('is_deleted', false).limit(1).maybeSingle();
+       if (fallbackPlan) planId = fallbackPlan.id;
+    }
+
+    if (planId) {
+       await supabaseAdmin.from('subscriptions').insert({
+          institution_id: newInst.id,
+          plan_id: planId,
+          status: 'trial',
+          total_paid: 0,
+          renews_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+       });
+    }
+
     // 3. Update request status
     const { error: statusUpdateError } = await supabaseAdmin
       .from('institution_requests')

@@ -4,7 +4,7 @@ import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import Image from 'next/image';
 import { revalidatePath } from 'next/cache';
-import Link from 'next/link';
+import { TenantLink as Link } from '@/lib/tenant/TenantProvider';
 import { BookOpen, FileText, Users, ExternalLink, Table, Pin, PinOff, UserPlus } from 'lucide-react';
 import ExpandableSettingsCard from './components/ExpandableSettingsCard';
 import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
@@ -272,18 +272,18 @@ export default async function AdminDashboardPage() {
         <Card variant="glass">
           <h2 style={{ marginBottom: 'var(--space-lg)', fontSize: 'var(--text-xl)' }}>Quick Actions</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-            <a href="/admin/courses" className="btn btn-secondary btn-md" style={{ justifyContent: 'flex-start', gap: '12px', height: 'auto', minHeight: '40px', padding: '12px 16px', textAlign: 'left' }}>
+            <Link href="/admin/courses" className="btn btn-secondary btn-md" style={{ justifyContent: 'flex-start', gap: '12px', height: 'auto', minHeight: '40px', padding: '12px 16px', textAlign: 'left' }}>
               <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}><BookOpen className="w-5 h-5 text-neon-cyan" /></span>
               <span style={{ whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.4' }}>Manage Courses & Lessons</span>
-            </a>
-            <a href="/admin/submissions" className="btn btn-secondary btn-md" style={{ justifyContent: 'flex-start', gap: '12px', height: 'auto', minHeight: '40px', padding: '12px 16px', textAlign: 'left' }}>
+            </Link>
+            <Link href="/admin/submissions" className="btn btn-secondary btn-md" style={{ justifyContent: 'flex-start', gap: '12px', height: 'auto', minHeight: '40px', padding: '12px 16px', textAlign: 'left' }}>
               <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}><FileText className="w-5 h-5 text-neon-gold" /></span>
               <span style={{ whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.4' }}>Review Pending Submissions</span>
-            </a>
-            <a href="/admin/students" className="btn btn-secondary btn-md" style={{ justifyContent: 'flex-start', gap: '12px', height: 'auto', minHeight: '40px', padding: '12px 16px', textAlign: 'left' }}>
+            </Link>
+            <Link href="/admin/students" className="btn btn-secondary btn-md" style={{ justifyContent: 'flex-start', gap: '12px', height: 'auto', minHeight: '40px', padding: '12px 16px', textAlign: 'left' }}>
               <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}><Users className="w-5 h-5 text-neon-magenta" /></span>
               <span style={{ whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.4' }}>User Administration</span>
-            </a>
+            </Link>
             {isSuperAdmin && (
               <>
                 <hr style={{ border: 'none', borderBottom: '1px solid var(--glass-border)', margin: 'var(--space-xs) 0' }} />

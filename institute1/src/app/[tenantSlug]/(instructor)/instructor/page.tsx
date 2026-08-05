@@ -1,7 +1,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 
 import Card from '@/components/ui/Card';
-import Link from 'next/link';
+import { TenantLink as Link } from '@/lib/tenant/TenantProvider';
 import { BookOpen, FileText, Users, UserPlus } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
