@@ -1,0 +1,96 @@
+{
+  "profiles": [
+    {
+      "id": "cb4b6c98-e2eb-435f-87ad-ab967eb0217a",
+      "name": "Saurav",
+      "email": "saurav@gmail.com",
+      "avatar_url": "https://cmvvlshtrouyqxdrvlth.supabase.co/storage/v1/object/public/avatars/cb4b6c98-e2eb-435f-87ad-ab967eb0217a/avatar_1783296514532.jpg",
+      "linkedin_url": null,
+      "xp": 1645,
+      "level": "Advanced",
+      "role": "student",
+      "streak_days": 1,
+      "last_active_at": "2026-08-03T02:32:58.334+00:00",
+      "created_at": "2026-06-28T01:20:32.549121+00:00",
+      "status": "active",
+      "institute_id": "24105108051",
+      "instructor_id": null,
+      "total_active_days": 22,
+      "social_links": {
+        "codeforces": "https://codeforces.com/profile/AdityaKumarSah"
+      },
+      "graduation_period": "2024-2028",
+      "cgpa": 8.3,
+      "sgpa": {
+        "sem1": 7.8,
+        "sem2": 9.08
+      },
+      "professional_details": {},
+      "admission_filled": false,
+      "institution_id": "a090da9b-dc71-478d-849b-182398e8a298"
+    },
+    {
+      "id": "26125244-fcfa-458b-b1ac-e4c2169a9925",
+      "name": "Absk",
+      "email": "absk@gmail.com",
+      "avatar_url": "https://cmvvlshtrouyqxdrvlth.supabase.co/storage/v1/object/public/avatars/26125244-fcfa-458b-b1ac-e4c2169a9925/avatar_1782926295393.png",
+      "linkedin_url": null,
+      "xp": 396,
+      "level": "Novice",
+      "role": "student",
+      "streak_days": 4,
+      "last_active_at": "2026-07-12T11:43:11.965+00:00",
+      "created_at": "2026-06-28T04:07:05.215562+00:00",
+      "status": "active",
+      "institute_id": "120",
+      "instructor_id": null,
+      "total_active_days": 11,
+      "social_links": {},
+      "graduation_period": "2024-2028",
+      "cgpa": 5.6,
+      "sgpa": {
+        "sem1": 2.1,
+        "sem2": 7.8
+      },
+      "professional_details": {},
+      "admission_filled": false,
+      "institution_id": "a090da9b-dc71-478d-849b-182398e8a298"
+    },
+    {
+      "id": "b9e916f8-e917-436d-97dc-c14b2568216c",
+      "name": "test",
+      "email": "test@gmail.com",
+      "avatar_url": null,
+      "linkedin_url": null,
+      "xp": 419,
+      "level": "Novice",
+      "role": "instructor",
+      "streak_days": 1,
+      "last_active_at": "2026-07-18T23:41:22.127+00:00",
+      "created_at": "2026-06-27T14:29:31.020941+00:00",
+      "status": "active",
+      "institute_id": "12",
+      "instructor_id": null,
+      "total_active_days": 13,
+      "social_links": {},
+      "graduation_period": null,
+      "cgpa": null,
+      "sgpa": {},
+      "professional_details": {},
+      "admission_filled": false,
+      "institution_id": "a090da9b-dc71-478d-849b-182398e8a298"
+    }
+  ],
+  "institutions": [
+    {
+      "id": "a090da9b-dc71-478d-849b-182398e8a298",
+      "name": "Smart Learn",
+      "slug": "main-campus"
+    },
+    {
+      "id": "2ad33556-1172-4c6e-adfc-e8b06fc51ce6",
+      "name": "BCE Bhagalpur",
+      "slug": "bce-bhagalpur"
+    }
+  ]
+}

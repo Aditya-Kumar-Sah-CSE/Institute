@@ -28,6 +28,17 @@ export default async function DomainSettingsPage({
     routingMode = mode;
   }
 
+  if (tenant && tenant.slug === '__platform__') {
+    const sbAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    const { data: settings } = await sbAdmin.from('company_settings').select('company_name').single();
+    if (settings?.company_name) {
+      tenant.name = settings.company_name;
+    }
+  }
+
   if (!tenant) {
     // Fallback for Super Admin: show institution selector
     const supabaseAdmin = createClient(

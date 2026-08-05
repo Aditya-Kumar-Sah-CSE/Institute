@@ -21,8 +21,13 @@ export default function DomainSettingsClient({ tenant }: { tenant: any }) {
     });
   };
 
-  const devUrl = `http://localhost:3000/${tenant.slug}`;
-  const prodUrl = `https://${tenant.primary_domain}`;
+  const isPlatform = tenant.slug === '__platform__' || tenant.isPlatform;
+  const devUrl = isPlatform 
+    ? `http://localhost:3000/` 
+    : `http://localhost:3000/${tenant.slug}`;
+
+  const prodDomain = tenant.primary_domain || process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'institute1-seven.vercel.app';
+  const prodUrl = `https://${prodDomain}`;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -35,9 +40,11 @@ export default function DomainSettingsClient({ tenant }: { tenant: any }) {
           <div>
             <strong>Institution:</strong> <span style={{ color: 'var(--text-primary)' }}>{tenant.name}</span>
           </div>
-          <div>
-            <strong>Slug:</strong> <code style={{ padding: '2px 6px', background: 'var(--bg-default)', borderRadius: '4px' }}>{tenant.slug}</code>
-          </div>
+          {!isPlatform && (
+            <div>
+              <strong>Slug:</strong> <code style={{ padding: '2px 6px', background: 'var(--bg-default)', borderRadius: '4px' }}>{tenant.slug}</code>
+            </div>
+          )}
           <div>
             <strong>Production Route:</strong> <a href={prodUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--neon-cyan)' }}>{prodUrl}</a>
           </div>
