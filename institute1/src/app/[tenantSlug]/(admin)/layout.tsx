@@ -19,10 +19,16 @@ export default async function AdminLayout({
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  const isPlatform = tenantSlug === '__platform__';
+
   if (!user) {
-    const tenant = await resolveTenantCache(tenantSlug, 'development');
-    const baseUrl = generateTenantBaseUrl(tenant?.slug || null, 'development');
-    redirect(`${baseUrl}/login`);
+    if (isPlatform) {
+      redirect('/login');
+    } else {
+      const tenant = await resolveTenantCache(tenantSlug, 'development');
+      const baseUrl = generateTenantBaseUrl(tenant?.slug || null, 'development');
+      redirect(`${baseUrl}/login`);
+    }
   }
 
   const { getOrCreateProfile } = await import('@/lib/profile');
@@ -51,9 +57,13 @@ export default async function AdminLayout({
   const isSuperAdmin = isDbSuperAdmin || isSuperAdminEmail;
 
   if (profile.role !== 'admin' && !isSuperAdmin) {
-    const tenant = await resolveTenantCache(tenantSlug, 'development');
-    const baseUrl = generateTenantBaseUrl(tenant?.slug || null, 'development');
-    redirect(`${baseUrl}/dashboard`);
+    if (isPlatform) {
+      redirect('/dashboard');
+    } else {
+      const tenant = await resolveTenantCache(tenantSlug, 'development');
+      const baseUrl = generateTenantBaseUrl(tenant?.slug || null, 'development');
+      redirect(`${baseUrl}/dashboard`);
+    }
   }
 
   const tenant = await resolveTenantCache(tenantSlug, 'development');

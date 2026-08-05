@@ -25,9 +25,14 @@ export default async function DashboardLayout({
   const user = await getUser();
 
   if (!user) {
-    const tenant = await resolveTenantCache(tenantSlug, 'development');
-    const baseUrl = generateTenantBaseUrl(tenant?.slug || null, 'development');
-    redirect(`${baseUrl}/login`);
+    const isPlatform = tenantSlug === '__platform__';
+    if (isPlatform) {
+      redirect('/login');
+    } else {
+      const tenant = await resolveTenantCache(tenantSlug, 'development');
+      const baseUrl = generateTenantBaseUrl(tenant?.slug || null, 'development');
+      redirect(`${baseUrl}/login`);
+    }
   }
 
   const { getOrCreateProfile } = await import('@/lib/profile');

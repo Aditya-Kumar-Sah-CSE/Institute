@@ -19,10 +19,16 @@ export default async function InstructorLayout({
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  const isPlatform = tenantSlug === '__platform__';
+
   if (!user) {
-    const tenant = await resolveTenantCache(tenantSlug, 'development');
-    const baseUrl = generateTenantBaseUrl(tenant?.slug || null, 'development');
-    redirect(`${baseUrl}/login`);
+    if (isPlatform) {
+      redirect('/login');
+    } else {
+      const tenant = await resolveTenantCache(tenantSlug, 'development');
+      const baseUrl = generateTenantBaseUrl(tenant?.slug || null, 'development');
+      redirect(`${baseUrl}/login`);
+    }
   }
 
   const { getOrCreateProfile } = await import('@/lib/profile');
@@ -47,16 +53,24 @@ export default async function InstructorLayout({
   }
 
   if (profile.role !== 'instructor' && profile.role !== 'admin') {
-    const tenant = await resolveTenantCache(tenantSlug, 'development');
-    const baseUrl = generateTenantBaseUrl(tenant?.slug || null, 'development');
-    redirect(`${baseUrl}/dashboard`);
+    if (isPlatform) {
+      redirect('/dashboard');
+    } else {
+      const tenant = await resolveTenantCache(tenantSlug, 'development');
+      const baseUrl = generateTenantBaseUrl(tenant?.slug || null, 'development');
+      redirect(`${baseUrl}/dashboard`);
+    }
   }
 
   // Redirect pending or rejected instructors to dashboard
   if (profile.role === 'instructor' && (profile.status === 'pending' || profile.status === 'rejected')) {
-    const tenant = await resolveTenantCache(tenantSlug, 'development');
-    const baseUrl = generateTenantBaseUrl(tenant?.slug || null, 'development');
-    redirect(`${baseUrl}/apply-instructor`);
+    if (isPlatform) {
+      redirect('/apply-instructor');
+    } else {
+      const tenant = await resolveTenantCache(tenantSlug, 'development');
+      const baseUrl = generateTenantBaseUrl(tenant?.slug || null, 'development');
+      redirect(`${baseUrl}/apply-instructor`);
+    }
   }
 
   const tenant = await resolveTenantCache(tenantSlug, 'development');
