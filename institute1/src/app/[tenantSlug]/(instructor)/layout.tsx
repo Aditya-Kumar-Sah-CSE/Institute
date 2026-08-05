@@ -5,19 +5,23 @@ import Navbar from '@/components/layout/Navbar';
 import '../(dashboard)/DashboardLayout.css';
 import { signOut } from '@/features/auth/actions/auth';
 import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
-import { getTenantConfig, generateTenantBaseUrl } from '@/lib/tenant/tenantResolver';
+import { generateTenantBaseUrl } from '@/lib/tenant/tenantResolver';
+import { resolveTenantCache } from '@/lib/tenant/tenantCache';
 
 export default async function InstructorLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<{ tenantSlug: string }>;
 }) {
+  const { tenantSlug } = await params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    const { tenant, routingMode } = await getTenantConfig();
-    const baseUrl = generateTenantBaseUrl(tenant?.slug || null, routingMode);
+    const tenant = await resolveTenantCache(tenantSlug, 'development');
+    const baseUrl = generateTenantBaseUrl(tenant?.slug || null, 'development');
     redirect(`${baseUrl}/login`);
   }
 
@@ -43,19 +47,19 @@ export default async function InstructorLayout({
   }
 
   if (profile.role !== 'instructor' && profile.role !== 'admin') {
-    const { tenant, routingMode } = await getTenantConfig();
-    const baseUrl = generateTenantBaseUrl(tenant?.slug || null, routingMode);
+    const tenant = await resolveTenantCache(tenantSlug, 'development');
+    const baseUrl = generateTenantBaseUrl(tenant?.slug || null, 'development');
     redirect(`${baseUrl}/dashboard`);
   }
 
   // Redirect pending or rejected instructors to dashboard
   if (profile.role === 'instructor' && (profile.status === 'pending' || profile.status === 'rejected')) {
-    const { tenant, routingMode } = await getTenantConfig();
-    const baseUrl = generateTenantBaseUrl(tenant?.slug || null, routingMode);
+    const tenant = await resolveTenantCache(tenantSlug, 'development');
+    const baseUrl = generateTenantBaseUrl(tenant?.slug || null, 'development');
     redirect(`${baseUrl}/apply-instructor`);
   }
 
-  const { tenant } = await getTenantConfig();
+  const tenant = await resolveTenantCache(tenantSlug, 'development');
 
   const { data: settings } = await supabase
     .from('company_settings')

@@ -278,7 +278,7 @@ export interface MessageDelivery {
 // STORIES (STATUS V3)
 // ==============================
 
-export type StoryPrivacyLevel = 'everyone' | 'contacts' | 'close_friends' | 'only_me' | 'custom';
+export type StoryPrivacyLevel = 'everyone' | 'institute' | 'contacts' | 'close_friends' | 'only_me' | 'custom';
 export type StoryMediaType = 'image' | 'video' | 'text';
 
 export interface Story {

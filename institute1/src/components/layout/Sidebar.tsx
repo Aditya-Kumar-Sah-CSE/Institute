@@ -1,5 +1,5 @@
 'use client';
-// cache-buster to reset Next.js turbopack stale module graph
+// cache-buster to reset Next.js turbopack stale module graph: forces true client rebuild
 
 import React, { useState, useEffect } from 'react';
 import { TenantLink as Link, useTenant } from '@/lib/tenant/TenantProvider';
@@ -122,19 +122,20 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
           <X size={20} />
         </button>
         <Link href={isAdmin ? '/admin' : '/dashboard'} className="sidebar-logo" suppressHydrationWarning>
-          <div style={{ display: companyLogo ? 'block' : 'none' }}>
-            <img 
-              src={companyLogo || 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='} 
-              alt={companyName || 'Institution Logo'} 
-              width={28} 
-              height={28} 
-              className="rounded" 
-              style={{ objectFit: 'contain' }} 
-              suppressHydrationWarning 
-            />
-          </div>
-          <div style={{ display: !companyLogo ? 'block' : 'none' }} suppressHydrationWarning>
-            <span className="sidebar-logo-icon text-neon-cyan" suppressHydrationWarning>{getIcon('Building', { className: 'w-6 h-6' })}</span>
+          <div className="sidebar-brand-wrapper" suppressHydrationWarning>
+            {companyLogo ? (
+              <img 
+                src={companyLogo} 
+                alt={companyName || 'Institution Logo'} 
+                width={28} 
+                height={28} 
+                className="rounded" 
+                style={{ objectFit: 'contain' }} 
+                suppressHydrationWarning 
+              />
+            ) : (
+                <span className="sidebar-logo-icon text-neon-cyan" suppressHydrationWarning>{getIcon('Building', { className: 'w-6 h-6' })}</span>
+            )}
           </div>
           <span className="sidebar-logo-text" suppressHydrationWarning>{companyName || 'Smart Learning'}</span>
         </Link>

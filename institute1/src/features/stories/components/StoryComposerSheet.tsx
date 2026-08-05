@@ -17,6 +17,7 @@ const MAX_SIZE_MB = 20;
 export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: StoryComposerSheetProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [visibility, setVisibility] = useState<'institute' | 'everyone'>('institute');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,6 +57,7 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
           thumbnailUrl: null,
           mediaType,
           caption: '',
+          visibility,
         });
         if (!createRes.success) throw new Error(createRes.error);
       }
@@ -127,7 +129,26 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
                   <p className="text-slate-600 dark:text-slate-300 font-medium">Uploading media securely...</p>
                 </div>
               ) : (
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', padding: '1rem 0' }}>
+                <>
+                  <div className="flex justify-center mb-6">
+                    <div className="flex bg-slate-200 dark:bg-slate-800 rounded-full p-1 border border-slate-300 dark:border-slate-700">
+                      <button
+                        onClick={() => setVisibility('institute')}
+                        className={`px-4 py-1.5 text-sm rounded-full transition-all ${visibility === 'institute' ? 'bg-cyan-500 text-white font-semibold shadow-md' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                        disabled={isUploading}
+                      >
+                        My Institute
+                      </button>
+                      <button
+                        onClick={() => setVisibility('everyone')}
+                        className={`px-4 py-1.5 text-sm rounded-full transition-all ${visibility === 'everyone' ? 'bg-cyan-500 text-white font-semibold shadow-md' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                        disabled={isUploading}
+                      >
+                        Global
+                      </button>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', padding: '1rem 0' }}>
                   {/* Gallery */}
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
                     <button
@@ -161,6 +182,7 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
                     <span style={{ fontSize: '0.75rem', fontWeight: 600 }} className="text-slate-600 dark:text-slate-400">Text</span>
                   </div>
                 </div>
+                </>
               )}
 
               {/* Info line */}

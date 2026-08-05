@@ -1,4 +1,5 @@
 'use client';
+// force compiler module flush: reset DOM mismatches
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';

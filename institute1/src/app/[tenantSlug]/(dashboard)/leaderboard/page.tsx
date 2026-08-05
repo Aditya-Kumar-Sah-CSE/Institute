@@ -13,46 +13,65 @@ const StoryCarousel = dynamic(() => import('@/features/stories/components/StoryC
 });
 
 export default async function LeaderboardPage({
+  params,
   searchParams
 }: {
+  params: Promise<{ tenantSlug: string }>;
   searchParams: Promise<{ filter?: string }>
 }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   
-  const params = await searchParams;
-  const filter = params.filter || 'global';
+  const { tenantSlug } = await params;
+  const { resolveTenantCache } = await import('@/lib/tenant/tenantCache');
+  const tenant = await resolveTenantCache(tenantSlug, 'development');
+  
+  const searchParamsResolved = await searchParams;
+  const filter = searchParamsResolved.filter || 'global';
 
-  const coursesQuery = supabase.from('courses').select('id, title');
+  let coursesQuery = supabase.from('courses').select('id, title');
+  if (tenant) {
+    coursesQuery = coursesQuery.eq('institution_id', tenant.id);
+  }
 
   let profilesQuery;
   let enrollmentsQuery;
 
   if (filter === 'global' || filter === 'weekly') {
-    profilesQuery = supabase
+    let pQuery = supabase
       .from('profiles')
       .select('*, user_badges(count)')
       .eq('role', 'student')
-      .neq('email', SUPER_ADMIN_EMAIL)
-      .order('xp', { ascending: false })
-      .limit(50);
+      .neq('email', SUPER_ADMIN_EMAIL);
+      
+    if (tenant) {
+      pQuery = pQuery.eq('institution_id', tenant.id);
+    }
+    profilesQuery = pQuery.order('xp', { ascending: false }).limit(50);
   } else {
     const adminClient = await createAdminClient();
-    enrollmentsQuery = adminClient
+    let eQuery = adminClient
       .from('enrollments')
-      .select('progress, user_id, profiles!inner(id, name, avatar_url, xp, level, role, user_badges(count))')
+      .select('progress, user_id, profiles!inner(id, name, avatar_url, xp, level, role, user_badges(count), institution_id)')
       .eq('course_id', filter)
       .eq('profiles.role', 'student')
-      .neq('profiles.email', SUPER_ADMIN_EMAIL)
-      .order('progress', { ascending: false })
-      .limit(50);
+      .neq('profiles.email', SUPER_ADMIN_EMAIL);
+
+    if (tenant) {
+      eQuery = eQuery.eq('profiles.institution_id', tenant.id);
+    }
+    enrollmentsQuery = eQuery.order('progress', { ascending: false }).limit(50);
   }
 
-  const facultyQuery = supabase
+  let fQuery = supabase
     .from('profiles')
-    .select('id, name, avatar_url, role, institute_id, email')
-    .in('role', ['instructor', 'admin'])
-    .order('name', { ascending: true });
+    .select('id, name, avatar_url, role, institution_id, email')
+    .in('role', ['instructor', 'admin']);
+
+  if (tenant) {
+    fQuery = fQuery.eq('institution_id', tenant.id);
+  }
+  const facultyQuery = fQuery.order('name', { ascending: true });
 
   const [coursesRes, profilesRes, enrollmentsRes, facultyRes] = await Promise.all([
     coursesQuery,
@@ -65,7 +84,10 @@ export default async function LeaderboardPage({
   const developer = rawAdmins.find(fac => fac.email === SUPER_ADMIN_EMAIL && SUPER_ADMIN_EMAIL !== '');
   const faculty = rawAdmins.filter(
     fac => fac.email !== SUPER_ADMIN_EMAIL || SUPER_ADMIN_EMAIL === ''
-  );
+  ).map(fac => ({
+    ...fac,
+    institute_id: fac.institution_id || null
+  }));
 
   const courses = coursesRes.data;
   let entries: LeaderboardEntry[] = [];

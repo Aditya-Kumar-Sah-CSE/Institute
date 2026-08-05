@@ -1,4 +1,5 @@
 'use server';
+// force compiler module flush: reload schema cache bindings
 
 import { createClient } from '@/lib/supabase/server';
 import type { Story, StoryItem, StoryPrivacyLevel, StoryMediaType } from '@/types/database';
@@ -167,7 +168,7 @@ export async function fetchStoryFeed(): Promise<ActionResponse<{ myStory: Story 
       .from('stories')
       .select(`
         *,
-        profile:profiles!inner(id, name, avatar_url),
+        profile:profiles!inner(id, name, avatar_url, institution_id),
         items:story_items(
           *,
           views:story_views(viewer_id)
@@ -192,8 +193,22 @@ export async function fetchStoryFeed(): Promise<ActionResponse<{ myStory: Story 
 
     const validStories = stories.filter(s => s.items && s.items.length > 0);
 
+    const { data: myProfile } = currentUserId
+      ? await supabase.from('profiles').select('institution_id').eq('id', currentUserId).single()
+      : { data: null };
+
     const myStoryNode = validStories.find(s => s.user_id === currentUserId) || null;
-    const othersStories = validStories.filter(s => s.user_id !== currentUserId);
+    
+    // Filter others' stories based on visibility
+    const othersStories = validStories.filter(s => {
+      if (s.user_id === currentUserId) return false;
+      
+      if (s.visibility === 'institute') {
+         return myProfile && s.profile?.institution_id && s.profile.institution_id === myProfile.institution_id;
+      }
+      
+      return true; // 'everyone' or unhandled scopes fall back to public
+    });
 
     // Grouping unseen vs seen
     othersStories.sort((a, b) => {

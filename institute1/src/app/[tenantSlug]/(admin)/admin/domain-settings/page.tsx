@@ -10,14 +10,16 @@ export const metadata = {
 };
 
 export default async function DomainSettingsPage({
+  params,
   searchParams,
 }: {
+  params: Promise<{ tenantSlug: string }>;
   searchParams?: Promise<{ __tenant_slug?: string; __routing_mode?: string }>;
 }) {
-  // Try to resolve tenant from:
-  // 1. Request headers (wildcard/custom domain modes)
-  // 2. Hidden query param injected by middleware during dev path rewrite
-  let { tenant, routingMode } = await getTenantConfig();
+  const { tenantSlug } = await params;
+  let tenant = await resolveTenantCache(tenantSlug, 'development');
+  let routingMode = 'development';
+
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
 
   if (!tenant && resolvedSearchParams?.__tenant_slug) {

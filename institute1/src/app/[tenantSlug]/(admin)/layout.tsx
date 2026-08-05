@@ -5,19 +5,23 @@ import Navbar from '@/components/layout/Navbar';
 import '../(dashboard)/DashboardLayout.css';
 import { signOut } from '@/features/auth/actions/auth';
 import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
-import { getTenantConfig, generateTenantBaseUrl } from '@/lib/tenant/tenantResolver';
+import { generateTenantBaseUrl } from '@/lib/tenant/tenantResolver';
+import { resolveTenantCache } from '@/lib/tenant/tenantCache';
 
 export default async function AdminLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<{ tenantSlug: string }>;
 }) {
+  const { tenantSlug } = await params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    const { tenant, routingMode } = await getTenantConfig();
-    const baseUrl = generateTenantBaseUrl(tenant?.slug || null, routingMode);
+    const tenant = await resolveTenantCache(tenantSlug, 'development');
+    const baseUrl = generateTenantBaseUrl(tenant?.slug || null, 'development');
     redirect(`${baseUrl}/login`);
   }
 
@@ -47,12 +51,12 @@ export default async function AdminLayout({
   const isSuperAdmin = isDbSuperAdmin || isSuperAdminEmail;
 
   if (profile.role !== 'admin' && !isSuperAdmin) {
-    const { tenant, routingMode } = await getTenantConfig();
-    const baseUrl = generateTenantBaseUrl(tenant?.slug || null, routingMode);
+    const tenant = await resolveTenantCache(tenantSlug, 'development');
+    const baseUrl = generateTenantBaseUrl(tenant?.slug || null, 'development');
     redirect(`${baseUrl}/dashboard`);
   }
 
-  const { tenant } = await getTenantConfig();
+  const tenant = await resolveTenantCache(tenantSlug, 'development');
 
   // Strict Muti-Tenant Isolation
   if (!isSuperAdmin && tenant) {

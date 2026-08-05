@@ -7,8 +7,11 @@ export const metadata: Metadata = {
   description: 'Reset your password for Smart Learning.',
 };
 
-export default async function ForgotPasswordPage() {
-  const { tenant, routingMode } = await getTenantConfig();
+export default async function ForgotPasswordPage({ params }: { params: Promise<{ tenantSlug: string }> }) {
+  const { tenantSlug } = await params;
+  const { resolveTenantCache } = await import('@/lib/tenant/tenantCache');
+  const tenant = await resolveTenantCache(tenantSlug, 'development');
+  const routingMode = 'development';
 
   const { createClient } = await import('@/lib/supabase/server');
   const supabase = await createClient();

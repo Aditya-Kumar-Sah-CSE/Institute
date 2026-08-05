@@ -1,12 +1,13 @@
 import { createClient } from '@/lib/supabase/server';
 import CourseCatalog from '@/features/courses/components/CourseCatalog';
 
-export default async function CoursesPage() {
+export default async function CoursesPage({ params }: { params: Promise<{ tenantSlug: string }> }) {
+  const { tenantSlug } = await params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const { getTenantConfig } = await import('@/lib/tenant/tenantResolver');
-  const { tenant } = await getTenantConfig();
+  const { resolveTenantCache } = await import('@/lib/tenant/tenantCache');
+  const tenant = await resolveTenantCache(tenantSlug, 'development');
 
   let coursesQuery = supabase
     .from('courses')

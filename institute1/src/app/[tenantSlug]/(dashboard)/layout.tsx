@@ -2,7 +2,8 @@ import { createClient, getUser } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Sidebar from '@/components/layout/Sidebar';
 import Navbar from '@/components/layout/Navbar';
-import { getTenantConfig, generateTenantBaseUrl } from '@/lib/tenant/tenantResolver';
+import { generateTenantBaseUrl } from '@/lib/tenant/tenantResolver';
+import { resolveTenantCache } from '@/lib/tenant/tenantCache';
 import './DashboardLayout.css';
 import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 import { signOut } from '@/features/auth/actions/auth';
@@ -14,15 +15,18 @@ import {
 
 export default async function DashboardLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<{ tenantSlug: string }>;
 }) {
+  const { tenantSlug } = await params;
   const supabase = await createClient();
   const user = await getUser();
 
   if (!user) {
-    const { tenant, routingMode } = await getTenantConfig();
-    const baseUrl = generateTenantBaseUrl(tenant?.slug || null, routingMode);
+    const tenant = await resolveTenantCache(tenantSlug, 'development');
+    const baseUrl = generateTenantBaseUrl(tenant?.slug || null, 'development');
     redirect(`${baseUrl}/login`);
   }
 
@@ -50,7 +54,7 @@ export default async function DashboardLayout({
     );
   }
 
-  const { tenant } = await getTenantConfig();
+  const tenant = await resolveTenantCache(tenantSlug, 'development');
 
   // Strict Muti-Tenant Isolation
   if (profile.email !== SUPER_ADMIN_EMAIL && tenant) {
