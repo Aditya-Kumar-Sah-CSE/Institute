@@ -1,0 +1,16 @@
+
+> skillarena@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.9 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://10.190.226.247:3000
+- Environments: .env.local
+✓ Ready in 5.4s
+- Experiments (use with caution):
+  · serverActions
+
+○ Compiling /[tenantSlug] ...
+ GET /dashboard 200 in 10.1s (next.js: 2.3s, application-code: 7.8s)
+ GET /dashboard 200 in 65s (next.js: 57s, application-code: 7.8s)
+[?25h
