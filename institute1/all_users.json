@@ -1,0 +1,65 @@
+[
+  {
+    "id": "b9e916f8-e917-436d-97dc-c14b2568216c",
+    "email": "test@gmail.com",
+    "role": "instructor",
+    "name": "test",
+    "institution_id": null
+  },
+  {
+    "id": "69b34d04-1fb8-4449-8587-71918675fc3d",
+    "email": "test_auto_enroll2@example.com",
+    "role": "student",
+    "name": "Test User",
+    "institution_id": null
+  },
+  {
+    "id": "661b462d-d1f3-4bbf-a303-682fcd05d798",
+    "email": "pankaj1983kumarsah@gmail.com",
+    "role": "student",
+    "name": "Pankaj",
+    "institution_id": null
+  },
+  {
+    "id": "856f5a09-fced-4322-b513-c419a2d7a34b",
+    "email": "iambestadi@gmail.com",
+    "role": "admin",
+    "name": "Aditya Kumar Sah",
+    "institution_id": null
+  },
+  {
+    "id": "979ecf8d-f23b-4d7f-ba03-2b4deb2297c7",
+    "email": "ram@gmail.com",
+    "role": "admin",
+    "name": "Ramesh ",
+    "institution_id": null
+  },
+  {
+    "id": "70f7271b-e98f-4616-bedb-716321fa1ee7",
+    "email": "rahul@gmail.com",
+    "role": "student",
+    "name": "Rahul",
+    "institution_id": null
+  },
+  {
+    "id": "cb4b6c98-e2eb-435f-87ad-ab967eb0217a",
+    "email": "saurav@gmail.com",
+    "role": "student",
+    "name": "Saurav",
+    "institution_id": null
+  },
+  {
+    "id": "26125244-fcfa-458b-b1ac-e4c2169a9925",
+    "email": "absk@gmail.com",
+    "role": "student",
+    "name": "Absk",
+    "institution_id": null
+  },
+  {
+    "id": "466e4e89-5ff5-4bce-8831-b2519ff5229f",
+    "email": "adityakumarsah@gmail.com",
+    "role": "admin",
+    "name": "Aditya Kumar Sah",
+    "institution_id": "2ad33556-1172-4c6e-adfc-e8b06fc51ce6"
+  }
+]
