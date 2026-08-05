@@ -4,8 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 
-const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'smartlearn.in';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3002').replace(/\/$/, '');
 
 const RESERVED_SLUGS = new Set(['admin', 'login', 'api', 'dashboard', 'www', 'mail', 'support', 'root', 'app', 'auth']);
 
@@ -72,7 +71,7 @@ export async function updateSlug(institutionId: string, newSlug: string) {
     const { data: current } = await admin.from('institutions').select('slug, domain_history').eq('id', institutionId).single();
     const history = (current?.domain_history || []) as any[];
     
-    const newPrimaryDomain = `${slug}.${ROOT_DOMAIN}`;
+    const newPrimaryDomain = `${SITE_URL}/${slug}`;
     history.push({
       event: 'slug_changed',
       from: current?.slug,

@@ -19,7 +19,7 @@ export default async function DomainDetailServerPage({
     notFound();
   }
 
-  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'smartlearn.in';
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3002').replace(/\/$/, '');
 
-  return <DomainDetailClient _institution={institution} rootDomain={rootDomain} />;
+  return <DomainDetailClient _institution={institution} rootDomain={siteUrl} />;
 }

@@ -64,8 +64,8 @@ export async function approveInstitution(requestId: string) {
     // 1. Create Institution
     const baseSlug = generateSlug(req.institute_name);
     const slug = await generateUniqueSlug(supabaseAdmin, baseSlug);
-    const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'smartlearn.in';
-    const primary_domain = `${slug}.${ROOT_DOMAIN}`;
+    const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3002').replace(/\/$/, '');
+    const primary_domain = `${SITE_URL}/${slug}`;
 
     // Determine plan using a mapping or default
     // We'll skip plan mapping right now and do it manually if needed, or query plan by name later.

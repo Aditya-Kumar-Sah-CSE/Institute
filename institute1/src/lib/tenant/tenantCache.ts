@@ -1,20 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 
 export const resolveTenantCache = async (slug: string, routingMode: string) => {
-    // Phase 1: Intercept virtual platform tenant
-    if (slug === '__platform__') {
-      return {
-        id: 'platform',
-        name: 'Smart Learning Platform',
-        slug: '__platform__',
-        status: 'active',
-        plan_id: 'enterprise',
-        primary_domain: null,
-        custom_domain: null,
-        logo: null,
-        routingMode: 'platform',
-        isPlatform: true
-      };
+    if (!slug) {
+      return null;
     }
 
     // Create an admin client bypassing RLS specifically for fetching basic tenant info.

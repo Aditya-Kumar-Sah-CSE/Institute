@@ -90,7 +90,7 @@ export default function DomainSettingsClient({ tenant }: { tenant: any }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontWeight: 600, fontFamily: 'var(--font-mono)', fontSize: '0.9rem' }}>
               <span>Type: CNAME</span>
               <span>Name: {tenant.custom_domain.split('.')[0]}</span>
-              <span>Value: default.smartlearn.in</span>
+              <span>Value: institute1-seven.vercel.app</span>
             </div>
             <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--neon-lime)' }}>
               <CheckCircle2 size={20} /> Domain Propagation typically requires 5-30 minutes. 

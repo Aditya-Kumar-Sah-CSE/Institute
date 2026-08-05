@@ -197,7 +197,7 @@ export default function DomainDetailClient({
                     style={{ padding: '0.4rem 0.75rem', fontSize: '0.8125rem' }}
                     value={primaryDomainInput}
                     onChange={(e) => setPrimaryDomainInput(e.target.value)}
-                    placeholder="e.g. bce-bhagalpur.smartlearn.in"
+                    placeholder="e.g. https://institute1-seven.vercel.app/bce-bhagalpur"
                   />
                   <div className={styles.urlActions}>
                     <button className={styles.iconBtn} style={{ color: 'var(--neon-green)', borderColor: 'var(--neon-green)' }} onClick={handlePrimaryDomainUpdate} disabled={isPending}>

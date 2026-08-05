@@ -32,8 +32,8 @@ export async function submitInstitutionRequest(formData: FormData) {
       slug = `${baseSlug}-${counter++}`;
     }
 
-    const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'smartlearn.in';
-    const primary_domain = `${slug}.${ROOT_DOMAIN}`;
+    const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3002').replace(/\/$/, '');
+    const primary_domain = `${SITE_URL}/${slug}`;
 
     // 1.5 Handle Logo Upload
     const logoFile = formData.get('logo') as File | null;
