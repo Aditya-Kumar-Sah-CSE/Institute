@@ -171,7 +171,7 @@ export async function fetchStoryFeed(): Promise<ActionResponse<{ myStory: Story 
         profile:profiles!inner(id, name, avatar_url, institution_id),
         items:story_items(
           *,
-          views:story_views(viewer_id)
+          views:story_views(id, viewed_at, viewer_id, viewer:profiles(id, name, avatar_url))
         )
       `)
       .is('deleted_at', null)

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronLeft, ChevronRight, Heart, MoreVertical, Play, Pause, Trash2, Eye } from 'lucide-react';
 import Image from 'next/image';
+import { TenantLink } from '@/lib/tenant/TenantProvider';
 import type { Story, StoryItem } from '@/types/database';
 import { registerView, toggleReaction, deleteStoryItem } from '@/features/stories/actions/stories';
 
@@ -27,6 +28,7 @@ export default function StoryViewerCanvas({
   const [isPaused, setIsPaused] = useState(false);
   const [progress, setProgress] = useState(0);
   const [showMenu, setShowMenu] = useState(false);
+  const [showViewersList, setViewersListOpen] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   
@@ -65,6 +67,7 @@ export default function StoryViewerCanvas({
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (showViewersList) return; // Disable keyboard nav if list is open
       if (e.key === 'ArrowRight') goToNext();
       if (e.key === 'ArrowLeft') goToPrev();
       if (e.key === 'Escape') onClose();
@@ -89,7 +92,7 @@ export default function StoryViewerCanvas({
 
   // Auto-progress Timer
   useEffect(() => {
-    if (isPaused || !currentItem) return;
+    if (isPaused || showViewersList || !currentItem) return;
 
     if (currentItem.media_type === 'video') {
        // Video controls its own progress if we have the reference
@@ -182,17 +185,18 @@ export default function StoryViewerCanvas({
         style={{
           position: 'relative',
           width: '100%',
+          height: '100%',
           maxWidth: '430px',
-          aspectRatio: '9/16',
+          maxHeight: '100vh',
           backgroundColor: '#0f172a',
-          borderRadius: '1.5rem',
+          borderRadius: 0,
           overflow: 'hidden',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
           display: 'flex',
           flexDirection: 'column',
           margin: '0 auto',
         }}
-        className="touch-pan-y"
+        className="touch-pan-y md:h-[90vh] md:rounded-[1.5rem] md:my-auto"
       >
         {/* Progress Bars */}
         <div style={{ position: 'absolute', top: '1rem', left: 0, width: '100%', display: 'flex', gap: '0.25rem', padding: '0 1rem', zIndex: 50 }}>
@@ -258,11 +262,11 @@ export default function StoryViewerCanvas({
           onPointerDown={(e) => { 
             // Only pause if clicking center region not top header
             if (e.clientY > 100 && e.clientY < window.innerHeight - 100) {
-              setIsPaused(true); 
+              if (!showViewersList) setIsPaused(true); 
             }
           }}
-          onPointerUp={() => setIsPaused(false)}
-          onPointerLeave={() => setIsPaused(false)}
+          onPointerUp={() => { if (!showViewersList) setIsPaused(false) }}
+          onPointerLeave={() => { if (!showViewersList) setIsPaused(false) }}
         >
            {currentItem.media_type === 'video' && currentItem.media_url ? (
              <video 
@@ -305,7 +309,10 @@ export default function StoryViewerCanvas({
         {/* Footer actions */}
         <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 50, background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)' }}>
             {isMyStory ? (
-              <div className="flex items-center gap-2 text-white/90 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full mx-auto font-medium cursor-pointer hover:bg-white/20 transition">
+              <div 
+                className="flex items-center gap-2 text-white/90 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full mx-auto font-medium cursor-pointer hover:bg-white/20 transition hover:scale-105 active:scale-95"
+                onClick={(e) => { e.stopPropagation(); setIsPaused(true); setViewersListOpen(true); }}
+              >
                  <Eye size={18} />
                  <span>{currentItem.views?.length || 0} Views</span>
               </div>
@@ -325,6 +332,76 @@ export default function StoryViewerCanvas({
         </div>
 
       </div>
+      
+      {/* Viewers List Overlay */}
+      <AnimatePresence>
+        {showViewersList && isMyStory && (
+          <motion.div
+            initial={{ y: '100%', opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: '100%', opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '70%', backgroundColor: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderTopLeftRadius: '1.5rem', borderTopRightRadius: '1.5rem', zIndex: 99999, display: 'flex', flexDirection: 'column', boxShadow: '0 -10px 40px rgba(0,0,0,0.5)', borderTop: '1px solid rgba(255,255,255,0.1)' }}
+            onClick={(e) => e.stopPropagation()} 
+            className="touch-auto"
+          >
+            {/* Handle */}
+            <div style={{ width: '100%', display: 'flex', justifyContent: 'center', paddingTop: '12px', paddingBottom: '8px', cursor: 'pointer' }} onClick={() => { setViewersListOpen(false); setIsPaused(false); }}>
+              <div style={{ width: '48px', height: '6px', backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: '9999px' }} />
+            </div>
+            
+            {/* Header */}
+            <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ color: 'white', fontWeight: 600, fontSize: '1.125rem', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                <Eye size={20} className="text-neon-cyan" color="#a5f3fc" /> 
+                Viewers ({currentItem.views?.length || 0})
+              </h3>
+              <button 
+                onClick={() => { setViewersListOpen(false); setIsPaused(false); }}
+                style={{ padding: '6px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '9999px', color: 'rgba(255,255,255,0.8)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Viewers List Content */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px 24px 12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {(!currentItem.views || currentItem.views.length === 0) ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px', color: 'rgba(255,255,255,0.5)', height: '100%' }}>
+                  <Eye size={40} style={{ marginBottom: '12px', opacity: 0.2 }} />
+                  <p style={{ fontWeight: 500, fontSize: '0.875rem', margin: 0 }}>No views yet</p>
+                </div>
+              ) : (
+                currentItem.views.map((view) => (
+                  <div key={view.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', borderRadius: '12px', transition: 'background-color 0.2s', backgroundColor: 'rgba(255,255,255,0.02)' }} className="hover:bg-white/5">
+                    {/* Avatar */}
+                    <div style={{ position: 'relative', width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, backgroundColor: '#1e293b', border: '1.5px solid rgba(255,255,255,0.1)' }}>
+                      {view.viewer?.avatar_url ? (
+                        <Image src={view.viewer.avatar_url} alt={view.viewer.name || ''} fill style={{ objectFit: 'cover' }} />
+                      ) : (
+                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontWeight: 'bold' }}>
+                          {view.viewer?.name?.charAt(0) || '?'}
+                        </div>
+                      )}
+                    </div>
+                    {/* Details */}
+                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                      <p style={{ color: 'white', fontWeight: 600, fontSize: '15px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0, paddingBottom: '2px' }}>
+                        {view.viewer?.name || 'User'}
+                      </p>
+                      <TenantLink href={`/profile/${view.viewer_id}`} style={{ color: '#a5f3fc', fontSize: '13.5px', fontWeight: 500, textDecoration: 'none', display: 'inline-block' }} onClick={() => onClose()}>
+                        View Profile
+                      </TenantLink>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </motion.div>
   );
 }

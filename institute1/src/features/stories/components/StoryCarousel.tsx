@@ -122,14 +122,14 @@ export default function StoryCarousel({ currentUserId, currentUserAvatar }: { cu
                       <User size={20} className="text-slate-500" />
                    )}
                  </div>
-                 {!hasMyStory && (
-                   <div 
-                     className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-[#25D366] rounded-full border-2 border-white dark:border-slate-800 flex items-center justify-center translate-x-0.5 translate-y-0.5 z-20"
-                     onClick={(e) => { e.stopPropagation(); setComposeOpen(true); }}
-                   >
-                     <Plus size={10} className="text-white stroke-[3px]" />
-                   </div>
-                 )}
+                 {/* Always show plus button so they can add multiple stories */}
+                 <div 
+                   className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-[#25D366] rounded-full border-2 border-white dark:border-slate-800 flex items-center justify-center translate-x-0.5 translate-y-0.5 z-20 cursor-pointer hover:bg-emerald-500 transition-colors"
+                   onClick={(e) => { e.stopPropagation(); setComposeOpen(true); }}
+                   title="Add another status"
+                 >
+                   <Plus size={10} className="text-white stroke-[3px]" />
+                 </div>
                </div>
              </div>
 

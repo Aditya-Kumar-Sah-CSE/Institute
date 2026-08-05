@@ -341,8 +341,8 @@ body:not(.sidebar-is-collapsed) .open-sidebar-btn {
     flex: none;
   }
 
-  .sidebar-nav-item[href="/profile"],
-  .sidebar-nav-item[href="/notices"] {
+  .sidebar-nav-item[href$="/profile"],
+  .sidebar-nav-item[href$="/notices"] {
     display: none !important;
   }
 

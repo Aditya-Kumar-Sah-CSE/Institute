@@ -130,18 +130,42 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
                 </div>
               ) : (
                 <>
-                  <div className="flex justify-center mb-6">
-                    <div className="flex bg-slate-200 dark:bg-slate-800 rounded-full p-1 border border-slate-300 dark:border-slate-700">
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem', width: '100%' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#1e293b', borderRadius: '9999px', padding: '0.25rem', border: '1px solid rgba(255,255,255,0.1)' }}>
                       <button
-                        onClick={() => setVisibility('institute')}
-                        className={`px-4 py-1.5 text-sm rounded-full transition-all ${visibility === 'institute' ? 'bg-cyan-500 text-white font-semibold shadow-md' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                        onClick={(e) => { e.preventDefault(); setVisibility('institute'); }}
+                        style={{
+                          padding: '0.375rem 1rem',
+                          fontSize: '0.875rem',
+                          borderRadius: '9999px',
+                          fontWeight: visibility === 'institute' ? 600 : 500,
+                          color: visibility === 'institute' ? '#fff' : '#94a3b8',
+                          backgroundColor: visibility === 'institute' ? '#06b6d4' : 'transparent',
+                          transition: 'all 0.2s ease',
+                          cursor: isUploading ? 'not-allowed' : 'pointer',
+                          border: 'none',
+                          outline: 'none',
+                          boxShadow: visibility === 'institute' ? '0 4px 6px -1px rgba(0, 0, 0, 0.1)' : 'none'
+                        }}
                         disabled={isUploading}
                       >
                         My Institute
                       </button>
                       <button
-                        onClick={() => setVisibility('everyone')}
-                        className={`px-4 py-1.5 text-sm rounded-full transition-all ${visibility === 'everyone' ? 'bg-cyan-500 text-white font-semibold shadow-md' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                        onClick={(e) => { e.preventDefault(); setVisibility('everyone'); }}
+                        style={{
+                          padding: '0.375rem 1rem',
+                          fontSize: '0.875rem',
+                          borderRadius: '9999px',
+                          fontWeight: visibility === 'everyone' ? 600 : 500,
+                          color: visibility === 'everyone' ? '#fff' : '#94a3b8',
+                          backgroundColor: visibility === 'everyone' ? '#06b6d4' : 'transparent',
+                          transition: 'all 0.2s ease',
+                          cursor: isUploading ? 'not-allowed' : 'pointer',
+                          border: 'none',
+                          outline: 'none',
+                          boxShadow: visibility === 'everyone' ? '0 4px 6px -1px rgba(0, 0, 0, 0.1)' : 'none'
+                        }}
                         disabled={isUploading}
                       >
                         Global
