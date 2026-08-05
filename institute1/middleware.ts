@@ -3,21 +3,30 @@ import { updateSession } from '@/lib/supabase/middleware';
 
 const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'smartlearn.in';
 
-// Paths that live at the TRUE root (no tenant slug)
-const ROOT_ONLY_PATHS = new Set([
+// ── ALL segments that are reserved at the root level ──
+// None of these should ever be mistaken for a tenant slug.
+const RESERVED_SEGMENTS = new Set([
+  // Static / infra
   'api', '_next', 'favicon.ico', 'manifest.json', 'robots.txt',
+  // Public root pages (have their own pages under src/app/(public)/...)
+  'login', 'signup', 'forgot-password', 'reset-password',
   'apply-institution', 'apply-instructor',
   'institution-not-found', 'institution-disabled',
-  'contact', 'pwa-start',
-  'login', 'signup', 'forgot-password', 'reset-password'
-]);
-
-// Legacy bare routes that USED to live at root but now require a tenant
-const LEGACY_TENANT_ROUTES = new Set([
+  'contact', 'pwa-start', 'admission',
+  // Platform routes that need __platform__ rewrite
   'admin', 'dashboard', 'instructor',
   'courses', 'doubts', 'notices', 'leaderboard',
   'profile', 'feedbacks', 'share-doubt', 'users',
-  'batch', 'certificates'
+  'batch', 'certificates',
+]);
+
+// Subset of RESERVED_SEGMENTS that need the __platform__ virtual tenant
+// (i.e., they live under src/app/[tenantSlug]/... and need the tenant layout)
+const PLATFORM_REWRITE_SEGMENTS = new Set([
+  'admin', 'dashboard', 'instructor',
+  'courses', 'doubts', 'notices', 'leaderboard',
+  'profile', 'feedbacks', 'share-doubt', 'users',
+  'batch', 'certificates',
 ]);
 
 function isStaticAsset(pathname: string): boolean {
@@ -29,38 +38,47 @@ export async function middleware(request: NextRequest) {
     const hostname = request.headers.get('host') || '';
     const pathname = request.nextUrl.pathname;
 
-    // Skip static assets
+    // Skip static assets early
     if (isStaticAsset(pathname) || pathname.startsWith('/_next')) {
       return NextResponse.next();
     }
 
-    const segments = pathname.split('/').filter(Boolean); // ['bce-bhagalpur', 'admin', 'courses']
+    const segments = pathname.split('/').filter(Boolean);
     const firstSegment = segments[0] || '';
 
     // ── Determine tenant slug ──
     let tenantSlug: string | null = null;
     let routingMode = 'root';
 
-    if (hostname.includes('localhost') || hostname.includes('.vercel.app')) {
+    // ─────────────────────────────────────────────────────────
+    // CASE 1: First segment is reserved — never treat as tenant
+    // ─────────────────────────────────────────────────────────
+    if (RESERVED_SEGMENTS.has(firstSegment) || firstSegment.startsWith('_') || firstSegment.includes('.')) {
+      // Check if this reserved segment needs the __platform__ rewrite
+      if (PLATFORM_REWRITE_SEGMENTS.has(firstSegment)) {
+        tenantSlug = '__platform__';
+        routingMode = 'platform';
+      }
+      // Otherwise: tenantSlug stays null, routingMode stays 'root'
+      // → request passes through to the actual root page (e.g., /login, /signup)
+    }
+    // ─────────────────────────────────────────────────────────
+    // CASE 2: Not reserved — determine tenant from host or path
+    // ─────────────────────────────────────────────────────────
+    else if (hostname.includes('localhost') || hostname.includes('.vercel.app')) {
       // Path-based tenancy: /[tenantSlug]/...
-      if (firstSegment && !ROOT_ONLY_PATHS.has(firstSegment) && !LEGACY_TENANT_ROUTES.has(firstSegment) && !firstSegment.startsWith('_') && !firstSegment.includes('.')) {
+      if (firstSegment) {
         tenantSlug = firstSegment;
         routingMode = 'development';
       }
     } else if (hostname.endsWith(`.${ROOT_DOMAIN}`)) {
+      // Subdomain-based tenancy: bce-bhagalpur.smartlearn.in
       tenantSlug = hostname.replace(`.${ROOT_DOMAIN}`, '');
       routingMode = 'wildcard';
     } else if (hostname !== ROOT_DOMAIN && !hostname.includes('localhost')) {
+      // Custom domain tenancy
       tenantSlug = hostname;
       routingMode = 'custom';
-    }
-
-    // ── Platform Routing Detection (Phase 2) ──
-    if (!tenantSlug && LEGACY_TENANT_ROUTES.has(firstSegment)) {
-      tenantSlug = '__platform__';
-      routingMode = 'platform';
-      
-      console.log(`[Platform Routing Detection] resolvedRoute: ${pathname}, routingMode: ${routingMode}, tenantSlug: ${tenantSlug}`);
     }
 
     // ── Inject tenant headers ──
@@ -92,11 +110,12 @@ export async function middleware(request: NextRequest) {
 
     // ── Build final response with tenant headers ──
     let finalResponse: NextResponse;
-    
-    // Phase 3: Internal Rewrite for Platform Routes
+
+    // Platform routes: rewrite /admin → /__platform__/admin so [tenantSlug] catches it
     if (tenantSlug === '__platform__') {
       const rewriteUrl = request.nextUrl.clone();
       rewriteUrl.pathname = `/__platform__${pathname}`;
+      console.log(`[Middleware] Platform rewrite: ${pathname} → ${rewriteUrl.pathname}`);
       finalResponse = NextResponse.rewrite(rewriteUrl, {
         request: { headers: requestHeaders },
       });
@@ -112,7 +131,7 @@ export async function middleware(request: NextRequest) {
     });
 
     // Set a cookie to remember the last tenant (for backward compat redirects)
-    if (tenantSlug) {
+    if (tenantSlug && tenantSlug !== '__platform__') {
       finalResponse.cookies.set('last_tenant_slug', tenantSlug, {
         path: '/',
         httpOnly: false,
@@ -122,6 +141,7 @@ export async function middleware(request: NextRequest) {
 
     return finalResponse;
   } catch (err: any) {
+    console.error('[Middleware Error]', err);
     return NextResponse.json({ error: String(err), stack: err.stack, customMiddlewareError: true }, { status: 500 });
   }
 }
