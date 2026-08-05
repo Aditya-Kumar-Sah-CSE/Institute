@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Button from '@/components/ui/Button';
 
-export default function InstallAppButton({ className, variant = 'secondary' }: { className?: string, variant?: 'success' | 'primary' | 'secondary' | 'ghost' | 'danger' }) {
+export default function InstallAppButton({ className, variant = 'secondary', tenantSlug }: { className?: string, variant?: 'success' | 'primary' | 'secondary' | 'ghost' | 'danger', tenantSlug?: string }) {
   const [isStandalone, setIsStandalone] = useState(true);
 
   useEffect(() => {
@@ -19,7 +19,13 @@ export default function InstallAppButton({ className, variant = 'secondary' }: {
     <Button 
       variant={variant} 
       className={className}
-      onClick={() => window.dispatchEvent(new Event('show-pwa-install'))}
+      onClick={() => {
+        if (tenantSlug) {
+          window.open(`https://institute1-seven.vercel.app/${tenantSlug}`, '_blank');
+        } else {
+          window.dispatchEvent(new Event('show-pwa-install'));
+        }
+      }}
       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px' }}
       title="Install App"
     >

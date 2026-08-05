@@ -44,15 +44,15 @@ export default async function LandingPage({
     }
   }
 
-  // If a tenant is viewing their root domain/route, render their custom landing page.
-  if (tenant) {
-    return <InstitutionLanding tenant={tenant} routingMode={routingMode as any} />;
-  }
-
   const supabase = await createClient();
   const { data: settings } = await supabase.from('company_settings').select('*').single();
   const companyName = settings?.company_name || 'Smart Learning';
   const logoUrl = settings?.logo_url || '/images/smart_learning_logo.png';
+
+  // If a tenant is viewing their root domain/route, render their custom landing page.
+  if (tenant) {
+    return <InstitutionLanding tenant={tenant} routingMode={routingMode as any} companyName={companyName} />;
+  }
 
   // Fetch dynamic plans for the Pricing section
   const { data: plansData } = await supabase

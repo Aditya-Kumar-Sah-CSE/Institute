@@ -42,10 +42,12 @@ function LogoAvatar({ name, size = 36 }: { name: string; size?: number }) {
 
 export default function InstitutionLanding({ 
   tenant,
-  routingMode = 'subpath' 
+  routingMode = 'subpath',
+  companyName = 'Smart Learn AI'
 }: { 
   tenant: Tenant;
   routingMode?: 'domain' | 'subpath' | 'development';
+  companyName?: string;
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -61,9 +63,9 @@ export default function InstitutionLanding({
       {/* Navbar */}
       <nav className="inst-nav">
         <div className="inst-nav-inner">
-          <Link href="/" className="inst-brand">
+          <Link href="/" className="inst-brand" suppressHydrationWarning>
             {tenant.logo ? (
-              <img src={tenant.logo} alt={tenant.name} style={{ width: '36px', height: '36px', objectFit: 'contain', borderRadius: '4px' }} />
+              <img src={tenant.logo} alt={tenant.name} style={{ width: '36px', height: '36px', objectFit: 'contain', borderRadius: '4px' }} suppressHydrationWarning />
             ) : (
               <LogoAvatar name={tenant.name} size={36} />
             )}
@@ -72,7 +74,7 @@ export default function InstitutionLanding({
 
           <div className="inst-nav-actions desktop-only" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <ThemeToggle />
-            <InstallAppButton variant="primary" />
+            <InstallAppButton variant="primary" tenantSlug={tenant.slug} />
             <a href={`${baseUrl}/login`} className="inst-nav-btn outline">
               <LogIn size={18} /> Login
             </a>
@@ -93,7 +95,7 @@ export default function InstitutionLanding({
               <ThemeToggle />
             </div>
             <div style={{ padding: '1rem', borderBottom: '1px solid var(--inst-nav-border)', display: 'flex', justifyContent: 'center' }}>
-              <InstallAppButton variant="primary" className="inst-nav-btn" />
+              <InstallAppButton variant="primary" className="inst-nav-btn" tenantSlug={tenant.slug} />
             </div>
             <a href={`${baseUrl}/login`} onClick={() => setMobileMenuOpen(false)}>
               <LogIn size={18} /> Login
@@ -132,16 +134,16 @@ export default function InstitutionLanding({
       {/* Footer */}
       <footer className="inst-footer">
         <div className="inst-footer-inner">
-          <div className="inst-footer-brand">
+          <div className="inst-footer-brand" suppressHydrationWarning>
             {tenant.logo ? (
-              <img src={tenant.logo} alt={tenant.name} style={{ width: '28px', height: '28px', objectFit: 'contain', borderRadius: '4px' }} />
+              <img src={tenant.logo} alt={tenant.name} style={{ width: '28px', height: '28px', objectFit: 'contain', borderRadius: '4px' }} suppressHydrationWarning />
             ) : (
               <LogoAvatar name={tenant.name} size={28} />
             )}
             <span>{tenant.name}</span>
           </div>
           <p className="inst-footer-copy">
-            &copy; {new Date().getFullYear()} {tenant.name} &middot; Powered by <strong>Smart Learn AI</strong>
+            &copy; {new Date().getFullYear()} {tenant.name} &middot; Powered by <a href="https://institute1-seven.vercel.app" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}><strong>{companyName}</strong></a>
           </p>
         </div>
       </footer>
