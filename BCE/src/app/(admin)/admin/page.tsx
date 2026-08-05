@@ -154,7 +154,7 @@ export default async function AdminDashboardPage() {
               />
                 {settings?.logo_url && (
                   <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
-                    Current: <Image unoptimized src={settings.logo_url} alt="Current Logo" width={24} height={24} style={{ verticalAlign: 'middle', marginLeft: '8px', borderRadius: '4px', width: 'auto', height: '24px' }} />
+                    Current: <Image unoptimized src={settings.logo_url} alt="Current Logo" width={24} height={24} style={{ verticalAlign: 'middle', marginLeft: '8px', borderRadius: '4px', width: '24px', height: '24px', objectFit: 'contain' }} />
                   </span>
                 )}
             </div>

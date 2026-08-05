@@ -8,7 +8,7 @@ import Modal from '@/components/ui/Modal';
 import LevelBadge from '@/components/shared/LevelBadge';
 import { formatDistanceToNow } from 'date-fns';
 import { Search } from 'lucide-react';
-import { deleteStudent, deleteEnrollment, makeAdmin, makeFaculty, makeStudent } from '@/features/admin/actions/adminActions';
+import { deleteStudent, deleteEnrollment, makeAdmin, makeFaculty, makeStudent, makeDeveloper } from '@/features/admin/actions/adminActions';
 import type { LevelName } from '@/types';
 
 interface EnrollmentDetail {
@@ -41,12 +41,13 @@ interface StudentLeaderboardTableProps {
   students: StudentDetail[];
   isInstructor: boolean;
   currentUserId?: string;
+  currentUserEmail?: string;
   superAdminEmail: string;
 }
 
 import './StudentLeaderboardTable.css';
 
-export default function StudentLeaderboardTable({ students, isInstructor, currentUserId, superAdminEmail }: StudentLeaderboardTableProps) {
+export default function StudentLeaderboardTable({ students, isInstructor, currentUserId, currentUserEmail, superAdminEmail }: StudentLeaderboardTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'student' | 'instructor' | 'admin'>('all');
   const [enrollmentFilter, setEnrollmentFilter] = useState<'all' | 'enrolled'>('all');
@@ -55,6 +56,7 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
   const [adminPromotionTarget, setAdminPromotionTarget] = useState<{ id: string, name: string } | null>(null);
   const [makeFacultyTarget, setMakeFacultyTarget] = useState<{ id: string, name: string } | null>(null);
   const [makeStudentTarget, setMakeStudentTarget] = useState<{ id: string, name: string } | null>(null);
+  const [makeDeveloperTarget, setMakeDeveloperTarget] = useState<{ id: string, name: string } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string, name: string, role: string } | null>(null);
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
   const [isPending, startTransition] = useTransition();
@@ -197,6 +199,31 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
       }
     });
   };
+
+  const handleMakeDeveloperClick = (userId: string, userName: string) => {
+
+    setMakeDeveloperTarget({ id: userId, name: userName });
+  };
+
+  const confirmMakeDeveloper = async () => {
+    if (!makeDeveloperTarget) return;
+    
+    startTransition(async () => {
+      try {
+        const result = await makeDeveloper(makeDeveloperTarget.id);
+        if (result.error) {
+          alert(`Error making developer: ${result.error}`);
+        } else {
+          setSelectedStudent(null);
+          setMakeDeveloperTarget(null);
+        }
+      } catch (err) {
+        console.error(err);
+        alert('An unexpected error occurred.');
+      }
+    });
+  };
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
@@ -531,14 +558,26 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
               {!isInstructor && selectedStudent.email !== superAdminEmail ? (
                 <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
                   {selectedStudent.role === 'admin' ? (
-                    <Button 
-                      variant="primary" 
-                      onClick={() => handleMakeFacultyClick(selectedStudent.id, selectedStudent.name)}
-                      disabled={isPending}
-                      style={{ background: 'var(--neon-gold)', borderColor: 'var(--neon-gold)', color: '#000' }}
-                    >
-                      Make Faculty
-                    </Button>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
+                      <Button 
+                        variant="primary" 
+                        onClick={() => handleMakeFacultyClick(selectedStudent.id, selectedStudent.name)}
+                        disabled={isPending}
+                        style={{ background: 'var(--neon-gold)', borderColor: 'var(--neon-gold)', color: '#000' }}
+                      >
+                        Make Faculty
+                      </Button>
+                      {currentUserEmail === superAdminEmail && (
+                        <Button 
+                          variant="primary" 
+                          onClick={() => handleMakeDeveloperClick(selectedStudent.id, selectedStudent.name)}
+                          disabled={isPending}
+                          style={{ background: '#00f2fe', borderColor: '#00f2fe', color: '#000' }}
+                        >
+                          Make Developer
+                        </Button>
+                      )}
+                    </div>
                   ) : selectedStudent.role === 'instructor' ? (
                     <>
                       <Button 
@@ -557,6 +596,16 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
                       >
                         Make Admin
                       </Button>
+                      {currentUserEmail === superAdminEmail && (
+                        <Button 
+                          variant="primary" 
+                          onClick={() => handleMakeDeveloperClick(selectedStudent.id, selectedStudent.name)}
+                          disabled={isPending}
+                          style={{ background: '#00f2fe', borderColor: '#00f2fe', color: '#000', marginTop: 'var(--space-xs)' }}
+                        >
+                          Make Developer
+                        </Button>
+                      )}
                     </>
                   ) : (
                     <Button 
@@ -691,6 +740,46 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
                 style={{ background: 'var(--neon-cyan)', borderColor: 'var(--neon-cyan)', color: '#000' }}
               >
                 {isPending ? 'Processing...' : 'Yes, Make Student'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Make Developer Confirmation Modal */}
+      {makeDeveloperTarget && (
+        <Modal 
+          isOpen={true} 
+          onClose={() => setMakeDeveloperTarget(null)} 
+          title="Promote to Developer"
+          size="md"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+              <div style={{ fontSize: '2rem', padding: 'var(--space-sm)', background: 'rgba(0, 242, 254, 0.1)', borderRadius: 'var(--radius-md)', color: '#00f2fe' }}>
+                👨‍💻
+              </div>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '1.1rem', lineHeight: 1.5 }}>
+                Are you sure you want to promote <strong>{makeDeveloperTarget.name}</strong> to Developer? 
+                This will grant them unrestricted access similar to an Admin but under the Developer role label.
+              </p>
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
+              <Button 
+                variant="secondary" 
+                onClick={() => setMakeDeveloperTarget(null)}
+                disabled={isPending}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="primary" 
+                onClick={confirmMakeDeveloper}
+                disabled={isPending}
+                style={{ background: '#00f2fe', borderColor: '#00f2fe', color: '#000' }}
+              >
+                {isPending ? 'Processing...' : 'Yes, Make Developer'}
               </Button>
             </div>
           </div>

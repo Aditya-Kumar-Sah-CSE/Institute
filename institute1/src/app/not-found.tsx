@@ -1,7 +1,12 @@
+'use client';
+
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
+import { useRouter } from 'next/navigation';
 
 export default function NotFound() {
+  const router = useRouter();
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -24,11 +29,9 @@ export default function NotFound() {
           We couldn't find the page you're looking for. The student profile or page might have been removed, or the link is incorrect.
         </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)', justifyContent: 'center' }}>
-          <Link href="/dashboard" style={{ textDecoration: 'none' }}>
-            <Button>Back to Dashboard</Button>
-          </Link>
-          <Link href="/leaderboard" style={{ textDecoration: 'none' }}>
-            <Button variant="secondary">Go to Leaderboard</Button>
+          <Button onClick={() => router.back()}>Go Back</Button>
+          <Link href="/" style={{ textDecoration: 'none' }}>
+            <Button variant="secondary">Go to Home</Button>
           </Link>
         </div>
       </div>

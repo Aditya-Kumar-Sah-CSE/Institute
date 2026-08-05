@@ -43,16 +43,27 @@ export async function updateSession(request: NextRequest) {
   if (routingMode === 'development' && tenantSlug && pathname.startsWith(`/${tenantSlug}`)) {
     effectivePathname = pathname.replace(`/${tenantSlug}`, '') || '/';
   }
+  // Phase 4: Platform routes arrive as bare paths (e.g. /dashboard), no stripping needed
+  // The middleware.ts rewrite adds __platform__ prefix internally, but supabase middleware sees the original URL
 
   // Public routes that don't require auth
-  const publicRoutes = ['/', '/login', '/signup', '/apply-instructor'];
+  const publicRoutes = [
+    '/', '/login', '/signup', '/apply-instructor', '/apply-institution',
+    '/institution-not-found', '/institution-disabled', '/contact', '/pwa-start'
+  ];
   const isPublicRoute = publicRoutes.includes(effectivePathname);
+
+  let resolvedTenantSlug = tenantSlug;
 
   const getTenantUrl = (targetPath: string) => {
     const newUrl = request.nextUrl.clone();
-    // Only prefix in development mode (e.g. localhost:3000/bce-bhagalpur)
-    if (routingMode === 'development' && tenantSlug) {
-      newUrl.pathname = `/${tenantSlug}${targetPath}`;
+    const activeSlug = resolvedTenantSlug || tenantSlug;
+    
+    // Phase 4: Platform mode — always use clean root paths, never expose __platform__
+    if (routingMode === 'platform' || activeSlug === '__platform__') {
+      newUrl.pathname = targetPath;
+    } else if (routingMode === 'development' && activeSlug) {
+      newUrl.pathname = `/${activeSlug}${targetPath}`;
     } else {
       newUrl.pathname = targetPath;
     }
@@ -80,12 +91,18 @@ export async function updateSession(request: NextRequest) {
   if (user) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, institution_id')
       .eq('id', user.id)
       .single();
     
     if (profile) {
       userRole = profile.role;
+      
+      // If we don't have a tenant slug (logged in globally) and the user has an institution, fetch its slug
+      if (!resolvedTenantSlug && profile.institution_id) {
+         const { data: inst } = await supabase.from('institutions').select('slug').eq('id', profile.institution_id).single();
+         if (inst) resolvedTenantSlug = inst.slug;
+      }
     } else {
       userRole = user?.user_metadata?.role || 'student';
     }
@@ -93,6 +110,10 @@ export async function updateSession(request: NextRequest) {
     // Explicit escape hatch: if testing locally with the super admin email, upgrade role
     if (user.email === process.env.SUPER_ADMIN_EMAIL) {
         userRole = 'super_admin';
+        // Phase 4: Super admins on platform mode use clean root routes, no need to resolve a slug
+        if (!resolvedTenantSlug || resolvedTenantSlug === '__platform__') {
+           resolvedTenantSlug = '__platform__';
+        }
     }
   }
 

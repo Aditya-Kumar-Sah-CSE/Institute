@@ -122,6 +122,7 @@ export default async function AdminStudentsPage() {
           students={allUsers || []} 
           isInstructor={isInstructor} 
           currentUserId={user?.id} 
+          currentUserEmail={user?.email}
           superAdminEmail={SUPER_ADMIN_EMAIL} 
         />
       </Card>

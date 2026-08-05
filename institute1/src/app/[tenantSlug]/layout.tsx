@@ -12,18 +12,22 @@ export default async function TenantLayout({
 }) {
   const { tenantSlug } = await params;
 
-  // Resolve the tenant from DB
+  // Resolve the tenant from DB (or virtual platform tenant)
   const tenant = await resolveTenantCache(tenantSlug, 'development');
 
   if (!tenant) {
     notFound();
   }
 
-  const baseUrl = generateTenantBaseUrl(tenant.slug);
+  // Phase 5: Platform tenant uses empty baseUrl to keep browser URLs clean (e.g. /dashboard, not /__platform__/dashboard)
+  const isPlatform = tenantSlug === '__platform__' || (tenant as any).isPlatform;
+  const routingMode = isPlatform ? 'platform' : 'development';
+  const baseUrl = isPlatform ? '' : generateTenantBaseUrl(tenant.slug);
 
   return (
-    <TenantProvider tenant={tenant} routingMode="development" baseUrl={baseUrl}>
+    <TenantProvider tenant={tenant} routingMode={routingMode} baseUrl={baseUrl}>
       {children}
     </TenantProvider>
   );
 }
+

@@ -2,8 +2,50 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function updateSession(request: NextRequest) {
+  const requestHeaders = new Headers(request.headers);
+  const host = request.headers.get('host') || '';
+  const { pathname } = request.nextUrl;
+
+  // Extract path segment (e.g. /bce-bhagalpur/login)
+  const pathSegments = pathname.split('/').filter(Boolean);
+  const firstPathSegment = pathSegments[0]?.toLowerCase();
+
+  let tenantSlug: string | null = null;
+  let routingMode: 'path' | 'subdomain' | 'custom-domain' | 'default' = 'default';
+
+  // 1. Check custom domain or wildcard subdomain
+  // e.g. bce.smartlearn.in or portal.bce.edu (excluding localhost and app domains)
+  const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
+  const isVercelPreview = host.includes('.vercel.app');
+  
+  if (!isLocalhost && !isVercelPreview) {
+    const parts = host.split('.');
+    if (parts.length > 2 && parts[0] !== 'www' && parts[0] !== 'smartlearn') {
+      tenantSlug = parts[0];
+      routingMode = 'subdomain';
+    } else if (parts.length >= 2 && !host.includes('smartlearn.in')) {
+      tenantSlug = host;
+      routingMode = 'custom-domain';
+    }
+  }
+
+  // 2. Check path-based routing if tenant not resolved via domain
+  const reservedPaths = ['api', '_next', 'login', 'signup', 'dashboard', 'admin', 'instructor', 'apply-instructor', 'forgot-password', 'reset-password'];
+  if (!tenantSlug && firstPathSegment && !reservedPaths.includes(firstPathSegment)) {
+    tenantSlug = firstPathSegment;
+    routingMode = 'path';
+  }
+
+  // Inject tenant context headers
+  if (tenantSlug) {
+    requestHeaders.set('x-tenant-slug', tenantSlug);
+    requestHeaders.set('x-routing-mode', routingMode);
+  }
+
   let supabaseResponse = NextResponse.next({
-    request,
+    request: {
+      headers: requestHeaders,
+    },
   });
 
   const supabase = createServerClient(
@@ -19,7 +61,9 @@ export async function updateSession(request: NextRequest) {
             request.cookies.set(name, value)
           );
           supabaseResponse = NextResponse.next({
-            request,
+            request: {
+              headers: requestHeaders,
+            },
           });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
@@ -33,11 +77,9 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
-
   // Public routes that don't require auth
-  const publicRoutes = ['/', '/login', '/signup', '/apply-instructor'];
-  const isPublicRoute = publicRoutes.includes(pathname);
+  const publicRoutes = ['/', '/login', '/signup', '/apply-instructor', '/forgot-password', '/reset-password'];
+  const isPublicRoute = publicRoutes.includes(pathname) || (tenantSlug && pathname === `/${tenantSlug}`);
 
   // Helper function to redirect while preserving cookies
   const redirectWithCookies = (url: URL) => {
@@ -52,22 +94,23 @@ export async function updateSession(request: NextRequest) {
   // If not authenticated and trying to access protected route
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = '/login';
+    url.pathname = tenantSlug ? `/${tenantSlug}/login` : '/login';
     return redirectWithCookies(url);
   }
 
-  // We fetch the actual database role from profiles to prevent out-of-sync JWT metadata redirect loops.
-  // Since we only do this for specific protected routes and login/signup, the DB hit is minimal.
   let userRole = 'student';
   if (user) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, institution_id')
       .eq('id', user.id)
       .single();
     
     if (profile) {
       userRole = profile.role;
+      if (profile.institution_id) {
+        supabaseResponse.headers.set('x-tenant-id', profile.institution_id);
+      }
     } else {
       userRole = user?.user_metadata?.role || 'student';
     }
@@ -76,10 +119,9 @@ export async function updateSession(request: NextRequest) {
   // If authenticated and trying to access login/signup/landing
   if (user && (pathname === '/login' || pathname === '/signup' || pathname === '/')) {
     const url = request.nextUrl.clone();
-    // Redirect based on role
     if (userRole === 'instructor') {
       url.pathname = '/instructor';
-    } else if (userRole === 'admin') {
+    } else if (userRole === 'admin' || userRole === 'developer') {
       url.pathname = '/admin';
     } else {
       url.pathname = '/dashboard';
@@ -89,7 +131,7 @@ export async function updateSession(request: NextRequest) {
 
   // Admin route protection
   if (user && pathname.startsWith('/admin')) {
-    if (userRole !== 'admin') {
+    if (userRole !== 'admin' && userRole !== 'developer') {
       const url = request.nextUrl.clone();
       url.pathname = '/dashboard';
       return redirectWithCookies(url);
@@ -98,7 +140,7 @@ export async function updateSession(request: NextRequest) {
 
   // Instructor route protection
   if (user && pathname.startsWith('/instructor') && pathname !== '/apply-instructor') {
-    if (userRole !== 'instructor' && userRole !== 'admin') {
+    if (userRole !== 'instructor' && userRole !== 'admin' && userRole !== 'developer') {
       const url = request.nextUrl.clone();
       url.pathname = '/dashboard';
       return redirectWithCookies(url);
@@ -107,3 +149,4 @@ export async function updateSession(request: NextRequest) {
 
   return supabaseResponse;
 }
+

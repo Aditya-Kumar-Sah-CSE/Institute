@@ -23,9 +23,10 @@ const GoogleIcon = () => (
 interface LoginFormProps {
   companyName?: string;
   logoUrl?: string;
+  tenantId?: string;
 }
 
-export default function LoginForm({ companyName, logoUrl }: LoginFormProps) {
+export default function LoginForm({ companyName, logoUrl, tenantId }: LoginFormProps) {
   const searchParams = useSearchParams();
   const message = searchParams.get('message');
   const [error, setError] = useState('');

@@ -9,6 +9,7 @@ const ROOT_ONLY_PATHS = new Set([
   'apply-institution', 'apply-instructor',
   'institution-not-found', 'institution-disabled',
   'contact', 'pwa-start',
+  'login', 'signup', 'forgot-password', 'reset-password'
 ]);
 
 // Legacy bare routes that USED to live at root but now require a tenant
@@ -16,8 +17,7 @@ const LEGACY_TENANT_ROUTES = new Set([
   'admin', 'dashboard', 'instructor',
   'courses', 'doubts', 'notices', 'leaderboard',
   'profile', 'feedbacks', 'share-doubt', 'users',
-  'batch', 'certificates', 'login', 'signup',
-  'forgot-password', 'reset-password',
+  'batch', 'certificates'
 ]);
 
 function isStaticAsset(pathname: string): boolean {
@@ -55,22 +55,12 @@ export async function middleware(request: NextRequest) {
       routingMode = 'custom';
     }
 
-    // ── Backward compatibility: redirect bare legacy routes ──
+    // ── Platform Routing Detection (Phase 2) ──
     if (!tenantSlug && LEGACY_TENANT_ROUTES.has(firstSegment)) {
-      // Try to infer tenant from cookie
-      const lastTenant = request.cookies.get('last_tenant_slug')?.value;
-      if (lastTenant) {
-        const redirectUrl = request.nextUrl.clone();
-        redirectUrl.pathname = `/${lastTenant}${pathname}`;
-        return NextResponse.redirect(redirectUrl, 302);
-      }
-      // No tenant can be inferred — redirect to institution-not-found for auth pages
-      // or to root for others
-      if (['login', 'signup', 'forgot-password', 'reset-password'].includes(firstSegment)) {
-        const redirectUrl = request.nextUrl.clone();
-        redirectUrl.pathname = '/institution-not-found';
-        return NextResponse.redirect(redirectUrl, 302);
-      }
+      tenantSlug = '__platform__';
+      routingMode = 'platform';
+      
+      console.log(`[Platform Routing Detection] resolvedRoute: ${pathname}, routingMode: ${routingMode}, tenantSlug: ${tenantSlug}`);
     }
 
     // ── Inject tenant headers ──
@@ -101,9 +91,20 @@ export async function middleware(request: NextRequest) {
     }
 
     // ── Build final response with tenant headers ──
-    const finalResponse = NextResponse.next({
-      request: { headers: requestHeaders },
-    });
+    let finalResponse: NextResponse;
+    
+    // Phase 3: Internal Rewrite for Platform Routes
+    if (tenantSlug === '__platform__') {
+      const rewriteUrl = request.nextUrl.clone();
+      rewriteUrl.pathname = `/__platform__${pathname}`;
+      finalResponse = NextResponse.rewrite(rewriteUrl, {
+        request: { headers: requestHeaders },
+      });
+    } else {
+      finalResponse = NextResponse.next({
+        request: { headers: requestHeaders },
+      });
+    }
 
     // Copy auth cookies from Supabase response
     supabaseResponse.headers.getSetCookie().forEach((cookie) => {

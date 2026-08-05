@@ -27,8 +27,8 @@ export async function deleteStudent(studentId: string) {
       .eq('id', user.id)
       .single();
 
-    if (profile?.role !== 'admin') {
-      return { error: 'Unauthorized. Only admins can delete students.' };
+    if (profile?.role !== 'admin' && profile?.role !== 'developer') {
+      return { error: 'Unauthorized. Only admins or developers can delete students.' };
     }
 
     const { data: targetProfile } = await supabaseAdmin
@@ -73,8 +73,8 @@ export async function deleteEnrollment(enrollmentId: string) {
       .eq('id', user.id)
       .single();
 
-    if (profile?.role !== 'admin') {
-      return { error: 'Unauthorized. Only admins can delete enrollments.' };
+    if (profile?.role !== 'admin' && profile?.role !== 'developer') {
+      return { error: 'Unauthorized. Only admins or developers can delete enrollments.' };
     }
 
     // Fetch enrollment info first to get user_id and course title
@@ -129,8 +129,8 @@ export async function makeAdmin(userId: string) {
       .eq('id', user.id)
       .single();
 
-    if (profile?.role !== 'admin') {
-      return { error: 'Unauthorized. Only admins can assign admin roles.' };
+    if (profile?.role !== 'admin' && profile?.role !== 'developer') {
+      return { error: 'Unauthorized. Only admins or developers can assign admin roles.' };
     }
 
     // Update user role to admin
@@ -174,8 +174,8 @@ export async function makeFaculty(userId: string) {
       .eq('id', user.id)
       .single();
 
-    if (profile?.role !== 'admin') {
-      return { error: 'Unauthorized. Only admins can assign roles.' };
+    if (profile?.role !== 'admin' && profile?.role !== 'developer') {
+      return { error: 'Unauthorized. Only admins or developers can assign roles.' };
     }
 
     const { data: targetProfile } = await supabaseAdmin
@@ -230,8 +230,8 @@ export async function makeStudent(userId: string) {
       .eq('id', user.id)
       .single();
 
-    if (profile?.role !== 'admin') {
-      return { error: 'Unauthorized. Only admins can assign roles.' };
+    if (profile?.role !== 'admin' && profile?.role !== 'developer') {
+      return { error: 'Unauthorized. Only admins or developers can assign roles.' };
     }
 
     const { data: targetProfile } = await supabaseAdmin
@@ -275,3 +275,105 @@ export async function makeStudent(userId: string) {
     return { error: errorMsg };
   }
 }
+
+export async function makeDeveloper(userId: string) {
+  try {
+    const { createClient: createServerClient } = await import('@/lib/supabase/server');
+    const supabaseUser = await createServerClient();
+    const { data: { user } } = await supabaseUser.auth.getUser();
+
+    if (!user) {
+      return { error: 'Not authenticated' };
+    }
+
+    if (user.email !== SUPER_ADMIN_EMAIL) {
+      return { error: 'Unauthorized. Only the Superadmin can assign the Developer role.' };
+    }
+
+    // Update user role to developer
+    const { error } = await supabaseAdmin
+      .from('profiles')
+      .update({ role: 'developer' })
+      .eq('id', userId);
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    await supabaseUser.from('notifications').insert({
+      user_id: userId,
+      type: 'system',
+      message: 'Your account has been granted Developer privileges.',
+      link: '/dashboard'
+    });
+
+    revalidatePath('/admin/students');
+    return { success: true };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Failed to make developer';
+    return { error: errorMsg };
+  }
+}
+
+export async function impersonateUser(targetUserId: string) {
+  try {
+    const { createClient: createServerClient } = await import('@/lib/supabase/server');
+    const supabaseUser = await createServerClient();
+    const { data: { user } } = await supabaseUser.auth.getUser();
+
+    if (!user) {
+      return { error: 'Not authenticated' };
+    }
+
+    const { data: profile } = await supabaseUser
+      .from('profiles')
+      .select('role, email')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role !== 'admin' && profile?.role !== 'developer' && user.email !== SUPER_ADMIN_EMAIL) {
+      return { error: 'Unauthorized. Only admins or developers can impersonate users.' };
+    }
+
+    const { data: targetProfile, error: targetError } = await supabaseAdmin
+      .from('profiles')
+      .select('*')
+      .eq('id', targetUserId)
+      .single();
+
+    if (targetError || !targetProfile) {
+      return { error: 'Target user profile not found.' };
+    }
+
+    // Set impersonation cookie
+    const { cookies } = await import('next/headers');
+    const cookieStore = await cookies();
+    cookieStore.set('impersonated_user_id', targetUserId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+    });
+
+    revalidatePath('/', 'layout');
+    return { success: true, targetUser: targetProfile };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Failed to impersonate user';
+    return { error: errorMsg };
+  }
+}
+
+export async function stopImpersonation() {
+  try {
+    const { cookies } = await import('next/headers');
+    const cookieStore = await cookies();
+    cookieStore.delete('impersonated_user_id');
+
+    revalidatePath('/', 'layout');
+    return { success: true };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Failed to stop impersonation';
+    return { error: errorMsg };
+  }
+}
+
