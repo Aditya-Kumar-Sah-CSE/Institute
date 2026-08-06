@@ -17,33 +17,20 @@ export default async function SharedAdminDashboard({ context }: { context: Reque
   const { data: profile } = await supabase.from('profiles').select('role, institution_id').eq('id', user?.id).single();
   const isSuperAdmin = context.type === 'PLATFORM' || profile?.role === 'super_admin' || user?.email === SUPER_ADMIN_EMAIL;
   
-  // Enforce isolation: if not super admin, must match tenant
+  // Enforce isolation: resolve instId from context or profile. NEVER allow unfiltered queries.
   const isPlatform = context.isPlatform || context.isControlPlane;
   const instId = context.type === 'TENANT' ? context.tenantId : profile?.institution_id;
 
-  // Fetch Analytics
-  let studentQuery = supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'student');
-  let instructorRequestQuery = supabase.from('instructor_applications').select('*', { count: 'exact', head: true }).eq('status', 'pending');
-  let submissionQuery = supabase.from('submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending');
-  let courseQuery = supabase.from('courses').select('*', { count: 'exact', head: true });
-
-  if (!isSuperAdmin && instId) {
-    studentQuery = studentQuery.eq('institution_id', instId);
-    
-    // Fetch users for this institution to bound other queries
-    const { data: instUsers } = await supabase.from('profiles').select('id').eq('institution_id', instId);
-    const userIds = instUsers?.map((u: any) => u.id) || [];
-    
-    if (userIds.length > 0) {
-      instructorRequestQuery = instructorRequestQuery.in('user_id', userIds);
-      submissionQuery = submissionQuery.in('user_id', userIds);
-      courseQuery = courseQuery.in('created_by', userIds);
-    } else {
-      instructorRequestQuery = instructorRequestQuery.eq('user_id', 'impossible-uuid');
-      submissionQuery = submissionQuery.eq('user_id', 'impossible-uuid');
-      courseQuery = courseQuery.eq('created_by', 'impossible-uuid');
-    }
+  // STRICT: instId must be present. If missing, dashboard shows zero counts instead of leaking global data.
+  if (!instId) {
+    console.error('[SharedAdminDashboard] CRITICAL: No institution_id resolved. Refusing to run unfiltered queries.');
   }
+
+  // Fetch Analytics — ALWAYS filter by institution_id, no super admin bypass
+  const studentQuery = supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'student').eq('institution_id', instId || 'no-inst');
+  const courseQuery = supabase.from('courses').select('*', { count: 'exact', head: true }).eq('institution_id', instId || 'no-inst');
+  const submissionQuery = supabase.from('submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending').eq('institution_id', instId || 'no-inst');
+  const instructorRequestQuery = supabase.from('instructor_applications').select('*', { count: 'exact', head: true }).eq('status', 'pending').eq('institution_id', instId || 'no-inst');
 
   const { count: studentCount } = await studentQuery;
   const { count: instructorRequestCount } = await instructorRequestQuery;

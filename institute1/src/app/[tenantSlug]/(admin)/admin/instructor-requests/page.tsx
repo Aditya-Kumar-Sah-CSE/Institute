@@ -15,7 +15,7 @@ export default async function InstructorRequestsPage() {
   if (!user) {
     return null;
   }
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+  const { data: profile } = await supabase.from('profiles').select('role, institution_id').eq('id', user.id).single();
   if (profile?.role !== 'admin') {
     return null;
   }
@@ -25,7 +25,7 @@ export default async function InstructorRequestsPage() {
   let errorMsg = '';
 
   try {
-    const data = await TenantAdminService.getInstructorApplications();
+    const data = await TenantAdminService.getInstructorApplications(profile.institution_id);
     requests = data.requests;
     approvedRequests = data.approvedRequests;
   } catch (err: any) {
