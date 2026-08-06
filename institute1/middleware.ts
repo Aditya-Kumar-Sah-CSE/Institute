@@ -84,6 +84,13 @@ export async function middleware(request: NextRequest) {
     requestHeaders.set('x-context-type', contextType);
     requestHeaders.set('x-routing-mode', routingMode);
 
+    // For platform routes, inject the platform slug so the app-layer resolver
+    // (tenantCache.ts → getPlatformInstitution) can look up the platform institution
+    // via is_platform = true. No DB query here.
+    if (contextType === 'PLATFORM') {
+      requestHeaders.set('x-tenant-slug', 'smart-learning');
+    }
+
     const impersonatedSlug = request.cookies.get('impersonated_tenant_slug')?.value;
     const effectiveTenantSlug = impersonatedSlug || tenantSlug;
 

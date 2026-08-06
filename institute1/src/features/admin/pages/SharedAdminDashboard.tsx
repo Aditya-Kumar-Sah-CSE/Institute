@@ -95,7 +95,9 @@ export default async function SharedAdminDashboard({ context }: { context: Reque
     const { data: { user } } = await sb.auth.getUser();
     if (!user) return;
     const { data: p } = await sb.from('profiles').select('role, institution_id').eq('id', user.id).single();
-    if (p?.role !== 'admin' || !p.institution_id) return;
+    if (p?.role !== 'admin') return;
+    // Post-migration: institution_id must be non-null. A missing value is a data integrity error.
+    if (!p.institution_id) throw new Error('Data integrity error: admin has no institution_id. Run migration 092.');
 
     const name = formData.get('company_name') as string;
     const logoFile = formData.get('logo_file') as File;

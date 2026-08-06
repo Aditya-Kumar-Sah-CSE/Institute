@@ -16,11 +16,12 @@ export const resolveTenantCache = async (slug: string, routingMode: string) => {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
+    // Include is_platform so callers can distinguish platform from customer tenants.
+    // For the platform institution, skip the status filter (is_platform is the authoritative flag).
     let query = supabaseAdmin
       .from('institutions')
-      .select('id, name, slug, status, plan_id, primary_domain, custom_domain, logo')
-      .eq('status', 'active');
-      
+      .select('id, name, slug, status, is_platform, plan_id, primary_domain, custom_domain, logo');
+
     if (routingMode === 'custom') {
       query = query.eq('custom_domain', slug);
     } else {
@@ -28,6 +29,12 @@ export const resolveTenantCache = async (slug: string, routingMode: string) => {
     }
 
     const { data, error } = await query.single();
+
+    // For customer tenants, enforce active status after resolution.
+    // Platform institution (is_platform = true) is always reachable.
+    if (data && !data.is_platform && data.status !== 'active') {
+      return null;
+    }
     
     if (error || !data) {
       return null;

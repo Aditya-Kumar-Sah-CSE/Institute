@@ -168,8 +168,9 @@ export default function SignupForm({ companyName, logoUrl, tenantId, baseUrl }: 
         <form onSubmit={handleSubmit} className="auth-form">
           {error && <div className="auth-error">{error}</div>}
           
-          {/* Include tenantId implicitly if it exists */}
-          {tenantId && <input type="hidden" name="institution_id" value={tenantId} />}
+          {/* institution_id is always sent: platform routes pass platform institution ID,
+              tenant routes pass the tenant institution ID. Never omitted post-migration. */}
+          <input type="hidden" name="institution_id" value={tenantId || ''} />
 
           <Input
             name="name"

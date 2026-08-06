@@ -7,6 +7,7 @@ import { checkRateLimit } from '@/lib/rate-limit';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { getTenantConfig, generateTenantBaseUrl } from '@/lib/tenant/tenantResolver';
+import { getPlatformId } from '@/lib/platform';
 
 export async function signUp(formData: FormData) {
   const supabase = await createClient();
@@ -15,7 +16,7 @@ export async function signUp(formData: FormData) {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
   const institute_id = formData.get('institute_id') as string;
-  const institution_id = formData.get('institution_id') as string | null;
+  const institution_id_raw = formData.get('institution_id') as string | null;
   const graduation_period = formData.get('graduation_period') as string;
 
   if (!name || !email || !password || !graduation_period) {
@@ -29,6 +30,23 @@ export async function signUp(formData: FormData) {
   const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
   if (!passwordRegex.test(password)) {
     return { error: 'Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character (@$!%*?&)' };
+  }
+
+  // ── Resolve institution_id ──
+  // Constraint: only assign Platform Institution during explicit platform auth flows.
+  // Tenant signups MUST always provide institution_id via the hidden form field.
+  // Never silently substitute a missing institution_id with the platform ID on tenant routes.
+  let institution_id: string;
+  if (institution_id_raw) {
+    institution_id = institution_id_raw;
+  } else {
+    const { tenant } = await getTenantConfig();
+    if (tenant) {
+      // Tenant signup is missing institution_id — this is a form rendering bug.
+      return { error: 'Institution context is missing. Please reload the page and try again.' };
+    }
+    // Platform auth flow: no tenant resolved → assign platform institution.
+    institution_id = await getPlatformId();
   }
 
   const isDev = process.env.NODE_ENV === 'development';

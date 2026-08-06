@@ -93,7 +93,11 @@ export default async function SharedAdminLayout({
     const { data: settings } = await supabase.from('company_settings').select('company_name, logo_url').single();
     companyName = settings?.company_name;
     companyLogo = settings?.logo_url;
-  } else if (profile.institution_id) {
+  } else {
+    // Post-migration: institution_id must be non-null for every user.
+    if (!profile.institution_id) {
+      throw new Error(`Data integrity error: admin user ${user.id} has no institution_id. Run migration 092.`);
+    }
     const adminSb = await createAdminClient();
     const { data: inst } = await adminSb.from('institutions').select('name, logo').eq('id', profile.institution_id).single();
     companyName = inst?.name;

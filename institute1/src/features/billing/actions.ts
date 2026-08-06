@@ -256,7 +256,9 @@ export async function fetchSubscriptions() {
     if (institutionId) {
        query = query.eq('institution_id', institutionId);
     } else {
-       query = query.eq('institution_id', '00000000-0000-0000-0000-000000000000');
+       // Post-migration: institution_id must never be null for any authenticated user.
+       // A missing institution_id here is a data integrity violation; do not silently filter.
+       throw new Error('Data integrity error: authenticated user has no institution_id. Run migration 092.');
     }
   }
 

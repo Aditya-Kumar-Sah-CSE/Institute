@@ -1,43 +1,57 @@
 import { headers } from 'next/headers';
+import { getPlatformInstitution } from '@/lib/platform';
 
 export type RequestContext =
   | {
-      type: "PLATFORM";
-      tenantId: null;
-      tenantSlug: null;
-    }
-  | {
-      type: "TENANT";
+      type: 'PLATFORM';
       tenantId: string;
       tenantSlug: string;
+      isPlatform: true;
+    }
+  | {
+      type: 'TENANT';
+      tenantId: string;
+      tenantSlug: string;
+      isPlatform: false;
     };
 
 /**
  * Enterprise architecture core context fetcher.
- * Retrieves the context typed as either PLATFORM (Super Admin) or TENANT (Institution).
+ * Retrieves the context typed as either PLATFORM (Super Admin / platform users)
+ * or TENANT (institution-specific users).
+ *
  * Context is securely established by edge middleware and verified downstream.
+ *
+ * For PLATFORM context: tenantId is the Platform Institution UUID (never null).
+ * Authorization decisions use isPlatform flag, NOT slug comparison.
+ *
+ * IMPORTANT: Callers should check `context.isPlatform` or `context.type === 'PLATFORM'`
+ * to determine platform mode. Do NOT check `!context.tenantId` — it is always non-null.
  */
 export async function getRequestContext(): Promise<RequestContext> {
   const headersList = await headers();
   const contextType = headersList.get('x-context-type');
-  
+
   if (contextType === 'PLATFORM') {
+    // Resolve platform institution via is_platform = true (cached per-request).
+    // Never uses a hardcoded UUID or slug comparison for authorization.
+    const platform = await getPlatformInstitution();
     return {
       type: 'PLATFORM',
-      tenantId: null,
-      tenantSlug: null,
+      tenantId: platform.id,
+      tenantSlug: platform.slug,
+      isPlatform: true,
     };
   }
 
-  // Everything else defaults to TENANT if it is not explicitly PLATFORM
-  // Note: tenantId might be missing initially until resolved by an inner layout or context provider,
-  // but the slug is guaranteed to be injected by middleware for tenant routes.
-  const tenantId = headersList.get('x-tenant-id') || '';
+  // TENANT context: slug and ID injected by middleware for all tenant routes.
+  const tenantId   = headersList.get('x-tenant-id')   || '';
   const tenantSlug = headersList.get('x-tenant-slug') || '';
 
   return {
     type: 'TENANT',
     tenantId,
     tenantSlug,
+    isPlatform: false,
   };
 }
