@@ -23,7 +23,7 @@ export default async function SharedDashboardLayout({
 }) {
   const supabase = await createClient();
   const user = await getUser();
-  const isPlatform = context.type === 'PLATFORM';
+  const isPlatform = context.isControlPlane || context.isPlatform;
 
   if (!user) {
     if (isPlatform) {

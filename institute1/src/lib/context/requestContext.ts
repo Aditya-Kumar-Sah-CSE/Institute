@@ -3,48 +3,52 @@ import { getPlatformInstitution } from '@/lib/platform';
 
 export type RequestContext =
   | {
+      type: 'CONTROL_PLANE';
+      isControlPlane: true;
+      isPlatform: false;
+    }
+  | {
       type: 'PLATFORM';
       tenantId: string;
       tenantSlug: string;
       isPlatform: true;
+      isControlPlane: false;
     }
   | {
       type: 'TENANT';
       tenantId: string;
       tenantSlug: string;
       isPlatform: false;
+      isControlPlane: false;
     };
 
 /**
  * Enterprise architecture core context fetcher.
- * Retrieves the context typed as either PLATFORM (Super Admin / platform users)
- * or TENANT (institution-specific users).
- *
- * Context is securely established by edge middleware and verified downstream.
- *
- * For PLATFORM context: tenantId is the Platform Institution UUID (never null).
- * Authorization decisions use isPlatform flag, NOT slug comparison.
- *
- * IMPORTANT: Callers should check `context.isPlatform` or `context.type === 'PLATFORM'`
- * to determine platform mode. Do NOT check `!context.tenantId` — it is always non-null.
+ * Retrieves the context typed as CONTROL_PLANE, PLATFORM, or TENANT.
  */
 export async function getRequestContext(): Promise<RequestContext> {
   const headersList = await headers();
   const contextType = headersList.get('x-context-type');
 
+  if (contextType === 'CONTROL_PLANE') {
+    return {
+      type: 'CONTROL_PLANE',
+      isControlPlane: true,
+      isPlatform: false,
+    };
+  }
+
   if (contextType === 'PLATFORM') {
-    // Resolve platform institution via is_platform = true (cached per-request).
-    // Never uses a hardcoded UUID or slug comparison for authorization.
     const platform = await getPlatformInstitution();
     return {
       type: 'PLATFORM',
       tenantId: platform.id,
       tenantSlug: platform.slug,
       isPlatform: true,
+      isControlPlane: false,
     };
   }
 
-  // TENANT context: slug and ID injected by middleware for all tenant routes.
   const tenantId   = headersList.get('x-tenant-id')   || '';
   const tenantSlug = headersList.get('x-tenant-slug') || '';
 
@@ -53,5 +57,6 @@ export async function getRequestContext(): Promise<RequestContext> {
     tenantId,
     tenantSlug,
     isPlatform: false,
+    isControlPlane: false,
   };
 }

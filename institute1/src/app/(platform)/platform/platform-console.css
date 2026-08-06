@@ -1,0 +1,124 @@
+.cp-shell {
+  display: flex;
+  min-height: 100vh;
+  background-color: #07090e;
+  color: #f1f5f9;
+  font-family: inherit;
+}
+
+.cp-sidebar {
+  width: 260px;
+  background: rgba(13, 17, 23, 0.95);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem 1rem;
+}
+
+.cp-brand {
+  margin-bottom: 2rem;
+  padding-left: 0.5rem;
+}
+
+.cp-badge {
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  color: var(--neon-cyan, #00f2fe);
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+
+.cp-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.cp-section-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  margin: 1.25rem 0 0.5rem 0.5rem;
+}
+
+.cp-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.cp-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  color: #94a3b8;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.cp-nav-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+}
+
+.cp-user-panel {
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cp-user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+}
+
+.cp-user-details {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.cp-user-email {
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cp-user-role {
+  font-size: 0.65rem;
+  color: #00f2fe;
+  font-weight: 600;
+}
+
+.cp-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+.cp-header {
+  height: 64px;
+  padding: 0 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(13, 17, 23, 0.6);
+  backdrop-filter: blur(10px);
+}
+
+.cp-content {
+  padding: 2rem;
+  flex: 1;
+}

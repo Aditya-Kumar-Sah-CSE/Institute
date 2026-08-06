@@ -1,7 +1,6 @@
 import { createClient, getUser } from '@/lib/supabase/server';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
-import CourseCard from '@/features/courses/components/CourseCard';
 import { getNotices } from '@/features/notices/actions';
 import type { Notice } from '@/features/notices/components/NoticeBoard';
 import type { Course } from '@/types';
@@ -10,6 +9,7 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { getDashboardPolls } from '@/features/courses/actions/polls';
 import { Zap, Flame, CheckCircle, Award } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import { RequestContext } from '@/lib/context/requestContext';
 
 const NoticeBoard = dynamic(() => import('@/features/notices/components/NoticeBoard'), { loading: () => <div className="skeleton-dash" style={{ height: '300px', borderRadius: '12px' }}></div> });
 const DashboardProfileCard = dynamic(() => import('@/features/dashboard/components/DashboardProfileCard'), { loading: () => <div className="skeleton-dash" style={{ height: '300px', borderRadius: '12px' }}></div> });
@@ -28,14 +28,12 @@ interface DashboardEnrollment {
   courses: Course | null;
 }
 
-import { RequestContext } from '@/lib/context/requestContext';
-
-export default async function SharedDashboard(props: { context: RequestContext; 
+export default async function SharedDashboard(props: {
+  context: RequestContext;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-  
 }) {
-  const isPlatform = props.context.type === 'PLATFORM';
-  const tenantSlug = props.context.tenantSlug || '';
+  const isPlatform = props.context.isControlPlane || props.context.isPlatform;
+  const tenantSlug = props.context.isControlPlane ? '' : (props.context.tenantSlug || '');
   const searchParams = await props.searchParams;
   const supabase = await createClient();
   const user = await getUser();
@@ -95,9 +93,6 @@ export default async function SharedDashboard(props: { context: RequestContext;
     .like('message', '%posted a new poll in%')
     .order('created_at', { ascending: false });
 
-  // We can fetch polls in parallel by just letting it run, though it needs course_ids.
-  // Wait, if it needs course_ids, it depends on enrollments.
-  // Let's use the enrollmentsPromise instead of making a duplicate query.
   const dashboardPollsPromise = enrollmentsPromise.then(res => {
     const ids = res.data?.filter(e => e.status === 'approved').map(e => e.course_id) || [];
     return getDashboardPolls(ids);
@@ -127,8 +122,6 @@ export default async function SharedDashboard(props: { context: RequestContext;
     settingsPromise
   ]);
 
-  const enrolledCourses = enrollments?.filter(e => e.courses).map(e => e.courses as unknown as Course) || [];
-  
   // Create a map of course_id -> certificate_id
   const certificatesMap: Record<string, string> = {};
   if (certificatesData) {
@@ -143,11 +136,10 @@ export default async function SharedDashboard(props: { context: RequestContext;
       gridTemplateColumns: 'minmax(0, 1fr)', 
       gap: 'var(--space-2xl)' 
     }}>
-      {/* Use media queries from global.css or inline for 2 cols on desktop if desired, but we can just use flex for safety */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2xl)' }}>
         {(enrollmentsError || pollsError) && (
            <div style={{ padding: '1rem', background: 'rgba(255, 0, 0, 0.2)', border: '1px solid red', borderRadius: '8px', color: '#ffcccc' }}>
-             <h3>Debug Error Info (Live Only)</h3>
+             <h3>Debug Error Info</h3>
              <pre style={{ whiteSpace: 'pre-wrap' }}>
                Enrollments Error: {JSON.stringify(enrollmentsError, null, 2)}
                {'\n'}
@@ -281,6 +273,6 @@ export default async function SharedDashboard(props: { context: RequestContext;
           </div>
         </div>
       </div>
-  </div>
+    </div>
   );
 }

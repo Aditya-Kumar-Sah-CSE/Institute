@@ -19,7 +19,7 @@ export default async function SharedAdminLayout({
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const isPlatform = context.type === 'PLATFORM';
+  const isPlatform = context.isControlPlane || context.isPlatform;
   
   if (!user) {
     if (isPlatform) {

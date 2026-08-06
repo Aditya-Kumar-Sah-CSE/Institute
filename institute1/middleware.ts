@@ -49,9 +49,17 @@ export async function middleware(request: NextRequest) {
     let contextType = 'ROOT';
 
     // ─────────────────────────────────────────────────────────
-    // CASE 1: First segment is an internal or platform route
+    // CASE 1: Platform Control Plane (/platform/*)
+    // Completely isolated from tenant context. No tenant resolution.
     // ─────────────────────────────────────────────────────────
-    if (RESERVED_SEGMENTS.has(firstSegment) || firstSegment.startsWith('_') || firstSegment.includes('.')) {
+    if (firstSegment === 'platform') {
+      contextType = 'CONTROL_PLANE';
+      routingMode = 'platform';
+    }
+    // ─────────────────────────────────────────────────────────
+    // CASE 2: Other reserved root segments (login, signup, etc.)
+    // ─────────────────────────────────────────────────────────
+    else if (RESERVED_SEGMENTS.has(firstSegment) || firstSegment.startsWith('_') || firstSegment.includes('.')) {
       if (PLATFORM_SEGMENTS.has(firstSegment)) {
         contextType = 'PLATFORM';
         routingMode = 'platform';
@@ -112,10 +120,24 @@ export async function middleware(request: NextRequest) {
       return supabaseResponse;
     }
 
-    // ── Build final response WITHOUT rewrites ──
-    const finalResponse = NextResponse.next({
-      request: { headers: requestHeaders },
-    });
+    // ── Build final response, applying rewrites for PLATFORM routes ──
+    // PLATFORM routes (e.g. /admin/institutions, /dashboard, /courses) are root-level
+    // paths that map to [tenantSlug]/(admin)/admin/* in the filesystem.
+    // We rewrite them to /smart-learning/... so Next.js can match the dynamic segment.
+    const PLATFORM_TENANT_SLUG = 'smart-learning';
+    let finalResponse: NextResponse;
+
+    if (contextType === 'PLATFORM' && PLATFORM_SEGMENTS.has(firstSegment)) {
+      const rewriteUrl = request.nextUrl.clone();
+      rewriteUrl.pathname = `/${PLATFORM_TENANT_SLUG}${pathname}`;
+      finalResponse = NextResponse.rewrite(rewriteUrl, {
+        request: { headers: authRequest.headers },
+      });
+    } else {
+      finalResponse = NextResponse.next({
+        request: { headers: authRequest.headers },
+      });
+    }
 
     // Copy auth cookies from Supabase response
     supabaseResponse.headers.getSetCookie().forEach((cookie) => {

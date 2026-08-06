@@ -18,6 +18,7 @@ export default async function SharedAdminDashboard({ context }: { context: Reque
   const isSuperAdmin = context.type === 'PLATFORM' || profile?.role === 'super_admin' || user?.email === SUPER_ADMIN_EMAIL;
   
   // Enforce isolation: if not super admin, must match tenant
+  const isPlatform = context.isPlatform || context.isControlPlane;
   const instId = context.type === 'TENANT' ? context.tenantId : profile?.institution_id;
 
   // Fetch Analytics
