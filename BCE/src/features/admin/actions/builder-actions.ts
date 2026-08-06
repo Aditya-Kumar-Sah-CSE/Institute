@@ -16,8 +16,8 @@ async function requireBuilderRole() {
     .eq('id', user.id)
     .single();
 
-  if (!profile || (profile.role !== 'admin' && profile.role !== 'instructor')) {
-    throw new Error('Unauthorized: admin or instructor role required');
+  if (!profile || (profile.role !== 'admin' && profile.role !== 'instructor' && profile.role !== 'developer')) {
+    throw new Error('Unauthorized: admin, instructor, or developer role required');
   }
 
   return { supabase, user, role: profile.role };

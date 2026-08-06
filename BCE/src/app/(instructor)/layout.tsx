@@ -39,7 +39,7 @@ export default async function InstructorLayout({
     );
   }
 
-  if (profile.role !== 'instructor' && profile.role !== 'admin') {
+  if (profile.role !== 'instructor' && profile.role !== 'admin' && profile.role !== 'developer') {
     redirect('/dashboard');
   }
 

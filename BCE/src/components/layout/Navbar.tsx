@@ -128,12 +128,12 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
                      {getIcon('Dashboard', { size: 16, className: 'mobile-nav-icon' })} Student View
                    </Link>
                  )}
-                 {currentView !== 'admin' && profile.role === 'admin' && (
+                 {currentView !== 'admin' && (profile.role === 'admin' || profile.role === 'developer') && (
                    <Link href="/admin" onClick={() => setIsMenuOpen(false)}>
-                     {getIcon('Admin', { size: 16, className: 'mobile-nav-icon' })} Admin Panel
+                     {getIcon('Admin', { size: 16, className: 'mobile-nav-icon' })} {profile.role === 'developer' || profile.email === SUPER_ADMIN_EMAIL ? 'Developer Panel' : 'Admin Panel'}
                    </Link>
                  )}
-                 {currentView !== 'instructor' && ((profile.role === 'instructor' && profile.status === 'active') || profile.role === 'admin') && (
+                 {currentView !== 'instructor' && ((profile.role === 'instructor' && profile.status === 'active') || profile.role === 'admin' || profile.role === 'developer') && (
                    <Link href="/instructor" onClick={() => setIsMenuOpen(false)}>
                      {getIcon('Instructors', { size: 16, className: 'mobile-nav-icon' })} Instructor Panel
                    </Link>

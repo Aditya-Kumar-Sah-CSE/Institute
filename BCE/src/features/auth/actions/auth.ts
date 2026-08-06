@@ -105,10 +105,12 @@ export async function signIn(formData: FormData) {
 
   let redirectUrl = '/dashboard';
   if (data.user) {
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single();
-    if (profile?.role === 'instructor') {
+    const adminSupabase = await createAdminClient();
+    const { data: profile } = await adminSupabase.from('profiles').select('role').eq('id', data.user.id).single();
+    const role = profile?.role || data.user.user_metadata?.role;
+    if (role === 'instructor') {
       redirectUrl = '/instructor';
-    } else if (profile?.role === 'admin') {
+    } else if (role === 'admin' || role === 'developer') {
       redirectUrl = '/admin';
     }
   }
