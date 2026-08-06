@@ -87,36 +87,87 @@ export async function updateSession(request: NextRequest) {
     return redirectWithCookies(getTenantUrl('/login'));
   }
 
-  // We fetch the actual database role from profiles to prevent out-of-sync JWT metadata redirect loops.
-  // Since we only do this for specific protected routes and login/signup, the DB hit is minimal.
   let userRole = 'student';
+  let userId = '';
+  let userPermissions: string[] = [];
+
   if (user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, institution_id')
+    userId = user.id;
+
+    // Check platform_users first to see if this is a platform administrator/support staff
+    const { data: platformUser } = await supabase
+      .from('platform_users')
+      .select('role, is_active, status')
       .eq('id', user.id)
-      .single();
-    
-    if (profile) {
-      userRole = profile.role;
-      
-      // If we don't have a tenant slug (logged in globally) and the user has an institution, fetch its slug
-      if (!resolvedTenantSlug && profile.institution_id) {
-         const { data: inst } = await supabase.from('institutions').select('slug').eq('id', profile.institution_id).single();
-         if (inst) resolvedTenantSlug = inst.slug;
+      .maybeSingle();
+
+    if (platformUser) {
+      if (!platformUser.is_active || platformUser.status !== 'active') {
+        userRole = 'suspended';
+      } else {
+        userRole = platformUser.role;
+        userPermissions = [platformUser.role];
       }
     } else {
-      userRole = user?.user_metadata?.role || 'student';
-    }
-    
-    // Explicit escape hatch: if testing locally with the super admin email, upgrade role
-    if (user.email === process.env.SUPER_ADMIN_EMAIL) {
-        userRole = 'super_admin';
-        // Phase 4: Super admins on platform mode use clean root routes, no need to resolve a slug
-        if (!resolvedTenantSlug || resolvedTenantSlug === '__platform__') {
-           resolvedTenantSlug = '__platform__';
+      // Fallback to standard tenant profiles
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, institution_id')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      if (profile) {
+        userRole = profile.role;
+        userPermissions = [profile.role];
+        
+        // If we don't have a tenant slug (logged in globally) and the user has an institution, fetch its slug
+        if (!resolvedTenantSlug && profile.institution_id) {
+           const { data: inst } = await supabase
+             .from('institutions')
+             .select('slug')
+             .eq('id', profile.institution_id)
+             .maybeSingle();
+           if (inst) {
+             resolvedTenantSlug = inst.slug;
+           }
         }
+
+        if (profile.institution_id) {
+           // Load tenant features for permissions / access control
+           const { data: feats } = await supabase
+             .from('tenant_features')
+             .select('feature_key')
+             .eq('institution_id', profile.institution_id)
+             .eq('is_enabled', true);
+           if (feats) {
+             userPermissions.push(...feats.map(f => f.feature_key));
+           }
+        }
+      } else {
+        userRole = user?.user_metadata?.role || 'student';
+        userPermissions = [userRole];
+      }
+      
+      // Explicit escape hatch: if testing locally with the super admin email, upgrade role
+      if (user.email === process.env.SUPER_ADMIN_EMAIL) {
+          userRole = 'super_admin';
+          userPermissions = ['super_admin'];
+          // Phase 4: Super admins on platform mode use clean root routes, no need to resolve a slug
+          if (!resolvedTenantSlug || resolvedTenantSlug === '__platform__') {
+             resolvedTenantSlug = '__platform__';
+          }
+      }
     }
+
+    // Set immutable user context headers
+    request.headers.set('x-user-id', userId);
+    request.headers.set('x-user-role', userRole);
+    request.headers.set('x-user-permissions', userPermissions.join(','));
+  }
+
+  // If authenticated but platform user account is suspended, redirect to login
+  if (user && userRole === 'suspended' && !isPublicRoute) {
+    return redirectWithCookies(getTenantUrl('/login?error=suspended'));
   }
 
   // If authenticated and trying to access login/signup/landing

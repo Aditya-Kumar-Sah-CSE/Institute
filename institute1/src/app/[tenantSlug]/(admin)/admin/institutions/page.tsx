@@ -1,6 +1,7 @@
 import React from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
+import { PlatformService } from '@/services/platform/platformService';
 import AdminInstitutionsClient from './AdminInstitutionsClient';
 
 export default async function InstitutionsPage() {
@@ -16,18 +17,10 @@ export default async function InstitutionsPage() {
     );
   }
 
-  // Use the admin client to bypass any restrictive RLS that we might not have set up yet for superadmins correctly
-  // Usually, superadmin uses the service role key for some bootstrapping tasks.
-  const { createClient: createAdminClient } = await import('@supabase/supabase-js');
-  const supabaseAdmin = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-
-  const [{ data: requests }, { data: institutions }] = await Promise.all([
-    supabaseAdmin.from('institution_requests').select('*').order('created_at', { ascending: false }),
-    supabaseAdmin.from('institutions').select('*').order('created_at', { ascending: false })
+  const [requests, institutions] = await Promise.all([
+    PlatformService.getInstitutionRequests(),
+    PlatformService.listInstitutions()
   ]);
 
-  return <AdminInstitutionsClient requests={requests || []} institutions={institutions || []} />;
+  return <AdminInstitutionsClient requests={requests} institutions={institutions} />;
 }

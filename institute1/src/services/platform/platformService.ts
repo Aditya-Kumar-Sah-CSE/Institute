@@ -95,4 +95,98 @@ export class PlatformService {
     await this.logPlatformAudit('IMPERSONATION_STARTED', `tenant:${tenantId}`, { reason, sessionId: session.id });
     return session;
   }
+
+  /**
+   * Terminate an active impersonation session.
+   */
+  static async endImpersonationSession(sessionId: string) {
+    const platformUser = await getPlatformUser();
+    if (!platformUser) throw new Error('Unauthorized Platform Access');
+
+    const adminSb = await createAdminClient();
+    const { data: session, error } = await adminSb
+      .from('platform_sessions')
+      .update({ ended_at: new Date().toISOString() })
+      .eq('id', sessionId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    await this.logPlatformAudit('IMPERSONATION_ENDED', `tenant:${session.tenant_id}`, { sessionId });
+    return session;
+  }
+
+  /**
+   * Logs a tenant-specific audit event in public.tenant_audit_logs.
+   */
+  static async logTenantAudit(institutionId: string, userId: string | null, action: string, targetResource?: string, metadata?: Record<string, any>) {
+    const adminSb = await createAdminClient();
+    await adminSb.from('tenant_audit_logs').insert({
+      institution_id: institutionId,
+      user_id: userId,
+      action,
+      target_resource: targetResource,
+      metadata,
+    });
+  }
+
+  /**
+   * Checks if a feature flag matches specific plan / override rules for a tenant.
+   */
+  static async isFeatureEnabledForTenant(institutionId: string, featureKey: string): Promise<boolean> {
+    const adminSb = await createAdminClient();
+    
+    // 1. Check tenant override
+    const { data: tenantFlag } = await adminSb
+      .from('tenant_features')
+      .select('is_enabled')
+      .eq('institution_id', institutionId)
+      .eq('feature_key', featureKey)
+      .maybeSingle();
+
+    if (tenantFlag) {
+      return tenantFlag.is_enabled;
+    }
+
+    // 2. Fallback to global default
+    const { data: platformFlag } = await adminSb
+      .from('platform_features')
+      .select('is_enabled_globally')
+      .eq('feature_key', featureKey)
+      .maybeSingle();
+
+    return platformFlag ? platformFlag.is_enabled_globally : false;
+  }
+
+  /**
+   * Checks if a feature flag is enabled globally.
+   */
+  static async isFeatureEnabledGlobally(featureKey: string): Promise<boolean> {
+    const adminSb = await createAdminClient();
+    const { data: platformFlag } = await adminSb
+      .from('platform_features')
+      .select('is_enabled_globally')
+      .eq('feature_key', featureKey)
+      .maybeSingle();
+
+    return platformFlag ? platformFlag.is_enabled_globally : false;
+  }
+
+  /**
+   * Fetches all registration requests for new institutions/tenants.
+   */
+  static async getInstitutionRequests() {
+    const platformUser = await getPlatformUser();
+    if (!platformUser) throw new Error('Unauthorized Platform Access');
+
+    const adminSb = await createAdminClient();
+    const { data, error } = await adminSb
+      .from('institution_requests')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
 }

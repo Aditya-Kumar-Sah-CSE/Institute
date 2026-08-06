@@ -1,4 +1,5 @@
-import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
+import { TenantAdminService } from '@/services/tenant/tenantAdminService';
 import { redirect } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -19,42 +20,16 @@ export default async function InstructorRequestsPage() {
     return null;
   }
 
-  // Use admin client to bypass RLS in case the admin's profile role is not set to 'admin'
-  const adminSb = await createAdminClient();
+  let requests: any[] = [];
+  let approvedRequests: any[] = [];
+  let errorMsg = '';
 
-  // Fetch all pending requests
-  const { data: requests, error: requestsError } = await adminSb
-    .from('instructor_applications')
-    .select(`
-      *,
-      profiles:user_id (
-        name,
-        email,
-        institute_id
-      )
-    `)
-    .eq('status', 'pending')
-    .order('submitted_at', { ascending: false });
-
-  // Fetch all approved requests
-  const { data: approvedRequests, error: approvedError } = await adminSb
-    .from('instructor_applications')
-    .select(`
-      *,
-      profiles:user_id (
-        name,
-        email,
-        institute_id
-      )
-    `)
-    .eq('status', 'approved')
-    .order('approved_at', { ascending: false });
-
-  if (requestsError) {
-    console.error('Pending requests error:', requestsError);
-  }
-  if (approvedError) {
-    console.error('Approved requests error:', approvedError);
+  try {
+    const data = await TenantAdminService.getInstructorApplications();
+    requests = data.requests;
+    approvedRequests = data.approvedRequests;
+  } catch (err: any) {
+    errorMsg = err.message || 'Failed to load applications';
   }
 
   return (
@@ -64,11 +39,10 @@ export default async function InstructorRequestsPage() {
         <p className="text-secondary">Review and approve applications to become an instructor.</p>
       </div>
 
-      {(requestsError || approvedError) && (
+      {errorMsg && (
         <div style={{ padding: '1rem', background: '#ffcccc', color: '#cc0000', borderRadius: '8px' }}>
           <h3>Database Error (For debugging):</h3>
-          <p>{requestsError?.message}</p>
-          <p>{approvedError?.message}</p>
+          <p>{errorMsg}</p>
         </div>
       )}
 
