@@ -234,13 +234,13 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
             <span className="sidebar-nav-label">Student View</span>
           </Link>
         )}
-        {currentView !== 'admin' && profile.role === 'admin' && (
+        {currentView !== 'admin' && (profile.role === 'admin' || profile.role === 'super_admin' || isSuperAdmin) && (
           <Link href="/admin" className="sidebar-nav-item sidebar-switch" onClick={handleNavClick}>
             <span className="sidebar-nav-icon">{getIcon('Admin', { className: 'w-5 h-5' })}</span>
             <span className="sidebar-nav-label">{isSuperAdmin ? 'Developer Panel' : 'Administration Panel'}</span>
           </Link>
         )}
-        {currentView !== 'instructor' && ((profile.role === 'instructor' && profile.status === 'active') || profile.role === 'admin') && (
+        {currentView !== 'instructor' && ((profile.role === 'instructor' && profile.status === 'active') || profile.role === 'admin' || profile.role === 'super_admin' || isSuperAdmin) && (
           <Link href="/instructor" className="sidebar-nav-item sidebar-switch" onClick={handleNavClick}>
             <span className="sidebar-nav-icon">{getIcon('Instructors', { className: 'w-5 h-5' })}</span>
             <span className="sidebar-nav-label">Instructor Panel</span>
