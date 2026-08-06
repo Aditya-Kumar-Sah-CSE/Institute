@@ -27,11 +27,16 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const { tenant } = useTenant();
   const pathname = usePathname();
-  const pageTitle = title || (pathname === '/dashboard' ? 'Dashboard' : 
-                    pathname.startsWith('/admin') ? 'Admin Panel' :
-                    pathname.startsWith('/courses') ? 'Courses' : 
-                    pathname.startsWith('/leaderboard') ? 'Leaderboard' :
-                    pathname.startsWith('/profile') ? 'Profile' : '');
+  const isAdminRoute = pathname.includes('/admin');
+  const isInstructorRoute = pathname.includes('/instructor');
+  const activeRouteView: 'admin' | 'instructor' | 'student' = isAdminRoute ? 'admin' : isInstructorRoute ? 'instructor' : 'student';
+  const effectiveView = activeRouteView || currentView;
+
+  const pageTitle = title || (pathname === '/dashboard' || pathname.endsWith('/dashboard') ? 'Dashboard' : 
+                    pathname.includes('/admin') ? 'Admin Panel' :
+                    pathname.includes('/courses') ? 'Courses' : 
+                    pathname.includes('/leaderboard') ? 'Leaderboard' :
+                    pathname.includes('/profile') ? 'Profile' : '');
 
   let homeLink = '/';
   if (profile) {
@@ -99,8 +104,8 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
             </button>
             {isMenuOpen && (
               <div className="mobile-dropdown">
-                 {/* Removed Instructors link */}
-                 {currentView === 'admin' && (
+                 {/* Mobile Navigation View Switcher */}
+                 {effectiveView === 'admin' && (
                    <>
                      {profile.email === SUPER_ADMIN_EMAIL && (
                        <Link href="/admin/feedback" onClick={() => setIsMenuOpen(false)}>
@@ -121,7 +126,7 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
                      </Link>
                    </>
                  )}
-                 {currentView === 'instructor' && (
+                 {effectiveView === 'instructor' && (
                    <>
                      <Link href="/leaderboard" onClick={() => setIsMenuOpen(false)}>
                        {getIcon('Leaderboard', { size: 16, className: 'mobile-nav-icon' })} Leaderboard
@@ -134,22 +139,22 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
                      </Link>
                    </>
                  )}
-                 {currentView !== 'student' && (
+                 {effectiveView !== 'student' && (
                    <Link href="/dashboard" onClick={() => setIsMenuOpen(false)}>
                      {getIcon('Dashboard', { size: 16, className: 'mobile-nav-icon' })} Student View
                    </Link>
                  )}
-                 {currentView !== 'admin' && (profile.role === 'admin' || profile.role === 'super_admin' || profile.email === SUPER_ADMIN_EMAIL) && (
+                 {effectiveView !== 'admin' && (profile.role === 'admin' || profile.role === 'super_admin' || profile.email === SUPER_ADMIN_EMAIL) && (
                    <Link href="/admin" onClick={() => setIsMenuOpen(false)}>
                      {getIcon('Admin', { size: 16, className: 'mobile-nav-icon' })} {profile.email === SUPER_ADMIN_EMAIL ? 'Developer Panel' : 'Admin Panel'}
                    </Link>
                  )}
-                 {currentView !== 'instructor' && ((profile.role === 'instructor' && profile.status === 'active') || profile.role === 'admin' || profile.role === 'super_admin' || profile.email === SUPER_ADMIN_EMAIL) && (
+                 {effectiveView !== 'instructor' && ((profile.role === 'instructor' && profile.status === 'active') || profile.role === 'admin' || profile.role === 'super_admin' || profile.email === SUPER_ADMIN_EMAIL) && (
                    <Link href="/instructor" onClick={() => setIsMenuOpen(false)}>
                      {getIcon('Instructors', { size: 16, className: 'mobile-nav-icon' })} Instructor Panel
                    </Link>
                  )}
-                 {currentView === 'student' && (
+                 {effectiveView === 'student' && (
                    <Link href="/notices" onClick={() => setIsMenuOpen(false)}>
                      {getIcon('Notices', { size: 16, className: 'mobile-nav-icon' })} Notices
                    </Link>

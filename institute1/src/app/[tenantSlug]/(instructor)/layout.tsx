@@ -8,6 +8,8 @@ import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 import { generateTenantBaseUrl } from '@/lib/tenant/tenantResolver';
 import { resolveTenantCache } from '@/lib/tenant/tenantCache';
 
+export const dynamic = 'force-dynamic';
+
 export default async function InstructorLayout({
   children,
   params,

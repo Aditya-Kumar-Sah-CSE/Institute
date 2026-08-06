@@ -84,10 +84,15 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
     setDeferredPrompt(null);
   };
   
-  const currentView = roleView || (isAdmin ? 'admin' : 'student');
+  // Dynamically derive current section view from pathname
+  const isAdminRoute = pathname.includes('/admin');
+  const isInstructorRoute = pathname.includes('/instructor');
+  const activeRouteView: 'admin' | 'instructor' | 'student' = isAdminRoute ? 'admin' : isInstructorRoute ? 'instructor' : 'student';
+
+  const currentView = activeRouteView || roleView || (isAdmin ? 'admin' : 'student');
   let navItems = currentView === 'admin' ? ADMIN_NAV_ITEMS : 
-                   currentView === 'instructor' ? INSTRUCTOR_NAV_ITEMS : 
-                   NAV_ITEMS;
+                 currentView === 'instructor' ? INSTRUCTOR_NAV_ITEMS : 
+                 NAV_ITEMS;
 
   // Filter restricted tabs for non-super-admins
   if (currentView === 'admin' && !isSuperAdmin) {
