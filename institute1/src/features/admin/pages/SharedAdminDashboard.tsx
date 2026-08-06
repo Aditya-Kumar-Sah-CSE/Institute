@@ -19,7 +19,21 @@ export default async function SharedAdminDashboard({ context }: { context: Reque
   
   // Enforce isolation: resolve instId from context or profile. NEVER allow unfiltered queries.
   const isPlatform = context.isPlatform || context.isControlPlane;
-  const instId = context.type === 'TENANT' ? context.tenantId : profile?.institution_id;
+  let instId = context.type === 'TENANT' ? context.tenantId : profile?.institution_id;
+
+  // Fallback for Platform / Super Admin: if instId is null, resolve the platform institution ID
+  if (!instId) {
+    const adminSb = await createAdminClient();
+    const { data: platformInst } = await adminSb
+      .from('institutions')
+      .select('id')
+      .eq('is_platform', true)
+      .limit(1)
+      .maybeSingle();
+    if (platformInst) {
+      instId = platformInst.id;
+    }
+  }
 
   // STRICT: instId must be present. If missing, dashboard shows zero counts instead of leaking global data.
   if (!instId) {
