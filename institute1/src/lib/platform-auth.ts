@@ -7,6 +7,7 @@
  */
 
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 import { cache } from 'react';
 
 export type PlatformRole = 'SUPER_ADMIN' | 'PLATFORM_ADMIN' | 'SUPPORT' | 'BILLING_ADMIN';
@@ -20,7 +21,7 @@ export type PlatformUser = {
 
 /**
  * Resolves current authenticated Platform User from `public.platform_users`.
- * Returns null if unauthenticated or if user is not a Platform User.
+ * Fallback to SUPER_ADMIN_EMAIL for root administrator.
  * Cached per-request via React cache().
  */
 export const getPlatformUser = cache(async (): Promise<PlatformUser | null> => {
@@ -31,20 +32,30 @@ export const getPlatformUser = cache(async (): Promise<PlatformUser | null> => {
 
   // Query dedicated platform_users table using admin client
   const adminSb = await createAdminClient();
-  const { data: platformUser, error } = await adminSb
+  const { data: platformUser } = await adminSb
     .from('platform_users')
     .select('id, role, created_at')
     .eq('id', user.id)
-    .single();
+    .maybeSingle();
 
-  if (error || !platformUser) {
-    return null;
+  if (platformUser) {
+    return {
+      id: user.id,
+      email: user.email || '',
+      platformRole: platformUser.role as PlatformRole,
+      created_at: platformUser.created_at || new Date().toISOString(),
+    };
   }
 
-  return {
-    id: user.id,
-    email: user.email || '',
-    platformRole: platformUser.role as PlatformRole,
-    created_at: platformUser.created_at,
-  };
+  // Fallback for Super Admin email
+  if (user.email === SUPER_ADMIN_EMAIL) {
+    return {
+      id: user.id,
+      email: user.email,
+      platformRole: 'SUPER_ADMIN',
+      created_at: new Date().toISOString(),
+    };
+  }
+
+  return null;
 });
