@@ -139,7 +139,8 @@ export async function fetchStoryFeed() {
       profile:profiles(id, name, avatar_url),
       items:story_items(
         *,
-        views:story_views(viewer_id)
+        views:story_views(viewer_id),
+        reactions:story_reactions(id, emoji, user_id, profile:profiles(id, name, avatar_url))
       )
     `)
     .is('deleted_at', null)
@@ -285,3 +286,64 @@ export async function toggleReaction(storyItemId: string, emoji: string) {
 
   return true;
 }
+
+export async function addStoryReply(storyItemId: string, message: string) {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData?.user) throw new Error('Not authenticated');
+  if (!message.trim()) throw new Error('Message cannot be empty');
+
+  const { data, error } = await supabase
+    .from('story_replies')
+    .insert({
+      story_item_id: storyItemId,
+      sender_id: userData.user.id,
+      message: message.trim(),
+    })
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchStoryViews(storyItemId: string) {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData?.user) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase
+    .from('story_views')
+    .select(`
+      viewer_id,
+      viewed_at,
+      profile:profiles!story_views_viewer_id_fkey(id, name, avatar_url)
+    `)
+    .eq('story_item_id', storyItemId)
+    .order('viewed_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function fetchStoryReplies(storyItemId: string) {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData?.user) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase
+    .from('story_replies')
+    .select(`
+      id,
+      message,
+      created_at,
+      sender_id,
+      profile:profiles!story_replies_sender_id_fkey(id, name, avatar_url)
+    `)
+    .eq('story_item_id', storyItemId)
+    .order('created_at', { ascending: true });
+
+  if (error) throw error;
+  return data || [];
+}
+
