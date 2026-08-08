@@ -70,6 +70,11 @@ export async function updateSession(request: NextRequest) {
           );
         },
       },
+      global: {
+        fetch: (url, options) => {
+          return fetch(url, { ...options, cache: 'no-store' });
+        },
+      },
     }
   );
 
@@ -100,11 +105,15 @@ export async function updateSession(request: NextRequest) {
 
   let userRole = 'student';
   if (user) {
-    const { data: profile } = await supabase
+    const { data: profile, error } = await supabase
       .from('profiles')
       .select('role, institution_id')
       .eq('id', user.id)
       .single();
+      
+    if (error) {
+      console.error('[Middleware] Profile fetch error:', error);
+    }
     
     if (profile) {
       userRole = profile.role;
@@ -113,6 +122,7 @@ export async function updateSession(request: NextRequest) {
       }
     } else {
       userRole = user?.user_metadata?.role || 'student';
+      console.warn('[Middleware] Profile not found, fallback to metadata role:', userRole);
     }
   }
 
