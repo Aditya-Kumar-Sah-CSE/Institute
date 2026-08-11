@@ -1,5 +1,5 @@
-import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { getAuthorizedProfile, INSTRUCTOR_ROLES } from '@/lib/auth';
 import Sidebar from '@/components/layout/Sidebar';
 import Navbar from '@/components/layout/Navbar';
 import '../(dashboard)/DashboardLayout.css';
@@ -11,18 +11,13 @@ export default async function InstructorLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect('/login');
-  }
-
-  const { getOrCreateProfile } = await import('@/lib/profile');
-  const profile = await getOrCreateProfile(user);
+  const { supabase, profile } = await getAuthorizedProfile({
+    allowedRoles: INSTRUCTOR_ROLES,
+    onUnauthenticated: '/login',
+    onUnauthorized: '/dashboard',
+  });
 
   if (!profile) {
-    // Edge case if profile isn't created yet (e.g. deleted from DB manually but not from Auth)
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: '20px', textAlign: 'center', color: 'white' }}>
         <div>
@@ -39,11 +34,6 @@ export default async function InstructorLayout({
     );
   }
 
-  if (profile.role !== 'instructor' && profile.role !== 'admin' && profile.role !== 'developer') {
-    redirect('/dashboard');
-  }
-
-  // Redirect pending or rejected instructors to dashboard
   if (profile.role === 'instructor' && (profile.status === 'pending' || profile.status === 'rejected')) {
     redirect('/apply-instructor');
   }

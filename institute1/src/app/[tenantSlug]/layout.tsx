@@ -20,9 +20,9 @@ export default async function TenantLayout({
   }
 
   // Phase 5: Platform tenant uses empty baseUrl to keep browser URLs clean (e.g. /dashboard, not /__platform__/dashboard)
-  const isPlatform = tenantSlug === '__platform__' || (tenant as any).isPlatform;
+  const isPlatform = tenantSlug === '__platform__' || (tenant as any)?.is_platform;
   const routingMode = isPlatform ? 'platform' : 'development';
-  const baseUrl = isPlatform ? '' : generateTenantBaseUrl(tenant.slug);
+  const baseUrl = isPlatform ? '' : generateTenantBaseUrl(tenant?.slug || null);
 
   return (
     <TenantProvider tenant={tenant} routingMode={routingMode} baseUrl={baseUrl}>

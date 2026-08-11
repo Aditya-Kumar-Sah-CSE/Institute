@@ -78,7 +78,8 @@ export function TenantLink({ href, children, className, onClick, style, title, t
   const isExternal = href.startsWith('http://') || href.startsWith('https://');
   
   // Determine effective tenant URL prefix
-  const prefix = (baseUrl !== undefined && baseUrl !== '') ? baseUrl : (tenantSlug ? `/${tenantSlug}` : '');
+  // Empty baseUrl is a valid platform-mode prefix and should not fall back to tenantSlug.
+  const prefix = baseUrl !== undefined ? baseUrl : (tenantSlug ? `/${tenantSlug}` : '');
 
   // Prevent double-prefixing: if href already starts with prefix or baseUrl, don't prefix again
   const alreadyPrefixed = Boolean(

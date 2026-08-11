@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import './Sidebar.css';
 import { NAV_ITEMS, ADMIN_NAV_ITEMS, INSTRUCTOR_NAV_ITEMS } from '@/lib/constants';
 import { getIcon } from '@/lib/icon-mapper';
+import { isAdminRole, isInstructorRole } from '@/lib/role-utils';
 import XPBar from '@/components/shared/XPBar';
 import LevelBadge from '@/components/shared/LevelBadge';
 import Modal from '@/components/ui/Modal';
@@ -96,13 +97,13 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
 
   // Ensure role-based panel navigation links are dynamically included in main nav items
   const extraNavItems: { label: string; href: string; icon: string }[] = [];
-  const isInstructorRole = profile.role === 'instructor' || profile.role === 'admin' || profile.role === 'developer';
-  const isAdminRole = profile.role === 'admin' || profile.role === 'developer';
+  const isInstructorUser = isInstructorRole(profile.role);
+  const isAdminUser = isAdminRole(profile.role);
 
-  if (isInstructorRole && !baseNavItems.some(i => i.href === '/instructor')) {
+  if (isInstructorUser && !baseNavItems.some(i => i.href === '/instructor')) {
     extraNavItems.push({ label: 'Instructor Panel', href: '/instructor', icon: 'Instructors' });
   }
-  if (isAdminRole && !baseNavItems.some(i => i.href === '/admin')) {
+  if (isAdminUser && !baseNavItems.some(i => i.href === '/admin')) {
     extraNavItems.push({ label: 'Admin Panel', href: '/admin', icon: 'Admin' });
   }
 
@@ -223,13 +224,13 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
             <span className="sidebar-nav-label">Student View</span>
           </a>
         )}
-        {currentView !== 'admin' && (profile.role === 'admin' || profile.role === 'developer') && (
+        {currentView !== 'admin' && isAdminUser && (
           <a href="/admin" className="sidebar-nav-item sidebar-switch" onClick={handleNavClick}>
             <span className="sidebar-nav-icon">{getIcon('Admin', { className: 'w-5 h-5' })}</span>
-            <span className="sidebar-nav-label">{profile.role === 'developer' || isSuperAdmin ? 'Developer Panel' : 'Administration Panel'}</span>
+            <span className="sidebar-nav-label">{isAdminUser && profile.role?.toLowerCase().includes('developer') ? 'Developer Panel' : 'Administration Panel'}</span>
           </a>
         )}
-        {currentView !== 'instructor' && (profile.role === 'instructor' || profile.role === 'admin' || profile.role === 'developer') && (
+        {currentView !== 'instructor' && isInstructorUser && (
           <a href="/instructor" className="sidebar-nav-item sidebar-switch" onClick={handleNavClick}>
             <span className="sidebar-nav-icon">{getIcon('Instructors', { className: 'w-5 h-5' })}</span>
             <span className="sidebar-nav-label">Instructor Panel</span>

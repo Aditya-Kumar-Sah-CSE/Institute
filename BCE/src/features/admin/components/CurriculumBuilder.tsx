@@ -169,13 +169,16 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
       }
     });
     
-    if (editingItem) {
-      await updateAssignment(editingItem.id, course.id, formData);
-    } else {
-      await addAssignment(parentLessonId, course.id, formData);
-    }
-    
+    const res = editingItem
+      ? await updateAssignment(editingItem.id, course.id, formData)
+      : await addAssignment(parentLessonId, course.id, formData);
+
     setIsLoading(false);
+    if (res?.error) {
+      alert(res.error);
+      return;
+    }
+
     closeModal();
   };
 
@@ -428,6 +431,57 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                                   </div>
                                 </div>
                               </div>
+                              {(() => {
+                                const attachmentUrls = parseAttachmentUrls(assign.expected_output);
+                                if (!attachmentUrls.length) return null;
+
+                                return (
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', padding: '0 var(--space-sm) var(--space-sm) var(--space-sm)' }}>
+                                    {attachmentUrls.map((url, idx) => {
+                                      const isImg = /\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(url);
+                                      const isPdf = url.toLowerCase().includes('.pdf');
+
+                                      return (
+                                        <a
+                                          key={idx}
+                                          href={url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '10px',
+                                            padding: '10px',
+                                            background: 'rgba(255,255,255,0.04)',
+                                            border: '1px solid rgba(255,255,255,0.08)',
+                                            borderRadius: '10px',
+                                            textDecoration: 'none',
+                                            color: 'inherit',
+                                            width: '100%',
+                                            maxWidth: '220px'
+                                          }}
+                                        >
+                                          {isImg ? (
+                                            <img src={url} alt={`Attachment ${idx + 1}`} style={{ width: 48, height: 48, borderRadius: '8px', objectFit: 'cover' }} />
+                                          ) : (
+                                            <div style={{ width: 48, height: 48, borderRadius: '8px', background: 'rgba(255,204,0,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
+                                              {isPdf ? '📄' : '📎'}
+                                            </div>
+                                          )}
+                                          <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                                            <div style={{ fontSize: '12px', fontWeight: 600, color: isPdf ? '#ff6b6b' : 'var(--neon-gold)' }}>
+                                              {isPdf ? 'PDF Attachment' : 'Image Attachment'}
+                                            </div>
+                                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                              {decodeURIComponent(url.split('/').pop()?.split('?')[0] || `File ${idx + 1}`)}
+                                            </div>
+                                          </div>
+                                        </a>
+                                      );
+                                    })}
+                                  </div>
+                                );
+                              })()}
                               {!course.is_completed && (
                                 <div className="action-buttons">
                                   <Button variant="ghost" size="sm" onClick={() => openAssignmentModal(lesson.id, assign)} style={{ padding: '8px' }} title="Edit Task">

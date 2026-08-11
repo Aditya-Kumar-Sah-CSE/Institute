@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
+import { normalizeRole } from '@/lib/role-utils';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function updateSession(request: NextRequest) {
@@ -31,7 +32,19 @@ export async function updateSession(request: NextRequest) {
   }
 
   // 2. Check path-based routing if tenant not resolved via domain
-  const reservedPaths = ['api', '_next', 'login', 'signup', 'dashboard', 'admin', 'instructor', 'apply-instructor', 'forgot-password', 'reset-password'];
+  // CRITICAL: Every root-level app route MUST be reserved here. If any app route
+  // is missing, its first path segment gets mistaken for a tenant slug, which makes
+  // the middleware treat e.g. /leaderboard as a tenant landing page and redirect
+  // authenticated users back to /dashboard (production navigation bug).
+  const reservedPaths = [
+    'api', '_next', 'login', 'signup', 'dashboard', 'admin', 'instructor',
+    'apply-instructor', 'apply-institution', 'forgot-password', 'reset-password',
+    // Root-level app routes (route groups (dashboard), (admin), (instructor), (public))
+    'courses', 'leaderboard', 'doubts', 'notices', 'profile', 'feedbacks',
+    'share-doubt', 'users', 'batch', 'certificates',
+    // Misc root pages
+    'admission', 'pwa-start', 'contact', 'institution-not-found', 'institution-disabled',
+  ];
   if (!tenantSlug && firstPathSegment && !reservedPaths.includes(firstPathSegment)) {
     tenantSlug = firstPathSegment;
     routingMode = 'path';
@@ -150,12 +163,12 @@ export async function updateSession(request: NextRequest) {
     }
     
     if (profile) {
-      userRole = profile.role;
+      userRole = normalizeRole(profile.role);
       if (profile.institution_id) {
         supabaseResponse.headers.set('x-tenant-id', profile.institution_id);
       }
     } else {
-      userRole = user?.user_metadata?.role || 'student';
+      userRole = normalizeRole(user?.user_metadata?.role) || 'student';
       console.warn('[Middleware] Profile not found, fallback to metadata role:', userRole);
     }
   }
@@ -199,4 +212,3 @@ export async function updateSession(request: NextRequest) {
 
   return supabaseResponse;
 }
-

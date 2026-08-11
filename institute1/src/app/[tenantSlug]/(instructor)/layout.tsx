@@ -21,7 +21,8 @@ export default async function InstructorLayout({
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const isPlatform = tenantSlug === '__platform__';
+  const tenant = await resolveTenantCache(tenantSlug, 'development');
+  const isPlatform = tenantSlug === '__platform__' || (tenant as any)?.is_platform;
 
   if (!user) {
     if (isPlatform) {

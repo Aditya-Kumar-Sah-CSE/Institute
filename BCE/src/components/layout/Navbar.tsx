@@ -12,6 +12,7 @@ import type { Profile } from '@/types';
 import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 import { getIcon } from '@/lib/icon-mapper';
 import { signOut } from '@/features/auth/actions/auth';
+import { isAdminRole, isInstructorRole } from '@/lib/role-utils';
 import { MoreVertical } from 'lucide-react';
 
 interface NavbarProps {
@@ -33,9 +34,9 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
 
   let homeLink = '/';
   if (profile) {
-    if (profile.role === 'admin') {
+    if (isAdminRole(profile.role)) {
       homeLink = '/admin';
-    } else if (profile.role === 'instructor' && profile.status === 'active') {
+    } else if (isInstructorRole(profile.role) && profile.status === 'active') {
       homeLink = '/instructor';
     } else {
       homeLink = '/dashboard';

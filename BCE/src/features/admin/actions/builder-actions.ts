@@ -200,18 +200,20 @@ export async function addAssignment(lessonId: string, courseId: string, formData
   const xp_reward = parseInt(formData.get('xp_reward') as string || '50');
   const requires_github = formData.get('requires_github') === 'true';
   const requires_deploy = formData.get('requires_deploy') === 'true';
-  const expected_output_file = formData.get('expected_output_file') as File | null;
+  const expected_output_files = formData.getAll('expected_output_file') as File[];
 
   if (!title) return { error: 'Assignment title is required' };
 
   let expected_output = null;
-  if (expected_output_file) {
-    const validation = validateFiles([expected_output_file], { allowedTypes: ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'] });
+  const validFiles = expected_output_files.filter(file => file instanceof File && file.size > 0);
+
+  if (validFiles.length > 0) {
+    const validation = validateFiles(validFiles, { allowedTypes: ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'] });
     if (!validation.valid) return { error: validation.error };
 
-    const { supabase: adminSupabase } = await requireBuilderRole();
+    const adminSupabase = await createAdminClient();
     const uploadResult = await uploadFiles({
-      files: [expected_output_file],
+      files: validFiles,
       supabase: adminSupabase,
       bucketName: 'attachments',
       pathPrefix: `assignments/${courseId}`
@@ -272,7 +274,7 @@ export async function updateAssignment(assignmentId: string, courseId: string, f
   const xp_reward = parseInt(formData.get('xp_reward') as string || '50');
   const requires_github = formData.get('requires_github') === 'true';
   const requires_deploy = formData.get('requires_deploy') === 'true';
-  const expected_output_file = formData.get('expected_output_file') as File | null;
+  const expected_output_files = formData.getAll('expected_output_file') as File[];
   const clearAttachment = formData.get('clear_attachment') === 'on';
 
   let updateData: Record<string, any> = {
@@ -286,23 +288,26 @@ export async function updateAssignment(assignmentId: string, courseId: string, f
 
   if (clearAttachment) {
     updateData.expected_output = null;
-  } else if (expected_output_file) {
-    const validation = validateFiles([expected_output_file], { allowedTypes: ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'] });
-    if (!validation.valid) return { error: validation.error };
+  } else {
+    const validFiles = expected_output_files.filter(file => file instanceof File && file.size > 0);
+    if (validFiles.length > 0) {
+      const validation = validateFiles(validFiles, { allowedTypes: ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'] });
+      if (!validation.valid) return { error: validation.error };
 
-    const uploadResult = await uploadFiles({
-      files: [expected_output_file],
-      supabase,
-      bucketName: 'attachments',
-      pathPrefix: `assignments/${courseId}`
-    });
+      const uploadResult = await uploadFiles({
+        files: validFiles,
+        supabase,
+        bucketName: 'attachments',
+        pathPrefix: `assignments/${courseId}`
+      });
 
-    if (uploadResult.errors.length > 0) {
-      return { error: uploadResult.errors.join('; ') };
-    }
+      if (uploadResult.errors.length > 0) {
+        return { error: uploadResult.errors.join('; ') };
+      }
 
-    if (uploadResult.urls.length > 0) {
-      updateData.expected_output = serializeAttachmentUrls(uploadResult.urls);
+      if (uploadResult.urls.length > 0) {
+        updateData.expected_output = serializeAttachmentUrls(uploadResult.urls);
+      }
     }
   }
 

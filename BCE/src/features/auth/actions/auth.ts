@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { normalizeRole } from '@/lib/role-utils';
 import { redirect } from 'next/navigation';
 import { getLevelFromXP } from '@/lib/utils';
 import { checkRateLimit } from '@/lib/rate-limit';
@@ -126,7 +127,7 @@ export async function signIn(formData: FormData) {
       }
     }
 
-    role = role || data.user.user_metadata?.role;
+    role = normalizeRole(role || data.user.user_metadata?.role);
     if (role === 'instructor') {
       redirectUrl = '/instructor';
     } else if (role === 'admin' || role === 'developer') {
