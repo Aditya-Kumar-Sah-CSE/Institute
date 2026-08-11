@@ -2,12 +2,15 @@
   "name": "Smart Learn",
   "short_name": "Smart Learning",
   "description": "Smart Hybrid Learning & Student Engagement Platform",
+
   "start_url": "/pwa-start",
   "id": "/pwa-start",
   "scope": "/",
+
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
+
   "share_target": {
     "action": "/api/pwa-share-target",
     "method": "POST",
@@ -34,6 +37,7 @@
       ]
     }
   },
+
   "icons": [
     {
       "src": "/icon-192x192.png?v=2",
