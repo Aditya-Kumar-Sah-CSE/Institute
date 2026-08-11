@@ -93,7 +93,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
   });
 
   const [
-    { data: profile },
+    profile,
     { data: enrollments, error: enrollmentsError },
     { count: completedAssignments },
     { count: earnedBadges },
