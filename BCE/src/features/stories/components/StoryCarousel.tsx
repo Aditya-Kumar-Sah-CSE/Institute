@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Plus, User } from 'lucide-react';
 import { fetchStoryFeed } from '@/features/stories/actions/stories';
+import { createClient } from '@/lib/supabase/client';
 import type { Story, StoryItem } from '@/types/database';
 import StoryComposerSheet from './StoryComposerSheet';
 import StoryViewerCanvas from './StoryViewerCanvas';
@@ -17,15 +18,13 @@ interface StoryFeedData {
 export default function StoryCarousel({ currentUserId, currentUserAvatar }: { currentUserId?: string, currentUserAvatar?: string }) {
   const [feed, setFeed] = useState<StoryFeedData>({ myStory: null, activeStories: [] });
   const [loading, setLoading] = useState(true);
+  const [userAvatar, setUserAvatar] = useState<string | null>(currentUserAvatar || null);
   
   // Internal State
   const [composeOpen, setComposeOpen] = useState(false);
   const [viewerActive, setViewerActive] = useState(false);
   const [viewerStartIndex, setViewerStartIndex] = useState(0);
 
-  // We unify `myStory` as index 0, and rest linearly if it exists.
-  // Wait, if `myStory` exists but viewer opens it, it should just be first element internally in viewer.
-  // We'll construct a flat array `playableStories` for the viewer.
   const playableStories = feed.myStory ? [feed.myStory, ...feed.activeStories] : feed.activeStories;
 
   const loadFeed = async () => {
@@ -42,14 +41,39 @@ export default function StoryCarousel({ currentUserId, currentUserAvatar }: { cu
   useEffect(() => {
     loadFeed();
     
-    const handleRefresh = () => setTimeout(loadFeed, 300); // 300ms delay for db settle
+    const fetchUserAvatar = async () => {
+      try {
+        const supabase = createClient();
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('avatar_url, name')
+            .eq('id', userData.user.id)
+            .single();
+
+          const avatar = profile?.avatar_url || userData.user.user_metadata?.avatar_url;
+          if (avatar) {
+            setUserAvatar(avatar);
+          } else if (profile?.name) {
+            setUserAvatar(`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name)}&background=0D8ABC&color=fff`);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to fetch avatar:', e);
+      }
+    };
+
+    fetchUserAvatar();
+    
+    const handleRefresh = () => setTimeout(loadFeed, 300);
     window.addEventListener('story-added', handleRefresh);
     window.addEventListener('story-deleted', handleRefresh);
     return () => {
       window.removeEventListener('story-added', handleRefresh);
       window.removeEventListener('story-deleted', handleRefresh);
     };
-  }, []);
+  }, [currentUserAvatar]);
   
   if (loading) {
      return (
@@ -100,33 +124,40 @@ export default function StoryCarousel({ currentUserId, currentUserAvatar }: { cu
             }}
           >
              {/* Thumbnail background logic if exist */}
-             {(hasMyStory && feed.myStory?.items?.[0]?.media_url && feed.myStory.items[0].media_type === 'image') ? (
-                <Image src={feed.myStory.items[0].media_url} alt="My Status" fill className="object-cover opacity-80" style={{ objectFit: 'cover', opacity: 0.8 }} />
-             ) : currentUserAvatar ? (
-                <Image src={currentUserAvatar} alt="My Avatar" fill className="object-cover opacity-60 backdrop-blur-sm grayscale-[30%]" style={{ objectFit: 'cover', opacity: 0.6, filter: 'blur(4px) grayscale(30%)' }} />
-             ) : null}
-             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-0" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)', zIndex: 0 }}></div>
+             {(() => {
+               const myAvatar = userAvatar || feed.myStory?.profile?.avatar_url || currentUserAvatar;
+               return (
+                 <>
+                   {(hasMyStory && feed.myStory?.items?.[0]?.media_url && feed.myStory.items[0].media_type === 'image') ? (
+                      <Image src={feed.myStory.items[0].media_url} alt="My Status" fill className="object-cover opacity-80" style={{ objectFit: 'cover', opacity: 0.8 }} />
+                   ) : myAvatar ? (
+                      <Image src={myAvatar} alt="My Avatar" fill className="object-cover opacity-60 backdrop-blur-sm grayscale-[30%]" style={{ objectFit: 'cover', opacity: 0.6, filter: 'blur(4px) grayscale(30%)' }} unoptimized />
+                   ) : null}
+                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-0" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)', zIndex: 0 }}></div>
 
-             {/* Avatar Area */}
-             <div className="absolute top-2 left-2 z-10" style={{ position: 'absolute', top: '0.5rem', left: '0.5rem', zIndex: 10 }}>
-               <div className={`w-10 h-10 rounded-full flex items-center justify-center relative p-[2px] bg-slate-300 dark:bg-slate-700 \${hasMyStory ? getRingColor(feed.myStory!) : ''}`} style={{ width: '2.5rem', height: '2.5rem', borderRadius: '9999px', position: 'relative' }}>
-                 <div className="w-full h-full rounded-full bg-slate-200 dark:bg-slate-600 overflow-hidden flex items-center justify-center">
-                   {currentUserAvatar ? (
-                      <Image src={currentUserAvatar} alt="My Avatar" fill className="object-cover" />
-                   ) : (
-                      <User size={20} className="text-slate-500" />
-                   )}
-                 </div>
-                 {!hasMyStory && (
-                   <div 
-                     className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-[#25D366] rounded-full border-2 border-white dark:border-slate-800 flex items-center justify-center translate-x-0.5 translate-y-0.5 z-20"
-                     onClick={(e) => { e.stopPropagation(); setComposeOpen(true); }}
-                   >
-                     <Plus size={10} className="text-white stroke-[3px]" />
+                   {/* Avatar Area */}
+                   <div className="absolute top-2 left-2 z-10" style={{ position: 'absolute', top: '0.5rem', left: '0.5rem', zIndex: 10 }}>
+                     <div className={`w-10 h-10 rounded-full flex items-center justify-center relative p-[2px] bg-slate-300 dark:bg-slate-700 ${hasMyStory ? getRingColor(feed.myStory!) : ''}`} style={{ width: '2.5rem', height: '2.5rem', borderRadius: '9999px', position: 'relative' }}>
+                       <div className="w-full h-full rounded-full bg-slate-200 dark:bg-slate-600 overflow-hidden flex items-center justify-center relative">
+                         {myAvatar ? (
+                            <Image src={myAvatar} alt="My Avatar" fill className="object-cover" unoptimized />
+                         ) : (
+                            <User size={20} className="text-slate-500" />
+                         )}
+                       </div>
+                       {!hasMyStory && (
+                         <div 
+                           className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-[#25D366] rounded-full border-2 border-white dark:border-slate-800 flex items-center justify-center translate-x-0.5 translate-y-0.5 z-20"
+                           onClick={(e) => { e.stopPropagation(); setComposeOpen(true); }}
+                         >
+                           <Plus size={10} className="text-white stroke-[3px]" />
+                         </div>
+                       )}
+                     </div>
                    </div>
-                 )}
-               </div>
-             </div>
+                 </>
+               );
+             })()}
 
              <span className="absolute bottom-2 left-2 text-[13px] font-medium text-white drop-shadow-md z-30" style={{ position: 'absolute', bottom: '0.5rem', left: '0.5rem', fontSize: '13px', fontWeight: 500, color: 'white', zIndex: 30, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>My status</span>
           </div>
