@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronLeft, ChevronRight, Heart, MoreVertical, Play, Pause, Trash2, Eye, Send, Smile, Plus } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Heart, MoreVertical, Play, Pause, Trash2, Eye, Send, Smile, Plus, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import type { Story, StoryItem } from '@/types/database';
 import { registerView, toggleReaction, deleteStoryItem, addStoryReply } from '@/features/stories/actions/stories';
@@ -32,6 +32,9 @@ export default function StoryViewerCanvas({
   const [isPaused, setIsPaused] = useState(false);
   const [progress, setProgress] = useState(0);
   const [showMenu, setShowMenu] = useState(false);
+  // Delete confirm modal state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   // Reactions
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [pendingEmoji, setPendingEmoji] = useState<string | null>(null);
@@ -140,16 +143,25 @@ export default function StoryViewerCanvas({
     }
   }, [currentItem, isPaused, isInteracting]);
 
-  const handleDeleteItem = async () => {
-    if (!currentItem || !confirm('Delete this story?')) return;
+  const promptDelete = () => {
+    setShowMenu(false);
+    setIsPaused(true);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!currentItem || isDeleting) return;
+    setIsDeleting(true);
     try {
-      setIsPaused(true);
       await deleteStoryItem(currentItem.id);
       onRefreshFeed();
       onClose();
     } catch (e) {
       console.error(e);
       alert('Failed to delete story');
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -322,7 +334,7 @@ export default function StoryViewerCanvas({
                         </button>
                         {showMenu && (
                           <div style={{ position: 'absolute', right: 0, top: '2.5rem', width: '9rem', backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.75rem', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', overflow: 'hidden', padding: '0.25rem 0', zIndex: 60 }}>
-                            <button onClick={handleDeleteItem} style={{ width: '100%', padding: '0.5rem 1rem', textAlign: 'left', color: '#f43f5e', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 600 }}>
+                            <button onClick={promptDelete} style={{ width: '100%', padding: '0.5rem 1rem', textAlign: 'left', color: '#f43f5e', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 600 }}>
                               <Trash2 size={15} /> Delete
                             </button>
                           </div>
@@ -526,6 +538,123 @@ export default function StoryViewerCanvas({
           onClose={() => { setViewsOpen(false); setIsPaused(false); }}
         />
       )}
+
+      {/* Delete Confirmation Modal Popup */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                if (!isDeleting) {
+                  setShowDeleteConfirm(false);
+                  setIsPaused(false);
+                }
+              }}
+              style={{
+                position: 'fixed',
+                inset: 0,
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                backdropFilter: 'blur(8px)',
+                zIndex: 10000
+              }}
+            />
+
+            {/* Modal Dialog */}
+            <div style={{ position: 'fixed', inset: 0, zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', pointerEvents: 'none' }}>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.85, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.85, y: 20 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+                style={{
+                  pointerEvents: 'auto',
+                  width: '100%',
+                  maxWidth: '22rem',
+                  backgroundColor: '#1e293b',
+                  border: '1px solid rgba(244, 63, 94, 0.3)',
+                  borderRadius: '1.25rem',
+                  padding: '1.5rem',
+                  boxShadow: '0 20px 40px rgba(0,0,0,0.6), 0 0 20px rgba(244, 63, 94, 0.15)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  textAlign: 'center'
+                }}
+              >
+                {/* Trash Icon Circle */}
+                <div style={{ width: '3.5rem', height: '3.5rem', borderRadius: '50%', backgroundColor: 'rgba(244, 63, 94, 0.15)', border: '1px solid rgba(244, 63, 94, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f43f5e', marginBottom: '1rem' }}>
+                  <Trash2 size={26} />
+                </div>
+
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: 'white', marginBottom: '0.5rem' }}>
+                  Delete Story?
+                </h3>
+
+                <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8', lineHeight: 1.4, marginBottom: '1.5rem' }}>
+                  Are you sure you want to delete this status update? This action cannot be undone.
+                </p>
+
+                {/* Buttons */}
+                <div style={{ display: 'flex', gap: '0.75rem', width: '100%' }}>
+                  <button
+                    onClick={() => {
+                      setShowDeleteConfirm(false);
+                      setIsPaused(false);
+                    }}
+                    disabled={isDeleting}
+                    style={{
+                      flex: 1,
+                      padding: '0.75rem',
+                      borderRadius: '0.75rem',
+                      border: '1px solid rgba(148, 163, 184, 0.2)',
+                      backgroundColor: 'rgba(51, 65, 85, 0.6)',
+                      color: '#cbd5e1',
+                      fontWeight: 600,
+                      fontSize: '0.9rem',
+                      cursor: isDeleting ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    onClick={handleConfirmDelete}
+                    disabled={isDeleting}
+                    style={{
+                      flex: 1,
+                      padding: '0.75rem',
+                      borderRadius: '0.75rem',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #f43f5e, #e11d48)',
+                      color: 'white',
+                      fontWeight: 700,
+                      fontSize: '0.9rem',
+                      cursor: isDeleting ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      boxShadow: '0 4px 14px rgba(244, 63, 94, 0.4)',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    {isDeleting ? (
+                      <><Loader2 size={16} className="animate-spin" /> Deleting...</>
+                    ) : (
+                      'Delete'
+                    )}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
     </>
   );
 }
