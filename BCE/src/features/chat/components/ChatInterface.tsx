@@ -109,6 +109,33 @@ export default function ChatInterface() {
     }
   }, [activeChat]);
 
+  // Mark latest message as read when activeChat/messages update
+  useEffect(() => {
+    if (activeChat && messages.length > 0 && currentUserId) {
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg) {
+        supabase
+          .from('chat_members')
+          .update({ last_read_message_id: lastMsg.id })
+          .eq('conversation_id', activeChat.id)
+          .eq('user_id', currentUserId)
+          .then(() => {});
+      }
+    }
+  }, [activeChat, messages, currentUserId]);
+
+  const checkIsMessageRead = (msg: ChatMessage, index: number) => {
+    if (!activeChat || !activeChat.members || !currentUserId) return false;
+    const otherMembers = (activeChat.members as any[]).filter((m: any) => m.user_id !== currentUserId);
+    if (otherMembers.length === 0) return false;
+
+    return otherMembers.some((m: any) => {
+      if (!m.last_read_message_id) return false;
+      const readIdx = messages.findIndex(item => item.id === m.last_read_message_id);
+      return readIdx >= index || m.last_read_message_id === msg.id;
+    });
+  };
+
   useEffect(() => {
     async function fetchSuggestions() {
       if (!currentUserId) return;
@@ -373,9 +400,13 @@ export default function ChatInterface() {
                      alignToBottom={true}
                      initialTopMostItemIndex={messages.length > 0 ? messages.length - 1 : 0}
                      style={{ height: '100%' }}
-                     itemContent={(index, msg) => (
-                       <MessageBubble key={msg.id} msg={msg} isMine={msg.sender_id === currentUserId} />
-                     )}
+                     itemContent={(index, msg) => {
+                       const isMine = msg.sender_id === currentUserId;
+                       const isRead = isMine ? checkIsMessageRead(msg, index) : false;
+                       return (
+                         <MessageBubble key={msg.id} msg={msg} isMine={isMine} isRead={isRead} />
+                       );
+                     }}
                    />
                  </div>
                )}

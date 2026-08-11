@@ -5,9 +5,10 @@ import type { ChatMessage } from '@/types/database';
 interface MessageBubbleProps {
   msg: ChatMessage;
   isMine: boolean;
+  isRead?: boolean;
 }
 
-export default function MessageBubble({ msg, isMine }: MessageBubbleProps) {
+export default function MessageBubble({ msg, isMine, isRead = false }: MessageBubbleProps) {
   const displayTime = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   return (
@@ -37,18 +38,34 @@ export default function MessageBubble({ msg, isMine }: MessageBubbleProps) {
         <p style={{ fontSize: '15px', margin: 0, lineHeight: 1.5, wordBreak: 'break-word' }}>
           {msg.content}
         </p>
-        <span 
+        <div 
           style={{ 
             fontSize: '11px', 
-            display: 'block', 
-            opacity: 0.6, 
-            textAlign: 'right',
-            marginTop: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            gap: '6px',
+            opacity: 0.85, 
+            marginTop: '6px',
             fontFamily: 'monospace'
           }}
         >
-          {displayTime}
-        </span>
+          <span>{displayTime}</span>
+          {isMine && (
+            <span 
+              title={isRead ? "Seen" : "Not seen"} 
+              style={{ 
+                fontWeight: 'bold', 
+                fontSize: '13px',
+                color: isRead ? '#39ff14' : '#ff0055',
+                textShadow: isRead ? '0 0 6px rgba(57, 255, 20, 0.6)' : '0 0 6px rgba(255, 0, 85, 0.6)',
+                transition: 'color 0.3s ease, text-shadow 0.3s ease'
+              }}
+            >
+              {isRead ? '✓✓' : '✓'}
+            </span>
+          )}
+        </div>
       </div>
     </motion.div>
   );
