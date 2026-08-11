@@ -226,6 +226,10 @@ export default function StoryCarousel({ currentUserId, currentUserAvatar }: { cu
           initialStoryIndex={viewerStartIndex} 
           currentUserId={currentUserId}
           onClose={() => setViewerActive(false)}
+          onOpenCompose={() => {
+            setViewerActive(false);
+            setComposeOpen(true);
+          }}
           onRefreshFeed={loadFeed}
         />
       )}

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronLeft, ChevronRight, Heart, MoreVertical, Play, Pause, Trash2, Eye, Send, Smile } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Heart, MoreVertical, Play, Pause, Trash2, Eye, Send, Smile, Plus } from 'lucide-react';
 import Image from 'next/image';
 import type { Story, StoryItem } from '@/types/database';
 import { registerView, toggleReaction, deleteStoryItem, addStoryReply } from '@/features/stories/actions/stories';
@@ -15,6 +15,7 @@ interface StoryViewerCanvasProps {
   initialStoryIndex: number;
   currentUserId?: string;
   onClose: () => void;
+  onOpenCompose?: () => void;
   onRefreshFeed: () => void;
 }
 
@@ -23,6 +24,7 @@ export default function StoryViewerCanvas({
   initialStoryIndex, 
   currentUserId,
   onClose,
+  onOpenCompose,
   onRefreshFeed
 }: StoryViewerCanvasProps) {
   const [activeStoryIndex, setActiveStoryIndex] = useState(initialStoryIndex);
@@ -287,6 +289,28 @@ export default function StoryViewerCanvas({
                  </div>
                  
                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    {/* Add Story Button */}
+                    {onOpenCompose && (
+                      <button 
+                        onClick={onOpenCompose}
+                        style={{ padding: '0.4rem 0.75rem', color: 'white', background: 'linear-gradient(135deg, #25D366, #128C7E)', borderRadius: '9999px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 700, boxShadow: '0 2px 8px rgba(37,211,102,0.4)', transition: 'transform 0.15s' }}
+                        className="hover:scale-105 active:scale-95"
+                        title="Add New Story"
+                      >
+                        <Plus size={14} strokeWidth={3} /> Add Story
+                      </button>
+                    )}
+
+                    {/* Pause / Play Toggle */}
+                    <button 
+                      onClick={() => setIsPaused(!isPaused)} 
+                      style={{ padding: '0.45rem', color: 'rgba(255,255,255,0.9)', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: '9999px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      className="hover:bg-white/25 transition-colors"
+                      title={isPaused ? "Play Story" : "Pause Story"}
+                    >
+                       {isPaused ? <Play size={18} /> : <Pause size={18} />}
+                    </button>
+
                     {isMyStory && (
                       <div style={{ position: 'relative' }}>
                         <button 
@@ -316,6 +340,20 @@ export default function StoryViewerCanvas({
               </div>
             );
           })()}
+
+          {/* Paused Overlay Badge */}
+          <AnimatePresence>
+            {isPaused && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                style={{ position: 'absolute', top: '5.25rem', right: '1rem', zIndex: 45, padding: '0.35rem 0.75rem', backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', borderRadius: '9999px', color: '#22d3ee', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.05em', border: '1px solid rgba(34,211,238,0.3)', display: 'flex', alignItems: 'center', gap: '0.35rem', pointerEvents: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.4)' }}
+              >
+                <Pause size={12} /> PAUSED
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Media Container */}
           <div 
