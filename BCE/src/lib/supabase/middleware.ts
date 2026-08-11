@@ -135,8 +135,14 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  // If authenticated and trying to access login/signup/landing
-  if (user && (pathname === '/login' || pathname === '/signup' || pathname === '/')) {
+  // If authenticated and trying to access login/signup/landing (or tenant landing/login)
+  const isAuthOrLandingPage = 
+    pathname === '/' || 
+    pathname === '/login' || 
+    pathname === '/signup' ||
+    (tenantSlug && (pathname === `/${tenantSlug}` || pathname === `/${tenantSlug}/login` || pathname === `/${tenantSlug}/signup`));
+
+  if (user && isAuthOrLandingPage) {
     const url = request.nextUrl.clone();
     if (userRole === 'instructor') {
       url.pathname = '/instructor';

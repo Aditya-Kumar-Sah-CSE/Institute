@@ -15,7 +15,15 @@ import { getUser } from '@/lib/supabase/server';
 export default async function PwaStartPage() {
   const user = await getUser();
   if (user) {
-    redirect('/dashboard');
+    const { getOrCreateProfile } = await import('@/lib/profile');
+    const profile = await getOrCreateProfile(user);
+    if (profile?.role === 'instructor') {
+      redirect('/instructor');
+    } else if (profile?.role === 'admin' || profile?.role === 'developer') {
+      redirect('/admin');
+    } else {
+      redirect('/dashboard');
+    }
   } else {
     redirect('/');
   }

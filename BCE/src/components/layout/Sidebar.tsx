@@ -99,6 +99,7 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
   }
 
   const isChatRoute = pathname.includes('/chat');
+  const logoHref = currentView === 'admin' ? '/admin' : currentView === 'instructor' ? '/instructor' : '/dashboard';
 
   return (
     <aside className={`sidebar view-${currentView} ${isChatRoute ? 'chat-active' : ''} ${isNavWrapped ? 'mobile-collapsed' : ''}`}>
@@ -111,7 +112,7 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
         >
           <X size={20} />
         </button>
-        <Link href={isAdmin ? '/admin' : '/dashboard'} className="sidebar-logo">
+        <Link href={logoHref} className="sidebar-logo">
           <span className="sidebar-logo-icon text-neon-cyan">{getIcon('Building', { className: 'w-6 h-6' })}</span>
           <span className="sidebar-logo-text">Smart  Learning</span>
         </Link>
