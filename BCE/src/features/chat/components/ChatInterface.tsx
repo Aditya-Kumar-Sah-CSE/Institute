@@ -79,7 +79,6 @@ export default function ChatInterface() {
 
     if (error) {
        console.error("Messages fetch error:", error);
-       alert("Error fetching messages: " + error.message);
     }
     return (data as ChatMessage[]) || [];
   };
@@ -96,7 +95,6 @@ export default function ChatInterface() {
     });
     if (error) {
        console.error("Failed to insert message:", error);
-       alert("Message failed to send: " + error.message);
        return false;
     }
     
