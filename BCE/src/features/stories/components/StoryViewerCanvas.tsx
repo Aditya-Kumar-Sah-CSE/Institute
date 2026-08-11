@@ -237,45 +237,85 @@ export default function StoryViewerCanvas({
           </div>
 
           {/* Header */}
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', paddingTop: '2rem', paddingBottom: '1rem', paddingLeft: '1rem', paddingRight: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)', zIndex: 40 }}>
-             <div className="flex items-center gap-3">
-               <div className="w-10 h-10 rounded-full bg-slate-800 border border-white/20 overflow-hidden flex-shrink-0" style={{ position: 'relative' }}>
-                 {activeStory.profile?.avatar_url ? (
-                   <Image src={activeStory.profile.avatar_url} alt="Profile" width={40} height={40} className="w-full h-full object-cover" />
-                 ) : (
-                   <div className="w-full h-full flex items-center justify-center text-slate-400 bg-slate-800 font-bold">
-                      {activeStory.profile?.name?.charAt(0) || '?'}
+          {(() => {
+            const authorName = activeStory.profile?.name || (isMyStory ? 'My Status' : 'User');
+            const authorAvatar = activeStory.profile?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName)}&background=0D8ABC&color=fff`;
+            const timeFormatted = new Date(currentItem.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            return (
+              <div 
+                style={{ 
+                  position: 'absolute', 
+                  top: 0, 
+                  left: 0, 
+                  width: '100%', 
+                  paddingTop: '2.25rem', 
+                  paddingBottom: '1.25rem', 
+                  paddingLeft: '1rem', 
+                  paddingRight: '1rem', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between', 
+                  background: 'linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 70%, transparent 100%)', 
+                  zIndex: 40 
+                }}
+              >
+                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                   <div style={{ position: 'relative', width: '2.5rem', height: '2.5rem', borderRadius: '9999px', overflow: 'hidden', flexShrink: 0, border: '2px solid rgba(255,255,255,0.4)', backgroundColor: '#1e293b', boxShadow: '0 2px 8px rgba(0,0,0,0.4)' }}>
+                     <Image 
+                       src={authorAvatar} 
+                       alt={authorName} 
+                       fill 
+                       style={{ objectFit: 'cover' }} 
+                       unoptimized 
+                     />
                    </div>
-                 )}
-               </div>
-               <div>
-                  <h3 className="text-white font-semibold text-sm drop-shadow-md">{activeStory.profile?.name}</h3>
-                  <p className="text-white/70 text-xs drop-shadow-md">
-                     {new Date(currentItem.created_at).toLocaleTimeString([], { hour: '2-digit', minute:'2-digit' })}
-                  </p>
-               </div>
-             </div>
-             
-             <div className="flex items-center gap-2">
-                {isMyStory && (
-                  <div className="relative">
-                    <button onClick={() => setShowMenu(!showMenu)} className="p-2 text-white/90 hover:bg-white/10 rounded-full">
-                       <MoreVertical size={20} />
-                    </button>
-                    {showMenu && (
-                      <div className="absolute right-0 top-10 w-36 bg-slate-800 border border-slate-700/50 rounded-xl shadow-xl overflow-hidden py-1">
-                        <button onClick={handleDeleteItem} className="w-full px-4 py-2 text-left text-rose-500 hover:bg-rose-500/10 flex items-center gap-2 text-sm font-medium">
-                          <Trash2 size={16} /> Delete
+                   <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: 'white', letterSpacing: '0.01em', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
+                        {authorName}
+                      </h3>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.725rem', color: 'rgba(255,255,255,0.75)', textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
+                        <span>{timeFormatted}</span>
+                        {activeItems.length > 1 && (
+                          <>
+                            <span>•</span>
+                            <span>{activeItemIndex + 1} of {activeItems.length}</span>
+                          </>
+                        )}
+                      </div>
+                   </div>
+                 </div>
+                 
+                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    {isMyStory && (
+                      <div style={{ position: 'relative' }}>
+                        <button 
+                          onClick={() => setShowMenu(!showMenu)} 
+                          style={{ padding: '0.45rem', color: 'rgba(255,255,255,0.9)', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: '9999px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          className="hover:bg-white/25 transition-colors"
+                        >
+                           <MoreVertical size={18} />
                         </button>
+                        {showMenu && (
+                          <div style={{ position: 'absolute', right: 0, top: '2.5rem', width: '9rem', backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.75rem', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', overflow: 'hidden', padding: '0.25rem 0', zIndex: 60 }}>
+                            <button onClick={handleDeleteItem} style={{ width: '100%', padding: '0.5rem 1rem', textAlign: 'left', color: '#f43f5e', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 600 }}>
+                              <Trash2 size={15} /> Delete
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
-                  </div>
-                )}
-                <button onClick={onClose} className="p-2 text-white/90 hover:bg-white/10 rounded-full transition-colors">
-                  <X size={24} />
-                </button>
-             </div>
-          </div>
+                    <button 
+                      onClick={onClose} 
+                      style={{ padding: '0.45rem', color: 'rgba(255,255,255,0.9)', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: '9999px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      className="hover:bg-white/25 transition-colors"
+                    >
+                      <X size={20} />
+                    </button>
+                 </div>
+              </div>
+            );
+          })()}
 
           {/* Media Container */}
           <div 
