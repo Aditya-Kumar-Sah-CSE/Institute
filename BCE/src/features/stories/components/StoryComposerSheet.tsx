@@ -2,7 +2,10 @@
 
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Image as ImageIcon, Type, X, Loader2, Check, Palette } from 'lucide-react';
+import { 
+  ImageIcon, Type, X, Loader2, Check, Palette, 
+  Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Type as FontIcon, Sparkles 
+} from 'lucide-react';
 import { uploadStoryMedia, createStoryItem } from '@/features/stories/actions/stories';
 
 interface StoryComposerSheetProps {
@@ -25,6 +28,32 @@ const TEXT_BG_GRADIENTS = [
   'linear-gradient(135deg, #1a1a1a 0%, #3d0025 100%)',
 ];
 
+const FONT_OPTIONS = [
+  { label: 'Sans', family: 'Inter, system-ui, sans-serif' },
+  { label: 'Serif', family: 'Georgia, "Times New Roman", serif' },
+  { label: 'Mono', family: '"Courier New", Courier, monospace' },
+  { label: 'Cursive', family: '"Brush Script MT", "Caveat", cursive' },
+  { label: 'Impact', family: 'Impact, "Arial Black", sans-serif' },
+  { label: 'Comic', family: '"Comic Sans MS", "Chalkboard SE", sans-serif' }
+];
+
+const TEXT_COLORS = [
+  '#ffffff', // White
+  '#ffee00', // Neon Yellow
+  '#00f0ff', // Neon Cyan
+  '#ff007f', // Neon Pink
+  '#39ff14', // Neon Lime
+  '#ffd700', // Gold
+  '#000000', // Pitch Black
+];
+
+const FONT_SIZES = [
+  { label: 'S', size: '1.2rem' },
+  { label: 'M', size: '1.5rem' },
+  { label: 'L', size: '1.9rem' },
+  { label: 'XL', size: '2.4rem' },
+];
+
 type Mode = 'choose' | 'gallery' | 'text';
 
 export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: StoryComposerSheetProps) {
@@ -32,9 +61,16 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Text status state
+  // Text status rich formatting state
   const [textContent, setTextContent] = useState('');
   const [selectedBg, setSelectedBg] = useState(0);
+  const [selectedFont, setSelectedFont] = useState(0);
+  const [selectedTextColor, setSelectedTextColor] = useState('#ffffff');
+  const [isBold, setIsBold] = useState(true);
+  const [isItalic, setIsItalic] = useState(false);
+  const [isUnderline, setIsUnderline] = useState(false);
+  const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right'>('center');
+  const [selectedSize, setSelectedSize] = useState(2); // Default 'L'
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -90,12 +126,23 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
     setError(null);
     setIsUploading(true);
     try {
+      const payload = JSON.stringify({
+        text: textContent.trim(),
+        bg: TEXT_BG_GRADIENTS[selectedBg],
+        font: FONT_OPTIONS[selectedFont].family,
+        textColor: selectedTextColor,
+        isBold,
+        isItalic,
+        isUnderline,
+        textAlign,
+        fontSize: FONT_SIZES[selectedSize].size
+      });
+
       await createStoryItem({
         mediaUrl: null,
-        thumbnailUrl: null,
+        thumbnailUrl: selectedBg.toString(),
         mediaType: 'text',
-        caption: textContent.trim(),
-        // Store bg gradient index as part of the thumbnail_url field for simplicity
+        caption: payload,
       });
       onStoryAdded();
       handleClose();
@@ -216,11 +263,11 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
                 </>
               ) : (
                 /* ─── Text Status Mode ─────────────────────────────── */
-                <div>
-                  {/* Preview */}
+                <div style={{ maxHeight: '75vh', overflowY: 'auto', paddingRight: '4px' }}>
+                  {/* Preview Canvas */}
                   <div
                     style={{
-                      height: '14rem',
+                      height: '13rem',
                       borderRadius: '1rem',
                       background: TEXT_BG_GRADIENTS[selectedBg],
                       display: 'flex',
@@ -231,15 +278,30 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
                       cursor: 'text',
                       position: 'relative',
                       overflow: 'hidden',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
                     }}
                     onClick={() => document.getElementById('text-status-input')?.focus()}
                   >
                     {textContent ? (
-                      <p style={{ color: 'white', fontWeight: 700, fontSize: '1.4rem', textAlign: 'center', lineHeight: 1.35, textShadow: '0 2px 12px rgba(0,0,0,0.4)', wordBreak: 'break-word' }}>
+                      <p 
+                        style={{ 
+                          color: selectedTextColor, 
+                          fontFamily: FONT_OPTIONS[selectedFont].family,
+                          fontWeight: isBold ? 700 : 400,
+                          fontStyle: isItalic ? 'italic' : 'normal',
+                          textDecoration: isUnderline ? 'underline' : 'none',
+                          textAlign: textAlign,
+                          fontSize: FONT_SIZES[selectedSize].size,
+                          lineHeight: 1.35, 
+                          textShadow: '0 2px 12px rgba(0,0,0,0.4)', 
+                          wordBreak: 'break-word',
+                          maxWidth: '100%'
+                        }}
+                      >
                         {textContent}
                       </p>
                     ) : (
-                      <p style={{ color: 'rgba(255,255,255,0.5)', fontWeight: 600, fontSize: '1rem', textAlign: 'center' }}>
+                      <p style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600, fontSize: '1.1rem', textAlign: 'center', fontFamily: FONT_OPTIONS[selectedFont].family }}>
                         Type something...
                       </p>
                     )}
@@ -262,16 +324,197 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
                       outline: 'none',
                       border: '1px solid',
                       marginBottom: '0.75rem',
-                      fontFamily: 'inherit',
+                      fontFamily: FONT_OPTIONS[selectedFont].family,
                     }}
                     className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-cyan-400"
                   />
 
-                  {/* Background selector */}
+                  {/* 1. Font Family Selector */}
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.4rem' }}>
+                      <FontIcon size={14} className="text-cyan-500" />
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600 }} className="text-slate-500">Font Family</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.4rem', overflowX: 'auto', paddingBottom: '4px' }}>
+                      {FONT_OPTIONS.map((font, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setSelectedFont(i)}
+                          style={{
+                            padding: '0.35rem 0.75rem',
+                            borderRadius: '9999px',
+                            fontFamily: font.family,
+                            fontSize: '0.8rem',
+                            whiteSpace: 'nowrap',
+                            cursor: 'pointer',
+                            border: selectedFont === i ? '1px solid #22d3ee' : '1px solid rgba(148, 163, 184, 0.2)',
+                            background: selectedFont === i ? 'rgba(34, 211, 238, 0.15)' : 'rgba(148, 163, 184, 0.05)',
+                            color: selectedFont === i ? '#22d3ee' : 'inherit',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          {font.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 2. Text Formatting & Alignment Toolbar */}
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+                    {/* Bold / Italic / Underline */}
+                    <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: 'rgba(148, 163, 184, 0.1)', padding: '3px', borderRadius: '0.5rem' }}>
+                      <button
+                        onClick={() => setIsBold(!isBold)}
+                        style={{
+                          padding: '0.4rem 0.6rem',
+                          borderRadius: '0.375rem',
+                          border: 'none',
+                          cursor: 'pointer',
+                          background: isBold ? 'rgba(34, 211, 238, 0.25)' : 'transparent',
+                          color: isBold ? '#22d3ee' : 'inherit',
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                        title="Bold"
+                      >
+                        <Bold size={15} />
+                      </button>
+                      <button
+                        onClick={() => setIsItalic(!isItalic)}
+                        style={{
+                          padding: '0.4rem 0.6rem',
+                          borderRadius: '0.375rem',
+                          border: 'none',
+                          cursor: 'pointer',
+                          background: isItalic ? 'rgba(34, 211, 238, 0.25)' : 'transparent',
+                          color: isItalic ? '#22d3ee' : 'inherit',
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                        title="Italic"
+                      >
+                        <Italic size={15} />
+                      </button>
+                      <button
+                        onClick={() => setIsUnderline(!isUnderline)}
+                        style={{
+                          padding: '0.4rem 0.6rem',
+                          borderRadius: '0.375rem',
+                          border: 'none',
+                          cursor: 'pointer',
+                          background: isUnderline ? 'rgba(34, 211, 238, 0.25)' : 'transparent',
+                          color: isUnderline ? '#22d3ee' : 'inherit',
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                        title="Underline"
+                      >
+                        <Underline size={15} />
+                      </button>
+                    </div>
+
+                    {/* Alignment */}
+                    <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: 'rgba(148, 163, 184, 0.1)', padding: '3px', borderRadius: '0.5rem' }}>
+                      <button
+                        onClick={() => setTextAlign('left')}
+                        style={{
+                          padding: '0.4rem 0.6rem',
+                          borderRadius: '0.375rem',
+                          border: 'none',
+                          cursor: 'pointer',
+                          background: textAlign === 'left' ? 'rgba(34, 211, 238, 0.25)' : 'transparent',
+                          color: textAlign === 'left' ? '#22d3ee' : 'inherit',
+                        }}
+                        title="Align Left"
+                      >
+                        <AlignLeft size={15} />
+                      </button>
+                      <button
+                        onClick={() => setTextAlign('center')}
+                        style={{
+                          padding: '0.4rem 0.6rem',
+                          borderRadius: '0.375rem',
+                          border: 'none',
+                          cursor: 'pointer',
+                          background: textAlign === 'center' ? 'rgba(34, 211, 238, 0.25)' : 'transparent',
+                          color: textAlign === 'center' ? '#22d3ee' : 'inherit',
+                        }}
+                        title="Align Center"
+                      >
+                        <AlignCenter size={15} />
+                      </button>
+                      <button
+                        onClick={() => setTextAlign('right')}
+                        style={{
+                          padding: '0.4rem 0.6rem',
+                          borderRadius: '0.375rem',
+                          border: 'none',
+                          cursor: 'pointer',
+                          background: textAlign === 'right' ? 'rgba(34, 211, 238, 0.25)' : 'transparent',
+                          color: textAlign === 'right' ? '#22d3ee' : 'inherit',
+                        }}
+                        title="Align Right"
+                      >
+                        <AlignRight size={15} />
+                      </button>
+                    </div>
+
+                    {/* Font Size */}
+                    <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: 'rgba(148, 163, 184, 0.1)', padding: '3px', borderRadius: '0.5rem' }}>
+                      {FONT_SIZES.map((sz, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setSelectedSize(i)}
+                          style={{
+                            padding: '0.3rem 0.5rem',
+                            borderRadius: '0.375rem',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '0.75rem',
+                            fontWeight: 'bold',
+                            background: selectedSize === i ? 'rgba(34, 211, 238, 0.25)' : 'transparent',
+                            color: selectedSize === i ? '#22d3ee' : 'inherit',
+                          }}
+                        >
+                          {sz.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 3. Text Color Selector */}
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.4rem' }}>
+                      <Sparkles size={14} className="text-purple-400" />
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600 }} className="text-slate-500">Text Color</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      {TEXT_COLORS.map((c, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setSelectedTextColor(c)}
+                          style={{
+                            width: '1.75rem',
+                            height: '1.75rem',
+                            borderRadius: '50%',
+                            backgroundColor: c,
+                            border: selectedTextColor === c ? '3px solid #22d3ee' : '1px solid rgba(255,255,255,0.2)',
+                            outline: selectedTextColor === c ? '1px solid rgba(34,211,238,0.4)' : 'none',
+                            cursor: 'pointer',
+                            transition: 'transform 0.15s',
+                          }}
+                          onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.15)')}
+                          onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 4. Background Selector */}
                   <div style={{ marginBottom: '1rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                      <Palette size={14} className="text-slate-500" />
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600 }} className="text-slate-500">Background</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.4rem' }}>
+                      <Palette size={14} className="text-cyan-400" />
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600 }} className="text-slate-500">Background Gradient</span>
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                       {TEXT_BG_GRADIENTS.map((bg, i) => (
@@ -279,8 +522,8 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
                           key={i}
                           onClick={() => setSelectedBg(i)}
                           style={{
-                            width: '2rem',
-                            height: '2rem',
+                            width: '1.75rem',
+                            height: '1.75rem',
                             borderRadius: '50%',
                             background: bg,
                             border: selectedBg === i ? '3px solid #22d3ee' : '2px solid transparent',

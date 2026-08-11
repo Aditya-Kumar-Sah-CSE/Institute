@@ -307,13 +307,38 @@ export default function StoryViewerCanvas({
                  draggable={false}
                  priority
                />
-             ) : (
-               <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-900 to-purple-900 p-8">
-                 <p className="text-white text-3xl font-semibold text-center leading-snug drop-shadow-xl" style={{ wordBreak: 'break-word' }}>
-                   {currentItem.caption}
-                 </p>
-               </div>
-             )}
+             ) : (() => {
+               let parsed: any = { text: currentItem.caption };
+               if (currentItem.caption && currentItem.caption.startsWith('{') && currentItem.caption.endsWith('}')) {
+                 try { parsed = JSON.parse(currentItem.caption); } catch (e) {}
+               }
+               return (
+                 <div 
+                   className="w-full h-full flex items-center justify-center p-8"
+                   style={{ 
+                     background: parsed.bg || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                   }}
+                 >
+                   <p 
+                     style={{ 
+                       color: parsed.textColor || 'white', 
+                       fontFamily: parsed.font || 'inherit',
+                       fontWeight: parsed.isBold !== undefined ? (parsed.isBold ? 700 : 400) : 600,
+                       fontStyle: parsed.isItalic ? 'italic' : 'normal',
+                       textDecoration: parsed.isUnderline ? 'underline' : 'none',
+                       textAlign: (parsed.textAlign as any) || 'center',
+                       fontSize: parsed.fontSize || '1.8rem',
+                       lineHeight: 1.35, 
+                       textShadow: '0 2px 12px rgba(0,0,0,0.5)', 
+                       wordBreak: 'break-word',
+                       maxWidth: '100%'
+                     }}
+                   >
+                     {parsed.text || currentItem.caption}
+                   </p>
+                 </div>
+               );
+             })()}
 
              {currentItem.media_type !== 'text' && currentItem.caption && (
                <div className="absolute bottom-20 w-fit max-w-[80%] mx-auto left-0 right-0 p-3 bg-black/60 backdrop-blur-md rounded-2xl text-center z-40">
