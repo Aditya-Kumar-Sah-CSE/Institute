@@ -2,11 +2,10 @@ import { createClient } from '@/lib/supabase/server';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import LessonView from '@/features/courses/components/LessonView';
-import AssignmentCard from '@/features/courses/components/AssignmentCard';
 import { awardXP } from '@/features/auth/actions/auth';
 import { revalidatePath } from 'next/cache';
 import type { Submission } from '@/types';
-import LessonDoubts from './components/LessonDoubts';
+import LessonPageClient from './components/LessonPageClient';
 
 export default async function LessonPage({ params }: { params: Promise<{ courseId: string; lessonId: string }> }) {
   const { courseId, lessonId } = await params;
@@ -243,10 +242,12 @@ export default async function LessonPage({ params }: { params: Promise<{ courseI
     revalidatePath('/admin');
   }
 
+  const showDoubts = profile?.role === 'admin' || profile?.role === 'instructor' || !!batch;
+
   return (
     <div className="lesson-page" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2xl)' }}>
       <div>
-        <Link href={`/courses/${courseId}`} style={{ color: 'var(--text-secondary)', display: 'inline-block', marginBottom: 'var(--space-md)' }}>
+        <Link href={`/courses/${courseId}`} style={{ color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '6px', marginBottom: 'var(--space-md)', fontSize: 'var(--text-sm)', textDecoration: 'none', transition: 'color 0.2s' }}>
           ← Back to Course
         </Link>
         <LessonView 
@@ -256,30 +257,16 @@ export default async function LessonPage({ params }: { params: Promise<{ courseI
         />
       </div>
 
-      {assignments && assignments.length > 0 && (
-        <div className="assignment-section" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
-          <h2 className="section-title">Practice Assignments</h2>
-          {assignments.map(assign => {
-            const sub = submissions.find(s => s.assignment_id === assign.id);
-            const communitySubs = allSubmissions.filter(s => s.assignment_id === assign.id);
-            const submitAction = submitAssignment.bind(null, assign.id);
-            return (
-              <AssignmentCard 
-                key={assign.id}
-                assignment={assign}
-                submission={sub}
-                communitySubmissions={communitySubs}
-                onSubmit={submitAction}
-              />
-            );
-          })}
-        </div>
-      )}
-      
-      {/* Lesson Doubts Component */}
-      {(profile?.role === 'admin' || profile?.role === 'instructor' || batch) && (
-        <LessonDoubts courseId={courseId} lessonId={lessonId} doubts={doubts} />
-      )}
+      <LessonPageClient
+        assignments={assignments || []}
+        submissions={submissions}
+        allSubmissions={allSubmissions}
+        submitAssignment={submitAssignment}
+        doubts={showDoubts ? doubts : []}
+        courseId={courseId}
+        lessonId={lessonId}
+        showDoubts={showDoubts}
+      />
     </div>
   );
 }

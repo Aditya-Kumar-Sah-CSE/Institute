@@ -1,0 +1,32 @@
+# Goal Description
+
+Fix three main issues reported:
+1. Status (Story) delete feature is not working.
+2. Replying to a status should send a direct message in the chat.
+3. Group creation feature is failing.
+
+## User Review Required
+
+Please review the proposed approach below. 
+
+## Proposed Changes
+
+### 1. Fix Status Delete
+- **Issue**: The `deleteStoryItem` action deletes the item but does not invalidate the Next.js router cache, which makes the UI still show the deleted story. Also, it's possible that the RLS policy check inside the action requires a small tweak.
+- **Fix**: Update `src/features/stories/actions/stories.ts` to call `revalidatePath` after a successful deletion. We will also ensure the deletion query is robust.
+
+### 2. Status Reply to Chat
+- **Issue**: Currently, `addStoryReply` only adds a record to the `story_replies` table.
+- **Fix**: Update `src/features/stories/actions/stories.ts` -> `addStoryReply`. When a user replies to a status:
+  - We will retrieve the story owner's ID.
+  - We will call the existing `get_or_create_direct_chat` database function to create or find a direct chat between the replier and the story owner.
+  - We will insert a chat message into that conversation so it appears in their Chat view with the text: `Replied to your status: "[Message]"`.
+
+### 3. Fix Group Creation
+- **Issue**: The `createGroupChat` action in `src/features/chat/actions/chat.ts` is failing because Row Level Security (RLS) policies for `INSERT` on `chat_conversations` and `chat_members` were not defined in the original SQL migration. 
+- **Fix**: We will create a small SQL script (`scripts/fix_chat_group_rls.js`) to apply the missing `INSERT` RLS policies for `chat_conversations` and `chat_members` so that authenticated users can create groups and add members.
+
+## Verification Plan
+1. Delete a status and verify it vanishes immediately.
+2. Reply to a status and verify it shows up in the personal chat.
+3. Attempt to create a group chat from the UI and verify it succeeds.
