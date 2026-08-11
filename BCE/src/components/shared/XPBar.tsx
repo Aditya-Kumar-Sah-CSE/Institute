@@ -5,15 +5,17 @@ import './XPBar.css';
 import { getXPProgress, getXPForNextLevel } from '@/lib/utils';
 
 interface XPBarProps {
-  xp: number;
+  xp?: number;
   showLabel?: boolean;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
 
-export default function XPBar({ xp, showLabel = true, size = 'md', className = '' }: XPBarProps) {
-  const progress = getXPProgress(xp);
-  const { next, label } = getXPForNextLevel(xp);
+export default function XPBar({ xp = 0, showLabel = true, size = 'md', className = '' }: XPBarProps) {
+  const safeXP = typeof xp === 'number' && !isNaN(xp) ? xp : 0;
+  const progress = getXPProgress(safeXP);
+  const { next, label } = getXPForNextLevel(safeXP);
+  const isMaxLevel = next >= 9999999;
 
   return (
     <div className={`xp-bar-container xp-bar-${size} ${className}`}>
@@ -21,7 +23,7 @@ export default function XPBar({ xp, showLabel = true, size = 'md', className = '
         <div className="xp-bar-labels">
           <span className="xp-bar-level">{label}</span>
           <span suppressHydrationWarning className="xp-bar-numbers">
-            {xp.toLocaleString('en-US')} / {next === 99999 ? 'MAX' : next.toLocaleString('en-US')} XP
+            {safeXP.toLocaleString('en-US')} / {isMaxLevel ? 'MAX' : next.toLocaleString('en-US')} XP
           </span>
         </div>
       )}
@@ -33,9 +35,9 @@ export default function XPBar({ xp, showLabel = true, size = 'md', className = '
           <div className="xp-bar-glow" />
         </div>
       </div>
-      {showLabel && next !== 99999 && (
+      {showLabel && !isMaxLevel && (
         <div suppressHydrationWarning className="xp-bar-remaining">
-          {(next - xp).toLocaleString('en-US')} XP to next level
+          {Math.max(0, next - safeXP).toLocaleString('en-US')} XP to next level
         </div>
       )}
     </div>
