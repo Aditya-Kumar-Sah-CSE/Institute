@@ -2,29 +2,52 @@ import { redirect } from 'next/navigation';
 import { getUser } from '@/lib/supabase/server';
 
 /**
- * PWA Smart Start Page
- * 
- * This page is set as the PWA start_url in manifest.json.
- * It performs a server-side auth check and instantly redirects:
- * - Logged-in users  → /dashboard  (skip landing page entirely)
- * - Logged-out users → /           (show landing page)
- * 
- * Result: PWA icon tap feels instant for returning users — 
- * no wasted landing page render for authenticated sessions.
+ * PWA Smart Start
+ *
+ * Purpose:
+ * - Keep PWA startup as lightweight as possible.
+ * - Do NOT query the profiles table here.
+ * - Do NOT call getOrCreateProfile().
+ * - Use the authenticated Supabase user's server-controlled app_metadata
+ *   only for initial routing.
+ *
+ * Final authorization is still handled by middleware/protected pages.
+ *
+ * Routes:
+ *   ADMIN / DEVELOPER  -> /admin
+ *   INSTRUCTOR         -> /instructor
+ *   STUDENT / unknown  -> /dashboard
+ *   Logged out         -> /
  */
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function PwaStartPage() {
   const user = await getUser();
-  if (user) {
-    const { getOrCreateProfile } = await import('@/lib/profile');
-    const profile = await getOrCreateProfile(user);
-    if (profile?.role === 'instructor') {
-      redirect('/instructor');
-    } else if (profile?.role === 'admin' || profile?.role === 'developer') {
-      redirect('/admin');
-    } else {
-      redirect('/dashboard');
-    }
-  } else {
+
+  // No authenticated session → landing page
+  if (!user) {
     redirect('/');
   }
+
+  // app_metadata is server-controlled.
+  // Do NOT use user_metadata for authorization.
+  const role =
+    typeof user.app_metadata?.role === 'string'
+      ? user.app_metadata.role.trim().toLowerCase()
+      : 'student';
+
+  // Admin / Developer
+  if (role === 'admin' || role === 'developer') {
+    redirect('/admin');
+  }
+
+  // Instructor
+  if (role === 'instructor') {
+    redirect('/instructor');
+  }
+
+  // Student / unknown role
+  redirect('/dashboard');
 }
