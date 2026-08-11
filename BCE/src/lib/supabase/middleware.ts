@@ -106,22 +106,47 @@ export async function updateSession(request: NextRequest) {
 
   let userRole = 'student';
   if (user) {
-    // Use service role client to bypass RLS — the anon-key client's auth
-    // context may not have fully propagated after a token refresh, causing
-    // the profile query to fail in production (Vercel).
-    const adminClient = createSupabaseAdmin(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    );
-    const { data: profile, error } = await adminClient
-      .from('profiles')
-      .select('role, institution_id')
-      .eq('id', user.id)
-      .single();
-      
-    if (error) {
-      console.error('[Middleware] Profile fetch error:', error);
+    let profile: { role: string; institution_id?: string | null } | null = null;
+
+    // 1. Try service role client first if SUPABASE_SERVICE_ROLE_KEY is set
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const adminClient = createSupabaseAdmin(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY,
+          { auth: { autoRefreshToken: false, persistSession: false } }
+        );
+        const { data, error } = await adminClient
+          .from('profiles')
+          .select('role, institution_id')
+          .eq('id', user.id)
+          .single();
+
+        if (!error && data) {
+          profile = data;
+        }
+      } catch (err) {
+        console.error('[Middleware] Admin client fetch error:', err);
+      }
+    }
+
+    // 2. Fallback to standard client (works because profiles RLS allows SELECT for everyone)
+    if (!profile) {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('role, institution_id')
+          .eq('id', user.id)
+          .single();
+
+        if (!error && data) {
+          profile = data;
+        } else if (error) {
+          console.error('[Middleware] Anon client profile fetch error:', error);
+        }
+      } catch (err) {
+        console.error('[Middleware] Anon client fetch exception:', err);
+      }
     }
     
     if (profile) {

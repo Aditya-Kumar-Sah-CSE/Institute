@@ -105,9 +105,28 @@ export async function signIn(formData: FormData) {
 
   let redirectUrl = '/dashboard';
   if (data.user) {
-    const adminSupabase = await createAdminClient();
-    const { data: profile } = await adminSupabase.from('profiles').select('role').eq('id', data.user.id).single();
-    const role = profile?.role || data.user.user_metadata?.role;
+    let role: string | undefined;
+
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const adminSupabase = await createAdminClient();
+        const { data: profile } = await adminSupabase.from('profiles').select('role').eq('id', data.user.id).single();
+        if (profile?.role) role = profile.role;
+      } catch (err) {
+        console.error('[signIn] Admin client error:', err);
+      }
+    }
+
+    if (!role) {
+      try {
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single();
+        if (profile?.role) role = profile.role;
+      } catch (err) {
+        console.error('[signIn] User client error:', err);
+      }
+    }
+
+    role = role || data.user.user_metadata?.role;
     if (role === 'instructor') {
       redirectUrl = '/instructor';
     } else if (role === 'admin' || role === 'developer') {
