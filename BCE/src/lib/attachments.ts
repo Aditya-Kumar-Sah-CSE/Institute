@@ -66,19 +66,43 @@ export function serializeAttachmentUrls(urls: string[]): string | null {
  * Works on both client and server by taking the Supabase instance as an argument.
  * Designed to upload multiple files concurrently.
  */
+async function ensureBucketExists(supabase: any, bucketName: string) {
+  if (!supabase?.storage) return;
+
+  try {
+    const storageApi = supabase.storage as any;
+    if (typeof storageApi.getBucket === 'function') {
+      const { error } = await storageApi.getBucket(bucketName);
+      if (!error) return;
+    }
+
+    if (typeof storageApi.createBucket === 'function') {
+      await storageApi.createBucket(bucketName, { public: true });
+    }
+  } catch (e: any) {
+    console.warn(`Could not ensure storage bucket ${bucketName}:`, e?.message || e);
+  }
+}
+
 export async function uploadFiles({
   files,
   supabase,
   bucketName,
-  pathPrefix = ''
+  pathPrefix = '',
+  ensureBucket = false
 }: {
   files: File[];
   supabase: any;
   bucketName: string;
   pathPrefix?: string;
+  ensureBucket?: boolean;
 }): Promise<{ urls: string[], errors: string[] }> {
   const uploadedUrls: string[] = [];
   const errors: string[] = [];
+
+  if (ensureBucket) {
+    await ensureBucketExists(supabase, bucketName);
+  }
 
   const uploadPromises = files.map(async (file) => {
     try {
@@ -87,12 +111,19 @@ export async function uploadFiles({
       const uniqueFilename = `${crypto.randomUUID()}-${Date.now()}.${fileExt}`;
       const filePath = pathPrefix ? `${pathPrefix}/${uniqueFilename}` : uniqueFilename;
 
-      const { error: uploadError } = await supabase.storage
+      let uploadResult = await supabase.storage
         .from(bucketName)
         .upload(filePath, file, { upsert: false });
 
-      if (uploadError) {
-        errors.push(`Upload failed for ${file.name}: ${uploadError.message}`);
+      if (uploadResult.error && ensureBucket && /bucket not found|not found/i.test(uploadResult.error.message)) {
+        await ensureBucketExists(supabase, bucketName);
+        uploadResult = await supabase.storage
+          .from(bucketName)
+          .upload(filePath, file, { upsert: false });
+      }
+
+      if (uploadResult.error) {
+        errors.push(`Upload failed for ${file.name}: ${uploadResult.error.message}`);
         return null;
       }
 

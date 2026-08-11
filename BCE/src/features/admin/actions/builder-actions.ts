@@ -70,7 +70,8 @@ export async function addLesson(courseId: string, formData: FormData) {
       files: validFiles,
       supabase: adminSupabase,
       bucketName: 'lesson_notes',
-      pathPrefix: `lesson_${courseId}`
+      pathPrefix: `lesson_${courseId}`,
+      ensureBucket: true
     });
 
     if (errors.length > 0 && urls.length === 0) {
@@ -160,7 +161,8 @@ export async function updateLesson(lessonId: string, courseId: string, formData:
       files: validFiles,
       supabase: adminSupabase,
       bucketName: 'lesson_notes',
-      pathPrefix: `lesson_${courseId}`
+      pathPrefix: `lesson_${courseId}`,
+      ensureBucket: true
     });
 
     if (errors.length > 0 && urls.length === 0) {
@@ -216,7 +218,8 @@ export async function addAssignment(lessonId: string, courseId: string, formData
       files: validFiles,
       supabase: adminSupabase,
       bucketName: 'attachments',
-      pathPrefix: `assignments/${courseId}`
+      pathPrefix: `assignments/${courseId}`,
+      ensureBucket: true
     });
 
     if (uploadResult.errors.length > 0) {
@@ -294,11 +297,13 @@ export async function updateAssignment(assignmentId: string, courseId: string, f
       const validation = validateFiles(validFiles, { allowedTypes: ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'] });
       if (!validation.valid) return { error: validation.error };
 
+      const adminSupabase = await createAdminClient();
       const uploadResult = await uploadFiles({
         files: validFiles,
-        supabase,
+        supabase: adminSupabase,
         bucketName: 'attachments',
-        pathPrefix: `assignments/${courseId}`
+        pathPrefix: `assignments/${courseId}`,
+        ensureBucket: true
       });
 
       if (uploadResult.errors.length > 0) {

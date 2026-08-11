@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronLeft, ChevronRight, Heart, MoreVertical, Play, Pause, Trash2, Eye, Send, Smile, Plus, Loader2 } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Heart, MoreVertical, Play, Pause, Trash2, Eye, Send, Smile, Plus, Loader2, MessageCircle } from 'lucide-react';
 import Image from 'next/image';
 import type { Story, StoryItem } from '@/types/database';
 import { registerView, toggleReaction, deleteStoryItem, addStoryReply } from '@/features/stories/actions/stories';
 import StoryViewsSheet from './StoryViewsSheet';
+import StoryRepliesSheet from './StoryRepliesSheet';
 
 const EMOJI_REACTIONS = ['❤️', '😂', '😮', '👏', '🔥', '😢'];
 
@@ -44,6 +45,9 @@ export default function StoryViewerCanvas({
   const [replySuccess, setReplySuccess] = useState(false);
   // Views Sheet
   const [viewsOpen, setViewsOpen] = useState(false);
+  // Replies/DMs Sheet
+  const [repliesOpen, setRepliesOpen] = useState(false);
+  const [replyCount, setReplyCount] = useState(0);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const replyInputRef = useRef<HTMLInputElement>(null);
@@ -186,6 +190,7 @@ export default function StoryViewerCanvas({
       await addStoryReply(currentItem.id, replyText.trim());
       setReplyText('');
       setReplySuccess(true);
+      setReplyCount(prev => prev + 1);
       setTimeout(() => setReplySuccess(false), 2000);
     } catch (e) {
       console.error(e);
@@ -211,12 +216,14 @@ export default function StoryViewerCanvas({
           position: 'fixed',
           inset: 0,
           zIndex: 9999,
-          backgroundColor: 'rgba(0, 0, 0, 0.9)',
+          backgroundColor: '#0f172a',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '1rem',
-          backdropFilter: 'blur(16px)'
+          padding: 0,
+          backdropFilter: 'blur(16px)',
+          width: '100vw',
+          height: '100vh'
         }}
         className="touch-none"
       >
@@ -224,20 +231,22 @@ export default function StoryViewerCanvas({
           style={{
             position: 'relative',
             width: '100%',
+            height: '100%',
             maxWidth: '430px',
-            aspectRatio: '9/16',
+            maxHeight: '100vh',
             backgroundColor: '#0f172a',
-            borderRadius: '1.5rem',
+            borderRadius: 0,
             overflow: 'hidden',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+            boxShadow: 'none',
             display: 'flex',
             flexDirection: 'column',
             margin: '0 auto',
+            aspectRatio: '9/16',
           }}
-          className="touch-pan-y"
+          className="touch-pan-y md:rounded-3xl md:shadow-2xl"
         >
           {/* Progress Bars */}
-          <div style={{ position: 'absolute', top: '1rem', left: 0, width: '100%', display: 'flex', gap: '0.25rem', padding: '0 1rem', zIndex: 50 }}>
+          <div style={{ position: 'absolute', top: 'clamp(0.5rem, 3vw, 1rem)', left: 0, width: '100%', display: 'flex', gap: '0.25rem', padding: 'clamp(0.5rem, 2vw, 1rem)', zIndex: 50 }}>
             {activeItems.map((item, idx) => (
               <div key={item.id} style={{ height: '0.25rem', flex: 1, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: '9999px', overflow: 'hidden' }}>
                 <div 
@@ -263,19 +272,19 @@ export default function StoryViewerCanvas({
                   top: 0, 
                   left: 0, 
                   width: '100%', 
-                  paddingTop: '2.25rem', 
-                  paddingBottom: '1.25rem', 
-                  paddingLeft: '1rem', 
-                  paddingRight: '1rem', 
+                  paddingTop: 'clamp(0.75rem, 4vw, 2.25rem)', 
+                  paddingBottom: 'clamp(0.75rem, 3vw, 1.25rem)', 
+                  paddingLeft: 'clamp(0.75rem, 3vw, 1rem)', 
+                  paddingRight: 'clamp(0.75rem, 3vw, 1rem)', 
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'space-between', 
-                  background: 'linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 70%, transparent 100%)', 
+                  background: 'linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 70%, transparent 100%)', 
                   zIndex: 40 
                 }}
               >
-                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                   <div style={{ position: 'relative', width: '2.5rem', height: '2.5rem', borderRadius: '9999px', overflow: 'hidden', flexShrink: 0, border: '2px solid rgba(255,255,255,0.4)', backgroundColor: '#1e293b', boxShadow: '0 2px 8px rgba(0,0,0,0.4)' }}>
+                 <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(0.5rem, 2vw, 0.75rem)' }}>
+                   <div style={{ position: 'relative', width: 'clamp(2rem, 8vw, 2.5rem)', height: 'clamp(2rem, 8vw, 2.5rem)', borderRadius: '9999px', overflow: 'hidden', flexShrink: 0, border: '2px solid rgba(255,255,255,0.4)', backgroundColor: '#1e293b', boxShadow: '0 2px 8px rgba(0,0,0,0.4)' }}>
                      <Image 
                        src={authorAvatar} 
                        alt={authorName} 
@@ -285,10 +294,10 @@ export default function StoryViewerCanvas({
                      />
                    </div>
                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: 'white', letterSpacing: '0.01em', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
+                      <h3 style={{ margin: 0, fontSize: 'clamp(0.75rem, 3vw, 0.9rem)', fontWeight: 700, color: 'white', letterSpacing: '0.01em', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
                         {authorName}
                       </h3>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.725rem', color: 'rgba(255,255,255,0.75)', textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: 'clamp(0.65rem, 2vw, 0.725rem)', color: 'rgba(255,255,255,0.75)', textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
                         <span>{timeFormatted}</span>
                         {activeItems.length > 1 && (
                           <>
@@ -300,12 +309,12 @@ export default function StoryViewerCanvas({
                    </div>
                  </div>
                  
-                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                 <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(0.3rem, 2vw, 0.35rem)' }}>
                     {/* Add Story Button */}
                     {onOpenCompose && (
                       <button 
                         onClick={onOpenCompose}
-                        style={{ padding: '0.4rem 0.75rem', color: 'white', background: 'linear-gradient(135deg, #25D366, #128C7E)', borderRadius: '9999px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 700, boxShadow: '0 2px 8px rgba(37,211,102,0.4)', transition: 'transform 0.15s' }}
+                        style={{ padding: 'clamp(0.3rem, 2vw, 0.4rem) clamp(0.5rem, 3vw, 0.75rem)', color: 'white', background: 'linear-gradient(135deg, #25D366, #128C7E)', borderRadius: '9999px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: 'clamp(0.6rem, 2vw, 0.75rem)', fontWeight: 700, boxShadow: '0 2px 8px rgba(37,211,102,0.4)', transition: 'transform 0.15s' }}
                         className="hover:scale-105 active:scale-95"
                         title="Add New Story"
                       >
@@ -316,7 +325,7 @@ export default function StoryViewerCanvas({
                     {/* Pause / Play Toggle */}
                     <button 
                       onClick={() => setIsPaused(!isPaused)} 
-                      style={{ padding: '0.45rem', color: 'rgba(255,255,255,0.9)', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: '9999px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      style={{ padding: 'clamp(0.35rem, 2vw, 0.45rem)', color: 'rgba(255,255,255,0.9)', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: '9999px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       className="hover:bg-white/25 transition-colors"
                       title={isPaused ? "Play Story" : "Pause Story"}
                     >
@@ -327,7 +336,7 @@ export default function StoryViewerCanvas({
                       <div style={{ position: 'relative' }}>
                         <button 
                           onClick={() => setShowMenu(!showMenu)} 
-                          style={{ padding: '0.45rem', color: 'rgba(255,255,255,0.9)', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: '9999px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          style={{ padding: 'clamp(0.35rem, 2vw, 0.45rem)', color: 'rgba(255,255,255,0.9)', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: '9999px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                           className="hover:bg-white/25 transition-colors"
                         >
                            <MoreVertical size={18} />
@@ -343,7 +352,7 @@ export default function StoryViewerCanvas({
                     )}
                     <button 
                       onClick={onClose} 
-                      style={{ padding: '0.45rem', color: 'rgba(255,255,255,0.9)', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: '9999px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      style={{ padding: 'clamp(0.35rem, 2vw, 0.45rem)', color: 'rgba(255,255,255,0.9)', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: '9999px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       className="hover:bg-white/25 transition-colors"
                     >
                       <X size={20} />
@@ -483,20 +492,56 @@ export default function StoryViewerCanvas({
           <div style={{ position: 'absolute', top: '5rem', bottom: '5rem', right: 0, width: '40%', zIndex: 30 }} onClick={(e) => { e.stopPropagation(); goToNext(); }} />
 
           {/* Footer actions */}
-          <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 50, background: 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)' }}>
+          <div style={{ 
+            position: 'absolute', 
+            bottom: 0, 
+            left: 0, 
+            width: '100%', 
+            padding: 'clamp(0.75rem, 3vw, 1rem)', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between', 
+            zIndex: 50, 
+            background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 50%, transparent 100%)',
+            gap: 'clamp(0.5rem, 2vw, 1rem)',
+            flexWrap: 'wrap'
+          }}>
               {isMyStory ? (
-                <button
-                  onClick={(e) => { e.stopPropagation(); setViewsOpen(true); setIsPaused(true); }}
-                  className="flex items-center gap-2 text-white/90 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full mx-auto font-medium cursor-pointer hover:bg-white/20 transition"
-                >
-                   <Eye size={18} />
-                   <span>{currentItem.views?.length || 0} Views</span>
-                   {totalReactions > 0 && <span style={{ marginLeft: '0.25rem' }}>· {totalReactions} ❤️</span>}
-                </button>
+                <>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setViewsOpen(true); setIsPaused(true); }}
+                    className="flex items-center gap-2 text-white/90 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full font-medium cursor-pointer hover:bg-white/20 transition whitespace-nowrap text-sm"
+                  >
+                     <Eye size={18} />
+                     <span>{currentItem.views?.length || 0} Views</span>
+                     {totalReactions > 0 && <span style={{ marginLeft: '0.25rem' }}>· {totalReactions} ❤️</span>}
+                  </button>
+                  {replyCount > 0 && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setRepliesOpen(true); setIsPaused(true); }}
+                      className="flex items-center gap-2 text-white/90 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full font-medium cursor-pointer hover:bg-white/20 transition whitespace-nowrap text-sm"
+                    >
+                       <MessageCircle size={18} />
+                       <span>{replyCount} {replyCount === 1 ? 'Reply' : 'Replies'}</span>
+                    </button>
+                  )}
+                </>
               ) : (
                 <div className="flex w-full gap-2 items-center">
                    {/* Reply input */}
-                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)', borderRadius: '9999px', padding: '0.4rem 0.75rem', border: replySuccess ? '1px solid #22d3ee' : '1px solid rgba(255,255,255,0.12)', transition: 'border 0.2s' }}>
+                   <div style={{ 
+                     flex: 1, 
+                     display: 'flex', 
+                     alignItems: 'center', 
+                     gap: '0.5rem', 
+                     backgroundColor: 'rgba(255,255,255,0.1)', 
+                     backdropFilter: 'blur(8px)', 
+                     borderRadius: '9999px', 
+                     padding: 'clamp(0.35rem, 2vw, 0.75rem)', 
+                     border: replySuccess ? '1px solid #22d3ee' : '1px solid rgba(255,255,255,0.12)', 
+                     transition: 'border 0.2s',
+                     minHeight: '2.75rem'
+                   }}>
                      <input 
                        ref={replyInputRef}
                        type="text" 
@@ -515,10 +560,54 @@ export default function StoryViewerCanvas({
                      )}
                    </div>
 
+                   {/* View Replies Button */}
+                   {replyCount > 0 && (
+                     <button
+                       onClick={(e) => { e.stopPropagation(); setRepliesOpen(true); setIsPaused(true); }}
+                       style={{ 
+                         padding: '0.6rem',
+                         borderRadius: '50%',
+                         backdropFilter: 'blur(8px)',
+                         background: 'rgba(34, 211, 238, 0.2)',
+                         border: '1px solid rgba(34, 211, 238, 0.4)',
+                         color: '#22d3ee',
+                         cursor: 'pointer',
+                         display: 'flex',
+                         alignItems: 'center',
+                         justifyContent: 'center',
+                         minWidth: 'clamp(2.25rem, 8vw, 2.5rem)',
+                         height: 'clamp(2.25rem, 8vw, 2.5rem)',
+                         transition: 'background 0.2s',
+                         flexShrink: 0,
+                         fontSize: '0.75rem',
+                         fontWeight: 700
+                       }}
+                       title={`${replyCount} replies`}
+                     >
+                       {replyCount}
+                     </button>
+                   )}
+
                    {/* Emoji reaction toggle */}
                    <button 
                      onClick={(e) => { e.stopPropagation(); setShowEmojiPicker(p => !p); }}
-                     style={{ padding: '0.6rem', borderRadius: '50%', backdropFilter: 'blur(8px)', background: showEmojiPicker ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.12)', color: myReaction ? myReaction.emoji : 'white', fontSize: myReaction ? '1.1rem' : 'inherit', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '2.5rem', height: '2.5rem', transition: 'background 0.2s' }}
+                     style={{ 
+                       padding: '0.6rem', 
+                       borderRadius: '50%', 
+                       backdropFilter: 'blur(8px)', 
+                       background: showEmojiPicker ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.1)', 
+                       border: '1px solid rgba(255,255,255,0.12)', 
+                       color: myReaction ? myReaction.emoji : 'white', 
+                       fontSize: myReaction ? '1.1rem' : 'inherit', 
+                       cursor: 'pointer', 
+                       display: 'flex', 
+                       alignItems: 'center', 
+                       justifyContent: 'center', 
+                       minWidth: 'clamp(2.25rem, 8vw, 2.5rem)', 
+                       height: 'clamp(2.25rem, 8vw, 2.5rem)', 
+                       transition: 'background 0.2s',
+                       flexShrink: 0
+                     }}
                    >
                      {myReaction ? myReaction.emoji : <Heart size={20} className={userHasLiked ? 'fill-rose-500 text-rose-500' : ''} />}
                    </button>
@@ -536,6 +625,16 @@ export default function StoryViewerCanvas({
           totalViews={currentItem.views?.length || 0}
           isOpen={viewsOpen}
           onClose={() => { setViewsOpen(false); setIsPaused(false); }}
+        />
+      )}
+
+      {/* Story Replies/DMs Sheet */}
+      {currentItem && (
+        <StoryRepliesSheet
+          storyItemId={currentItem.id}
+          isOpen={repliesOpen}
+          onClose={() => { setRepliesOpen(false); setIsPaused(false); }}
+          onSendReply={handleSendReply}
         />
       )}
 

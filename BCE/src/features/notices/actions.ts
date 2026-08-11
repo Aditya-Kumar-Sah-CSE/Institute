@@ -60,11 +60,13 @@ export async function createNotice(formData: FormData) {
       return { error: valResult.error };
     }
 
+    const adminSupabase = await createAdminClient();
     const { urls, errors } = await uploadFiles({
       files: validImages,
-      supabase,
+      supabase: adminSupabase,
       bucketName: 'notices_media',
-      pathPrefix: user.id
+      pathPrefix: user.id,
+      ensureBucket: true
     });
 
     if (errors.length > 0) {

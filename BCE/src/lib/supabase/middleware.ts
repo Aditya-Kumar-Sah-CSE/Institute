@@ -119,7 +119,8 @@ export async function updateSession(request: NextRequest) {
 
   let userRole = 'student';
   if (user) {
-    let profile: { role: string; institution_id?: string | null } | null = null;
+    // let profile: { role: string; institute_id?: string | null } | null = null;
+    let profile: { role: string; institute_id?: string | null } | null = null;
 
     // 1. Try service role client first if SUPABASE_SERVICE_ROLE_KEY is set
     if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -131,7 +132,8 @@ export async function updateSession(request: NextRequest) {
         );
         const { data, error } = await adminClient
           .from('profiles')
-          .select('role, institution_id')
+          
+          .select('role, institute_id')
           .eq('id', user.id)
           .single();
 
@@ -148,7 +150,7 @@ export async function updateSession(request: NextRequest) {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('role, institution_id')
+          .select('role, institute_id')
           .eq('id', user.id)
           .single();
 
@@ -164,8 +166,8 @@ export async function updateSession(request: NextRequest) {
     
     if (profile) {
       userRole = normalizeRole(profile.role);
-      if (profile.institution_id) {
-        supabaseResponse.headers.set('x-tenant-id', profile.institution_id);
+      if (profile.institute_id) {
+        supabaseResponse.headers.set('x-tenant-id', profile.institute_id);
       }
     } else {
       userRole = normalizeRole(user?.user_metadata?.role) || 'student';
