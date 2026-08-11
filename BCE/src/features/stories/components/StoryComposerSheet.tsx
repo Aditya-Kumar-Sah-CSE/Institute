@@ -2,8 +2,9 @@
 
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import NextImage from 'next/image';
 import { 
-  ImageIcon, Type, X, Loader2, Check, Palette, 
+  Image as ImageIcon, Type, X, Loader2, Check, Palette, 
   Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Type as FontIcon, Sparkles 
 } from 'lucide-react';
 import { uploadStoryMedia, createStoryItem } from '@/features/stories/actions/stories';
@@ -54,14 +55,40 @@ const FONT_SIZES = [
   { label: 'XL', size: '2.4rem' },
 ];
 
-type Mode = 'choose' | 'gallery' | 'text';
+interface MediaDraft {
+  id: string;
+  file: File;
+  previewUrl: string;
+  caption: string;
+  type: string;
+}
+
+interface TextDraft {
+  id: string;
+  text: string;
+  bg: string;
+  font: string;
+  textColor: string;
+  isBold: boolean;
+  isItalic: boolean;
+  isUnderline: boolean;
+  textAlign: 'left' | 'center' | 'right';
+  fontSize: string;
+}
+
+type Mode = 'choose' | 'gallery' | 'gallery_preview' | 'text';
 
 export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: StoryComposerSheetProps) {
   const [mode, setMode] = useState<Mode>('choose');
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number }>({ current: 0, total: 0 });
   const [error, setError] = useState<string | null>(null);
   
-  // Text status rich formatting state
+  // Multi-media queue state
+  const [mediaDrafts, setMediaDrafts] = useState<MediaDraft[]>([]);
+  const [activeMediaIndex, setActiveMediaIndex] = useState(0);
+
+  // Multi-text status queue state
   const [textContent, setTextContent] = useState('');
   const [selectedBg, setSelectedBg] = useState(0);
   const [selectedFont, setSelectedFont] = useState(0);
@@ -71,6 +98,7 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
   const [isUnderline, setIsUnderline] = useState(false);
   const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right'>('center');
   const [selectedSize, setSelectedSize] = useState(2); // Default 'L'
+  const [textDrafts, setTextDrafts] = useState<TextDraft[]>([]);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -79,14 +107,18 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
     setMode('choose');
     setTextContent('');
     setError(null);
+    setMediaDrafts([]);
+    setTextDrafts([]);
+    setActiveMediaIndex(0);
     onClose();
   };
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
     setError(null);
 
+    const newDrafts: MediaDraft[] = [];
     for (const file of files) {
       if (!ALLOWED_TYPES.includes(file.type)) {
         setError(`File type "${file.type}" is not supported.`);
@@ -96,19 +128,53 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
         setError(`File "${file.name}" is too large. Maximum is ${MAX_SIZE_MB}MB.`);
         return;
       }
+      newDrafts.push({
+        id: Math.random().toString(36).substring(2, 9),
+        file,
+        previewUrl: URL.createObjectURL(file),
+        caption: '',
+        type: file.type.startsWith('video/') ? 'video' : 'image'
+      });
     }
 
+    setMediaDrafts(prev => [...prev, ...newDrafts]);
+    setMode('gallery_preview');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleRemoveMedia = (id: string) => {
+    setMediaDrafts(prev => {
+      const filtered = prev.filter(m => m.id !== id);
+      if (filtered.length === 0) setMode('choose');
+      return filtered;
+    });
+    if (activeMediaIndex >= mediaDrafts.length - 1) {
+      setActiveMediaIndex(Math.max(0, mediaDrafts.length - 2));
+    }
+  };
+
+  const handleUpdateMediaCaption = (id: string, caption: string) => {
+    setMediaDrafts(prev => prev.map(m => m.id === id ? { ...m, caption } : m));
+  };
+
+  const handlePostAllMedia = async () => {
+    if (!mediaDrafts.length || isUploading) return;
+    setError(null);
+    setIsUploading(true);
+    setUploadProgress({ current: 0, total: mediaDrafts.length });
+
     try {
-      setIsUploading(true);
-      for (const file of files) {
+      for (let i = 0; i < mediaDrafts.length; i++) {
+        setUploadProgress({ current: i + 1, total: mediaDrafts.length });
+        const draft = mediaDrafts[i];
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('file', draft.file);
         const { url, mediaType } = await uploadStoryMedia(formData);
         await createStoryItem({
           mediaUrl: url,
           thumbnailUrl: null,
           mediaType,
-          caption: '',
+          caption: draft.caption.trim(),
         });
       }
       onStoryAdded();
@@ -117,16 +183,36 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
       setError(err?.message || 'Upload failed. Please try again.');
     } finally {
       setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
-  const handleTextPost = async () => {
-    if (!textContent.trim() || isUploading) return;
-    setError(null);
-    setIsUploading(true);
-    try {
-      const payload = JSON.stringify({
+  const handleAddTextSlide = () => {
+    if (!textContent.trim()) return;
+    const newSlide: TextDraft = {
+      id: Math.random().toString(36).substring(2, 9),
+      text: textContent.trim(),
+      bg: TEXT_BG_GRADIENTS[selectedBg],
+      font: FONT_OPTIONS[selectedFont].family,
+      textColor: selectedTextColor,
+      isBold,
+      isItalic,
+      isUnderline,
+      textAlign,
+      fontSize: FONT_SIZES[selectedSize].size
+    };
+    setTextDrafts(prev => [...prev, newSlide]);
+    setTextContent('');
+  };
+
+  const handleRemoveTextSlide = (id: string) => {
+    setTextDrafts(prev => prev.filter(s => s.id !== id));
+  };
+
+  const handlePostAllText = async () => {
+    const allSlides: TextDraft[] = [...textDrafts];
+    if (textContent.trim()) {
+      allSlides.push({
+        id: Math.random().toString(36).substring(2, 9),
         text: textContent.trim(),
         bg: TEXT_BG_GRADIENTS[selectedBg],
         font: FONT_OPTIONS[selectedFont].family,
@@ -137,17 +223,29 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
         textAlign,
         fontSize: FONT_SIZES[selectedSize].size
       });
+    }
 
-      await createStoryItem({
-        mediaUrl: null,
-        thumbnailUrl: selectedBg.toString(),
-        mediaType: 'text',
-        caption: payload,
-      });
+    if (!allSlides.length || isUploading) return;
+    setError(null);
+    setIsUploading(true);
+    setUploadProgress({ current: 0, total: allSlides.length });
+
+    try {
+      for (let i = 0; i < allSlides.length; i++) {
+        setUploadProgress({ current: i + 1, total: allSlides.length });
+        const slide = allSlides[i];
+        const payload = JSON.stringify(slide);
+        await createStoryItem({
+          mediaUrl: null,
+          thumbnailUrl: selectedBg.toString(),
+          mediaType: 'text',
+          caption: payload,
+        });
+      }
       onStoryAdded();
       handleClose();
     } catch (err: any) {
-      setError(err?.message || 'Failed to post. Please try again.');
+      setError(err?.message || 'Failed to post stories. Please try again.');
     } finally {
       setIsUploading(false);
     }
@@ -217,7 +315,12 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
               {isUploading ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2.5rem 0', gap: '1rem' }}>
                   <Loader2 size={40} className="text-cyan-500 animate-spin" />
-                  <p className="text-slate-600 dark:text-slate-300 font-medium">Posting status...</p>
+                  <p className="text-slate-600 dark:text-slate-300 font-medium">
+                    Posting story {uploadProgress.current} of {uploadProgress.total}...
+                  </p>
+                  <div style={{ width: '80%', height: '6px', backgroundColor: 'rgba(148, 163, 184, 0.2)', borderRadius: '9999px', overflow: 'hidden' }}>
+                    <div style={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%`, height: '100%', backgroundColor: '#22d3ee', transition: 'width 0.3s ease' }} />
+                  </div>
                 </div>
               ) : mode === 'choose' ? (
                 /* ─── Choose Mode ──────────────────────────────────── */
@@ -258,12 +361,178 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
                   />
 
                   <p style={{ textAlign: 'center', fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.75rem' }}>
-                    Images & videos up to {MAX_SIZE_MB}MB · Disappears after 24h
+                    Images & videos up to {MAX_SIZE_MB}MB · Select multiple items · Disappears after 24h
                   </p>
                 </>
+              ) : mode === 'gallery_preview' ? (
+                /* ─── Gallery Preview Mode ─────────────────────────── */
+                <div style={{ maxHeight: '75vh', overflowY: 'auto', paddingRight: '4px' }}>
+                  {/* Current Active Media Large Preview */}
+                  {mediaDrafts[activeMediaIndex] && (
+                    <div style={{ position: 'relative', width: '100%', height: '14rem', borderRadius: '1rem', overflow: 'hidden', marginBottom: '1rem', backgroundColor: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {mediaDrafts[activeMediaIndex].type === 'video' ? (
+                        <video src={mediaDrafts[activeMediaIndex].previewUrl} controls style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      ) : (
+                        <NextImage src={mediaDrafts[activeMediaIndex].previewUrl} alt="Preview" fill style={{ objectFit: 'contain' }} unoptimized />
+                      )}
+                      
+                      <button
+                        onClick={() => handleRemoveMedia(mediaDrafts[activeMediaIndex].id)}
+                        style={{ position: 'absolute', top: '10px', right: '10px', width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(0,0,0,0.6)', color: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        <X size={18} />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Caption input for active media */}
+                  {mediaDrafts[activeMediaIndex] && (
+                    <input
+                      type="text"
+                      placeholder={`Add caption for story #${activeMediaIndex + 1}...`}
+                      value={mediaDrafts[activeMediaIndex].caption}
+                      onChange={e => handleUpdateMediaCaption(mediaDrafts[activeMediaIndex].id, e.target.value)}
+                      style={{
+                        width: '100%',
+                        borderRadius: '0.75rem',
+                        padding: '0.75rem 1rem',
+                        fontSize: '0.9rem',
+                        outline: 'none',
+                        border: '1px solid',
+                        marginBottom: '1rem',
+                      }}
+                      className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-cyan-400"
+                    />
+                  )}
+
+                  {/* Thumbnail Strip */}
+                  <div style={{ marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600 }} className="text-slate-500">Selected Stories ({mediaDrafts.length})</span>
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#22d3ee', background: 'none', border: 'none', cursor: 'pointer' }}
+                      >
+                        + Add More
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '4px' }}>
+                      {mediaDrafts.map((draft, idx) => (
+                        <div
+                          key={draft.id}
+                          onClick={() => setActiveMediaIndex(idx)}
+                          style={{
+                            position: 'relative',
+                            width: '4rem',
+                            height: '4rem',
+                            borderRadius: '0.75rem',
+                            overflow: 'hidden',
+                            flexShrink: 0,
+                            cursor: 'pointer',
+                            border: activeMediaIndex === idx ? '3px solid #22d3ee' : '1px solid rgba(148, 163, 184, 0.2)',
+                            boxShadow: activeMediaIndex === idx ? '0 0 10px rgba(34, 211, 238, 0.4)' : 'none',
+                          }}
+                        >
+                          <NextImage src={draft.previewUrl} alt="Thumb" fill style={{ objectFit: 'cover' }} unoptimized />
+                          <span style={{ position: 'absolute', bottom: '2px', right: '4px', fontSize: '10px', color: 'white', fontWeight: 'bold', textShadow: '0 1px 3px black' }}>
+                            #{idx + 1}
+                          </span>
+                        </div>
+                      ))}
+
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        style={{
+                          width: '4rem',
+                          height: '4rem',
+                          borderRadius: '0.75rem',
+                          border: '2px dashed rgba(34, 211, 238, 0.4)',
+                          backgroundColor: 'rgba(34, 211, 238, 0.05)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          flexShrink: 0,
+                          color: '#22d3ee'
+                        }}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
+                    multiple
+                    style={{ display: 'none' }}
+                    ref={fileInputRef}
+                    onChange={handleFileSelect}
+                  />
+
+                  {/* Post button */}
+                  <button
+                    onClick={handlePostAllMedia}
+                    disabled={!mediaDrafts.length}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      borderRadius: '0.75rem',
+                      border: 'none',
+                      fontWeight: 700,
+                      fontSize: '0.95rem',
+                      cursor: mediaDrafts.length ? 'pointer' : 'not-allowed',
+                      background: mediaDrafts.length ? 'linear-gradient(135deg, #22d3ee, #818cf8)' : 'rgba(100,116,139,0.3)',
+                      color: mediaDrafts.length ? 'white' : '#64748b',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                    }}
+                  >
+                    <Check size={18} /> Post {mediaDrafts.length} {mediaDrafts.length === 1 ? 'Story' : 'Stories'} 🚀
+                  </button>
+                </div>
               ) : (
                 /* ─── Text Status Mode ─────────────────────────────── */
                 <div style={{ maxHeight: '75vh', overflowY: 'auto', paddingRight: '4px' }}>
+                  {/* Text Drafts Queue Bar */}
+                  {textDrafts.length > 0 && (
+                    <div style={{ marginBottom: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 600 }} className="text-slate-500">Queued Stories ({textDrafts.length})</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.4rem', overflowX: 'auto', paddingBottom: '4px' }}>
+                        {textDrafts.map((slide, i) => (
+                          <div
+                            key={slide.id}
+                            style={{
+                              padding: '0.4rem 0.75rem',
+                              borderRadius: '0.5rem',
+                              background: slide.bg,
+                              color: slide.textColor,
+                              fontSize: '0.75rem',
+                              fontWeight: 'bold',
+                              whiteSpace: 'nowrap',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+                            }}
+                          >
+                            <span>Slide {i + 1}</span>
+                            <button
+                              onClick={() => handleRemoveTextSlide(slide.id)}
+                              style={{ background: 'rgba(0,0,0,0.4)', color: 'white', border: 'none', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '10px' }}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Preview Canvas */}
                   <div
                     style={{
@@ -538,29 +807,47 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
                     </div>
                   </div>
 
-                  {/* Post button */}
-                  <button
-                    onClick={handleTextPost}
-                    disabled={!textContent.trim()}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      borderRadius: '0.75rem',
-                      border: 'none',
-                      fontWeight: 700,
-                      fontSize: '0.95rem',
-                      cursor: textContent.trim() ? 'pointer' : 'not-allowed',
-                      background: textContent.trim() ? 'linear-gradient(135deg, #22d3ee, #818cf8)' : 'rgba(100,116,139,0.3)',
-                      color: textContent.trim() ? 'white' : '#64748b',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.5rem',
-                      transition: 'opacity 0.2s',
-                    }}
-                  >
-                    <Check size={18} /> Post Status
-                  </button>
+                  {/* Action Buttons */}
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      onClick={handleAddTextSlide}
+                      disabled={!textContent.trim()}
+                      style={{
+                        padding: '0.75rem 1rem',
+                        borderRadius: '0.75rem',
+                        border: '1px solid rgba(34,211,238,0.4)',
+                        fontWeight: 600,
+                        fontSize: '0.85rem',
+                        cursor: textContent.trim() ? 'pointer' : 'not-allowed',
+                        background: 'rgba(34,211,238,0.1)',
+                        color: textContent.trim() ? '#22d3ee' : '#64748b',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      + Queue Slide
+                    </button>
+                    <button
+                      onClick={handlePostAllText}
+                      disabled={!textDrafts.length && !textContent.trim()}
+                      style={{
+                        flex: 1,
+                        padding: '0.75rem',
+                        borderRadius: '0.75rem',
+                        border: 'none',
+                        fontWeight: 700,
+                        fontSize: '0.95rem',
+                        cursor: (textDrafts.length || textContent.trim()) ? 'pointer' : 'not-allowed',
+                        background: (textDrafts.length || textContent.trim()) ? 'linear-gradient(135deg, #22d3ee, #818cf8)' : 'rgba(100,116,139,0.3)',
+                        color: (textDrafts.length || textContent.trim()) ? 'white' : '#64748b',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem',
+                      }}
+                    >
+                      <Check size={18} /> Post {textDrafts.length + (textContent.trim() ? 1 : 0)} {(textDrafts.length + (textContent.trim() ? 1 : 0)) === 1 ? 'Story' : 'Stories'} 🚀
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
