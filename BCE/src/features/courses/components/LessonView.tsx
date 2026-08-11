@@ -128,7 +128,7 @@ export default function LessonView({ lesson, isCompleted, onComplete }: LessonVi
             onClick={() => setActiveTab(tab.id)}
           >
             <span className="tab-icon">{tab.icon}</span>
-            {tab.label}
+            <span>{tab.label}</span>
             {tab.badge !== undefined && <span className="tab-badge">{tab.badge}</span>}
           </button>
         ))}

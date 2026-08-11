@@ -93,7 +93,7 @@ export default function CreatePollWidget({ courseId, hideHeading = false }: Crea
       </div>
 
       {isExpanded && (
-        <div style={{ marginBottom: 'var(--space-xl)', background: 'rgba(10, 132, 255, 0.03)', border: '1px solid rgba(10, 132, 255, 0.15)', padding: 'var(--space-lg)', borderRadius: 'var(--radius-lg)' }}>
+        <div style={{ marginBottom: 'var(--space-xl)', background: 'rgba(10, 132, 255, 0.03)', border: '1px solid rgba(10, 132, 255, 0.15)', padding: 'var(--space-lg)', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: 'min(100%, 600px)', boxSizing: 'border-box' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-sm)' }}>
               <h3 style={{ color: '#0a84ff', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>

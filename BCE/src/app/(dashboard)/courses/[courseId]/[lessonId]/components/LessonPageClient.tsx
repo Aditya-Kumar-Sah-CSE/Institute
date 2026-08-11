@@ -80,7 +80,7 @@ export default function LessonPageClient({
             className={`lesson-tab ${activeSection === tab.id ? 'active' : ''}`}
           >
             <span className="tab-icon">{tab.icon}</span>
-            {tab.label}
+            <span>{tab.label}</span>
             {tab.badge !== undefined && <span className="tab-badge">{tab.badge}</span>}
           </button>
         ))}
