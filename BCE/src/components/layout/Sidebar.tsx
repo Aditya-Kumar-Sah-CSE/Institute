@@ -82,17 +82,31 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
   };
   
   const currentView = roleView || (isAdmin ? 'admin' : 'student');
-  let navItems = currentView === 'admin' ? ADMIN_NAV_ITEMS : 
-                   currentView === 'instructor' ? INSTRUCTOR_NAV_ITEMS : 
-                   NAV_ITEMS;
+  let baseNavItems = currentView === 'admin' ? ADMIN_NAV_ITEMS : 
+                     currentView === 'instructor' ? INSTRUCTOR_NAV_ITEMS : 
+                     NAV_ITEMS;
 
   // Filter restricted tabs for non-super-admins
   if (currentView === 'admin' && !isSuperAdmin) {
-    navItems = navItems.filter(item => item.label !== 'Instructors' && item.label !== 'Admins' && item.label !== 'Feedback');
+    baseNavItems = baseNavItems.filter(item => item.label !== 'Instructors' && item.label !== 'Admins' && item.label !== 'Feedback');
   }
   if (currentView === 'instructor' && !isSuperAdmin) {
-    navItems = navItems.filter(item => item.label !== 'Feedback');
+    baseNavItems = baseNavItems.filter(item => item.label !== 'Feedback');
   }
+
+  // Ensure role-based panel navigation links are dynamically included in main nav items
+  const extraNavItems: { label: string; href: string; icon: string }[] = [];
+  const isInstructorRole = profile.role === 'instructor' || profile.role === 'admin' || profile.role === 'developer';
+  const isAdminRole = profile.role === 'admin' || profile.role === 'developer';
+
+  if (isInstructorRole && !baseNavItems.some(i => i.href === '/instructor')) {
+    extraNavItems.push({ label: 'Instructor Panel', href: '/instructor', icon: 'Instructors' });
+  }
+  if (isAdminRole && !baseNavItems.some(i => i.href === '/admin')) {
+    extraNavItems.push({ label: 'Admin Panel', href: '/admin', icon: 'Admin' });
+  }
+
+  const navItems = [...baseNavItems, ...extraNavItems];
 
   if (isCollapsed) {
     return null; // The toggle button is now in Navbar.tsx
@@ -215,7 +229,7 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
             <span className="sidebar-nav-label">{profile.role === 'developer' || isSuperAdmin ? 'Developer Panel' : 'Administration Panel'}</span>
           </a>
         )}
-        {currentView !== 'instructor' && ((profile.role === 'instructor' && profile.status === 'active') || profile.role === 'admin' || profile.role === 'developer') && (
+        {currentView !== 'instructor' && (profile.role === 'instructor' || profile.role === 'admin' || profile.role === 'developer') && (
           <a href="/instructor" className="sidebar-nav-item sidebar-switch" onClick={handleNavClick}>
             <span className="sidebar-nav-icon">{getIcon('Instructors', { className: 'w-5 h-5' })}</span>
             <span className="sidebar-nav-label">Instructor Panel</span>
