@@ -14,6 +14,8 @@ import { reviewSubmissionAction } from '@/features/admin/actions/submissions';
 import { completeCourseAndIssueCertificates } from '@/features/courses/actions/certificates';
 import type { Course, Lesson, Assignment, Badge } from '@/types';
 import CreatePollWidget from '@/features/courses/components/CreatePollWidget';
+import { parseAttachmentUrls } from '@/lib/attachments';
+import { Edit, Trash2 } from 'lucide-react';
 import './CurriculumBuilder.css';
 
 interface EditingItem {
@@ -243,7 +245,7 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
             <h3 style={{ fontSize: 'var(--text-xl)', color: 'var(--neon-gold)', marginTop: 'var(--space-md)', paddingBottom: 'var(--space-xs)', borderBottom: '1px solid var(--glass-border)' }}>{dateStr}</h3>
             {groupedLessons[dateStr].map((lesson) => (
               <Card key={lesson.id} variant="glass" style={{ borderLeft: '4px solid var(--neon-cyan)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-md)' }}>
+                <div className="lesson-header-row" style={{ marginBottom: 'var(--space-md)' }}>
                   <div>
                     <h3 style={{ fontSize: 'var(--text-lg)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span onClick={() => openPreviewModal(`/courses/${course.id}/${lesson.id}`)} style={{ cursor: 'pointer', color: 'inherit', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseOver={(e) => { e.currentTarget.style.color = 'var(--neon-cyan)'; }} onMouseOut={(e) => { e.currentTarget.style.color = 'inherit'; }}>
@@ -251,20 +253,133 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                       </span>
                       <span style={{ fontSize: '0.7em', color: 'var(--text-muted)', userSelect: 'none' }}>↗</span>
                     </h3>
-                    <div style={{ display: 'flex', gap: 'var(--space-md)', fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)', fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: '4px' }}>
                       <span>⭐ {lesson.xp_reward} XP</span>
                       {lesson.youtube_url && <span>🔗 Link Attached</span>}
                     </div>
                   </div>
                   {!course.is_completed && (
-                    <div style={{ display: 'flex', gap: 'var(--space-xs)' }}>
-                      <Button variant="ghost" size="sm" onClick={() => openLessonModal(lesson as any)}>Edit</Button>
+                    <div className="action-buttons">
+                      <Button variant="ghost" size="sm" onClick={() => openLessonModal(lesson as any)} style={{ padding: '8px' }} title="Edit Lesson">
+                        <Edit size={16} />
+                      </Button>
                       <Button variant="danger" size="sm" onClick={async () => {
                         if (confirm('Delete this lesson?')) await deleteLesson(lesson.id, course.id);
-                      }}>Delete</Button>
+                      }} style={{ padding: '8px' }} title="Delete Lesson">
+                        <Trash2 size={16} />
+                      </Button>
                     </div>
                   )}
                 </div>
+
+                {/* ── Inline Content Preview Cards ── */}
+                {(lesson.youtube_url || lesson.pdf_url) && (() => {
+                  const pdfUrls = parseAttachmentUrls(lesson.pdf_url);
+                  const ytMatch = lesson.youtube_url?.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]+)/);
+                  const ytThumb = ytMatch ? `https://img.youtube.com/vi/${ytMatch[1]}/mqdefault.jpg` : null;
+                  const isYouTube = !!ytMatch;
+
+                  return (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: 'var(--space-md)' }}>
+                      {/* External Link Card */}
+                      {lesson.youtube_url && (
+                        <a
+                          href={lesson.youtube_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="cb-preview-card"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            padding: '8px 12px',
+                            background: 'rgba(255,255,255,0.04)',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                            borderRadius: '10px',
+                            textDecoration: 'none',
+                            color: 'inherit',
+                            maxWidth: '320px',
+                            transition: 'all 0.2s ease',
+                            cursor: 'pointer',
+                          }}
+                          onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor = 'var(--neon-cyan)'; }}
+                          onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
+                        >
+                          {ytThumb ? (
+                            <img
+                              src={ytThumb}
+                              alt="Video thumbnail"
+                              style={{ width: 56, height: 42, borderRadius: '6px', objectFit: 'cover', flexShrink: 0 }}
+                            />
+                          ) : (
+                            <div style={{ width: 36, height: 36, borderRadius: '8px', background: 'rgba(0,191,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '16px' }}>🔗</div>
+                          )}
+                          <div style={{ overflow: 'hidden', minWidth: 0 }}>
+                            <div style={{ fontSize: '12px', fontWeight: 600, color: isYouTube ? '#ff4444' : 'var(--neon-cyan)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              {isYouTube ? '▶ YouTube Video' : '🔗 External Link'}
+                            </div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {lesson.youtube_url}
+                            </div>
+                          </div>
+                        </a>
+                      )}
+
+                      {/* PDF / Image Attachment Cards */}
+                      {pdfUrls.map((url, idx) => {
+                        const isPdf = url.toLowerCase().includes('.pdf');
+                        const isImg = /\.(jpg|jpeg|png|gif|webp|svg)/i.test(url);
+                        const fileName = decodeURIComponent(url.split('/').pop()?.split('?')[0] || `File ${idx + 1}`);
+                        // Shorten UUID filenames
+                        const shortName = fileName.length > 30 ? fileName.slice(0, 12) + '…' + fileName.slice(-12) : fileName;
+
+                        return (
+                          <a
+                            key={idx}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="cb-preview-card"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              padding: '8px 12px',
+                              background: 'rgba(255,255,255,0.04)',
+                              border: '1px solid rgba(255,255,255,0.08)',
+                              borderRadius: '10px',
+                              textDecoration: 'none',
+                              color: 'inherit',
+                              maxWidth: isImg ? '140px' : '260px',
+                              transition: 'all 0.2s ease',
+                              cursor: 'pointer',
+                            }}
+                            onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor = 'var(--neon-magenta)'; }}
+                            onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
+                          >
+                            {isImg ? (
+                              <img src={url} alt={`Attachment ${idx + 1}`} style={{ width: 48, height: 48, borderRadius: '6px', objectFit: 'cover', flexShrink: 0 }} />
+                            ) : (
+                              <div style={{ width: 36, height: 36, borderRadius: '8px', background: isPdf ? 'rgba(255,59,48,0.12)' : 'rgba(255,204,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '16px' }}>
+                                {isPdf ? '📄' : '📎'}
+                              </div>
+                            )}
+                            <div style={{ overflow: 'hidden', minWidth: 0 }}>
+                              <div style={{ fontSize: '12px', fontWeight: 600, color: isPdf ? '#ff6b6b' : 'var(--neon-gold)' }}>
+                                {isPdf ? 'PDF Notes' : isImg ? 'Image' : 'Attachment'}
+                              </div>
+                              {!isImg && (
+                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {shortName}
+                                </div>
+                              )}
+                            </div>
+                          </a>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
 
                 <div style={{ background: 'rgba(0,0,0,0.2)', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
@@ -284,7 +399,7 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
 
                         return (
                           <div key={assign.id} style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--space-sm)' }}>
+                            <div className="assignment-header-row" style={{ padding: 'var(--space-sm)' }}>
                               <div>
                                 <div style={{ fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                   <span onClick={() => openPreviewModal(`/courses/${course.id}/${lesson.id}`)} style={{ cursor: 'pointer', color: 'inherit', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseOver={(e) => { e.currentTarget.style.color = 'var(--neon-cyan)'; }} onMouseOut={(e) => { e.currentTarget.style.color = 'inherit'; }}>
@@ -292,7 +407,7 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                                   </span>
                                   <span style={{ fontSize: '0.8em', color: 'var(--text-muted)', userSelect: 'none' }}>↗</span>
                                 </div>
-                                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', display: 'flex', gap: '8px' }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', gap: '8px' }}>
                                   <span>Type: {assign.type}</span>
                                   <span>| ⭐ {assign.xp_reward} XP</span>
                                   {assign.requires_github && <span style={{ color: 'var(--neon-gold)' }}>| 🐙 Requires GitHub</span>}
@@ -300,11 +415,15 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                                 </div>
                               </div>
                               {!course.is_completed && (
-                                <div style={{ display: 'flex', gap: 'var(--space-xs)' }}>
-                                  <Button variant="ghost" size="sm" onClick={() => openAssignmentModal(lesson.id, assign)}>Edit</Button>
+                                <div className="action-buttons">
+                                  <Button variant="ghost" size="sm" onClick={() => openAssignmentModal(lesson.id, assign)} style={{ padding: '8px' }} title="Edit Task">
+                                    <Edit size={16} />
+                                  </Button>
                                   <Button variant="ghost" size="sm" onClick={async () => {
                                     if (confirm('Delete this task?')) await deleteAssignment(assign.id, course.id);
-                                  }} style={{ color: 'var(--neon-red)' }}>Del</Button>
+                                  }} style={{ color: 'var(--neon-red)', padding: '8px' }} title="Delete Task">
+                                    <Trash2 size={16} />
+                                  </Button>
                                 </div>
                               )}
                             </div>
@@ -403,13 +522,21 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                 />
                 <Input name="youtube_url" label="External Link (YouTube, Blog, Forms, etc.) (Optional)" value={lessonFormData.youtube_url || ''} onChange={handleLessonChange} />
                 <Input name="xp_reward" type="number" label="XP Reward for reading" value={lessonFormData.xp_reward || ''} onChange={handleLessonChange} required />
-                <TextArea name="notes" label="Lesson Content" value={lessonFormData.notes || ''} onChange={handleLessonChange} style={{ minHeight: '150px' }} />
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
                   <label style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>PDF / Image Notes (Optional)</label>
                   {editingItem?.pdf_url && (
-                    <div style={{ marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                       <a href={editingItem.pdf_url} target="_blank" rel="noreferrer" style={{ color: 'var(--neon-cyan)', fontSize: 'var(--text-sm)' }}>View Current Attachment</a>
+                      <label style={{ fontSize: 'var(--text-xs)', color: 'var(--neon-red)', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                        <input 
+                          type="checkbox" 
+                          name="clear_attachment" 
+                          checked={!!lessonFormData.clear_attachment}
+                          onChange={(e) => setLessonFormData(prev => ({ ...prev, clear_attachment: e.target.checked }))}
+                        />
+                        Remove attachment
+                      </label>
                     </div>
                   )}
                   <input 
@@ -423,6 +550,25 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                   />
                   <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Upload PDF or Image notes for this lesson.</p>
                 </div>
+
+                {editingItem && (
+                  <div style={{ background: 'rgba(255, 59, 48, 0.08)', border: '1px solid rgba(255, 59, 48, 0.2)', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', marginTop: 'var(--space-xs)' }}>
+                    <label style={{ fontSize: 'var(--text-sm)', color: '#ff453a', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                      <input 
+                        type="checkbox" 
+                        name="clear_content" 
+                        checked={!!lessonFormData.clear_content}
+                        onChange={(e) => setLessonFormData(prev => ({ 
+                          ...prev, 
+                          clear_content: e.target.checked,
+                          notes: e.target.checked ? '' : prev.notes,
+                          youtube_url: e.target.checked ? '' : prev.youtube_url,
+                        }))}
+                      />
+                      Delete completely lesson content (Notes, Link & Attachments)
+                    </label>
+                  </div>
+                )}
 
                 <div style={{ display: 'flex', gap: 'var(--space-md)', justifyContent: 'flex-end', marginTop: 'var(--space-md)' }}>
                   <Button type="button" variant="ghost" onClick={closeModal}>Cancel</Button>

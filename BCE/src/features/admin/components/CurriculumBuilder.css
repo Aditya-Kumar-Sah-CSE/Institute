@@ -10,6 +10,20 @@
   gap: var(--space-md);
 }
 
+.lesson-header-row,
+.assignment-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-md);
+}
+
+.action-buttons {
+  display: flex;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+}
+
 @media (max-width: 768px) {
   .curriculum-header {
     flex-direction: column;
@@ -27,5 +41,17 @@
   
   .curriculum-actions > * {
     flex: 1;
+  }
+  
+  .lesson-header-row,
+  .assignment-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .action-buttons {
+    width: 100%;
+    justify-content: flex-end;
+    margin-top: var(--space-xs);
   }
 }
