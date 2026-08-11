@@ -129,7 +129,7 @@ export default function StoryCarousel({ currentUserId, currentUserAvatar }: { cu
                return (
                  <>
                    {(hasMyStory && feed.myStory?.items?.[0]?.media_url && feed.myStory.items[0].media_type === 'image') ? (
-                      <Image src={feed.myStory.items[0].media_url} alt="My Status" fill className="object-cover opacity-80" style={{ objectFit: 'cover', opacity: 0.8 }} />
+                      <Image src={feed.myStory.items[0].media_url} alt="My Status" fill className="object-cover opacity-80" style={{ objectFit: 'cover', opacity: 0.8 }} unoptimized />
                    ) : myAvatar ? (
                       <Image src={myAvatar} alt="My Avatar" fill className="object-cover opacity-60 backdrop-blur-sm grayscale-[30%]" style={{ objectFit: 'cover', opacity: 0.6, filter: 'blur(4px) grayscale(30%)' }} unoptimized />
                    ) : null}
@@ -180,11 +180,11 @@ export default function StoryCarousel({ currentUserId, currentUserAvatar }: { cu
               >
                 {/* Background Media */}
                 {(firstItem?.media_url && firstItem.media_type === 'image') ? (
-                  <Image src={firstItem.media_url} alt="Status" fill className="object-cover" />
+                  <Image src={firstItem.media_url} alt="Status" fill className="object-cover" unoptimized />
                 ) : firstItem?.media_type === 'video' && firstItem.media_url ? (
                   <video src={firstItem.media_url} className="w-full h-full object-cover opacity-90" muted playsInline />
                 ) : story.profile?.avatar_url ? (
-                  <Image src={story.profile.avatar_url} alt="Avatar Fallback" fill className="object-cover opacity-40 blur-sm grayscale-[50%]" />
+                  <Image src={story.profile.avatar_url} alt="Avatar Fallback" fill className="object-cover opacity-40 blur-sm grayscale-[50%]" unoptimized />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-900" />
                 )}
@@ -195,7 +195,7 @@ export default function StoryCarousel({ currentUserId, currentUserAvatar }: { cu
                   <div className={`w-10 h-10 rounded-full border-[2.5px] p-[2px] ${ringColor} bg-white dark:bg-slate-800`} style={{ width: '2.5rem', height: '2.5rem', borderRadius: '9999px' }}>
                     <div className="w-full h-full rounded-full overflow-hidden bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
                       {story.profile?.avatar_url ? (
-                        <Image src={story.profile.avatar_url} alt="avatar" width={40} height={40} className="object-cover" />
+                        <Image src={story.profile.avatar_url} alt="avatar" width={40} height={40} className="object-cover" unoptimized />
                       ) : (
                         <User size={20} className="text-slate-500" />
                       )}

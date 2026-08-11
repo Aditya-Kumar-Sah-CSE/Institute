@@ -384,6 +384,7 @@ export default function StoryViewerCanvas({
                  className="object-contain" 
                  draggable={false}
                  priority
+                 unoptimized
                />
              ) : (() => {
                let parsed: any = { text: currentItem.caption };
