@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
+import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function updateSession(request: NextRequest) {
@@ -105,7 +106,15 @@ export async function updateSession(request: NextRequest) {
 
   let userRole = 'student';
   if (user) {
-    const { data: profile, error } = await supabase
+    // Use service role client to bypass RLS — the anon-key client's auth
+    // context may not have fully propagated after a token refresh, causing
+    // the profile query to fail in production (Vercel).
+    const adminClient = createSupabaseAdmin(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+    const { data: profile, error } = await adminClient
       .from('profiles')
       .select('role, institution_id')
       .eq('id', user.id)

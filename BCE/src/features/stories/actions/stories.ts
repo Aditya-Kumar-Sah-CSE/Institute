@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { revalidatePath } from 'next/cache';
 import type { Story, StoryItem, StoryPrivacyLevel, StoryMediaType } from '@/types/database';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -231,6 +232,9 @@ export async function deleteStoryItem(itemId: string) {
     .eq('id', itemId);
 
   if (error) throw error;
+  
+  // Revalidate to ensure UI refreshes immediately
+  revalidatePath('/dashboard');
   return true;
 }
 
@@ -304,6 +308,35 @@ export async function addStoryReply(storyItemId: string, message: string) {
     .single();
 
   if (error) throw error;
+
+  // Attempt to find the story owner to send a chat message
+  try {
+    const { data: itemData } = await supabase
+      .from('story_items')
+      .select('id, media_url, story:stories(user_id)')
+      .eq('id', storyItemId)
+      .single();
+
+    const ownerId = (itemData?.story as any)?.user_id;
+    if (ownerId && ownerId !== userData.user.id) {
+      // Get or create direct chat
+      const { data: convId } = await supabase.rpc('get_or_create_direct_chat', { peer_id: ownerId });
+      
+      if (convId) {
+        await supabase.from('chat_messages').insert({
+          conversation_id: convId,
+          sender_id: userData.user.id,
+          content: `Replied to your status: "${message.trim()}"`,
+          attachment_type: itemData?.media_url ? 'image' : 'text',
+          attachment_link: itemData?.media_url || null
+        });
+        revalidatePath('/dashboard/chat');
+      }
+    }
+  } catch (chatError) {
+    console.error('Failed to send status reply to chat:', chatError);
+  }
+
   return data;
 }
 
