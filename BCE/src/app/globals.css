@@ -190,12 +190,13 @@ small, .caption {
     flex-wrap: wrap;
   }
   .polls-flex > * {
-    flex: 1 1 calc(50% - var(--space-4));
-    max-width: calc(50% - var(--space-4) / 2);
+    flex: 0 0 50%;
+    width: 50% !important;
+    max-width: 50% !important;
   }
-  .polls-flex > *:only-child {
-    flex: 1 1 100%;
-    max-width: 100%;
+  .desktop-50-card {
+    width: 50% !important;
+    max-width: 50% !important;
   }
 }
 
