@@ -169,8 +169,8 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
                 <Zap size={24} />
               </div>
               <div className="stat-card-content">
-                <div suppressHydrationWarning className="stat-card-value" style={{ color: 'var(--neon-cyan)' }}>
-                  {profile?.xp.toLocaleString('en-US')}
+                <div suppressHydrationWarning className="stat-card-value" style={{ color: 'var(--neon-cyan)', fontSize: '1.4rem', fontWeight: 800 }}>
+                  {(profile?.xp ?? 0).toLocaleString('en-US')} <span style={{ fontSize: '0.8rem', fontWeight: 600, opacity: 0.85 }}>XP</span>
                 </div>
                 <div className="text-secondary stat-card-label">Total XP</div>
                 <span style={{ fontSize: '10px', color: 'var(--neon-cyan)', marginTop: '2px', fontWeight: 'bold' }}>Leaderboard 🏆 →</span>
@@ -184,8 +184,8 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
                 <Flame size={24} />
               </div>
               <div className="stat-card-content">
-                <div className="stat-card-value" style={{ color: 'var(--neon-magenta)' }}>
-                  {profile?.streak_days}
+                <div className="stat-card-value" style={{ color: 'var(--neon-magenta)', fontSize: '1.4rem', fontWeight: 800 }}>
+                  {profile?.streak_days ?? 0} <span style={{ fontSize: '0.8rem', fontWeight: 600, opacity: 0.85 }}>Days</span>
                 </div>
                 <div className="text-secondary stat-card-label">Day Streak</div>
                 <span style={{ fontSize: '10px', color: 'var(--neon-magenta)', marginTop: '2px', fontWeight: 'bold' }}>Streak Details 🔥 →</span>
@@ -199,8 +199,8 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
                 <CheckCircle size={24} />
               </div>
               <div className="stat-card-content">
-                <div className="stat-card-value" style={{ color: 'var(--neon-lime)' }}>
-                  {completedAssignments || 0}
+                <div className="stat-card-value" style={{ color: 'var(--neon-lime)', fontSize: '1.4rem', fontWeight: 800 }}>
+                  {completedAssignments || 0} <span style={{ fontSize: '0.8rem', fontWeight: 600, opacity: 0.85 }}>Tasks</span>
                 </div>
                 <div className="text-secondary stat-card-label">Tasks Completed</div>
                 <span style={{ fontSize: '10px', color: 'var(--neon-lime)', marginTop: '2px', fontWeight: 'bold' }}>My Courses 🎯 →</span>
@@ -214,8 +214,8 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
                 <Award size={24} />
               </div>
               <div className="stat-card-content">
-                <div className="stat-card-value" style={{ color: 'var(--neon-gold)' }}>
-                  {earnedBadges || 0}
+                <div className="stat-card-value" style={{ color: 'var(--neon-gold)', fontSize: '1.4rem', fontWeight: 800 }}>
+                  {earnedBadges || 0} <span style={{ fontSize: '0.8rem', fontWeight: 600, opacity: 0.85 }}>Badges</span>
                 </div>
                 <div className="text-secondary stat-card-label">Badges Earned</div>
                 <span style={{ fontSize: '10px', color: 'var(--neon-gold)', marginTop: '2px', fontWeight: 'bold' }}>Badges Collection 🎖️ →</span>
