@@ -1,4 +1,4 @@
-const CACHE_NAME = 'skillarena-v5';
+const CACHE_NAME = 'skillarena-v7';
 
 // Pre-cache these on install for instant shell loads
 const APP_SHELL_STATIC = [
@@ -37,6 +37,11 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
+
+  // Skip Next.js RSC payloads & prefetch requests (must always fetch fresh from network for seamless navigation)
+  if (url.searchParams.has('_rsc') || event.request.headers.get('RSC') || event.request.headers.get('Next-Router-State-Tree')) {
+    return;
+  }
 
   // 1. Next.js static assets → Cache First (they have content hashes, safe to cache forever)
   if (url.pathname.startsWith('/_next/static/')) {
