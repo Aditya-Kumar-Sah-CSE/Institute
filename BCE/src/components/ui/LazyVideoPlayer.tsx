@@ -12,9 +12,9 @@ interface LazyVideoPlayerProps {
 
 export default function LazyVideoPlayer({ embedUrl, title }: LazyVideoPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   // Extract video ID from embed URL
-  // Example: https://www.youtube.com/embed/dQw4w9WgXcQ
   const getThumbnailUrl = (url: string) => {
     try {
       const parsed = new URL(url);
@@ -33,7 +33,16 @@ export default function LazyVideoPlayer({ embedUrl, title }: LazyVideoPlayerProp
 
   return (
     <div className="lazy-video-container">
-      {!isPlaying ? (
+      {hasError ? (
+        <div style={{ padding: 'var(--space-xl)', textAlign: 'center', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)' }}>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-md)' }}>
+            Video embedding is blocked by browser policies or extensions.
+          </p>
+          <a href={embedUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-sm">
+            Watch Video Directly ↗
+          </a>
+        </div>
+      ) : !isPlaying ? (
         <div 
           className="lazy-video-thumbnail-wrapper" 
           onClick={() => setIsPlaying(true)}
@@ -65,6 +74,8 @@ export default function LazyVideoPlayer({ embedUrl, title }: LazyVideoPlayerProp
           title={title}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
+          onError={() => setHasError(true)}
+          referrerPolicy="no-referrer-when-downgrade"
         />
       )}
     </div>

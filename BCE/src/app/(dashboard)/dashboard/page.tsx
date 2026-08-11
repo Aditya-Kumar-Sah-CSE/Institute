@@ -163,7 +163,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
         </div>
 
         <div className="dashboard-stats-grid">
-          <Link href="/profile" style={{ textDecoration: 'none' }}>
+          <Link href="/leaderboard" style={{ textDecoration: 'none' }} title="View Leaderboard Rankings">
             <Card variant="glass" padding="lg" className="stat-card hover-lift">
               <div className="stat-card-icon" style={{ background: 'rgba(0, 242, 254, 0.1)', color: 'var(--neon-cyan)' }}>
                 <Zap size={24} />
@@ -173,11 +173,12 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
                   {profile?.xp.toLocaleString('en-US')}
                 </div>
                 <div className="text-secondary stat-card-label">Total XP</div>
+                <span style={{ fontSize: '10px', color: 'var(--neon-cyan)', marginTop: '2px', fontWeight: 'bold' }}>Leaderboard 🏆 →</span>
               </div>
             </Card>
           </Link>
           
-          <Link href="/profile" style={{ textDecoration: 'none' }}>
+          <Link href="/profile" style={{ textDecoration: 'none' }} title="View Streak Activity">
             <Card variant="glass" padding="lg" className="stat-card hover-lift">
               <div className="stat-card-icon" style={{ background: 'rgba(255, 0, 255, 0.1)', color: 'var(--neon-magenta)' }}>
                 <Flame size={24} />
@@ -187,11 +188,12 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
                   {profile?.streak_days}
                 </div>
                 <div className="text-secondary stat-card-label">Day Streak</div>
+                <span style={{ fontSize: '10px', color: 'var(--neon-magenta)', marginTop: '2px', fontWeight: 'bold' }}>Streak Details 🔥 →</span>
               </div>
             </Card>
           </Link>
 
-          <Link href="/profile" style={{ textDecoration: 'none' }}>
+          <Link href="/courses" style={{ textDecoration: 'none' }} title="View Assignments & Courses">
             <Card variant="glass" padding="lg" className="stat-card hover-lift">
               <div className="stat-card-icon" style={{ background: 'rgba(57, 255, 20, 0.1)', color: 'var(--neon-lime)' }}>
                 <CheckCircle size={24} />
@@ -201,11 +203,12 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
                   {completedAssignments || 0}
                 </div>
                 <div className="text-secondary stat-card-label">Tasks Completed</div>
+                <span style={{ fontSize: '10px', color: 'var(--neon-lime)', marginTop: '2px', fontWeight: 'bold' }}>My Courses 🎯 →</span>
               </div>
             </Card>
           </Link>
 
-          <Link href="/profile" style={{ textDecoration: 'none' }}>
+          <Link href="/profile" style={{ textDecoration: 'none' }} title="View Badges Collection">
             <Card variant="glass" padding="lg" className="stat-card hover-lift">
               <div className="stat-card-icon" style={{ background: 'rgba(255, 215, 0, 0.1)', color: 'var(--neon-gold)' }}>
                 <Award size={24} />
@@ -215,6 +218,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
                   {earnedBadges || 0}
                 </div>
                 <div className="text-secondary stat-card-label">Badges Earned</div>
+                <span style={{ fontSize: '10px', color: 'var(--neon-gold)', marginTop: '2px', fontWeight: 'bold' }}>Badges Collection 🎖️ →</span>
               </div>
             </Card>
           </Link>
@@ -253,9 +257,9 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
           <div className="dashboard-bottom-col">
             {notices && (
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
-                  <h2 style={{ fontSize: 'var(--text-2xl)' }}>Recent Notices</h2>
-                  <Link href="/notices" style={{ color: 'var(--neon-cyan)' }}>View all notices →</Link>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-lg)' }}>
+                  <h2 style={{ fontSize: 'var(--text-2xl)', margin: 0 }}>Recent Notices</h2>
+                  <Link href="/notices" style={{ color: 'var(--neon-cyan)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)', whiteSpace: 'nowrap' }}>View all notices →</Link>
                 </div>
                 <NoticeBoard notices={notices as Notice[]} />
               </div>

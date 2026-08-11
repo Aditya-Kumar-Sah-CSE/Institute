@@ -84,8 +84,12 @@ export default function NoticeBoard({ notices, emptyMessage = 'No notices availa
 
   if (!notices || notices.length === 0) {
     return (
-      <Card variant="glass" padding="lg" style={{ textAlign: 'center' }}>
-        <p className="text-secondary">{emptyMessage}</p>
+      <Card variant="glass" padding="lg" style={{ textAlign: 'center', padding: 'var(--space-2xl) var(--space-lg)', background: 'rgba(255, 255, 255, 0.01)', border: '1px border-dashed var(--border-default)' }}>
+        <div style={{ fontSize: '2rem', marginBottom: 'var(--space-sm)', opacity: 0.8 }}>📢</div>
+        <h4 style={{ fontSize: 'var(--text-lg)', marginBottom: 'var(--space-2xs)' }}>All Caught Up!</h4>
+        <p className="text-secondary" style={{ fontSize: 'var(--text-sm)', margin: 0 }}>
+          {emptyMessage === 'No notices available.' ? 'No announcements posted yet. Updates from instructors will appear here.' : emptyMessage}
+        </p>
       </Card>
     );
   }
