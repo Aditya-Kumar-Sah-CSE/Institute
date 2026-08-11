@@ -248,10 +248,9 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                 <div className="lesson-header-row" style={{ marginBottom: 'var(--space-md)' }}>
                   <div>
                     <h3 style={{ fontSize: 'var(--text-lg)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span onClick={() => openPreviewModal(`/courses/${course.id}/${lesson.id}`)} style={{ cursor: 'pointer', color: 'inherit', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseOver={(e) => { e.currentTarget.style.color = 'var(--neon-cyan)'; }} onMouseOut={(e) => { e.currentTarget.style.color = 'inherit'; }}>
+                      <span style={{ color: 'inherit' }}>
                         {lesson.title}
                       </span>
-                      <span style={{ fontSize: '0.7em', color: 'var(--text-muted)', userSelect: 'none' }}>↗</span>
                     </h3>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)', fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: '4px' }}>
                       <span>⭐ {lesson.xp_reward} XP</span>
@@ -398,20 +397,24 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                         const remainingCount = assignSubmissions.length - 3;
 
                         return (
-                          <div key={assign.id} style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
-                            <div className="assignment-header-row" style={{ padding: 'var(--space-sm)' }}>
-                              <div>
-                                <div style={{ fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                  <span onClick={() => openPreviewModal(`/courses/${course.id}/${lesson.id}`)} style={{ cursor: 'pointer', color: 'inherit', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseOver={(e) => { e.currentTarget.style.color = 'var(--neon-cyan)'; }} onMouseOut={(e) => { e.currentTarget.style.color = 'inherit'; }}>
-                                    {assign.title}
-                                  </span>
-                                  <span style={{ fontSize: '0.8em', color: 'var(--text-muted)', userSelect: 'none' }}>↗</span>
+                          <div key={assign.id} style={{ display: 'flex', flexDirection: 'column', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', overflow: 'hidden' }}>
+                            <div className="assignment-header-row" style={{ padding: '12px' }}>
+                              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                <div style={{ width: 36, height: 36, borderRadius: '8px', background: 'rgba(178,102,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '16px' }}>
+                                  📝
                                 </div>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', gap: '8px' }}>
-                                  <span>Type: {assign.type}</span>
-                                  <span>| ⭐ {assign.xp_reward} XP</span>
-                                  {assign.requires_github && <span style={{ color: 'var(--neon-gold)' }}>| 🐙 Requires GitHub</span>}
-                                  {assign.requires_deploy && <span style={{ color: 'var(--neon-magenta)' }}>| 🚀 Requires Deploy</span>}
+                                <div>
+                                  <div style={{ fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--neon-cyan)' }}>
+                                    <span>
+                                      {assign.title}
+                                    </span>
+                                  </div>
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', gap: '8px', marginTop: '2px' }}>
+                                    <span>Type: {assign.type}</span>
+                                    <span>| ⭐ {assign.xp_reward} XP</span>
+                                    {assign.requires_github && <span style={{ color: 'var(--neon-gold)' }}>| 🐙 GitHub</span>}
+                                    {assign.requires_deploy && <span style={{ color: 'var(--neon-magenta)' }}>| 🚀 Deploy</span>}
+                                  </div>
                                 </div>
                               </div>
                               {!course.is_completed && (
