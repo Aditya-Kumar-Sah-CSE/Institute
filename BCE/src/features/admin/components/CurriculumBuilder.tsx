@@ -63,7 +63,14 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
   };
 
   const handleAssignmentChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setAssignmentFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const target = e.target as HTMLInputElement;
+    if (target.type === 'file') {
+      setAssignmentFormData(prev => ({ ...prev, [target.name]: target.files }));
+    } else if (target.type === 'checkbox') {
+      setAssignmentFormData(prev => ({ ...prev, [target.name]: (target as HTMLInputElement).checked }));
+    } else {
+      setAssignmentFormData(prev => ({ ...prev, [target.name]: target.value }));
+    }
   };
 
   // Group lessons by date
@@ -155,7 +162,11 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
     setIsLoading(true);
     const formData = new FormData();
     Object.entries(assignmentFormData).forEach(([k, v]) => {
-      formData.append(k, String(v));
+      if (k === 'expected_output_file' && v instanceof FileList) {
+        Array.from(v).forEach(file => formData.append(k, file));
+      } else if (v !== undefined && v !== null && v !== '') {
+        formData.append(k, String(v));
+      }
     });
     
     if (editingItem) {
@@ -583,6 +594,37 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
             {modalType === 'assignment' && (
               <form onSubmit={handleAssignmentSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
                 <Input name="title" label="Assignment Title" value={assignmentFormData.title || ''} onChange={handleAssignmentChange} required />
+                
+                <TextArea name="description" label="Instructions (Optional)" value={assignmentFormData.description || ''} onChange={handleAssignmentChange} />
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
+                  <label style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>Image or PDF (Optional)</label>
+                  {editingItem?.expected_output && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                      <a href={editingItem.expected_output} target="_blank" rel="noreferrer" style={{ color: 'var(--neon-cyan)', fontSize: 'var(--text-sm)' }}>View Current Attachment</a>
+                      <label style={{ fontSize: 'var(--text-xs)', color: 'var(--neon-red)', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                        <input 
+                          type="checkbox" 
+                          name="clear_attachment" 
+                          checked={!!assignmentFormData.clear_attachment}
+                          onChange={(e) => setAssignmentFormData(prev => ({ ...prev, clear_attachment: e.target.checked }))}
+                        />
+                        Remove attachment
+                      </label>
+                    </div>
+                  )}
+                  <input 
+                    type="file" 
+                    name="expected_output_file" 
+                    onChange={handleAssignmentChange}
+                    accept="application/pdf,image/*" 
+                    multiple
+                    disabled={isLoading}
+                    style={{ padding: 'var(--space-sm)', background: 'var(--bg-input)', color: 'white', borderRadius: 'var(--radius-sm)', border: '1px solid var(--glass-border)' }}
+                  />
+                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Upload expected output image or PDF for reference.</p>
+                </div>
+
                 <Select 
                   name="type" 
                   label="Submission Type" 
@@ -596,8 +638,8 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                     { value: 'any', label: 'Any (All inputs enabled)' }
                   ]}
                 />
+
                 <Input name="xp_reward" type="number" label="XP Reward upon approval" value={assignmentFormData.xp_reward || ''} onChange={handleAssignmentChange} required />
-                <TextArea name="description" label="Instructions" value={assignmentFormData.description || ''} onChange={handleAssignmentChange} />
                 
                 <div style={{ display: 'flex', gap: 'var(--space-md)' }}>
                   <Select 

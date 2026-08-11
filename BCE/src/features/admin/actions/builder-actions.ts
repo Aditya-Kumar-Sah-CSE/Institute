@@ -128,12 +128,19 @@ export async function updateLesson(lessonId: string, courseId: string, formData:
   const week_number = parseInt(formData.get('week_number') as string);
   const pdf_file = formData.get('pdf_file') as File | null;
 
+  const clear_attachment = formData.get('clear_attachment') === 'true';
+  const clear_content = formData.get('clear_content') === 'true';
+
   const updateData: any = {
     title,
-    youtube_url: youtube_url || null,
-    notes: notes || null,
+    youtube_url: clear_content ? null : (youtube_url || null),
+    notes: clear_content ? null : (notes || null),
     xp_reward,
   };
+
+  if (clear_attachment || clear_content) {
+    updateData.pdf_url = null;
+  }
 
   // Only update sort_order and week_number if they were explicitly provided
   if (!isNaN(sort_order)) updateData.sort_order = sort_order;
@@ -193,8 +200,31 @@ export async function addAssignment(lessonId: string, courseId: string, formData
   const xp_reward = parseInt(formData.get('xp_reward') as string || '50');
   const requires_github = formData.get('requires_github') === 'true';
   const requires_deploy = formData.get('requires_deploy') === 'true';
+  const expected_output_file = formData.get('expected_output_file') as File | null;
 
   if (!title) return { error: 'Assignment title is required' };
+
+  let expected_output = null;
+  if (expected_output_file) {
+    const validation = validateFiles([expected_output_file], { allowedTypes: ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'] });
+    if (!validation.valid) return { error: validation.error };
+
+    const { supabase: adminSupabase } = await requireBuilderRole();
+    const uploadResult = await uploadFiles({
+      files: [expected_output_file],
+      supabase: adminSupabase,
+      bucketName: 'attachments',
+      pathPrefix: `assignments/${courseId}`
+    });
+
+    if (uploadResult.errors.length > 0) {
+      return { error: uploadResult.errors.join('; ') };
+    }
+
+    if (uploadResult.urls.length > 0) {
+      expected_output = serializeAttachmentUrls(uploadResult.urls);
+    }
+  }
 
   const { error } = await supabase.from('assignments').insert({
     lesson_id: lessonId,
@@ -204,6 +234,7 @@ export async function addAssignment(lessonId: string, courseId: string, formData
     xp_reward,
     requires_github,
     requires_deploy,
+    expected_output: expected_output,
   });
 
   if (error) return { error: error.message };
@@ -241,15 +272,41 @@ export async function updateAssignment(assignmentId: string, courseId: string, f
   const xp_reward = parseInt(formData.get('xp_reward') as string || '50');
   const requires_github = formData.get('requires_github') === 'true';
   const requires_deploy = formData.get('requires_deploy') === 'true';
+  const expected_output_file = formData.get('expected_output_file') as File | null;
+  const clearAttachment = formData.get('clear_attachment') === 'on';
 
-  const { error } = await supabase.from('assignments').update({
+  let updateData: Record<string, any> = {
     title,
     type,
     description: description || null,
     xp_reward,
     requires_github,
     requires_deploy,
-  }).eq('id', assignmentId);
+  };
+
+  if (clearAttachment) {
+    updateData.expected_output = null;
+  } else if (expected_output_file) {
+    const validation = validateFiles([expected_output_file], { allowedTypes: ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'] });
+    if (!validation.valid) return { error: validation.error };
+
+    const uploadResult = await uploadFiles({
+      files: [expected_output_file],
+      supabase,
+      bucketName: 'attachments',
+      pathPrefix: `assignments/${courseId}`
+    });
+
+    if (uploadResult.errors.length > 0) {
+      return { error: uploadResult.errors.join('; ') };
+    }
+
+    if (uploadResult.urls.length > 0) {
+      updateData.expected_output = serializeAttachmentUrls(uploadResult.urls);
+    }
+  }
+
+  const { error } = await supabase.from('assignments').update(updateData).eq('id', assignmentId);
 
   if (error) return { error: error.message };
 
