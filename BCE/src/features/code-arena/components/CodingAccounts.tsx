@@ -20,33 +20,35 @@ type Account = {
 export default function CodingAccounts({ initial }: { initial: Account[] }) {
   const [accounts, setAccounts] = useState<Account[]>(initial);
   const [handle, setHandle] = useState('');
-  const [connecting, setConnecting] = useState(false);
+  const [lcHandle, setLcHandle] = useState('');
+  const [connecting, setConnecting] = useState<string | null>(null);
   const [syncing, setSyncing] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const cf = accounts.find((x) => x.platform === 'CODEFORCES');
+  const lc = accounts.find((x) => x.platform === 'LEETCODE');
 
-  const connectCF = async () => {
-    if (!handle.trim()) return;
-    setConnecting(true);
+  const connectPlatform = async (platform: string, username: string) => {
+    if (!username.trim()) return;
+    setConnecting(platform);
     setFeedback(null);
     try {
       const res = await fetch('/api/coding/accounts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ platform: 'CODEFORCES', username: handle.trim() }),
+        body: JSON.stringify({ platform, username: username.trim() }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Connection failed.');
-      setAccounts((a) => [...a.filter((x) => x.platform !== 'CODEFORCES'), json.data]);
-      setHandle('');
-      setFeedback({ type: 'success', message: 'Codeforces profile connected! Syncing data...' });
-      // Auto-trigger initial sync
-      syncPlatform('CODEFORCES');
+      setAccounts((a) => [...a.filter((x) => x.platform !== platform), json.data]);
+      if (platform === 'CODEFORCES') setHandle('');
+      else setLcHandle('');
+      setFeedback({ type: 'success', message: `${platform === 'CODEFORCES' ? 'Codeforces' : 'LeetCode'} profile connected! Syncing data...` });
+      syncPlatform(platform);
     } catch (err: any) {
       setFeedback({ type: 'error', message: err.message });
     } finally {
-      setConnecting(false);
+      setConnecting(null);
     }
   };
 
@@ -118,7 +120,6 @@ export default function CodingAccounts({ initial }: { initial: Account[] }) {
 
         {cf ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-            {/* Connected Stats */}
             <div className="account-stats-row">
               <div className="account-stat">
                 <span className="account-stat-label"><Star size={12} /> Handle</span>
@@ -150,21 +151,14 @@ export default function CodingAccounts({ initial }: { initial: Account[] }) {
               )}
             </div>
 
-            {/* Last Synced */}
             {cf.last_synced_at && (
               <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <Clock size={11} /> Last synced: {timeSince(cf.last_synced_at)}
               </span>
             )}
 
-            {/* Actions */}
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                className="hub-solve-btn"
-                onClick={() => syncPlatform('CODEFORCES')}
-                disabled={syncing === 'CODEFORCES'}
-              >
+              <button type="button" className="hub-solve-btn" onClick={() => syncPlatform('CODEFORCES')} disabled={syncing === 'CODEFORCES'}>
                 <RefreshCw size={13} className={syncing === 'CODEFORCES' ? 'animate-spin' : ''} />
                 {syncing === 'CODEFORCES' ? 'Syncing...' : 'Sync Now'}
               </button>
@@ -188,10 +182,10 @@ export default function CodingAccounts({ initial }: { initial: Account[] }) {
                 placeholder="Codeforces handle (e.g. tourist)"
                 value={handle}
                 onChange={(e) => setHandle(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') connectCF(); }}
+                onKeyDown={(e) => { if (e.key === 'Enter') connectPlatform('CODEFORCES', handle); }}
               />
-              <button type="button" className="hub-solve-btn" onClick={connectCF} disabled={connecting}>
-                <Link2 size={13} /> {connecting ? 'Connecting...' : 'Connect'}
+              <button type="button" className="hub-solve-btn" onClick={() => connectPlatform('CODEFORCES', handle)} disabled={connecting === 'CODEFORCES'}>
+                <Link2 size={13} /> {connecting === 'CODEFORCES' ? 'Connecting...' : 'Connect'}
               </button>
             </div>
           </div>
@@ -207,14 +201,79 @@ export default function CodingAccounts({ initial }: { initial: Account[] }) {
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: 'var(--text-md)', fontWeight: 700 }}>LeetCode</h3>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>○ Sync unavailable</span>
+              <span style={{ fontSize: '11px', color: lc ? '#4ade80' : 'var(--text-muted)' }}>
+                {lc ? '● Connected' : '○ Not connected'}
+              </span>
             </div>
           </div>
         </div>
-        <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: 0 }}>
-          LeetCode public-profile sync is intentionally deferred until an officially supported integration is available.
-          No password, session cookie, or unofficial API is used. Problem browsing and import remain fully functional.
-        </p>
+
+        {lc ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+            <div className="account-stats-row">
+              <div className="account-stat">
+                <span className="account-stat-label"><Star size={12} /> Handle</span>
+                <span className="account-stat-value" style={{ color: '#facc15' }}>@{lc.username}</span>
+              </div>
+              {lc.rating != null && (
+                <div className="account-stat">
+                  <span className="account-stat-label"><Trophy size={12} /> Contest Rating</span>
+                  <span className="account-stat-value" style={{ color: 'var(--neon-gold)' }}>{lc.rating}</span>
+                </div>
+              )}
+              {lc.rank && (
+                <div className="account-stat">
+                  <span className="account-stat-label">Global Rank</span>
+                  <span className="account-stat-value">{lc.rank}</span>
+                </div>
+              )}
+              {lc.problems_solved != null && (
+                <div className="account-stat">
+                  <span className="account-stat-label"><CheckCircle2 size={12} /> Solved</span>
+                  <span className="account-stat-value" style={{ color: '#4ade80' }}>{lc.problems_solved}</span>
+                </div>
+              )}
+            </div>
+
+            {lc.last_synced_at && (
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Clock size={11} /> Last synced: {timeSince(lc.last_synced_at)}
+              </span>
+            )}
+
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button type="button" className="hub-solve-btn" onClick={() => syncPlatform('LEETCODE')} disabled={syncing === 'LEETCODE'}>
+                <RefreshCw size={13} className={syncing === 'LEETCODE' ? 'animate-spin' : ''} />
+                {syncing === 'LEETCODE' ? 'Syncing...' : 'Sync Now'}
+              </button>
+              <a href={lc.profile_url} target="_blank" rel="noreferrer" className="hub-external-link" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 12px', fontSize: '12px' }}>
+                <ExternalLink size={13} /> View Profile
+              </a>
+              <button type="button" className="hub-chip" style={{ color: '#f87171', borderColor: 'rgba(239,68,68,0.3)' }} onClick={() => disconnect('LEETCODE')}>
+                <Unlink size={12} /> Disconnect
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: 0 }}>
+              Connect your public LeetCode username. BCE uses LeetCode&apos;s public API — no passwords or cookies needed.
+            </p>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <input
+                className="hub-search-input"
+                style={{ flex: '1 1 180px', minWidth: '150px', padding: '8px 12px', fontSize: 'var(--text-sm)', background: 'var(--bg-card)', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-sm)', color: 'var(--text-main)', outline: 'none' }}
+                placeholder="LeetCode username (e.g. neal_wu)"
+                value={lcHandle}
+                onChange={(e) => setLcHandle(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') connectPlatform('LEETCODE', lcHandle); }}
+              />
+              <button type="button" className="hub-solve-btn" onClick={() => connectPlatform('LEETCODE', lcHandle)} disabled={connecting === 'LEETCODE'}>
+                <Link2 size={13} /> {connecting === 'LEETCODE' ? 'Connecting...' : 'Connect'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Feedback */}
