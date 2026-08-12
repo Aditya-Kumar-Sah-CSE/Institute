@@ -144,6 +144,9 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
                      {getIcon('Notices', { size: 16, className: 'mobile-nav-icon' })} Notices
                    </Link>
                  )}
+                 <Link href="/code-arena" onClick={() => setIsMenuOpen(false)}>
+                   {getIcon('Code', { size: 16, className: 'mobile-nav-icon' })} Code Arena
+                 </Link>
                  <Link href="/code-arena/compiler" onClick={() => setIsMenuOpen(false)}>
                    {getIcon('Code', { size: 16, className: 'mobile-nav-icon' })} Compiler
                  </Link>

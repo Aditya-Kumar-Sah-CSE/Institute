@@ -343,6 +343,8 @@ body:not(.sidebar-is-collapsed) .open-sidebar-btn {
 
   .sidebar-nav-item[href="/profile"],
   .sidebar-nav-item[href="/notices"],
+  .sidebar-nav-item[href="/code-arena"],
+  .sidebar-nav-item[href="/instructor/code-arena"],
   .sidebar-nav-item[href*="compiler"] {
     display: none !important;
   }
