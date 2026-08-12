@@ -1,0 +1,88 @@
+.create-poll-widget-header,
+.create-poll-form,
+.create-poll-form-header,
+.create-poll-controls,
+.create-poll-options,
+.create-poll-option-row,
+.create-poll-question-row,
+.course-polls-client,
+.poll-card {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.create-poll-form,
+.course-polls-client,
+.poll-card {
+  width: 100%;
+}
+
+.create-poll-widget-header > *,
+.create-poll-form-header > *,
+.create-poll-controls > *,
+.create-poll-option-row > *,
+.create-poll-question-row > * {
+  min-width: 0;
+}
+
+.create-poll-option-input,
+.create-poll-question-input,
+.poll-expiry-input {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.create-poll-option-input,
+.create-poll-question-input {
+  width: 100%;
+}
+
+.multiple-choice-control,
+.create-poll-trigger {
+  max-width: 100%;
+}
+
+@media (max-width: 480px) {
+  .create-poll-widget-header-compact,
+  .create-poll-form-header,
+  .create-poll-controls {
+    width: 100%;
+  }
+
+  .create-poll-form-header {
+    align-items: stretch !important;
+  }
+
+  .create-poll-form-header h3 {
+    overflow-wrap: anywhere;
+  }
+
+  .create-poll-controls {
+    justify-content: space-between;
+  }
+
+  .create-poll-controls > div {
+    max-width: 100%;
+  }
+
+  .multiple-choice-control {
+    white-space: normal;
+    text-align: left;
+  }
+
+  .create-poll-option-row {
+    width: 100%;
+  }
+
+  .create-poll-options {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .create-poll-question-row {
+    width: 100%;
+    padding-left: 12px !important;
+  }
+}

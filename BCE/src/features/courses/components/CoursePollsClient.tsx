@@ -22,7 +22,7 @@ export default function CoursePollsClient({ polls, currentUserId, isFaculty }: C
   const displayedEnded = isEndedExpanded ? endedPolls : endedPolls.slice(0, 1);
 
   return (
-    <div className="desktop-50-card" style={{ marginBottom: 'var(--space-xl)', boxSizing: 'border-box' }}>
+    <div className="course-polls-client" style={{ marginBottom: 'var(--space-xl)', boxSizing: 'border-box' }}>
       {/* Toggle Controls */}
       <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-body)', padding: '4px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(0, 240, 255, 0.2)', marginBottom: 'var(--space-lg)' }}>
         <button

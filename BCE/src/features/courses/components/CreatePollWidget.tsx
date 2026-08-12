@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { createCoursePoll } from '../actions/polls';
 import { Send, Plus, X, BarChart2 } from 'lucide-react';
+import './Polls.css';
 
 interface CreatePollWidgetProps {
   courseId: string;
@@ -67,11 +68,12 @@ export default function CreatePollWidget({ courseId, hideHeading = false }: Crea
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: hideHeading ? 'flex-end' : 'space-between', alignItems: 'center', marginBottom: hideHeading ? 0 : 'var(--space-lg)' }}>
+      <div className={`create-poll-widget-header ${hideHeading ? 'create-poll-widget-header-compact' : ''}`} style={{ display: 'flex', justifyContent: hideHeading ? 'flex-end' : 'space-between', alignItems: 'center', marginBottom: hideHeading ? 0 : 'var(--space-lg)' }}>
         {!hideHeading && <h2 className="section-title" style={{ margin: 0 }}>Course Polls</h2>}
         {!isExpanded && (
           <button 
             onClick={() => setIsExpanded(true)}
+            className="create-poll-trigger"
             style={{ 
               display: 'flex', 
               alignItems: 'center', 
@@ -93,19 +95,20 @@ export default function CreatePollWidget({ courseId, hideHeading = false }: Crea
       </div>
 
       {isExpanded && (
-        <div className="desktop-50-card" style={{ marginBottom: 'var(--space-xl)', background: 'rgba(10, 132, 255, 0.03)', border: '1px solid rgba(10, 132, 255, 0.15)', padding: 'var(--space-lg)', borderRadius: 'var(--radius-lg)', boxSizing: 'border-box' }}>
+        <div className="create-poll-form" style={{ marginBottom: 'var(--space-xl)', background: 'rgba(10, 132, 255, 0.03)', border: '1px solid rgba(10, 132, 255, 0.15)', padding: 'var(--space-lg)', borderRadius: 'var(--radius-lg)', boxSizing: 'border-box' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-sm)' }}>
+            <div className="create-poll-form-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-sm)' }}>
               <h3 style={{ color: '#0a84ff', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <BarChart2 size={20} /> Create Course Poll
               </h3>
               
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
+              <div className="create-poll-controls" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-body)', padding: '4px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(10, 132, 255, 0.2)' }}>
                   <button 
                     type="button"
                     onClick={() => setIsMultipleChoice(!isMultipleChoice)}
                     disabled={isSubmitting}
+                    className="multiple-choice-control"
                     style={{ 
                       padding: '4px 12px', 
                       borderRadius: '4px', 
@@ -130,6 +133,7 @@ export default function CreatePollWidget({ courseId, hideHeading = false }: Crea
                     max="30" 
                     value={expiresInDays}
                     onChange={(e) => setExpiresInDays(parseInt(e.target.value) || 2)}
+                    className="poll-expiry-input"
                     style={{ width: '40px', border: 'none', background: 'transparent', color: 'inherit', outline: 'none', textAlign: 'right' }}
                     disabled={isSubmitting}
                   />
@@ -148,9 +152,9 @@ export default function CreatePollWidget({ courseId, hideHeading = false }: Crea
             {success && <div style={{ color: 'var(--neon-green)', fontSize: 'var(--text-sm)' }}>{success}</div>}
 
             {/* Options UI */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '0 8px' }}>
+            <div className="create-poll-options" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '0 8px' }}>
               {options.map((opt, idx) => (
-                <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div key={idx} className="create-poll-option-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: 'var(--text-muted)' }}>
                     {idx + 1}
                   </div>
@@ -159,6 +163,7 @@ export default function CreatePollWidget({ courseId, hideHeading = false }: Crea
                     onChange={e => handleOptionChange(idx, e.target.value)}
                     disabled={isSubmitting}
                     placeholder={`Option ${idx + 1}`}
+                    className="create-poll-option-input"
                     style={{
                       flex: 1,
                       background: 'rgba(0,0,0,0.1)',
@@ -193,7 +198,7 @@ export default function CreatePollWidget({ courseId, hideHeading = false }: Crea
             </div>
 
             {/* Main Input equivalent to WhatsApp */}
-            <div style={{ 
+            <div className="create-poll-question-row" style={{
               display: 'flex', 
               alignItems: 'center', 
               background: 'rgba(0, 0, 0, 0.2)', 
@@ -215,6 +220,7 @@ export default function CreatePollWidget({ courseId, hideHeading = false }: Crea
                     handleCreatePoll();
                   }
                 }}
+                className="create-poll-question-input"
                 style={{ 
                   flex: 1, 
                   background: 'transparent', 

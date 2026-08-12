@@ -24,6 +24,31 @@
   flex-shrink: 0;
 }
 
+.curriculum-builder,
+.curriculum-builder > *,
+.curriculum-polls-panel,
+.curriculum-polls-actions,
+.curriculum-polls-actions > *,
+.curriculum-poll-create {
+  min-width: 0;
+}
+
+.curriculum-polls-panel {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.curriculum-polls-actions > a,
+.curriculum-poll-create {
+  max-width: 100%;
+}
+
+.assignment-form-toggles > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 @media (max-width: 768px) {
   .curriculum-header {
     flex-direction: column;
@@ -53,5 +78,23 @@
     width: 100%;
     justify-content: flex-end;
     margin-top: var(--space-xs);
+  }
+
+  .curriculum-polls-actions {
+    align-items: stretch !important;
+  }
+
+  .curriculum-polls-actions > a,
+  .curriculum-poll-create {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .curriculum-poll-create > * {
+    width: 100%;
+  }
+
+  .assignment-form-toggles {
+    flex-direction: column;
   }
 }

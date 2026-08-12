@@ -100,7 +100,7 @@ export default function PollCard({ poll, currentUserId, isFaculty = false }: Pol
   const canDelete = isFaculty || poll.created_by === currentUserId;
 
   return (
-    <Card variant="glass" padding="md" style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'rgba(46, 204, 113, 0.12)', border: '1px solid rgba(46, 204, 113, 0.4)', boxShadow: '0 4px 20px rgba(46, 204, 113, 0.1)' }}>
+    <Card className="poll-card" variant="glass" padding="md" style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'rgba(46, 204, 113, 0.12)', border: '1px solid rgba(46, 204, 113, 0.4)', boxShadow: '0 4px 20px rgba(46, 204, 113, 0.1)' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)', marginBottom: 'var(--space-md)' }}>
         <h3 style={{ fontSize: 'var(--text-lg)', wordBreak: 'break-word', lineHeight: 1.3, margin: 0, width: '100%' }}>
           {poll.question}

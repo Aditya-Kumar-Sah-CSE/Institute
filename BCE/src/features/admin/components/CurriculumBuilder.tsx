@@ -213,7 +213,7 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
+    <div className="curriculum-builder" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
         <div className="curriculum-header">
         <div className="curriculum-title-container">
@@ -224,15 +224,15 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
 
       {/* INSTRUCTOR COURSE POLL PANEL */}
       {!course.is_completed && (
-        <div style={{ padding: 'var(--space-lg)', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(255,255,255,0.05)' }}>
+        <div className="curriculum-polls-panel" style={{ padding: 'var(--space-lg)', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(255,255,255,0.05)' }}>
           <h2 className="section-title" style={{ margin: '0 0 var(--space-md) 0' }}>Course Polls</h2>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'nowrap', gap: 'var(--space-sm)' }}>
-            <Link href={`/courses/${course.id}`} style={{ textDecoration: 'none', flexShrink: 1, overflow: 'hidden' }}>
+          <div className="curriculum-polls-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-sm)' }}>
+            <Link href={`/courses/${course.id}`} style={{ textDecoration: 'none', flexShrink: 1, overflow: 'hidden', minWidth: 0 }}>
               <Button variant="success" size="sm" style={{ padding: '8px 12px', fontSize: '0.85rem', fontWeight: 'var(--weight-bold)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', maxWidth: '100%' }}>
                 View Polls & Doubts
               </Button>
             </Link>
-            <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end' }}>
+            <div className="curriculum-poll-create" style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', minWidth: 0 }}>
               <CreatePollWidget courseId={course.id} hideHeading={true} />
             </div>
           </div>
@@ -699,7 +699,7 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
 
                 <Input name="xp_reward" type="number" label="XP Reward upon approval" value={assignmentFormData.xp_reward || ''} onChange={handleAssignmentChange} required />
                 
-                <div style={{ display: 'flex', gap: 'var(--space-md)' }}>
+                <div className="assignment-form-toggles" style={{ display: 'flex', gap: 'var(--space-md)' }}>
                   <Select 
                     name="requires_github" 
                     label="Ask for GitHub Link?" 

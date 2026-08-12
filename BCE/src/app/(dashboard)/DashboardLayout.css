@@ -29,12 +29,13 @@
   .dashboard-main {
     margin-left: 0;
     margin-right: 0;
-    padding-bottom: calc(120px + env(safe-area-inset-bottom, 16px));
+    padding-bottom: calc(72px + var(--space-xl) + env(safe-area-inset-bottom, 0px));
   }
   
   .dashboard-content {
     padding: var(--space-md);
-    overflow-x: hidden; /* Prevent horizontal scroll on mobile */
+    min-width: 0;
+    overflow-x: clip;
   }
 }
 
