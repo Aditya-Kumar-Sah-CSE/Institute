@@ -7,6 +7,9 @@ import LeetCodeProfileCard from '@/features/code-arena/components/profile/LeetCo
 import RecentCodingActivity from '@/features/code-arena/components/profile/RecentCodingActivity';
 import '@/features/code-arena/components/CodeArena.css';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function CodingProfilePage() {
   const { supabase, user } = await getCodeArenaActor();
   if (!user) redirect('/login');

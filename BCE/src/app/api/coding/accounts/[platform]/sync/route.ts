@@ -38,13 +38,13 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
       const recentSubmissions: any[] = [];
 
       try {
-        // Fetch user profile + submit stats
+        // Fetch user profile + submit stats using public GraphQL
         const profileRes = await fetch('https://leetcode.com/graphql', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            Referer: `https://leetcode.com/${handle}/`,
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+            Referer: 'https://leetcode.com/',
           },
           body: JSON.stringify({
             query: `
@@ -60,18 +60,17 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
                       count
                     }
                   }
-                  recentSubmissionList(limit: 10) {
-                    title
-                    titleSlug
-                    statusDisplay
-                    lang
-                    timestamp
-                  }
                 }
                 userContestRanking(username: $username) {
                   rating
                   attendedContestsCount
                   globalRanking
+                }
+                recentAcSubmissionList(username: $username, limit: 10) {
+                  title
+                  titleSlug
+                  timestamp
+                  lang
                 }
               }
             `,
@@ -79,40 +78,50 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
           }),
         });
 
-        if (profileRes.ok) {
-          const json = await profileRes.json();
-          const lcUser = json?.data?.matchedUser;
-          const contestData = json?.data?.userContestRanking;
+        if (!profileRes.ok) {
+          throw new Error(`LeetCode GraphQL request failed (Status: ${profileRes.status}).`);
+        }
 
-          if (lcUser) {
-            const acStats = lcUser.submitStats?.acSubmissionNum || [];
-            totalSolved = acStats.find((s: any) => s.difficulty === 'All')?.count || 0;
-            easySolved = acStats.find((s: any) => s.difficulty === 'Easy')?.count || 0;
-            mediumSolved = acStats.find((s: any) => s.difficulty === 'Medium')?.count || 0;
-            hardSolved = acStats.find((s: any) => s.difficulty === 'Hard')?.count || 0;
-            ranking = lcUser.profile?.ranking || null;
+        const json = await profileRes.json();
+        if (json.errors && json.errors.length > 0) {
+          throw new Error(`LeetCode error: ${json.errors[0].message}`);
+        }
 
-            // Recent submissions
-            if (Array.isArray(lcUser.recentSubmissionList)) {
-              for (const sub of lcUser.recentSubmissionList) {
-                recentSubmissions.push({
-                  problem: sub.title,
-                  slug: sub.titleSlug,
-                  verdict: sub.statusDisplay,
-                  language: sub.lang,
-                  time: Number(sub.timestamp) * 1000,
-                });
-              }
-            }
-          }
+        const lcUser = json?.data?.matchedUser;
+        const contestData = json?.data?.userContestRanking;
+        const recentAcs = json?.data?.recentAcSubmissionList;
 
-          if (contestData) {
-            contestRating = contestData.rating ? Math.round(contestData.rating) : null;
-            contestCount = contestData.attendedContestsCount || 0;
+        if (!lcUser) {
+          throw new Error(`LeetCode user account "${handle}" not found.`);
+        }
+
+        const acStats = lcUser.submitStats?.acSubmissionNum || [];
+        totalSolved = acStats.find((s: any) => s.difficulty === 'All')?.count || 0;
+        easySolved = acStats.find((s: any) => s.difficulty === 'Easy')?.count || 0;
+        mediumSolved = acStats.find((s: any) => s.difficulty === 'Medium')?.count || 0;
+        hardSolved = acStats.find((s: any) => s.difficulty === 'Hard')?.count || 0;
+        ranking = lcUser.profile?.ranking || null;
+
+        // Recent AC submissions mapping
+        if (Array.isArray(recentAcs)) {
+          for (const sub of recentAcs) {
+            recentSubmissions.push({
+              problem: sub.title,
+              slug: sub.titleSlug,
+              verdict: 'OK',
+              language: sub.lang,
+              time: Number(sub.timestamp) * 1000,
+            });
           }
         }
-      } catch (e) {
-        console.warn('[LC SYNC] GraphQL fetch error:', e);
+
+        if (contestData) {
+          contestRating = contestData.rating ? Math.round(contestData.rating) : null;
+          contestCount = contestData.attendedContestsCount || 0;
+        }
+      } catch (e: any) {
+        console.error('[LC SYNC] Sync failure:', e);
+        return NextResponse.json({ error: e.message || 'LeetCode API sync failed.' }, { status: 400 });
       }
 
       // Update database
@@ -166,18 +175,21 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
     let maxRank: string | null = null;
     try {
       const infoRes = await fetch(`https://codeforces.com/api/user.info?handles=${encodeURIComponent(handle)}`, { cache: 'no-store' });
-      if (infoRes.ok) {
-        const infoJson = await infoRes.json();
-        const p = infoJson.result?.[0];
-        if (p) {
-          userRating = p.rating || null;
-          userMaxRating = p.maxRating || null;
-          userRank = p.rank || null;
-          maxRank = p.maxRank || null;
-        }
+      if (!infoRes.ok) {
+        throw new Error(`Codeforces Profile Fetch returned status ${infoRes.status}`);
       }
-    } catch (e) {
-      console.warn('[CF SYNC] user.info failed:', e);
+      const infoJson = await infoRes.json();
+      if (infoJson.status !== 'OK' || !infoJson.result || !infoJson.result[0]) {
+        throw new Error(infoJson.comment || 'Failed to fetch Codeforces user info.');
+      }
+      const p = infoJson.result[0];
+      userRating = p.rating || null;
+      userMaxRating = p.maxRating || null;
+      userRank = p.rank || null;
+      maxRank = p.maxRank || null;
+    } catch (e: any) {
+      console.error('[CF SYNC] user.info failed:', e);
+      return NextResponse.json({ error: e.message || 'Failed to fetch Codeforces profile.' }, { status: 400 });
     }
 
     // Fetch submission history
@@ -193,38 +205,42 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
         `https://codeforces.com/api/user.status?handle=${encodeURIComponent(handle)}&from=1&count=10000`,
         { cache: 'no-store' }
       );
-      if (statusRes.ok) {
-        const statusJson = await statusRes.json();
-        if (statusJson.status === 'OK' && Array.isArray(statusJson.result)) {
-          recentSubmissions.push(...statusJson.result.slice(0, 10).map((s: any) => ({
-            id: s.id,
-            problem: s.problem ? `${s.problem.contestId}${s.problem.index} — ${s.problem.name}` : 'Unknown Problem',
-            verdict: s.verdict,
-            language: s.programmingLanguage,
-            time: s.creationTimeSeconds * 1000
-          })));
+      if (!statusRes.ok) {
+        throw new Error(`Codeforces Submissions Fetch returned status ${statusRes.status}`);
+      }
+      const statusJson = await statusRes.json();
+      if (statusJson.status !== 'OK' || !Array.isArray(statusJson.result)) {
+        throw new Error(statusJson.comment || 'Failed to fetch Codeforces status.');
+      }
 
-          for (const sub of statusJson.result) {
-            if (sub.verdict === 'OK' && sub.problem?.contestId && sub.problem?.index) {
-              const id = `${sub.problem.contestId}${sub.problem.index}`;
-              if (!solvedIds.has(id)) {
-                solvedIds.add(id);
-                if (sub.problem.rating) {
-                  if (sub.problem.rating < 1200) easySolved++;
-                  else if (sub.problem.rating <= 1600) mediumSolved++;
-                  else hardSolved++;
-                }
-              }
+      recentSubmissions.push(...statusJson.result.slice(0, 10).map((s: any) => ({
+        id: s.id,
+        problem: s.problem ? `${s.problem.contestId}${s.problem.index} — ${s.problem.name}` : 'Unknown Problem',
+        verdict: s.verdict,
+        language: s.programmingLanguage,
+        time: s.creationTimeSeconds * 1000
+      })));
+
+      for (const sub of statusJson.result) {
+        if (sub.verdict === 'OK' && sub.problem?.contestId && sub.problem?.index) {
+          const id = `${sub.problem.contestId}${sub.problem.index}`;
+          if (!solvedIds.has(id)) {
+            solvedIds.add(id);
+            if (sub.problem.rating) {
+              if (sub.problem.rating < 1200) easySolved++;
+              else if (sub.problem.rating <= 1600) mediumSolved++;
+              else hardSolved++;
             }
           }
-          totalSolved = solvedIds.size;
         }
       }
-    } catch (e) {
-      console.warn('[CF SYNC] user.status failed:', e);
+      totalSolved = solvedIds.size;
+    } catch (e: any) {
+      console.error('[CF SYNC] user.status failed:', e);
+      return NextResponse.json({ error: e.message || 'Failed to fetch Codeforces submissions.' }, { status: 400 });
     }
 
-    // Fetch Rating History
+    // Fetch Rating History (Optional, won't fail parent sync)
     const contestStats = { totalContests: 0, ratingHistory: [] as any[] };
     try {
       const ratingRes = await fetch(`https://codeforces.com/api/user.rating?handle=${encodeURIComponent(handle)}`, { cache: 'no-store' });
