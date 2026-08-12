@@ -1,23 +1,15 @@
 import { NextResponse } from 'next/server';
 import type { ExecutionStatus, NormalizedExecutionResult } from '@/features/code-arena/types';
 
-const PISTON_LANG_MAP: Record<string, string> = {
-  cpp17: 'cpp',
-  cpp: 'cpp',
-  c: 'c',
-  java: 'java',
-  python: 'python',
-  python3: 'python',
-  javascript: 'javascript',
-  js: 'javascript',
-};
-
-const FILE_NAMES: Record<string, string> = {
-  cpp: 'main.cpp',
-  c: 'main.c',
-  java: 'Main.java',
-  python: 'main.py',
-  javascript: 'main.js',
+const WANDBOX_COMPILERS: Record<string, string> = {
+  cpp17: 'gcc-head',
+  cpp: 'gcc-head',
+  c: 'gcc-head-c',
+  java: 'openjdk-head',
+  python: 'cpython-head',
+  python3: 'cpython-head',
+  javascript: 'nodejs-head',
+  js: 'nodejs-head',
 };
 
 export async function POST(request: Request) {
@@ -42,58 +34,47 @@ export async function POST(request: Request) {
       );
     }
 
-    const targetLang = PISTON_LANG_MAP[language] || 'javascript';
-    const fileName = FILE_NAMES[targetLang] || 'main';
+    const compiler = WANDBOX_COMPILERS[language] || 'gcc-head';
 
     try {
-      const pistonRes = await fetch('https://emkc.org/api/v2/piston/execute', {
+      const res = await fetch('https://wandbox.org/api/compile.json', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          language: targetLang,
-          version: '*',
-          files: [
-            {
-              name: fileName,
-              content: code,
-            },
-          ],
+          compiler,
+          code,
           stdin: typeof stdin === 'string' ? stdin : String(stdin || ''),
         }),
       });
 
-      if (pistonRes.ok) {
-        const data = await pistonRes.json();
-        const compile = data.compile || {};
-        const run = data.run || {};
+      if (res.ok) {
+        const data = await res.json();
 
-        const compileStdout = compile.stdout || '';
-        const compileStderr = compile.stderr || compile.output || '';
-        const stdout = run.stdout || '';
-        const stderr = run.stderr || '';
-        const exitCode = typeof run.code === 'number' ? run.code : null;
-        const signal = run.signal || compile.signal || null;
+        const rawStatus = String(data.status ?? '0');
+        const signal = data.signal || null;
+        const stdout = data.program_output || '';
+        const stderr = data.program_error || '';
+        const compileStdout = data.compiler_output || '';
+        const compileStderr = data.compiler_error || data.compiler_message || '';
+        const exitCode = rawStatus !== '' ? parseInt(rawStatus, 10) : 0;
 
         let status: ExecutionStatus = 'SUCCESS';
         let message: string | null = null;
 
-        // 1. Compilation error check
-        if (compile.code !== undefined && compile.code !== 0) {
+        // 1. Compilation Error
+        if (compileStderr && exitCode !== 0 && !stdout) {
           status = 'COMPILATION_ERROR';
           message = 'Compilation failed. Check compiler diagnostics.';
-        } else if (compileStderr && !compileStdout && compile.code !== 0) {
-          status = 'COMPILATION_ERROR';
-          message = 'Compilation failed.';
         }
-        // 2. Time Limit Exceeded check
-        else if (signal === 'SIGKILL' || (run.output && run.output.toLowerCase().includes('time limit exceeded'))) {
+        // 2. Time Limit Exceeded
+        else if (signal === 'SIGKILL' || (stderr && stderr.toLowerCase().includes('time limit exceeded'))) {
           status = 'TIME_LIMIT_EXCEEDED';
           message = 'Execution exceeded time limit.';
         }
-        // 3. Runtime Error check
-        else if (signal || (exitCode !== null && exitCode !== 0)) {
+        // 3. Runtime Error
+        else if (signal || (!isNaN(exitCode) && exitCode !== 0)) {
           status = 'RUNTIME_ERROR';
-          message = signal ? `Process terminated with signal: ${signal}` : `Process exited with code ${exitCode}`;
+          message = signal ? `Process terminated by signal: ${signal}` : `Process exited with code ${exitCode}`;
         }
         // 4. Success
         else {
@@ -101,27 +82,25 @@ export async function POST(request: Request) {
           message = 'Execution finished successfully.';
         }
 
-        const result: NormalizedExecutionResult = {
+        return NextResponse.json({
           status,
           stdout,
           stderr,
           compileStdout,
           compileStderr,
-          exitCode,
+          exitCode: isNaN(exitCode) ? null : exitCode,
           signal,
           executionTimeMs: null,
           memoryUsedMb: null,
           message,
-        };
-
-        return NextResponse.json(result);
+        } as NormalizedExecutionResult);
       }
-    } catch (pistonErr: any) {
-      console.warn('Piston API request error:', pistonErr);
+    } catch (wandboxErr: any) {
+      console.warn('Wandbox execution error:', wandboxErr);
     }
 
-    // Secondary fallback for JS
-    if (targetLang === 'javascript') {
+    // JS Sandbox fallback if offline
+    if (language === 'javascript' || language === 'js') {
       const logs: string[] = [];
       const errLogs: string[] = [];
       const customConsole = {
@@ -166,14 +145,14 @@ export async function POST(request: Request) {
     return NextResponse.json({
       status: 'SYSTEM_ERROR',
       stdout: '',
-      stderr: 'Unable to reach execution server.',
+      stderr: '',
       compileStdout: '',
       compileStderr: '',
       exitCode: null,
       signal: null,
       executionTimeMs: null,
       memoryUsedMb: null,
-      message: 'Failed to connect to Online Judge execution server.',
+      message: 'Unable to reach execution server. Please try again.',
     } as NormalizedExecutionResult);
   } catch (err: any) {
     return NextResponse.json(

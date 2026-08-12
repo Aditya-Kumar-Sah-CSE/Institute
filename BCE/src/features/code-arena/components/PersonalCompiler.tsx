@@ -3,6 +3,20 @@
 import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
 import Button from '@/components/ui/Button';
+import {
+  Play,
+  RotateCcw,
+  Eraser,
+  Trash2,
+  Copy,
+  Maximize2,
+  X,
+  Info,
+  Terminal,
+  CheckCircle2,
+  Zap,
+  Maximize,
+} from 'lucide-react';
 import type { CodeLanguage, ExecutionStatus, NormalizedExecutionResult } from '../types';
 import './CodeArena.css';
 
@@ -38,16 +52,6 @@ type Snippet = {
 
 type TabType = 'output' | 'error' | 'input' | 'details';
 
-const STATUS_CONFIG: Record<ExecutionStatus, { label: string; icon: string; className: string }> = {
-  SUCCESS: { label: 'Accepted', icon: '🟢', className: 'oj-badge-SUCCESS' },
-  COMPILATION_ERROR: { label: 'Compilation Error', icon: '🔴', className: 'oj-badge-COMPILATION_ERROR' },
-  RUNTIME_ERROR: { label: 'Runtime Error', icon: '🔴', className: 'oj-badge-RUNTIME_ERROR' },
-  WRONG_ANSWER: { label: 'Wrong Answer', icon: '🟠', className: 'oj-badge-WRONG_ANSWER' },
-  TIME_LIMIT_EXCEEDED: { label: 'Time Limit Exceeded', icon: '🟠', className: 'oj-badge-TIME_LIMIT_EXCEEDED' },
-  MEMORY_LIMIT_EXCEEDED: { label: 'Memory Limit Exceeded', icon: '🟠', className: 'oj-badge-MEMORY_LIMIT_EXCEEDED' },
-  SYSTEM_ERROR: { label: 'System Error', icon: '🔴', className: 'oj-badge-SYSTEM_ERROR' },
-};
-
 export default function PersonalCompiler({ initialSnippets }: { initialSnippets: Snippet[] }) {
   const [snippets, setSnippets] = useState<Snippet[]>(initialSnippets);
   const [active, setActive] = useState<Snippet | undefined>(initialSnippets[0]);
@@ -59,7 +63,10 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
 
-  // OJ Output State
+  // Input Box UI state
+  const [expandedInput, setExpandedInput] = useState(false);
+
+  // OJ Output state
   const [result, setResult] = useState<NormalizedExecutionResult | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('output');
 
@@ -125,13 +132,28 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
     setState('Unsaved changes');
   };
 
-  const del = async () => {
-    if (!active || !confirm(`Delete ${active.title}?`)) return;
+  // Delete saved snippet file (Destructive action)
+  const delSnippet = async () => {
+    if (!active || !confirm(`Are you sure you want to delete "${active.title}" snippet?`)) return;
     try {
       await fetch(`/api/coding/snippets/${active.id}`, { method: 'DELETE' });
     } catch {}
     setSnippets((items) => items.filter((x) => x.id !== active.id));
     newSnippet();
+  };
+
+  // Clear output console only
+  const clearConsole = () => {
+    setResult(null);
+    setActiveTab('output');
+  };
+
+  // Reset code to starter template
+  const resetCode = () => {
+    if (confirm('Reset editor to default starter template for ' + language + '?')) {
+      setCode(starters[language]);
+      schedule();
+    }
   };
 
   const runCode = async () => {
@@ -161,14 +183,14 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
       setResult({
         status: 'SYSTEM_ERROR',
         stdout: '',
-        stderr: err?.message || 'Execution call failed',
+        stderr: '',
         compileStdout: '',
         compileStderr: '',
         exitCode: null,
         signal: null,
         executionTimeMs: null,
         memoryUsedMb: null,
-        message: 'System execution error',
+        message: 'Unable to reach execution server. Please try again.',
       });
       setActiveTab('error');
     } finally {
@@ -176,8 +198,7 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
     }
   };
 
-  const currentStatusConfig = result ? STATUS_CONFIG[result.status] : null;
-  const hasError = result && (result.compileStderr || result.stderr || result.status !== 'SUCCESS');
+  const errorCount = result && (result.compileStderr || result.stderr || result.status === 'COMPILATION_ERROR' || result.status === 'RUNTIME_ERROR') ? 1 : 0;
 
   return (
     <div className="compiler-layout">
@@ -224,7 +245,7 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
         </header>
 
         <Editor
-          height="460px"
+          height="420px"
           theme="vs-dark"
           language={monaco[language]}
           value={code}
@@ -235,13 +256,113 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
           options={{ automaticLayout: true, minimap: { enabled: false }, fontSize: 14 }}
         />
 
-        <section className="code-console">
-          <div>
-            <label htmlFor="playground-input">Custom Input (stdin)</label>
+        {/* Console & Output Wrapper matching Screenshot */}
+        <section className="oj-console-wrapper">
+          {/* Header row */}
+          <div className="oj-top-header">
+            <div className="oj-title-group">
+              <h3>Console & Output</h3>
+              <span className="oj-pill oj-pill-ready">
+                <span className="oj-dot" /> Ready
+              </span>
+            </div>
+            <div className="oj-header-pills">
+              <span className="oj-pill oj-pill-system">
+                <span className="oj-dot" /> All Systems Operational
+              </span>
+            </div>
+          </div>
+
+          {/* Navigation Tabs */}
+          <div className="oj-tabs-bar">
+            <button
+              type="button"
+              className={`oj-tab ${activeTab === 'output' ? 'active' : ''}`}
+              onClick={() => setActiveTab('output')}
+            >
+              Output
+            </button>
+            <button
+              type="button"
+              className={`oj-tab ${activeTab === 'error' ? 'active' : ''}`}
+              onClick={() => setActiveTab('error')}
+            >
+              Error <span className="oj-err-badge">{errorCount}</span>
+            </button>
+            <button
+              type="button"
+              className={`oj-tab ${activeTab === 'input' ? 'active' : ''}`}
+              onClick={() => setActiveTab('input')}
+            >
+              Input
+            </button>
+            <button
+              type="button"
+              className={`oj-tab ${activeTab === 'details' ? 'active' : ''}`}
+              onClick={() => setActiveTab('details')}
+            >
+              Details
+            </button>
+          </div>
+
+          {/* Custom Input Card placed BEFORE Output/Console as requested */}
+          <div className="oj-input-card">
+            <div className="oj-input-header">
+              <span className="oj-input-title">
+                Custom Input <span title="Enter standard input (stdin) for your code execution" style={{ display: 'inline-flex', alignItems: 'center' }}><Info size={14} /></span>
+              </span>
+              <div className="oj-icon-actions">
+                <button
+                  type="button"
+                  className="oj-icon-btn"
+                  aria-label="Clear input content"
+                  title="Clear input"
+                  onClick={() => {
+                    setStdin('');
+                    schedule();
+                  }}
+                >
+                  <X size={14} />
+                </button>
+                <button
+                  type="button"
+                  className="oj-icon-btn"
+                  aria-label="Delete input content"
+                  title="Delete input"
+                  onClick={() => {
+                    setStdin('');
+                    schedule();
+                  }}
+                >
+                  <Trash2 size={14} />
+                </button>
+                <button
+                  type="button"
+                  className="oj-icon-btn"
+                  aria-label="Copy input"
+                  title="Copy input"
+                  onClick={() => {
+                    if (stdin) navigator.clipboard.writeText(stdin);
+                  }}
+                >
+                  <Copy size={14} />
+                </button>
+                <button
+                  type="button"
+                  className="oj-icon-btn"
+                  aria-label="Expand input"
+                  title="Toggle fullscreen input"
+                  onClick={() => setExpandedInput(!expandedInput)}
+                >
+                  <Maximize2 size={14} />
+                </button>
+              </div>
+            </div>
             <textarea
-              id="playground-input"
+              className="oj-input-textarea"
+              style={{ minHeight: expandedInput ? '180px' : '80px' }}
               value={stdin}
-              placeholder="Enter custom input here..."
+              placeholder="Enter custom input for your program (stdin)"
               onChange={(e) => {
                 setStdin(e.target.value);
                 schedule();
@@ -249,152 +370,162 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
             />
           </div>
 
-          <div>
-            <div className="oj-output-panel">
-              <div className="oj-status-header">
-                <strong>Console & Output</strong>
-                {running ? (
-                  <span className="oj-badge" style={{ background: 'var(--bg-elevated)', color: 'var(--neon-cyan)' }}>
-                    ⚡ Compiling & Executing...
-                  </span>
-                ) : currentStatusConfig ? (
-                  <span className={`oj-badge ${currentStatusConfig.className}`}>
-                    {currentStatusConfig.icon} {currentStatusConfig.label}
-                  </span>
-                ) : (
-                  <span className="text-secondary" style={{ fontSize: 'var(--text-xs)' }}>
-                    Click "Run Code" to execute
-                  </span>
-                )}
-              </div>
-
-              {/* Tab navigation */}
-              <div className="oj-tab-bar">
-                <button
-                  type="button"
-                  className={`oj-tab-btn ${activeTab === 'output' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('output')}
-                >
-                  Output
-                </button>
-                <button
-                  type="button"
-                  className={`oj-tab-btn ${activeTab === 'error' ? 'active' : ''} ${hasError ? 'has-error' : ''}`}
-                  onClick={() => setActiveTab('error')}
-                >
-                  Error {hasError ? '•' : ''}
-                </button>
-                <button
-                  type="button"
-                  className={`oj-tab-btn ${activeTab === 'input' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('input')}
-                >
-                  Input
-                </button>
-                <button
-                  type="button"
-                  className={`oj-tab-btn ${activeTab === 'details' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('details')}
-                >
-                  Details
-                </button>
-              </div>
-
-              {/* Tab Content Box */}
-              <div className="oj-content-box">
-                {activeTab === 'output' && (
-                  <pre className="oj-code-block">
-                    {result ? (
-                      result.stdout ? (
-                        result.stdout
-                      ) : result.status === 'SUCCESS' ? (
-                        <span className="text-secondary">Program executed successfully with no stdout output.</span>
-                      ) : (
-                        <span className="text-secondary">No stdout produced. Check the Error tab for diagnostics.</span>
-                      )
-                    ) : (
-                      <span className="text-secondary">Ready. Write code and click "Run Code".</span>
-                    )}
-                  </pre>
-                )}
-
-                {activeTab === 'error' && (
-                  <pre className="oj-code-block oj-code-error">
-                    {result ? (
-                      result.compileStderr ? (
-                        `[Compilation Error]\n\n${result.compileStderr}`
-                      ) : result.stderr ? (
-                        `[Runtime Error / Stderr]\n\n${result.stderr}`
-                      ) : result.status === 'SUCCESS' ? (
-                        <span className="text-secondary" style={{ color: '#4ade80' }}>No errors. Compilation & execution finished cleanly.</span>
-                      ) : (
-                        result.message || 'Execution error.'
-                      )
-                    ) : (
-                      <span className="text-secondary">No compilation or runtime errors.</span>
-                    )}
-                  </pre>
-                )}
-
-                {activeTab === 'input' && (
-                  <pre className="oj-code-block">
-                    {stdin ? stdin : <span className="text-secondary">No custom stdin input provided.</span>}
-                  </pre>
-                )}
-
-                {activeTab === 'details' && (
-                  <div className="oj-details-grid">
-                    <div className="oj-detail-item">
-                      <span className="oj-detail-label">Language</span>
-                      <span className="oj-detail-val">{language === 'cpp17' ? 'C++17' : language.toUpperCase()}</span>
-                    </div>
-                    <div className="oj-detail-item">
-                      <span className="oj-detail-label">Status</span>
-                      <span className="oj-detail-val">{result ? result.status : 'N/A'}</span>
-                    </div>
-                    <div className="oj-detail-item">
-                      <span className="oj-detail-label">Exit Code</span>
-                      <span className="oj-detail-val">{result?.exitCode !== null && result?.exitCode !== undefined ? result.exitCode : 'N/A'}</span>
-                    </div>
-                    <div className="oj-detail-item">
-                      <span className="oj-detail-label">Signal</span>
-                      <span className="oj-detail-val">{result?.signal || 'None'}</span>
-                    </div>
-                    <div className="oj-detail-item">
-                      <span className="oj-detail-label">Execution Time</span>
-                      <span className="oj-detail-val">{result?.executionTimeMs ? `${result.executionTimeMs} ms` : 'Not available'}</span>
-                    </div>
-                    <div className="oj-detail-item">
-                      <span className="oj-detail-label">Memory</span>
-                      <span className="oj-detail-val">{result?.memoryUsedMb ? `${result.memoryUsedMb} MB` : 'Not available'}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="code-actions" style={{ marginTop: 'var(--space-sm)' }}>
-              <Button variant="secondary" onClick={runCode} isLoading={running}>
-                Run Code
-              </Button>
-              <Button variant="ghost" onClick={() => setCode(starters[language])}>
-                Reset
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setResult(null);
-                  setActiveTab('output');
-                }}
+          {/* Output / Console Controls Header */}
+          <div className="oj-output-header">
+            <span className="oj-output-title">Output / Console</span>
+            <div className="oj-control-btns">
+              <button
+                type="button"
+                className="oj-btn-run"
+                disabled={running}
+                onClick={runCode}
               >
-                Clear console
-              </Button>
+                <Play size={15} fill="currentColor" /> {running ? 'Running code...' : 'Run Code'}
+              </button>
+              <button
+                type="button"
+                className="oj-btn-reset"
+                onClick={resetCode}
+                title="Restore starter code template"
+              >
+                <RotateCcw size={14} /> Reset
+              </button>
+              <button
+                type="button"
+                className="oj-btn-clear"
+                onClick={clearConsole}
+                title="Clear console output area only"
+              >
+                <Eraser size={14} /> Clear
+              </button>
               {active && (
-                <Button variant="danger" onClick={del}>
-                  Delete
-                </Button>
+                <button
+                  type="button"
+                  className="oj-btn-delete"
+                  onClick={delSnippet}
+                  title="Delete saved snippet file"
+                >
+                  <Trash2 size={14} /> Delete
+                </button>
               )}
             </div>
+          </div>
+
+          {/* Console Display Body */}
+          <div className="oj-console-body">
+            {activeTab === 'output' && (
+              !result ? (
+                /* Initial Terminal Graphic Empty State */
+                <div className="oj-empty-state">
+                  <div className="oj-terminal-icon-box">
+                    <Terminal size={24} />
+                    <span className="oj-check-badge">
+                      <CheckCircle2 size={14} />
+                    </span>
+                  </div>
+                  <p className="oj-empty-title">Ready to run your code</p>
+                  <p className="oj-empty-sub">Enter input (if required) and click “Run Code” to see the output.</p>
+                </div>
+              ) : (
+                <div>
+                  <div className={`oj-status-banner oj-status-${result.status}`}>
+                    {result.status === 'SUCCESS' && '✓ Accepted'}
+                    {result.status === 'COMPILATION_ERROR' && '● Compilation Error'}
+                    {result.status === 'RUNTIME_ERROR' && '● Runtime Error'}
+                    {result.status === 'SYSTEM_ERROR' && '● System Error'}
+                  </div>
+                  <pre className="oj-code-block">
+                    {result.stdout ? result.stdout : <span className="text-secondary">Program executed with no stdout output.</span>}
+                  </pre>
+                </div>
+              )
+            )}
+
+            {activeTab === 'error' && (
+              !result ? (
+                <div className="oj-empty-state">
+                  <p className="oj-empty-sub">No errors recorded.</p>
+                </div>
+              ) : (
+                <div>
+                  <div className={`oj-status-banner oj-status-${result.status}`}>
+                    {result.status === 'COMPILATION_ERROR' ? '● Compilation Error' : result.status === 'SYSTEM_ERROR' ? '● System Error' : '● Error Output'}
+                  </div>
+                  <pre className="oj-code-block oj-code-error">
+                    {result.compileStderr
+                      ? result.compileStderr
+                      : result.stderr
+                      ? result.stderr
+                      : result.message
+                      ? result.message
+                      : <span className="text-secondary" style={{ color: '#4ade80' }}>No errors. Program ran cleanly.</span>}
+                  </pre>
+                </div>
+              )
+            )}
+
+            {activeTab === 'input' && (
+              <pre className="oj-code-block">
+                {stdin ? stdin : <span className="text-secondary">No custom stdin input provided.</span>}
+              </pre>
+            )}
+
+            {activeTab === 'details' && (
+              <div className="oj-details-grid">
+                <div className="oj-detail-item">
+                  <span className="oj-detail-label">Language</span>
+                  <span className="oj-detail-val">{language === 'cpp17' ? 'C++17' : language.toUpperCase()}</span>
+                </div>
+                <div className="oj-detail-item">
+                  <span className="oj-detail-label">Status</span>
+                  <span className="oj-detail-val">{result ? result.status : 'Ready'}</span>
+                </div>
+                <div className="oj-detail-item">
+                  <span className="oj-detail-label">Exit Code</span>
+                  <span className="oj-detail-val">{result?.exitCode !== null && result?.exitCode !== undefined ? result.exitCode : '—'}</span>
+                </div>
+                <div className="oj-detail-item">
+                  <span className="oj-detail-label">Signal</span>
+                  <span className="oj-detail-val">{result?.signal || '—'}</span>
+                </div>
+                <div className="oj-detail-item">
+                  <span className="oj-detail-label">Execution Server</span>
+                  <span className="oj-detail-val">Wandbox / GCC Engine</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Bar matching mockup screenshot */}
+          <div className="oj-bottom-meta-bar">
+            <div className="oj-meta-left">
+              <select
+                className="oj-meta-select"
+                value={language}
+                onChange={(e) => {
+                  const l = e.target.value as CodeLanguage;
+                  setLanguage(l);
+                  setCode(starters[l]);
+                  schedule();
+                }}
+              >
+                {Object.keys(starters).map((l) => (
+                  <option key={l} value={l}>
+                    {l === 'cpp17' ? 'C++17' : l.toUpperCase()}
+                  </option>
+                ))}
+              </select>
+              <span title="Wandbox Engine Active"><Zap size={14} style={{ color: 'var(--neon-gold)' }} /></span>
+              <span>Time Limit: <strong style={{ color: 'var(--neon-cyan)' }}>1000 ms</strong></span>
+              <span>Memory Limit: <strong style={{ color: 'var(--neon-cyan)' }}>256 MB</strong></span>
+            </div>
+            <button
+              type="button"
+              className="oj-tab"
+              onClick={() => alert('Compiler is now running in workspace mode.')}
+            >
+              <Maximize size={14} /> Open in Fullscreen
+            </button>
           </div>
         </section>
       </section>
