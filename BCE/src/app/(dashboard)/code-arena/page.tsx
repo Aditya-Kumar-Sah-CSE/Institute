@@ -9,37 +9,70 @@ export default async function CodeArenaPage() {
   const { supabase, user, isInstructor } = await getCodeArenaActor();
   if (!user) return null;
 
-  // 1. Fetch Battles
-  let battleQuery = supabase
-    .from('coding_battles')
-    .select('id, title, description, status, start_time, end_time, duration_minutes, creator_role, join_code, visibility, created_by, created_at')
-    .order('created_at', { ascending: false })
-    .limit(20);
+  // 1. Fetch Battles, Problems, Profiles, Submissions, and Accounts in parallel
+  const [
+    { data: battles },
+    { data: problems },
+    { data: profile },
+    { count: bceSolved },
+    { data: solvedSubmissions },
+    { data: accounts },
+    batchesData
+  ] = await Promise.all([
+    supabase
+      .from('coding_battles')
+      .select('id, title, description, status, start_time, end_time, duration_minutes, creator_role, join_code, visibility, created_by, created_at')
+      .order('created_at', { ascending: false })
+      .limit(20),
+    supabase
+      .from('coding_problems')
+      .select('id, title, slug, difficulty, tags, source_type, external_platform, created_at')
+      .eq('is_published', true)
+      .order('created_at', { ascending: false })
+      .limit(30),
+    supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single(),
+    supabase
+      .from('coding_submissions')
+      .select('problem_id', { count: 'exact', head: true })
+      .eq('student_id', user.id)
+      .eq('status', 'ACCEPTED'),
+    supabase
+      .from('coding_submissions')
+      .select('problem_id')
+      .eq('student_id', user.id)
+      .eq('status', 'ACCEPTED'),
+    supabase
+      .from('student_external_accounts')
+      .select('*')
+      .eq('student_id', user.id),
+    isInstructor
+      ? supabase.from('batches').select('id, name').limit(50)
+      : Promise.resolve({ data: [] })
+  ]);
 
-  const { data: battles } = await battleQuery;
+  const solvedProblemIds = new Set(solvedSubmissions?.map(s => s.problem_id) || []);
+  const problemsWithSolved = (problems || []).map(p => ({
+    ...p,
+    solved: solvedProblemIds.has(p.id)
+  }));
 
-  // 2. Fetch Curated Practice Problems
-  const { data: problems } = await supabase
-    .from('coding_problems')
-    .select('id, title, slug, difficulty, tags, source_type, external_platform, created_at')
-    .eq('is_published', true)
-    .order('created_at', { ascending: false })
-    .limit(30);
-
-  // 3. Fetch batches if instructor
-  let batches: any[] = [];
-  if (isInstructor) {
-    const { data: bData } = await supabase.from('batches').select('id, name').limit(50);
-    batches = bData || [];
-  }
+  const battlesList = battles || [];
+  const batches = batchesData?.data || [];
 
   return (
     <CodeArenaClientHome
       user={user}
       isInstructor={isInstructor}
-      initialBattles={battles || []}
-      initialProblems={problems || []}
+      initialBattles={battlesList}
+      initialProblems={problemsWithSolved}
       batches={batches}
+      profile={profile}
+      bceSolved={bceSolved || 0}
+      externalAccounts={accounts || []}
     />
   );
 }
