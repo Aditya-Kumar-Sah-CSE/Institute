@@ -1,16 +1,21 @@
 'use client';
 
-import React, { useState } from 'react';
-import { ExternalLink, CheckCircle2, Shield, Lock, RefreshCw, Key, Unlink } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ExternalLink, CheckCircle2, RefreshCw, Key, Unlink } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function LeetCodeProfileCard({ account }: { account: any }) {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [handle, setHandle] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleConnect = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,7 +82,7 @@ export default function LeetCodeProfileCard({ account }: { account: any }) {
 
   if (!account) {
     return (
-      <div className="platform-profile-card leetcode-card not-connected animate-fade-in">
+      <div className={`platform-profile-card leetcode-card not-connected ${mounted ? 'animate-fade-in' : ''}`}>
         <div className="platform-card-accent lc-accent" />
         <div className="platform-header">
           <div className="platform-title">
@@ -139,7 +144,7 @@ export default function LeetCodeProfileCard({ account }: { account: any }) {
   }
 
   return (
-    <div className="platform-profile-card leetcode-card animate-fade-in">
+    <div className={`platform-profile-card leetcode-card ${mounted ? 'animate-fade-in' : ''}`}>
       <div className="platform-card-accent lc-accent" />
       <div className="platform-header">
         <div className="platform-title">
@@ -206,7 +211,7 @@ export default function LeetCodeProfileCard({ account }: { account: any }) {
       </div>
       
       <div className="platform-footer">
-        <span className="last-synced">Last synced {account.last_synced_at ? new Date(account.last_synced_at).toLocaleString() : 'Never'}</span>
+        <span className="last-synced">Last synced {mounted && account.last_synced_at ? new Date(account.last_synced_at).toLocaleString() : '—'}</span>
       </div>
     </div>
   );
