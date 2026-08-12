@@ -1,4 +1,4 @@
-const CACHE_NAME = 'skillarena-v7';
+const CACHE_NAME = 'skillarena-v8';
 
 // Pre-cache these on install for instant shell loads
 const APP_SHELL_STATIC = [

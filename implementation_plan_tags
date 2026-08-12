@@ -1,0 +1,23 @@
+# Goal Description
+The user wants to allow custom categories/tags in the "Category / Semester" field when creating or editing a course, rather than forcing the user to choose only between 'sem 1' to 'sem 8'. This requires dropping the database constraint and modifying the UI.
+
+## Proposed Changes
+
+### Database
+- [NEW] `supabase/migrations/083_custom_course_categories.sql`
+  - Write a migration that executes `ALTER TABLE courses DROP CONSTRAINT IF EXISTS courses_difficulty_check;` to allow any string value for `difficulty`. (If the constraint has a random name, we'll run a DO block to find and drop it).
+
+### Frontend / Types
+- [MODIFY] [src/types/database.ts](file:///d:/Institute/BCE/src/types/database.ts)
+  - Update `export type Difficulty = ...` to `export type Difficulty = string;` so TypeScript doesn't complain about custom string values.
+  
+- [MODIFY] Instructor Course Form (Likely `src/features/courses/components/CourseForm.tsx` or similar)
+  - Change the Select dropdown for "Category / Semester" into an Input field (or an autocomplete combobox that still suggests sem 1-8 but allows custom typing).
+
+## Verification Plan
+### Automated Tests
+Currently, there seem to be no automated tests for course creation logic in the scope. 
+### Manual Verification
+1. I will apply the SQL migration by using the supabase local db push or telling the user to deploy it.
+2. We'll ask the USER to view `localhost:3000/instructor/courses` and attempt to create a course with a custom category (e.g., 'Web Development').
+3. Verify that the course is successfully created or updated in the UI.

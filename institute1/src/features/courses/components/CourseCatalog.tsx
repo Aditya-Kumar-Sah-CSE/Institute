@@ -18,7 +18,12 @@ export default function CourseCatalog({ courses, enrollments = {}, certificatesM
   const [enrollmentFilter, setEnrollmentFilter] = useState<'all' | 'enrolled'>('enrolled');
   const [semesterFilter, setSemesterFilter] = useState('all'); // 'all', 'sem 1', 'sem 2', etc.
 
-  const [showAllCourses, setShowAllCourses] = useState(false);
+  const availableCategories = useMemo(() => {
+    const defaultSems = ['sem 1', 'sem 2', 'sem 3', 'sem 4', 'sem 5', 'sem 6', 'sem 7', 'sem 8'];
+    const courseCategories = Array.from(new Set(courses.map(c => c.difficulty).filter(Boolean)));
+    const allCategories = Array.from(new Set([...defaultSems, ...courseCategories]));
+    return ['all', ...allCategories];
+  }, [courses]);
 
   const filteredCourses = useMemo(() => {
     return courses.filter(course => {
@@ -76,9 +81,9 @@ export default function CourseCatalog({ courses, enrollments = {}, certificatesM
           </div>
         </div>
 
-        {/* Bottom bar: Semester Filters */}
-        <div className="catalog-filters">
-          {['all', 'sem 1', 'sem 2', 'sem 3', 'sem 4', 'sem 5', 'sem 6', 'sem 7', 'sem 8'].map(f => (
+        {/* Bottom bar: Category / Semester Filters */}
+        <div className="catalog-filters" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {availableCategories.map(f => (
             <button
               key={f}
               className={`filter-btn ${semesterFilter === f ? 'active' : ''}`}
@@ -96,7 +101,7 @@ export default function CourseCatalog({ courses, enrollments = {}, certificatesM
                 transition: 'all 0.2s ease'
               }}
             >
-              {f === 'all' ? 'All Semesters' : f.charAt(0).toUpperCase() + f.slice(1)}
+              {f === 'all' ? 'All Categories' : (f.startsWith('sem ') ? f.charAt(0).toUpperCase() + f.slice(1) : f)}
             </button>
           ))}
         </div>

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { uploadFiles } from '../src/lib/attachments.ts';
+import { uploadFiles } from '../src/lib/attachments';
 
 test('creates a missing storage bucket before retrying the upload', async () => {
   const events: string[] = [];

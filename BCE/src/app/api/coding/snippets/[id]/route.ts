@@ -1,0 +1,2 @@
+import { NextResponse } from 'next/server'; import { getCodeArenaActor } from '@/features/code-arena/server';
+export async function DELETE(_:Request,{params}:{params:Promise<{id:string}>}) { const {id}=await params; const {supabase,user}=await getCodeArenaActor(); if(!user)return NextResponse.json({error:'Unauthorized'},{status:401}); const {error}=await supabase.from('student_code_snippets').delete().eq('id',id).eq('student_id',user.id); return error?NextResponse.json({error:error.message},{status:400}):new NextResponse(null,{status:204}); }

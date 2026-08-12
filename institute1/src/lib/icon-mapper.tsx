@@ -14,6 +14,7 @@ import {
   Building,
   LogOut,
   CreditCard,
+  Code2,
   LucideProps
 } from 'lucide-react';
 
@@ -35,6 +36,7 @@ export function getIcon(name: string, props?: LucideProps) {
     case 'Logout': return <LogOut {...props} />;
     case 'Chat': return <MessageSquare {...props} />;
     case 'Payments': return <CreditCard {...props} />;
+    case 'Code': return <Code2 {...props} />;
     default: return <LayoutDashboard {...props} />;
   }
 }

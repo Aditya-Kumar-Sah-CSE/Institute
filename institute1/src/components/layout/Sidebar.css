@@ -344,7 +344,8 @@ body:not(.sidebar-is-collapsed) .open-sidebar-btn {
   .sidebar-nav-item[href$="/profile"],
   .sidebar-nav-item[href$="/notices"],
   .sidebar-nav-item[href$="/submissions"],
-  .sidebar-nav-item[href$="/doubts"] {
+  .sidebar-nav-item[href$="/doubts"],
+  .sidebar-nav-item[href*="compiler"] {
     display: none !important;
   }
 
