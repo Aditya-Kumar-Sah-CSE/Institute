@@ -1,18 +1,91 @@
 'use client';
 
 import React, { useState } from 'react';
-import { RefreshCw, ExternalLink, CheckCircle2, TrendingUp, Target, Award } from 'lucide-react';
+import { RefreshCw, ExternalLink, CheckCircle2, TrendingUp, Target, Award, Key, Unlink } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function CodeforcesProfileCard({ account }: { account: any }) {
   const router = useRouter();
+  const [handle, setHandle] = useState('');
+  const [isConnecting, setIsConnecting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'IDLE' | 'SUCCESS' | 'ERROR'>('IDLE');
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  const handleConnect = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!handle.trim()) return;
+    setIsConnecting(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    try {
+      const res = await fetch('/api/coding/accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform: 'CODEFORCES', username: handle.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to connect Codeforces handle');
+      setSuccessMsg('Profile connected successfully! Syncing...');
+      router.refresh();
+      // Auto sync
+      await handleSync();
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Connection failed.');
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  const handleSync = async () => {
+    if (isSyncing) return;
+    setIsSyncing(true);
+    setSyncStatus('IDLE');
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    try {
+      const res = await fetch('/api/coding/accounts/codeforces/sync', { method: 'POST' });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to sync Codeforces');
+      setSyncStatus('SUCCESS');
+      setSuccessMsg('Synced successfully!');
+      router.refresh();
+      setTimeout(() => {
+        setSyncStatus('IDLE');
+        setSuccessMsg('');
+      }, 3000);
+    } catch (e: any) {
+      setSyncStatus('ERROR');
+      setErrorMsg(e.message || 'Sync failed.');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    if (!confirm('Are you sure you want to disconnect your Codeforces account?')) return;
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    try {
+      const res = await fetch('/api/coding/accounts/codeforces', { method: 'DELETE' });
+      if (!res.ok) {
+        const json = await res.json();
+        throw new Error(json.error || 'Failed to disconnect account');
+      }
+      setSuccessMsg('Disconnected.');
+      router.refresh();
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Disconnection failed.');
+    }
+  };
 
   if (!account) {
     return (
-      <div className="platform-profile-card codeforces-card not-connected">
+      <div className="platform-profile-card codeforces-card not-connected animate-fade-in">
         <div className="platform-card-accent cf-accent" />
         <div className="platform-header">
           <div className="platform-title">
@@ -21,36 +94,57 @@ export default function CodeforcesProfileCard({ account }: { account: any }) {
           </div>
           <span className="not-connected-badge">Not Connected</span>
         </div>
-        <div className="platform-body empty-state">
-          <div className="empty-state-graphic">
-            <Target size={36} strokeWidth={1.5} />
-          </div>
-          <p>Connect your Codeforces account in <strong>Settings</strong> to track your competitive progress.</p>
+        <div className="platform-body" style={{ padding: '0 16px 16px 16px' }}>
+          <form onSubmit={handleConnect} style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', marginTop: '8px' }}>
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: 0 }}>
+              Connect your public Codeforces handle to track stats, rating graph, and solves.
+            </p>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="text"
+                className="hub-search-input"
+                style={{
+                  flex: 1,
+                  padding: '8px 12px',
+                  fontSize: 'var(--text-sm)',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--glass-border)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'var(--text-main)',
+                  outline: 'none',
+                }}
+                disabled={isConnecting}
+                placeholder="Codeforces handle (e.g. tourist)"
+                value={handle}
+                onChange={(e) => setHandle(e.target.value)}
+              />
+              <button
+                type="submit"
+                disabled={isConnecting || !handle.trim()}
+                className="hub-solve-btn"
+                style={{ padding: '8px 16px', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: (isConnecting || !handle.trim()) ? 'not-allowed' : 'pointer' }}
+              >
+                {isConnecting ? <RefreshCw size={13} className="spin animate-spin" /> : <Key size={13} />}
+                Connect
+              </button>
+            </div>
+          </form>
+
+          {errorMsg && (
+            <div className="sync-error-banner" style={{ marginTop: '12px', fontSize: 'var(--text-xs)', color: '#f87171' }}>
+              ⚠️ {errorMsg}
+            </div>
+          )}
+
+          {successMsg && (
+            <div className="sync-success-banner" style={{ marginTop: '12px', fontSize: 'var(--text-xs)', color: 'var(--neon-emerald)' }}>
+              ✓ {successMsg}
+            </div>
+          )}
         </div>
       </div>
     );
   }
-
-  const handleSync = async () => {
-    if (isSyncing) return;
-    setIsSyncing(true);
-    setSyncStatus('IDLE');
-    setErrorMsg('');
-
-    try {
-      const res = await fetch('/api/coding/accounts/codeforces/sync', { method: 'POST' });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Failed to sync Codeforces');
-      setSyncStatus('SUCCESS');
-      router.refresh();
-      setTimeout(() => setSyncStatus('IDLE'), 3000);
-    } catch (e: any) {
-      setSyncStatus('ERROR');
-      setErrorMsg(e.message);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
 
   const md = account.metadata || {};
   const easy = account.easy_solved || 0;
@@ -60,12 +154,12 @@ export default function CodeforcesProfileCard({ account }: { account: any }) {
   
   const ratingDistribution = [
     { label: 'Easy', range: '<1200', value: easy, color: 'var(--neon-green)', pct: total ? (easy / total) * 100 : 0 },
-    { label: 'Medium', range: '1200–1600', value: medium, color: 'var(--neon-yellow)', pct: total ? (medium / total) * 100 : 0 },
+    { label: 'Medium', range: '1205–1600', value: medium, color: 'var(--neon-yellow)', pct: total ? (medium / total) * 100 : 0 },
     { label: 'Hard', range: '>1600', value: hard, color: 'var(--neon-orange)', pct: total ? (hard / total) * 100 : 0 }
   ];
 
   return (
-    <div className="platform-profile-card codeforces-card">
+    <div className="platform-profile-card codeforces-card animate-fade-in">
       <div className="platform-card-accent cf-accent" />
       
       <div className="platform-header">
@@ -90,12 +184,26 @@ export default function CodeforcesProfileCard({ account }: { account: any }) {
             <RefreshCw size={13} className={isSyncing ? 'spin' : ''} />
             {isSyncing ? 'Syncing…' : syncStatus === 'SUCCESS' ? 'Synced!' : syncStatus === 'ERROR' ? 'Failed' : 'Sync'}
           </button>
+          <button
+            className="icon-action-btn"
+            style={{ color: '#f87171' }}
+            title="Disconnect Account"
+            onClick={handleDisconnect}
+          >
+            <Unlink size={15} />
+          </button>
         </div>
       </div>
 
-      {syncStatus === 'ERROR' && (
-        <div className="sync-error-banner">
-          {errorMsg}
+      {(errorMsg || syncStatus === 'ERROR') && (
+        <div className="sync-error-banner" style={{ margin: '8px 16px 0', fontSize: 'var(--text-xs)', color: '#f87171' }}>
+          ⚠️ {errorMsg || 'Failed to sync Codeforces'}
+        </div>
+      )}
+
+      {successMsg && (
+        <div className="sync-success-banner" style={{ fontSize: 'var(--text-xs)', color: 'var(--neon-emerald)', margin: '8px 16px 0' }}>
+          ✓ {successMsg}
         </div>
       )}
 
@@ -103,19 +211,19 @@ export default function CodeforcesProfileCard({ account }: { account: any }) {
         <div className="stat-box">
           <span className="stat-icon-mini"><TrendingUp size={14} /></span>
           <span className="stat-label">Rating</span>
-          <span className="stat-value highlight-purple">{account.rating || '—'}</span>
+          <span className="stat-value highlight-purple">{account.rating ?? '—'}</span>
           <span className="stat-sub">{account.rank || 'Unrated'}</span>
         </div>
         <div className="stat-box">
           <span className="stat-icon-mini"><Award size={14} /></span>
           <span className="stat-label">Max Rating</span>
-          <span className="stat-value">{account.max_rating || '—'}</span>
+          <span className="stat-value">{account.max_rating ?? '—'}</span>
           <span className="stat-sub">{md.max_rank || '—'}</span>
         </div>
         <div className="stat-box">
           <span className="stat-icon-mini"><Target size={14} /></span>
           <span className="stat-label">Solved</span>
-          <span className="stat-value">{total}</span>
+          <span className="stat-value">{total ?? '—'}</span>
           <span className="stat-sub">Total</span>
         </div>
       </div>
