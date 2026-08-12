@@ -177,6 +177,57 @@ export default function BattleAnalyticsView({
               </tbody>
             </table>
           </Card>
+
+          {/* Participant Roster Details for Instructor */}
+          <Card style={{ padding: 'var(--space-lg)', overflowX: 'auto' }}>
+            <h3 style={{ fontSize: 'var(--text-md)', fontWeight: 800, marginBottom: 'var(--space-md)' }}>
+              Participant Activity & Submissions
+            </h3>
+
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--glass-border)', textAlign: 'left', color: 'var(--text-muted)' }}>
+                  <th style={{ padding: '8px 12px' }}>Name</th>
+                  <th style={{ padding: '8px 12px' }}>Email</th>
+                  <th style={{ padding: '8px 12px' }}>Score</th>
+                  <th style={{ padding: '8px 12px' }}>Activity Status</th>
+                  <th style={{ padding: '8px 12px' }}>Joined At</th>
+                  <th style={{ padding: '8px 12px' }}>Last Solve</th>
+                </tr>
+              </thead>
+              <tbody>
+                {participants.map((pt, idx) => {
+                  const studentEmail = pt.profiles?.email || 'N/A';
+                  const studentName = pt.profiles?.full_name || pt.student?.full_name || `Student #${idx+1}`;
+                  
+                  // Active status defined as having submitted within this battle context
+                  const hasSubmissions = submissions.some(s => s.student_id === (pt.student_id || pt.profiles?.id));
+                  const statusColor = hasSubmissions ? 'var(--neon-emerald)' : '#9ca3af';
+                  const statusText = hasSubmissions ? 'Active solver' : 'No submissions';
+
+                  return (
+                    <tr key={pt.student_id || idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                      <td style={{ padding: '12px', fontWeight: 700 }}>{studentName}</td>
+                      <td style={{ padding: '12px', color: 'var(--text-muted)' }}>{studentEmail}</td>
+                      <td style={{ padding: '12px', fontWeight: 800, color: 'var(--neon-cyan)' }}>{pt.score || 0} pts</td>
+                      <td style={{ padding: '12px' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: statusColor }} />
+                          {statusText}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                        {pt.joined_at ? new Date(pt.joined_at).toLocaleTimeString() : '--'}
+                      </td>
+                      <td style={{ padding: '12px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                        {pt.finished_at ? new Date(pt.finished_at).toLocaleTimeString() : 'N/A'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </Card>
         </div>
       ) : (
         /* STUDENT PERSONAL ANALYTICS PANEL */

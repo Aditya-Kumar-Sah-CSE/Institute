@@ -16,7 +16,65 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     return NextResponse.json({ success: false, error: { message: 'Battle not found' } }, { status: 404 });
   }
 
-  return NextResponse.json({ success: true, data: battle });
+  const now = new Date();
+
+  // 1. Auto SCHEDULED/LOBBY -> LIVE/COMPLETED transition when start_time arrives
+  if (
+    (battle.status === 'LOBBY' || battle.status === 'SCHEDULED') &&
+    battle.start_time &&
+    now >= new Date(battle.start_time)
+  ) {
+    const elapsedMinutes = Math.floor((now.getTime() - new Date(battle.start_time).getTime()) / (60 * 1000));
+    const { createAdminClient } = await import('@/lib/supabase/server');
+    const adminClient = await createAdminClient();
+
+    if (elapsedMinutes >= battle.duration_minutes) {
+      await adminClient
+        .from('coding_battles')
+        .update({
+          status: 'COMPLETED',
+          end_time: new Date(new Date(battle.start_time).getTime() + battle.duration_minutes * 60 * 1000).toISOString()
+        })
+        .eq('id', id);
+    } else {
+      const endTime = new Date(new Date(battle.start_time).getTime() + battle.duration_minutes * 60 * 1000);
+      await adminClient
+        .from('coding_battles')
+        .update({
+          status: 'LIVE',
+          end_time: endTime.toISOString()
+        })
+        .eq('id', id);
+    }
+
+    const { data: reloaded } = await supabase
+      .from('coding_battles')
+      .select('*, coding_battle_problems(*, coding_problems(*))')
+      .eq('id', id)
+      .single();
+
+    return NextResponse.json({ success: true, data: reloaded || battle, server_now: now.toISOString() });
+  }
+
+  // 2. Auto LIVE -> COMPLETED verification on time expiration
+  if (battle.status === 'LIVE' && battle.end_time && now >= new Date(battle.end_time)) {
+    const { createAdminClient } = await import('@/lib/supabase/server');
+    const adminClient = await createAdminClient();
+    await adminClient
+      .from('coding_battles')
+      .update({ status: 'COMPLETED' })
+      .eq('id', id);
+
+    const { data: reloaded } = await supabase
+      .from('coding_battles')
+      .select('*, coding_battle_problems(*, coding_problems(*))')
+      .eq('id', id)
+      .single();
+
+    return NextResponse.json({ success: true, data: reloaded || battle, server_now: now.toISOString() });
+  }
+
+  return NextResponse.json({ success: true, data: battle, server_now: now.toISOString() });
 }
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {

@@ -11,11 +11,12 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { problemId, battleId = null, language, sourceCode } = body as {
+    const { problemId, battleId = null, language, sourceCode, isVirtualPractice = false } = body as {
       problemId?: string;
       battleId?: string | null;
       language?: CodeLanguage;
       sourceCode?: string;
+      isVirtualPractice?: boolean;
     };
 
     if (!problemId || !language || !sourceCode?.trim()) {
@@ -38,6 +39,8 @@ export async function POST(request: Request) {
       );
     }
 
+    let finalBattleId = battleId;
+
     // SERVER-AUTHORITATIVE BATTLE EXPIRY GUARD
     if (battleId) {
       const { data: battle } = await supabase
@@ -53,32 +56,44 @@ export async function POST(request: Request) {
         );
       }
 
-      if (battle.status === 'COMPLETED' || battle.status === 'CANCELLED') {
-        return NextResponse.json(
-          { success: false, error: { code: 'BATTLE_ENDED', message: 'This battle has ended. Submissions are no longer accepted.' } },
-          { status: 403 }
-        );
-      }
+      if (isVirtualPractice) {
+        if (battle.status !== 'COMPLETED' && battle.status !== 'CANCELLED') {
+          return NextResponse.json(
+            { success: false, error: { code: 'BATTLE_ACTIVE', message: 'This battle is not completed yet.' } },
+            { status: 400 }
+          );
+        }
+        finalBattleId = null;
+      } else {
+        if (battle.status === 'COMPLETED' || battle.status === 'CANCELLED') {
+          return NextResponse.json(
+            { success: false, error: { code: 'BATTLE_ENDED', message: 'This battle has ended. Submissions are no longer accepted.' } },
+            { status: 403 }
+          );
+        }
 
-      if (battle.status !== 'LIVE') {
-        return NextResponse.json(
-          { success: false, error: { code: 'BATTLE_NOT_LIVE', message: 'Battle is not active.' } },
-          { status: 409 }
-        );
-      }
+        if (battle.status !== 'LIVE') {
+          return NextResponse.json(
+            { success: false, error: { code: 'BATTLE_NOT_LIVE', message: 'Battle is not active.' } },
+            { status: 409 }
+          );
+        }
 
-      const now = new Date();
-      if (!battle.end_time || now >= new Date(battle.end_time)) {
-        // Automatically transition battle status to COMPLETED (lazy expiration)
-        await supabase
-          .from('coding_battles')
-          .update({ status: 'COMPLETED' })
-          .eq('id', battleId);
+        const now = new Date();
+        if (!battle.end_time || now >= new Date(battle.end_time)) {
+          // Automatically transition battle status to COMPLETED (lazy expiration)
+          const { createAdminClient } = await import('@/lib/supabase/server');
+          const adminClient = await createAdminClient();
+          await adminClient
+            .from('coding_battles')
+            .update({ status: 'COMPLETED' })
+            .eq('id', battleId);
 
-        return NextResponse.json(
-          { success: false, error: { code: 'BATTLE_ENDED', message: 'Battle time has expired. Submissions are closed.' } },
-          { status: 403 }
-        );
+          return NextResponse.json(
+            { success: false, error: { code: 'BATTLE_ENDED', message: 'Battle time has expired. Submissions are closed.' } },
+            { status: 403 }
+          );
+        }
       }
     }
 
@@ -105,7 +120,7 @@ export async function POST(request: Request) {
       .insert({
         student_id: user.id,
         problem_id: problemId,
-        battle_id: battleId,
+        battle_id: finalBattleId,
         language,
         source_code: sourceCode,
         status: result.status,
@@ -116,6 +131,47 @@ export async function POST(request: Request) {
       })
       .select('id, status, created_at')
       .single();
+
+    if (!error && data && finalBattleId && data.status === 'ACCEPTED') {
+      try {
+        const { createAdminClient } = await import('@/lib/supabase/server');
+        const adminClient = await createAdminClient();
+
+        // 1. Fetch other accepted submissions by this student for this battle
+        const { data: prevSolved } = await adminClient
+          .from('coding_submissions')
+          .select('problem_id')
+          .eq('student_id', user.id)
+          .eq('battle_id', finalBattleId)
+          .eq('status', 'ACCEPTED');
+
+        const solvedIds = Array.from(new Set([
+          problemId,
+          ...(prevSolved || []).map((s: any) => s.problem_id)
+        ]));
+
+        // 2. Fetch points per solved problem from coding_battle_problems
+        const { data: battleProblems } = await adminClient
+          .from('coding_battle_problems')
+          .select('problem_id, points')
+          .eq('battle_id', finalBattleId)
+          .in('problem_id', solvedIds);
+
+        const totalScore = (battleProblems || []).reduce((sum: number, bp: any) => sum + (bp.points || 0), 0);
+
+        // 3. Update participant score/finished_at
+        await adminClient
+          .from('coding_battle_participants')
+          .update({
+            score: totalScore,
+            finished_at: new Date(data.created_at).toISOString()
+          })
+          .eq('battle_id', finalBattleId)
+          .eq('student_id', user.id);
+      } catch (scoreErr) {
+        console.error('Failed to update participant score:', scoreErr);
+      }
+    }
 
     return error
       ? NextResponse.json({ success: false, error: { code: 'DATABASE_ERROR', message: error.message } }, { status: 400 })

@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     const normalizedCode = joinCode.trim().toUpperCase();
 
     // 1. Resolve battle by join_code or UUID id
-    let query = supabase.from('coding_battles').select('id, title, description, status, duration_minutes, join_code, visibility, created_by, created_at');
+    let query = supabase.from('coding_battles').select('id, title, description, status, duration_minutes, join_code, visibility, created_by, created_at, batch_id');
 
     if (/^BCE-[A-Z0-9]{5}$/i.test(normalizedCode)) {
       query = query.eq('join_code', normalizedCode);
@@ -43,6 +43,17 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { success: false, error: { code: 'BATTLE_ENDED', message: `This battle is ${battle.status.toLowerCase()}.` } },
         { status: 400 }
+      );
+    }
+
+    // 1.5 Batch / Isolation Enforcements
+    const actor = await getCodeArenaActor();
+    const profile = actor.profile;
+    const isHost = battle.created_by === user.id || actor.isInstructor;
+    if (!isHost && battle.batch_id && profile?.graduation_period && battle.batch_id !== profile.graduation_period) {
+      return NextResponse.json(
+        { success: false, error: { code: 'BATCH_MISMATCH', message: `This battle is restricted to students of batch: ${battle.batch_id}.` } },
+        { status: 403 }
       );
     }
 

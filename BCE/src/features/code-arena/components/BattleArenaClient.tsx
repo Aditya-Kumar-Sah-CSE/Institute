@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import { createClient } from '@/lib/supabase/client';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import {
@@ -86,10 +87,76 @@ export default function BattleArenaClient({
   const [showEndModal, setShowEndModal] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // Synchronized Clock & Virtual Practice States
+  const [serverNow, setServerNow] = useState<string | null>(null);
+  const [isVirtualPractice, setIsVirtualPractice] = useState(false);
+  const [virtualStartTime, setVirtualStartTime] = useState<string | null>(null);
+
   const currentProblem = problems[activeProblemIdx];
   const isHost = battle.created_by === currentUser?.id || isInstructor;
 
-  // 1. Fetch student submission history on load
+  // 1. Poll battle status and database server clock skew in parallel
+  useEffect(() => {
+    let active = true;
+    async function syncBattleState() {
+      try {
+        const res = await fetch(`/api/coding/battles/${battle.id}`);
+        if (res.ok && active) {
+          const json = await res.json();
+          if (json.success && json.data) {
+            setBattle(json.data);
+            if (json.server_now) {
+              setServerNow(json.server_now);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to sync battle state:', err);
+      }
+    }
+    syncBattleState();
+    const interval = setInterval(syncBattleState, 10000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [battle.id]);
+
+  // 2. Realtime listener to synchronize joined participant roster changes
+  useEffect(() => {
+    const supabaseBrowser = createClient();
+    const channel = supabaseBrowser
+      .channel(`participants-activity:${battle.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'coding_battle_participants',
+          filter: `battle_id=eq.${battle.id}`,
+        },
+        async () => {
+          try {
+            const res = await fetch(`/api/coding/battles/${battle.id}/leaderboard`);
+            if (res.ok) {
+              const json = await res.json();
+              if (json.success && json.participants) {
+                setParticipants(json.participants);
+              }
+            }
+          } catch (err) {
+            console.error('Realtime sync reload fail:', err);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabaseBrowser.removeChannel(channel);
+    };
+  }, [battle.id]);
+
+  // 3. Fetch student submission history on load
   useEffect(() => {
     async function loadSubmissions() {
       try {
@@ -150,15 +217,30 @@ export default function BattleArenaClient({
     }
   };
 
+  // Partition submissions
+  const officialSubmissions = mySubmissions.filter((s) => s.battle_id === battle.id);
+  const virtualSubmissions = mySubmissions.filter((s) => !s.battle_id && problems.some((p) => p.id === s.problem_id));
+
   // Determine solved problem IDs for current student
   const solvedProblemIds = new Set(
-    mySubmissions.filter((s) => s.status === 'ACCEPTED').map((s) => s.problem_id)
+    (isVirtualPractice ? mySubmissions : officialSubmissions)
+      .filter((s) => s.status === 'ACCEPTED')
+      .map((s) => s.problem_id)
+  );
+
+  const officialSolvedProblemIds = new Set(
+    officialSubmissions.filter((s) => s.status === 'ACCEPTED').map((s) => s.problem_id)
   );
 
   // User performance statistics
   const userRank = participants.findIndex((p) => (p.student_id || p.profiles?.id) === currentUser?.id) + 1 || 1;
   const userScore = participants.find((p) => (p.student_id || p.profiles?.id) === currentUser?.id)?.score || 0;
-  const userAccuracy = mySubmissions.length > 0 ? Math.round((mySubmissions.filter((s) => s.status === 'ACCEPTED').length / mySubmissions.length) * 100) : 0;
+  const userAccuracy = officialSubmissions.length > 0 ? Math.round((officialSubmissions.filter((s) => s.status === 'ACCEPTED').length / officialSubmissions.length) * 100) : 0;
+
+  // Virtual active countdown configurations
+  const activeEndTime = isVirtualPractice
+    ? (virtualStartTime ? new Date(new Date(virtualStartTime).getTime() + battle.duration_minutes * 60 * 1000).toISOString() : null)
+    : battle.end_time;
 
   // Render Lobby if battle status is LOBBY, DRAFT, or SCHEDULED
   if (battle.status === 'LOBBY' || battle.status === 'DRAFT' || battle.status === 'SCHEDULED') {
@@ -230,6 +312,7 @@ export default function BattleArenaClient({
           battleId: battle.id,
           language,
           sourceCode: code,
+          isVirtualPractice,
         }),
       });
 
@@ -251,10 +334,12 @@ export default function BattleArenaClient({
       }
 
       // Refresh battle leaderboard
-      const partRes = await fetch(`/api/coding/battles/${battle.id}/leaderboard`);
-      if (partRes.ok) {
-        const partData = await partRes.json();
-        if (partData.participants) setParticipants(partData.participants);
+      if (!isVirtualPractice) {
+        const partRes = await fetch(`/api/coding/battles/${battle.id}/leaderboard`);
+        if (partRes.ok) {
+          const partData = await partRes.json();
+          if (partData.participants) setParticipants(partData.participants);
+        }
       }
     } catch (e: any) {
       setLastSubmission({ error: 'Error submitting code: ' + e.message });
@@ -285,7 +370,7 @@ export default function BattleArenaClient({
           userStats={{
             rank: userRank,
             score: userScore,
-            solvedCount: solvedProblemIds.size,
+            solvedCount: officialSolvedProblemIds.size,
             totalProblems: problems.length,
             accuracy: userAccuracy,
           }}
@@ -329,10 +414,15 @@ export default function BattleArenaClient({
           </div>
 
           <BattleTimer
-            endTime={battle.end_time}
+            endTime={activeEndTime}
+            serverNow={isVirtualPractice ? null : serverNow}
             onTimerExpired={() => {
-              setBattle((prev: any) => ({ ...prev, status: 'COMPLETED' }));
-              setShowEndModal(true);
+              if (isVirtualPractice) {
+                alert('Virtual practice session has expired! You can still submit and test solution drafts.');
+              } else {
+                setBattle((prev: any) => ({ ...prev, status: 'COMPLETED' }));
+                setShowEndModal(true);
+              }
             }}
           />
         </div>
@@ -368,6 +458,84 @@ export default function BattleArenaClient({
       {/* ARENA MAIN VIEW */}
       {activeTab === 'arena' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+          {/* Virtual Practice and Completion Banners */}
+          {battle.status === 'COMPLETED' && !isVirtualPractice && (
+            <Card
+              style={{
+                background: 'linear-gradient(135deg, rgba(6,182,212,0.1), rgba(124,58,237,0.1))',
+                border: '1px solid var(--neon-cyan)',
+                borderRadius: 'var(--radius-lg)',
+                padding: 'var(--space-md) var(--space-lg)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+              }}
+            >
+              <div style={{ textAlign: 'left' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--neon-cyan)', margin: 0 }}>
+                  🏁 Battle Completed
+                </h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
+                  This competitive battle has officially ended. You can enter Virtual Practice mode to test your solutions and solve the problems at your own pace.
+                </p>
+              </div>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  setIsVirtualPractice(true);
+                  setVirtualStartTime(new Date().toISOString());
+                }}
+                style={{
+                  background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))',
+                  fontWeight: 800
+                }}
+              >
+                ⚡ Start Virtual Practice
+              </Button>
+            </Card>
+          )}
+
+          {isVirtualPractice && (
+            <Card
+              style={{
+                background: 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(6,182,212,0.1))',
+                border: '1px solid var(--neon-emerald)',
+                borderRadius: 'var(--radius-lg)',
+                padding: 'var(--space-md) var(--space-lg)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+              }}
+            >
+              <div style={{ textAlign: 'left' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--neon-emerald)', margin: 0 }}>
+                  ⚡ Virtual Practice / Re-Attempt Mode
+                </h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
+                  Solving problems in retry mode. Submissions are for practice only and do not affect the official lobby scoreboard.
+                </p>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  if (confirm('Exit virtual practice mode? Your code drafts are saved, but the virtual timer will reset.')) {
+                    setIsVirtualPractice(false);
+                    setVirtualStartTime(null);
+                  }
+                }}
+                style={{ fontWeight: 700 }}
+              >
+                Exit Practice
+              </Button>
+            </Card>
+          )}
+
           {/* Problem Selector Tabs */}
           <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
             {problems.map((p, idx) => {
@@ -459,11 +627,11 @@ export default function BattleArenaClient({
                     value={code}
                     onChange={(v) => handleCodeChange(v || '')}
                     options={{
-                      automaticLayout: true,
-                      minimap: { enabled: false },
-                      fontSize: 13,
-                      lineNumbers: 'on',
-                      renderLineHighlight: 'all',
+                       automaticLayout: true,
+                       minimap: { enabled: false },
+                       fontSize: 13,
+                       lineNumbers: 'on',
+                       renderLineHighlight: 'all',
                     }}
                   />
                 </div>
@@ -544,7 +712,7 @@ export default function BattleArenaClient({
                       <button
                         type="button"
                         className="btn-run-secondary"
-                        disabled={running || submitting || battle.status === 'COMPLETED'}
+                        disabled={running || submitting || (battle.status === 'COMPLETED' && !isVirtualPractice)}
                         onClick={handleRunCode}
                       >
                         {running ? <LoaderCircle size={15} className="animate-spin" /> : <Play size={15} />}
@@ -554,7 +722,7 @@ export default function BattleArenaClient({
                       <button
                         type="button"
                         className="btn-submit-primary"
-                        disabled={running || submitting || battle.status === 'COMPLETED'}
+                        disabled={running || submitting || (battle.status === 'COMPLETED' && !isVirtualPractice)}
                         onClick={handleSubmitCode}
                       >
                         {submitting ? <LoaderCircle size={15} className="animate-spin" /> : <Send size={15} />}
@@ -781,6 +949,11 @@ export default function BattleArenaClient({
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    {pt.finished_at && pt.score > 0 && battle.start_time && (
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        Solved in {Math.round((new Date(pt.finished_at).getTime() - new Date(battle.start_time).getTime()) / 60000)}m
+                      </span>
+                    )}
                     <span style={{ fontWeight: 700, color: 'var(--neon-cyan)', fontSize: 'var(--text-md)' }}>
                       {pt.score || 0} pts
                     </span>
@@ -832,6 +1005,22 @@ export default function BattleArenaClient({
                       >
                         {sub.status}
                       </span>
+                      {!sub.battle_id && (
+                        <span
+                          style={{
+                            marginLeft: '8px',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            fontSize: '9px',
+                            fontWeight: 700,
+                            background: 'rgba(168,85,247,0.15)',
+                            color: '#c084fc',
+                            border: '1px solid rgba(168,85,247,0.3)',
+                          }}
+                        >
+                          PRACTICE
+                        </span>
+                      )}
                     </td>
                     <td style={{ padding: '10px 12px', fontWeight: 700 }}>
                       {sub.passed_tests || 0} / {sub.total_tests || 0}
