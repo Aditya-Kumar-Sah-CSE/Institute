@@ -1,0 +1,228 @@
+
+src/features/code-arena/components/CreateBattleWizard.tsx(320,15): error TS2353: Object literal may only specify known properties, and 'justify' does not exist in type 'Properties<string | number, string & {}>'.
+src/features/code-arena/components/CreateBattleWizard.tsx(503,23): error TS2322: Type '"outline"' is not assignable to type '"success" | "primary" | "secondary" | "ghost" | "danger" | undefined'.
+src/features/code-arena/components/CreateBattleWizard.tsx(645,29): error TS2353: Object literal may only specify known properties, and 'justify' does not exist in type 'Properties<string | number, string & {}>'.
+src/features/code-arena/components/InstructorCodeArenaClient.tsx(116,11): error TS2353: Object literal may only specify known properties, and 'justify' does not exist in type 'Properties<string | number, string & {}>'.
+src/features/code-arena/components/InstructorCodeArenaClient.tsx(358,21): error TS2353: Object literal may only specify known properties, and 'justify' does not exist in type 'Properties<string | number, string & {}>'.
+src/scripts/test_instructor_battle_flow.ts(36,87): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(input: string | URL | Request, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+  Overload 2 of 2, '(input: URL | RequestInfo, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+src/scripts/test_instructor_battle_flow.ts(41,94): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(input: string | URL | Request, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+  Overload 2 of 2, '(input: URL | RequestInfo, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+src/scripts/test_instructor_battle_flow.ts(70,5): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(input: string | URL | Request, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+  Overload 2 of 2, '(input: URL | RequestInfo, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+src/scripts/test_instructor_battle_flow.ts(90,5): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(input: string | URL | Request, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+  Overload 2 of 2, '(input: URL | RequestInfo, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+src/scripts/test_instructor_battle_flow.ts(103,5): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(input: string | URL | Request, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+  Overload 2 of 2, '(input: URL | RequestInfo, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+src/scripts/test_instructor_battle_flow.ts(117,5): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(input: string | URL | Request, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+  Overload 2 of 2, '(input: URL | RequestInfo, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+src/scripts/test_instructor_battle_flow.ts(134,5): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(input: string | URL | Request, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+  Overload 2 of 2, '(input: URL | RequestInfo, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+src/scripts/test_instructor_battle_flow.ts(139,118): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(input: string | URL | Request, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+  Overload 2 of 2, '(input: URL | RequestInfo, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+src/scripts/test_instructor_battle_flow.ts(148,111): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(input: string | URL | Request, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+  Overload 2 of 2, '(input: URL | RequestInfo, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+src/scripts/test_instructor_battle_flow.ts(149,96): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(input: string | URL | Request, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+  Overload 2 of 2, '(input: URL | RequestInfo, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+src/scripts/test_phase2_concurrency.ts(35,87): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(input: string | URL | Request, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+  Overload 2 of 2, '(input: URL | RequestInfo, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+src/scripts/test_phase2_concurrency.ts(42,5): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(input: string | URL | Request, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+  Overload 2 of 2, '(input: URL | RequestInfo, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+src/scripts/test_phase2_concurrency.ts(73,9): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(input: string | URL | Request, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+  Overload 2 of 2, '(input: URL | RequestInfo, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+src/scripts/test_phase2_concurrency.ts(83,9): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(input: string | URL | Request, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+  Overload 2 of 2, '(input: URL | RequestInfo, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+src/scripts/test_phase2_concurrency.ts(101,5): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(input: string | URL | Request, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+  Overload 2 of 2, '(input: URL | RequestInfo, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+src/scripts/test_phase2_concurrency.ts(119,5): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(input: string | URL | Request, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+  Overload 2 of 2, '(input: URL | RequestInfo, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+src/scripts/test_phase2_concurrency.ts(134,5): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(input: string | URL | Request, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+  Overload 2 of 2, '(input: URL | RequestInfo, init?: RequestInit | undefined): Promise<Response>', gave the following error.
+    Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'HeadersInit | undefined'.
+      Type '{ apikey: string | undefined; Authorization: string; 'Content-Type': string; Prefer: string; }' is not assignable to type 'Record<string, string>'.
+        Property ''apikey'' is incompatible with index signature.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+

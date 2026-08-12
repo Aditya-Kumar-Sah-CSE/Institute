@@ -24,11 +24,13 @@ export async function saveCodingProblem(formData: FormData) {
     memory_limit_mb: Math.max(1, Number(formData.get('memory_limit_mb') || 256)),
     is_published: formData.get('is_published') === 'true',
   };
-  const query = id ? supabase.from('coding_problems').update(data).eq('id', id).eq('created_by', user.id) : supabase.from('coding_problems').insert({ ...data, created_by: user.id });
-  const { error } = await query;
+  const query = id
+    ? supabase.from('coding_problems').update(data).eq('id', id).eq('created_by', user.id).select().single()
+    : supabase.from('coding_problems').insert({ ...data, created_by: user.id }).select().single();
+  const { data: createdProblem, error } = await query;
   if (error) return { error: error.code === '23505' ? 'A problem with this slug already exists.' : error.message };
   revalidatePath('/instructor/code-arena'); revalidatePath('/code-arena');
-  return { success: true };
+  return { success: true, problem: createdProblem };
 }
 
 export async function deleteCodingProblem(id: string) {

@@ -1,0 +1,4 @@
+
+src/features/code-arena/components/CreateBattleWizard.tsx(503,23): error TS2322: Type '"outline"' is not assignable to type '"success" | "secondary" | "primary" | "ghost" | "danger" | undefined'.
+src/features/code-arena/components/CreateBattleWizard.tsx(645,29): error TS2353: Object literal may only specify known properties, and 'justify' does not exist in type 'Properties<string | number, string & {}>'.
+

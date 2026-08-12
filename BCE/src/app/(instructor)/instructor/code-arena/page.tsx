@@ -1,13 +1,36 @@
-import Link from 'next/link';
-import Card from '@/components/ui/Card';
-import Button from '@/components/ui/Button';
 import { getCodeArenaActor } from '@/features/code-arena/server';
-import ProblemForm from '@/features/code-arena/components/ProblemForm';
-import { deleteCodingProblem, duplicateCodingProblem } from '@/features/code-arena/actions';
+import InstructorCodeArenaClient from '@/features/code-arena/components/InstructorCodeArenaClient';
 import '@/features/code-arena/components/CodeArena.css';
 
 export default async function InstructorCodeArenaPage() {
-  const { supabase, user } = await getCodeArenaActor(); if (!user) return null;
-  const { data: problems } = await supabase.from('coding_problems').select('id,title,difficulty,source_type,is_published,created_at,coding_problem_test_cases(count),coding_submissions(count)').eq('created_by', user.id).order('created_at', { ascending:false });
-  return <div className="code-arena-page"><header className="code-arena-header"><div><h1 className="text-gradient">Coding Arena</h1><p className="text-secondary">Create secure problems, public samples and hidden judge cases.</p></div><Link href="/instructor/code-arena/battles" className="btn btn-secondary">Manage battles</Link></header><div style={{ display:'grid', gridTemplateColumns:'minmax(0,1.4fr) minmax(280px,.8fr)', gap:'var(--space-xl)' }}><Card variant="glass"><h2 style={{ fontSize:'var(--text-xl)' }}>Your problems</h2><div style={{ display:'flex', flexDirection:'column', gap:'var(--space-sm)', marginTop:'var(--space-md)' }}>{problems?.length ? problems.map(problem => <div key={problem.id} style={{ display:'flex', justifyContent:'space-between', gap:'var(--space-md)', flexWrap:'wrap', padding:'var(--space-md)', borderRadius:'var(--radius-md)', background:'var(--bg-input)' }}><div><strong>{problem.title}</strong><div className="problem-meta"><span className={`difficulty-${problem.difficulty}`}>{problem.difficulty}</span><span>{problem.source_type}</span><span>{problem.coding_problem_test_cases?.[0]?.count || 0} test cases</span><span>{problem.coding_submissions?.[0]?.count || 0} submissions</span></div></div><div style={{ display:'flex', gap:'var(--space-xs)', flexWrap:'wrap' }}><Link href={`/instructor/code-arena/${problem.id}`} className="btn btn-secondary btn-sm">Test cases</Link><form action={async () => { 'use server'; await duplicateCodingProblem(problem.id); }}><Button size="sm" variant="ghost">Duplicate</Button></form><form action={async () => { 'use server'; await deleteCodingProblem(problem.id); }}><Button size="sm" variant="danger">Delete</Button></form></div></div>) : <p className="text-secondary">No coding problems yet.</p>}</div></Card><Card variant="glass"><h2 style={{ fontSize:'var(--text-xl)' }}>Create internal problem</h2><ProblemForm /><p className="text-secondary" style={{ fontSize:'var(--text-xs)', marginTop:'var(--space-md)' }}>Codeforces metadata import is available from the API foundation. Statement extraction is intentionally deferred because their public API does not return statements.</p></Card></div></div>;
+  const { supabase, user } = await getCodeArenaActor();
+  if (!user) return null;
+
+  // 1. Fetch Instructor Created Problems
+  const { data: problems } = await supabase
+    .from('coding_problems')
+    .select('id, title, difficulty, source_type, is_published, created_at, coding_problem_test_cases(count), coding_submissions(count)')
+    .eq('created_by', user.id)
+    .order('created_at', { ascending: false });
+
+  // 2. Fetch Battles
+  const { data: battles } = await supabase
+    .from('coding_battles')
+    .select('id, title, description, status, start_time, end_time, duration_minutes, batch_id, creator_role, join_code, visibility, created_by, created_at, coding_battle_problems(count, coding_problems(*)), coding_battle_participants(count)')
+    .order('created_at', { ascending: false });
+
+  // 3. Fetch Batches
+  const { data: batches } = await supabase
+    .from('batches')
+    .select('id, name')
+    .limit(50);
+
+  return (
+    <InstructorCodeArenaClient
+      user={user}
+      initialBattles={battles || []}
+      initialProblems={problems || []}
+      batches={batches || []}
+    />
+  );
 }
