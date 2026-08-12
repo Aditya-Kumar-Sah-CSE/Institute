@@ -41,7 +41,7 @@ export async function updateSession(request: NextRequest) {
     'apply-instructor', 'apply-institution', 'forgot-password', 'reset-password',
     // Root-level app routes (route groups (dashboard), (admin), (instructor), (public))
     'courses', 'leaderboard', 'doubts', 'notices', 'profile', 'feedbacks',
-    'share-doubt', 'users', 'batch', 'certificates',
+    'share-doubt', 'users', 'batch', 'certificates', 'code-arena',
     // Misc root pages
     'admission', 'pwa-start', 'contact', 'institution-not-found', 'institution-disabled',
   ];
