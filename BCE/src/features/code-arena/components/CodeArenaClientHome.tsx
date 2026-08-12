@@ -54,55 +54,55 @@ export default function CodeArenaClientHome({
   };
 
   return (
-    <div className="code-arena-page" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
+    <div className="code-arena-page">
       
       {/* Hero Header */}
-      <header className="code-arena-header" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--glass-border)', padding: 'var(--space-xl)', borderRadius: 'var(--radius-lg)' }}>
+      <header className="code-arena-header">
         <div style={{ maxWidth: '600px' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--neon-cyan)', background: 'rgba(6,182,212,0.1)', padding: '4px 10px', borderRadius: '12px', marginBottom: '8px' }}>
+          <div className="hub-badge">
             <Swords size={14} /> BCE Coding Battle Arena
           </div>
-          <h1 className="text-gradient" style={{ fontSize: 'var(--text-2xl)', margin: 0, fontWeight: 800 }}>
+          <h1 className="text-gradient code-arena-title">
             Compete Live in Real-Time Battles
           </h1>
-          <p className="text-secondary" style={{ fontSize: 'var(--text-sm)', marginTop: '8px' }}>
+          <p className="text-secondary code-arena-subtitle">
             Import problems instantly from Codeforces or LeetCode. Challenge batch mates or create custom battle codes!
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="code-arena-nav-btns">
           <Button onClick={() => setShowWizard(true)}>
             <Plus size={16} /> Create Battle
           </Button>
-          <Link href="/code-arena/problems" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+          <Link href="/code-arena/problems" className="btn btn-secondaryNav action-btn">
             <Trophy size={16} /> Problem Hub
           </Link>
-          <Link href="/code-arena/compiler" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+          <Link href="/code-arena/compiler" className="btn btn-secondaryNav action-btn">
             <Code2 size={16} /> Personal Compiler
           </Link>
-          <Link href="/code-arena/profile" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+          <Link href="/code-arena/profile" className="btn btn-secondaryNav action-btn">
             <Zap size={16} /> Profile
           </Link>
         </div>
       </header>
 
       {/* Quick Join Card */}
-      <Card variant="glass" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-md)', padding: 'var(--space-md) var(--space-xl)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'rgba(59,130,246,0.15)', color: '#60a5fa', display: 'grid', placeItems: 'center' }}>
+      <Card variant="glass" className="code-arena-join-card">
+        <div className="join-card-left">
+          <div className="join-card-icon-box">
             <Trophy size={20} />
           </div>
-          <div>
-            <strong style={{ fontSize: 'var(--text-sm)' }}>Join Battle via Code</strong>
-            <p className="text-secondary" style={{ fontSize: 'var(--text-xs)', margin: 0 }}>
+          <div className="join-card-text">
+            <strong>Join Battle via Code</strong>
+            <p className="text-secondary">
               Enter battle code (e.g. BCE-X7K92) to enter arena
             </p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flex: '1', maxWidth: '380px' }}>
+        <div className="join-card-right">
           <input
-            style={{ flex: 1, padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--bg-card)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', fontSize: 'var(--text-sm)', outline: 'none', fontFamily: 'monospace' }}
+            className="join-card-input"
             placeholder="Enter Battle Code (BCE-XXXXX)"
             value={joinCodeInput}
             onChange={(e) => setJoinCodeInput(e.target.value)}
@@ -112,14 +112,14 @@ export default function CodeArenaClientHome({
             Join
           </Button>
         </div>
-        {joinError && <span style={{ color: '#f87171', fontSize: '11px', width: '100%' }}>{joinError}</span>}
+        {joinError && <span className="join-card-error">{joinError}</span>}
       </Card>
 
       {/* Live & Recent Battles Section */}
       <section>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-md)' }}>
-          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, margin: 0 }}>Active & Recent Battles</h2>
-          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>{battles.length} battles found</span>
+        <div className="section-header-row">
+          <h2>Active & Recent Battles</h2>
+          <span>{battles.length} battles found</span>
         </div>
 
         {battles.length === 0 ? (
@@ -137,24 +137,24 @@ export default function CodeArenaClientHome({
           <div className="problem-grid">
             {battles.map((b) => (
               <Card key={b.id} variant="glass" className="problem-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 'var(--space-sm)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: b.status === 'LIVE' ? '#4ade80' : 'var(--neon-cyan)', background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: '10px' }}>
+                <div className="battle-card-status-row">
+                  <span className={`battle-status-badge ${b.status === 'LIVE' ? 'live' : 'upcoming-past'}`}>
                     ● {b.status}
                   </span>
-                  <span style={{ fontSize: '11px', fontFamily: 'monospace', color: 'var(--neon-gold)' }}>
+                  <span className="battle-join-code">
                     {b.join_code}
                   </span>
                 </div>
 
                 <div>
-                  <h3 style={{ fontSize: 'var(--text-md)', fontWeight: 700, margin: '4px 0' }}>{b.title}</h3>
-                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                  <h3 className="battle-title">{b.title}</h3>
+                  <div className="battle-meta-info">
                     Duration: {b.duration_minutes} mins • {b.creator_role === 'FACULTY' ? 'Faculty Battle' : 'Student Battle'}
                   </div>
                 </div>
 
-                <div style={{ marginTop: 'var(--space-xs)' }}>
-                  <Link href={`/code-arena/battles/${b.id}`} className="btn btn-secondary" style={{ width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: 'var(--text-xs)' }}>
+                <div className="battle-enter-btn-wrapper">
+                  <Link href={`/code-arena/battles/${b.id}`} className="btn btn-secondary battle-enter-btn">
                     Enter Battle <ArrowRight size={14} />
                   </Link>
                 </div>
@@ -166,8 +166,8 @@ export default function CodeArenaClientHome({
 
       {/* Practice Problems Section */}
       <section>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-md)' }}>
-          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, margin: 0 }}>Curated Practice Problems</h2>
+        <div className="section-header-row">
+          <h2>Curated Practice Problems</h2>
         </div>
 
         <div className="problem-grid">

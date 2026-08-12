@@ -29,7 +29,7 @@ function PlatformBadge({ platform }: { platform: string | null | undefined }) {
   };
   const c = colors[label] || colors.BCE;
   return (
-    <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '10px', background: c.bg, color: c.color, border: `1px solid ${c.border}` }}>
+    <span className="platform-badge-pill" style={{ background: c.bg, color: c.color, border: `1px solid ${c.border}` }}>
       ● {label === 'INTERNAL' ? 'BCE' : label}
     </span>
   );
@@ -39,16 +39,16 @@ function DifficultyBadge({ difficulty }: { difficulty?: string }) {
   const d = difficulty?.toUpperCase() || 'EASY';
   const colors: Record<string, string> = { EASY: 'var(--neon-lime)', MEDIUM: 'var(--neon-gold)', HARD: 'var(--neon-pink)' };
   return (
-    <span style={{ fontSize: '10px', fontWeight: 700, color: colors[d] || 'var(--text-muted)' }}>
+    <span className="difficulty-badge" style={{ color: colors[d] || 'var(--text-muted)' }}>
       ⚡ {d}
     </span>
   );
 }
 
 function SolvedStatusIcon({ status }: { status?: string }) {
-  if (status === 'solved') return <CheckCircle2 size={16} style={{ color: '#4ade80' }} />;
-  if (status === 'attempted') return <Dot size={20} style={{ color: '#facc15' }} />;
-  return <Circle size={14} style={{ color: 'var(--text-muted)' }} />;
+  if (status === 'solved') return <CheckCircle2 size={16} className="solved-status-icon-styled solved" />;
+  if (status === 'attempted') return <Dot size={20} className="solved-status-icon-styled attempted" />;
+  return <Circle size={14} className="solved-status-icon-styled" />;
 }
 
 export default function ProblemCard({ problem }: { problem: ProblemCardData }) {
@@ -66,10 +66,10 @@ export default function ProblemCard({ problem }: { problem: ProblemCardData }) {
   return (
     <div className="hub-problem-card">
       {/* Top Row: Status + Platform */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+      <div className="problem-card-top-row">
+        <div className="problem-card-status-wrapper">
           <SolvedStatusIcon status={problem.solvedStatus} />
-          <span style={{ fontSize: '10px', color: problem.solvedStatus === 'solved' ? '#4ade80' : problem.solvedStatus === 'attempted' ? '#facc15' : 'var(--text-muted)', fontWeight: 600 }}>
+          <span className={`solved-status-text ${problem.solvedStatus}`}>
             {problem.solvedStatus === 'solved' ? 'Solved' : problem.solvedStatus === 'attempted' ? 'Attempted' : 'Unsolved'}
           </span>
         </div>
@@ -82,16 +82,16 @@ export default function ProblemCard({ problem }: { problem: ProblemCardData }) {
       </h3>
 
       {/* Difficulty + Rating Row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+      <div className="problem-card-meta-row">
         <DifficultyBadge difficulty={problem.difficulty} />
-        {rating && <span style={{ fontSize: '10px', color: 'var(--neon-gold)', fontWeight: 600 }}>{rating} Rating</span>}
-        {timeSec && <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}><Clock size={10} /> {timeSec}</span>}
-        {memMb && <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}><HardDrive size={10} /> {memMb}</span>}
+        {rating && <span className="problem-rating-tag">{rating} Rating</span>}
+        {timeSec && <span className="problem-limit-tag"><Clock size={10} /> {timeSec}</span>}
+        {memMb && <span className="problem-limit-tag"><HardDrive size={10} /> {memMb}</span>}
       </div>
 
       {/* Tags */}
       {tags.length > 0 && (
-        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+        <div className="problem-card-tags-wrapper">
           {tags.map((tag) => (
             <span key={tag} className="hub-tag">{tag}</span>
           ))}
@@ -99,7 +99,7 @@ export default function ProblemCard({ problem }: { problem: ProblemCardData }) {
       )}
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: '8px', marginTop: 'auto', paddingTop: '8px' }}>
+      <div className="problem-card-action-row">
         <Link
           href={`/code-arena/problems/${problem.id}`}
           className="hub-solve-btn"

@@ -1,0 +1,37 @@
+# RLS Policy Recursion Fix for Code Arena
+
+We detected an infinite recursion bug under PostgreSQL due to RLS policies on `coding_battles` and `coding_battle_participants` referencing each other circularly.
+
+## Proposed Changes
+
+### Database Layer (Supabase)
+
+#### [NEW] [087_fix_code_arena_rls_recursion.sql](file:///d:/Institute/BCE/supabase/migrations/087_fix_code_arena_rls_recursion.sql)
+
+Create a new migration establishing:
+1. Four new `security definer` helper functions that bypass RLS checks internally when querying battle states:
+   - `public.code_arena_is_battle_creator(battle_uuid, user_uuid)`
+   - `public.code_arena_is_battle_participant(battle_uuid, student_uuid)`
+   - `public.code_arena_is_battle_live_participant(battle_uuid, student_uuid)`
+   - `public.code_arena_can_join_battle(battle_uuid, student_uuid)` (includes student-count `< 25` limit check)
+2. Replacements for the 7 circular/problematic RLS policies across `coding_battles`, `coding_battle_problems`, `coding_battle_participants`, and `coding_submissions`.
+
+---
+
+### Migration Runner
+
+#### [NEW] [apply_087.ts](file:///d:/Institute/BCE/src/scripts/apply_087.ts)
+
+Create a script to apply `087_fix_code_arena_rls_recursion.sql` automatically to the postgres instance using `DATABASE_URL` / `DIRECT_URL`.
+
+---
+
+## Verification Plan
+
+### Automated Run
+
+1. **Deploy Migration**: Run `npx ts-node src/scripts/apply_087.ts`
+2. **Execute Audit Script**: Run the existing `npx ts-node src/scripts/test_instructor_battle_flow.ts` to assert that battle creation and modification completes successfully without throwing recursive exceptions.
+
+### Manual Verification
+1. Create a battle in the `/instructor/code-arena` web flow to ensure "Saving Battle..." successfully persists battle and problems.

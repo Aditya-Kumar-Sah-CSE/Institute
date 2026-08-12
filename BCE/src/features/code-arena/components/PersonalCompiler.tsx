@@ -322,18 +322,6 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
                     schedule();
                   }}
                 >
-                  <X size={14} />
-                </button>
-                <button
-                  type="button"
-                  className="oj-icon-btn"
-                  aria-label="Delete input content"
-                  title="Delete input"
-                  onClick={() => {
-                    setStdin('');
-                    schedule();
-                  }}
-                >
                   <Trash2 size={14} />
                 </button>
                 <button

@@ -1,18 +1,28 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
 
-const envPath = path.resolve(process.cwd(), '.env.local');
-if (fs.existsSync(envPath)) {
-  const envContent = fs.readFileSync(envPath, 'utf8');
-  envContent.split('\n').forEach((line) => {
-    const eqIdx = line.indexOf('=');
-    if (eqIdx !== -1) {
-      const key = line.slice(0, eqIdx).trim();
-      const val = line.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, '');
-      process.env[key] = val;
-    }
-  });
+function loadEnv(file: string) {
+  const envPath = path.resolve(process.cwd(), file);
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    envContent.split('\n').forEach((line) => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) return;
+      const eqIdx = trimmed.indexOf('=');
+      if (eqIdx !== -1) {
+        const key = trimmed.slice(0, eqIdx).trim();
+        const val = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, '');
+        if (key) {
+          process.env[key] = val;
+        }
+      }
+    });
+  }
 }
+
+loadEnv('.env.local');
+loadEnv('.env');
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -50,7 +60,6 @@ async function runInstructorBattleTest() {
   // 1. Test Crypto Join Code format (BCE-XXXXX)
   console.log('Testing crypto join code format generation...');
   const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
-  const crypto = require('crypto');
   const bytes = crypto.randomBytes(5);
   let codeStr = '';
   for (let i = 0; i < 5; i++) {

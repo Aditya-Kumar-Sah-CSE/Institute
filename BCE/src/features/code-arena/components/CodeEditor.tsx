@@ -439,41 +439,18 @@ export default function CodeEditor({
                     : `● ${submissionResult.status || 'Evaluated'}`}
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      background: 'var(--bg-card)',
-                      border: '1px solid var(--glass-border)',
-                      padding: '8px 12px',
-                      borderRadius: 'var(--radius-sm)',
-                      fontSize: '12px',
-                    }}
-                  >
+                <div className="oj-testcases-list">
+                  <div className="oj-testcases-header">
                     <span style={{ fontWeight: 600 }}>Test Cases Evaluated</span>
-                    <strong style={{ color: submissionResult.status === 'ACCEPTED' ? 'var(--neon-emerald)' : '#f87171' }}>
+                    <strong style={{ color: submissionResult.status === 'ACCEPTED' ? 'var(--neon-green)' : '#f87171' }}>
                       {submissionResult.passed_tests || 0} / {submissionResult.total_tests || (samples ? samples.length : 1)} Passed
                     </strong>
                   </div>
 
                   {samples.map((sample, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        background: 'var(--bg-card)',
-                        border: '1px solid var(--glass-border)',
-                        padding: '6px 12px',
-                        borderRadius: 'var(--radius-sm)',
-                        fontSize: '12px',
-                      }}
-                    >
+                    <div key={idx} className="oj-testcase-row">
                       <span style={{ color: 'var(--text-muted)' }}>{sample.sample_name || `Sample Case #${idx + 1}`}</span>
-                      <span style={{ color: 'var(--neon-emerald)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <span className="oj-testcase-passed">
                         <CheckCircle2 size={13} /> Passed
                       </span>
                     </div>
