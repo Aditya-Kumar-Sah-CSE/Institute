@@ -12,11 +12,12 @@ export default function DashboardPolls({ polls, currentUserId }: DashboardPollsP
   const [isExpanded, setIsExpanded] = useState(false);
   
   
-  if (!polls || polls.length === 0) return null;
-  
   const activePolls = React.useMemo(() => {
+    if (!polls) return [];
     return polls.filter(poll => !poll.expires_at || new Date(poll.expires_at) >= new Date());
   }, [polls]);
+
+  if (!polls || polls.length === 0) return null;
   if (activePolls.length === 0) return null;
 
   const displayedPolls = isExpanded ? activePolls : activePolls.slice(0, 1);

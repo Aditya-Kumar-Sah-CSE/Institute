@@ -142,22 +142,22 @@ export default function BadgeCelebrator() {
     }
   }, [unseenBadges, currentBadge]);
 
-  const showNextBadge = () => {
+  function showNextBadge() {
     if (unseenBadges.length === 0) return;
     
     const badgeData = unseenBadges[0];
     setCurrentBadge(badgeData);
 
     // After 5 seconds, auto-dismiss
-    const timer = setTimeout(() => {
+    setTimeout(() => {
       dismissCurrentBadge(badgeData.id);
     }, 5000);
     
     // Store timer if we wanted to clear it on manual dismiss, but simple approach is fine
     // just let it fire, if currentBadge is already null it's safe.
-  };
+  }
 
-  const dismissCurrentBadge = async (badgeId: string) => {
+  async function dismissCurrentBadge(badgeId: string) {
     try {
       await fetch('/api/gamification/badges', {
         method: 'POST',
@@ -172,7 +172,7 @@ export default function BadgeCelebrator() {
     
     setCurrentBadge(null);
     setUnseenBadges((prev) => prev.slice(1));
-  };
+  }
 
   if (!currentBadge || !currentBadge.badges) return null;
 
