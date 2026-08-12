@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Clock, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Clock, AlertTriangle } from 'lucide-react';
 
 interface BattleTimerProps {
   endTime: string | null;
@@ -9,36 +9,81 @@ interface BattleTimerProps {
   onTimerExpired?: () => void;
 }
 
-export default function BattleTimer({ endTime, serverNow, onTimerExpired }: BattleTimerProps) {
+export default function BattleTimer({
+  endTime,
+  serverNow,
+  onTimerExpired,
+}: BattleTimerProps) {
   const [remainingMs, setRemainingMs] = useState<number | null>(null);
+
+  // Always keep the latest callback without making the timer effect
+  // restart whenever the parent creates a new callback function.
+  const onTimerExpiredRef = useRef(onTimerExpired);
+  const hasExpiredRef = useRef(false);
+
+  useEffect(() => {
+    onTimerExpiredRef.current = onTimerExpired;
+  }, [onTimerExpired]);
 
   useEffect(() => {
     if (!endTime) {
-      setRemainingMs(null);
+      hasExpiredRef.current = false;
+
+      setRemainingMs((prev) => (prev === null ? prev : null));
+
       return;
     }
 
     const targetTime = new Date(endTime).getTime();
-    // Compute server clock offset if serverNow provided
-    const clockOffset = serverNow ? new Date(serverNow).getTime() - Date.now() : 0;
+
+    if (!Number.isFinite(targetTime)) {
+      setRemainingMs(null);
+      return;
+    }
+
+    // Calculate server clock offset once for this timer lifecycle.
+    const clockOffset = serverNow
+      ? new Date(serverNow).getTime() - Date.now()
+      : 0;
+
+    // New battle/timer lifecycle.
+    hasExpiredRef.current = false;
 
     const updateTimer = () => {
       const effectiveNow = Date.now() + clockOffset;
       const diff = targetTime - effectiveNow;
 
       if (diff <= 0) {
-        setRemainingMs(0);
-        if (onTimerExpired) onTimerExpired();
-      } else {
-        setRemainingMs(diff);
+        // Stop updating once expired.
+        setRemainingMs((prev) => (prev === 0 ? prev : 0));
+
+        // Fire expiration callback exactly once.
+        if (!hasExpiredRef.current) {
+          hasExpiredRef.current = true;
+          onTimerExpiredRef.current?.();
+        }
+
+        return;
       }
+
+      // Avoid unnecessary state updates.
+      setRemainingMs((prev) => {
+        if (prev !== null && Math.abs(prev - diff) < 250) {
+          return prev;
+        }
+
+        return diff;
+      });
     };
 
     updateTimer();
-    const interval = setInterval(updateTimer, 1000);
 
-    return () => clearInterval(interval);
-  }, [endTime, serverNow, onTimerExpired]);
+    const interval = window.setInterval(updateTimer, 1000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [endTime, serverNow]);
 
   if (!endTime) {
     return (
@@ -56,15 +101,25 @@ export default function BattleTimer({ endTime, serverNow, onTimerExpired }: Batt
           fontWeight: 600,
         }}
       >
-        <Clock size={14} /> Waiting to start
+        <Clock size={14} />
+        Waiting to start
       </div>
     );
   }
 
   if (remainingMs === null) {
     return (
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
-        <Clock size={16} /> --:--
+      <div
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          color: 'var(--text-muted)',
+          fontSize: 'var(--text-sm)',
+        }}
+      >
+        <Clock size={16} />
+        --:--
       </div>
     );
   }
@@ -85,7 +140,8 @@ export default function BattleTimer({ endTime, serverNow, onTimerExpired }: Batt
           fontWeight: 800,
         }}
       >
-        <AlertTriangle size={16} /> 00:00 (Battle Ended)
+        <AlertTriangle size={16} />
+        00:00 (Battle Ended)
       </div>
     );
   }
@@ -97,7 +153,9 @@ export default function BattleTimer({ endTime, serverNow, onTimerExpired }: Batt
   const isCritical = minutes < 1;
   const isWarning = minutes < 5;
 
-  const formattedTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  const formattedTime =
+    `${String(minutes).padStart(2, '0')}:` +
+    `${String(seconds).padStart(2, '0')}`;
 
   let bg = 'rgba(6,182,212,0.1)';
   let border = '1px solid var(--neon-cyan)';
@@ -122,15 +180,18 @@ export default function BattleTimer({ endTime, serverNow, onTimerExpired }: Batt
         padding: '4px 12px',
         borderRadius: '12px',
         background: bg,
-        border: border,
+        border,
         color: textColor,
         fontSize: 'var(--text-sm)',
         fontWeight: 800,
         letterSpacing: '1px',
-        boxShadow: isCritical ? '0 0 10px rgba(239,68,68,0.4)' : undefined,
+        boxShadow: isCritical
+          ? '0 0 10px rgba(239,68,68,0.4)'
+          : undefined,
       }}
     >
-      <Clock size={16} /> {formattedTime}
+      <Clock size={16} />
+      {formattedTime}
     </div>
   );
 }
