@@ -173,7 +173,6 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
                   {(profile?.xp ?? 0).toLocaleString('en-US')} <span style={{ fontSize: '0.8rem', fontWeight: 600, opacity: 0.85 }}>XP</span>
                 </div>
                 <div className="text-secondary stat-card-label">Total XP</div>
-                <span style={{ fontSize: '10px', color: 'var(--neon-cyan)', marginTop: '2px', fontWeight: 'bold' }}>Leaderboard 🏆 →</span>
               </div>
             </Card>
           </Link>
@@ -188,7 +187,6 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
                   {profile?.streak_days ?? 0} <span style={{ fontSize: '0.8rem', fontWeight: 600, opacity: 0.85 }}>Days</span>
                 </div>
                 <div className="text-secondary stat-card-label">Day Streak</div>
-                <span style={{ fontSize: '10px', color: 'var(--neon-magenta)', marginTop: '2px', fontWeight: 'bold' }}>Streak Details 🔥 →</span>
               </div>
             </Card>
           </Link>
@@ -203,7 +201,6 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
                   {completedAssignments || 0} <span style={{ fontSize: '0.8rem', fontWeight: 600, opacity: 0.85 }}>Tasks</span>
                 </div>
                 <div className="text-secondary stat-card-label">Tasks Completed</div>
-                <span style={{ fontSize: '10px', color: 'var(--neon-lime)', marginTop: '2px', fontWeight: 'bold' }}>My Courses 🎯 →</span>
               </div>
             </Card>
           </Link>
@@ -218,7 +215,6 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
                   {earnedBadges || 0} <span style={{ fontSize: '0.8rem', fontWeight: 600, opacity: 0.85 }}>Badges</span>
                 </div>
                 <div className="text-secondary stat-card-label">Badges Earned</div>
-                <span style={{ fontSize: '10px', color: 'var(--neon-gold)', marginTop: '2px', fontWeight: 'bold' }}>Badges Collection 🎖️ →</span>
               </div>
             </Card>
           </Link>

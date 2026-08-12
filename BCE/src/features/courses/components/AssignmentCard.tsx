@@ -7,6 +7,7 @@ import Button from '@/components/ui/Button';
 import Input, { TextArea } from '@/components/ui/Input';
 import LazyAttachment from '@/components/ui/LazyAttachment';
 import type { Assignment, Submission } from '@/types';
+import { parseAttachmentUrls } from '@/lib/attachments';
 import './AssignmentCard.css';
 
 interface AssignmentCardProps {
@@ -62,26 +63,33 @@ export default function AssignmentCard({ assignment, submission, communitySubmis
         </div>
       </div>
 
+      {(() => {
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        const descriptionUrls = (assignment.description || '').match(urlRegex) || [];
+        const attachmentUrls = parseAttachmentUrls(assignment.expected_output);
+        const allUrls = Array.from(new Set([...descriptionUrls, ...attachmentUrls]));
+        if (allUrls.length === 0) return null;
+        
+        return (
+          <div style={{ marginBottom: 'var(--space-md)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--space-sm)' }}>
+              {allUrls.map((url, idx) => {
+                const isPdf = url.split('?')[0].toLowerCase().endsWith('.pdf');
+                return (
+                  <div key={`desc-att-${idx}`}>
+                    <LazyAttachment url={url} type={isPdf ? 'pdf' : 'image'} title={`Attachment ${idx + 1}`} />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
       <div className="assignment-desc" style={{ whiteSpace: 'pre-wrap' }}>
         {(() => {
           const urlRegex = /(https?:\/\/[^\s]+)/g;
           return (assignment.description || '').replace(urlRegex, '').trim();
-        })()}
-        {(() => {
-          const urlRegex = /(https?:\/\/[^\s]+)/g;
-          const descriptionUrls = (assignment.description || '').match(urlRegex) || [];
-          if (descriptionUrls.length === 0) return null;
-          
-          return (
-            <div style={{ marginTop: 'var(--space-sm)' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--space-sm)' }}>
-                {descriptionUrls.map((url, idx) => {
-                  const isPdf = url.split('?')[0].toLowerCase().endsWith('.pdf');
-                  return <LazyAttachment key={`desc-att-${idx}`} url={url} type={isPdf ? 'pdf' : 'image'} title={`Attachment ${idx + 1}`} />;
-                })}
-              </div>
-            </div>
-          );
         })()}
       </div>
 

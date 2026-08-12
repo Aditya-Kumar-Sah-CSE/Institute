@@ -95,19 +95,12 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
     baseNavItems = baseNavItems.filter(item => item.label !== 'Feedback');
   }
 
-  // Ensure role-based panel navigation links are dynamically included in main nav items
-  const extraNavItems: { label: string; href: string; icon: string }[] = [];
+  // Removed dynamic role-based extra nav items as they clutter the student mobile view.
+  // Administrative switching is handled in the sidebar footer natively instead.
   const isInstructorUser = isInstructorRole(profile.role);
   const isAdminUser = isAdminRole(profile.role);
 
-  if (isInstructorUser && !baseNavItems.some(i => i.href === '/instructor')) {
-    extraNavItems.push({ label: 'Instructor Panel', href: '/instructor', icon: 'Instructors' });
-  }
-  if (isAdminUser && !baseNavItems.some(i => i.href === '/admin')) {
-    extraNavItems.push({ label: 'Admin Panel', href: '/admin', icon: 'Admin' });
-  }
-
-  const navItems = [...baseNavItems, ...extraNavItems];
+  const navItems = [...baseNavItems];
 
   if (isCollapsed) {
     return null; // The toggle button is now in Navbar.tsx

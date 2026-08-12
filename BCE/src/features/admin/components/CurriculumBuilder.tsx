@@ -311,7 +311,9 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                             borderRadius: '10px',
                             textDecoration: 'none',
                             color: 'inherit',
-                            maxWidth: '320px',
+                            width: '100%',
+                            maxWidth: '100%',
+                            flex: '1 1 250px',
                             transition: 'all 0.2s ease',
                             cursor: 'pointer',
                           }}
@@ -331,7 +333,7 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                             <div style={{ fontSize: '12px', fontWeight: 600, color: isYouTube ? '#ff4444' : 'var(--neon-cyan)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                               {isYouTube ? '▶ YouTube Video' : '🔗 External Link'}
                             </div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '24ch' }}>
                               {lesson.youtube_url}
                             </div>
                           </div>
@@ -363,7 +365,9 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                               borderRadius: '10px',
                               textDecoration: 'none',
                               color: 'inherit',
-                              maxWidth: isImg ? '140px' : '260px',
+                              width: '100%',
+                              maxWidth: '100%',
+                              flex: '1 1 250px',
                               transition: 'all 0.2s ease',
                               cursor: 'pointer',
                             }}
@@ -458,7 +462,7 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                                             textDecoration: 'none',
                                             color: 'inherit',
                                             width: '100%',
-                                            maxWidth: '220px'
+                                            maxWidth: '240px'
                                           }}
                                         >
                                           {isImg ? (
