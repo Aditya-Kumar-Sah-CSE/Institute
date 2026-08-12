@@ -113,6 +113,7 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
     <aside className={`sidebar view-${currentView} ${isChatRoute ? 'chat-active' : ''} ${isNavWrapped ? 'mobile-collapsed' : ''}`}>
       <div className="sidebar-header" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
         <button 
+          suppressHydrationWarning
           onClick={() => setIsCollapsed(true)} 
           className="desktop-only-btn"
           style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0, marginLeft: '-8px' }}
@@ -188,6 +189,7 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
 
       <nav className="sidebar-nav">
         <button 
+          suppressHydrationWarning
           className="wrap-toggle-btn"
           onClick={() => setIsNavWrapped(!isNavWrapped)}
           style={{ background: 'none', border: 'none', color: 'var(--neon-cyan)', padding: 0, margin: 0, cursor: 'pointer', alignItems: 'center', justifyContent: 'center' }}
@@ -230,13 +232,13 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
           </a>
         )}
         {isInstallable && (
-          <button type="button" onClick={handleInstallClick} className="sidebar-nav-item" style={{ color: 'var(--neon-lime)', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px' }}>
+          <button suppressHydrationWarning type="button" onClick={handleInstallClick} className="sidebar-nav-item" style={{ color: 'var(--neon-lime)', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px' }}>
             <span className="sidebar-nav-icon"><Download className="w-5 h-5" /></span>
             <span className="sidebar-nav-label">Install App</span>
           </button>
         )}
         <form action={signOut}>
-          <button type="submit" className="sidebar-nav-item sidebar-logout">
+          <button suppressHydrationWarning type="submit" className="sidebar-nav-item sidebar-logout">
             <span className="sidebar-nav-icon"><LogOut className="w-5 h-5" /></span>
             <span className="sidebar-nav-label">Logout</span>
           </button>

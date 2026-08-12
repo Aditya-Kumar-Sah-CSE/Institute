@@ -1,6 +1,6 @@
 'use client';
 
-import { Trophy, Star, CheckCircle2, Code2, Flame, Clock } from 'lucide-react';
+import { Trophy, Star, Code2, Flame } from 'lucide-react';
 
 interface AccountData {
   platform: string;

@@ -1,54 +1,68 @@
 import { redirect } from 'next/navigation';
-import Card from '@/components/ui/Card';
 import { getCodeArenaActor } from '@/features/code-arena/server';
-import CodingAccounts from '@/features/code-arena/components/CodingAccounts';
-import CompetitiveProgress from '@/features/code-arena/components/CompetitiveProgress';
+import CodingProfileHero from '@/features/code-arena/components/profile/CodingProfileHero';
+import CompetitiveOverview from '@/features/code-arena/components/profile/CompetitiveOverview';
+import CodeforcesProfileCard from '@/features/code-arena/components/profile/CodeforcesProfileCard';
+import LeetCodeProfileCard from '@/features/code-arena/components/profile/LeetCodeProfileCard';
+import RecentCodingActivity from '@/features/code-arena/components/profile/RecentCodingActivity';
 import '@/features/code-arena/components/CodeArena.css';
 
 export default async function CodingProfilePage() {
   const { supabase, user } = await getCodeArenaActor();
   if (!user) redirect('/login');
 
-  const [{ count: solved }, { count: battles }, { data: accounts }] = await Promise.all([
-    supabase
-      .from('coding_submissions')
-      .select('problem_id', { count: 'exact', head: true })
-      .eq('student_id', user.id)
-      .eq('status', 'ACCEPTED'),
-    supabase
-      .from('coding_battle_participants')
-      .select('*', { count: 'exact', head: true })
-      .eq('student_id', user.id),
-    supabase
-      .from('student_external_accounts')
-      .select('platform, username, rating, max_rating, rank, profile_url, problems_solved, easy_solved, medium_solved, hard_solved, last_synced_at')
-      .eq('student_id', user.id),
+  const [
+    { data: profile },
+    { count: bceSolved }, 
+    { count: battles },
+    { data: accounts }
+  ] = await Promise.all([
+    supabase.from('profiles').select('*').eq('id', user.id).single(),
+    supabase.from('coding_submissions').select('problem_id', { count: 'exact', head: true }).eq('student_id', user.id).eq('status', 'ACCEPTED'),
+    supabase.from('coding_battle_participants').select('*', { count: 'exact', head: true }).eq('student_id', user.id),
+    supabase.from('student_external_accounts').select('*').eq('student_id', user.id),
   ]);
 
+  const cfAccount = accounts?.find(a => a.platform === 'CODEFORCES');
+  const lcAccount = accounts?.find(a => a.platform === 'LEETCODE');
+  
+  // Total Submissions from BCE to merge into activity
+  const { data: bceSubmissions } = await supabase
+    .from('coding_submissions')
+    .select('id, problem_id, status, language, created_at, coding_problems(title, difficulty, provider)')
+    .eq('student_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(5);
+
   return (
-    <div className="code-arena-page" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
-      <div>
-        <h1 className="text-gradient" style={{ fontSize: 'var(--text-2xl)', fontWeight: 800 }}>
-          Coding Profile
-        </h1>
-        <p className="text-secondary" style={{ fontSize: 'var(--text-sm)' }}>
-          Your BCE coding history, competitive stats, and connected accounts.
-        </p>
-      </div>
-
-      {/* Competitive Progress Widget */}
-      <CompetitiveProgress
-        bceSolved={solved || 0}
-        battlesPlayed={battles || 0}
-        accounts={accounts || []}
+    <div className="code-arena-profile-page">
+      <CodingProfileHero 
+        profile={profile} 
+        codeforcesConnected={!!cfAccount}
+        leetCodeConnected={!!lcAccount}
       />
+      
+      <div className="profile-grid-container">
+        <div className="profile-main-column">
+          <CompetitiveOverview
+            bceSolved={bceSolved || 0}
+            streak={profile?.streak_days || 0}
+            cfRating={cfAccount?.rating || null}
+            lcSolved={lcAccount?.problems_solved || null}
+          />
+          
+          <div className="platform-cards-grid">
+            <CodeforcesProfileCard account={cfAccount} />
+            <LeetCodeProfileCard account={lcAccount} />
+          </div>
+        </div>
 
-      {/* Connected Accounts */}
-      <div>
-        <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, margin: '0 0 var(--space-md) 0' }}>
-          Connected Accounts
-        </h2>
-        <CodingAccounts initial={accounts || []} />
+        <div className="profile-side-column">
+          <RecentCodingActivity 
+            bceRecent={bceSubmissions || []} 
+            cfRecent={cfAccount?.metadata?.recent_submissions || []} 
+          />
+        </div>
       </div>
     </div>
   );

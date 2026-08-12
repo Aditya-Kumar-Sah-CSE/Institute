@@ -104,7 +104,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
 
   return (
     <div className="notification-bell-container" ref={dropdownRef}>
-      <button className="bell-btn" onClick={() => setIsOpen(!isOpen)}>
+      <button suppressHydrationWarning className="bell-btn" onClick={() => setIsOpen(!isOpen)}>
         🔔
         {unreadCount > 0 && <span className="notification-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>}
       </button>
