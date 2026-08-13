@@ -27,6 +27,7 @@ export default function ChatInterface() {
   const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
   const [suggestedUsers, setSuggestedUsers] = useState<any[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+  const [showParticipantsModal, setShowParticipantsModal] = useState(false);
   const activeChannelRef = useRef<any>(null);
   const supabase = createClient();
 
@@ -359,7 +360,21 @@ export default function ChatInterface() {
                     <h3 style={{ margin: 0, fontWeight: 'bold', color: 'var(--text-primary)', fontSize: '15px' }}>{getChatName(activeChat)}</h3>
                     {(() => {
                        if (activeChat.type === 'group') {
-                         return <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>{activeChat.members?.length || 0} participants</p>;
+                          return (
+                            <p 
+                              onClick={() => setShowParticipantsModal(true)}
+                              style={{ 
+                                margin: 0, 
+                                fontSize: '12px', 
+                                color: 'var(--text-muted)', 
+                                cursor: 'pointer',
+                                textDecoration: 'underline',
+                                display: 'inline-block'
+                              }}
+                            >
+                              {activeChat.members?.length || 0} participants
+                            </p>
+                          );
                        }
                        const peer = activeChat.members?.find(p => p.user_id !== currentUserId);
                        const isOnline = peer ? onlineUsers.has(peer.user_id) : false;
@@ -461,6 +476,123 @@ export default function ChatInterface() {
           console.groupEnd();
         }} 
       />
+
+      {showParticipantsModal && activeChat && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          backdropFilter: 'blur(6px)',
+          padding: '16px'
+        }}>
+          <div style={{
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-default)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '24px',
+            maxWidth: '400px',
+            width: '100%',
+            color: 'var(--text-primary)',
+            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            animation: 'fadeInUp 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-divider)', paddingBottom: '12px' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Users size={18} style={{ color: 'var(--neon-cyan)' }} /> Group Participants
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowParticipantsModal(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', display: 'flex' }}
+                aria-label="Close modal"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '300px', overflowY: 'auto', paddingRight: '4px' }} className="no-scrollbar">
+              {activeChat.members?.map((member: any) => {
+                const prof = member.profile || {};
+                const isUserOnline = onlineUsers.has(member.user_id);
+                
+                // Get role designation string & color
+                let designation = 'Student';
+                let desColor = 'var(--neon-gold)';
+                if (prof.role === 'admin') {
+                  designation = 'Admin';
+                  desColor = 'var(--neon-pink)';
+                } else if (prof.role === 'instructor') {
+                  designation = 'Instructor';
+                  desColor = 'var(--neon-cyan)';
+                } else {
+                  designation = `Student (Lvl ${prof.level || 1})`;
+                }
+
+                return (
+                  <div key={member.user_id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderRadius: '8px', background: 'var(--bg-elevated)', border: '1px solid var(--glass-border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ position: 'relative', width: '36px', height: '36px', borderRadius: '50%', overflow: 'hidden', border: '1px solid var(--border-default)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-secondary)' }}>
+                        {prof.avatar_url ? (
+                          <Image src={prof.avatar_url} alt={prof.name || 'User'} fill style={{ objectFit: 'cover' }} unoptimized />
+                        ) : (
+                          <UserIcon size={16} style={{ color: 'var(--text-muted)' }} />
+                        )}
+                        {isUserOnline && (
+                          <span style={{ position: 'absolute', bottom: 0, right: 0, width: '8px', height: '8px', borderRadius: '50%', background: 'var(--neon-lime)', border: '1px solid var(--bg-secondary)' }}></span>
+                        )}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {prof.name || 'Member'}
+                          {member.role === 'admin' && (
+                            <span style={{ fontSize: '9px', padding: '1px 4px', borderRadius: '4px', background: 'rgba(219,39,119,0.1)', color: 'var(--neon-pink)', fontWeight: 600 }}>Admin</span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                          {member.user_id === currentUserId ? 'You' : isUserOnline ? 'Online' : 'Offline'}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <span style={{ fontSize: '10px', fontWeight: 700, color: desColor, border: `1px solid ${desColor}40`, padding: '2px 8px', borderRadius: '12px', background: `${desColor}10`, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      {designation}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+              <button
+                type="button"
+                onClick={() => setShowParticipantsModal(false)}
+                style={{
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border-default)',
+                  color: 'var(--text-primary)',
+                  padding: '8px 16px',
+                  borderRadius: 'var(--radius-sm)',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontWeight: 600
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
