@@ -9,14 +9,49 @@ import {
 import ProblemCard from './ProblemCard';
 import type { ProblemCardData } from './ProblemCard';
 import MobileCodeArenaToggle from './MobileCodeArenaToggle';
+import Modal from '@/components/ui/Modal';
 import './CodeArena.css';
 
 const PLATFORMS = ['All', 'CODEFORCES', 'LEETCODE', 'BCE'] as const;
 const DIFFICULTIES = ['All', 'EASY', 'MEDIUM', 'HARD'] as const;
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function ProblemHubClient({ userId }: { userId: string }) {
   const [problems, setProblems] = useState<ProblemCardData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importPlatform, setImportPlatform] = useState<'CODEFORCES' | 'LEETCODE'>('CODEFORCES');
+  const [importProblemId, setImportProblemId] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState('');
+
+  const handleImport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!importProblemId.trim()) {
+      setImportError('Problem identifier or URL is required.');
+      return;
+    }
+    setImporting(true);
+    setImportError('');
+    try {
+      const res = await fetch('/api/coding/problems/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          input: importProblemId.trim(),
+          platform: importPlatform,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error?.message || 'Failed to import problem from external platform.');
+      }
+      window.location.href = `/code-arena/problems/${json.data.problem.id}`;
+    } catch (err: any) {
+      setImportError(err.message || 'An error occurred during import.');
+      setImporting(false);
+    }
+  };
   const [search, setSearch] = useState('');
   const [platform, setPlatform] = useState('');
   const [difficulty, setDifficulty] = useState('');
@@ -107,6 +142,18 @@ export default function ProblemHubClient({ userId }: { userId: string }) {
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => {
+              setShowImportModal(true);
+              setImportError('');
+              setImportProblemId('');
+            }}
+            className="btn btn-primary animate-pulse"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)' }}
+          >
+            <Plus size={14} /> Import Problem
+          </button>
           <Link href="/code-arena" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)' }}>
             <Swords size={14} /> Battles
           </Link>
@@ -289,6 +336,91 @@ export default function ProblemHubClient({ userId }: { userId: string }) {
           </button>
         </div>
       )}
+
+      {/* Modal Import */}
+      <Modal isOpen={showImportModal} onClose={() => !importing && setShowImportModal(false)} title="Import CP Problem" size="md">
+        <form onSubmit={handleImport} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: 0 }}>
+            Enter a Codeforces Contest + Index (e.g., <code>4A</code>, <code>1985A</code>) or LeetCode slug (e.g., <code>two-sum</code>), or copy-paste the full problem URL. We will download the statements and official testcases.
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <span style={{ fontSize: '11px', fontWeight: 650, color: 'var(--text-muted)' }}>SELECT PLATFORM</span>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                className={`hub-chip ${importPlatform === 'CODEFORCES' ? 'active' : ''}`}
+                onClick={() => setImportPlatform('CODEFORCES')}
+                style={{ flex: 1, padding: '10px', display: 'flex', justifyContent: 'center', fontWeight: 'bold' }}
+              >
+                Codeforces
+              </button>
+              <button
+                type="button"
+                className={`hub-chip ${importPlatform === 'LEETCODE' ? 'active' : ''}`}
+                onClick={() => setImportPlatform('LEETCODE')}
+                style={{ flex: 1, padding: '10px', display: 'flex', justifyContent: 'center', fontWeight: 'bold' }}
+              >
+                LeetCode
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <span style={{ fontSize: '11px', fontWeight: 650, color: 'var(--text-muted)' }}>PROBLEM ID OR URL</span>
+            <input
+              type="text"
+              placeholder={importPlatform === 'CODEFORCES' ? "e.g., 4A, 1982B, or URL" : "e.g., two-sum, reverse-integer, or URL"}
+              value={importProblemId}
+              onChange={(e) => setImportProblemId(e.target.value)}
+              disabled={importing}
+              style={{
+                padding: '10px 14px',
+                borderRadius: 'var(--radius-md)',
+                background: 'rgba(0,0,0,0.2)',
+                border: '1px solid var(--glass-border)',
+                color: 'white',
+                fontSize: 'var(--text-sm)',
+                outline: 'none',
+                width: '100%',
+              }}
+            />
+          </div>
+
+          {importError && (
+            <div style={{ padding: '10px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 'var(--radius-md)', color: '#ef4444', fontSize: 'var(--text-xs)' }}>
+              {importError}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '8px' }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setShowImportModal(false)}
+              disabled={importing}
+              style={{ fontSize: 'var(--text-xs)' }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={importing}
+              style={{ fontSize: 'var(--text-xs)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              {importing ? (
+                <>
+                  <div className="hub-loading-spinner" style={{ width: '12px', height: '12px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white' }} />
+                  Importing...
+                </>
+              ) : (
+                'Import & Solve'
+              )}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
