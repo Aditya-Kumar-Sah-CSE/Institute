@@ -141,7 +141,7 @@ export default function ProblemHubClient({ userId }: { userId: string }) {
             Practice Codeforces, LeetCode and BCE problems directly inside BCE.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div className="hub-hero-actions">
           <button
             type="button"
             onClick={() => {
