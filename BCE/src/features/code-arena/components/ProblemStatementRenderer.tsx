@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import DOMPurify from 'dompurify';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import type { CodeLanguage } from '../types';
 import {
   FileText,
   ListChecks,
@@ -53,6 +54,12 @@ export interface ProblemData {
   tags?: string[];
   samples?: ProblemSample[];
   examples?: ProblemSample[];
+  explanation?: string | null;
+  hasSolved?: boolean;
+  hasAttempted?: boolean;
+  supported_languages?: CodeLanguage[];
+  external_problem_id?: string | null;
+  externalId?: string | null;
 }
 
 export function ExampleCopyBlock({ label, content }: { label: string; content: string }) {
@@ -121,10 +128,15 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
   }
 
   const trimmed = rawContent.trim();
-  const hasHtml = /<[a-z][\s\S]*>/i.test(trimmed);
+  let contentToRender = trimmed;
+  // Replace relative URLs to Codeforces assets
+  contentToRender = contentToRender.replace(/src="\/(predownloaded|images|assets)\/([^"]+)"/g, 'src="https://codeforces.com/$1/$2"');
+  contentToRender = contentToRender.replace(/src='\/(predownloaded|images|assets)\/([^']+)'/g, "src='https://codeforces.com/$1/$2'");
+
+  const hasHtml = /<[a-z][\s\S]*>/i.test(contentToRender);
 
   if (hasHtml && typeof window !== 'undefined') {
-    const cleanHtml = DOMPurify.sanitize(trimmed, {
+    const cleanHtml = DOMPurify.sanitize(contentToRender, {
       ADD_TAGS: ['iframe', 'table', 'thead', 'tbody', 'tr', 'th', 'td'],
       ADD_ATTR: ['target', 'rel', 'colspan', 'rowspan'],
     });
@@ -140,7 +152,7 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
   // Fallback to Markdown or plain text
   return (
     <div className="problem-statement-body" style={{ fontSize: 'var(--text-sm)', lineHeight: '1.65', color: 'var(--text-main)' }}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{trimmed}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{contentToRender}</ReactMarkdown>
     </div>
   );
 }
@@ -196,11 +208,21 @@ export default function ProblemStatementRenderer({ problem }: { problem: Problem
           <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             <HardDrive size={12} /> {memMb}
           </span>
+          {problem.hasSolved && (
+            <span style={{ fontSize: '11px', color: 'var(--neon-emerald)', background: 'rgba(16,185,129,0.1)', padding: '2px 8px', borderRadius: '10px', fontWeight: 600 }}>
+              ✓ Solved
+            </span>
+          )}
+          {!problem.hasSolved && problem.hasAttempted && (
+            <span style={{ fontSize: '11px', color: 'var(--neon-orange)', background: 'rgba(249,115,22,0.1)', padding: '2px 8px', borderRadius: '10px', fontWeight: 600 }}>
+              ● Attempted
+            </span>
+          )}
         </div>
 
         {/* Problem Title & ID */}
         <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 800, margin: '4px 0 8px 0', color: 'var(--text-main)' }}>
-          {externalId ? `${externalId} — ` : ''}{problem.title}
+          {problem.title.startsWith(externalId || '___') ? problem.title : `${externalId ? `${externalId} — ` : ''}${problem.title}`}
         </h1>
 
         {/* Tags */}
@@ -325,6 +347,16 @@ export default function ProblemStatementRenderer({ problem }: { problem: Problem
         </div>
         <SafeContentRenderer rawContent={rawOutputDesc} />
       </section>
+
+      {/* Notes / Explanation Section */}
+      {problem.explanation && (
+        <section style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-xs)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+            <FileText size={14} style={{ color: 'var(--neon-purple)' }} /> Notes (Explanation)
+          </div>
+          <SafeContentRenderer rawContent={problem.explanation} />
+        </section>
+      )}
 
       {/* Examples / Samples Section */}
       <section style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: 'var(--space-xs)' }}>

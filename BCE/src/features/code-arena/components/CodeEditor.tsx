@@ -20,6 +20,8 @@ import {
   Zap,
 } from 'lucide-react';
 import type { CodeLanguage, NormalizedExecutionResult } from '../types';
+import { useRouter } from 'next/navigation';
+import type { ProblemData } from './ProblemStatementRenderer';
 import './CodeArena.css';
 
 const Editor = dynamic(() => import('@monaco-editor/react'), {
@@ -46,14 +48,16 @@ const starters: Record<CodeLanguage, string> = {
 type ConsoleTab = 'output' | 'error' | 'input' | 'tests';
 
 export default function CodeEditor({
-  problemId,
-  supportedLanguages = ['cpp17', 'c', 'java', 'python', 'javascript'],
+  problem,
   samples = [],
 }: {
-  problemId: string;
-  supportedLanguages?: CodeLanguage[];
+  problem: ProblemData;
   samples?: { input: string; expected_output: string; sample_name?: string | null }[];
 }) {
+  const problemId = problem.id;
+  const supportedLanguages = (problem.supported_languages || ['cpp17', 'c', 'java', 'python', 'javascript']) as CodeLanguage[];
+
+  const router = useRouter();
   const [language, setLanguage] = useState<CodeLanguage>(supportedLanguages[0] || 'cpp17');
   const [code, setCode] = useState(starters[supportedLanguages[0] || 'cpp17']);
   const [customInput, setCustomInput] = useState(samples[0]?.input || '');
@@ -64,6 +68,7 @@ export default function CodeEditor({
   const [submitting, setSubmitting] = useState(false);
   const [execResult, setExecResult] = useState<NormalizedExecutionResult | null>(null);
   const [submissionResult, setSubmissionResult] = useState<any | null>(null);
+  const [showCFModal, setShowCFModal] = useState(false);
 
   const resetCode = () => {
     if (confirm(`Reset code editor to starter template for ${language}?`)) {
@@ -137,6 +142,7 @@ export default function CodeEditor({
       } else {
         setSubmissionResult(payload.data);
         setActiveTab('tests');
+        router.refresh();
       }
     } catch (e: any) {
       setSubmissionResult({ error: 'Unable to submit solution. Please check network connection.' });
@@ -181,7 +187,7 @@ export default function CodeEditor({
                 outline: 'none',
               }}
             >
-              {supportedLanguages.map((item) => (
+              {supportedLanguages.map((item: CodeLanguage) => (
                 <option key={item} value={item}>
                   {item === 'cpp17' ? 'C++17' : item.toUpperCase()}
                 </option>
@@ -316,6 +322,30 @@ export default function CodeEditor({
               {running ? <LoaderCircle size={15} className="animate-spin" /> : <Play size={15} />}
               {running ? 'Running...' : 'Run Code'}
             </button>
+
+            {problem.source_type === 'CODEFORCES' && (
+              <button
+                type="button"
+                className="btn-submit-cf"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'linear-gradient(135deg, var(--neon-purple), var(--accent-red, #b91c1c))',
+                  border: 'none',
+                  color: 'white',
+                  fontSize: '13.5px',
+                  padding: '8px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'opacity 0.2s ease',
+                }}
+                onClick={() => setShowCFModal(true)}
+              >
+                <Zap size={14} /> Submit to Codeforces
+              </button>
+            )}
 
             <button
               type="button"
@@ -465,6 +495,116 @@ export default function CodeEditor({
           )}
         </div>
       </div>
+
+      {showCFModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          backdropFilter: 'blur(4px)',
+          padding: '16px'
+        }}>
+          <div style={{
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--glass-border)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '24px',
+            maxWidth: '480px',
+            width: '100%',
+            color: 'var(--text-main)',
+            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: 'var(--text-lg)', fontWeight: 800, color: 'var(--neon-purple)' }}>
+                Submit to Codeforces
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowCFModal(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+                aria-label="Close modal"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div style={{
+              background: 'rgba(124, 58, 237, 0.08)',
+              border: '1px solid rgba(124, 58, 237, 0.25)',
+              padding: '12px 16px',
+              borderRadius: 'var(--radius-md)',
+              color: 'var(--neon-purple)',
+              fontWeight: 700,
+              fontSize: 'var(--text-sm)'
+            }}>
+              ⚙️ Submit to Codeforces — Integration Required
+            </div>
+
+            <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+              Direct automated solution submissions to Codeforces accounts are not supported by the platform's public APIs without full session cookie sharing.
+            </p>
+            
+            <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+              Click the button below to automatically copy your solution code to the clipboard and navigate straight to the official Codeforces problem submission page.
+            </p>
+
+            <div style={{ display: 'flex', gap: '12px', marginTop: '8px', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setShowCFModal(false)}
+                style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid var(--glass-border)',
+                  color: 'var(--text-secondary)',
+                  padding: '8px 16px',
+                  borderRadius: 'var(--radius-sm)',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 600
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(code);
+                  setShowCFModal(false);
+                  const cfId = problem.external_problem_id || problem.externalId || '';
+                  const match = cfId.match(/^(\d+)([A-Z]\d*)$/i);
+                  let submitUrl = problem.external_url || `https://codeforces.com/problemset/problem/${cfId}`;
+                  if (match) {
+                    submitUrl = `https://codeforces.com/contest/${match[1]}/submit?problemIndex=${match[2].toUpperCase()}`;
+                  }
+                  window.open(submitUrl, '_blank');
+                }}
+                style={{
+                  background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))',
+                  border: 'none',
+                  color: 'white',
+                  padding: '8px 20px',
+                  borderRadius: 'var(--radius-sm)',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 700
+                }}
+              >
+                Copy Code & Go to CF ↗
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

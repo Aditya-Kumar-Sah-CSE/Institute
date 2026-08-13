@@ -110,7 +110,7 @@ export async function POST(request: Request) {
           constraints: externalProblem.constraints || null,
           input_format: externalProblem.inputFormat || null,
           output_format: externalProblem.outputFormat || null,
-          explanation: null,
+          explanation: externalProblem.explanation || null,
           time_limit_ms: 2000,
           memory_limit_mb: 256,
           supported_languages: ['cpp17', 'c', 'java', 'python', 'javascript'],

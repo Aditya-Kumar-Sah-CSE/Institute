@@ -111,6 +111,7 @@ export const codeforcesAdapter: CodingPlatformAdapter = {
     let inputFormat = '';
     let outputFormat = '';
     let constraints = '';
+    let explanation = '';
     const examples: { input: string; output: string }[] = [];
 
     if (htmlContent) {
@@ -169,6 +170,13 @@ export const codeforcesAdapter: CodingPlatformAdapter = {
           examples.push({ input: sampleIn, output: sampleOut });
         }
       }
+
+      // Note / Explanation
+      const noteMatch = htmlContent.match(/<div class="note">([\s\S]*?)<\/div>\s*(?:<div class="author">|$)/i) ||
+                        htmlContent.match(/<div class="note">([\s\S]*?)<\/div>\s*$/i);
+      if (noteMatch) {
+        explanation = cleanHtml(noteMatch[1].replace(/<div class="section-title">[\s\S]*?<\/div>/i, ''));
+      }
     }
 
     const title = meta.name || `Codeforces Problem ${externalId}`;
@@ -199,6 +207,7 @@ export const codeforcesAdapter: CodingPlatformAdapter = {
       inputFormat: inputFormat || 'Standard stdin',
       outputFormat: outputFormat || 'Standard stdout',
       examples,
+      explanation: explanation || null,
       difficulty,
       rating,
       tags: meta.tags || ['codeforces', 'competitive-programming'],

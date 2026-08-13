@@ -26,9 +26,20 @@ export default async function CodeProblemPage({ params }: { params: Promise<{ id
     .eq('is_hidden', false)
     .order('order_index');
 
+  const { data: submissions } = await supabase
+    .from('coding_submissions')
+    .select('status')
+    .eq('problem_id', id)
+    .eq('student_id', user.id);
+
+  const hasSolved = (submissions || []).some(s => s.status === 'ACCEPTED');
+  const hasAttempted = (submissions || []).length > 0;
+
   const problemData = {
     ...problem,
     samples: samples || [],
+    hasSolved,
+    hasAttempted,
   };
 
   return (
@@ -82,8 +93,7 @@ export default async function CodeProblemPage({ params }: { params: Promise<{ id
 
         {/* Right Monaco Editor Panel */}
         <CodeEditor
-          problemId={problem.id}
-          supportedLanguages={problem.supported_languages}
+          problem={problemData}
           samples={samples || []}
         />
       </div>

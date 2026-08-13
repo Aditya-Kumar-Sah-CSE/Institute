@@ -24,6 +24,7 @@ export interface ExternalProblem {
   inputFormat?: string;
   outputFormat?: string;
   examples: ExternalExample[];
+  explanation?: string | null;
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
   rating?: number | null;
   tags: string[];
