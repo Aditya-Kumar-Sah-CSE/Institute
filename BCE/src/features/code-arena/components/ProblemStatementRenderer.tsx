@@ -127,6 +127,12 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
   let contentToRender = trimmed;
   // Strip the entire header section if present to avoid duplicating limits
   contentToRender = contentToRender.replace(/<div\s+class=["']header["']>[\s\S]*?<\/div>/gi, '');
+  // Clean up any residual limit/input/output blocks from raw content
+  contentToRender = contentToRender.replace(/<div[^>]*>\s*time limit per test[\s\S]*?<\/div>/gi, '');
+  contentToRender = contentToRender.replace(/<div[^>]*>\s*memory limit per test[\s\S]*?<\/div>/gi, '');
+  contentToRender = contentToRender.replace(/<div[^>]*>\s*input[\s\S]*?<\/div>/gi, '');
+  contentToRender = contentToRender.replace(/<div[^>]*>\s*output[\s\S]*?<\/div>/gi, '');
+  contentToRender = contentToRender.replace(/time limit per test[\s\S]{0,120}memory limit per test[\s\S]{0,120}input[\s\S]{0,120}output[\s\S]{0,120}?(?:stdout|stdin|standard output|standard input|seconds|megabytes)/gi, '');
   // Replace relative URLs to Codeforces assets
   contentToRender = contentToRender.replace(/src="\/(predownloaded|images|assets)\/([^"]+)"/g, 'src="https://codeforces.com/$1/$2"');
   contentToRender = contentToRender.replace(/src='\/(predownloaded|images|assets)\/([^']+)'/g, "src='https://codeforces.com/$1/$2'");
@@ -169,6 +175,34 @@ export default function ProblemStatementRenderer({ problem }: { problem: Problem
 
   const rawStatement = problem.statement || problem.description || '';
   const rawConstraints = problem.constraints || '';
+
+  const cleanFormat = (val: string, fallback: string) => {
+    if (!val || typeof val !== 'string') return fallback;
+    const lower = val.toLowerCase().trim();
+    if (lower.includes('stdin') || lower.includes('standard input')) return 'Standard Input';
+    if (lower.includes('stdout') || lower.includes('standard output')) return 'Standard Output';
+    if (lower.length > 20) return lower.slice(0, 17) + '...';
+    return val;
+  };
+
+  const constraintsText = problem.constraints || '';
+  let parsedTime = problem.timeLimit || (problem.time_limit_ms ? `${problem.time_limit_ms / 1000}s` : '');
+  let parsedMemory = problem.memoryLimit || (problem.memory_limit_mb ? `${problem.memory_limit_mb} MB` : '');
+  
+  if (!parsedTime && constraintsText) {
+    const match = constraintsText.match(/Time Limit:\s*([^\n]+)/i);
+    if (match) parsedTime = match[1];
+  }
+  if (!parsedMemory && constraintsText) {
+    const match = constraintsText.match(/Memory Limit:\s*([^\n]+)/i);
+    if (match) parsedMemory = match[1];
+  }
+  
+  parsedTime = parsedTime || '2.0s';
+  parsedMemory = parsedMemory || '256 MB';
+  
+  const parsedInput = cleanFormat(problem.input_format || problem.inputDescription || '', 'Standard Input');
+  const parsedOutput = cleanFormat(problem.output_format || problem.outputDescription || '', 'Standard Output');
 
   const examplesList = problem.examples && problem.examples.length > 0 ? problem.examples : problem.samples || [];
 
@@ -371,6 +405,45 @@ export default function ProblemStatementRenderer({ problem }: { problem: Problem
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', borderLeft: '3px solid var(--neon-cyan)', paddingLeft: '10px', letterSpacing: '0.5px' }}>
             <FileText size={14} style={{ color: 'var(--neon-cyan)' }} /> Problem Statement
           </div>
+
+          {/* 4 Premium Metric Boxes */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
+            gap: '8px',
+            margin: '8px 0 12px 0'
+          }}>
+            {[
+              { label: 'Time Limit', value: parsedTime, color: 'var(--neon-cyan)' },
+              { label: 'Memory Limit', value: parsedMemory, color: 'var(--neon-purple)' },
+              { label: 'Input', value: parsedInput, color: 'var(--neon-gold)' },
+              { label: 'Output', value: parsedOutput, color: 'var(--neon-pink)' },
+            ].map((box, idx) => (
+              <div
+                key={idx}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  border: '1px solid var(--glass-border)',
+                  borderRadius: '6px',
+                  padding: '8px 10px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '2px',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textAlign: 'center',
+                }}
+              >
+                <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  {box.label}
+                </span>
+                <span style={{ fontSize: '12px', fontWeight: 800, color: box.color }}>
+                  {box.value}
+                </span>
+              </div>
+            ))}
+          </div>
+
           <SafeContentRenderer rawContent={rawStatement} />
         </section>
       )}
