@@ -67,6 +67,7 @@ export default function CodeEditor({
   const [execResult, setExecResult] = useState<NormalizedExecutionResult | null>(null);
   const [submissionResult, setSubmissionResult] = useState<any | null>(null);
   const [showCFModal, setShowCFModal] = useState(false);
+  const [showLCModal, setShowLCModal] = useState(false);
 
   const resetCode = () => {
     if (confirm(`Reset code editor to starter template for ${language}?`)) {
@@ -341,9 +342,41 @@ export default function CodeEditor({
                   transition: 'all 0.2s ease',
                   letterSpacing: '0.25px',
                 }}
-                onClick={() => setShowCFModal(true)}
+                onClick={() => {
+                  navigator.clipboard.writeText(code);
+                  setShowCFModal(true);
+                }}
               >
                 <Zap size={14} /> Submit to Codeforces
+              </button>
+            )}
+
+            {problem.source_type === 'LEETCODE' && (
+              <button
+                type="button"
+                className="btn-submit-lc"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'linear-gradient(135deg, #ffa116, #f77f00)',
+                  border: 'none',
+                  color: 'black',
+                  fontSize: '13px',
+                  padding: '10px 20px',
+                  borderRadius: 'var(--radius-md)',
+                  fontWeight: 750,
+                  cursor: 'pointer',
+                  boxShadow: '0 0 16px rgba(255, 161, 22, 0.35)',
+                  transition: 'all 0.2s ease',
+                  letterSpacing: '0.25px',
+                }}
+                onClick={() => {
+                  navigator.clipboard.writeText(code);
+                  setShowLCModal(true);
+                }}
+              >
+                <Zap size={14} /> Submit to LeetCode
               </button>
             )}
 
@@ -633,6 +666,146 @@ export default function CodeEditor({
                   fontSize: '13px',
                   fontWeight: 700,
                   boxShadow: '0 4px 15px rgba(6, 182, 212, 0.3)',
+                  transition: 'transform 0.2s'
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+              >
+                Go to Submit Portal ↗
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showLCModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.82)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          backdropFilter: 'blur(8px)',
+          padding: '16px'
+        }}>
+          <div style={{
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--glass-border)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '28px',
+            maxWidth: '500px',
+            width: '100%',
+            color: 'var(--text-main)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 40px rgba(255, 161, 22, 0.15)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px',
+            animation: 'fadeInUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, background: 'linear-gradient(135deg, #ffa116, #f77f00)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                LeetCode Submit Gateway
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowLCModal(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', display: 'flex' }}
+                aria-label="Close modal"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div style={{
+              background: 'rgba(255, 161, 22, 0.05)',
+              border: '1px solid rgba(255, 161, 22, 0.2)',
+              padding: '14px 16px',
+              borderRadius: 'var(--radius-md)',
+              color: '#ffa116',
+              fontWeight: 700,
+              fontSize: '13px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: 'inset 0 0 10px rgba(255, 161, 22, 0.05)'
+            }}>
+              <Zap size={15} style={{ animation: 'pulse 2s infinite' }} /> Secure Redirect Integration Active
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <p style={{ margin: 0, fontSize: '13.5px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                BCE respects your account privacy. To keep your login credentials 100% secure, direct solution submission is executed through LeetCode's official gateway.
+              </p>
+
+              {/* Steps checklist */}
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid var(--glass-border)',
+                borderRadius: '8px',
+                padding: '12px 16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#10b981', fontWeight: 600 }}>
+                  ✓ Source Code copied to clipboard
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  ● Selected language: <strong style={{ color: 'var(--neon-purple)', fontFamily: 'monospace' }}>{language === 'cpp17' ? 'C++17' : language.toUpperCase()}</strong>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  ● Target URL: <span style={{ color: 'var(--neon-cyan)', textDecoration: 'underline', fontSize: '11px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '240px' }}>
+                    {problem.external_url || problem.sourceUrl || 'leetcode.com/problems'}
+                  </span>
+                </div>
+              </div>
+              
+              <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.5', fontStyle: 'italic' }}>
+                Next: Paste your code (Ctrl+V) and click "Submit" on LeetCode.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', marginTop: '8px', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setShowLCModal(false)}
+                style={{
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid var(--glass-border)',
+                  color: 'var(--text-secondary)',
+                  padding: '10px 20px',
+                  borderRadius: 'var(--radius-sm)',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  transition: 'background 0.2s'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(code);
+                  setShowLCModal(false);
+                  const submitUrl = problem.external_url || problem.sourceUrl || 'https://leetcode.com/problems';
+                  window.open(submitUrl, '_blank');
+                }}
+                style={{
+                  background: 'linear-gradient(135deg, #ffa116, #f77f00)',
+                  border: 'none',
+                  color: 'black',
+                  padding: '10px 24px',
+                  borderRadius: 'var(--radius-sm)',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  boxShadow: '0 4px 15px rgba(255, 161, 22, 0.3)',
                   transition: 'transform 0.2s'
                 }}
                 onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
