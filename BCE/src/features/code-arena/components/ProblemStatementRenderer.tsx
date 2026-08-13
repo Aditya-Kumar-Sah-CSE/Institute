@@ -123,6 +123,12 @@ export function ExampleCopyBlock({ label, content }: { label: string; content: s
 
 // Client-side HTML / Markdown content renderer
 function SafeContentRenderer({ rawContent }: { rawContent: string }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   if (!rawContent || !rawContent.trim()) {
     return <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Not provided.</span>;
   }
@@ -135,7 +141,11 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
 
   const hasHtml = /<[a-z][\s\S]*>/i.test(contentToRender);
 
-  if (hasHtml && typeof window !== 'undefined') {
+  if (hasHtml) {
+    if (!mounted) {
+      // Avoid server/client hydration mismatch by returning a placeholder matching structure during SSR
+      return <div className="problem-statement-body" style={{ minHeight: '100px' }} />;
+    }
     const cleanHtml = DOMPurify.sanitize(contentToRender, {
       ADD_TAGS: ['iframe', 'table', 'thead', 'tbody', 'tr', 'th', 'td'],
       ADD_ATTR: ['target', 'rel', 'colspan', 'rowspan'],
