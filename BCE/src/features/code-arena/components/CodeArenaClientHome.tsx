@@ -107,9 +107,7 @@ export default function CodeArenaClientHome({
             ⚡ BCE CODE ARENA
           </div>
           <h1 className="hero-main-title">Compete. Solve. Improve.</h1>
-          <p className="hero-subtitle-desc">
-            Practice hand-picked coding problems, join real-time battles, and benchmark your competitive programming skills.
-          </p>
+
           <div className="hero-action-buttons">
             <button className="btn-hero-primary" onClick={() => setShowWizard(true)}>
               <Plus size={14} /> Create Battle
@@ -213,7 +211,7 @@ export default function CodeArenaClientHome({
         <div className="arena-section-header">
           <div>
             <h2>Active & Recent Battles</h2>
-            <p className="subtitle-desc-sm">Participate in current competitions or examine recently concluded matches.</p>
+
           </div>
           
           <div className="arena-tabs">

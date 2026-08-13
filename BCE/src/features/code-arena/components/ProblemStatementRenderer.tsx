@@ -369,33 +369,7 @@ export default function ProblemStatementRenderer({ problem }: { problem: Problem
               View original problem on {platformName} <ExternalLink size={13} />
             </a>
 
-            {platformName.toUpperCase() === 'LEETCODE' && (
-              <div style={{ marginTop: '4px' }}>
-                <a
-                  href={officialUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '6px 14px',
-                    borderRadius: 'var(--radius-full, 9999px)',
-                    background: 'linear-gradient(135deg, #ffa116 0%, #f77f00 100%)',
-                    color: '#000',
-                    fontWeight: 700,
-                    fontSize: '12px',
-                    textDecoration: 'none',
-                    boxShadow: '0 4px 12px rgba(255, 161, 22, 0.25)',
-                    transition: 'all 0.2s ease',
-                  }}
-                  onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                  onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
-                >
-                  <ExternalLink size={12} /> Submit to LeetCode
-                </a>
-              </div>
-            )}
+            
           </div>
         )}
       </div>
