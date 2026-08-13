@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getCodeArenaActor } from '@/features/code-arena/server';
 import PersonalCompiler from '@/features/code-arena/components/PersonalCompiler';
+import MobileCodeArenaToggle from '@/features/code-arena/components/MobileCodeArenaToggle';
 import '@/features/code-arena/components/CodeArena.css';
 
 export default async function CompilerPage() {
@@ -24,6 +25,7 @@ export default async function CompilerPage() {
 
   return (
     <div className="code-arena-page">
+      <MobileCodeArenaToggle />
       <header>
         <h1 className="text-gradient">BCE Code Playground</h1>
         <p className="text-secondary">Your private workspace. Save code snippets and run interactive code cleanly.</p>

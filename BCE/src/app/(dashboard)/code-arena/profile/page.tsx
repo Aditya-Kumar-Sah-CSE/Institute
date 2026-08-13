@@ -5,6 +5,7 @@ import CompetitiveOverview from '@/features/code-arena/components/profile/Compet
 import CodeforcesProfileCard from '@/features/code-arena/components/profile/CodeforcesProfileCard';
 import LeetCodeProfileCard from '@/features/code-arena/components/profile/LeetCodeProfileCard';
 import RecentCodingActivity from '@/features/code-arena/components/profile/RecentCodingActivity';
+import MobileCodeArenaToggle from '@/features/code-arena/components/MobileCodeArenaToggle';
 import '@/features/code-arena/components/CodeArena.css';
 
 export const dynamic = 'force-dynamic';
@@ -39,6 +40,7 @@ export default async function CodingProfilePage() {
 
   return (
     <div className="code-arena-profile-page">
+      <MobileCodeArenaToggle />
       <CodingProfileHero 
         profile={profile} 
         codeforcesConnected={!!cfAccount}

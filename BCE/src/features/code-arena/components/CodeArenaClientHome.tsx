@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import CreateBattleWizard from './CreateBattleWizard';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import MobileCodeArenaToggle from './MobileCodeArenaToggle';
 import './CodeArena.css';
 
 export default function CodeArenaClientHome({
@@ -87,6 +88,7 @@ export default function CodeArenaClientHome({
 
   return (
     <div className="code-arena-page-container">
+      <MobileCodeArenaToggle />
       
       {/* 1. Premium Top Navigation */}
       <nav className="arena-top-navbar">

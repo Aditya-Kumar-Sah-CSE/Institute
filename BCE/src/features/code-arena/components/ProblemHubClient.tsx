@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import ProblemCard from './ProblemCard';
 import type { ProblemCardData } from './ProblemCard';
+import MobileCodeArenaToggle from './MobileCodeArenaToggle';
 import './CodeArena.css';
 
 const PLATFORMS = ['All', 'CODEFORCES', 'LEETCODE', 'BCE'] as const;
@@ -93,6 +94,7 @@ export default function ProblemHubClient({ userId }: { userId: string }) {
 
   return (
     <div className="code-arena-page" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
+      <MobileCodeArenaToggle />
       {/* Hero Header */}
       <header className="hub-hero">
         <div>
