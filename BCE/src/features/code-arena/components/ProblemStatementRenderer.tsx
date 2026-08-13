@@ -56,6 +56,7 @@ export interface ProblemData {
   supported_languages?: CodeLanguage[];
   external_problem_id?: string | null;
   externalId?: string | null;
+  starterCode?: Record<string, string> | null;
 }
 
 export function ExampleCopyBlock({ label, content }: { label: string; content: string }) {

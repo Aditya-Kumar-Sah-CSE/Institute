@@ -57,7 +57,14 @@ export default function CodeEditor({
 
   const router = useRouter();
   const [language, setLanguage] = useState<CodeLanguage>(supportedLanguages[0] || 'cpp17');
-  const [code, setCode] = useState(starters[supportedLanguages[0] || 'cpp17']);
+  const [code, setCode] = useState(() => {
+    const firstLang = supportedLanguages[0] || 'cpp17';
+    if (problem.starterCode && typeof problem.starterCode === 'object') {
+      const customCode = (problem.starterCode as Record<string, string>)[firstLang];
+      if (customCode) return customCode;
+    }
+    return starters[firstLang] || starters.cpp17;
+  });
   const [customInput, setCustomInput] = useState(samples[0]?.input || '');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activeTab, setActiveTab] = useState<ConsoleTab>('output');
@@ -71,7 +78,10 @@ export default function CodeEditor({
 
   const resetCode = () => {
     if (confirm(`Reset code editor to starter template for ${language}?`)) {
-      setCode(starters[language] || starters.cpp17);
+      const resetTo = (problem.starterCode && typeof problem.starterCode === 'object')
+        ? ((problem.starterCode as Record<string, string>)[language] || starters[language])
+        : (starters[language] || starters.cpp17);
+      setCode(resetTo);
     }
   };
 
@@ -172,7 +182,10 @@ export default function CodeEditor({
               onChange={(e) => {
                 const next = e.target.value as CodeLanguage;
                 setLanguage(next);
-                setCode(starters[next] || starters.cpp17);
+                const nextCode = (problem.starterCode && typeof problem.starterCode === 'object')
+                  ? ((problem.starterCode as Record<string, string>)[next] || starters[next])
+                  : (starters[next] || starters.cpp17);
+                setCode(nextCode);
               }}
               aria-label="Select programming language"
               style={{

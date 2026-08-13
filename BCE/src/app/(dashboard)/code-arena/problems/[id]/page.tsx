@@ -5,6 +5,7 @@ import ProblemStatementRenderer from '@/features/code-arena/components/ProblemSt
 import CodeEditor from '@/features/code-arena/components/CodeEditor';
 import { unstable_cache } from 'next/cache';
 import { codeforcesAdapter } from '@/lib/coding-platforms/codeforces';
+import { leetcodeAdapter } from '@/lib/coding-platforms/leetcode';
 import '@/features/code-arena/components/CodeArena.css';
 
 // Cache Codeforces problem data for 1 hour
@@ -21,6 +22,29 @@ const getCachedCodeforcesProblem = unstable_cache(
   ['codeforces-problem-cache'],
   { revalidate: 3600 }
 );
+
+// Cache LeetCode problem data for 1 hour
+const getCachedLeetCodeProblem = unstable_cache(
+  async (slug: string) => {
+    const ident = {
+      platform: 'LEETCODE' as const,
+      slug,
+      rawInput: slug
+    };
+    return await leetcodeAdapter.fetchProblem(ident);
+  },
+  ['leetcode-problem-cache'],
+  { revalidate: 3600 }
+);
+
+async function getLeetCodeProblemSafe(slug: string) {
+  try {
+    return await getCachedLeetCodeProblem(slug);
+  } catch (e) {
+    console.error(`Failed to fetch LeetCode problem ${slug}:`, e);
+    return null;
+  }
+}
 
 async function getCodeforcesProblemSafe(contestId: string, problemIndex: string) {
   try {
@@ -91,6 +115,31 @@ export default async function CodeProblemPage({ params }: { params: Promise<{ id
             order_index: idx,
           }));
         }
+      }
+    }
+  }
+
+  if (problem.source === 'LEETCODE' && problem.external_problem_id) {
+    const scraped = await getLeetCodeProblemSafe(problem.external_problem_id);
+    if (scraped) {
+      problemData = {
+        ...problemData,
+        title: scraped.title || problemData.title,
+        statement: scraped.statement || problemData.statement,
+        input_format: scraped.inputFormat || problemData.input_format,
+        output_format: scraped.outputFormat || problemData.output_format,
+        explanation: scraped.explanation || problemData.explanation,
+        constraints: scraped.constraints || problemData.constraints,
+        starterCode: scraped.starterCode || null,
+      };
+
+      if (scraped.examples && scraped.examples.length > 0) {
+        problemData.samples = scraped.examples.map((ex, idx) => ({
+          input: ex.input,
+          expected_output: ex.output,
+          sample_name: `Sample #${idx + 1}`,
+          order_index: idx,
+        }));
       }
     }
   }
