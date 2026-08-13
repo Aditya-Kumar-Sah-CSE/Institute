@@ -123,8 +123,9 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
 
   useEffect(() => {
     if (!containerRef.current) return;
+    
+    // First, style normal paragraphs
     const paragraphs = containerRef.current.querySelectorAll('p');
-    // Curated high-contrast aesthetic colors matching the dark theme
     const colors = [
       'var(--neon-cyan)',
       '#a855f7', // light purple
@@ -139,6 +140,113 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
       p.style.color = colors[idx % colors.length];
       p.style.textShadow = '0 0 1px rgba(0,0,0,0.5)';
       p.style.transition = 'color 0.3s ease';
+    });
+
+    // Style the structured spec divs if present (standard Codeforces HTML structure)
+    const inputSpecs = containerRef.current.querySelectorAll('.input-specification');
+    inputSpecs.forEach(el => {
+      (el as HTMLElement).style.background = 'rgba(6, 182, 212, 0.03)';
+      (el as HTMLElement).style.borderLeft = '4px solid var(--neon-cyan)';
+      (el as HTMLElement).style.borderRadius = '4px';
+      (el as HTMLElement).style.padding = '12px 16px';
+      (el as HTMLElement).style.margin = '16px 0';
+      
+      const title = el.querySelector('.section-title');
+      if (title) {
+        (title as HTMLElement).style.color = 'var(--neon-cyan)';
+        (title as HTMLElement).style.fontSize = '15px';
+        (title as HTMLElement).style.fontWeight = '800';
+        (title as HTMLElement).style.marginBottom = '8px';
+      }
+      
+      const paras = el.querySelectorAll('p');
+      paras.forEach(p => {
+        p.style.color = '#22d3ee';
+      });
+    });
+
+    const outputSpecs = containerRef.current.querySelectorAll('.output-specification');
+    outputSpecs.forEach(el => {
+      (el as HTMLElement).style.background = 'rgba(236, 72, 153, 0.03)';
+      (el as HTMLElement).style.borderLeft = '4px solid var(--neon-pink)';
+      (el as HTMLElement).style.borderRadius = '4px';
+      (el as HTMLElement).style.padding = '12px 16px';
+      (el as HTMLElement).style.margin = '16px 0';
+      
+      const title = el.querySelector('.section-title');
+      if (title) {
+        (title as HTMLElement).style.color = 'var(--neon-pink)';
+        (title as HTMLElement).style.fontSize = '15px';
+        (title as HTMLElement).style.fontWeight = '800';
+        (title as HTMLElement).style.marginBottom = '8px';
+      }
+      
+      const paras = el.querySelectorAll('p');
+      paras.forEach(p => {
+        p.style.color = '#f472b6';
+      });
+    });
+
+    // Fallback scanner for flat text structures (e.g. Markdown headers)
+    const allElements = Array.from(containerRef.current.querySelectorAll('*'));
+    let inInputSec = false;
+    let inOutputSec = false;
+    
+    allElements.forEach(el => {
+      const text = el.textContent?.trim();
+      const tagName = el.tagName.toLowerCase();
+      
+      // Ignore scanning if we are inside already styled spec containers
+      if (el.closest('.input-specification') || el.closest('.output-specification')) {
+        return;
+      }
+      
+      const isHeader = (tagName === 'div' && el.classList.contains('section-title')) || 
+          tagName === 'h3' || tagName === 'h4' || tagName === 'strong' || tagName === 'b';
+          
+      if (isHeader) {
+        if (text === 'Input') {
+          inInputSec = true;
+          inOutputSec = false;
+          (el as HTMLElement).style.color = 'var(--neon-cyan)';
+          (el as HTMLElement).style.fontSize = '15px';
+          (el as HTMLElement).style.fontWeight = '800';
+          (el as HTMLElement).style.display = 'block';
+          (el as HTMLElement).style.marginTop = '20px';
+          (el as HTMLElement).style.marginBottom = '10px';
+          (el as HTMLElement).style.borderLeft = '3px solid var(--neon-cyan)';
+          (el as HTMLElement).style.paddingLeft = '8px';
+          return;
+        } else if (text === 'Output') {
+          inInputSec = false;
+          inOutputSec = true;
+          (el as HTMLElement).style.color = 'var(--neon-pink)';
+          (el as HTMLElement).style.fontSize = '15px';
+          (el as HTMLElement).style.fontWeight = '800';
+          (el as HTMLElement).style.display = 'block';
+          (el as HTMLElement).style.marginTop = '20px';
+          (el as HTMLElement).style.marginBottom = '10px';
+          (el as HTMLElement).style.borderLeft = '3px solid var(--neon-pink)';
+          (el as HTMLElement).style.paddingLeft = '8px';
+          return;
+        } else if (text === 'Note' || text === 'Examples' || text === 'Example') {
+          inInputSec = false;
+          inOutputSec = false;
+        }
+      }
+      
+      if (el.tagName.toLowerCase() === 'table' || el.classList.contains('sample-tests') || el.classList.contains('sample-test')) {
+        inInputSec = false;
+        inOutputSec = false;
+      }
+      
+      if (tagName === 'p' || (tagName === 'div' && !el.children.length)) {
+        if (inInputSec) {
+          (el as HTMLElement).style.color = '#22d3ee';
+        } else if (inOutputSec) {
+          (el as HTMLElement).style.color = '#f472b6';
+        }
+      }
     });
   }, [rawContent]);
 
