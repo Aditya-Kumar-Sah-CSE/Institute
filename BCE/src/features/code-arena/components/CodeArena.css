@@ -2446,7 +2446,25 @@
     grid-template-columns: 1fr 1fr;
   }
   
-  .overview-cards-grid { grid-template-columns: 1fr; }
+  .overview-cards-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+  .overview-stat-card {
+    padding: var(--space-sm) var(--space-sm) !important;
+    gap: var(--space-sm) !important;
+  }
+  .stat-icon-wrapper {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 8px !important;
+  }
+  .stat-content .stat-value {
+    font-size: var(--text-md) !important;
+  }
+  .stat-content .stat-label {
+    font-size: 9px !important;
+  }
 }
 
 /* ======================================== */

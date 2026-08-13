@@ -20,10 +20,20 @@ export default function CourseCatalog({ courses, enrollments = {}, certificatesM
   const [showAllCourses, setShowAllCourses] = useState(false);
 
   const availableCategories = useMemo(() => {
-    const defaultSems = ['sem 1', 'sem 2', 'sem 3', 'sem 4', 'sem 5', 'sem 6', 'sem 7', 'sem 8'];
-    const courseCategories = Array.from(new Set(courses.map(c => c.difficulty).filter(Boolean)));
-    const allCategories = Array.from(new Set([...defaultSems, ...courseCategories]));
-    return ['all', ...allCategories];
+    const categories = Array.from(new Set(courses.map(c => c.difficulty).filter(Boolean)));
+    categories.sort((a, b) => {
+      const aLower = a.toLowerCase();
+      const bLower = b.toLowerCase();
+      const aSem = aLower.match(/sem\s*(\d+)/);
+      const bSem = bLower.match(/sem\s*(\d+)/);
+      if (aSem && bSem) {
+        return parseInt(aSem[1]) - parseInt(bSem[1]);
+      }
+      if (aSem) return -1;
+      if (bSem) return 1;
+      return a.localeCompare(b);
+    });
+    return ['all', ...categories];
   }, [courses]);
 
   const filteredCourses = useMemo(() => {
@@ -81,7 +91,7 @@ export default function CourseCatalog({ courses, enrollments = {}, certificatesM
         </div>
 
         {/* Bottom bar: Category / Semester Filters */}
-        <div className="catalog-filters" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+        <div className="catalog-filters" style={{ display: 'flex', flexWrap: 'nowrap', gap: '8px', overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {availableCategories.map(f => (
             <button
               key={f}

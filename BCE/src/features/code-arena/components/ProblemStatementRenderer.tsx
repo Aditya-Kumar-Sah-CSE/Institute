@@ -126,7 +126,7 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
   const trimmed = rawContent.trim();
   let contentToRender = trimmed;
   // Strip the entire header section if present to avoid duplicating limits
-  contentToRender = contentToRender.replace(/<div class="header">[\s\S]*?<\/div>\s*(?=<div>|<div class="legend">|<div class="input-specification">|<div class="sample-tests">|<div class="sample-test">|<p>)/i, '');
+  contentToRender = contentToRender.replace(/<div\s+class=["']header["']>[\s\S]*?<\/div>/gi, '');
   // Replace relative URLs to Codeforces assets
   contentToRender = contentToRender.replace(/src="\/(predownloaded|images|assets)\/([^"]+)"/g, 'src="https://codeforces.com/$1/$2"');
   contentToRender = contentToRender.replace(/src='\/(predownloaded|images|assets)\/([^']+)'/g, "src='https://codeforces.com/$1/$2'");
@@ -290,23 +290,53 @@ export default function ProblemStatementRenderer({ problem }: { problem: Problem
 
         {/* Secondary External Link */}
         {officialUrl && (
-          <a
-            href={officialUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              fontSize: '12px',
-              color: 'var(--neon-cyan)',
-              textDecoration: 'none',
-              transition: 'opacity 0.15s ease',
-            }}
-            aria-label={`View original problem on ${platformName}`}
-          >
-            View original problem on {platformName} <ExternalLink size={13} />
-          </a>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+            <a
+              href={officialUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '12px',
+                color: 'var(--neon-cyan)',
+                textDecoration: 'none',
+                transition: 'opacity 0.15s ease',
+              }}
+              aria-label={`View original problem on ${platformName}`}
+            >
+              View original problem on {platformName} <ExternalLink size={13} />
+            </a>
+
+            {platformName.toUpperCase() === 'LEETCODE' && (
+              <div style={{ marginTop: '4px' }}>
+                <a
+                  href={officialUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 14px',
+                    borderRadius: 'var(--radius-full, 9999px)',
+                    background: 'linear-gradient(135deg, #ffa116 0%, #f77f00 100%)',
+                    color: '#000',
+                    fontWeight: 700,
+                    fontSize: '12px',
+                    textDecoration: 'none',
+                    boxShadow: '0 4px 12px rgba(255, 161, 22, 0.25)',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                  onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+                >
+                  <ExternalLink size={12} /> Submit to LeetCode
+                </a>
+              </div>
+            )}
+          </div>
         )}
       </div>
 

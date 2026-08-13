@@ -403,8 +403,15 @@ export default function ChatInterface() {
                      itemContent={(index, msg) => {
                        const isMine = msg.sender_id === currentUserId;
                        const isRead = isMine ? checkIsMessageRead(msg, index) : false;
+                       const isGroup = activeChat.type === 'group';
                        return (
-                         <MessageBubble key={msg.id} msg={msg} isMine={isMine} isRead={isRead} />
+                         <MessageBubble 
+                           key={msg.id} 
+                           msg={msg} 
+                           isMine={isMine} 
+                           isRead={isRead} 
+                           showSenderName={isGroup && !isMine} 
+                         />
                        );
                      }}
                    />

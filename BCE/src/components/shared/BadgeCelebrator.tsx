@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import './BadgeCelebrator.css';
+import { uploadStoryMedia, createStoryItem } from '@/features/stories/actions/stories';
 
 interface UnseenBadgeData {
   id: string;
@@ -19,6 +20,7 @@ export default function BadgeCelebrator() {
   const popupRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
   const [isAddingToStory, setIsAddingToStory] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const generateImage = async () => {
     if (!popupRef.current) return null;
@@ -45,24 +47,21 @@ export default function BadgeCelebrator() {
        const canvas = await generateImage();
        if (!canvas) throw new Error("Failed to generate image");
        
-       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.8));
+       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
        if (!blob) throw new Error("Failed to create blob");
 
+       const file = new File([blob], `badge-${currentBadge.id}.png`, { type: 'image/png' });
        const formData = new FormData();
-       formData.append('referenceId', currentBadge.id);
-       formData.append('category', 'badge');
-       formData.append('caption', `Earned the ${currentBadge.badges.name} badge!`);
-       formData.append('image', blob);
+       formData.append('file', file);
 
-       const res = await fetch('/api/hall-of-fame/story', {
-           method: 'POST',
-           body: formData
+       const { url } = await uploadStoryMedia(formData);
+       
+       await createStoryItem({
+         mediaUrl: url,
+         thumbnailUrl: null,
+         mediaType: 'image',
+         caption: `Earned the "${currentBadge.badges.name}" badge! 🎉`,
        });
-
-       if (!res.ok) {
-           const errData = await res.json();
-           throw new Error(errData.error || 'Failed to upload story');
-       }
        
        alert('Successfully added to your Story!');
      } catch (e: any) {
@@ -70,6 +69,29 @@ export default function BadgeCelebrator() {
        alert(`Failed to add to story. Hint: ${e.message}`);
      } finally {
        setIsAddingToStory(false);
+     }
+  };
+
+  const handleDownload = async () => {
+     if (!currentBadge) return;
+     setIsDownloading(true);
+     try {
+       const canvas = await generateImage();
+       if (!canvas) throw new Error("Failed to generate image");
+       
+       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+       if (!blob) throw new Error('Failed to create blob');
+       
+       const url = URL.createObjectURL(blob);
+       const a = document.createElement('a');
+       a.href = url;
+       a.download = `badge-${currentBadge.badges.name.replace(/\s+/g, '-').toLowerCase()}.png`;
+       a.click();
+       URL.revokeObjectURL(url);
+     } catch (e: any) {
+       alert('Download failed: ' + e.message);
+     } finally {
+       setIsDownloading(false);
      }
   };
 
@@ -192,14 +214,20 @@ export default function BadgeCelebrator() {
       <div className="badge-popup" ref={popupRef} style={{ paddingBottom: 'var(--space-2xl)' }}>
         <button onClick={() => dismissCurrentBadge(currentBadge.id)} className="badge-close-btn no-share">×</button>
         <h2 className="celebration-title">🎉 Badge Unlocked! 🎉</h2>
-        <div className="badge-icon-large">{currentBadge.badges.icon}</div>
+        <div className="badge-icon-large">
+          {currentBadge.badges.icon.startsWith('http') ? (
+            <img src={currentBadge.badges.icon} alt={currentBadge.badges.name} width={96} height={96} style={{ objectFit: 'contain' }} crossOrigin="anonymous" />
+          ) : (
+            currentBadge.badges.icon
+          )}
+        </div>
         <h3 className="badge-name">{currentBadge.badges.name}</h3>
         <p className="badge-desc">{currentBadge.badges.description}</p>
         
         <div className="no-share" style={{ display: 'flex', gap: 'var(--space-md)', justifyContent: 'center', marginTop: 'var(--space-xl)', flexWrap: 'wrap' }}>
           <button 
             onClick={handleAddToStory}
-            disabled={isAddingToStory || isSharing}
+            disabled={isAddingToStory || isSharing || isDownloading}
             style={{
               background: 'linear-gradient(135deg, var(--neon-magenta), var(--neon-purple))',
               border: 'none',
@@ -207,7 +235,7 @@ export default function BadgeCelebrator() {
               padding: 'var(--space-sm) var(--space-lg)',
               color: 'white',
               fontWeight: 'bold',
-              cursor: (isAddingToStory || isSharing) ? 'wait' : 'pointer',
+              cursor: (isAddingToStory || isSharing || isDownloading) ? 'wait' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               boxShadow: '0 4px 15px rgba(177, 78, 255, 0.3)'
@@ -217,8 +245,8 @@ export default function BadgeCelebrator() {
           </button>
 
           <button 
-            onClick={handleShare}
-            disabled={isSharing || isAddingToStory}
+            onClick={handleDownload}
+            disabled={isDownloading || isAddingToStory || isSharing}
             style={{
               background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-blue, #3b82f6))',
               border: 'none',
@@ -226,10 +254,29 @@ export default function BadgeCelebrator() {
               padding: 'var(--space-sm) var(--space-lg)',
               color: 'white',
               fontWeight: 'bold',
-              cursor: (isSharing || isAddingToStory) ? 'wait' : 'pointer',
+              cursor: (isDownloading || isAddingToStory || isSharing) ? 'wait' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               boxShadow: '0 4px 15px rgba(0, 240, 255, 0.3)'
+            }}
+          >
+            {isDownloading ? 'Downloading...' : '📥 Download'}
+          </button>
+
+          <button 
+            onClick={handleShare}
+            disabled={isSharing || isAddingToStory || isDownloading}
+            style={{
+              background: 'linear-gradient(135deg, var(--neon-green, #10b981), var(--neon-emerald, #059669))',
+              border: 'none',
+              borderRadius: 'var(--radius-full)',
+              padding: 'var(--space-sm) var(--space-lg)',
+              color: 'white',
+              fontWeight: 'bold',
+              cursor: (isSharing || isAddingToStory || isDownloading) ? 'wait' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)'
             }}
           >
             {isSharing ? 'Generating...' : '📸 Share'}

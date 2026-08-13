@@ -3,12 +3,32 @@ import { motion } from 'framer-motion';
 import type { ChatMessage } from '@/types/database';
 
 interface MessageBubbleProps {
-  msg: ChatMessage;
+  msg: ChatMessage & { sender?: { name: string } };
   isMine: boolean;
   isRead?: boolean;
+  showSenderName?: boolean;
 }
 
-export default function MessageBubble({ msg, isMine, isRead = false }: MessageBubbleProps) {
+const getSenderColor = (senderId: string) => {
+  const colors = [
+    '#ff453a', // Red
+    '#ff9f0a', // Orange
+    '#ffd60a', // Yellow
+    '#30d158', // Green
+    '#64d2ff', // Light Blue
+    '#0a84ff', // Dark Blue
+    '#bf5af2', // Purple
+    '#ff375f'  // Pink
+  ];
+  let hash = 0;
+  for (let i = 0; i < senderId.length; i++) {
+    hash = senderId.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % colors.length;
+  return colors[index];
+};
+
+export default function MessageBubble({ msg, isMine, isRead = false, showSenderName = false }: MessageBubbleProps) {
   const displayTime = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   return (
@@ -35,7 +55,12 @@ export default function MessageBubble({ msg, isMine, isRead = false }: MessageBu
           position: 'relative'
         }}
       >
-        <p style={{ fontSize: '15px', margin: 0, lineHeight: 1.5, wordBreak: 'break-word' }}>
+        {showSenderName && msg.sender && (
+          <div style={{ fontSize: '12px', fontWeight: 700, color: getSenderColor(msg.sender_id), marginBottom: '6px', textAlign: 'left' }}>
+            {msg.sender.name}
+          </div>
+        )}
+        <p style={{ fontSize: '15px', margin: 0, lineHeight: 1.5, wordBreak: 'break-word', textAlign: 'left' }}>
           {msg.content}
         </p>
         <div 

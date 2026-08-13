@@ -7,6 +7,7 @@ import './BadgeDisplay.css';
 import './BadgeCelebrator.css';
 import type { Badge, UserBadge } from '@/types';
 import { createClient } from '@/lib/supabase/client';
+import { uploadStoryMedia, createStoryItem } from '@/features/stories/actions/stories';
 
 interface BadgeDisplayProps {
   allBadges: Badge[];
@@ -21,6 +22,7 @@ export default function BadgeDisplay({ allBadges, earnedBadges, compact = false,
   const [mounted, setMounted] = useState(() => typeof window !== 'undefined');
   const [isSharing, setIsSharing] = useState(false);
   const [isAddingToStory, setIsAddingToStory] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const popupRef = useRef<HTMLDivElement>(null);
 
@@ -55,24 +57,21 @@ export default function BadgeDisplay({ allBadges, earnedBadges, compact = false,
        const canvas = await generateImage();
        if (!canvas) throw new Error("Failed to generate image");
        
-       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.8));
+       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
        if (!blob) throw new Error("Failed to create blob");
 
+       const file = new File([blob], `badge-${selectedBadge.id}.png`, { type: 'image/png' });
        const formData = new FormData();
-       formData.append('referenceId', selectedBadge.id);
-       formData.append('category', 'badge');
-       formData.append('caption', `Earned the ${selectedBadge.name} badge!`);
-       formData.append('image', blob);
+       formData.append('file', file);
 
-       const res = await fetch('/api/hall-of-fame/story', {
-           method: 'POST',
-           body: formData
+       const { url } = await uploadStoryMedia(formData);
+       
+       await createStoryItem({
+         mediaUrl: url,
+         thumbnailUrl: null,
+         mediaType: 'image',
+         caption: `Earned the "${selectedBadge.name}" badge! 🎉`,
        });
-
-       if (!res.ok) {
-           const errData = await res.json();
-           throw new Error(errData.error || 'Failed to upload story');
-       }
        
        alert('Successfully added to your Story!');
        window.dispatchEvent(new CustomEvent('story-added'));
@@ -81,6 +80,29 @@ export default function BadgeDisplay({ allBadges, earnedBadges, compact = false,
        alert(`Failed to add to story. Hint: ${e.message}`);
      } finally {
        setIsAddingToStory(false);
+     }
+  };
+
+  const handleDownload = async () => {
+     if (!selectedBadge) return;
+     setIsDownloading(true);
+     try {
+       const canvas = await generateImage();
+       if (!canvas) throw new Error("Failed to generate image");
+       
+       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+       if (!blob) throw new Error('Failed to create blob');
+       
+       const url = URL.createObjectURL(blob);
+       const a = document.createElement('a');
+       a.href = url;
+       a.download = `badge-${selectedBadge.name.replace(/\s+/g, '-').toLowerCase()}.png`;
+       a.click();
+       URL.revokeObjectURL(url);
+     } catch (e: any) {
+       alert('Download failed: ' + e.message);
+     } finally {
+       setIsDownloading(false);
      }
   };
 
@@ -110,7 +132,7 @@ export default function BadgeDisplay({ allBadges, earnedBadges, compact = false,
         a.download = 'badge-award.png';
         a.click();
         URL.revokeObjectURL(url);
-        alert('Image downloaded! You can now share it on LinkedIn, Instagram, or WhatsApp.');
+        alert('Image downloaded! You can now share it.');
       }
     } catch (error) {
       console.error('Error sharing:', error);
@@ -151,7 +173,7 @@ export default function BadgeDisplay({ allBadges, earnedBadges, compact = false,
         <div className="no-share" style={{ display: 'flex', gap: 'var(--space-md)', justifyContent: 'center', marginTop: 'var(--space-xl)', flexWrap: 'wrap' }}>
           <button 
             onClick={handleAddToStory}
-            disabled={isAddingToStory || isSharing}
+            disabled={isAddingToStory || isSharing || isDownloading}
             style={{
               background: 'linear-gradient(135deg, var(--neon-magenta), var(--neon-purple))',
               border: 'none',
@@ -159,7 +181,7 @@ export default function BadgeDisplay({ allBadges, earnedBadges, compact = false,
               padding: 'var(--space-sm) var(--space-lg)',
               color: 'white',
               fontWeight: 'bold',
-              cursor: (isAddingToStory || isSharing) ? 'wait' : 'pointer',
+              cursor: (isAddingToStory || isSharing || isDownloading) ? 'wait' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               boxShadow: '0 4px 15px rgba(177, 78, 255, 0.3)'
@@ -169,8 +191,8 @@ export default function BadgeDisplay({ allBadges, earnedBadges, compact = false,
           </button>
 
           <button 
-            onClick={handleShare}
-            disabled={isSharing || isAddingToStory}
+            onClick={handleDownload}
+            disabled={isDownloading || isAddingToStory || isSharing}
             style={{
               background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-blue, #3b82f6))',
               border: 'none',
@@ -178,10 +200,29 @@ export default function BadgeDisplay({ allBadges, earnedBadges, compact = false,
               padding: 'var(--space-sm) var(--space-lg)',
               color: 'white',
               fontWeight: 'bold',
-              cursor: (isSharing || isAddingToStory) ? 'wait' : 'pointer',
+              cursor: (isDownloading || isAddingToStory || isSharing) ? 'wait' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               boxShadow: '0 4px 15px rgba(0, 240, 255, 0.3)'
+            }}
+          >
+            {isDownloading ? 'Downloading...' : '📥 Download'}
+          </button>
+
+          <button 
+            onClick={handleShare}
+            disabled={isSharing || isAddingToStory || isDownloading}
+            style={{
+              background: 'linear-gradient(135deg, var(--neon-green, #10b981), var(--neon-emerald, #059669))',
+              border: 'none',
+              borderRadius: 'var(--radius-full)',
+              padding: 'var(--space-sm) var(--space-lg)',
+              color: 'white',
+              fontWeight: 'bold',
+              cursor: (isSharing || isAddingToStory || isDownloading) ? 'wait' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)'
             }}
           >
             {isSharing ? 'Generating...' : '📸 Share'}

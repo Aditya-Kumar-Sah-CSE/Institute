@@ -5,11 +5,11 @@ const WANDBOX_COMPILERS: Record<string, string> = {
   cpp17: 'gcc-head',
   cpp: 'gcc-head',
   c: 'gcc-head-c',
-  java: 'openjdk-head',
-  python: 'cpython-head',
-  python3: 'cpython-head',
-  javascript: 'nodejs-head',
-  js: 'nodejs-head',
+  java: 'openjdk-jdk-21+35',
+  python: 'cpython-3.12.7',
+  python3: 'cpython-3.12.7',
+  javascript: 'nodejs-20.17.0',
+  js: 'nodejs-20.17.0',
 };
 
 export async function POST(request: Request) {
@@ -36,13 +36,19 @@ export async function POST(request: Request) {
 
     const compiler = WANDBOX_COMPILERS[language] || 'gcc-head';
 
+    let codeToSend = code;
+    if (language === 'java') {
+      // Strip "public class" to "class" so that file compiled by Wandbox as prog.java doesn't fail compilation
+      codeToSend = code.replace(/\bpublic\s+class\b/g, 'class');
+    }
+
     try {
       const res = await fetch('https://wandbox.org/api/compile.json', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           compiler,
-          code,
+          code: codeToSend,
           stdin: typeof stdin === 'string' ? stdin : String(stdin || ''),
         }),
       });

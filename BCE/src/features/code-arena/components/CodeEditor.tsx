@@ -38,7 +38,7 @@ const languageMap: Record<CodeLanguage, string> = {
 const starters: Record<CodeLanguage, string> = {
   cpp17: '#include <iostream>\nusing namespace std;\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n    // Write your solution here\n    return 0;\n}',
   c: '#include <stdio.h>\n\nint main(void) {\n    // Write your solution here\n    return 0;\n}',
-  java: 'import java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        // Write your solution here\n    }\n}',
+  java: 'import java.util.Scanner;\n\nclass Main {\n    public static void main(String[] args) {\n        // Write your solution here\n    }\n}',
   python: 'def solve():\n    # Write your solution here\n    pass\n\nif __name__ == "__main__":\n    solve()\n',
   javascript: "'use strict';\n\nfunction solve() {\n    // Write your solution here\n}\n\nsolve();\n",
 };

@@ -31,7 +31,7 @@ const Editor = dynamic(() => import('@monaco-editor/react'), {
 const starters: Record<CodeLanguage, string> = {
   cpp17: '#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello, BCE Code Arena!" << endl;\n    return 0;\n}',
   c: '#include <stdio.h>\n\nint main(void) {\n    printf("Hello, BCE Code Arena!\\n");\n    return 0;\n}',
-  java: 'public class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, BCE Code Arena!");\n    }\n}',
+  java: 'class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, BCE Code Arena!");\n    }\n}',
   python: 'def solve():\n    print("Hello, BCE Code Arena!")\n\nsolve()\n',
   javascript: "'use strict';\n\nfunction solve(input) {\n    console.log('Hello, BCE Code Arena!');\n}\n\nsolve();\n",
 };

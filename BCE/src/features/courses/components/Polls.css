@@ -86,3 +86,17 @@
     padding-left: 0.75rem !important;
   }
 }
+
+@media (max-width: 768px) {
+  .create-poll-form,
+  .curriculum-polls-panel {
+    background: var(--glass-bg) !important;
+    backdrop-filter: blur(var(--glass-blur, 12px)) !important;
+    border: 1px solid var(--glass-border) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    border-radius: var(--radius-md) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    box-shadow: var(--shadow-sm) !important;
+  }
+}
