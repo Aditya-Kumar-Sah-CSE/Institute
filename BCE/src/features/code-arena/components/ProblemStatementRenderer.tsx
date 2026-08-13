@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import DOMPurify from 'dompurify';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -119,6 +119,29 @@ export function ExampleCopyBlock({ label, content }: { label: string; content: s
 
 // Client-side HTML / Markdown content renderer
 function SafeContentRenderer({ rawContent }: { rawContent: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const paragraphs = containerRef.current.querySelectorAll('p');
+    // Curated high-contrast aesthetic colors matching the dark theme
+    const colors = [
+      'var(--neon-cyan)',
+      '#a855f7', // light purple
+      'var(--neon-gold)',
+      'var(--neon-pink)',
+      '#3b82f6', // blue
+      '#10b981', // emerald
+      '#fb923c', // orange
+      '#f43f5e', // rose
+    ];
+    paragraphs.forEach((p, idx) => {
+      p.style.color = colors[idx % colors.length];
+      p.style.textShadow = '0 0 1px rgba(0,0,0,0.5)';
+      p.style.transition = 'color 0.3s ease';
+    });
+  }, [rawContent]);
+
   if (!rawContent || !rawContent.trim()) {
     return <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Not provided.</span>;
   }
@@ -153,6 +176,7 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
     }
     return (
       <div
+        ref={containerRef}
         className="problem-statement-body"
         suppressHydrationWarning
         dangerouslySetInnerHTML={{ __html: cleanHtml }}
@@ -163,7 +187,7 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
 
   // Fallback to Markdown or plain text
   return (
-    <div className="problem-statement-body" style={{ fontSize: 'var(--text-sm)', lineHeight: '1.65', color: 'var(--text-main)' }}>
+    <div ref={containerRef} className="problem-statement-body" style={{ fontSize: 'var(--text-sm)', lineHeight: '1.65', color: 'var(--text-main)' }}>
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{contentToRender}</ReactMarkdown>
     </div>
   );
