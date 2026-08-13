@@ -358,6 +358,13 @@ export default function CodeEditor({
                 onClick={() => {
                   navigator.clipboard.writeText(code);
                   setShowCFModal(true);
+                  const cfId = problem.external_problem_id || problem.externalId || '';
+                  const match = cfId.match(/^(\d+)([A-Z]\d*)$/i);
+                  let submitUrl = problem.external_url || `https://codeforces.com/problemset/problem/${cfId}`;
+                  if (match) {
+                    submitUrl = `https://codeforces.com/contest/${match[1]}/submit?problemIndex=${match[2].toUpperCase()}`;
+                  }
+                  window.open(submitUrl, '_blank');
                 }}
               >
                 <Zap size={14} /> Submit to Codeforces
@@ -387,6 +394,8 @@ export default function CodeEditor({
                 onClick={() => {
                   navigator.clipboard.writeText(code);
                   setShowLCModal(true);
+                  const submitUrl = problem.external_url || problem.sourceUrl || 'https://leetcode.com/problems';
+                  window.open(submitUrl, '_blank');
                 }}
               >
                 <Zap size={14} /> Submit to LeetCode
