@@ -11,9 +11,13 @@ import '@/features/code-arena/components/CodeArena.css';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export default async function CodingProfilePage() {
-  const { supabase, user } = await getCodeArenaActor();
-  if (!user) redirect('/login');
+export default async function CodingProfilePage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
+  const { supabase, user: currentUser } = await getCodeArenaActor();
+  if (!currentUser) redirect('/login');
+
+  const { id: queryId } = await searchParams;
+  const targetId = queryId || currentUser.id;
+  const isOwnProfile = targetId === currentUser.id;
 
   const [
     { data: profile },
@@ -21,11 +25,15 @@ export default async function CodingProfilePage() {
     { count: battles },
     { data: accounts }
   ] = await Promise.all([
-    supabase.from('profiles').select('*').eq('id', user.id).single(),
-    supabase.from('coding_submissions').select('problem_id', { count: 'exact', head: true }).eq('student_id', user.id).eq('status', 'ACCEPTED'),
-    supabase.from('coding_battle_participants').select('*', { count: 'exact', head: true }).eq('student_id', user.id),
-    supabase.from('student_external_accounts').select('*').eq('student_id', user.id),
+    supabase.from('profiles').select('*').eq('id', targetId).single(),
+    supabase.from('coding_submissions').select('problem_id', { count: 'exact', head: true }).eq('student_id', targetId).eq('status', 'ACCEPTED'),
+    supabase.from('coding_battle_participants').select('*', { count: 'exact', head: true }).eq('student_id', targetId),
+    supabase.from('student_external_accounts').select('*').eq('student_id', targetId),
   ]);
+
+  if (!profile) {
+    redirect('/code-arena/profile');
+  }
 
   const cfAccount = accounts?.find(a => a.platform === 'CODEFORCES');
   const lcAccount = accounts?.find(a => a.platform === 'LEETCODE');
@@ -34,7 +42,7 @@ export default async function CodingProfilePage() {
   const { data: bceSubmissions } = await supabase
     .from('coding_submissions')
     .select('id, problem_id, status, language, created_at, coding_problems(title, difficulty, provider)')
-    .eq('student_id', user.id)
+    .eq('student_id', targetId)
     .order('created_at', { ascending: false })
     .limit(5);
 
@@ -45,6 +53,7 @@ export default async function CodingProfilePage() {
         profile={profile} 
         codeforcesConnected={!!cfAccount}
         leetCodeConnected={!!lcAccount}
+        isOwnProfile={isOwnProfile}
       />
       
       <div className="profile-grid-container">

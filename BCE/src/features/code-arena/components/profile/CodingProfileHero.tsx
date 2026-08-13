@@ -10,9 +10,21 @@ interface CodingProfileHeroProps {
   profile: Profile | null;
   codeforcesConnected: boolean;
   leetCodeConnected: boolean;
+  isOwnProfile?: boolean;
 }
 
-export default function CodingProfileHero({ profile, codeforcesConnected, leetCodeConnected }: CodingProfileHeroProps) {
+export default function CodingProfileHero({ profile, codeforcesConnected, leetCodeConnected, isOwnProfile = true }: CodingProfileHeroProps) {
+  const [copied, setCopied] = React.useState(false);
+
+  const handleShare = () => {
+    if (!profile) return;
+    const shareUrl = `${window.location.origin}/code-arena/profile?id=${profile.id}`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
   return (
     <div className="profile-hero-container">
       {/* Animated gradient orbs in background */}
@@ -42,7 +54,9 @@ export default function CodingProfileHero({ profile, codeforcesConnected, leetCo
             <h1 className="profile-hero-name">{profile?.name || 'Loading...'}</h1>
             <Sparkles size={20} className="hero-sparkle-icon" />
           </div>
-          <p className="profile-hero-title">Competitive Programmer</p>
+          <p className="profile-hero-title">
+            {isOwnProfile ? 'Competitive Programmer' : `Viewing ${profile?.name || 'User'}'s Coding Profile`}
+          </p>
           <p className="profile-hero-college">
             <span className="college-dot" />
             BCE Bhagalpur
@@ -72,14 +86,37 @@ export default function CodingProfileHero({ profile, codeforcesConnected, leetCo
       </div>
       
       <div className="profile-hero-actions">
-        <Link href="/code-arena/problems" className="hero-action-btn primary">
-          <TerminalSquare size={18} />
-          Problem Hub
-        </Link>
-        <Link href="/code-arena" className="hero-action-btn secondary">
-          <Swords size={18} />
-          Coding Battles
-        </Link>
+        {isOwnProfile ? (
+          <>
+            <button 
+              onClick={handleShare} 
+              className="hero-action-btn secondary"
+              style={{
+                background: copied ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                borderColor: copied ? '#22c55e' : 'var(--glass-border)',
+                color: copied ? '#22c55e' : 'var(--text-main)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: 'pointer'
+              }}
+            >
+              {copied ? 'Copied Link! ✓' : 'Share Profile 🔗'}
+            </button>
+            <Link href="/code-arena/problems" className="hero-action-btn primary">
+              <TerminalSquare size={18} />
+              Problem Hub
+            </Link>
+            <Link href="/code-arena" className="hero-action-btn secondary">
+              <Swords size={18} />
+              Coding Battles
+            </Link>
+          </>
+        ) : (
+          <Link href="/code-arena/profile" className="hero-action-btn primary">
+            Back to My Profile
+          </Link>
+        )}
       </div>
     </div>
   );

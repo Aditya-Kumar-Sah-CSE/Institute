@@ -132,30 +132,20 @@ export default async function ProfilePage() {
           
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', flexWrap: 'nowrap', justifyContent: 'space-between', width: '100%', marginTop: 'var(--space-md)' }}>
             <div style={{ display: 'flex', gap: 'var(--space-md)', width: '100%', alignItems: 'center' }}>
-              {profile.role !== 'admin' && (
-                <div style={{ flex: 1 }}>
-                  {profile.role !== 'instructor' && (!appData || appData.status === 'rejected') && (
-                    <Link href={appData?.status === 'rejected' ? '/apply-instructor?reapply=true' : '/apply-instructor'} style={{ textDecoration: 'none', display: 'block', width: '100%' }}>
-                      <Button variant="secondary" size="sm" style={{ height: "48px", backgroundColor: "#22c55e", color: "white", width: '100%' }}>
-                        Apply as Instructor or Faculty
-                      </Button>
-                    </Link>
-                  )}
-                  {(appData?.status === 'pending' || appData?.status === 'approved' || profile.role === 'instructor') && (
-                    <span style={{ 
-                      display: 'inline-block',
-                      fontSize: 'var(--text-sm)', 
-                      fontWeight: 'var(--weight-bold)', 
-                      color: (appData?.status === 'pending') ? '#eab308' : '#22c55e',
-                      padding: '0.25rem 0.75rem',
-                      borderRadius: '1rem',
-                      backgroundColor: (appData?.status === 'pending') ? 'rgba(234, 179, 8, 0.1)' : 'rgba(34, 197, 94, 0.1)'
-                    }}>
-                      Status: {appData?.status === 'pending' ? 'Pending' : 'Approved as faculty'}
-                    </span>
-                  )}
-                </div>
-              )}
+              <div style={{ flex: 1, display: 'flex', gap: 'var(--space-md)' }}>
+                <Link href="/code-arena/profile" style={{ textDecoration: 'none', flex: 1 }}>
+                  <Button variant="secondary" size="sm" style={{ height: "48px", backgroundColor: "rgba(6, 182, 212, 0.1)", border: "1px solid rgba(6, 182, 212, 0.3)", color: "var(--neon-cyan)", width: '100%', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                    🚀 View Coding Profile
+                  </Button>
+                </Link>
+                {profile.role !== 'admin' && profile.role !== 'instructor' && (!appData || appData.status === 'rejected') && (
+                  <Link href={appData?.status === 'rejected' ? '/apply-instructor?reapply=true' : '/apply-instructor'} style={{ textDecoration: 'none', flex: 1 }}>
+                    <Button variant="secondary" size="sm" style={{ height: "48px", backgroundColor: "#22c55e", color: "white", width: '100%' }}>
+                      Apply as Instructor or Faculty
+                    </Button>
+                  </Link>
+                )}
+              </div>
               <BasicInfoEdit 
                 initialName={profile.name} 
                 initialRollNo={profile.institute_id} 
