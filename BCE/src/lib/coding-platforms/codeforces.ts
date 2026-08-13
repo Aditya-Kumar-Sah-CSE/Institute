@@ -155,7 +155,7 @@ export const codeforcesAdapter: CodingPlatformAdapter = {
       if (statementMatch) {
         let stmtHtml = statementMatch[1];
         // Strip the entire header section if present to avoid duplicating limits
-        stmtHtml = stmtHtml.replace(/<div class="header">[\s\S]*?<\/div>/i, '');
+        stmtHtml = stmtHtml.replace(/<div class="header">[\s\S]*?<\/div>\s*(?=<div>|<div class="legend">|<div class="input-specification">|<div class="sample-tests">|<div class="sample-test">|<p>)/i, '');
         statement = cleanHtml(stmtHtml);
       }
 

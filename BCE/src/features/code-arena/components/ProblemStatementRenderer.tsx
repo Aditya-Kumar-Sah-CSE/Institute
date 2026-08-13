@@ -130,7 +130,7 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
   const trimmed = rawContent.trim();
   let contentToRender = trimmed;
   // Strip the entire header section if present to avoid duplicating limits
-  contentToRender = contentToRender.replace(/<div class="header">[\s\S]*?<\/div>/i, '');
+  contentToRender = contentToRender.replace(/<div class="header">[\s\S]*?<\/div>\s*(?=<div>|<div class="legend">|<div class="input-specification">|<div class="sample-tests">|<div class="sample-test">|<p>)/i, '');
   // Replace relative URLs to Codeforces assets
   contentToRender = contentToRender.replace(/src="\/(predownloaded|images|assets)\/([^"]+)"/g, 'src="https://codeforces.com/$1/$2"');
   contentToRender = contentToRender.replace(/src='\/(predownloaded|images|assets)\/([^']+)'/g, "src='https://codeforces.com/$1/$2'");
