@@ -77,8 +77,8 @@ export default function CreatePollWidget({ courseId, hideHeading = false }: Crea
             style={{ 
               display: 'flex', 
               alignItems: 'center', 
-              gap: '8px', 
-              padding: '8px 16px', 
+              gap: '0.5rem', 
+              padding: '0.5rem 1rem', 
               background: 'rgba(10, 132, 255, 0.1)', 
               color: '#0a84ff', 
               border: '1px solid rgba(10, 132, 255, 0.2)', 
@@ -103,15 +103,15 @@ export default function CreatePollWidget({ courseId, hideHeading = false }: Crea
               </h3>
               
               <div className="create-poll-controls" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-body)', padding: '4px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(10, 132, 255, 0.2)' }}>
+                <div style={{ display: 'flex', gap: '0.25rem', background: 'var(--bg-body)', padding: '0.25rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(10, 132, 255, 0.2)' }}>
                   <button 
                     type="button"
                     onClick={() => setIsMultipleChoice(!isMultipleChoice)}
                     disabled={isSubmitting}
                     className="multiple-choice-control"
                     style={{ 
-                      padding: '4px 12px', 
-                      borderRadius: '4px', 
+                      padding: '0.25rem 0.75rem', 
+                      borderRadius: '0.25rem', 
                       border: 'none', 
                       background: isMultipleChoice ? '#0a84ff' : 'transparent',
                       color: isMultipleChoice ? '#fff' : 'var(--text-muted)',
@@ -125,7 +125,7 @@ export default function CreatePollWidget({ courseId, hideHeading = false }: Crea
                   </button>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(0, 0, 0, 0.2)', padding: '6px 12px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(0, 0, 0, 0.2)', padding: '0.375rem 0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
                   <label style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>Expires (days):</label>
                   <input 
                     type="number" 
@@ -134,7 +134,7 @@ export default function CreatePollWidget({ courseId, hideHeading = false }: Crea
                     value={expiresInDays}
                     onChange={(e) => setExpiresInDays(parseInt(e.target.value) || 2)}
                     className="poll-expiry-input"
-                    style={{ width: '40px', border: 'none', background: 'transparent', color: 'inherit', outline: 'none', textAlign: 'right' }}
+                    style={{ width: '2.5rem', border: 'none', background: 'transparent', color: 'inherit', outline: 'none', textAlign: 'right' }}
                     disabled={isSubmitting}
                   />
                 </div>
@@ -154,8 +154,8 @@ export default function CreatePollWidget({ courseId, hideHeading = false }: Crea
             {/* Options UI */}
             <div className="create-poll-options" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '0 8px' }}>
               {options.map((opt, idx) => (
-                <div key={idx} className="create-poll-option-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: 'var(--text-muted)' }}>
+                <div key={idx} className="create-poll-option-row" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ width: '1.5rem', height: '1.5rem', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.625rem', color: 'var(--text-muted)' }}>
                     {idx + 1}
                   </div>
                   <input 
@@ -169,7 +169,7 @@ export default function CreatePollWidget({ courseId, hideHeading = false }: Crea
                       background: 'rgba(0,0,0,0.1)',
                       border: '1px solid rgba(255,255,255,0.05)',
                       borderRadius: 'var(--radius-sm)',
-                      padding: '8px 12px',
+                      padding: '0.5rem 0.75rem',
                       color: 'inherit',
                       outline: 'none',
                       transition: 'border 0.2s'
@@ -179,7 +179,7 @@ export default function CreatePollWidget({ courseId, hideHeading = false }: Crea
                     <button 
                       onClick={() => handleRemoveOption(idx)}
                       disabled={isSubmitting}
-                      style={{ background: 'transparent', border: 'none', color: 'var(--text-danger)', cursor: 'pointer', padding: '4px' }}
+                      style={{ background: 'transparent', border: 'none', color: 'var(--text-danger)', cursor: 'pointer', padding: '0.25rem' }}
                     >
                       <X size={16} />
                     </button>
@@ -190,7 +190,7 @@ export default function CreatePollWidget({ courseId, hideHeading = false }: Crea
                 <button 
                   onClick={handleAddOption}
                   disabled={isSubmitting}
-                  style={{ alignSelf: 'flex-start', background: 'transparent', border: 'none', color: '#0a84ff', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.85rem', padding: '4px 8px', marginTop: '4px' }}
+                  style={{ alignSelf: 'flex-start', background: 'transparent', border: 'none', color: '#0a84ff', display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer', fontSize: '0.85rem', padding: '0.25rem 0.5rem', marginTop: '0.25rem' }}
                 >
                   <Plus size={14} /> Add Option
                 </button>
@@ -202,10 +202,10 @@ export default function CreatePollWidget({ courseId, hideHeading = false }: Crea
               display: 'flex', 
               alignItems: 'center', 
               background: 'rgba(0, 0, 0, 0.2)', 
-              borderRadius: '24px', 
-              padding: '6px 6px 6px 16px',
+              borderRadius: '1.5rem', 
+              padding: '0.375rem 0.375rem 0.375rem 1rem',
               border: '1px solid rgba(10, 132, 255, 0.3)',
-              gap: '8px',
+              gap: '0.5rem',
               marginTop: 'var(--space-xs)',
               boxShadow: '0 2px 10px rgba(0,0,0,0.05)'
             }}>
@@ -238,8 +238,8 @@ export default function CreatePollWidget({ courseId, hideHeading = false }: Crea
                   color: (question.trim() && options.filter(o => o.trim()).length >= 2) ? '#fff' : 'rgba(255, 255, 255, 0.3)',
                   border: 'none',
                   borderRadius: '50%',
-                  width: '40px',
-                  height: '40px',
+                  width: '2.5rem',
+                  height: '2.5rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',

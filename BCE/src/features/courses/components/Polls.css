@@ -83,6 +83,6 @@
 
   .create-poll-question-row {
     width: 100%;
-    padding-left: 12px !important;
+    padding-left: 0.75rem !important;
   }
 }

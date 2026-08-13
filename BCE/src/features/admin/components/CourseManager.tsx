@@ -109,17 +109,17 @@ export default function CourseManager({ courses, currentUserId, userRole }: Cour
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
           <h2 style={{ fontSize: 'var(--text-xl)', margin: 0 }}>Manage Courses</h2>
           {userRole !== 'instructor' && (
-            <div style={{ display: 'flex', background: 'var(--bg-input)', padding: '4px', borderRadius: 'var(--radius-sm)', gap: '4px' }}>
+            <div style={{ display: 'flex', background: 'var(--bg-input)', padding: '0.25rem', borderRadius: 'var(--radius-sm)', gap: '0.25rem' }}>
               <button 
                 className={`btn-ghost ${courseFilter === 'my_courses' ? 'active' : ''}`}
-                style={{ padding: '6px 12px', borderRadius: '4px', background: courseFilter === 'my_courses' ? 'var(--bg-secondary)' : 'transparent', color: courseFilter === 'my_courses' ? 'var(--text-primary)' : 'var(--text-secondary)', border: 'none', cursor: 'pointer' }}
+                style={{ padding: '0.375rem 0.75rem', borderRadius: '0.25rem', background: courseFilter === 'my_courses' ? 'var(--bg-secondary)' : 'transparent', color: courseFilter === 'my_courses' ? 'var(--text-primary)' : 'var(--text-secondary)', border: 'none', cursor: 'pointer' }}
                 onClick={() => setCourseFilter('my_courses')}
               >
                 My Courses
               </button>
               <button 
                 className={`btn-ghost ${courseFilter === 'all_courses' ? 'active' : ''}`}
-                style={{ padding: '6px 12px', borderRadius: '4px', background: courseFilter === 'all_courses' ? 'var(--bg-secondary)' : 'transparent', color: courseFilter === 'all_courses' ? 'var(--text-primary)' : 'var(--text-secondary)', border: 'none', cursor: 'pointer' }}
+                style={{ padding: '0.375rem 0.75rem', borderRadius: '0.25rem', background: courseFilter === 'all_courses' ? 'var(--bg-secondary)' : 'transparent', color: courseFilter === 'all_courses' ? 'var(--text-primary)' : 'var(--text-secondary)', border: 'none', cursor: 'pointer' }}
                 onClick={() => setCourseFilter('all_courses')}
               >
                 All Courses
@@ -140,8 +140,8 @@ export default function CourseManager({ courses, currentUserId, userRole }: Cour
             <div className="course-card-info">
               <h3 style={{ marginBottom: 'var(--space-2xs)' }}>
                 {course.title}
-                {course.is_deleted && <span style={{ marginLeft: 'var(--space-sm)', fontSize: '10px', background: 'var(--neon-red)', color: 'white', padding: '2px 6px', borderRadius: '4px' }}>DELETED</span>}
-                {!course.is_published && !course.is_deleted && <span style={{ marginLeft: 'var(--space-sm)', fontSize: '10px', background: 'var(--neon-gold)', color: 'black', padding: '2px 6px', borderRadius: '4px' }}>DRAFT</span>}
+                {course.is_deleted && <span style={{ marginLeft: 'var(--space-sm)', fontSize: '0.625rem', background: 'var(--neon-red)', color: 'white', padding: '0.125rem 0.375rem', borderRadius: '0.25rem' }}>DELETED</span>}
+                {!course.is_published && !course.is_deleted && <span style={{ marginLeft: 'var(--space-sm)', fontSize: '0.625rem', background: 'var(--neon-gold)', color: 'black', padding: '0.125rem 0.375rem', borderRadius: '0.25rem' }}>DRAFT</span>}
               </h3>
               {course.profiles?.name && (
                 <p className="text-secondary text-sm" style={{ marginBottom: 'var(--space-2xs)' }}>
@@ -157,7 +157,7 @@ export default function CourseManager({ courses, currentUserId, userRole }: Cour
                 <Button variant="success" size="sm" onClick={() => handleRestore(course.id)} style={{ width: '100%' }}>Restore Course</Button>
               ) : (
                 <>
-                  <a href={`${basePath}/courses/${course.id}/builder`} className="btn btn-primary btn-build-curriculum" style={{ padding: '10px 16px', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', minHeight: '40px' }}>
+                  <a href={`${basePath}/courses/${course.id}/builder`} className="btn btn-primary btn-build-curriculum" style={{ padding: '0.625rem 1rem', fontSize: '0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', minHeight: '2.5rem' }}>
                     <BookOpen size={16} /> Start Teaching
                   </a>
                   <div style={{ display: 'flex', gap: 'var(--space-sm)', width: '100%' }}>
@@ -172,13 +172,13 @@ export default function CourseManager({ courses, currentUserId, userRole }: Cour
       </div>
 
       {!showAllCourses && filteredCourses.length > 2 && (
-        <Button variant="secondary" onClick={() => setShowAllCourses(true)} style={{ padding: '16px', fontWeight: 'bold', width: '100%' }}>
+        <Button variant="secondary" onClick={() => setShowAllCourses(true)} style={{ padding: '1rem', fontWeight: 'bold', width: '100%' }}>
           View all {filteredCourses.length} courses
         </Button>
       )}
 
       {showAllCourses && filteredCourses.length > 2 && (
-        <Button variant="ghost" onClick={() => setShowAllCourses(false)} style={{ padding: '16px', fontWeight: 'bold', width: '100%', border: '1px solid var(--glass-border)' }}>
+        <Button variant="ghost" onClick={() => setShowAllCourses(false)} style={{ padding: '1rem', fontWeight: 'bold', width: '100%', border: '1px solid var(--glass-border)' }}>
           View Less
         </Button>
       )}

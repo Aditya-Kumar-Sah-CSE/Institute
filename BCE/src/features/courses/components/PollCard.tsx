@@ -106,30 +106,30 @@ export default function PollCard({ poll, currentUserId, isFaculty = false }: Pol
           {poll.question}
         </h3>
         
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: '8px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: '0.5rem' }}>
           <div style={{ flex: '1 1 30%', display: 'flex', justifyContent: 'flex-start' }}>
             <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               Asked by {poll.profiles?.name || 'Unknown'}
             </span>
           </div>
 
-          <div style={{ flex: '1 1 30%', display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 30%', display: 'flex', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
             {isExpired ? (
               <span style={{ color: 'var(--neon-pink)', fontWeight: 500, fontSize: 'var(--text-xs)', whiteSpace: 'nowrap' }}>Ended</span>
             ) : poll.expires_at && (
-              <span suppressHydrationWarning style={{ color: 'var(--neon-gold)', fontWeight: 500, fontSize: 'var(--text-xs)', background: 'rgba(255, 215, 0, 0.1)', padding: '2px 8px', borderRadius: '4px', whiteSpace: 'nowrap' }}>
+              <span suppressHydrationWarning style={{ color: 'var(--neon-gold)', fontWeight: 500, fontSize: 'var(--text-xs)', background: 'rgba(255, 215, 0, 0.1)', padding: '0.125rem 0.5rem', borderRadius: '0.25rem', whiteSpace: 'nowrap' }}>
                 Ends in {formatDistanceToNow(new Date(poll.expires_at))}
               </span>
             )}
 
             {poll.is_multiple_choice && (
-              <span style={{ padding: '2px 6px', background: 'var(--bg-input)', borderRadius: '12px', color: 'var(--text-secondary)', fontSize: 'var(--text-xs)', whiteSpace: 'nowrap' }}>
+              <span style={{ padding: '0.125rem 0.375rem', background: 'var(--bg-input)', borderRadius: '0.75rem', color: 'var(--text-secondary)', fontSize: 'var(--text-xs)', whiteSpace: 'nowrap' }}>
                 Multiple Choice
               </span>
             )}
           </div>
 
-          <div style={{ flex: '1 1 30%', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px' }}>
+          <div style={{ flex: '1 1 30%', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.5rem' }}>
             <span suppressHydrationWarning style={{ color: 'var(--text-muted)', fontSize: 'var(--text-xs)', whiteSpace: 'nowrap' }}>
               {formatDistanceToNow(new Date(poll.created_at), { addSuffix: true })}
             </span>
@@ -187,7 +187,7 @@ export default function PollCard({ poll, currentUserId, isFaculty = false }: Pol
               />
               
               {/* Checkbox / Radio */}
-              <div style={{ zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: poll.is_multiple_choice ? '4px' : '50%', border: `2px solid ${isSelected ? 'var(--neon-cyan)' : 'var(--text-muted)'}`, background: isSelected ? 'var(--neon-cyan)' : 'transparent' }}>
+              <div style={{ zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '1.25rem', height: '1.25rem', borderRadius: poll.is_multiple_choice ? '0.25rem' : '50%', border: `2px solid ${isSelected ? 'var(--neon-cyan)' : 'var(--text-muted)'}`, background: isSelected ? 'var(--neon-cyan)' : 'transparent' }}>
                 {isSelected && <span style={{ color: '#000', fontSize: '12px', fontWeight: 'bold' }}>✓</span>}
               </div>
 
@@ -200,24 +200,24 @@ export default function PollCard({ poll, currentUserId, isFaculty = false }: Pol
               <div style={{ zIndex: 1, display: 'flex', alignItems: 'center', gap: 'var(--space-xs)' }}>
                 <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>{percentage}%</span>
                 {voteCount > 0 && (
-                  <div style={{ display: 'flex', marginLeft: '8px' }}>
+                  <div style={{ display: 'flex', marginLeft: '0.5rem' }}>
                     {option.votes.slice(0, 3).map((v, i) => (
                       <div 
                         key={v.id} 
                         title={v.profiles?.name || 'User'}
                         style={{
-                          width: '24px',
-                          height: '24px',
+                          width: '1.5rem',
+                          height: '1.5rem',
                           borderRadius: '50%',
                           background: 'var(--gradient-xp)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontSize: '10px',
+                          fontSize: '0.625rem',
                           fontWeight: 'bold',
                           color: '#000',
                           border: '2px solid var(--bg-card)',
-                          marginLeft: i > 0 ? '-8px' : '0',
+                          marginLeft: i > 0 ? '-0.5rem' : '0',
                           zIndex: 3 - i
                         }}
                       >
@@ -233,7 +233,7 @@ export default function PollCard({ poll, currentUserId, isFaculty = false }: Pol
       </div>
 
       <div style={{ marginTop: 'auto', paddingTop: 'var(--space-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
             Total votes: {totalVotes}
           </span>
@@ -264,17 +264,17 @@ export default function PollCard({ poll, currentUserId, isFaculty = false }: Pol
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)', maxHeight: '60vh', overflowY: 'auto', paddingRight: '8px' }}>
           {poll.options.map(option => (
             <div key={option.id} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: '4px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.25rem' }}>
                 <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{option.option_text}</span>
                 <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
                   {option.votes.length} vote{option.votes.length !== 1 ? 's' : ''}
                 </span>
               </div>
               {option.votes.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingLeft: 'var(--space-xs)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingLeft: 'var(--space-xs)' }}>
                   {option.votes.map(vote => (
-                    <div key={vote.id} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--neon-cyan)', fontSize: '12px', border: '1px solid var(--glass-border)' }}>
+                    <div key={vote.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div style={{ width: '1.75rem', height: '1.75rem', borderRadius: '50%', background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--neon-cyan)', fontSize: '0.75rem', border: '1px solid var(--glass-border)' }}>
                         {(vote.profiles?.name || 'U').charAt(0).toUpperCase()}
                       </div>
                       <span style={{ fontSize: 'var(--text-sm)', color: vote.user_id === currentUserId ? 'var(--neon-cyan)' : 'var(--text-secondary)', fontWeight: vote.user_id === currentUserId ? 500 : 400 }}>

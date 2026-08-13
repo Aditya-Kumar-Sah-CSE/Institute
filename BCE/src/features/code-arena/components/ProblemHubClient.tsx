@@ -150,17 +150,11 @@ export default function ProblemHubClient({ userId }: { userId: string }) {
               setImportProblemId('');
             }}
             className="btn btn-primary animate-pulse"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', height: '36px', padding: '0 16px' }}
           >
             <Plus size={14} /> Import Problem
           </button>
-          <Link href="/code-arena" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)' }}>
-            <Swords size={14} /> Battles
-          </Link>
-          <Link href="/code-arena/compiler" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)' }}>
-            <Code2 size={14} /> Compiler
-          </Link>
-          <Link href="/code-arena/profile" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)' }}>
+          <Link href="/code-arena/profile" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', height: '36px', padding: '0 16px' }}>
             <Flame size={14} /> Profile
           </Link>
         </div>
@@ -344,14 +338,14 @@ export default function ProblemHubClient({ userId }: { userId: string }) {
             Enter a Codeforces Contest + Index (e.g., <code>4A</code>, <code>1985A</code>) or LeetCode slug (e.g., <code>two-sum</code>), or copy-paste the full problem URL. We will download the statements and official testcases.
           </p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <span style={{ fontSize: '11px', fontWeight: 650, color: 'var(--text-muted)' }}>SELECT PLATFORM</span>
-            <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+            <span style={{ fontSize: '0.6875rem', fontWeight: 650, color: 'var(--text-muted)' }}>SELECT PLATFORM</span>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
               <button
                 type="button"
                 className={`hub-chip ${importPlatform === 'CODEFORCES' ? 'active' : ''}`}
                 onClick={() => setImportPlatform('CODEFORCES')}
-                style={{ flex: 1, padding: '10px', display: 'flex', justifyContent: 'center', fontWeight: 'bold' }}
+                style={{ flex: 1, padding: '0.625rem', display: 'flex', justifyContent: 'center', fontWeight: 'bold' }}
               >
                 Codeforces
               </button>
@@ -359,15 +353,15 @@ export default function ProblemHubClient({ userId }: { userId: string }) {
                 type="button"
                 className={`hub-chip ${importPlatform === 'LEETCODE' ? 'active' : ''}`}
                 onClick={() => setImportPlatform('LEETCODE')}
-                style={{ flex: 1, padding: '10px', display: 'flex', justifyContent: 'center', fontWeight: 'bold' }}
+                style={{ flex: 1, padding: '0.625rem', display: 'flex', justifyContent: 'center', fontWeight: 'bold' }}
               >
                 LeetCode
               </button>
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <span style={{ fontSize: '11px', fontWeight: 650, color: 'var(--text-muted)' }}>PROBLEM ID OR URL</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+            <span style={{ fontSize: '0.6875rem', fontWeight: 650, color: 'var(--text-muted)' }}>PROBLEM ID OR URL</span>
             <input
               type="text"
               placeholder={importPlatform === 'CODEFORCES' ? "e.g., 4A, 1982B, or URL" : "e.g., two-sum, reverse-integer, or URL"}
@@ -375,7 +369,7 @@ export default function ProblemHubClient({ userId }: { userId: string }) {
               onChange={(e) => setImportProblemId(e.target.value)}
               disabled={importing}
               style={{
-                padding: '10px 14px',
+                padding: '0.625rem 0.875rem',
                 borderRadius: 'var(--radius-md)',
                 background: 'rgba(0,0,0,0.2)',
                 border: '1px solid var(--glass-border)',
@@ -388,12 +382,12 @@ export default function ProblemHubClient({ userId }: { userId: string }) {
           </div>
 
           {importError && (
-            <div style={{ padding: '10px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 'var(--radius-md)', color: '#ef4444', fontSize: 'var(--text-xs)' }}>
+            <div style={{ padding: '0.625rem', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 'var(--radius-md)', color: '#ef4444', fontSize: 'var(--text-xs)' }}>
               {importError}
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '8px' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
             <button
               type="button"
               className="btn btn-secondary"
@@ -407,11 +401,11 @@ export default function ProblemHubClient({ userId }: { userId: string }) {
               type="submit"
               className="btn btn-primary"
               disabled={importing}
-              style={{ fontSize: 'var(--text-xs)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              style={{ fontSize: 'var(--text-xs)', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
             >
               {importing ? (
                 <>
-                  <div className="hub-loading-spinner" style={{ width: '12px', height: '12px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white' }} />
+                  <div className="hub-loading-spinner" style={{ width: '0.75rem', height: '0.75rem', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white' }} />
                   Importing...
                 </>
               ) : (

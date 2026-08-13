@@ -253,7 +253,7 @@ export default function AssignmentCard({ assignment, submission, communitySubmis
                   {sub.profile?.avatar_url ? (
                     <Image src={sub.profile.avatar_url} alt="Avatar" width={32} height={32} style={{ borderRadius: '50%' }} />
                   ) : (
-                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', fontWeight: 'bold' }}>
+                    <div style={{ width: '2rem', height: '2rem', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', fontWeight: 'bold' }}>
                       {sub.profile?.name?.[0] || '?'}
                     </div>
                   )}
@@ -267,8 +267,8 @@ export default function AssignmentCard({ assignment, submission, communitySubmis
                 
                 {/* Submission Content */}
                 <div style={{ fontSize: 'var(--text-sm)' }}>
-                  {sub.github_link && <div style={{ marginBottom: '4px' }}><strong>GitHub:</strong> <a href={sub.github_link} target="_blank" rel="noreferrer" style={{ color: 'var(--neon-cyan)' }}>{sub.github_link}</a></div>}
-                  {sub.deploy_link && <div style={{ marginBottom: '4px' }}><strong>Deploy:</strong> <a href={sub.deploy_link} target="_blank" rel="noreferrer" style={{ color: 'var(--neon-cyan)' }}>{sub.deploy_link}</a></div>}
+                  {sub.github_link && <div style={{ marginBottom: '0.25rem' }}><strong>GitHub:</strong> <a href={sub.github_link} target="_blank" rel="noreferrer" style={{ color: 'var(--neon-cyan)' }}>{sub.github_link}</a></div>}
+                  {sub.deploy_link && <div style={{ marginBottom: '0.25rem' }}><strong>Deploy:</strong> <a href={sub.deploy_link} target="_blank" rel="noreferrer" style={{ color: 'var(--neon-cyan)' }}>{sub.deploy_link}</a></div>}
                   
                   {sub.answer && (
                     <div style={{ marginTop: 'var(--space-xs)' }}>
@@ -283,7 +283,7 @@ export default function AssignmentCard({ assignment, submission, communitySubmis
                               urls = [String(sub.answer)];
                             }
                             return urls.map((url, idx) => (
-                              <a key={idx} href={url} target="_blank" rel="noreferrer" style={{ color: '#000', background: 'var(--neon-cyan)', padding: '4px 12px', borderRadius: '4px', textDecoration: 'none', fontSize: 'var(--text-xs)', fontWeight: 'bold' }}>
+                              <a key={idx} href={url} target="_blank" rel="noreferrer" style={{ color: '#000', background: 'var(--neon-cyan)', padding: '0.25rem 0.75rem', borderRadius: '0.25rem', textDecoration: 'none', fontSize: 'var(--text-xs)', fontWeight: 'bold' }}>
                                 📄 View Attachment {idx + 1}
                               </a>
                             ));

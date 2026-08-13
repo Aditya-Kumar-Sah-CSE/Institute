@@ -8,14 +8,10 @@ import type { CodeLanguage } from '../types';
 import {
   FileText,
   ListChecks,
-  ArrowDownToLine,
-  ArrowUpFromLine,
   Braces,
   ExternalLink,
   Copy,
   Check,
-  Clock,
-  HardDrive,
   Award,
   Tag,
   AlertCircle,
@@ -173,21 +169,9 @@ export default function ProblemStatementRenderer({ problem }: { problem: Problem
 
   const rawStatement = problem.statement || problem.description || '';
   const rawConstraints = problem.constraints || '';
-  const rawInputDesc = problem.inputDescription || problem.input_format || '';
-  const rawOutputDesc = problem.outputDescription || problem.output_format || '';
 
   const examplesList = problem.examples && problem.examples.length > 0 ? problem.examples : problem.samples || [];
 
-  const timeSec = problem.timeLimit
-    ? problem.timeLimit
-    : problem.time_limit_ms
-    ? `${(problem.time_limit_ms / 1000).toFixed(1)}s`
-    : '2.0s';
-  const memMb = problem.memoryLimit
-    ? problem.memoryLimit
-    : problem.memory_limit_mb
-    ? `${problem.memory_limit_mb} MB`
-    : '256 MB';
 
   const tags = problem.tags || [];
   const isContentEmpty = !rawStatement.trim();
@@ -262,12 +246,7 @@ export default function ProblemStatementRenderer({ problem }: { problem: Problem
               {problem.rating} Rating
             </span>
           )}
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', padding: '4px 10px', borderRadius: '12px' }}>
-            <Clock size={12} /> {timeSec}
-          </span>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', padding: '4px 10px', borderRadius: '12px' }}>
-            <HardDrive size={12} /> {memMb}
-          </span>
+
           {problem.hasSolved && (
             <span style={{ fontSize: '11px', color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', padding: '4px 10px', borderRadius: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               ✓ Solved
@@ -392,21 +371,7 @@ export default function ProblemStatementRenderer({ problem }: { problem: Problem
         )}
       </section>
 
-      {/* Input Format Section */}
-      <section style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-xs)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', borderLeft: '3px solid var(--neon-cyan)', paddingLeft: '10px', letterSpacing: '0.5px' }}>
-          <ArrowDownToLine size={14} style={{ color: 'var(--neon-cyan)' }} /> Input Format
-        </div>
-        <SafeContentRenderer rawContent={rawInputDesc} />
-      </section>
 
-      {/* Output Format Section */}
-      <section style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-xs)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', borderLeft: '3px solid var(--neon-emerald)', paddingLeft: '10px', letterSpacing: '0.5px' }}>
-          <ArrowUpFromLine size={14} style={{ color: 'var(--neon-emerald)' }} /> Output Format
-        </div>
-        <SafeContentRenderer rawContent={rawOutputDesc} />
-      </section>
 
       {/* Notes / Explanation Section */}
       {problem.explanation && (
