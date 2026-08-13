@@ -152,10 +152,10 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
   contentToRender = contentToRender.replace(/<div\s+class=["']header["']>[\s\S]*?<\/div>/gi, '');
   // Clean up any residual limit/input/output blocks from raw content
   contentToRender = contentToRender.replace(/<div\s+class=["'](?:time-limit|memory-limit|input-file|output-file)["']>[\s\S]*?<\/div>\s*[^<]*<\/div>/gi, '');
-  contentToRender = contentToRender.replace(/<div[^>]*>\s*time limit per test[\s\S]*?<\/div>/gi, '');
-  contentToRender = contentToRender.replace(/<div[^>]*>\s*memory limit per test[\s\S]*?<\/div>/gi, '');
-  contentToRender = contentToRender.replace(/<div[^>]*>\s*input[\s\S]*?<\/div>/gi, '');
-  contentToRender = contentToRender.replace(/<div[^>]*>\s*output[\s\S]*?<\/div>/gi, '');
+  contentToRender = contentToRender.replace(/<div\s+class=["'](?:time-limit|memory-limit|input-file|output-file)["']>[\s\S]*?<\/div>/gi, '');
+  contentToRender = contentToRender.replace(/<div[^>]*>\s*(?:time limit per test|memory limit per test|input|output|stdin|stdout|standard input|standard output|seconds|megabytes)\s*<\/div>/gi, '');
+  contentToRender = contentToRender.replace(/<(?:p|div|span)[^>]*>\s*(?:stdin|stdout|standard input|standard output|time limit per test|memory limit per test|input|output|2 seconds|256 megabytes)\s*<\/(?:p|div|span)>/gi, '');
+  contentToRender = contentToRender.replace(/^[ \t]*(?:stdin|stdout|standard input|standard output|time limit per test|memory limit per test|seconds|megabytes|2 seconds|256 megabytes)\b[ \t]*$/gim, '');
   contentToRender = contentToRender.replace(/(?:time limit per test|memory limit per test|input|output)\s*(?:1 second|2 seconds|1\.0 second|2\.0 seconds|256 megabytes|512 megabytes|stdin|stdout|standard input|standard output)?\s*/gi, '');
   contentToRender = contentToRender.replace(/^\s*(?:1 second|2 seconds|1\.0 second|2\.0 seconds|256 megabytes|512 megabytes|stdin|stdout|standard input|standard output)\s*$/gim, '');
   // Replace relative URLs to Codeforces assets
