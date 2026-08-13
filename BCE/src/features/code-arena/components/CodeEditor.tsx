@@ -503,35 +503,36 @@ export default function CodeEditor({
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
+          background: 'rgba(0, 0, 0, 0.82)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 9999,
-          backdropFilter: 'blur(4px)',
+          backdropFilter: 'blur(8px)',
           padding: '16px'
         }}>
           <div style={{
             background: 'var(--bg-elevated)',
             border: '1px solid var(--glass-border)',
             borderRadius: 'var(--radius-lg)',
-            padding: '24px',
-            maxWidth: '480px',
+            padding: '28px',
+            maxWidth: '500px',
             width: '100%',
             color: 'var(--text-main)',
-            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 40px rgba(124, 58, 237, 0.15)',
             display: 'flex',
             flexDirection: 'column',
-            gap: '16px'
+            gap: '20px',
+            animation: 'fadeInUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: 'var(--text-lg)', fontWeight: 800, color: 'var(--neon-purple)' }}>
-                Submit to Codeforces
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                Codeforces Submit Gateway
               </h3>
               <button
                 type="button"
                 onClick={() => setShowCFModal(false)}
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', display: 'flex' }}
                 aria-label="Close modal"
               >
                 <X size={20} />
@@ -539,38 +540,72 @@ export default function CodeEditor({
             </div>
             
             <div style={{
-              background: 'rgba(124, 58, 237, 0.08)',
-              border: '1px solid rgba(124, 58, 237, 0.25)',
-              padding: '12px 16px',
+              background: 'rgba(6, 182, 212, 0.05)',
+              border: '1px solid rgba(6, 182, 212, 0.2)',
+              padding: '14px 16px',
               borderRadius: 'var(--radius-md)',
-              color: 'var(--neon-purple)',
+              color: 'var(--neon-cyan)',
               fontWeight: 700,
-              fontSize: 'var(--text-sm)'
+              fontSize: '13px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: 'inset 0 0 10px rgba(6, 182, 212, 0.05)'
             }}>
-              ⚙️ Submit to Codeforces — Integration Required
+              <Zap size={15} style={{ animation: 'pulse 2s infinite' }} /> Secure Redirect Integration Active
             </div>
 
-            <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-              Direct automated solution submissions to Codeforces accounts are not supported by the platform's public APIs without full session cookie sharing.
-            </p>
-            
-            <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-              Click the button below to automatically copy your solution code to the clipboard and navigate straight to the official Codeforces problem submission page.
-            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <p style={{ margin: 0, fontSize: '13.5px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                BCE respects your account privacy. To keep your login credentials 100% secure, direct solution submission is executed through Codeforces' official gateway.
+              </p>
+
+              {/* Steps checklist */}
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid var(--glass-border)',
+                borderRadius: '8px',
+                padding: '12px 16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#10b981', fontWeight: 600 }}>
+                  ✓ Source Code copied to clipboard
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  ● Selected language: <strong style={{ color: 'var(--neon-purple)', fontFamily: 'monospace' }}>{language === 'cpp17' ? 'C++17' : language.toUpperCase()}</strong>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  ● Target URL: <span style={{ color: 'var(--neon-cyan)', textDecoration: 'underline', fontSize: '11px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '240px' }}>
+                    {(() => {
+                      const cfId = problem.external_problem_id || problem.externalId || '';
+                      const match = cfId.match(/^(\d+)([A-Z]\d*)$/i);
+                      return match ? `contest/${match[1]}/submit` : 'problemset/submit';
+                    })()}
+                  </span>
+                </div>
+              </div>
+              
+              <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.5', fontStyle: 'italic' }}>
+                Next: Paste your code (Ctrl+V) and click "Submit" on Codeforces.
+              </p>
+            </div>
 
             <div style={{ display: 'flex', gap: '12px', marginTop: '8px', justifyContent: 'flex-end' }}>
               <button
                 type="button"
                 onClick={() => setShowCFModal(false)}
                 style={{
-                  background: 'rgba(255,255,255,0.05)',
+                  background: 'rgba(255,255,255,0.03)',
                   border: '1px solid var(--glass-border)',
                   color: 'var(--text-secondary)',
-                  padding: '8px 16px',
+                  padding: '10px 20px',
                   borderRadius: 'var(--radius-sm)',
                   cursor: 'pointer',
                   fontSize: '13px',
-                  fontWeight: 600
+                  fontWeight: 600,
+                  transition: 'background 0.2s'
                 }}
               >
                 Cancel
@@ -592,14 +627,18 @@ export default function CodeEditor({
                   background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))',
                   border: 'none',
                   color: 'white',
-                  padding: '8px 20px',
+                  padding: '10px 24px',
                   borderRadius: 'var(--radius-sm)',
                   cursor: 'pointer',
                   fontSize: '13px',
-                  fontWeight: 700
+                  fontWeight: 700,
+                  boxShadow: '0 4px 15px rgba(6, 182, 212, 0.3)',
+                  transition: 'transform 0.2s'
                 }}
+                onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
               >
-                Copy Code & Go to CF ↗
+                Go to Submit Portal ↗
               </button>
             </div>
           </div>
