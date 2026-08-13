@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Activity, Clock3, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 
 interface RecentCodingActivityProps {
@@ -10,6 +10,11 @@ interface RecentCodingActivityProps {
 
 export default function RecentCodingActivity({ bceRecent, cfRecent }: RecentCodingActivityProps) {
   const [filter, setFilter] = useState<'ALL' | 'BCE' | 'CODEFORCES'>('ALL');
+  const [visibleCount, setVisibleCount] = useState(6);
+
+  useEffect(() => {
+    setVisibleCount(6);
+  }, [filter]);
 
   const normalizedBCE = bceRecent.map(r => ({
     id: `bce-${r.id}`,
@@ -87,29 +92,64 @@ export default function RecentCodingActivity({ bceRecent, cfRecent }: RecentCodi
             <p>No recent coding activity found.</p>
           </div>
         ) : (
-          filteredActivity.slice(0, 10).map((activity, idx) => {
-            const v = formatVerdict(activity.verdict);
-            return (
-              <div 
-                key={activity.id} 
-                className="activity-row"
-                style={{ animationDelay: `${idx * 50}ms` }}
-              >
-                <div className={`activity-verdict-indicator ${v.className}`} />
-                <div className={`activity-verdict-icon ${v.className}`} title={v.label}>
-                  {v.icon}
-                </div>
-                <div className="activity-details">
-                  <span className="activity-problem">{activity.problemName}</span>
-                  <div className="activity-meta">
-                    <span className={`activity-platform ${activity.platform.toLowerCase()}`}>{activity.platform}</span>
-                    <span className="activity-lang">{activity.language}</span>
-                    <span className="activity-time">{timeAgo(activity.time)}</span>
+          <>
+            {filteredActivity.slice(0, visibleCount).map((activity, idx) => {
+              const v = formatVerdict(activity.verdict);
+              return (
+                <div 
+                  key={activity.id} 
+                  className="activity-row"
+                  style={{ animationDelay: `${idx * 50}ms` }}
+                >
+                  <div className={`activity-verdict-indicator ${v.className}`} />
+                  <div className={`activity-verdict-icon ${v.className}`} title={v.label}>
+                    {v.icon}
+                  </div>
+                  <div className="activity-details">
+                    <span className="activity-problem">{activity.problemName}</span>
+                    <div className="activity-meta">
+                      <span className={`activity-platform ${activity.platform.toLowerCase()}`}>{activity.platform}</span>
+                      <span className="activity-lang">{activity.language}</span>
+                      <span className="activity-time">{timeAgo(activity.time)}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })
+              );
+            })}
+            
+            {filteredActivity.length > visibleCount && (
+              <button 
+                onClick={() => setVisibleCount(prev => prev + 6)}
+                className="activity-show-more-btn"
+                style={{
+                  width: '100%',
+                  marginTop: '12px',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px dashed var(--glass-border)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'var(--neon-cyan)',
+                  padding: '10px',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontWeight: 'var(--weight-bold)',
+                  textAlign: 'center',
+                  transition: 'all 0.2s ease',
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px'
+                }}
+                onMouseOver={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = 'rgba(6, 182, 212, 0.08)';
+                  (e.currentTarget as HTMLElement).style.borderColor = 'var(--neon-cyan)';
+                }}
+                onMouseOut={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = 'rgba(255, 255, 255, 0.03)';
+                  (e.currentTarget as HTMLElement).style.borderColor = 'var(--glass-border)';
+                }}
+              >
+                Show More Submissions
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -44,7 +44,7 @@ export default async function CodingProfilePage({ searchParams }: { searchParams
     .select('id, problem_id, status, language, created_at, coding_problems(title, difficulty, provider)')
     .eq('student_id', targetId)
     .order('created_at', { ascending: false })
-    .limit(5);
+    .limit(30);
 
   return (
     <div className="code-arena-profile-page">
