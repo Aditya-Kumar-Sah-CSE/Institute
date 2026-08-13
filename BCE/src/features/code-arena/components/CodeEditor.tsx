@@ -12,8 +12,6 @@ import {
   Trash2,
   Copy,
   CheckCircle2,
-  XCircle,
-  AlertTriangle,
   LoaderCircle,
   X,
   Code2,
@@ -100,7 +98,7 @@ export default function CodeEditor({
       } else {
         setActiveTab('output');
       }
-    } catch (e: any) {
+    } catch {
       setExecResult({
         status: 'SYSTEM_ERROR',
         stdout: '',
@@ -144,7 +142,7 @@ export default function CodeEditor({
         setActiveTab('tests');
         router.refresh();
       }
-    } catch (e: any) {
+    } catch {
       setSubmissionResult({ error: 'Unable to submit solution. Please check network connection.' });
       setActiveTab('error');
     } finally {
@@ -331,15 +329,17 @@ export default function CodeEditor({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
-                  background: 'linear-gradient(135deg, var(--neon-purple), var(--accent-red, #b91c1c))',
+                  background: 'linear-gradient(135deg, #7c3aed, #db2777)',
                   border: 'none',
                   color: 'white',
-                  fontSize: '13.5px',
-                  padding: '8px 14px',
-                  borderRadius: 'var(--radius-sm)',
-                  fontWeight: 700,
+                  fontSize: '13px',
+                  padding: '10px 20px',
+                  borderRadius: 'var(--radius-md)',
+                  fontWeight: 750,
                   cursor: 'pointer',
-                  transition: 'opacity 0.2s ease',
+                  boxShadow: '0 0 16px rgba(124, 58, 237, 0.35)',
+                  transition: 'all 0.2s ease',
+                  letterSpacing: '0.25px',
                 }}
                 onClick={() => setShowCFModal(true)}
               >

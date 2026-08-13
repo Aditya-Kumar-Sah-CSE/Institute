@@ -129,6 +129,8 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
 
   const trimmed = rawContent.trim();
   let contentToRender = trimmed;
+  // Strip the entire header section if present to avoid duplicating limits
+  contentToRender = contentToRender.replace(/<div class="header">[\s\S]*?<\/div>/i, '');
   // Replace relative URLs to Codeforces assets
   contentToRender = contentToRender.replace(/src="\/(predownloaded|images|assets)\/([^"]+)"/g, 'src="https://codeforces.com/$1/$2"');
   contentToRender = contentToRender.replace(/src='\/(predownloaded|images|assets)\/([^']+)'/g, "src='https://codeforces.com/$1/$2'");
@@ -165,7 +167,7 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
 
 export default function ProblemStatementRenderer({ problem }: { problem: ProblemData }) {
   const platformName = problem.source_type || problem.external_platform || 'INTERNAL';
-  const difficultyClass = `difficulty-${problem.difficulty?.toUpperCase() || 'EASY'}`;
+
   const externalId = problem.external_id || problem.externalProblemId;
   const officialUrl = problem.external_url || problem.sourceUrl;
 
@@ -190,37 +192,89 @@ export default function ProblemStatementRenderer({ problem }: { problem: Problem
   const tags = problem.tags || [];
   const isContentEmpty = !rawStatement.trim();
 
+  const getDifficultyBadgeStyle = (diff?: string) => {
+    const uppercase = (diff || 'EASY').toUpperCase();
+    if (uppercase === 'HARD') {
+      return {
+        color: '#f43f5e',
+        background: 'rgba(244,63,94,0.08)',
+        border: '1px solid rgba(244,63,94,0.3)',
+        boxShadow: '0 0 10px rgba(244,63,94,0.15)',
+      };
+    }
+    if (uppercase === 'MEDIUM') {
+      return {
+        color: '#facc15',
+        background: 'rgba(250,204,21,0.08)',
+        border: '1px solid rgba(250,204,21,0.3)',
+        boxShadow: '0 0 10px rgba(250,204,21,0.12)',
+      };
+    }
+    return {
+      color: '#4ade80',
+      background: 'rgba(74,222,128,0.08)',
+      border: '1px solid rgba(74,222,128,0.3)',
+      boxShadow: '0 0 10px rgba(74,222,128,0.12)',
+    };
+  };
+
+  const getPlatformBadgeStyle = (plat: string) => {
+    const key = plat.toUpperCase();
+    if (key === 'CODEFORCES') {
+      return {
+        color: '#ee5b5b',
+        background: 'rgba(238,91,91,0.08)',
+        border: '1px solid rgba(238,91,91,0.25)',
+      };
+    }
+    if (key === 'LEETCODE') {
+      return {
+        color: '#ffa116',
+        background: 'rgba(255,161,22,0.08)',
+        border: '1px solid rgba(255,161,22,0.25)',
+      };
+    }
+    return {
+      color: '#06b6d4',
+      background: 'rgba(6,182,212,0.08)',
+      border: '1px solid rgba(6,182,212,0.25)',
+    };
+  };
+
+  const diffStyle = getDifficultyBadgeStyle(problem.difficulty);
+  const platStyle = getPlatformBadgeStyle(platformName);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
       {/* Polished Problem Header */}
       <div style={{ borderBottom: '1px solid var(--glass-border)', paddingBottom: 'var(--space-md)' }}>
         {/* Badges Bar */}
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '8px' }}>
-          <span className={difficultyClass} style={{ fontWeight: 700, fontSize: 'var(--text-xs)', background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }}>
+          <span style={{ fontWeight: 750, fontSize: '11px', padding: '4px 10px', borderRadius: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', ...diffStyle }}>
             ⚡ {problem.difficulty || 'EASY'}
           </span>
-          <span style={{ fontSize: '11px', color: 'var(--neon-cyan)', background: 'rgba(6,182,212,0.1)', padding: '2px 8px', borderRadius: '10px', fontWeight: 600 }}>
+          <span style={{ fontWeight: 750, fontSize: '11px', padding: '4px 10px', borderRadius: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', ...platStyle }}>
             ● {platformName}
           </span>
           {problem.rating && (
-            <span style={{ fontSize: '11px', color: 'var(--neon-gold)', background: 'rgba(234,179,8,0.1)', padding: '2px 8px', borderRadius: '10px', fontWeight: 600 }}>
-              <Award size={12} style={{ display: 'inline', marginRight: '3px' }} />
+            <span style={{ fontSize: '11px', color: 'var(--neon-gold)', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.25)', padding: '4px 10px', borderRadius: '12px', fontWeight: 600 }}>
+              <Award size={12} style={{ display: 'inline', marginRight: '3px', verticalAlign: 'middle' }} />
               {problem.rating} Rating
             </span>
           )}
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', padding: '4px 10px', borderRadius: '12px' }}>
             <Clock size={12} /> {timeSec}
           </span>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', padding: '4px 10px', borderRadius: '12px' }}>
             <HardDrive size={12} /> {memMb}
           </span>
           {problem.hasSolved && (
-            <span style={{ fontSize: '11px', color: 'var(--neon-emerald)', background: 'rgba(16,185,129,0.1)', padding: '2px 8px', borderRadius: '10px', fontWeight: 600 }}>
+            <span style={{ fontSize: '11px', color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', padding: '4px 10px', borderRadius: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               ✓ Solved
             </span>
           )}
           {!problem.hasSolved && problem.hasAttempted && (
-            <span style={{ fontSize: '11px', color: 'var(--neon-orange)', background: 'rgba(249,115,22,0.1)', padding: '2px 8px', borderRadius: '10px', fontWeight: 600 }}>
+            <span style={{ fontSize: '11px', color: '#ee7700', background: 'rgba(238,119,0,0.08)', border: '1px solid rgba(238,119,0,0.25)', padding: '4px 10px', borderRadius: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               ● Attempted
             </span>
           )}
@@ -305,7 +359,7 @@ export default function ProblemStatementRenderer({ problem }: { problem: Problem
       {/* Problem Statement Section */}
       {!isContentEmpty && (
         <section style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', borderLeft: '3px solid var(--neon-cyan)', paddingLeft: '10px', letterSpacing: '0.5px' }}>
             <FileText size={14} style={{ color: 'var(--neon-cyan)' }} /> Problem Statement
           </div>
           <SafeContentRenderer rawContent={rawStatement} />
@@ -314,7 +368,7 @@ export default function ProblemStatementRenderer({ problem }: { problem: Problem
 
       {/* Constraints Section */}
       <section style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-xs)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', borderLeft: '3px solid var(--neon-gold)', paddingLeft: '10px', letterSpacing: '0.5px' }}>
           <ListChecks size={14} style={{ color: 'var(--neon-gold)' }} /> Constraints
         </div>
         {rawConstraints ? (
@@ -340,7 +394,7 @@ export default function ProblemStatementRenderer({ problem }: { problem: Problem
 
       {/* Input Format Section */}
       <section style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-xs)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', borderLeft: '3px solid var(--neon-cyan)', paddingLeft: '10px', letterSpacing: '0.5px' }}>
           <ArrowDownToLine size={14} style={{ color: 'var(--neon-cyan)' }} /> Input Format
         </div>
         <SafeContentRenderer rawContent={rawInputDesc} />
@@ -348,7 +402,7 @@ export default function ProblemStatementRenderer({ problem }: { problem: Problem
 
       {/* Output Format Section */}
       <section style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-xs)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', borderLeft: '3px solid var(--neon-emerald)', paddingLeft: '10px', letterSpacing: '0.5px' }}>
           <ArrowUpFromLine size={14} style={{ color: 'var(--neon-emerald)' }} /> Output Format
         </div>
         <SafeContentRenderer rawContent={rawOutputDesc} />
@@ -357,7 +411,7 @@ export default function ProblemStatementRenderer({ problem }: { problem: Problem
       {/* Notes / Explanation Section */}
       {problem.explanation && (
         <section style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-xs)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', borderLeft: '3px solid var(--neon-purple)', paddingLeft: '10px', letterSpacing: '0.5px' }}>
             <FileText size={14} style={{ color: 'var(--neon-purple)' }} /> Notes (Explanation)
           </div>
           <SafeContentRenderer rawContent={problem.explanation} />
@@ -366,7 +420,7 @@ export default function ProblemStatementRenderer({ problem }: { problem: Problem
 
       {/* Examples / Samples Section */}
       <section style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: 'var(--space-xs)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', borderLeft: '3px solid var(--neon-pink)', paddingLeft: '10px', letterSpacing: '0.5px' }}>
           <Braces size={14} style={{ color: 'var(--neon-pink)' }} /> Examples ({examplesList.length})
         </div>
 

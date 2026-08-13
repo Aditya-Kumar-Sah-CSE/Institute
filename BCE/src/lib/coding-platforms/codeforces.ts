@@ -1,4 +1,5 @@
 import type { CodingPlatformAdapter, ExternalProblem, PlatformProblemIdentifier } from './types';
+import { execSync } from 'child_process';
 
 function cleanHtml(html: string): string {
   if (!html) return '';
@@ -99,7 +100,6 @@ export const codeforcesAdapter: CodingPlatformAdapter = {
     };
 
     try {
-      const { execSync } = require('child_process');
       const curlCmd = process.platform === 'win32' ? 'curl.exe' : 'curl';
       
       const cmd = `${curlCmd} -s -g -L -m 8 -H "User-Agent: ${browserHeaders['User-Agent']}" -H "Accept: ${browserHeaders['Accept']}" -H "Accept-Language: ${browserHeaders['Accept-Language']}" -H "Referer: ${browserHeaders['Referer']}" "${officialUrl}"`;
@@ -153,7 +153,10 @@ export const codeforcesAdapter: CodingPlatformAdapter = {
                              htmlContent.match(/<div class="header">[\s\S]*?<\/div>([\s\S]*?)(?:<div class="input-specification">|<div class="sample-tests">|<div class="sample-test">)/i) ||
                              htmlContent.match(/<div class="problem-statement">([\s\S]*?)(?:<div class="input-specification">|<div class="sample-tests">|<div class="sample-test">|$)/i);
       if (statementMatch) {
-        statement = cleanHtml(statementMatch[1]);
+        let stmtHtml = statementMatch[1];
+        // Strip the entire header section if present to avoid duplicating limits
+        stmtHtml = stmtHtml.replace(/<div class="header">[\s\S]*?<\/div>/i, '');
+        statement = cleanHtml(stmtHtml);
       }
 
       // Input & Output Format
