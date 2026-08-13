@@ -128,11 +128,13 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
   // Strip the entire header section if present to avoid duplicating limits
   contentToRender = contentToRender.replace(/<div\s+class=["']header["']>[\s\S]*?<\/div>/gi, '');
   // Clean up any residual limit/input/output blocks from raw content
+  contentToRender = contentToRender.replace(/<div\s+class=["'](?:time-limit|memory-limit|input-file|output-file)["']>[\s\S]*?<\/div>\s*[^<]*<\/div>/gi, '');
   contentToRender = contentToRender.replace(/<div[^>]*>\s*time limit per test[\s\S]*?<\/div>/gi, '');
   contentToRender = contentToRender.replace(/<div[^>]*>\s*memory limit per test[\s\S]*?<\/div>/gi, '');
   contentToRender = contentToRender.replace(/<div[^>]*>\s*input[\s\S]*?<\/div>/gi, '');
   contentToRender = contentToRender.replace(/<div[^>]*>\s*output[\s\S]*?<\/div>/gi, '');
-  contentToRender = contentToRender.replace(/time limit per test[\s\S]{0,120}memory limit per test[\s\S]{0,120}input[\s\S]{0,120}output[\s\S]{0,120}?(?:stdout|stdin|standard output|standard input|seconds|megabytes)/gi, '');
+  contentToRender = contentToRender.replace(/(?:time limit per test|memory limit per test|input|output)\s*(?:1 second|2 seconds|1\.0 second|2\.0 seconds|256 megabytes|512 megabytes|stdin|stdout|standard input|standard output)?\s*/gi, '');
+  contentToRender = contentToRender.replace(/^\s*(?:1 second|2 seconds|1\.0 second|2\.0 seconds|256 megabytes|512 megabytes|stdin|stdout|standard input|standard output)\s*$/gim, '');
   // Replace relative URLs to Codeforces assets
   contentToRender = contentToRender.replace(/src="\/(predownloaded|images|assets)\/([^"]+)"/g, 'src="https://codeforces.com/$1/$2"');
   contentToRender = contentToRender.replace(/src='\/(predownloaded|images|assets)\/([^']+)'/g, "src='https://codeforces.com/$1/$2'");
@@ -406,18 +408,16 @@ export default function ProblemStatementRenderer({ problem }: { problem: Problem
             <FileText size={14} style={{ color: 'var(--neon-cyan)' }} /> Problem Statement
           </div>
 
-          {/* 4 Premium Metric Boxes */}
+          {/* 2 Premium Metric Boxes */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
+            gridTemplateColumns: 'repeat(2, 1fr)',
             gap: '8px',
             margin: '8px 0 12px 0'
           }}>
             {[
               { label: 'Time Limit', value: parsedTime, color: 'var(--neon-cyan)' },
               { label: 'Memory Limit', value: parsedMemory, color: 'var(--neon-purple)' },
-              { label: 'Input', value: parsedInput, color: 'var(--neon-gold)' },
-              { label: 'Output', value: parsedOutput, color: 'var(--neon-pink)' },
             ].map((box, idx) => (
               <div
                 key={idx}
