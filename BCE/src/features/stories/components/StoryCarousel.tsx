@@ -102,6 +102,16 @@ export default function StoryCarousel({ currentUserId, currentUserAvatar }: { cu
      return 'border-[#25D366]'; // Gradient/Green for unread currently
   };
 
+  const getRingColorHex = (story: Story) => {
+     if (!story || !story.items) return 'transparent';
+     if (story.user_id === currentUserId) return '#25D366';
+     
+     const isViewed = story.items.every(item => 
+       item.views?.some(v => v.viewer_id === currentUserId)
+     );
+     return isViewed ? 'rgba(255, 255, 255, 0.25)' : '#25D366';
+  };
+
   return (
     <>
       <div className="relative mb-6 w-full">
@@ -135,26 +145,42 @@ export default function StoryCarousel({ currentUserId, currentUserAvatar }: { cu
                    ) : null}
                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-0" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)', zIndex: 0 }}></div>
 
-                   {/* Avatar Area */}
-                   <div className="absolute top-2 left-2 z-10" style={{ position: 'absolute', top: '0.5rem', left: '0.5rem', zIndex: 10 }}>
-                     <div className={`w-10 h-10 rounded-full flex items-center justify-center relative p-[2px] bg-slate-300 dark:bg-slate-700 ${hasMyStory ? getRingColor(feed.myStory!) : ''}`} style={{ width: '2.5rem', height: '2.5rem', borderRadius: '9999px', position: 'relative' }}>
-                       <div className="w-full h-full rounded-full bg-slate-200 dark:bg-slate-600 overflow-hidden flex items-center justify-center relative">
-                         {myAvatar ? (
-                            <Image src={myAvatar} alt="My Avatar" fill className="object-cover" unoptimized />
-                         ) : (
-                            <User size={20} className="text-slate-500" />
-                         )}
-                       </div>
-                       {!hasMyStory && (
-                         <div 
-                           className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-[#25D366] rounded-full border-2 border-white dark:border-slate-800 flex items-center justify-center translate-x-0.5 translate-y-0.5 z-20"
-                           onClick={(e) => { e.stopPropagation(); setComposeOpen(true); }}
-                         >
-                           <Plus size={10} className="text-white stroke-[3px]" />
-                         </div>
-                       )}
-                     </div>
-                   </div>
+                    {/* Avatar Area */}
+                    <div className="absolute top-2 left-2 z-10" style={{ position: 'absolute', top: '0.5rem', left: '0.5rem', zIndex: 10 }}>
+                      <div 
+                        className="w-10 h-10" 
+                        style={{ 
+                          width: '2.5rem', 
+                          height: '2.5rem', 
+                          borderRadius: '50%', 
+                          position: 'relative', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          padding: '2px', 
+                          background: 'var(--bg-elevated)',
+                          border: hasMyStory ? '2px solid #25D366' : '2px solid rgba(255,255,255,0.4)',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.35)'
+                        }}
+                      >
+                        <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-card)' }}>
+                          {myAvatar ? (
+                             <Image src={myAvatar} alt="My Avatar" fill style={{ objectFit: 'cover', borderRadius: '50%' }} unoptimized />
+                          ) : (
+                             <User size={20} className="text-slate-500" />
+                          )}
+                        </div>
+                        {!hasMyStory && (
+                          <div 
+                            className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-[#25D366] rounded-full border-2 border-white dark:border-slate-800 flex items-center justify-center translate-x-0.5 translate-y-0.5 z-20"
+                            style={{ position: 'absolute', bottom: 0, right: 0, width: '14px', height: '14px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--bg-elevated)', background: '#25D366', zIndex: 20 }}
+                            onClick={(e) => { e.stopPropagation(); setComposeOpen(true); }}
+                          >
+                            <Plus size={10} className="text-white stroke-[3px]" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
                  </>
                );
              })()}
@@ -165,7 +191,6 @@ export default function StoryCarousel({ currentUserId, currentUserAvatar }: { cu
           {/* Active Stories */}
           {feed.activeStories.map((story) => {
             const firstItem = story.items?.[0];
-            const ringColor = getRingColor(story);
             const globalIndex = playableStories.findIndex(s => s.id === story.id);
 
             return (
@@ -190,18 +215,32 @@ export default function StoryCarousel({ currentUserId, currentUserAvatar }: { cu
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent z-0"></div>
                 
-                {/* Avatar */}
-                <div className="absolute top-2 left-2 z-10" style={{ position: 'absolute', top: '0.5rem', left: '0.5rem', zIndex: 10 }}>
-                  <div className={`w-10 h-10 rounded-full border-[2.5px] p-[2px] ${ringColor} bg-white dark:bg-slate-800`} style={{ width: '2.5rem', height: '2.5rem', borderRadius: '9999px' }}>
-                    <div className="w-full h-full rounded-full overflow-hidden bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
-                      {story.profile?.avatar_url ? (
-                        <Image src={story.profile.avatar_url} alt="avatar" width={40} height={40} className="object-cover" unoptimized />
-                      ) : (
-                        <User size={20} className="text-slate-500" />
-                      )}
-                    </div>
-                  </div>
-                </div>
+                 {/* Avatar */}
+                 <div className="absolute top-2 left-2 z-10" style={{ position: 'absolute', top: '0.5rem', left: '0.5rem', zIndex: 10 }}>
+                   <div 
+                     style={{ 
+                       width: '2.5rem', 
+                       height: '2.5rem', 
+                       borderRadius: '50%', 
+                       padding: '2px', 
+                       background: 'var(--bg-elevated)',
+                       border: `2px solid ${getRingColorHex(story)}`,
+                       display: 'flex',
+                       alignItems: 'center',
+                       justifyContent: 'center',
+                       position: 'relative',
+                       boxShadow: '0 2px 8px rgba(0,0,0,0.35)'
+                     }}
+                   >
+                     <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-card)' }}>
+                       {story.profile?.avatar_url ? (
+                         <Image src={story.profile.avatar_url} alt="avatar" fill style={{ objectFit: 'cover', borderRadius: '50%' }} unoptimized />
+                       ) : (
+                         <User size={20} className="text-slate-500" />
+                       )}
+                     </div>
+                   </div>
+                 </div>
                 
                 <span className="absolute bottom-2 left-2 text-[13px] font-medium text-white drop-shadow-md z-30 truncate w-[85%]" style={{ position: 'absolute', bottom: '0.5rem', left: '0.5rem', fontSize: '13px', fontWeight: 500, color: 'white', zIndex: 30, textShadow: '0 1px 2px rgba(0,0,0,0.8)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '85%' }}>
                   {story.profile?.name || 'User'}
