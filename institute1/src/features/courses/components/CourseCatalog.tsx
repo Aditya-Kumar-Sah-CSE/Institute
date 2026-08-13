@@ -17,6 +17,7 @@ export default function CourseCatalog({ courses, enrollments = {}, certificatesM
   const [searchTerm, setSearchTerm] = useState('');
   const [enrollmentFilter, setEnrollmentFilter] = useState<'all' | 'enrolled'>('enrolled');
   const [semesterFilter, setSemesterFilter] = useState('all'); // 'all', 'sem 1', 'sem 2', etc.
+  const [showAllCourses, setShowAllCourses] = useState(false);
 
   const availableCategories = useMemo(() => {
     const defaultSems = ['sem 1', 'sem 2', 'sem 3', 'sem 4', 'sem 5', 'sem 6', 'sem 7', 'sem 8'];

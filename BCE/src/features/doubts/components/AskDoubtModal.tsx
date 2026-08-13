@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { createDoubt } from '@/features/doubts/actions/doubts';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
@@ -19,6 +20,31 @@ interface AskDoubtModalProps {
 export default function AskDoubtModal({ isOpen, onClose, courseId, lessonId, initialFileUrl }: AskDoubtModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [description, setDescription] = useState('');
+  
+  const searchParams = useSearchParams();
+  const sharedCode = searchParams ? searchParams.get('sharedCode') : null;
+  const sharedLanguage = searchParams ? searchParams.get('sharedLanguage') : null;
+
+  useEffect(() => {
+    if (isOpen) {
+      const isPdf = initialFileUrl?.split('?')[0].toLowerCase().endsWith('.pdf');
+      const isImageMatch = initialFileUrl?.match(/\.(jpeg|jpg|gif|png|webp)(\?|#|$)/i);
+      
+      let initialVal = '';
+      if (initialFileUrl) {
+        initialVal = isPdf 
+          ? `\n\n[View Shared File](${initialFileUrl})` 
+          : isImageMatch 
+              ? `\n\n![Shared Image](${initialFileUrl})` 
+              : `\n\n[Shared Link](${initialFileUrl})`;
+      } else if (sharedCode) {
+        const lang = sharedLanguage === 'cpp17' ? 'cpp' : (sharedLanguage || 'cpp');
+        initialVal = `\n\n\`\`\`${lang}\n${sharedCode}\n\`\`\``;
+      }
+      setDescription(initialVal);
+    }
+  }, [isOpen, initialFileUrl, sharedCode, sharedLanguage]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -26,6 +52,9 @@ export default function AskDoubtModal({ isOpen, onClose, courseId, lessonId, ini
     setError('');
 
     const formData = new FormData(e.currentTarget);
+    // Ensure the state-managed description is in the form data
+    formData.set('description', description);
+
     const result = await createDoubt(formData);
 
     if (result.error) {
@@ -35,19 +64,6 @@ export default function AskDoubtModal({ isOpen, onClose, courseId, lessonId, ini
     }
     setIsSubmitting(false);
   };
-
-  const isPdf = initialFileUrl?.split('?')[0].toLowerCase().endsWith('.pdf');
-  const isImageMatch = initialFileUrl?.match(/\.(jpeg|jpg|gif|png|webp)(\?|#|$)/i);
-  const isImage = !!isImageMatch || initialFileUrl?.includes('storage/v1/object/public/lesson_notes/'); // Fallback for supabase uploads if extension is missed, though we append it. But wait, we shouldn't assume it's image if it's text. Let's just stick to the regex and assume Supabase files are images if not pdf. Wait.
-
-  // Actually, better logic:
-  const defaultMarkdown = initialFileUrl 
-    ? (isPdf 
-        ? `\n\n[View Shared File](${initialFileUrl})` 
-        : isImageMatch 
-            ? `\n\n![Shared Image](${initialFileUrl})` 
-            : `\n\n[Shared Link](${initialFileUrl})`) 
-    : '';
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Ask a Doubt (+10 XP ⚡)">
@@ -73,7 +89,8 @@ export default function AskDoubtModal({ isOpen, onClose, courseId, lessonId, ini
             id="doubt-description" 
             rows={5} 
             required 
-            defaultValue={defaultMarkdown}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
             placeholder="Explain your doubt in detail... (Ask to earn +10 XP!)"
             style={{ 
               background: 'rgba(255, 255, 255, 0.05)', 

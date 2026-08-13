@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -24,6 +25,41 @@ export default function AssignmentCard({ assignment, submission, communitySubmis
   const [answer, setAnswer] = useState(submission?.answer ? (typeof submission.answer === 'string' ? submission.answer : JSON.stringify(submission.answer)) : '');
   const [showAllSubmissions, setShowAllSubmissions] = useState(false);
 
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && searchParams) {
+      const fromCompiler = searchParams.get('fromCompiler');
+      const sharedCode = searchParams.get('sharedCode');
+      
+      if (fromCompiler === 'true' && sharedCode) {
+        if (assignment.type === 'code' || assignment.type === 'any') {
+          const hasExistingSubmission = !!submission;
+          const originalValue = submission?.answer ? (typeof submission.answer === 'string' ? submission.answer : JSON.stringify(submission.answer)) : '';
+          const userEnteredCode = !!answer && answer !== originalValue;
+          
+          if (!hasExistingSubmission && !userEnteredCode) {
+            setAnswer(sharedCode);
+            
+            const element = document.getElementById(`assignment-${assignment.id}`);
+            if (element) {
+              setTimeout(() => {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }, 400);
+            }
+
+            // Remove compiler query parameters from URL state to prevent multiple prompts
+            const url = new URL(window.location.href);
+            url.searchParams.delete('fromCompiler');
+            url.searchParams.delete('sharedCode');
+            url.searchParams.delete('sharedLanguage');
+            window.history.replaceState({}, '', url.pathname + url.search);
+          }
+        }
+      }
+    }
+  }, [searchParams, assignment, submission, answer]);
+
   const isCompleted = submission?.status === 'approved';
   const isPending = submission?.status === 'pending';
 
@@ -41,11 +77,12 @@ export default function AssignmentCard({ assignment, submission, communitySubmis
   };
 
   return (
-    <Card 
-      variant="neon" 
-      neonColor={isCompleted ? 'lime' : isPending ? 'gold' : 'cyan'}
-      className="assignment-card"
-    >
+    <div id={`assignment-${assignment.id}`}>
+      <Card 
+        variant="neon" 
+        neonColor={isCompleted ? 'lime' : isPending ? 'gold' : 'cyan'}
+        className="assignment-card"
+      >
       <div className="assignment-header">
         <div className="assignment-title-area">
           <span className="assignment-icon">
@@ -273,5 +310,6 @@ export default function AssignmentCard({ assignment, submission, communitySubmis
         </div>
       )}
     </Card>
+    </div>
   );
 }

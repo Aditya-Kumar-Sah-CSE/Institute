@@ -12,7 +12,7 @@ export default function MobileCodeArenaToggle() {
   const isProfile = pathname?.startsWith('/code-arena/profile') ?? false;
 
   return (
-    <div className="mobile-arena-toggle-container">
+    <div className="mobile-arena-toggle-container md:hidden">
       <Link
         href="/code-arena/problems"
         className={`mobile-arena-toggle-item ${isProblems ? 'active' : ''}`}

@@ -76,7 +76,7 @@ export default async function InstructorLayout({
     }
   }
 
-  const tenant = await resolveTenantCache(tenantSlug, 'development');
+
 
   const { data: settings } = await supabase
     .from('company_settings')

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import DOMPurify from 'dompurify';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -123,12 +123,6 @@ export function ExampleCopyBlock({ label, content }: { label: string; content: s
 
 // Client-side HTML / Markdown content renderer
 function SafeContentRenderer({ rawContent }: { rawContent: string }) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   if (!rawContent || !rawContent.trim()) {
     return <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Not provided.</span>;
   }
@@ -142,17 +136,19 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
   const hasHtml = /<[a-z][\s\S]*>/i.test(contentToRender);
 
   if (hasHtml) {
-    if (!mounted) {
-      // Avoid server/client hydration mismatch by returning a placeholder matching structure during SSR
-      return <div className="problem-statement-body" style={{ minHeight: '100px' }} />;
+    // DOMPurify may produce slightly different output on server vs client.
+    // Use suppressHydrationWarning to gracefully handle the difference.
+    let cleanHtml = contentToRender;
+    if (typeof window !== 'undefined') {
+      cleanHtml = DOMPurify.sanitize(contentToRender, {
+        ADD_TAGS: ['iframe', 'table', 'thead', 'tbody', 'tr', 'th', 'td'],
+        ADD_ATTR: ['target', 'rel', 'colspan', 'rowspan'],
+      });
     }
-    const cleanHtml = DOMPurify.sanitize(contentToRender, {
-      ADD_TAGS: ['iframe', 'table', 'thead', 'tbody', 'tr', 'th', 'td'],
-      ADD_ATTR: ['target', 'rel', 'colspan', 'rowspan'],
-    });
     return (
       <div
         className="problem-statement-body"
+        suppressHydrationWarning
         dangerouslySetInnerHTML={{ __html: cleanHtml }}
         style={{ fontSize: 'var(--text-sm)', lineHeight: '1.65', color: 'var(--text-main)' }}
       />

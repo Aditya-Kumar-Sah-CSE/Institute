@@ -51,7 +51,7 @@ export const codeforcesAdapter: CodingPlatformAdapter = {
 
   async fetchProblem(identifier: PlatformProblemIdentifier): Promise<ExternalProblem> {
     const { contestId, problemIndex } = identifier;
-    if (!contestId || !problemIndex) {
+    if (!contestId || !problemIndex || !/^\d+$/.test(contestId) || !/^[A-Za-z0-9]+$/.test(problemIndex)) {
       throw new Error('Invalid Codeforces identifier. Use format like 4A or problem URL.');
     }
 
@@ -62,10 +62,14 @@ export const codeforcesAdapter: CodingPlatformAdapter = {
     // 1. Fetch metadata from official API
     let meta: { name?: string; rating?: number; tags?: string[] } = {};
     try {
+      const apiController = new AbortController();
+      const apiTimeoutId = setTimeout(() => apiController.abort(), 8000);
       const apiRes = await fetch('https://codeforces.com/api/problemset.problems', {
         headers: { 'User-Agent': 'BCE-Code-Arena/1.0' },
         next: { revalidate: 3600 },
+        signal: apiController.signal,
       });
+      clearTimeout(apiTimeoutId);
       if (apiRes.ok) {
         const json = await apiRes.json();
         if (json.status === 'OK' && json.result?.problems) {
@@ -95,13 +99,25 @@ export const codeforcesAdapter: CodingPlatformAdapter = {
     };
 
     try {
-      let pageRes = await fetch(officialUrl, { headers: browserHeaders, redirect: 'follow' });
-      if (!pageRes.ok || pageRes.status === 403) {
-        // Fallback to contest URL
-        pageRes = await fetch(contestUrl, { headers: browserHeaders, redirect: 'follow' });
+      const { execSync } = require('child_process');
+      const curlCmd = process.platform === 'win32' ? 'curl.exe' : 'curl';
+      
+      const cmd = `${curlCmd} -s -g -L -m 8 -H "User-Agent: ${browserHeaders['User-Agent']}" -H "Accept: ${browserHeaders['Accept']}" -H "Accept-Language: ${browserHeaders['Accept-Language']}" -H "Referer: ${browserHeaders['Referer']}" "${officialUrl}"`;
+      try {
+        htmlContent = execSync(cmd, { encoding: 'utf8', timeout: 8000 });
+      } catch (err) {
+        console.warn('Official CF page curl error:', err);
       }
-      if (pageRes.ok) {
-        htmlContent = await pageRes.text();
+
+      // Check if blocked by Cloudflare (403 or empty or "Just a moment...")
+      if (!htmlContent || htmlContent.includes('Just a moment...') || htmlContent.includes('503 Service')) {
+        console.warn('CF official page blocked or unavailable, falling back to contest URL...');
+        const contestCmd = `${curlCmd} -s -g -L -m 8 -H "User-Agent: ${browserHeaders['User-Agent']}" -H "Accept: ${browserHeaders['Accept']}" -H "Accept-Language: ${browserHeaders['Accept-Language']}" -H "Referer: ${browserHeaders['Referer']}" "${contestUrl}"`;
+        try {
+          htmlContent = execSync(contestCmd, { encoding: 'utf8', timeout: 8000 });
+        } catch (err) {
+          console.warn('Contest CF page curl error:', err);
+        }
       }
     } catch (e) {
       console.warn('Codeforces HTML page fetch failed:', e);
@@ -134,7 +150,8 @@ export const codeforcesAdapter: CodingPlatformAdapter = {
 
       // Problem Statement
       const statementMatch = htmlContent.match(/<div class="header">[\s\S]*?<\/div>([\s\S]*?)<div class="input-specification">/i) ||
-                             htmlContent.match(/<div class="problem-statement">([\s\S]*?)<div class="input-specification">/i);
+                             htmlContent.match(/<div class="header">[\s\S]*?<\/div>([\s\S]*?)(?:<div class="input-specification">|<div class="sample-tests">|<div class="sample-test">)/i) ||
+                             htmlContent.match(/<div class="problem-statement">([\s\S]*?)(?:<div class="input-specification">|<div class="sample-tests">|<div class="sample-test">|$)/i);
       if (statementMatch) {
         statement = cleanHtml(statementMatch[1]);
       }
@@ -152,20 +169,17 @@ export const codeforcesAdapter: CodingPlatformAdapter = {
       }
 
       // Sample Test Cases
-      const sampleTestMatch = htmlContent.match(/<div class="sample-test">([\s\S]*?)<\/div>\s*(?:<div class="note">|<div class="author">|$)/i);
-      const sampleTestHtml = sampleTestMatch ? sampleTestMatch[1] : htmlContent;
-
       const sampleRegex = /<div class="input">[\s\S]*?<pre>([\s\S]*?)<\/pre>[\s\S]*?<div class="output">[\s\S]*?<pre>([\s\S]*?)<\/pre>/gi;
       let match;
-      while ((match = sampleRegex.exec(sampleTestHtml)) !== null) {
+      while ((match = sampleRegex.exec(htmlContent)) !== null) {
         const rawIn = match[1]
           .replace(/<div class="test-example-line[^"]*">([\s\S]*?)<\/div>/gi, '$1\n')
           .replace(/<br\s*\/?>/gi, '\n');
         const rawOut = match[2]
           .replace(/<div class="test-example-line[^"]*">([\s\S]*?)<\/div>/gi, '$1\n')
           .replace(/<br\s*\/?>/gi, '\n');
-        const sampleIn = stripTags(rawIn).trim();
-        const sampleOut = stripTags(rawOut).trim();
+        const sampleIn = stripTags(rawIn);
+        const sampleOut = stripTags(rawOut);
         if (sampleIn || sampleOut) {
           examples.push({ input: sampleIn, output: sampleOut });
         }

@@ -2,19 +2,16 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { 
-  Swords, Plus, Play, Code2, Trophy, Copy, ArrowRight, Zap, 
-  Bell, Menu, X, User, Flame, CheckCircle2, Circle, ExternalLink, Activity
+  Swords, Plus, Code2, Trophy, ArrowRight, 
+  User, Flame, CheckCircle2, Circle, Activity
 } from 'lucide-react';
 import CreateBattleWizard from './CreateBattleWizard';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import MobileCodeArenaToggle from './MobileCodeArenaToggle';
 import './CodeArena.css';
 
 export default function CodeArenaClientHome({
-  user,
   isInstructor,
   initialBattles,
   initialProblems,
@@ -23,7 +20,7 @@ export default function CodeArenaClientHome({
   bceSolved = 0,
   externalAccounts = [],
 }: {
-  user: any;
+  user?: any;
   isInstructor: boolean;
   initialBattles: any[];
   initialProblems: any[];
@@ -37,7 +34,6 @@ export default function CodeArenaClientHome({
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [joinSuccess, setJoinSuccess] = useState<string | null>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'ALL' | 'LIVE' | 'UPCOMING' | 'COMPLETED'>('ALL');
 
   const [battles, setBattles] = useState<any[]>(initialBattles);
@@ -91,59 +87,16 @@ export default function CodeArenaClientHome({
       <MobileCodeArenaToggle />
       
       {/* 1. Premium Top Navigation */}
-      <nav className="arena-top-navbar">
-        <div className="navbar-left">
-          <div className="navbar-logo-icon">
-            <Swords size={18} />
-          </div>
-          <div className="navbar-brand-group">
-            <span className="navbar-org">BCE Bhagalpur</span>
-            <span className="navbar-sep">/</span>
-            <span className="navbar-proj">Code Arena</span>
-          </div>
-        </div>
-
-        <div className="navbar-center desktop-only">
+      <nav className="arena-top-navbar" style={{ justifyContent: 'center', padding: '10px 16px' }}>
+        <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
           <Link href="/code-arena/problems" className="navbar-link">
-            <Trophy size={14} /> Problem Hub
+            <Trophy size={13} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'text-bottom' }} /> Problem Hub
           </Link>
-          <Link href="/code-arena/compiler" className="navbar-link">
-            <Code2 size={14} /> Compiler
-          </Link>
+          <span style={{ color: 'rgba(255,255,255,0.1)' }}>|</span>
           <Link href="/code-arena/profile" className="navbar-link">
-            <User size={14} /> Profile
+            <User size={13} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'text-bottom' }} /> Profile
           </Link>
         </div>
-
-        <div className="navbar-right">
-          <button className="navbar-icon-btn" aria-label="Notifications" title="Notifications">
-            <Bell size={18} />
-          </button>
-          <ThemeToggle />
-          
-          <button 
-            className="navbar-icon-btn mobile-only-toggle" 
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Toggle Menu"
-          >
-            {menuOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-        </div>
-
-        {/* Mobile Dropdown */}
-        {menuOpen && (
-          <div className="arena-mobile-dropdown">
-            <Link href="/code-arena/problems" className="mobile-dropdown-link" onClick={() => setMenuOpen(false)}>
-              <Trophy size={16} /> Problem Hub
-            </Link>
-            <Link href="/code-arena/compiler" className="mobile-dropdown-link" onClick={() => setMenuOpen(false)}>
-              <Code2 size={16} /> Compiler
-            </Link>
-            <Link href="/code-arena/profile" className="mobile-dropdown-link" onClick={() => setMenuOpen(false)}>
-              <User size={16} /> Profile
-            </Link>
-          </div>
-        )}
       </nav>
 
       {/* 2. Compact Premium Hero */}
@@ -191,52 +144,7 @@ export default function CodeArenaClientHome({
         </div>
       </div>
 
-      {/* 3. Quick Action Cards */}
-      <div className="arena-quick-actions">
-        <a href="#battles-section" className="quick-action-card">
-          <div className="action-icon-box card-live">
-            <Swords size={20} />
-          </div>
-          <div className="action-content">
-            <h4>Live Battles</h4>
-            <p>Join or monitor ongoing coding matches.</p>
-          </div>
-          <ArrowRight size={14} className="action-arrow" />
-        </a>
-
-        <Link href="/code-arena/problems" className="quick-action-card">
-          <div className="action-icon-box card-problems">
-            <Trophy size={20} />
-          </div>
-          <div className="action-content">
-            <h4>Problem Hub</h4>
-            <p>Browse problems imports from CF and LC.</p>
-          </div>
-          <ArrowRight size={14} className="action-arrow" />
-        </Link>
-
-        <Link href="/code-arena/compiler" className="quick-action-card">
-          <div className="action-icon-box card-compiler">
-            <Code2 size={20} />
-          </div>
-          <div className="action-content">
-            <h4>Personal Compiler</h4>
-            <p>Practice solutions code compiler workspace.</p>
-          </div>
-          <ArrowRight size={14} className="action-arrow" />
-        </Link>
-
-        <Link href="/code-arena/profile" className="quick-action-card">
-          <div className="action-icon-box card-profile">
-            <User size={20} />
-          </div>
-          <div className="action-content">
-            <h4>Coding Profile</h4>
-            <p>Compare ratings, sync stats, check progress.</p>
-          </div>
-          <ArrowRight size={14} className="action-arrow" />
-        </Link>
-      </div>
+      {/* Removed Quick Actions Cards row */}
 
       {/* 4. Join Battle Via Invitation Code */}
       <div className="arena-invitation-container">

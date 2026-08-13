@@ -16,7 +16,10 @@ import {
   CheckCircle2,
   Zap,
   Maximize,
+  Share2,
 } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import Modal from '@/components/ui/Modal';
 import type { CodeLanguage, ExecutionStatus, NormalizedExecutionResult } from '../types';
 import './CodeArena.css';
 
@@ -62,6 +65,7 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
   const [state, setState] = useState('Saved');
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   // Input Box UI state
   const [expandedInput, setExpandedInput] = useState(false);
@@ -109,6 +113,34 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const codeParam = params.get('code');
+      const langParam = params.get('lang');
+      const titleParam = params.get('title');
+
+      if (codeParam) {
+        try {
+          const decodedCode = decodeURIComponent(codeParam);
+          setCode(decodedCode);
+        } catch (e) {
+          setCode(codeParam);
+        }
+      }
+      if (langParam) {
+        setLanguage(langParam as CodeLanguage);
+      }
+      if (titleParam) {
+        try {
+          setTitle(decodeURIComponent(titleParam));
+        } catch {
+          setTitle(titleParam);
+        }
+      }
+    }
   }, []);
 
   const select = (s: Snippet) => {
@@ -241,6 +273,9 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
           </span>
           <Button size="sm" variant="secondary" onClick={() => persist(true)} isLoading={saving}>
             Save
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setShareOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+            <Share2 size={13} /> Share
           </Button>
         </header>
 
@@ -517,6 +552,194 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
           </div>
         </section>
       </section>
+
+      <ShareSnippetModal
+        isOpen={shareOpen}
+        onClose={() => setShareOpen(false)}
+        code={code}
+        language={language}
+        title={title}
+      />
     </div>
+  );
+}
+
+function ShareSnippetModal({
+  isOpen,
+  onClose,
+  code,
+  language,
+  title,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  code: string;
+  language: string;
+  title: string;
+}) {
+  const [courses, setCourses] = useState<any[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState('');
+  const [lessons, setLessons] = useState<any[]>([]);
+  const [selectedLesson, setSelectedLesson] = useState('');
+  const [loadingCourses, setLoadingCourses] = useState(false);
+  const [loadingLessons, setLoadingLessons] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const supabase = createClient();
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    async function fetchEnrolledCourses() {
+      setLoadingCourses(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: enrollments } = await supabase
+          .from('enrollments')
+          .select('course_id, courses(*)')
+          .eq('user_id', user.id);
+
+        const enrolled = enrollments
+          ? enrollments.map((e: any) => e.courses).filter(Boolean)
+          : [];
+        setCourses(enrolled);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoadingCourses(false);
+      }
+    }
+    fetchEnrolledCourses();
+  }, [isOpen, supabase]);
+
+  useEffect(() => {
+    if (!selectedCourse) {
+      setLessons([]);
+      setSelectedLesson('');
+      return;
+    }
+
+    async function fetchLessons() {
+      setLoadingLessons(true);
+      try {
+        const { data } = await supabase
+          .from('lessons')
+          .select('id, title, sort_order')
+          .eq('course_id', selectedCourse)
+          .order('sort_order', { ascending: true });
+        if (data) {
+          setLessons(data);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoadingLessons(false);
+      }
+    }
+    fetchLessons();
+  }, [selectedCourse, supabase]);
+
+  const handleCopyLink = () => {
+    const baseUrl = window.location.origin + window.location.pathname;
+    const shareUrl = `${baseUrl}?code=${encodeURIComponent(code)}&lang=${encodeURIComponent(language)}&title=${encodeURIComponent(title)}`;
+    navigator.clipboard.writeText(shareUrl);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
+  const handleShareToDoubt = () => {
+    if (!selectedCourse || !selectedLesson) return alert('Select course and lesson first');
+    const targetUrl = new URL(`/courses/${selectedCourse}/${selectedLesson}`, window.location.origin);
+    targetUrl.searchParams.set('askDoubt', 'true');
+    targetUrl.searchParams.set('sharedCode', code);
+    targetUrl.searchParams.set('sharedLanguage', language);
+    window.open(targetUrl.toString(), '_blank');
+  };
+
+  const handleShareToAssignment = () => {
+    if (!selectedCourse || !selectedLesson) return alert('Select course and lesson first');
+    const targetUrl = new URL(`/courses/${selectedCourse}/${selectedLesson}`, window.location.origin);
+    targetUrl.searchParams.set('fromCompiler', 'true');
+    targetUrl.searchParams.set('sharedCode', code);
+    targetUrl.searchParams.set('sharedLanguage', language);
+    window.open(targetUrl.toString(), '_blank');
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Share Snippet Workspace">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', margin: 0 }}>
+          Generate a shareable playground link or attach your code directly to your course materials:
+        </p>
+
+        {/* Share outside platforms */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)', background: 'var(--bg-secondary)', padding: 'var(--space-sm)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--glass-border)' }}>
+          <div style={{ fontWeight: 'bold', fontSize: 'var(--text-xs)', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Share with external platforms</div>
+          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: 0 }}>Copies a playground URL that opens this workspace (code, language) instantly.</p>
+          <Button size="sm" variant="secondary" onClick={handleCopyLink} style={{ alignSelf: 'flex-start', marginTop: 'var(--space-xs)', cursor: 'pointer' }}>
+            {copiedLink ? 'Copied Link! ✓' : 'Copy Shareable Link'}
+          </Button>
+        </div>
+
+        {/* Share inside courses */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)', background: 'var(--bg-secondary)', padding: 'var(--space-sm)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--glass-border)' }}>
+          <div style={{ fontWeight: 'bold', fontSize: 'var(--text-xs)', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Share to Enrolled Course / Lesson</div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
+            <label style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>Course</label>
+            <select
+              style={{ padding: '8px', background: 'var(--bg-input)', border: '1px solid var(--glass-border)', color: 'white', borderRadius: '4px', outline: 'none' }}
+              value={selectedCourse}
+              onChange={(e) => setSelectedCourse(e.target.value)}
+              disabled={loadingCourses}
+            >
+              <option value="">{loadingCourses ? 'Loading courses...' : '-- Choose Course --'}</option>
+              {courses.map((course: any) => (
+                <option key={course.id} value={course.id}>{course.title}</option>
+              ))}
+            </select>
+          </div>
+
+          {selectedCourse && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
+              <label style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>Lesson</label>
+              <select
+                style={{ padding: '8px', background: 'var(--bg-input)', border: '1px solid var(--glass-border)', color: 'white', borderRadius: '4px', outline: 'none' }}
+                value={selectedLesson}
+                onChange={(e) => setSelectedLesson(e.target.value)}
+                disabled={loadingLessons}
+              >
+                <option value="">{loadingLessons ? 'Loading lessons...' : '-- Choose Lesson --'}</option>
+                {lessons.map((lesson: any) => (
+                  <option key={lesson.id} value={lesson.id}>{lesson.title}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: 'var(--space-sm)', marginTop: 'var(--space-xs)' }}>
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={handleShareToDoubt}
+              disabled={!selectedCourse || !selectedLesson}
+              style={{ cursor: (!selectedCourse || !selectedLesson) ? 'not-allowed' : 'pointer' }}
+            >
+              Ask Doubt with Code
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={handleShareToAssignment}
+              disabled={!selectedCourse || !selectedLesson}
+              style={{ cursor: (!selectedCourse || !selectedLesson) ? 'not-allowed' : 'pointer' }}
+            >
+              Submit to Assignment
+            </Button>
+          </div>
+        </div>
+      </div>
+    </Modal>
   );
 }

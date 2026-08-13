@@ -3,7 +3,33 @@ import { Code2, Bell, UserCircle, Trophy } from 'lucide-react';
 import { getCodeArenaActor } from '@/features/code-arena/server';
 import ProblemStatementRenderer from '@/features/code-arena/components/ProblemStatementRenderer';
 import CodeEditor from '@/features/code-arena/components/CodeEditor';
+import { unstable_cache } from 'next/cache';
+import { codeforcesAdapter } from '@/lib/coding-platforms/codeforces';
 import '@/features/code-arena/components/CodeArena.css';
+
+// Cache Codeforces problem data for 1 hour
+const getCachedCodeforcesProblem = unstable_cache(
+  async (contestId: string, problemIndex: string) => {
+    const ident = {
+      platform: 'CODEFORCES' as const,
+      contestId,
+      problemIndex,
+      rawInput: `${contestId}${problemIndex}`
+    };
+    return await codeforcesAdapter.fetchProblem(ident);
+  },
+  ['codeforces-problem-cache'],
+  { revalidate: 3600 }
+);
+
+async function getCodeforcesProblemSafe(contestId: string, problemIndex: string) {
+  try {
+    return await getCachedCodeforcesProblem(contestId, problemIndex);
+  } catch (e) {
+    console.error(`Failed to fetch Codeforces problem ${contestId}${problemIndex}:`, e);
+    return null;
+  }
+}
 
 export default async function CodeProblemPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -35,12 +61,39 @@ export default async function CodeProblemPage({ params }: { params: Promise<{ id
   const hasSolved = (submissions || []).some(s => s.status === 'ACCEPTED');
   const hasAttempted = (submissions || []).length > 0;
 
-  const problemData = {
+  let problemData = {
     ...problem,
     samples: samples || [],
     hasSolved,
     hasAttempted,
   };
+
+  if (problem.source === 'CODEFORCES' && problem.external_id) {
+    const ident = codeforcesAdapter.parseIdentifier(problem.external_id);
+    if (ident && ident.contestId && ident.problemIndex) {
+      const scraped = await getCodeforcesProblemSafe(ident.contestId, ident.problemIndex);
+      if (scraped) {
+        problemData = {
+          ...problemData,
+          title: scraped.title || problemData.title,
+          statement: scraped.statement || problemData.statement,
+          input_format: scraped.inputFormat || problemData.input_format,
+          output_format: scraped.outputFormat || problemData.output_format,
+          explanation: scraped.explanation || problemData.explanation,
+          constraints: scraped.constraints || problemData.constraints,
+        };
+
+        if (scraped.examples && scraped.examples.length > 0) {
+          problemData.samples = scraped.examples.map((ex, idx) => ({
+            input: ex.input,
+            expected_output: ex.output,
+            sample_name: `Sample #${idx + 1}`,
+            order_index: idx,
+          }));
+        }
+      }
+    }
+  }
 
   return (
     <div className="code-arena-page">
@@ -94,7 +147,7 @@ export default async function CodeProblemPage({ params }: { params: Promise<{ id
         {/* Right Monaco Editor Panel */}
         <CodeEditor
           problem={problemData}
-          samples={samples || []}
+          samples={problemData.samples}
         />
       </div>
     </div>
