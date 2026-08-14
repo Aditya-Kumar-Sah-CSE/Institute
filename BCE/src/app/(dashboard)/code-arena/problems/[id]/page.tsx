@@ -92,8 +92,8 @@ export default async function CodeProblemPage({ params }: { params: Promise<{ id
     hasAttempted,
   };
 
-  if (problem.source === 'CODEFORCES' && problem.external_id) {
-    const ident = codeforcesAdapter.parseIdentifier(problem.external_id);
+  if ((problem.source_type === 'CODEFORCES' || problem.external_platform === 'CODEFORCES') && problem.external_problem_id) {
+    const ident = codeforcesAdapter.parseIdentifier(problem.external_problem_id);
     if (ident && ident.contestId && ident.problemIndex) {
       const scraped = await getCodeforcesProblemSafe(ident.contestId, ident.problemIndex);
       if (scraped) {
@@ -119,7 +119,7 @@ export default async function CodeProblemPage({ params }: { params: Promise<{ id
     }
   }
 
-  if (problem.source === 'LEETCODE' && problem.external_problem_id) {
+  if ((problem.source_type === 'LEETCODE' || problem.external_platform === 'LEETCODE') && problem.external_problem_id) {
     const scraped = await getLeetCodeProblemSafe(problem.external_problem_id);
     if (scraped) {
       problemData = {

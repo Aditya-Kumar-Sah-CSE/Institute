@@ -118,6 +118,51 @@ export function ExampleCopyBlock({ label, content }: { label: string; content: s
   );
 }
 
+// Helper to translate $$$formula$$$ to beautifully formatted inline HTML elements
+export const cleanMathNotationHtml = (text: string): string => {
+  if (!text) return '';
+  return text.replace(/\$\$\$(.*?)\$\$\$/g, (match: string, formula: string) => {
+    let formatted = formula
+      .replace(/_(?:{(.*?)})|_(.)/g, (m: string, p1: string | undefined, p2: string | undefined) => {
+        const subVal = p1 || p2;
+        return `<sub>${subVal}</sub>`;
+      })
+      .replace(/\^(?:{(.*?)})|\^(.)/g, (m: string, p1: string | undefined, p2: string | undefined) => {
+        const supVal = p1 || p2;
+        return `<sup>${supVal}</sup>`;
+      })
+      .replace(/\\bmod/g, ' mod ')
+      .replace(/\\le/g, ' ≤ ')
+      .replace(/\\ge/g, ' ≥ ')
+      .replace(/\\ne/g, ' ≠ ')
+      .replace(/\\lt/g, ' &lt; ')
+      .replace(/\\gt/g, ' &gt; ')
+      .replace(/\\times/g, ' × ')
+      .replace(/\\cdot/g, ' · ')
+      .replace(/\\dots/g, '…')
+      .replace(/\\/g, '');
+    return `<code class="math-formula" style="font-family: 'Cambria Math', 'Times New Roman', serif; font-style: italic; background: rgba(255,255,255,0.04); padding: 1px 4px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.03); color: var(--neon-cyan); font-weight: 500;">${formatted}</code>`;
+  });
+};
+
+// Helper for pure text mathematical sanitizations (e.g. for pre tags)
+export const cleanMathNotationText = (text: string): string => {
+  if (!text) return '';
+  return text.replace(/\$\$\$(.*?)\$\$\$/g, (match: string, formula: string) => {
+    return formula
+      .replace(/\\bmod/g, ' mod ')
+      .replace(/\\le/g, ' ≤ ')
+      .replace(/\\ge/g, ' ≥ ')
+      .replace(/\\ne/g, ' ≠ ')
+      .replace(/\\lt/g, ' < ')
+      .replace(/\\gt/g, ' > ')
+      .replace(/\\times/g, ' × ')
+      .replace(/\\cdot/g, ' · ')
+      .replace(/\\dots/g, '…')
+      .replace(/\\/g, '');
+  });
+};
+
 // Client-side HTML / Markdown content renderer
 function SafeContentRenderer({ rawContent }: { rawContent: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -255,8 +300,10 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
     return <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Not provided.</span>;
   }
 
-  const trimmed = rawContent.trim();
-  let contentToRender = trimmed;
+  // Pre-process math variables inside raw content
+  const processedMath = cleanMathNotationHtml(rawContent.trim());
+  let contentToRender = processedMath;
+
   // Strip the entire header section if present to avoid duplicating limits
   contentToRender = contentToRender.replace(/<div\s+class=["']header["']>[\s\S]*?<\/div>/gi, '');
   // Clean up any residual limit/input/output blocks from raw content
@@ -264,7 +311,7 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
   contentToRender = contentToRender.replace(/<div\s+class=["'](?:time-limit|memory-limit|input-file|output-file)["']>[\s\S]*?<\/div>/gi, '');
   contentToRender = contentToRender.replace(/<div[^>]*>\s*(?:time limit per test|memory limit per test|input|output|stdin|stdout|standard input|standard output|seconds|megabytes)\s*<\/div>/gi, '');
   contentToRender = contentToRender.replace(/<(?:p|div|span)[^>]*>\s*(?:stdin|stdout|standard input|standard output|time limit per test|memory limit per test|input|output|2 seconds|256 megabytes)\s*<\/(?:p|div|span)>/gi, '');
-  contentToRender = contentToRender.replace(/^[ \t]*(?:stdin|stdout|standard input|standard output|time limit per test|memory limit per test|seconds|megabytes|2 seconds|256 megabytes)\b[ \t]*$/gim, '');
+  contentToRender = contentToRender.replace(/      *(?:stdin|stdout|standard input|standard output|time limit per test|memory limit per test|seconds|megabytes|2 seconds|256 megabytes)\b[ \t]*$/gim, '');
   contentToRender = contentToRender.replace(/(?:time limit per test|memory limit per test|input|output)\s*(?:1 second|2 seconds|1\.0 second|2\.0 seconds|256 megabytes|512 megabytes|stdin|stdout|standard input|standard output)?\s*/gi, '');
   contentToRender = contentToRender.replace(/^\s*(?:1 second|2 seconds|1\.0 second|2\.0 seconds|256 megabytes|512 megabytes|stdin|stdout|standard input|standard output)\s*$/gim, '');
   // Replace relative URLs to Codeforces assets
@@ -274,13 +321,11 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
   const hasHtml = /<[a-z][\s\S]*>/i.test(contentToRender);
 
   if (hasHtml) {
-    // DOMPurify may produce slightly different output on server vs client.
-    // Use suppressHydrationWarning to gracefully handle the difference.
     let cleanHtml = contentToRender;
     if (typeof window !== 'undefined') {
       cleanHtml = DOMPurify.sanitize(contentToRender, {
-        ADD_TAGS: ['iframe', 'table', 'thead', 'tbody', 'tr', 'th', 'td'],
-        ADD_ATTR: ['target', 'rel', 'colspan', 'rowspan'],
+        ADD_TAGS: ['iframe', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'sub', 'sup'],
+        ADD_ATTR: ['target', 'rel', 'colspan', 'rowspan', 'style'],
       });
     }
     return (
@@ -309,7 +354,7 @@ export default function ProblemStatementRenderer({ problem }: { problem: Problem
   const officialUrl = problem.external_url || problem.sourceUrl;
 
   const rawStatement = problem.statement || problem.description || '';
-  const rawConstraints = problem.constraints || '';
+  const rawConstraints = cleanMathNotationText(problem.constraints || '');
 
   const cleanFormat = (val: string, fallback: string) => {
     if (!val || typeof val !== 'string') return fallback;
@@ -618,7 +663,8 @@ export default function ProblemStatementRenderer({ problem }: { problem: Problem
                 <ExampleCopyBlock label="Output" content={sample.output || sample.expected_output || ''} />
                 {sample.explanation && (
                   <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                    <strong style={{ color: 'var(--text-muted)' }}>Explanation: </strong> {sample.explanation}
+                    <strong style={{ color: 'var(--text-muted)' }}>Explanation: </strong> 
+                    <span dangerouslySetInnerHTML={{ __html: cleanMathNotationHtml(sample.explanation) }} />
                   </div>
                 )}
               </div>

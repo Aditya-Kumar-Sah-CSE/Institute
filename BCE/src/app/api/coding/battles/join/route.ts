@@ -22,13 +22,10 @@ export async function POST(request: Request) {
     const normalizedCode = joinCode.trim().toUpperCase();
 
     // 1. Resolve battle by join_code or UUID id
-    let query = supabase.from('coding_battles').select('id, title, description, status, duration_minutes, join_code, visibility, created_by, created_at, batch_id');
-
-    if (/^BCE-[A-Z0-9]{5}$/i.test(normalizedCode)) {
-      query = query.eq('join_code', normalizedCode);
-    } else {
-      query = query.or(`join_code.eq.${normalizedCode},id.eq.${normalizedCode}`);
-    }
+    let query = supabase
+      .from('coding_battles')
+      .select('id, title, description, status, duration_minutes, join_code, visibility, created_by, created_at, batch_id, max_participants')
+      .eq('join_code', normalizedCode);
 
     const { data: battle, error: findError } = await query.maybeSingle();
 
@@ -70,9 +67,10 @@ export async function POST(request: Request) {
       .eq('student_id', user.id)
       .maybeSingle();
 
-    if (!existingParticipant && (currentParticipantsCount || 0) >= 25) {
+    const maxLimit = battle.max_participants || 25;
+    if (!existingParticipant && (currentParticipantsCount || 0) >= maxLimit) {
       return NextResponse.json(
-        { success: false, error: { code: 'BATTLE_FULL', message: 'Battle is full. Maximum 25 participants allowed.' } },
+        { success: false, error: { code: 'BATTLE_FULL', message: `Battle is full. Maximum ${maxLimit} participants allowed.` } },
         { status: 400 }
       );
     }

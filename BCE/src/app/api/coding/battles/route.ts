@@ -28,7 +28,7 @@ export async function GET() {
 
   let query = supabase
     .from('coding_battles')
-    .select('id, title, description, status, start_time, end_time, duration_minutes, batch_id, creator_role, join_code, visibility, created_by, created_at, coding_battle_problems(count), coding_battle_participants(count)')
+    .select('id, title, description, status, start_time, end_time, duration_minutes, batch_id, creator_role, join_code, visibility, created_by, created_at, max_participants, team_mode, min_team_size, max_team_size, coding_battle_problems(count), coding_battle_participants(count)')
     .order('created_at', { ascending: false })
     .limit(50);
 
@@ -50,7 +50,18 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { title, description, durationMinutes, batchId, visibility = 'CODE', problems = [] } = body;
+    const { 
+      title, 
+      description, 
+      durationMinutes, 
+      batchId, 
+      visibility = 'CODE', 
+      problems = [],
+      maxParticipants = 25,
+      teamMode = false,
+      minTeamSize = 1,
+      maxTeamSize = 1,
+    } = body;
     const duration = Number(durationMinutes || 30);
 
     if (!title?.trim()) {
@@ -92,6 +103,10 @@ export async function POST(request: Request) {
         start_time: null,
         end_time: null,
         created_by: user.id,
+        max_participants: Number(maxParticipants || 25),
+        team_mode: Boolean(teamMode),
+        min_team_size: Number(minTeamSize || 1),
+        max_team_size: Number(maxTeamSize || 1),
       })
       .select()
       .single();

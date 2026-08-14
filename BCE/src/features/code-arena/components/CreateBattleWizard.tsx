@@ -54,6 +54,10 @@ export default function CreateBattleWizard({
   const [durationMinutes, setDurationMinutes] = useState<number>(initialBattle?.duration_minutes || 30);
   const [visibility, setVisibility] = useState<'CODE' | 'BATCH' | 'PRIVATE'>(initialBattle?.visibility || 'CODE');
   const [selectedBatchId, setSelectedBatchId] = useState<string>(initialBattle?.batch_id || batches[0]?.id || '');
+  const [maxParticipants, setMaxParticipants] = useState<number>(initialBattle?.max_participants || 25);
+  const [teamMode, setTeamMode] = useState<boolean>(initialBattle?.team_mode || false);
+  const [minTeamSize, setMinTeamSize] = useState<number>(initialBattle?.min_team_size || 1);
+  const [maxTeamSize, setMaxTeamSize] = useState<number>(initialBattle?.max_team_size || 1);
 
   // Step 2: Add Problems
   const [problemSource, setProblemSource] = useState<'CODEFORCES' | 'LEETCODE' | 'INTERNAL' | 'CREATE_NEW'>('CODEFORCES');
@@ -263,6 +267,10 @@ export default function CreateBattleWizard({
           batchId: isInstructor && visibility === 'BATCH' ? selectedBatchId : null,
           visibility,
           problems: addedProblems.map((p) => ({ id: p.id, points: p.points })),
+          maxParticipants,
+          teamMode,
+          minTeamSize,
+          maxTeamSize,
         }),
       });
 
@@ -456,6 +464,82 @@ export default function CreateBattleWizard({
                         </option>
                       ))}
                     </select>
+                  </div>
+                )}
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600, marginBottom: '6px' }}>Max Participants Limit</label>
+                  <input
+                    type="number"
+                    min={1}
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--glass-border)',
+                      color: 'var(--text-main)',
+                      fontSize: 'var(--text-sm)',
+                      outline: 'none',
+                    }}
+                    value={maxParticipants}
+                    onChange={(e) => setMaxParticipants(Number(e.target.value))}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '4px 0' }}>
+                  <input
+                    type="checkbox"
+                    id="team-mode-checkbox"
+                    checked={teamMode}
+                    onChange={(e) => setTeamMode(e.target.checked)}
+                    style={{ width: '16px', height: '16px', accentColor: 'var(--neon-cyan)', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="team-mode-checkbox" style={{ fontSize: 'var(--text-xs)', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }}>
+                    Enable Team Play Mode (Students join as teams)
+                  </label>
+                </div>
+
+                {teamMode && (
+                  <div style={{ display: 'flex', gap: 'var(--space-md)' }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600, marginBottom: '6px' }}>Min Team Members</label>
+                      <input
+                        type="number"
+                        min={1}
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--bg-card)',
+                          border: '1px solid var(--glass-border)',
+                          color: 'var(--text-main)',
+                          fontSize: 'var(--text-sm)',
+                          outline: 'none',
+                        }}
+                        value={minTeamSize}
+                        onChange={(e) => setMinTeamSize(Number(e.target.value))}
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600, marginBottom: '6px' }}>Max Team Members</label>
+                      <input
+                        type="number"
+                        min={minTeamSize}
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--bg-card)',
+                          border: '1px solid var(--glass-border)',
+                          color: 'var(--text-main)',
+                          fontSize: 'var(--text-sm)',
+                          outline: 'none',
+                        }}
+                        value={maxTeamSize}
+                        onChange={(e) => setMaxTeamSize(Number(e.target.value))}
+                      />
+                    </div>
                   </div>
                 )}
 
