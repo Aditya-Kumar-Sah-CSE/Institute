@@ -16,6 +16,7 @@ const PollAlerts = dynamic(() => import('./components/PollAlerts'));
 const DashboardPolls = dynamic(() => import('./components/DashboardPolls'), { loading: () => <div className="skeleton-dash" style={{ height: '200px', borderRadius: '12px' }}></div> });
 const ContinueLearning = dynamic(() => import('./components/ContinueLearning'), { loading: () => <div className="skeleton-dash" style={{ height: '250px', borderRadius: '12px' }}></div> });
 const DashboardAlerts = dynamic(() => import('./components/DashboardAlerts'));
+const DashboardBattleBanners = dynamic(() => import('./components/DashboardBattleBanners'));
 const ActivityFeed = dynamic(() => import('@/features/activity/components/ActivityFeed'), { 
   loading: () => <div className="skeleton-dash" style={{ height: '300px', borderRadius: '12px' }}></div> 
 });
@@ -84,6 +85,14 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
     .like('message', '%posted a new poll in%')
     .order('created_at', { ascending: false });
 
+  // Fetch active or upcoming coding battles
+  const battlesPromise = supabase
+    .from('coding_battles')
+    .select('id, title, status, start_time, end_time, duration_minutes, join_code')
+    .in('status', ['LOBBY', 'SCHEDULED', 'LIVE'])
+    .order('created_at', { ascending: false })
+    .limit(5);
+
   // We can fetch polls in parallel by just letting it run, though it needs course_ids.
   // Wait, if it needs course_ids, it depends on enrollments.
   // Let's use the enrollmentsPromise instead of making a duplicate query.
@@ -102,7 +111,8 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
     { data: pollAlerts },
     { data: dashboardPolls, error: pollsError },
     { data: certificatesData },
-    { data: settings }
+    { data: settings },
+    { data: activeBattles }
   ] = await Promise.all([
     profilePromise,
     enrollmentsPromise,
@@ -113,7 +123,8 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
     pollAlertsPromise,
     dashboardPollsPromise,
     certificatesPromise,
-    settingsPromise
+    settingsPromise,
+    battlesPromise
   ]);
 
   const enrolledCourses = enrollments?.filter(e => e.courses).map(e => e.courses as unknown as Course) || [];
@@ -222,6 +233,10 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
 
         {pollAlerts && pollAlerts.length > 0 && (
           <PollAlerts alerts={pollAlerts} />
+        )}
+
+        {activeBattles && activeBattles.length > 0 && (
+          <DashboardBattleBanners battles={activeBattles} />
         )}
 
         {profile?.role === 'student' && !profile.admission_filled && settings?.is_admission_pinned && (

@@ -88,7 +88,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     // 1. Fetch existing battle
     const { data: existing, error: fetchErr } = await supabase
       .from('coding_battles')
-      .select('id, created_by, status')
+      .select('id, created_by, status, duration_minutes')
       .eq('id', id)
       .single();
 
@@ -116,7 +116,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     const body = await request.json();
-    const { title, description, durationMinutes, batchId, visibility, problems } = body;
+    const { title, description, durationMinutes, batchId, visibility, problems, maxParticipants, teamMode, minTeamSize, maxTeamSize, scheduledStartTime } = body;
 
     const updates: any = {};
     if (title?.trim()) updates.title = title.trim();
@@ -126,6 +126,25 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
     if (visibility) updates.visibility = visibility;
     if (batchId !== undefined) updates.batch_id = batchId || null;
+    if (maxParticipants !== undefined) updates.max_participants = Number(maxParticipants);
+    if (teamMode !== undefined) updates.team_mode = Boolean(teamMode);
+    if (minTeamSize !== undefined) updates.min_team_size = Number(minTeamSize);
+    if (maxTeamSize !== undefined) updates.max_team_size = Number(maxTeamSize);
+
+    // Handle scheduling
+    if (scheduledStartTime !== undefined) {
+      if (scheduledStartTime) {
+        const dur = updates.duration_minutes || existing.duration_minutes || 30;
+        updates.status = 'SCHEDULED';
+        updates.start_time = new Date(scheduledStartTime).toISOString();
+        updates.end_time = new Date(new Date(scheduledStartTime).getTime() + dur * 60 * 1000).toISOString();
+      } else {
+        // Clear scheduling → revert to LOBBY
+        updates.status = 'LOBBY';
+        updates.start_time = null;
+        updates.end_time = null;
+      }
+    }
 
     // 4. Update battle attributes
     if (Object.keys(updates).length > 0) {

@@ -25,29 +25,8 @@ export default function BattleEndScreen({
   onViewAnalytics,
 }: BattleEndScreenProps) {
   return (
-    <div
-      style={{
-        maxWidth: '680px',
-        margin: 'var(--space-xl) auto',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--space-lg)',
-      }}
-    >
-      <Card
-        style={{
-          background: 'var(--bg-elevated)',
-          border: '1px solid var(--glass-border)',
-          borderRadius: 'var(--radius-xl)',
-          padding: 'var(--space-2xl)',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
-          textAlign: 'center',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 'var(--space-lg)',
-        }}
-      >
+    <div className="battle-complete-wrapper">
+      <Card className="battle-complete-card">
         <div
           style={{
             width: '72px',
@@ -73,87 +52,42 @@ export default function BattleEndScreen({
         </div>
 
         {/* Final Performance Summary Grid */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: 'var(--space-md)',
-            width: '100%',
-            marginTop: 'var(--space-sm)',
-          }}
-        >
-          <div
-            style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid var(--glass-border)',
-              borderRadius: 'var(--radius-md)',
-              padding: 'var(--space-md)',
-            }}
-          >
+        <div className="battle-complete-grid">
+          <div className="battle-complete-grid-item">
             <Award size={18} style={{ color: '#eab308', marginBottom: '4px' }} />
-            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Final Rank</div>
-            <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: '#eab308' }}>
+            <div className="battle-complete-grid-label">Final Rank</div>
+            <div className="battle-complete-grid-val-rank">
               #{userStats.rank}
             </div>
           </div>
 
-          <div
-            style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid var(--glass-border)',
-              borderRadius: 'var(--radius-md)',
-              padding: 'var(--space-md)',
-            }}
-          >
+          <div className="battle-complete-grid-item">
             <Trophy size={18} style={{ color: 'var(--neon-cyan)', marginBottom: '4px' }} />
-            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Total Score</div>
-            <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--neon-cyan)' }}>
+            <div className="battle-complete-grid-label">Total Score</div>
+            <div className="battle-complete-grid-val-score">
               {userStats.score} pts
             </div>
           </div>
 
-          <div
-            style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid var(--glass-border)',
-              borderRadius: 'var(--radius-md)',
-              padding: 'var(--space-md)',
-            }}
-          >
+          <div className="battle-complete-grid-item">
             <CheckCircle2 size={18} style={{ color: 'var(--neon-emerald)', marginBottom: '4px' }} />
-            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Solved</div>
-            <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--neon-emerald)' }}>
+            <div className="battle-complete-grid-label">Solved</div>
+            <div className="battle-complete-grid-val-solved">
               {userStats.solvedCount} / {userStats.totalProblems}
             </div>
           </div>
 
-          <div
-            style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid var(--glass-border)',
-              borderRadius: 'var(--radius-md)',
-              padding: 'var(--space-md)',
-            }}
-          >
+          <div className="battle-complete-grid-item">
             <Target size={18} style={{ color: 'var(--neon-purple)', marginBottom: '4px' }} />
-            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Accuracy</div>
-            <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--neon-purple)' }}>
+            <div className="battle-complete-grid-label">Accuracy</div>
+            <div className="battle-complete-grid-val-accuracy">
               {userStats.accuracy}%
             </div>
           </div>
         </div>
 
         {/* Action Controls */}
-        <div
-          style={{
-            display: 'flex',
-            gap: 'var(--space-md)',
-            width: '100%',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-            marginTop: 'var(--space-md)',
-          }}
-        >
+        <div className="battle-complete-actions">
           <Button variant="primary" onClick={onViewLeaderboard}>
             <Trophy size={18} /> View Leaderboard
           </Button>

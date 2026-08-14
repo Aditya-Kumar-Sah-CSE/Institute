@@ -47,6 +47,18 @@ export default function CreateBattleWizard({
   onSuccess: (battle: any) => void;
 }) {
   const isEditing = Boolean(initialBattle?.id);
+  // Helper to format ISO to datetime-local value (YYYY-MM-DDTHH:MM)
+  const formatDateTimeLocal = (isoString?: string) => {
+    if (!isoString) return '';
+    try {
+      const date = new Date(isoString);
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    } catch {
+      return '';
+    }
+  };
+
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   // Step 1: Basic Info
@@ -58,6 +70,8 @@ export default function CreateBattleWizard({
   const [teamMode, setTeamMode] = useState<boolean>(initialBattle?.team_mode || false);
   const [minTeamSize, setMinTeamSize] = useState<number>(initialBattle?.min_team_size || 1);
   const [maxTeamSize, setMaxTeamSize] = useState<number>(initialBattle?.max_team_size || 1);
+  const [isScheduled, setIsScheduled] = useState<boolean>(initialBattle?.status === 'SCHEDULED' || !!initialBattle?.start_time);
+  const [scheduledStartTime, setScheduledStartTime] = useState<string>(formatDateTimeLocal(initialBattle?.start_time));
 
   // Step 2: Add Problems
   const [problemSource, setProblemSource] = useState<'CODEFORCES' | 'LEETCODE' | 'INTERNAL' | 'CREATE_NEW'>('CODEFORCES');
@@ -271,6 +285,7 @@ export default function CreateBattleWizard({
           teamMode,
           minTeamSize,
           maxTeamSize,
+          scheduledStartTime: isScheduled ? scheduledStartTime : null,
         }),
       });
 
@@ -540,6 +555,44 @@ export default function CreateBattleWizard({
                         onChange={(e) => setMaxTeamSize(Number(e.target.value))}
                       />
                     </div>
+                  </div>
+                )}
+
+                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '4px 0' }}>
+                  <input
+                    type="checkbox"
+                    id="schedule-battle-checkbox"
+                    checked={isScheduled}
+                    onChange={(e) => {
+                      setIsScheduled(e.target.checked);
+                      if (!e.target.checked) setScheduledStartTime('');
+                    }}
+                    style={{ width: '16px', height: '16px', accentColor: 'var(--neon-cyan)', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="schedule-battle-checkbox" style={{ fontSize: 'var(--text-xs)', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }}>
+                    Schedule Battle for Later Date/Time (Calendar Picker)
+                  </label>
+                </div>
+
+                {isScheduled && (
+                  <div>
+                    <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600, marginBottom: '6px' }}>Upcoming Date & Start Time</label>
+                    <input
+                      type="datetime-local"
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--glass-border)',
+                        color: 'var(--text-main)',
+                        fontSize: 'var(--text-sm)',
+                        outline: 'none',
+                      }}
+                      value={scheduledStartTime}
+                      onChange={(e) => setScheduledStartTime(e.target.value)}
+                      required
+                    />
                   </div>
                 )}
 

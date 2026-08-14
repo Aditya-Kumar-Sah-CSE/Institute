@@ -61,6 +61,7 @@ export async function POST(request: Request) {
       teamMode = false,
       minTeamSize = 1,
       maxTeamSize = 1,
+      scheduledStartTime,
     } = body;
     const duration = Number(durationMinutes || 30);
 
@@ -88,7 +89,13 @@ export async function POST(request: Request) {
     const creatorRole = isInstructor ? 'FACULTY' : 'STUDENT';
     const joinCode = await generateUniqueJoinCode(supabase);
 
-    // 1. Create battle in LOBBY state
+    // Calculate dates if scheduled
+    const hasScheduled = !!scheduledStartTime;
+    const statusVal = hasScheduled ? 'SCHEDULED' : 'LOBBY';
+    const startTimeVal = hasScheduled ? new Date(scheduledStartTime).toISOString() : null;
+    const endTimeVal = hasScheduled ? new Date(new Date(scheduledStartTime).getTime() + duration * 60 * 1000).toISOString() : null;
+
+    // 1. Create battle in status state
     const { data: battle, error: createError } = await supabase
       .from('coding_battles')
       .insert({
@@ -99,9 +106,9 @@ export async function POST(request: Request) {
         creator_role: creatorRole,
         join_code: joinCode,
         visibility: isInstructor ? (batchId ? 'BATCH' : visibility) : visibility,
-        status: 'LOBBY',
-        start_time: null,
-        end_time: null,
+        status: statusVal,
+        start_time: startTimeVal,
+        end_time: endTimeVal,
         created_by: user.id,
         max_participants: Number(maxParticipants || 25),
         team_mode: Boolean(teamMode),

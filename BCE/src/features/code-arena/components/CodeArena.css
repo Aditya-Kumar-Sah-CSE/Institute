@@ -3619,3 +3619,140 @@
   border: 1px solid var(--glass-border);
 }
 
+/* Battle Complete page styles */
+.battle-complete-wrapper {
+  max-width: 680px;
+  margin: var(--space-xl) auto;
+  padding: 0 var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.battle-complete-card {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: var(--radius-xl) !important;
+  padding: var(--space-2xl) !important;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4) !important;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.battle-complete-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+  width: 100%;
+  margin-top: var(--space-sm);
+}
+
+.battle-complete-grid-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.battle-complete-grid-item:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.battle-complete-grid-label {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.battle-complete-grid-val-rank {
+  font-size: var(--text-xl);
+  font-weight: 800;
+  color: #eab308;
+  margin-top: 4px;
+}
+
+.battle-complete-grid-val-score {
+  font-size: var(--text-xl);
+  font-weight: 800;
+  color: var(--neon-cyan);
+  margin-top: 4px;
+}
+
+.battle-complete-grid-val-solved {
+  font-size: var(--text-xl);
+  font-weight: 800;
+  color: var(--neon-emerald);
+  margin-top: 4px;
+}
+
+.battle-complete-grid-val-accuracy {
+  font-size: var(--text-xl);
+  font-weight: 800;
+  color: var(--neon-purple);
+  margin-top: 4px;
+}
+
+.battle-complete-actions {
+  display: flex;
+  gap: var(--space-md);
+  width: 100%;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: var(--space-md);
+}
+
+@media screen and (max-width: 768px) {
+  .battle-complete-card {
+    padding: var(--space-lg) !important;
+    gap: var(--space-md);
+  }
+
+  .battle-complete-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-sm);
+  }
+
+  .battle-complete-grid-item {
+    padding: var(--space-sm);
+  }
+
+  .battle-complete-grid-val-rank,
+  .battle-complete-grid-val-score,
+  .battle-complete-grid-val-solved,
+  .battle-complete-grid-val-accuracy {
+    font-size: var(--text-md);
+  }
+
+  .battle-complete-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .battle-complete-actions button,
+  .battle-complete-actions a,
+  .battle-complete-actions a button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .battle-complete-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
