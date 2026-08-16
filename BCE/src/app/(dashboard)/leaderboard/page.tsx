@@ -29,7 +29,7 @@ export default async function LeaderboardPage({
     const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single();
     userProfile = p;
   }
-  const isAdmin = userProfile && ['admin', 'instructor', 'developer'].includes(userProfile.role);
+  const isShowcaseAdmin = userProfile && ['admin', 'developer'].includes(userProfile.role);
 
   // Load student app showcase data
   const { data: approvedApps } = await supabase
@@ -49,7 +49,7 @@ export default async function LeaderboardPage({
   }
 
   let pendingApps: any[] = [];
-  if (isAdmin) {
+  if (isShowcaseAdmin) {
     const { data: pends } = await supabase
       .from('student_apps')
       .select('*')
@@ -162,7 +162,7 @@ export default async function LeaderboardPage({
         pendingApps={pendingApps || []}
         userSubmissions={userSubmissions}
         currentUser={userProfile}
-        isAdmin={!!isAdmin}
+        isAdmin={!!isShowcaseAdmin}
       />
 
       <div className="leaderboard-filters" style={{ display: 'flex', gap: 'var(--space-md)' }}>

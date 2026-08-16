@@ -68,6 +68,27 @@ export async function submitStudentApp(formData: FormData) {
 
     if (insertError) throw insertError;
 
+    // Send notification ONLY to Admin users (not faculty/instructor)
+    try {
+      const adminSb = await createAdminClient();
+      const { data: admins } = await adminSb
+        .from('profiles')
+        .select('id')
+        .in('role', ['admin', 'developer']);
+
+      if (admins && admins.length > 0) {
+        const notifications = admins.map(a => ({
+          user_id: a.id,
+          type: 'system',
+          message: `🚀 Innovation Hub: New showcase "${app_name.trim()}" submitted by ${student_name.trim()} awaiting approval.`,
+          link: '/leaderboard'
+        }));
+        await adminSb.from('notifications').insert(notifications);
+      }
+    } catch (notifErr) {
+      console.error('Failed to send notification to admin:', notifErr);
+    }
+
     revalidatePath('/leaderboard');
     return { success: true };
   } catch (err: any) {
@@ -86,8 +107,8 @@ async function requireAdminRole() {
     .eq('id', user.id)
     .single();
 
-  if (!profile || (profile.role !== 'admin' && profile.role !== 'instructor' && profile.role !== 'developer')) {
-    throw new Error('Unauthorized: Admin access required.');
+  if (!profile || (profile.role !== 'admin' && profile.role !== 'developer')) {
+    throw new Error('Unauthorized: Admin access required for Innovation Hub approvals.');
   }
 
   return { supabase, user };
@@ -146,7 +167,7 @@ export async function deleteStudentApp(id: string) {
       .eq('id', user.id)
       .single();
 
-    const isAdmin = profile && ['admin', 'instructor', 'developer'].includes(profile.role);
+    const isAdmin = profile && ['admin', 'developer'].includes(profile.role);
     if (app.user_id !== user.id && !isAdmin) {
       throw new Error('Forbidden: You are not allowed to delete this application.');
     }
