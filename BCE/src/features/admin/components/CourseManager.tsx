@@ -518,25 +518,43 @@ export default function CourseManager({ courses, instructors = [], currentUserId
                 </div>
 
                 {facultySelectionType === 'single' ? (
-                  <select
-                    className="input-field select-field"
-                    value={courseFormData.instructor_ids?.[0] || ''}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setCourseFormData(prev => ({
-                        ...prev,
-                        instructor_ids: val ? [val] : []
-                      }));
-                    }}
-                    style={{ width: '100%', padding: '0.625rem 0.875rem' }}
-                  >
-                    <option value="">-- Select Faculty / Admin --</option>
-                    {instructors.map((inst: any) => (
-                      <option key={inst.id} value={inst.id}>
-                        {inst.full_name || inst.name || inst.email} ({inst.role || 'faculty'})
-                      </option>
-                    ))}
-                  </select>
+                  (() => {
+                    const selectedId = courseFormData.instructor_ids?.[0] || '';
+                    const currentInst = instructors.find((i: any) => i.id === currentUserId);
+                    const selectedInst = instructors.find((i: any) => i.id === selectedId);
+                    
+                    // If instructors list is empty but we have currentUserId, show a read-only display
+                    if (instructors.length === 0 && currentUserId) {
+                      return (
+                        <div className="input-field" style={{ padding: '0.625rem 0.875rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ background: 'rgba(99, 102, 241, 0.2)', border: '1px solid rgba(99, 102, 241, 0.4)', padding: '2px 8px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 500 }}>You</span>
+                          {currentUserId}
+                        </div>
+                      );
+                    }
+                    
+                    return (
+                      <select
+                        className="input-field select-field"
+                        value={selectedId}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setCourseFormData(prev => ({
+                            ...prev,
+                            instructor_ids: val ? [val] : []
+                          }));
+                        }}
+                        style={{ width: '100%', padding: '0.625rem 0.875rem' }}
+                      >
+                        {!selectedId && <option value="">-- Select Faculty / Admin --</option>}
+                        {instructors.map((inst: any) => (
+                          <option key={inst.id} value={inst.id}>
+                            {inst.full_name || inst.name || inst.email}{inst.id === currentUserId ? ' (You)' : ''} • {inst.role || 'faculty'}
+                          </option>
+                        ))}
+                      </select>
+                    );
+                  })()
                 ) : (
                   <MultiSelectFacultyDropdown
                     instructors={instructors}

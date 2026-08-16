@@ -6,7 +6,11 @@ export default async function AdminCoursesPage() {
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single();
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id, name, full_name, email, role')
+    .eq('id', user?.id)
+    .single();
 
   const query = supabase
     .from('courses')
@@ -15,16 +19,17 @@ export default async function AdminCoursesPage() {
   
   const { data: courses } = await query;
 
-  let { data: instructors } = await supabase
+  // Fetch all profiles with instructor/admin/developer roles for the faculty dropdown
+  const { data: instructors } = await supabase
     .from('profiles')
     .select('id, name, full_name, email, role')
-    .in('role', ['instructor', 'admin', 'developer']);
+    .in('role', ['instructor', 'admin', 'developer'])
+    .order('full_name', { ascending: true });
 
-  if (!instructors || instructors.length === 0) {
-    const { data: allProfiles } = await supabase
-      .from('profiles')
-      .select('id, name, full_name, email, role');
-    instructors = allProfiles || [];
+  // If the current user is not in the instructors list, include them
+  let finalInstructors = instructors || [];
+  if (profile && !finalInstructors.some((i: any) => i.id === profile.id)) {
+    finalInstructors = [profile, ...finalInstructors];
   }
 
   return (
@@ -34,14 +39,11 @@ export default async function AdminCoursesPage() {
       </div>
       <CourseManager 
         courses={courses || []} 
-        instructors={instructors || []}
+        instructors={finalInstructors}
         currentUserId={user?.id} 
         userRole={profile?.role} 
       />
     </div>
   );
 }
-
-
-
 
