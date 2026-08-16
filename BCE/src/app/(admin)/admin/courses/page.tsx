@@ -10,7 +10,7 @@ export default async function AdminCoursesPage() {
 
   const query = supabase
     .from('courses')
-    .select('*, profiles(name), course_instructors(instructor_id)')
+    .select('*, profiles!courses_created_by_fkey(name), course_instructors(instructor_id)')
     .order('created_at', { ascending: false });
   
   const { data: courses } = await query;
