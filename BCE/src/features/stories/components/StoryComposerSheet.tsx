@@ -125,7 +125,7 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
         return;
       }
       const isVideo = file.type.startsWith('video/');
-      const limitMb = isVideo ? 3 : 20;
+      const limitMb = isVideo ? 10 : 20;
       if (file.size > limitMb * 1024 * 1024) {
         setError(`File "${file.name}" is too large. Maximum is ${limitMb}MB.`);
         return;

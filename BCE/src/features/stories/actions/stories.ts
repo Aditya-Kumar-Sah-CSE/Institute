@@ -33,10 +33,10 @@ export async function uploadStoryMedia(formData: FormData): Promise<{ url: strin
 
   // Validate size
   const maxSizeBytes = file.type.startsWith('video/')
-    ? 3 * 1024 * 1024 // 3 MB for videos
+    ? 10 * 1024 * 1024 // 10 MB for videos
     : 20 * 1024 * 1024; // 20 MB for images
   if (file.size > maxSizeBytes) {
-    const limitMb = file.type.startsWith('video/') ? 3 : 20;
+    const limitMb = file.type.startsWith('video/') ? 10 : 20;
     throw new Error(`File is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum is ${limitMb}MB.`);
   }
 
