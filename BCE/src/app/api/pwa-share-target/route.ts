@@ -150,26 +150,22 @@ export async function POST(req: NextRequest) {
       .eq('id', user.id)
       .single();
 
+    let isInstructor = false;
     if (profileError || !profile) {
-      console.error(
-        '[PWA SHARE] Profile lookup failed:',
+      console.warn(
+        '[PWA SHARE] Profile lookup failed, defaulting to student:',
         profileError
       );
+    } else {
+      const role = String(profile.role || '')
+        .trim()
+        .toLowerCase();
 
-      return redirectTo(
-        req,
-        '/dashboard?error=ProfileNotFound'
-      );
+      isInstructor =
+        role === 'instructor' ||
+        role === 'admin' ||
+        role === 'developer';
     }
-
-    const role = String(profile.role || '')
-      .trim()
-      .toLowerCase();
-
-    const isInstructor =
-      role === 'instructor' ||
-      role === 'admin' ||
-      role === 'developer';
 
     // ---------------------------------------------------------
     // 8. Prepare attachments

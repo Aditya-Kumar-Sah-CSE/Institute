@@ -3,11 +3,25 @@ import { redirect } from 'next/navigation';
 import ShareDoubtForm from './ShareDoubtForm';
 
 export default async function ShareDoubtPage(props: {
-  searchParams: Promise<{ fileUrl?: string; fileName?: string }>;
+  searchParams: Promise<{ fileUrl?: string; fileName?: string; files?: string }>;
 }) {
   const searchParams = await props.searchParams;
-  const fileUrl = searchParams.fileUrl || '';
-  const fileName = searchParams.fileName || '';
+  let fileUrl = searchParams.fileUrl || '';
+  let fileName = searchParams.fileName || '';
+  const filesParam = searchParams.files;
+
+  if (filesParam) {
+    try {
+      const decoded = filesParam.startsWith('[') ? filesParam : decodeURIComponent(filesParam);
+      const parsed = JSON.parse(decoded);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        fileUrl = parsed[0].url || '';
+        fileName = parsed[0].name || '';
+      }
+    } catch (err) {
+      console.warn('Failed to parse files param in ShareDoubtPage:', err);
+    }
+  }
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

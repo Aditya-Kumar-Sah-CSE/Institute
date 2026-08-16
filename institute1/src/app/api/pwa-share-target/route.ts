@@ -121,15 +121,11 @@ export async function POST(req: NextRequest) {
     const { tenant, routingMode } = await getTenantConfig();
     const baseUrl = generateTenantBaseUrl(tenant?.slug || null, routingMode);
 
-    let redirectUrl: URL;
-    const isStudent = profile?.role === 'user' || profile?.role === 'student';
+    const isInstructor = profile?.role === 'instructor' || profile?.role === 'admin' || profile?.role === 'developer';
 
-    if (isStudent) {
-      redirectUrl = new URL(`${baseUrl}/share-doubt`, req.url);
-    } else {
-      // Redirect to the Share Upload UI for instructors
-      redirectUrl = new URL(`${baseUrl}/instructor/share-upload`, req.url);
-    }
+    const redirectUrl = isInstructor
+      ? new URL(`${baseUrl}/instructor/share-upload`, req.url)
+      : new URL(`${baseUrl}/share-doubt`, req.url);
     
     redirectUrl.searchParams.set('files', encodeURIComponent(JSON.stringify(attachments)));
     

@@ -37,6 +37,7 @@ export default function CodeArenaClientHome({
   const [activeTab, setActiveTab] = useState<'ALL' | 'LIVE' | 'UPCOMING' | 'COMPLETED'>('ALL');
 
   const [battles, setBattles] = useState<any[]>(initialBattles);
+  const [visibleProblemsCount, setVisibleProblemsCount] = useState(6);
 
   const handleJoinBattle = async () => {
     const cleanCode = joinCodeInput.trim().toUpperCase();
@@ -301,7 +302,7 @@ export default function CodeArenaClientHome({
             <p className="subtitle-desc-sm">Hand-picked coding problems to build your algorithmic fundamentals.</p>
 
             <div className="practice-rows-list">
-              {initialProblems.map((problem) => (
+              {initialProblems.slice(0, visibleProblemsCount).map((problem) => (
                 <Link 
                   key={problem.id} 
                   href={`/code-arena/problems/${problem.id}`}
@@ -335,6 +336,29 @@ export default function CodeArenaClientHome({
                 </Link>
               ))}
             </div>
+
+            {visibleProblemsCount < initialProblems.length && (
+              <div style={{ textAlign: 'center', marginTop: 'var(--space-md)' }}>
+                <button
+                  onClick={() => setVisibleProblemsCount((c) => c + 6)}
+                  style={{
+                    background: 'rgba(6, 182, 212, 0.08)',
+                    border: '1px solid rgba(6, 182, 212, 0.3)',
+                    color: 'var(--neon-cyan)',
+                    padding: '10px 28px',
+                    borderRadius: 'var(--radius-md)',
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                    fontSize: 'var(--text-sm)',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(6, 182, 212, 0.18)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(6, 182, 212, 0.08)'; }}
+                >
+                  Show More ({initialProblems.length - visibleProblemsCount} remaining)
+                </button>
+              </div>
+            )}
           </section>
         </div>
 
