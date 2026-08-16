@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import type { Story, StoryItem, StoryPrivacyLevel, StoryMediaType } from '@/types/database';
 
@@ -32,8 +32,12 @@ export async function uploadStoryMedia(formData: FormData): Promise<{ url: strin
   }
 
   // Validate size
-  if (file.size > MAX_FILE_SIZE_BYTES) {
-    throw new Error(`File is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum is 20MB.`);
+  const maxSizeBytes = file.type.startsWith('video/')
+    ? 3 * 1024 * 1024 // 3 MB for videos
+    : 20 * 1024 * 1024; // 20 MB for images
+  if (file.size > maxSizeBytes) {
+    const limitMb = file.type.startsWith('video/') ? 3 : 20;
+    throw new Error(`File is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum is ${limitMb}MB.`);
   }
 
   const userId = userData.user.id;
@@ -129,6 +133,16 @@ export async function fetchStoryFeed() {
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
   const currentUserId = userData?.user?.id;
+
+  // Clean up expired story items and stories first to ensure they are deleted from the database
+  try {
+    const adminClient = await createAdminClient();
+    const nowIso = new Date().toISOString();
+    await adminClient.from('story_items').delete().lt('expires_at', nowIso);
+    await adminClient.from('stories').delete().lt('expires_at', nowIso);
+  } catch (cleanError) {
+    console.error('Failed to clean up expired stories:', cleanError);
+  }
 
   // We want to fetch all active stories, along with their items and views 
   // Normally we would enforce privacy (e.g., Contacts only) - handled by RLS partially, but explicit joined checks help

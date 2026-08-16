@@ -172,6 +172,16 @@ export default function BattleArenaClient({
     loadSubmissions();
   }, [battle.id]);
 
+  // 4. Show results screen on mount if battle is already completed and user was a participant
+  useEffect(() => {
+    if (battle.status === 'COMPLETED' && !isVirtualPractice) {
+      const isParticipant = participants.some((p) => (p.student_id || p.profiles?.id) === currentUser?.id);
+      if (isParticipant) {
+        setShowEndModal(true);
+      }
+    }
+  }, [battle.status, participants, currentUser, isVirtualPractice]);
+
   // Helper to load or derive draft code
   const getDraftOrStarter = (problem: any, lang: CodeLanguage) => {
     if (!problem || typeof window === 'undefined') return starters[lang];
@@ -428,18 +438,18 @@ export default function BattleArenaClient({
         </div>
 
         {/* Right: Room Tabs & User Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: '4px' }}>
-            <Button size="sm" variant={activeTab === 'arena' ? 'primary' : 'secondary'} onClick={() => setActiveTab('arena')}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }} className="code-arena-header-controls-wrapper">
+          <div className="code-arena-tabs-container">
+            <Button size="sm" variant={activeTab === 'arena' ? 'primary' : 'secondary'} onClick={() => setActiveTab('arena')} style={{ width: '100%' }}>
               <Code2 size={14} /> Arena
             </Button>
-            <Button size="sm" variant={activeTab === 'leaderboard' ? 'primary' : 'secondary'} onClick={() => setActiveTab('leaderboard')}>
+            <Button size="sm" variant={activeTab === 'leaderboard' ? 'primary' : 'secondary'} onClick={() => setActiveTab('leaderboard')} style={{ width: '100%' }}>
               <Trophy size={14} /> Leaderboard
             </Button>
-            <Button size="sm" variant={activeTab === 'submissions' ? 'primary' : 'secondary'} onClick={() => setActiveTab('submissions')}>
+            <Button size="sm" variant={activeTab === 'submissions' ? 'primary' : 'secondary'} onClick={() => setActiveTab('submissions')} style={{ width: '100%' }}>
               <History size={14} /> Submissions
             </Button>
-            <Button size="sm" variant={activeTab === 'analytics' ? 'primary' : 'secondary'} onClick={() => setActiveTab('analytics')}>
+            <Button size="sm" variant={activeTab === 'analytics' ? 'primary' : 'secondary'} onClick={() => setActiveTab('analytics')} style={{ width: '100%' }}>
               <BarChart2 size={14} /> Analytics
             </Button>
           </div>
@@ -481,20 +491,30 @@ export default function BattleArenaClient({
                   This competitive battle has officially ended. You can enter Virtual Practice mode to test your solutions and solve the problems at your own pace.
                 </p>
               </div>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => {
-                  setIsVirtualPractice(true);
-                  setVirtualStartTime(new Date().toISOString());
-                }}
-                style={{
-                  background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))',
-                  fontWeight: 800
-                }}
-              >
-                ⚡ Start Virtual Practice
-              </Button>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowEndModal(true)}
+                  style={{ fontWeight: 800 }}
+                >
+                  🏆 View Results
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    setIsVirtualPractice(true);
+                    setVirtualStartTime(new Date().toISOString());
+                  }}
+                  style={{
+                    background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))',
+                    fontWeight: 800
+                  }}
+                >
+                  ⚡ Start Virtual Practice
+                </Button>
+              </div>
             </Card>
           )}
 

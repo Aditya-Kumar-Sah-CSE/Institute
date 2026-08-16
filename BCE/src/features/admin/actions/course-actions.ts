@@ -31,18 +31,32 @@ export async function addCourse(formData: FormData) {
   const is_published = formData.get('is_published') === 'true';
   const enrollment_restriction = (formData.get('enrollment_restriction') as string) || 'any';
 
+  const instructorIdsString = formData.get('instructor_ids') as string;
+  const instructorIds: string[] = instructorIdsString 
+    ? JSON.parse(instructorIdsString) 
+    : [user?.id].filter(Boolean) as string[];
+
   if (!title) return { error: 'Title is required' };
 
-  const { error } = await supabase.from('courses').insert({
+  const { data: newCourse, error } = await supabase.from('courses').insert({
     title,
     description,
     difficulty,
     is_published,
     enrollment_restriction,
     created_by: user?.id,
-  });
+  }).select('id').single();
 
   if (error) return { error: error.message };
+
+  if (newCourse && instructorIds.length > 0) {
+    const instructorInserts = instructorIds.map(instructorId => ({
+      course_id: newCourse.id,
+      instructor_id: instructorId
+    }));
+    const { error: linkError } = await supabase.from('course_instructors').insert(instructorInserts);
+    if (linkError) return { error: linkError.message };
+  }
 
   if (user?.id) {
     await checkBadges(user.id);
@@ -62,6 +76,9 @@ export async function updateCourse(id: string, formData: FormData) {
   const is_published = formData.get('is_published') === 'true';
   const enrollment_restriction = (formData.get('enrollment_restriction') as string) || 'any';
 
+  const instructorIdsString = formData.get('instructor_ids') as string;
+  const instructorIds: string[] = instructorIdsString ? JSON.parse(instructorIdsString) : [];
+
   const { error } = await supabase.from('courses').update({
     title,
     description,
@@ -71,6 +88,19 @@ export async function updateCourse(id: string, formData: FormData) {
   }).eq('id', id);
 
   if (error) return { error: error.message };
+
+  // Update course_instructors join table by deleting old and inserting new
+  const { error: deleteError } = await supabase.from('course_instructors').delete().eq('course_id', id);
+  if (deleteError) return { error: deleteError.message };
+
+  if (instructorIds.length > 0) {
+    const instructorInserts = instructorIds.map(instructorId => ({
+      course_id: id,
+      instructor_id: instructorId
+    }));
+    const { error: linkError } = await supabase.from('course_instructors').insert(instructorInserts);
+    if (linkError) return { error: linkError.message };
+  }
 
   revalidatePath('/admin/courses');
   revalidatePath('/instructor/courses');

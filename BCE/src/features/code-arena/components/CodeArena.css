@@ -3749,9 +3749,21 @@
   }
 }
 
-@media screen and (max-width: 480px) {
-  .battle-complete-grid {
-    grid-template-columns: 1fr;
+.code-arena-tabs-container {
+  display: flex;
+  gap: 4px;
+}
+
+@media screen and (max-width: 768px) {
+  .code-arena-tabs-container {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px !important;
+    width: 100% !important;
+  }
+  .code-arena-header-controls-wrapper {
+    width: 100% !important;
+    justify-content: space-between !important;
   }
 }
 

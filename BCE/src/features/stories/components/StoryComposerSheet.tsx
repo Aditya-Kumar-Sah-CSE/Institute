@@ -124,8 +124,10 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
         setError(`File type "${file.type}" is not supported.`);
         return;
       }
-      if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-        setError(`File "${file.name}" is too large. Maximum is ${MAX_SIZE_MB}MB.`);
+      const isVideo = file.type.startsWith('video/');
+      const limitMb = isVideo ? 3 : 20;
+      if (file.size > limitMb * 1024 * 1024) {
+        setError(`File "${file.name}" is too large. Maximum is ${limitMb}MB.`);
         return;
       }
       newDrafts.push({

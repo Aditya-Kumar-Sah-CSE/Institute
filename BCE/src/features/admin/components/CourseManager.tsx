@@ -11,12 +11,13 @@ import type { Course } from '@/types';
 import './CourseManager.css';
 
 interface CourseManagerProps {
-  courses: Course[];
+  courses: any[];
+  instructors: any[];
   currentUserId?: string;
   userRole?: string;
 }
 
-export default function CourseManager({ courses, currentUserId, userRole }: CourseManagerProps) {
+export default function CourseManager({ courses, instructors = [], currentUserId, userRole }: CourseManagerProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -38,20 +39,22 @@ export default function CourseManager({ courses, currentUserId, userRole }: Cour
       description: '',
       difficulty: 'sem 1',
       is_published: 'false',
-      enrollment_restriction: 'any'
+      enrollment_restriction: 'any',
+      instructor_ids: currentUserId ? [currentUserId] : []
     });
     setError('');
     setIsModalOpen(true);
   };
 
-  const openEdit = (course: Course) => {
+  const openEdit = (course: any) => {
     setEditingCourse(course);
     setCourseFormData({
       title: course.title || '',
       description: course.description || '',
       difficulty: course.difficulty || 'sem 1',
       is_published: course.is_published ? 'true' : 'false',
-      enrollment_restriction: course.enrollment_restriction || 'any'
+      enrollment_restriction: course.enrollment_restriction || 'any',
+      instructor_ids: (course.course_instructors || []).map((ci: any) => ci.instructor_id)
     });
     setError('');
     setIsModalOpen(true);
@@ -75,7 +78,13 @@ export default function CourseManager({ courses, currentUserId, userRole }: Cour
     setError('');
 
     const formData = new FormData();
-    Object.entries(courseFormData).forEach(([k, v]) => formData.append(k, String(v)));
+    Object.entries(courseFormData).forEach(([k, v]) => {
+      if (k === 'instructor_ids') {
+        formData.append(k, JSON.stringify(v));
+      } else {
+        formData.append(k, String(v));
+      }
+    });
     
     let res;
     if (editingCourse) {
@@ -96,7 +105,8 @@ export default function CourseManager({ courses, currentUserId, userRole }: Cour
   const filteredCourses = courses.filter(c => {
     if (c.is_deleted) return false;
     if ((courseFilter === 'my_courses' || userRole === 'instructor') && currentUserId) {
-      return c.created_by === currentUserId;
+      const isAssigned = c.course_instructors?.some((ci: any) => ci.instructor_id === currentUserId);
+      return c.created_by === currentUserId || isAssigned;
     }
     return true;
   });
@@ -143,11 +153,18 @@ export default function CourseManager({ courses, currentUserId, userRole }: Cour
                 {course.is_deleted && <span style={{ marginLeft: 'var(--space-sm)', fontSize: '0.625rem', background: 'var(--neon-red)', color: 'white', padding: '0.125rem 0.375rem', borderRadius: '0.25rem' }}>DELETED</span>}
                 {!course.is_published && !course.is_deleted && <span style={{ marginLeft: 'var(--space-sm)', fontSize: '0.625rem', background: 'var(--neon-gold)', color: 'black', padding: '0.125rem 0.375rem', borderRadius: '0.25rem' }}>DRAFT</span>}
               </h3>
-              {course.profiles?.name && (
+              {(course.course_instructors && course.course_instructors.length > 0) ? (
+                <p className="text-secondary text-sm" style={{ marginBottom: 'var(--space-2xs)' }}>
+                  Instructors: {course.course_instructors.map((ci: any) => {
+                    const inst = instructors.find((i: any) => i.id === ci.instructor_id);
+                    return inst ? (inst.full_name || inst.name) : null;
+                  }).filter(Boolean).join(', ') || 'No instructors'}
+                </p>
+              ) : course.profiles?.name ? (
                 <p className="text-secondary text-sm" style={{ marginBottom: 'var(--space-2xs)' }}>
                   Instructor: {course.profiles.name}
                 </p>
-              )}
+              ) : null}
               <p className="text-secondary text-sm" style={{ marginBottom: 'var(--space-xs)' }}>
                 {course.lesson_count} Lessons | {course.total_xp} XP | {course.difficulty?.charAt(0).toUpperCase() + course.difficulty?.slice(1)} {course.tags?.length ? `• ${course.tags.join(', ')}` : ''}
               </p>
@@ -217,6 +234,44 @@ export default function CourseManager({ courses, currentUserId, userRole }: Cour
                   <option value="sem 7" />
                   <option value="sem 8" />
                 </datalist>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>Instructors / Faculty</label>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                  gap: '0.5rem',
+                  maxHeight: '150px',
+                  overflowY: 'auto',
+                  background: 'var(--bg-input)',
+                  padding: '0.75rem',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--glass-border)'
+                }}>
+                  {instructors.map((instructor) => {
+                    const isChecked = (courseFormData.instructor_ids || []).includes(instructor.id);
+                    return (
+                      <label key={instructor.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer', userSelect: 'none' }}>
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            const ids = [...(courseFormData.instructor_ids || [])];
+                            if (e.target.checked) {
+                              if (!ids.includes(instructor.id)) ids.push(instructor.id);
+                            } else {
+                              const index = ids.indexOf(instructor.id);
+                              if (index > -1) ids.splice(index, 1);
+                            }
+                            setCourseFormData(prev => ({ ...prev, instructor_ids: ids }));
+                          }}
+                        />
+                        <span>{instructor.full_name || instructor.name || instructor.email}</span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
 
               <Select 

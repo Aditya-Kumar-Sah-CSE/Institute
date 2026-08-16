@@ -135,13 +135,13 @@ export default async function ProfilePage() {
               <div style={{ flex: 1, display: 'flex', gap: 'var(--space-md)' }}>
                 <Link href="/code-arena/profile" style={{ textDecoration: 'none', flex: 1 }}>
                   <Button variant="secondary" size="sm" style={{ height: "48px", backgroundColor: "rgba(6, 182, 212, 0.1)", border: "1px solid rgba(6, 182, 212, 0.3)", color: "var(--neon-cyan)", width: '100%', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                    🚀 View Coding Profile
+                    Coding Profile
                   </Button>
                 </Link>
                 {profile.role !== 'admin' && profile.role !== 'instructor' && (!appData || appData.status === 'rejected') && (
                   <Link href={appData?.status === 'rejected' ? '/apply-instructor?reapply=true' : '/apply-instructor'} style={{ textDecoration: 'none', flex: 1 }}>
                     <Button variant="secondary" size="sm" style={{ height: "48px", backgroundColor: "#22c55e", color: "white", width: '100%' }}>
-                      Apply as Instructor or Faculty
+                      Apply as Faculty
                     </Button>
                   </Link>
                 )}
