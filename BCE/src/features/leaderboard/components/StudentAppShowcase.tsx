@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input, { TextArea } from '@/components/ui/Input';
 import { 
   Rocket, Link as LinkIcon, Smartphone, FileText, 
   CheckCircle, XCircle, Clock, Trash2, ShieldCheck, 
-  ExternalLink, Upload, AlertCircle, Sparkles
+  ExternalLink, Upload, AlertCircle, Sparkles, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { 
   submitStudentApp, approveStudentApp, rejectStudentApp, deleteStudentApp 
@@ -35,6 +35,19 @@ export default function StudentAppShowcase({
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [showAllApps, setShowAllApps] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const visibleApps = isMobile && !showAllApps ? approvedApps.slice(0, 3) : approvedApps;
 
   // Form states
   const [appName, setAppName] = useState('');
@@ -246,57 +259,76 @@ export default function StudentAppShowcase({
           </p>
         </Card>
       ) : (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-          gap: 'var(--space-lg)'
-        }}>
-          {approvedApps.map((app: any) => (
-            <Card 
-              key={app.id} 
-              variant="glass" 
-              className="hover-lift"
-              style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '20px', cursor: 'pointer', background: 'rgba(30, 41, 59, 0.2)', border: '1px solid var(--glass-border)' }}
-              onClick={() => setSelectedApp(app)}
-            >
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                <div style={{ position: 'relative', width: 48, height: 48, borderRadius: '10px', overflow: 'hidden', flexShrink: 0, border: '1px solid var(--glass-border)' }}>
-                  <img src={app.app_logo_url} alt={app.app_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+            gap: 'var(--space-lg)'
+          }}>
+            {visibleApps.map((app: any) => (
+              <Card 
+                key={app.id} 
+                variant="glass" 
+                className="hover-lift"
+                style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '20px', cursor: 'pointer', background: 'rgba(30, 41, 59, 0.2)', border: '1px solid var(--glass-border)' }}
+                onClick={() => setSelectedApp(app)}
+              >
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <div style={{ position: 'relative', width: 48, height: 48, borderRadius: '10px', overflow: 'hidden', flexShrink: 0, border: '1px solid var(--glass-border)' }}>
+                    <img src={app.app_logo_url} alt={app.app_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text-primary)' }}>
+                      {app.app_name}
+                    </h3>
+                    <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {app.student_name} ({app.batch})
+                    </p>
+                  </div>
                 </div>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text-primary)' }}>
-                    {app.app_name}
-                  </h3>
-                  <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {app.student_name} ({app.batch})
-                  </p>
-                </div>
-              </div>
-              
-              <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', height: '36px', lineHeight: '18px' }}>
-                {app.solution}
-              </p>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                <span style={{ fontSize: '11px', color: 'var(--neon-cyan)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  <Sparkles size={11} /> Learn More
-                </span>
                 
-                {/* Prevent click bubbling to card onClick */}
-                <a 
-                  href={app.working_url} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="btn btn-secondary btn-sm"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', fontSize: '11px', height: '26px' }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  Launch App <ExternalLink size={10} />
-                </a>
-              </div>
-            </Card>
-          ))}
-        </div>
+                <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', height: '36px', lineHeight: '18px' }}>
+                  {app.solution}
+                </p>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--neon-cyan)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <Sparkles size={11} /> Learn More
+                  </span>
+                  
+                  {/* Prevent click bubbling to card onClick */}
+                  <a 
+                    href={app.working_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="btn btn-secondary btn-sm"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', fontSize: '11px', height: '26px' }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Launch App <ExternalLink size={10} />
+                  </a>
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {isMobile && approvedApps.length > 3 && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '12px' }}>
+              <Button 
+                variant="secondary" 
+                size="sm"
+                onClick={() => setShowAllApps(!showAllApps)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '20px', padding: '8px 20px', fontSize: '13px', fontWeight: 600 }}
+              >
+                {showAllApps ? (
+                  <>Show Less <ChevronUp size={16} /></>
+                ) : (
+                  <>Show All Apps ({approvedApps.length}) <ChevronDown size={16} /></>
+                )}
+              </Button>
+            </div>
+          )}
+        </>
       )}
 
       {/* Submission Modal Sheet */}
