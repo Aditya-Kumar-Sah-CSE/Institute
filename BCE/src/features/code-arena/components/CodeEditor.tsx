@@ -33,6 +33,7 @@ const languageMap: Record<CodeLanguage, string> = {
   java: 'java',
   python: 'python',
   javascript: 'javascript',
+  html: 'html',
 };
 
 const starters: Record<CodeLanguage, string> = {
@@ -41,6 +42,7 @@ const starters: Record<CodeLanguage, string> = {
   java: 'import java.util.Scanner;\n\nclass Main {\n    public static void main(String[] args) {\n        // Write your solution here\n    }\n}',
   python: 'def solve():\n    # Write your solution here\n    pass\n\nif __name__ == "__main__":\n    solve()\n',
   javascript: "'use strict';\n\nfunction solve() {\n    // Write your solution here\n}\n\nsolve();\n",
+  html: '<!-- Write your HTML/CSS/React code here -->',
 };
 
 type ConsoleTab = 'output' | 'error' | 'input' | 'tests';

@@ -16,6 +16,21 @@ export async function POST(request: Request) {
   try {
     const { code, language, stdin = '' } = await request.json();
 
+    if (language === 'html') {
+      return NextResponse.json({
+        status: 'SUCCESS',
+        stdout: 'HTML/CSS/React compilation is run directly in the browser sandbox.',
+        stderr: '',
+        compileStdout: '',
+        compileStderr: '',
+        exitCode: 0,
+        signal: null,
+        executionTimeMs: 0,
+        memoryUsedMb: 0,
+        message: 'Direct HTML rendering',
+      } as NormalizedExecutionResult);
+    }
+
     if (!code || typeof code !== 'string') {
       return NextResponse.json(
         {

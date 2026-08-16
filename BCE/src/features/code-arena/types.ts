@@ -1,4 +1,4 @@
-export const CODE_LANGUAGES = ['cpp17', 'c', 'java', 'python', 'javascript'] as const;
+export const CODE_LANGUAGES = ['cpp17', 'c', 'java', 'python', 'javascript', 'html'] as const;
 export type CodeLanguage = (typeof CODE_LANGUAGES)[number];
 export type CodingDifficulty = 'EASY' | 'MEDIUM' | 'HARD';
 export type SubmissionStatus =

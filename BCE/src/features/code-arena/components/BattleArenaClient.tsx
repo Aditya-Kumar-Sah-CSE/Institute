@@ -48,6 +48,7 @@ const starters: Record<CodeLanguage, string> = {
   java: 'import java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        // Write your battle solution here\n    }\n}',
   python: 'def solve():\n    # Write your battle solution here\n    pass\n\nif __name__ == "__main__":\n    solve()\n',
   javascript: "'use strict';\nfunction main() {\n    // Write your battle solution here\n}\nmain();\n",
+  html: '<!-- HTML/CSS/React not supported in active battles -->',
 };
 
 type ConsoleTab = 'output' | 'error' | 'input' | 'tests';

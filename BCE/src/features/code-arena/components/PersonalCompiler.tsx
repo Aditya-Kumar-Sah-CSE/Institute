@@ -34,6 +34,71 @@ const starters: Record<CodeLanguage, string> = {
   java: 'class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, BCE Code Arena!");\n    }\n}',
   python: 'def solve():\n    print("Hello, BCE Code Arena!")\n\nsolve()\n',
   javascript: "'use strict';\n\nfunction solve(input) {\n    console.log('Hello, BCE Code Arena!');\n}\n\nsolve();\n",
+  html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>React & HTML Sandbox</title>
+  <!-- Load React, ReactDOM and Babel for JSX parsing -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 20px;
+      display: grid;
+      place-items: center;
+      min-height: 80vh;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 24px;
+      border-radius: 12px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+    }
+    button {
+      background: #06b6d4;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 12px;
+      transition: opacity 0.2s;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    function App() {
+      const [count, setCount] = React.useState(0);
+      return (
+        <div className="card">
+          <h1>⚛️ Hello, React & HTML Sandbox!</h1>
+          <p>This is compiled locally in your browser.</p>
+          <button onClick={() => setCount(count + 1)}>
+            Count: {count}
+          </button>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>`,
 };
 
 const monaco: Record<CodeLanguage, string> = {
@@ -42,6 +107,7 @@ const monaco: Record<CodeLanguage, string> = {
   java: 'java',
   python: 'python',
   javascript: 'javascript',
+  html: 'html',
 };
 
 type Snippet = {
@@ -53,7 +119,7 @@ type Snippet = {
   updated_at: string;
 };
 
-type TabType = 'output' | 'error' | 'input' | 'details';
+type TabType = 'output' | 'error' | 'input' | 'details' | 'preview';
 
 export default function PersonalCompiler({ initialSnippets }: { initialSnippets: Snippet[] }) {
   const [snippets, setSnippets] = useState<Snippet[]>(initialSnippets);
@@ -73,6 +139,7 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
   // OJ Output state
   const [result, setResult] = useState<NormalizedExecutionResult | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('output');
+  const [iframeKey, setIframeKey] = useState(0);
 
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirty = useRef(false);
@@ -152,6 +219,11 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
     setStdin(s.stdin);
     dirty.current = false;
     setState('Saved');
+    if (s.language === 'html') {
+      setActiveTab('preview');
+    } else if (activeTab === 'preview') {
+      setActiveTab('output');
+    }
   };
 
   const newSnippet = () => {
@@ -189,6 +261,12 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
   };
 
   const runCode = async () => {
+    if (language === 'html') {
+      setIframeKey((k) => k + 1);
+      setActiveTab('preview');
+      return;
+    }
+
     setRunning(true);
     setResult(null);
 
@@ -260,6 +338,11 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
               setLanguage(l);
               setCode(starters[l]);
               schedule();
+              if (l === 'html') {
+                setActiveTab('preview');
+              } else if (activeTab === 'preview') {
+                setActiveTab('output');
+              }
             }}
           >
             {Object.keys(starters).map((l) => (
@@ -338,6 +421,15 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
             >
               Details
             </button>
+            {language === 'html' && (
+              <button
+                type="button"
+                className={`oj-tab ${activeTab === 'preview' ? 'active' : ''}`}
+                onClick={() => setActiveTab('preview')}
+              >
+                UI Preview
+              </button>
+            )}
           </div>
 
           {/* Custom Input Card placed BEFORE Output/Console as requested */}
@@ -436,6 +528,17 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
 
           {/* Console Display Body */}
           <div className="oj-console-body">
+            {activeTab === 'preview' && language === 'html' && (
+              <div style={{ width: '100%', height: '350px', background: '#ffffff', borderRadius: '8px', border: '1px solid var(--glass-border)', overflow: 'hidden' }}>
+                <iframe
+                  key={iframeKey}
+                  srcDoc={code}
+                  sandbox="allow-scripts"
+                  style={{ width: '100%', height: '100%', border: 'none' }}
+                  title="UI Preview"
+                />
+              </div>
+            )}
             {activeTab === 'output' && (
               !result ? (
                 /* Initial Terminal Graphic Empty State */
