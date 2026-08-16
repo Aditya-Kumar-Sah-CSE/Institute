@@ -9,6 +9,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } }, { status: 401 });
   }
 
+  const { checkRateLimit } = await import('@/lib/rate-limit');
+  const rl = checkRateLimit(`submitCode:${user.id}`, 20, 60000);
+  if (!rl.success) {
+    return NextResponse.json({ success: false, error: { code: 'RATE_LIMIT_EXCEEDED', message: rl.error } }, { status: 429 });
+  }
+
   try {
     const body = await request.json();
     const { problemId, battleId = null, language, sourceCode, isVirtualPractice = false } = body as {

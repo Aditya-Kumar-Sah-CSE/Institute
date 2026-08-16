@@ -14,14 +14,30 @@ export async function checkBadges(userId: string) {
   if (!allBadges) return;
 
   // 2. Get user's current stats (for condition checking)
-  const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).single();
-  
-  // Fetch completed assignments from xp_log (submissions are deleted after approval)
-  const { data: completedXpLogs } = await supabase
-    .from('xp_log')
-    .select('source_id')
-    .eq('user_id', userId)
-    .eq('source_type', 'assignment');
+  // Fetch all user stats concurrently to avoid N+1 queries
+  const [
+    { data: profile },
+    { data: completedXpLogs },
+    { data: approvedSubmissions },
+    { count: courseCount },
+    { count: enrolledCount },
+    { data: enrollments },
+    { count: coursesCreatedCount },
+    { count: battlesCount },
+    { data: earned }
+  ] = await Promise.all([
+    supabase.from('profiles').select('*').eq('id', userId).single(),
+    supabase.from('xp_log').select('source_id').eq('user_id', userId).eq('source_type', 'assignment'),
+    supabase.from('submissions').select('score, assignments(type)').eq('user_id', userId).eq('status', 'approved'),
+    supabase.from('enrollments').select('*', { count: 'exact', head: true }).eq('user_id', userId).not('completed_at', 'is', null),
+    supabase.from('enrollments').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'approved'),
+    supabase.from('enrollments').select('course_id, progress').eq('user_id', userId),
+    supabase.from('courses').select('*', { count: 'exact', head: true }).eq('created_by', userId),
+    supabase.from('coding_battle_participants').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+    supabase.from('user_badges').select('badge_id').eq('user_id', userId)
+  ]);
+
+  const approvedAssignmentCount = approvedSubmissions?.length || 0;
 
   const completedAssignmentIds = [...new Set(completedXpLogs?.map(l => l.source_id).filter(Boolean) || [])];
 
@@ -38,40 +54,10 @@ export async function checkBadges(userId: string) {
   const githubCount = completedAssignments.filter(a => a.type === 'github' || a.requires_github).length;
   const codeCompleteCount = completedAssignments.filter(a => a.type === 'code').length;
 
-  // For MCQ perfect scores, check submissions table (MCQs are auto-approved and not deleted)
-  const { data: approvedSubmissions } = await supabase
-    .from('submissions')
-    .select('score, assignments(type)')
-    .eq('user_id', userId)
-    .eq('status', 'approved');
-
   const perfectQuizzes = approvedSubmissions?.filter(s => {
     const type = Array.isArray(s.assignments) ? s.assignments[0]?.type : (s.assignments as { type: string } | null)?.type;
     return type === 'mcq' && s.score === 100;
   }).length || 0;
-
-  const { count: courseCount } = await supabase.from('enrollments').select('*', { count: 'exact', head: true })
-    .eq('user_id', userId).not('completed_at', 'is', null);
-
-  const { count: enrolledCount } = await supabase.from('enrollments').select('*', { count: 'exact', head: true })
-    .eq('user_id', userId).eq('status', 'approved');
-
-  const { count: approvedAssignmentCount } = await supabase.from('submissions').select('*', { count: 'exact', head: true })
-    .eq('user_id', userId).eq('status', 'approved');
-
-  const { data: enrollments } = await supabase.from('enrollments').select('course_id, progress').eq('user_id', userId);
-
-  // Faculty logic: count courses created by this user
-  const { count: coursesCreatedCount } = await supabase.from('courses').select('*', { count: 'exact', head: true })
-    .eq('created_by', userId);
-
-  // Coder logic: count battles joined
-  const { count: battlesCount } = await supabase.from('coding_battle_participants').select('*', { count: 'exact', head: true })
-    .eq('user_id', userId);
-
-
-  // 3. Get currently earned badges
-  const { data: earned } = await supabase.from('user_badges').select('badge_id').eq('user_id', userId);
   const earnedIds = new Set(earned?.map(e => e.badge_id) || []);
 
   // 4. Evaluate conditions
@@ -219,9 +205,8 @@ export async function getUnseenBadges() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
-  // Always evaluate badges when fetching unseen to catch retroactive eligibility 
-  // (e.g. for users who are already active today so they bypass updateStreak)
-  await checkBadges(user.id).catch(console.error);
+  // Avoid running checkBadges on every fetchUnseen to prevent heavy DB load.
+  // checkBadges is already invoked on daily login streak update and major achievements.
 
   const { data: unseen } = await supabase
     .from('user_badges')

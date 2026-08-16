@@ -23,6 +23,19 @@ export async function getAllPendingEnrollments() {
 
 export async function adminApproveEnrollment(enrollmentId: string) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not logged in' };
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile || (profile.role !== 'admin' && profile.role !== 'instructor' && profile.role !== 'developer')) {
+    return { error: 'Unauthorized: admin, instructor, or developer role required' };
+  }
+
   const { error } = await supabase
     .from('enrollments')
     .update({ status: 'approved' })
@@ -64,6 +77,18 @@ export async function adminApproveEnrollment(enrollmentId: string) {
 
 export async function adminRejectEnrollment(enrollmentId: string) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not logged in' };
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile || (profile.role !== 'admin' && profile.role !== 'instructor' && profile.role !== 'developer')) {
+    return { error: 'Unauthorized: admin, instructor, or developer role required' };
+  }
   
   const { data: enrollment } = await supabase
     .from('enrollments')

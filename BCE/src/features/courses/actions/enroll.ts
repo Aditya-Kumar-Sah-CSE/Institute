@@ -127,6 +127,10 @@ export async function leaveCourseFormAction(courseId: string): Promise<void> {
 }
 
 export async function getTopEnrolledStudents(courseId: string, limit: number = 3) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { students: [], total: 0 };
+
   const adminClient = await createAdminClient();
   const { data } = await adminClient
     .from('enrollments')

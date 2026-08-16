@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { ExecutionStatus, NormalizedExecutionResult } from '@/features/code-arena/types';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const WANDBOX_COMPILERS: Record<string, string> = {
   cpp17: 'gcc-head',
@@ -14,6 +15,47 @@ const WANDBOX_COMPILERS: Record<string, string> = {
 
 export async function POST(request: Request) {
   try {
+    const { createClient } = await import('@/lib/supabase/server');
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json(
+        {
+          status: 'SYSTEM_ERROR',
+          stdout: '',
+          stderr: '',
+          compileStdout: '',
+          compileStderr: '',
+          exitCode: null,
+          signal: null,
+          executionTimeMs: null,
+          memoryUsedMb: null,
+          message: 'Unauthorized: Authentication required',
+        } as NormalizedExecutionResult,
+        { status: 401 }
+      );
+    }
+
+    // Rate limit: 60 compiler executions per minute
+    const rl = checkRateLimit(`compiler:${user.id}`, 60, 60000);
+    if (!rl.success) {
+      return NextResponse.json(
+        {
+          status: 'SYSTEM_ERROR',
+          stdout: '',
+          stderr: '',
+          compileStdout: '',
+          compileStderr: '',
+          exitCode: null,
+          signal: null,
+          executionTimeMs: null,
+          memoryUsedMb: null,
+          message: rl.error,
+        } as NormalizedExecutionResult,
+        { status: 429 }
+      );
+    }
+
     const { code, language, stdin = '' } = await request.json();
 
     if (language === 'html') {
@@ -120,48 +162,6 @@ export async function POST(request: Request) {
       console.warn('Wandbox execution error:', wandboxErr);
     }
 
-    // JS Sandbox fallback if offline
-    if (language === 'javascript' || language === 'js') {
-      const logs: string[] = [];
-      const errLogs: string[] = [];
-      const customConsole = {
-        log: (...args: any[]) => logs.push(args.map((a) => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ')),
-        error: (...args: any[]) => errLogs.push(args.map((a) => String(a)).join(' ')),
-        warn: (...args: any[]) => logs.push('[Warn] ' + args.map((a) => String(a)).join(' ')),
-      };
-      try {
-        const fn = new Function('console', 'input', code);
-        const ret = fn(customConsole, stdin);
-        if (ret !== undefined) {
-          logs.push(`[Return Value]: ${typeof ret === 'object' ? JSON.stringify(ret) : String(ret)}`);
-        }
-        return NextResponse.json({
-          status: errLogs.length > 0 ? 'RUNTIME_ERROR' : 'SUCCESS',
-          stdout: logs.join('\n'),
-          stderr: errLogs.join('\n'),
-          compileStdout: '',
-          compileStderr: '',
-          exitCode: errLogs.length > 0 ? 1 : 0,
-          signal: null,
-          executionTimeMs: null,
-          memoryUsedMb: null,
-          message: errLogs.length > 0 ? 'Runtime error in JS environment' : 'JavaScript execution completed',
-        } as NormalizedExecutionResult);
-      } catch (err: any) {
-        return NextResponse.json({
-          status: 'RUNTIME_ERROR',
-          stdout: logs.join('\n'),
-          stderr: err?.message || String(err),
-          compileStdout: '',
-          compileStderr: '',
-          exitCode: 1,
-          signal: null,
-          executionTimeMs: null,
-          memoryUsedMb: null,
-          message: err?.message || 'JavaScript execution error',
-        } as NormalizedExecutionResult);
-      }
-    }
 
     return NextResponse.json({
       status: 'SYSTEM_ERROR',

@@ -5,6 +5,21 @@ import { awardXP } from '@/features/auth/actions/auth';
 import { revalidatePath } from 'next/cache';
 
 export async function reviewSubmissionAction(formData: FormData) {
+  const { createClient } = await import('@/lib/supabase/server');
+  const supabaseClient = await createClient();
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  const { data: profile } = await supabaseClient
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile || (profile.role !== 'admin' && profile.role !== 'instructor' && profile.role !== 'developer')) {
+    return { error: 'Unauthorized: admin, instructor, or developer role required' };
+  }
+
   const sb = await createAdminClient();
   const submissionId = formData.get('submissionId') as string;
   const action = formData.get('action') as 'approve' | 'reject';

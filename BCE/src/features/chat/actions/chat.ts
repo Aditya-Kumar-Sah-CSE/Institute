@@ -81,6 +81,10 @@ export async function sendChatMessage(conversationId: string, content: string, a
   const { data: userData } = await supabase.auth.getUser();
   if (!userData?.user) throw new Error('Not authenticated');
 
+  const { checkRateLimit } = await import('@/lib/rate-limit');
+  const rl = checkRateLimit(`chatMsg:${userData.user.id}`, 60, 60000);
+  if (!rl.success) throw new Error(rl.error);
+
   if (!content.trim()) throw new Error('Message cannot be empty');
 
   const { error } = await supabase

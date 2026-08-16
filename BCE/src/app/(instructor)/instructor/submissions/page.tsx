@@ -68,6 +68,20 @@ export default async function InstructorSubmissionsPage(props: {
 
   async function reviewSubmission(formData: FormData) {
     'use server';
+    const userSupabase = await createClient();
+    const { data: { user: currentUser } } = await userSupabase.auth.getUser();
+    if (!currentUser) throw new Error('Not authenticated');
+
+    const { data: profile } = await userSupabase
+      .from('profiles')
+      .select('role')
+      .eq('id', currentUser.id)
+      .single();
+
+    if (!profile || (profile.role !== 'admin' && profile.role !== 'instructor' && profile.role !== 'developer')) {
+      throw new Error('Unauthorized');
+    }
+
     // Use raw client to bypass RLS for Instructor actions
     const sb = createRawClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

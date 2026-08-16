@@ -13,6 +13,10 @@ export interface MonthlyReward {
 
 export async function checkMonthlyRewards(userId: string): Promise<MonthlyReward[]> {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || user.id !== userId) return [];
+
     const adminSb = await createAdminClient();
     
     // First, trigger the calculation of last month's winners if not already done
@@ -43,11 +47,16 @@ export async function checkMonthlyRewards(userId: string): Promise<MonthlyReward
 
 export async function markMonthlyRewardSeen(rewardId: string) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
     const adminSb = await createAdminClient();
     const { error } = await adminSb
       .from('monthly_rewards')
       .update({ is_seen: true })
-      .eq('id', rewardId);
+      .eq('id', rewardId)
+      .eq('user_id', user.id);
       
     if (error) {
       console.error('Failed to mark monthly reward as seen:', error);

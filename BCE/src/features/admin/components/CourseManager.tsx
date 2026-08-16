@@ -22,8 +22,8 @@ export default function CourseManager({ courses, instructors = [], currentUserId
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [courseFilter, setCourseFilter] = useState<'my_courses' | 'all_courses'>('my_courses');
-  const [showAllCourses, setShowAllCourses] = useState(false);
+  const [courseFilter, setCourseFilter] = useState<'my_courses' | 'all_courses'>('all_courses');
+  const [showAllCourses, setShowAllCourses] = useState(true);
   const [courseFormData, setCourseFormData] = useState<Record<string, any>>({});
   const pathname = usePathname();
   const basePath = pathname?.startsWith('/instructor') ? '/instructor' : '/admin';
@@ -104,7 +104,7 @@ export default function CourseManager({ courses, instructors = [], currentUserId
 
   const filteredCourses = courses.filter(c => {
     if (c.is_deleted) return false;
-    if ((courseFilter === 'my_courses' || userRole === 'instructor') && currentUserId) {
+    if (courseFilter === 'my_courses' && currentUserId) {
       const isAssigned = c.course_instructors?.some((ci: any) => ci.instructor_id === currentUserId);
       return c.created_by === currentUserId || isAssigned;
     }
@@ -118,24 +118,22 @@ export default function CourseManager({ courses, instructors = [], currentUserId
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
           <h2 style={{ fontSize: 'var(--text-xl)', margin: 0 }}>Manage Courses</h2>
-          {userRole !== 'instructor' && (
-            <div style={{ display: 'flex', background: 'var(--bg-input)', padding: '0.25rem', borderRadius: 'var(--radius-sm)', gap: '0.25rem' }}>
-              <button 
-                className={`btn-ghost ${courseFilter === 'my_courses' ? 'active' : ''}`}
-                style={{ padding: '0.375rem 0.75rem', borderRadius: '0.25rem', background: courseFilter === 'my_courses' ? 'var(--bg-secondary)' : 'transparent', color: courseFilter === 'my_courses' ? 'var(--text-primary)' : 'var(--text-secondary)', border: 'none', cursor: 'pointer' }}
-                onClick={() => setCourseFilter('my_courses')}
-              >
-                My Courses
-              </button>
-              <button 
-                className={`btn-ghost ${courseFilter === 'all_courses' ? 'active' : ''}`}
-                style={{ padding: '0.375rem 0.75rem', borderRadius: '0.25rem', background: courseFilter === 'all_courses' ? 'var(--bg-secondary)' : 'transparent', color: courseFilter === 'all_courses' ? 'var(--text-primary)' : 'var(--text-secondary)', border: 'none', cursor: 'pointer' }}
-                onClick={() => setCourseFilter('all_courses')}
-              >
-                All Courses
-              </button>
-            </div>
-          )}
+          <div style={{ display: 'flex', background: 'var(--bg-input)', padding: '0.25rem', borderRadius: 'var(--radius-sm)', gap: '0.25rem' }}>
+            <button 
+              className={`btn-ghost ${courseFilter === 'my_courses' ? 'active' : ''}`}
+              style={{ padding: '0.375rem 0.75rem', borderRadius: '0.25rem', background: courseFilter === 'my_courses' ? 'var(--bg-secondary)' : 'transparent', color: courseFilter === 'my_courses' ? 'var(--text-primary)' : 'var(--text-secondary)', border: 'none', cursor: 'pointer' }}
+              onClick={() => setCourseFilter('my_courses')}
+            >
+              My Courses
+            </button>
+            <button 
+              className={`btn-ghost ${courseFilter === 'all_courses' ? 'active' : ''}`}
+              style={{ padding: '0.375rem 0.75rem', borderRadius: '0.25rem', background: courseFilter === 'all_courses' ? 'var(--bg-secondary)' : 'transparent', color: courseFilter === 'all_courses' ? 'var(--text-primary)' : 'var(--text-secondary)', border: 'none', cursor: 'pointer' }}
+              onClick={() => setCourseFilter('all_courses')}
+            >
+              All Courses
+            </button>
+          </div>
         </div>
         <Button variant="primary" onClick={openAdd}>+ Add New Course</Button>
       </div>

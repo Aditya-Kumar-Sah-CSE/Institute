@@ -15,9 +15,9 @@ interface CourseCatalogProps {
 
 export default function CourseCatalog({ courses, enrollments = {}, certificatesMap = {} }: CourseCatalogProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [enrollmentFilter, setEnrollmentFilter] = useState<'all' | 'enrolled'>('enrolled');
+  const [enrollmentFilter, setEnrollmentFilter] = useState<'all' | 'enrolled'>('all');
   const [semesterFilter, setSemesterFilter] = useState('all');
-  const [showAllCourses, setShowAllCourses] = useState(false);
+  const [showAllCourses, setShowAllCourses] = useState(true);
 
   const availableCategories = useMemo(() => {
     const categories = Array.from(new Set(courses.map(c => c.difficulty).filter(Boolean)));

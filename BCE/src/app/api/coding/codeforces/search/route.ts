@@ -4,6 +4,10 @@ import { getCodeArenaActor } from '@/features/code-arena/server';
 export async function GET(request: Request) {
   const { user, isInstructor } = await getCodeArenaActor();
   if (!user || !isInstructor) return NextResponse.json({ error: 'Instructor access is required.' }, { status: 403 });
+  
+  const { checkRateLimit } = await import('@/lib/rate-limit');
+  const rl = checkRateLimit(`cfSearch:${user.id}`, 10, 60000);
+  if (!rl.success) return NextResponse.json({ error: rl.error }, { status: 429 });
   const value = new URL(request.url).searchParams.get('q')?.trim().toUpperCase();
   const match = value?.match(/(?:CODEFORCES\.COM\/PROBLEMSET\/PROBLEM\/)?(\d+)\/?([A-Z][A-Z0-9]*)/i);
   if (!match) return NextResponse.json({ error: 'Use a Codeforces id such as 4A or its public URL.' }, { status: 400 });
