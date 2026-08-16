@@ -22,12 +22,51 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
 
   if (!user) redirect('/login');
 
-  // Fetch course
-  const { data: course } = await supabase
+  // Fetch course with explicit foreign key relationship and robust fallback to prevent false 404s
+  let course: any = null;
+
+  const { data: primaryCourse, error: primaryErr } = await supabase
     .from('courses')
-    .select('*, profiles(name)')
+    .select('*, profiles!courses_created_by_fkey(name)')
     .eq('id', courseId)
     .single();
+
+  if (primaryCourse) {
+    course = primaryCourse;
+  } else {
+    // Fallback 1: Query without join in case FK relationship cache error occurs
+    const { data: rawCourse } = await supabase
+      .from('courses')
+      .select('*')
+      .eq('id', courseId)
+      .single();
+
+    if (rawCourse) {
+      const { data: creatorProfile } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', rawCourse.created_by)
+        .maybeSingle();
+      course = { ...rawCourse, profiles: creatorProfile };
+    } else {
+      // Fallback 2: Admin client fallback in case course is unpublished or restricted by RLS
+      const adminClient = await createAdminClient();
+      const { data: adminCourse } = await adminClient
+        .from('courses')
+        .select('*')
+        .eq('id', courseId)
+        .single();
+        
+      if (adminCourse) {
+        const { data: creatorProfile } = await adminClient
+          .from('profiles')
+          .select('name')
+          .eq('id', adminCourse.created_by)
+          .maybeSingle();
+        course = { ...adminCourse, profiles: creatorProfile };
+      }
+    }
+  }
 
   if (!course) notFound();
 

@@ -7,7 +7,7 @@ export default async function CoursesPage() {
 
   const coursesQuery = supabase
     .from('courses')
-    .select('*, profiles(name)')
+    .select('*, profiles!courses_created_by_fkey(name)')
     .order('created_at', { ascending: false });
 
   const enrollmentsQuery = user ? supabase
@@ -26,7 +26,17 @@ export default async function CoursesPage() {
     certificatesQuery
   ]);
 
-  const courses = coursesRes.data;
+  let courses = coursesRes.data;
+
+  // Fallback: Query without join in case foreign key relationship alias cache fails
+  if (!courses || courses.length === 0) {
+    const { data: rawCourses } = await supabase
+      .from('courses')
+      .select('*')
+      .order('created_at', { ascending: false });
+    courses = rawCourses;
+  }
+
   const enrollments = enrollmentsRes?.data;
   const certificatesData = certificatesRes?.data;
 
