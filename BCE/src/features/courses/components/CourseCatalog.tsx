@@ -15,7 +15,7 @@ interface CourseCatalogProps {
 
 export default function CourseCatalog({ courses, enrollments = {}, certificatesMap = {} }: CourseCatalogProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [enrollmentFilter, setEnrollmentFilter] = useState<'all' | 'enrolled'>('all');
+  const [enrollmentFilter, setEnrollmentFilter] = useState<'all' | 'enrolled'>('enrolled');
   const [semesterFilter, setSemesterFilter] = useState('all');
   const [showAllCourses, setShowAllCourses] = useState(true);
 
@@ -156,8 +156,21 @@ export default function CourseCatalog({ courses, enrollments = {}, certificatesM
       ) : (
         <div className="catalog-empty">
           <span className="empty-icon">🏜️</span>
-          <h3>No courses found</h3>
-          <p>Try adjusting your search or filters.</p>
+          <h3>{enrollmentFilter === 'enrolled' ? 'No Enrolled Courses Found' : 'No courses found'}</h3>
+          <p>
+            {enrollmentFilter === 'enrolled' 
+              ? "You haven't enrolled in any courses yet. Switch to 'All Courses' to explore and enroll!" 
+              : 'Try adjusting your search or filters.'}
+          </p>
+          {enrollmentFilter === 'enrolled' && (
+            <button 
+              className="btn btn-primary btn-sm"
+              onClick={() => setEnrollmentFilter('all')}
+              style={{ marginTop: 'var(--space-sm)' }}
+            >
+              Browse All Courses 🚀
+            </button>
+          )}
         </div>
       )}
     </div>
