@@ -7,6 +7,7 @@ import type { LeaderboardEntry, LevelName } from '@/types';
 import Card from '@/components/ui/Card';
 import { User } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import StudentAppShowcase from '@/features/leaderboard/components/StudentAppShowcase';
 
 const StoryCarousel = dynamic(() => import('@/features/stories/components/StoryCarousel'), { 
   loading: () => <div className="skeleton-dash" style={{ height: '100px', borderRadius: '12px' }}></div> 
@@ -22,6 +23,40 @@ export default async function LeaderboardPage({
   
   const params = await searchParams;
   const filter = params.filter || 'global';
+
+  let userProfile = null;
+  if (user) {
+    const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+    userProfile = p;
+  }
+  const isAdmin = userProfile && ['admin', 'instructor', 'developer'].includes(userProfile.role);
+
+  // Load student app showcase data
+  const { data: approvedApps } = await supabase
+    .from('student_apps')
+    .select('*')
+    .eq('status', 'approved')
+    .order('created_at', { ascending: false });
+
+  let userSubmissions: any[] = [];
+  if (user) {
+    const { data: subs } = await supabase
+      .from('student_apps')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    userSubmissions = subs || [];
+  }
+
+  let pendingApps: any[] = [];
+  if (isAdmin) {
+    const { data: pends } = await supabase
+      .from('student_apps')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+    pendingApps = pends || [];
+  }
 
   const coursesQuery = supabase.from('courses').select('id, title');
 
@@ -121,6 +156,14 @@ export default async function LeaderboardPage({
       <div style={{ marginTop: 0 }}>
          {<StoryCarousel currentUserId={user?.id} currentUserAvatar={user?.user_metadata?.avatar_url} />}
       </div>
+
+      <StudentAppShowcase
+        approvedApps={approvedApps || []}
+        pendingApps={pendingApps || []}
+        userSubmissions={userSubmissions}
+        currentUser={userProfile}
+        isAdmin={!!isAdmin}
+      />
 
       <div className="leaderboard-filters" style={{ display: 'flex', gap: 'var(--space-md)' }}>
         <CourseFilter courses={courses || []} currentFilter={filter} />
