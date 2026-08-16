@@ -65,6 +65,10 @@ export async function checkBadges(userId: string) {
   const { count: coursesCreatedCount } = await supabase.from('courses').select('*', { count: 'exact', head: true })
     .eq('created_by', userId);
 
+  // Coder logic: count battles joined
+  const { count: battlesCount } = await supabase.from('coding_battle_participants').select('*', { count: 'exact', head: true })
+    .eq('user_id', userId);
+
 
   // 3. Get currently earned badges
   const { data: earned } = await supabase.from('user_badges').select('badge_id').eq('user_id', userId);
@@ -119,6 +123,9 @@ export async function checkBadges(userId: string) {
         break;
       case 'social_links':
         isEligible = Object.keys((profile?.social_links as Record<string, string>) || {}).length >= (badge.condition_value || 0);
+        break;
+      case 'battles_joined':
+        isEligible = (battlesCount || 0) >= (badge.condition_value || 0);
         break;
     }
 

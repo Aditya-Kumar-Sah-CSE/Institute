@@ -9,6 +9,13 @@ export async function GET() {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const data = await getUnseenBadges();
+    
+    // Immediately mark them as seen in the database so they don't pop up again on reload/navigation!
+    if (data && data.length > 0) {
+      const ids = data.map((d: any) => d.id);
+      await markBadgesSeen(ids);
+    }
+
     return NextResponse.json({ data });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

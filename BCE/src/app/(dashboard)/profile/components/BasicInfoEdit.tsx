@@ -36,7 +36,7 @@ export default function BasicInfoEdit({ initialName, initialRollNo, initialBatch
   return (
     <>
       <Button variant="secondary" size="sm" onClick={() => setIsOpen(true)}>
-        Edit Profile
+        Edit
       </Button>
 
       <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Edit Basic Info">
