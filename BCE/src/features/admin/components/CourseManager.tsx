@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { usePathname } from 'next/navigation';
@@ -15,6 +15,237 @@ interface CourseManagerProps {
   instructors: any[];
   currentUserId?: string;
   userRole?: string;
+}
+
+function MultiSelectFacultyDropdown({
+  instructors,
+  selectedIds,
+  onChange,
+}: {
+  instructors: any[];
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredInstructors = instructors.filter((inst) => {
+    const name = (inst.full_name || inst.name || inst.email || '').toLowerCase();
+    const role = (inst.role || '').toLowerCase();
+    const query = search.toLowerCase();
+    return name.includes(query) || role.includes(query);
+  });
+
+  const selectedInstructors = instructors.filter((inst) => selectedIds.includes(inst.id));
+
+  const toggleSelect = (id: string) => {
+    if (selectedIds.includes(id)) {
+      onChange(selectedIds.filter((item) => item !== id));
+    } else {
+      onChange([...selectedIds, id]);
+    }
+  };
+
+  const handleSelectAll = () => {
+    onChange(instructors.map((i) => i.id));
+  };
+
+  const handleClearAll = () => {
+    onChange([]);
+  };
+
+  return (
+    <div ref={dropdownRef} style={{ position: 'relative', width: '100%' }}>
+      {/* Dropdown Trigger Box */}
+      <div
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          minHeight: '42px',
+          padding: '0.5rem 0.875rem',
+          background: 'var(--bg-input)',
+          border: isOpen ? '1px solid var(--accent-primary, #6366f1)' : '1px solid var(--glass-border)',
+          borderRadius: 'var(--radius-sm)',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '0.5rem',
+          flexWrap: 'wrap',
+          boxShadow: isOpen ? '0 0 0 2px rgba(99, 102, 241, 0.2)' : 'none',
+          transition: 'all 0.2s ease'
+        }}
+      >
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', alignItems: 'center', flex: 1 }}>
+          {selectedInstructors.length === 0 ? (
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+              -- Click to Select Multiple Faculty / Admin --
+            </span>
+          ) : (
+            selectedInstructors.map((inst) => (
+              <span
+                key={inst.id}
+                style={{
+                  background: 'rgba(99, 102, 241, 0.2)',
+                  border: '1px solid rgba(99, 102, 241, 0.4)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.75rem',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontWeight: 500
+                }}
+              >
+                {inst.full_name || inst.name || inst.email}
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleSelect(inst.id);
+                  }}
+                  style={{
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    lineHeight: 1,
+                    opacity: 0.7,
+                    marginLeft: '2px'
+                  }}
+                  title="Remove"
+                >
+                  ✕
+                </span>
+              </span>
+            ))
+          )}
+        </div>
+        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <span>{isOpen ? '▲' : '▼'}</span>
+        </div>
+      </div>
+
+      {/* Floating Dropdown Menu */}
+      {isOpen && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 4px)',
+            left: 0,
+            right: 0,
+            zIndex: 1100,
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--glass-border)',
+            borderRadius: 'var(--radius-sm)',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.5)',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            maxHeight: '240px'
+          }}
+        >
+          {/* Header Controls */}
+          <div style={{ padding: '0.5rem', borderBottom: '1px solid var(--glass-border)', background: 'var(--bg-input)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <input
+              type="text"
+              placeholder="🔍 Search faculty or admin..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: '100%',
+                padding: '0.375rem 0.625rem',
+                background: 'rgba(0,0,0,0.2)',
+                border: '1px solid var(--glass-border)',
+                borderRadius: '4px',
+                color: 'var(--text-primary)',
+                fontSize: '0.8rem',
+                outline: 'none'
+              }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', padding: '0 2px' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>
+                {selectedIds.length} of {instructors.length} selected
+              </span>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button
+                  type="button"
+                  onClick={handleSelectAll}
+                  style={{ background: 'none', border: 'none', color: 'var(--accent-primary, #6366f1)', cursor: 'pointer', fontSize: '0.75rem', textDecoration: 'underline' }}
+                >
+                  Select All
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClearAll}
+                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.75rem', textDecoration: 'underline' }}
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* List Options */}
+          <div style={{ overflowY: 'auto', flex: 1, padding: '0.25rem 0' }}>
+            {filteredInstructors.length === 0 ? (
+              <div style={{ padding: '0.75rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                No faculty or admin found.
+              </div>
+            ) : (
+              filteredInstructors.map((inst) => {
+                const isSelected = selectedIds.includes(inst.id);
+                return (
+                  <div
+                    key={inst.id}
+                    onClick={() => toggleSelect(inst.id)}
+                    style={{
+                      padding: '0.5rem 0.75rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.625rem',
+                      cursor: 'pointer',
+                      background: isSelected ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
+                      transition: 'background 0.15s ease'
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => {}}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: isSelected ? 600 : 400 }}>
+                        {inst.full_name || inst.name || inst.email}
+                      </span>
+                      {inst.role && (
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                          Role: {inst.role}
+                        </span>
+                      )}
+                    </div>
+                    {isSelected && (
+                      <span style={{ color: 'var(--accent-primary, #6366f1)', fontSize: '0.85rem', fontWeight: 'bold' }}>✓</span>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function CourseManager({ courses, instructors = [], currentUserId, userRole }: CourseManagerProps) {
@@ -307,73 +538,11 @@ export default function CourseManager({ courses, instructors = [], currentUserId
                     ))}
                   </select>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                      <span>Select all applicable faculty / admin:</span>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button
-                          type="button"
-                          style={{ background: 'none', border: 'none', color: 'var(--accent-primary, #6366f1)', cursor: 'pointer', fontSize: '0.75rem', textDecoration: 'underline' }}
-                          onClick={() => {
-                            setCourseFormData(prev => ({
-                              ...prev,
-                              instructor_ids: instructors.map((i: any) => i.id)
-                            }));
-                          }}
-                        >
-                          Select All
-                        </button>
-                        <span>|</span>
-                        <button
-                          type="button"
-                          style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.75rem', textDecoration: 'underline' }}
-                          onClick={() => {
-                            setCourseFormData(prev => ({
-                              ...prev,
-                              instructor_ids: []
-                            }));
-                          }}
-                        >
-                          Clear
-                        </button>
-                      </div>
-                    </div>
-
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-                      gap: '0.5rem',
-                      maxHeight: '150px',
-                      overflowY: 'auto',
-                      background: 'var(--bg-input)',
-                      padding: '0.75rem',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid var(--glass-border)'
-                    }}>
-                      {instructors.map((instructor) => {
-                        const isChecked = (courseFormData.instructor_ids || []).includes(instructor.id);
-                        return (
-                          <label key={instructor.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer', userSelect: 'none' }}>
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={(e) => {
-                                const ids = [...(courseFormData.instructor_ids || [])];
-                                if (e.target.checked) {
-                                  if (!ids.includes(instructor.id)) ids.push(instructor.id);
-                                } else {
-                                  const index = ids.indexOf(instructor.id);
-                                  if (index > -1) ids.splice(index, 1);
-                                }
-                                setCourseFormData(prev => ({ ...prev, instructor_ids: ids }));
-                              }}
-                            />
-                            <span>{instructor.full_name || instructor.name || instructor.email}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  <MultiSelectFacultyDropdown
+                    instructors={instructors}
+                    selectedIds={courseFormData.instructor_ids || []}
+                    onChange={(ids) => setCourseFormData(prev => ({ ...prev, instructor_ids: ids }))}
+                  />
                 )}
               </div>
 

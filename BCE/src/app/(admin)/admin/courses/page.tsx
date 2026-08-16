@@ -15,10 +15,17 @@ export default async function AdminCoursesPage() {
   
   const { data: courses } = await query;
 
-  const { data: instructors } = await supabase
+  let { data: instructors } = await supabase
     .from('profiles')
-    .select('id, name, full_name, email')
+    .select('id, name, full_name, email, role')
     .in('role', ['instructor', 'admin', 'developer']);
+
+  if (!instructors || instructors.length === 0) {
+    const { data: allProfiles } = await supabase
+      .from('profiles')
+      .select('id, name, full_name, email, role');
+    instructors = allProfiles || [];
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
