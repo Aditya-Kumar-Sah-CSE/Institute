@@ -28,8 +28,13 @@ export default function AskDoubtModal({ isOpen, onClose, courseId, lessonId, ini
 
   useEffect(() => {
     if (isOpen) {
-      const isPdf = initialFileUrl?.split('?')[0].toLowerCase().endsWith('.pdf');
-      const isImageMatch = initialFileUrl?.match(/\.(jpeg|jpg|gif|png|webp)(\?|#|$)/i);
+      const cleanUrl = (initialFileUrl || '').split('?')[0].toLowerCase();
+      const isPdf = cleanUrl.endsWith('.pdf');
+      const isImageMatch = /\.(jpeg|jpg|gif|png|webp|svg|bmp|heic)$/i.test(cleanUrl) || 
+                           initialFileUrl?.includes('/storage/v1/object/public/') ||
+                           initialFileUrl?.includes('lesson_notes') ||
+                           initialFileUrl?.includes('doubts') ||
+                           initialFileUrl?.startsWith('data:image/');
       
       let initialVal = '';
       if (initialFileUrl) {
@@ -72,6 +77,30 @@ export default function AskDoubtModal({ isOpen, onClose, courseId, lessonId, ini
         
         {courseId && <input type="hidden" name="course_id" value={courseId} />}
         {lessonId && <input type="hidden" name="lesson_id" value={lessonId} />}
+
+        {initialFileUrl && (
+          <div style={{
+            padding: '0.75rem',
+            background: 'rgba(255, 255, 255, 0.04)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: 'var(--radius-md)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem'
+          }}>
+            {/\.(jpeg|jpg|gif|png|webp|svg|bmp|heic)$/i.test(initialFileUrl.split('?')[0]) || initialFileUrl.includes('lesson_notes') || initialFileUrl.includes('doubts') ? (
+              <img src={initialFileUrl} alt="Shared attachment preview" style={{ width: '56px', height: '56px', borderRadius: '8px', objectFit: 'cover', border: '1px solid var(--glass-border)', flexShrink: 0 }} />
+            ) : (
+              <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'rgba(0, 240, 255, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>📄</div>
+            )}
+            <div style={{ flex: 1, overflow: 'hidden' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--neon-cyan)', marginBottom: '2px' }}>✓ Shared Attachment Attached</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                Image preview will automatically display in your doubt post
+              </div>
+            </div>
+          </div>
+        )}
 
         <Input 
           name="title" 

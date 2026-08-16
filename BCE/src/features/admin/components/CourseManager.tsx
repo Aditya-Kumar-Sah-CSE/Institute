@@ -25,6 +25,7 @@ export default function CourseManager({ courses, instructors = [], currentUserId
   const [courseFilter, setCourseFilter] = useState<'my_courses' | 'all_courses'>('my_courses');
   const [showAllCourses, setShowAllCourses] = useState(true);
   const [courseFormData, setCourseFormData] = useState<Record<string, any>>({});
+  const [facultySelectionType, setFacultySelectionType] = useState<'single' | 'multiple'>('single');
   const pathname = usePathname();
   const basePath = pathname?.startsWith('/instructor') ? '/instructor' : '/admin';
 
@@ -34,6 +35,7 @@ export default function CourseManager({ courses, instructors = [], currentUserId
 
   const openAdd = () => {
     setEditingCourse(null);
+    setFacultySelectionType('single');
     setCourseFormData({
       title: '',
       description: '',
@@ -48,13 +50,15 @@ export default function CourseManager({ courses, instructors = [], currentUserId
 
   const openEdit = (course: any) => {
     setEditingCourse(course);
+    const existingInstructorIds = (course.course_instructors || []).map((ci: any) => ci.instructor_id);
+    setFacultySelectionType(existingInstructorIds.length > 1 ? 'multiple' : 'single');
     setCourseFormData({
       title: course.title || '',
       description: course.description || '',
       difficulty: course.difficulty || 'sem 1',
       is_published: course.is_published ? 'true' : 'false',
       enrollment_restriction: course.enrollment_restriction || 'any',
-      instructor_ids: (course.course_instructors || []).map((ci: any) => ci.instructor_id)
+      instructor_ids: existingInstructorIds
     });
     setError('');
     setIsModalOpen(true);
@@ -235,41 +239,142 @@ export default function CourseManager({ courses, instructors = [], currentUserId
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>Instructors / Faculty</label>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-                  gap: '0.5rem',
-                  maxHeight: '150px',
-                  overflowY: 'auto',
-                  background: 'var(--bg-input)',
-                  padding: '0.75rem',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--glass-border)'
-                }}>
-                  {instructors.map((instructor) => {
-                    const isChecked = (courseFormData.instructor_ids || []).includes(instructor.id);
-                    return (
-                      <label key={instructor.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer', userSelect: 'none' }}>
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={(e) => {
-                            const ids = [...(courseFormData.instructor_ids || [])];
-                            if (e.target.checked) {
-                              if (!ids.includes(instructor.id)) ids.push(instructor.id);
-                            } else {
-                              const index = ids.indexOf(instructor.id);
-                              if (index > -1) ids.splice(index, 1);
-                            }
-                            setCourseFormData(prev => ({ ...prev, instructor_ids: ids }));
-                          }}
-                        />
-                        <span>{instructor.full_name || instructor.name || instructor.email}</span>
-                      </label>
-                    );
-                  })}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>Instructors / Faculty</label>
+                  <div style={{ display: 'flex', background: 'var(--bg-input)', padding: '0.2rem', borderRadius: 'var(--radius-sm)', gap: '0.2rem', border: '1px solid var(--glass-border)' }}>
+                    <button
+                      type="button"
+                      style={{
+                        padding: '0.25rem 0.625rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        borderRadius: '0.2rem',
+                        background: facultySelectionType === 'single' ? 'var(--accent-primary, #6366f1)' : 'transparent',
+                        color: facultySelectionType === 'single' ? '#ffffff' : 'var(--text-secondary)',
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onClick={() => {
+                        setFacultySelectionType('single');
+                        const currentIds = courseFormData.instructor_ids || [];
+                        setCourseFormData(prev => ({
+                          ...prev,
+                          instructor_ids: currentIds.length > 0 ? [currentIds[0]] : (currentUserId ? [currentUserId] : [])
+                        }));
+                      }}
+                    >
+                      Single Faculty
+                    </button>
+                    <button
+                      type="button"
+                      style={{
+                        padding: '0.25rem 0.625rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        borderRadius: '0.2rem',
+                        background: facultySelectionType === 'multiple' ? 'var(--accent-primary, #6366f1)' : 'transparent',
+                        color: facultySelectionType === 'multiple' ? '#ffffff' : 'var(--text-secondary)',
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onClick={() => setFacultySelectionType('multiple')}
+                    >
+                      Multiple Faculty
+                    </button>
+                  </div>
                 </div>
+
+                {facultySelectionType === 'single' ? (
+                  <select
+                    className="input-field select-field"
+                    value={courseFormData.instructor_ids?.[0] || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setCourseFormData(prev => ({
+                        ...prev,
+                        instructor_ids: val ? [val] : []
+                      }));
+                    }}
+                    style={{ width: '100%', padding: '0.625rem 0.875rem' }}
+                  >
+                    <option value="">-- Select Faculty / Admin --</option>
+                    {instructors.map((inst: any) => (
+                      <option key={inst.id} value={inst.id}>
+                        {inst.full_name || inst.name || inst.email} ({inst.role || 'faculty'})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                      <span>Select all applicable faculty / admin:</span>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          type="button"
+                          style={{ background: 'none', border: 'none', color: 'var(--accent-primary, #6366f1)', cursor: 'pointer', fontSize: '0.75rem', textDecoration: 'underline' }}
+                          onClick={() => {
+                            setCourseFormData(prev => ({
+                              ...prev,
+                              instructor_ids: instructors.map((i: any) => i.id)
+                            }));
+                          }}
+                        >
+                          Select All
+                        </button>
+                        <span>|</span>
+                        <button
+                          type="button"
+                          style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.75rem', textDecoration: 'underline' }}
+                          onClick={() => {
+                            setCourseFormData(prev => ({
+                              ...prev,
+                              instructor_ids: []
+                            }));
+                          }}
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                      gap: '0.5rem',
+                      maxHeight: '150px',
+                      overflowY: 'auto',
+                      background: 'var(--bg-input)',
+                      padding: '0.75rem',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--glass-border)'
+                    }}>
+                      {instructors.map((instructor) => {
+                        const isChecked = (courseFormData.instructor_ids || []).includes(instructor.id);
+                        return (
+                          <label key={instructor.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer', userSelect: 'none' }}>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                const ids = [...(courseFormData.instructor_ids || [])];
+                                if (e.target.checked) {
+                                  if (!ids.includes(instructor.id)) ids.push(instructor.id);
+                                } else {
+                                  const index = ids.indexOf(instructor.id);
+                                  if (index > -1) ids.splice(index, 1);
+                                }
+                                setCourseFormData(prev => ({ ...prev, instructor_ids: ids }));
+                              }}
+                            />
+                            <span>{instructor.full_name || instructor.name || instructor.email}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <Select 
