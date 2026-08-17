@@ -29,11 +29,21 @@ export async function generateLessonUploadUrls(courseId: string, files: { name: 
   const { supabase, user, role } = await requireBuilderRole();
   
   // Verify course permission
-  const { data: course } = await supabase.from('courses').select('instructor_id').eq('id', courseId).single();
+  const { data: course } = await supabase.from('courses').select('id, created_by').eq('id', courseId).single();
   if (!course) return { error: 'Course not found' };
   
-  if (role !== 'admin' && role !== 'developer' && course.instructor_id !== user.id) {
-    return { error: 'Unauthorized to modify this course' };
+  if (role !== 'admin' && role !== 'developer') {
+    const isCreator = course.created_by === user.id;
+    const { data: isInstructor } = await supabase
+      .from('course_instructors')
+      .select('id')
+      .eq('course_id', courseId)
+      .eq('instructor_id', user.id)
+      .maybeSingle();
+
+    if (!isCreator && !isInstructor) {
+      return { error: 'Unauthorized to modify this course' };
+    }
   }
 
   // Validate files

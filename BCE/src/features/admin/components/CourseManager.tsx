@@ -315,9 +315,9 @@ export default function CourseManager({ courses, instructors = [], currentUserId
     const formData = new FormData();
     Object.entries(courseFormData).forEach(([k, v]) => {
       if (k === 'instructor_ids') {
-        formData.append(k, JSON.stringify(v));
+        formData.append(k, JSON.stringify(v || []));
       } else {
-        formData.append(k, String(v));
+        formData.append(k, String(v ?? ''));
       }
     });
     
@@ -351,7 +351,7 @@ export default function CourseManager({ courses, instructors = [], currentUserId
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
           <h2 style={{ fontSize: 'var(--text-xl)', margin: 0 }}>Manage Courses</h2>
           <div style={{ display: 'flex', background: 'var(--bg-input)', padding: '0.25rem', borderRadius: 'var(--radius-sm)', gap: '0.25rem' }}>
             <button 
@@ -390,8 +390,8 @@ export default function CourseManager({ courses, instructors = [], currentUserId
                 <p className="text-secondary text-sm" style={{ marginBottom: 'var(--space-2xs)' }}>
                   Instructors: {course.course_instructors.map((ci: any) => {
                     const inst = instructors.find((i: any) => i.id === ci.instructor_id);
-                    return inst ? (inst.full_name || inst.name) : null;
-                  }).filter(Boolean).join(', ') || 'No instructors'}
+                    return inst ? (inst.full_name || inst.name || inst.email) : null;
+                  }).filter(Boolean).join(', ') || 'Assigned Faculty'}
                 </p>
               ) : course.profiles?.name ? (
                 <p className="text-secondary text-sm" style={{ marginBottom: 'var(--space-2xs)' }}>
@@ -436,9 +436,10 @@ export default function CourseManager({ courses, instructors = [], currentUserId
       {isModalOpen && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--space-lg)'
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(0.5rem, 3vw, 1rem)',
+          overflowY: 'auto'
         }}>
-          <Card variant="glass" style={{ width: '100%', maxWidth: '600px', background: 'var(--bg-secondary)' }}>
+          <Card variant="glass" style={{ width: '100%', maxWidth: 'clamp(300px, 95vw, 600px)', background: 'var(--bg-secondary)', maxHeight: '90vh', overflowY: 'auto' }}>
             <h2 style={{ marginBottom: 'var(--space-lg)' }}>{editingCourse ? 'Edit Course' : 'Create Course'}</h2>
             
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
@@ -520,15 +521,13 @@ export default function CourseManager({ courses, instructors = [], currentUserId
                 {facultySelectionType === 'single' ? (
                   (() => {
                     const selectedId = courseFormData.instructor_ids?.[0] || '';
-                    const currentInst = instructors.find((i: any) => i.id === currentUserId);
-                    const selectedInst = instructors.find((i: any) => i.id === selectedId);
+                    const currentInst = instructors.find((i: any) => i.id === (selectedId || currentUserId));
                     
-                    // If instructors list is empty but we have currentUserId, show a read-only display
                     if (instructors.length === 0 && currentUserId) {
                       return (
                         <div className="input-field" style={{ padding: '0.625rem 0.875rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           <span style={{ background: 'rgba(99, 102, 241, 0.2)', border: '1px solid rgba(99, 102, 241, 0.4)', padding: '2px 8px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 500 }}>You</span>
-                          {currentUserId}
+                          {currentInst ? (currentInst.full_name || currentInst.name || currentInst.email) : (userRole ? `${userRole} (You)` : 'Current Instructor')}
                         </div>
                       );
                     }

@@ -7,6 +7,7 @@ import {
   Image as ImageIcon, Type, X, Loader2, Check, Palette, 
   Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Type as FontIcon, Sparkles 
 } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 import { uploadStoryMedia, createStoryItem } from '@/features/stories/actions/stories';
 
 interface StoryComposerSheetProps {
@@ -166,12 +167,37 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
     setUploadProgress({ current: 0, total: mediaDrafts.length });
 
     try {
+      const supabase = createClient();
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      if (!userId) throw new Error('Not authenticated');
+
       for (let i = 0; i < mediaDrafts.length; i++) {
         setUploadProgress({ current: i + 1, total: mediaDrafts.length });
         const draft = mediaDrafts[i];
-        const formData = new FormData();
-        formData.append('file', draft.file);
-        const { url, mediaType } = await uploadStoryMedia(formData);
+        
+        let url = '';
+        let mediaType: 'image' | 'video' = draft.type === 'video' ? 'video' : 'image';
+
+        const ext = draft.file.name.split('.').pop() || (mediaType === 'video' ? 'mp4' : 'jpg');
+        const uniqueName = `${crypto.randomUUID()}-${Date.now()}.${ext}`;
+        const filePath = `${userId}/${uniqueName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('story_media')
+          .upload(filePath, draft.file, {
+            contentType: draft.file.type,
+            upsert: false,
+          });
+
+        if (uploadError) throw uploadError;
+
+        const { data: publicUrlData } = supabase.storage
+          .from('story_media')
+          .getPublicUrl(filePath);
+
+        url = publicUrlData.publicUrl;
+
         await createStoryItem({
           mediaUrl: url,
           thumbnailUrl: null,

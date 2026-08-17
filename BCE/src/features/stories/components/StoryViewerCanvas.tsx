@@ -395,7 +395,6 @@ export default function StoryViewerCanvas({
                  playsInline
                  className="w-full h-full object-contain"
                  onEnded={goToNext}
-                 muted
                />
              ) : currentItem.media_url ? (
                <Image 

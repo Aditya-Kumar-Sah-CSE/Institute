@@ -14,6 +14,9 @@ const ALLOWED_FILE_TYPES = new Set([
   'image/jpeg',
   'image/png',
   'image/webp',
+  'video/mp4',
+  'video/webm',
+  'video/quicktime',
 ]);
 
 function redirectTo(req: NextRequest, path: string) {
