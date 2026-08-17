@@ -8,7 +8,8 @@ import Button from '@/components/ui/Button';
 import Input, { TextArea, Select } from '@/components/ui/Input';
 import { 
   addLesson, updateLesson, deleteLesson,
-  addAssignment, updateAssignment, deleteAssignment 
+  addAssignment, updateAssignment, deleteAssignment,
+  generateLessonUploadUrls, deleteOrphanedLessonFiles
 } from '@/features/admin/actions/builder-actions';
 import { reviewSubmissionAction } from '@/features/admin/actions/submissions';
 import { completeCourseAndIssueCertificates } from '@/features/courses/actions/certificates';
@@ -34,6 +35,29 @@ interface EditingItem {
   requires_deploy?: boolean;
 }
 
+async function uploadFileWithProgress(file: File, signedUrl: string, onProgress: (pct: number, loaded: number, total: number) => void): Promise<boolean> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const pct = Math.round((event.loaded / event.total) * 100);
+        onProgress(pct, event.loaded, event.total);
+      }
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(true);
+      } else {
+        reject(new Error(`Upload failed with status ${xhr.status}`));
+      }
+    };
+    xhr.onerror = () => reject(new Error('Network error during upload'));
+    xhr.open('PUT', signedUrl, true);
+    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+    xhr.send(file);
+  });
+}
+
 interface CurriculumBuilderProps {
   course: Course;
   lessons: (Lesson & { assignments: Assignment[] })[];
@@ -52,6 +76,12 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
   const [showAllLessons, setShowAllLessons] = useState(false);
   const [lessonFormData, setLessonFormData] = useState<Record<string, any>>({});
   const [assignmentFormData, setAssignmentFormData] = useState<Record<string, any>>({});
+  
+  // Upload states
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState('');
+  const [uploadedBytes, setUploadedBytes] = useState(0);
+  const [totalUploadBytes, setTotalUploadBytes] = useState(0);
 
   const handleLessonChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const target = e.target as HTMLInputElement;
@@ -129,15 +159,73 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
   const handleLessonSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
+    setUploadStatus('');
+    setUploadProgress(0);
+    setUploadedBytes(0);
+    setTotalUploadBytes(0);
+
     const formData = new FormData();
+    const rawFiles: File[] = [];
+
     Object.entries(lessonFormData).forEach(([k, v]) => {
       if (k === 'pdf_file' && v instanceof FileList) {
-        Array.from(v).forEach(file => formData.append(k, file));
+        Array.from(v).forEach(file => rawFiles.push(file));
       } else if (v !== undefined && v !== null && v !== '') {
         formData.append(k, v);
       }
     });
     
+    const filesToUpload = rawFiles.filter(f => f.size > 0);
+    let uploadedPaths: string[] = [];
+
+    if (filesToUpload.length > 0) {
+      setUploadStatus('Generating secure upload links...');
+      const fileInfos = filesToUpload.map(f => ({ name: f.name, type: f.type, size: f.size }));
+      const { success, uploadData, error } = await generateLessonUploadUrls(course.id, fileInfos);
+      
+      if (!success || !uploadData || error) {
+        alert(error || 'Failed to initialize upload');
+        setIsLoading(false);
+        setUploadStatus('');
+        return;
+      }
+
+      setUploadStatus('Uploading notes...');
+      const totalSize = filesToUpload.reduce((acc, f) => acc + f.size, 0);
+      setTotalUploadBytes(totalSize);
+
+      const fileProgressMap = new Map<string, number>();
+
+      try {
+        for (let i = 0; i < filesToUpload.length; i++) {
+          const file = filesToUpload[i];
+          const uploadInfo = uploadData[i];
+          
+          await uploadFileWithProgress(file, uploadInfo.signedUrl, (pct, loaded, total) => {
+            fileProgressMap.set(file.name, loaded);
+            let combinedLoaded = 0;
+            fileProgressMap.forEach(bytes => combinedLoaded += bytes);
+            setUploadedBytes(combinedLoaded);
+            setUploadProgress(Math.round((combinedLoaded / totalSize) * 100));
+          });
+          
+          uploadedPaths.push(uploadInfo.path);
+        }
+      } catch (err: any) {
+        alert(`Upload failed: ${err.message}. Please retry.`);
+        if (uploadedPaths.length > 0) {
+          await deleteOrphanedLessonFiles(uploadedPaths);
+        }
+        setIsLoading(false);
+        setUploadStatus('');
+        return;
+      }
+      
+      formData.append('uploaded_paths', JSON.stringify(uploadedPaths));
+    }
+    
+    setUploadStatus(editingItem ? 'Saving changes...' : 'Creating lesson...');
+
     let res;
     if (editingItem) {
       res = await updateLesson(editingItem.id, course.id, formData);
@@ -147,11 +235,16 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
     
     if (res && res.error) {
       alert(res.error);
+      if (uploadedPaths.length > 0) {
+        await deleteOrphanedLessonFiles(uploadedPaths);
+      }
       setIsLoading(false);
+      setUploadStatus('');
       return;
     }
     
     setIsLoading(false);
+    setUploadStatus('');
     closeModal();
   };
 
@@ -640,9 +733,36 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                   </div>
                 )}
 
+                {uploadStatus && (
+                  <div style={{ marginTop: 'var(--space-md)', background: 'var(--bg-primary)', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', border: '1px solid var(--glass-border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: 'var(--text-sm)', fontWeight: 'bold' }}>
+                      <span style={{ color: 'var(--neon-cyan)' }}>{uploadStatus}</span>
+                      {totalUploadBytes > 0 && (
+                        <span style={{ color: 'var(--text-muted)' }}>
+                          {(uploadedBytes / (1024 * 1024)).toFixed(2)} MB / {(totalUploadBytes / (1024 * 1024)).toFixed(2)} MB
+                        </span>
+                      )}
+                    </div>
+                    {totalUploadBytes > 0 && (
+                      <div style={{ height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div 
+                          style={{ 
+                            height: '100%', 
+                            width: `${uploadProgress}%`, 
+                            background: 'var(--neon-cyan)', 
+                            transition: 'width 0.2s ease-out' 
+                          }} 
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', gap: 'var(--space-md)', justifyContent: 'flex-end', marginTop: 'var(--space-md)' }}>
-                  <Button type="button" variant="ghost" onClick={closeModal}>Cancel</Button>
-                  <Button type="submit" variant="primary" isLoading={isLoading}>Save Lesson</Button>
+                  <Button type="button" variant="ghost" onClick={closeModal} disabled={isLoading}>Cancel</Button>
+                  <Button type="submit" variant="primary" isLoading={isLoading} disabled={isLoading}>
+                    {isLoading ? 'Saving...' : 'Save Lesson'}
+                  </Button>
                 </div>
               </form>
             )}
