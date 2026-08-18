@@ -341,7 +341,7 @@ export default function CallModal({
                 color: '#000',
                 display: 'flex',
                 alignItems: 'center',
-                justify: 'center',
+                justifyContent: 'center',
                 cursor: 'pointer',
                 boxShadow: '0 0 25px rgba(48, 209, 88, 0.6)',
                 transform: 'scale(1.08)',
@@ -389,7 +389,7 @@ export default function CallModal({
                   color: isVideoOff ? '#ff3b30' : '#fff',
                   display: 'flex',
                   alignItems: 'center',
-                  justify: 'center',
+                  justifyContent: 'center',
                   cursor: 'pointer',
                   transition: 'all 0.2s'
                 }}
@@ -412,7 +412,7 @@ export default function CallModal({
                   color: '#fff',
                   display: 'flex',
                   alignItems: 'center',
-                  justify: 'center',
+                  justifyContent: 'center',
                   cursor: 'pointer',
                   transition: 'all 0.2s'
                 }}
@@ -433,7 +433,7 @@ export default function CallModal({
                 color: '#fff',
                 display: 'flex',
                 alignItems: 'center',
-                justify: 'center',
+                justifyContent: 'center',
                 cursor: 'pointer'
               }}
               title="Speaker Output"
@@ -453,7 +453,7 @@ export default function CallModal({
                 color: '#fff',
                 display: 'flex',
                 alignItems: 'center',
-                justify: 'center',
+                justifyContent: 'center',
                 cursor: 'pointer',
                 boxShadow: '0 0 20px rgba(255, 59, 48, 0.5)',
                 transform: 'scale(1.05)'
