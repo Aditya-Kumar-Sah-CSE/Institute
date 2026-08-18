@@ -192,7 +192,7 @@ export default function CallModal({
             gap: '8px',
             textAlign: 'left'
           }}>
-            <AlertTriangle size={16} flexShrink={0} />
+            <AlertTriangle size={16} style={{ flexShrink: 0 }} />
             <span>{permissionError}</span>
           </div>
         )}
