@@ -1,9 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ArrowLeft, Search, Video, Phone, Info, LayoutDashboard, Users, User as UserIcon } from 'lucide-react';
-import UserAvatar from '@/components/shared/UserAvatar';
-import { useRouter } from 'next/navigation';
+import { ArrowLeft, Search, Video, Phone, Info } from 'lucide-react';
 import type { ChatConversation } from '@/types/database';
 
 interface ChatHeaderProps {
@@ -33,7 +31,6 @@ export default function ChatHeader({
   getChatAvatar,
   getChatName
 }: ChatHeaderProps) {
-  const router = useRouter();
   const isGroup = activeChat.type === 'group';
   const chatTitle = getChatName(activeChat);
 
@@ -47,8 +44,8 @@ export default function ChatHeader({
       borderBottom: '1px solid var(--border-divider)',
       display: 'flex',
       alignItems: 'center',
-      padding: '0 var(--space-md)',
-      justify: 'space-between',
+      padding: '0 16px',
+      justifyContent: 'space-between',
       background: 'var(--bg-secondary)',
       position: 'sticky',
       top: 0,
@@ -60,7 +57,8 @@ export default function ChatHeader({
         <button 
           className="mobile-back-btn" 
           onClick={onBack}
-          style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', padding: 4 }}
+          style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', padding: '6px', borderRadius: '50%' }}
+          aria-label="Back to chats"
         >
           <ArrowLeft size={20} />
         </button>
@@ -75,7 +73,7 @@ export default function ChatHeader({
             background: 'var(--bg-elevated)',
             display: 'flex',
             alignItems: 'center',
-            justify: 'center',
+            justifyContent: 'center',
             overflow: 'hidden',
             border: '1px solid var(--border-default)',
             cursor: 'pointer',
@@ -122,12 +120,24 @@ export default function ChatHeader({
         </div>
       </div>
 
-      {/* Right Header Actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+      {/* Right Header Actions (Search, Video Call, Audio Call, Info) */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
         {/* Search */}
         <button 
           onClick={onToggleSearch}
-          style={{ padding: '8px', borderRadius: '50%', background: 'transparent', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', transition: 'all 0.2s' }}
+          style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--text-primary)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s ease'
+          }}
           title="Search Messages"
           onMouseOver={e => e.currentTarget.style.color = 'var(--neon-cyan)'}
           onMouseOut={e => e.currentTarget.style.color = 'var(--text-primary)'}
@@ -138,7 +148,19 @@ export default function ChatHeader({
         {/* Video Call */}
         <button 
           onClick={() => onStartCall('video')}
-          style={{ padding: '8px', borderRadius: '50%', background: 'transparent', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', transition: 'all 0.2s' }}
+          style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--text-primary)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s ease'
+          }}
           title="Video Call"
           onMouseOver={e => e.currentTarget.style.color = 'var(--neon-cyan)'}
           onMouseOut={e => e.currentTarget.style.color = 'var(--text-primary)'}
@@ -149,7 +171,19 @@ export default function ChatHeader({
         {/* Voice Call */}
         <button 
           onClick={() => onStartCall('audio')}
-          style={{ padding: '8px', borderRadius: '50%', background: 'transparent', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', transition: 'all 0.2s' }}
+          style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--text-primary)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s ease'
+          }}
           title="Voice Call"
           onMouseOver={e => e.currentTarget.style.color = 'var(--neon-cyan)'}
           onMouseOut={e => e.currentTarget.style.color = 'var(--text-primary)'}
@@ -160,21 +194,24 @@ export default function ChatHeader({
         {/* Info Drawer */}
         <button 
           onClick={onToggleInfo}
-          style={{ padding: '8px', borderRadius: '50%', background: 'transparent', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', transition: 'all 0.2s' }}
+          style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--text-primary)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s ease'
+          }}
           title="Info & Media"
           onMouseOver={e => e.currentTarget.style.color = 'var(--neon-cyan)'}
           onMouseOut={e => e.currentTarget.style.color = 'var(--text-primary)'}
         >
           <Info size={19} />
-        </button>
-
-        {/* Dashboard Shortcut */}
-        <button 
-          onClick={() => router.push('/dashboard')}
-          style={{ padding: '8px', borderRadius: '50%', background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', color: 'var(--neon-cyan)', cursor: 'pointer', marginLeft: '4px' }}
-          title="Go to Dashboard"
-        >
-          <LayoutDashboard size={17} />
         </button>
       </div>
     </div>

@@ -364,7 +364,7 @@ export default function MessageBubble({
                       color: '#000',
                       display: 'flex',
                       alignItems: 'center',
-                      justify: 'center',
+                      justifyContent: 'center',
                       cursor: 'pointer'
                     }}
                   >
@@ -430,7 +430,7 @@ export default function MessageBubble({
             fontSize: '10px',
             display: 'flex',
             alignItems: 'center',
-            justify: 'flex-end',
+            justifyContent: 'flex-end',
             gap: '6px',
             opacity: 0.8,
             marginTop: '4px',

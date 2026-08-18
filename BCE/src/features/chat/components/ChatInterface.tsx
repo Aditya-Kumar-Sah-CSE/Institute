@@ -3,9 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { ChatConversation, ChatMessage } from '@/types/database';
-import { 
-  Send, User as UserIcon, Users, ArrowLeft, ChevronDown, Loader2 
-} from 'lucide-react';
+import { Send, User as UserIcon, Users, ChevronDown } from 'lucide-react';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { Virtuoso } from 'react-virtuoso';
 import NewChatModal from './NewChatModal';
@@ -17,14 +15,26 @@ import ChatHeader from './ChatHeader';
 import MessageSearch from './MessageSearch';
 import ChatInfoDrawer from './ChatInfoDrawer';
 import LightboxModal from './LightboxModal';
-import CallModal from './CallModal';
+import CallModal, { CallState } from './CallModal';
 import ForwardModal from './ForwardModal';
-import DateSeparator, { formatDateLabel } from './DateSeparator';
+import DateSeparator from './DateSeparator';
 import { 
   editChatMessage, deleteChatMessage, togglePinChatMessage, toggleMessageReaction 
 } from '@/features/chat/actions/chat';
 import { useRouter } from 'next/navigation';
 import './ChatInterface.css';
+
+interface CallSession {
+  callId: string;
+  type: 'video' | 'audio';
+  isIncoming: boolean;
+  peerId: string;
+  peerName: string;
+  peerAvatar?: string | null;
+  conversationId: string;
+  callState: CallState;
+  offer?: RTCSessionDescriptionInit;
+}
 
 export default function ChatInterface() {
   const router = useRouter();
@@ -32,6 +42,7 @@ export default function ChatInterface() {
   const [activeChat, setActiveChat] = useState<ChatConversation | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState<{ name: string; avatar_url: string | null } | null>(null);
   const [msgInput, setMsgInput] = useState('');
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
@@ -39,30 +50,84 @@ export default function ChatInterface() {
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [showParticipantsModal, setShowParticipantsModal] = useState(false);
 
-  // Advanced Feature States
+  // Search & Drawer
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
-
   const [isInfoDrawerOpen, setIsInfoDrawerOpen] = useState(false);
+
+  // Message Actions
   const [replyToMessage, setReplyToMessage] = useState<ChatMessage | null>(null);
-
   const [lightboxMedia, setLightboxMedia] = useState<{ url: string; type: string } | null>(null);
-  const [callConfig, setCallConfig] = useState<{ type: 'video' | 'audio'; peerName: string; peerAvatar?: string | null } | null>(null);
   const [forwardingMessage, setForwardingMessage] = useState<ChatMessage | null>(null);
-
   const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null);
   const [editText, setEditText] = useState('');
-
   const [showScrollBottom, setShowScrollBottom] = useState(false);
+
+  // WebRTC Audio/Video Call System State
+  const [callSession, setCallSession] = useState<CallSession | null>(null);
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [permissionError, setPermissionError] = useState<string | null>(null);
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
+
   const virtuosoRef = useRef<any>(null);
   const activeChannelRef = useRef<any>(null);
+  const peerSignalChannelRef = useRef<any>(null);
+  const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+  const audioToneRef = useRef<{ stop: () => void } | null>(null);
   const supabase = createClient();
 
-  // Fetch chats client-side
+  // Web Audio synth ringtone helper
+  const playTone = (kind: 'dialing' | 'ringing') => {
+    try {
+      if (audioToneRef.current) audioToneRef.current.stop();
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(kind === 'dialing' ? 440 : 880, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      
+      const interval = setInterval(() => {
+        if (gain) {
+          gain.gain.setValueAtTime(gain.gain.value > 0 ? 0 : 0.08, audioCtx.currentTime);
+        }
+      }, 1000);
+
+      audioToneRef.current = {
+        stop: () => {
+          try {
+            clearInterval(interval);
+            osc.stop();
+            audioCtx.close();
+          } catch (e) {}
+        }
+      };
+    } catch (e) {
+      audioToneRef.current = null;
+    }
+  };
+
+  const stopTone = () => {
+    if (audioToneRef.current) {
+      audioToneRef.current.stop();
+      audioToneRef.current = null;
+    }
+  };
+
+  // Fetch user chats & profile
   const fetchChatsClient = async () => {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData?.user) return [];
+    
+    // Get profile
+    const { data: prof } = await supabase.from('profiles').select('name, avatar_url').eq('id', userData.user.id).single();
+    if (prof) setCurrentUserProfile(prof);
+
     const { data: members } = await supabase.from('chat_members').select('conversation_id').eq('user_id', userData.user.id);
     if (!members || members.length === 0) return [];
     
@@ -113,9 +178,7 @@ export default function ChatInterface() {
       .order('created_at', { ascending: true })
       .limit(150);
 
-    if (error) {
-       console.error("Messages fetch error:", error);
-    }
+    if (error) console.error("Messages fetch error:", error);
     return (data as unknown as ChatMessage[]) || [];
   };
 
@@ -127,70 +190,6 @@ export default function ChatInterface() {
       setReplyToMessage(null);
     }
   }, [activeChat]);
-
-  // Mark latest message as read
-  useEffect(() => {
-    if (activeChat && messages.length > 0 && currentUserId) {
-      const lastMsg = messages[messages.length - 1];
-      if (lastMsg) {
-        supabase
-          .from('chat_members')
-          .update({ last_read_message_id: lastMsg.id })
-          .eq('conversation_id', activeChat.id)
-          .eq('user_id', currentUserId)
-          .then(() => {});
-      }
-    }
-  }, [activeChat, messages, currentUserId]);
-
-  const checkIsMessageRead = (msg: ChatMessage, index: number) => {
-    if (!activeChat || !activeChat.members || !currentUserId) return false;
-    const otherMembers = (activeChat.members as any[]).filter((m: any) => m.user_id !== currentUserId);
-    if (otherMembers.length === 0) return false;
-
-    return otherMembers.some((m: any) => {
-      if (!m.last_read_message_id) return false;
-      const readIdx = messages.findIndex(item => item.id === m.last_read_message_id);
-      return readIdx >= index || m.last_read_message_id === msg.id;
-    });
-  };
-
-  // Suggested users query
-  useEffect(() => {
-    async function fetchSuggestions() {
-      if (!currentUserId) return;
-      const { data: myEnrollments } = await supabase.from('enrollments').select('course_id').eq('user_id', currentUserId);
-      const myCourseIds = myEnrollments?.filter(e => e.course_id).map(e => e.course_id) || [];
-      if (myCourseIds.length > 0) {
-         const { data: peerEnrollments } = await supabase
-           .from('enrollments')
-           .select('user_id, profiles!inner(id, name, avatar_url, role)')
-           .in('course_id', myCourseIds)
-           .neq('user_id', currentUserId)
-           .limit(20);
-         const uniqueMap = new Map();
-         peerEnrollments?.forEach((p: any) => {
-           if (!uniqueMap.has(p.profiles.id)) uniqueMap.set(p.profiles.id, p.profiles);
-         });
-         setSuggestedUsers(Array.from(uniqueMap.values()).slice(0, 7));
-      }
-    }
-    fetchSuggestions();
-  }, [currentUserId]);
-
-  const handleCreateSuggestedChat = async (userId: string) => {
-    try {
-      const { data, error } = await supabase.rpc('get_or_create_direct_chat', { peer_id: userId });
-      if (error || !data) return;
-
-      const updatedChats = await fetchChatsClient();
-      setChats(updatedChats as ChatConversation[]);
-      const newChat = (updatedChats as ChatConversation[]).find(c => c.id === data);
-      if (newChat) setActiveChat(newChat);
-    } catch(e) {
-      console.error(e);
-    }
-  };
 
   // Presence channel subscription
   useEffect(() => {
@@ -223,55 +222,305 @@ export default function ChatInterface() {
     };
   }, [currentUserId]);
 
-  // Real-time channel for messages & reactions
+  // Personal WebRTC Signaling Listener Channel
   useEffect(() => {
-    if (!activeChat || !currentUserId) return;
+    if (!currentUserId) return;
 
-    if (activeChannelRef.current) {
-       supabase.removeChannel(activeChannelRef.current);
+    const signalChannel = supabase.channel(`call_signaling_${currentUserId}`);
+
+    signalChannel
+      .on('broadcast', { event: 'call-offer' }, async ({ payload }) => {
+        // Handle incoming call offer
+        if (callSession) {
+          // Reject as busy if already in call
+          signalChannel.send({
+            type: 'broadcast',
+            event: 'call-reject',
+            payload: { callId: payload.callId, callerId: payload.callerId, reason: 'busy' }
+          });
+          return;
+        }
+
+        setCallSession({
+          callId: payload.callId,
+          type: payload.callType,
+          isIncoming: true,
+          peerId: payload.callerId,
+          peerName: payload.callerName,
+          peerAvatar: payload.callerAvatar,
+          conversationId: payload.conversationId,
+          callState: 'ringing',
+          offer: payload.offer
+        });
+        playTone('ringing');
+      })
+      .on('broadcast', { event: 'call-answer' }, async ({ payload }) => {
+        if (peerConnectionRef.current && payload.answer) {
+          try {
+            await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(payload.answer));
+            setCallSession(prev => prev ? { ...prev, callState: 'connected' } : null);
+            stopTone();
+          } catch (e) {
+            console.error('Remote description error:', e);
+          }
+        }
+      })
+      .on('broadcast', { event: 'ice-candidate' }, async ({ payload }) => {
+        if (peerConnectionRef.current && payload.candidate) {
+          try {
+            await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(payload.candidate));
+          } catch (e) {
+            console.error('ICE candidate error:', e);
+          }
+        }
+      })
+      .on('broadcast', { event: 'call-reject' }, ({ payload }) => {
+        stopTone();
+        setCallSession(prev => prev ? { ...prev, callState: payload.reason === 'busy' ? 'failed' : 'rejected' } : null);
+        setTimeout(() => cleanupCall(), 1500);
+      })
+      .on('broadcast', { event: 'call-end' }, () => {
+        stopTone();
+        setCallSession(prev => prev ? { ...prev, callState: 'ended' } : null);
+        setTimeout(() => cleanupCall(), 1000);
+      })
+      .subscribe();
+
+    peerSignalChannelRef.current = signalChannel;
+
+    return () => {
+      supabase.removeChannel(signalChannel);
+    };
+  }, [currentUserId, callSession]);
+
+  // Clean WebRTC PeerConnection and media tracks
+  const cleanupCall = () => {
+    stopTone();
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+      setLocalStream(null);
+    }
+    if (remoteStream) {
+      remoteStream.getTracks().forEach(track => track.stop());
+      setRemoteStream(null);
+    }
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.close();
+      peerConnectionRef.current = null;
+    }
+    setCallSession(null);
+    setPermissionError(null);
+  };
+
+  // Initialize WebRTC PeerConnection
+  const createPeerConnection = (peerId: string) => {
+    const pc = new RTCPeerConnection({
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' }
+      ]
+    });
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate && peerSignalChannelRef.current) {
+        supabase.channel(`call_signaling_${peerId}`).send({
+          type: 'broadcast',
+          event: 'ice-candidate',
+          payload: { candidate: event.candidate, senderId: currentUserId }
+        });
+      }
+    };
+
+    pc.ontrack = (event) => {
+      if (event.streams && event.streams[0]) {
+        setRemoteStream(event.streams[0]);
+      }
+    };
+
+    peerConnectionRef.current = pc;
+    return pc;
+  };
+
+  // Start Outbound WebRTC Call
+  const handleStartCall = async (type: 'video' | 'audio') => {
+    if (!activeChat || !currentUserId) return;
+    const isGroup = activeChat.type === 'group';
+    if (isGroup) {
+      alert('1-to-1 audio and video calls are currently supported for direct messaging.');
+      return;
     }
 
-    const channel = supabase
-      .channel(`chat_${activeChat.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages', filter: `conversation_id=eq.${activeChat.id}` }, () => {
-        fetchMessagesClient(activeChat.id).then(setMessages);
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'message_reactions' }, () => {
-        fetchMessagesClient(activeChat.id).then(setMessages);
-      })
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState();
-        const currentlyTyping: string[] = [];
-        for (const [key, presences] of Object.entries(state)) {
-           const list = presences as unknown as { user_id: string, typing: boolean }[];
-           const presence = list[0];
-           if (presence.user_id !== currentUserId && presence.typing) {
-             currentlyTyping.push(presence.user_id);
-           }
+    const peer = activeChat.members?.find(p => p.user_id !== currentUserId);
+    if (!peer) return;
+
+    const newCallId = `call_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const peerName = peer.profile?.name || 'User';
+    const peerAvatar = peer.profile?.avatar_url;
+
+    setCallSession({
+      callId: newCallId,
+      type,
+      isIncoming: false,
+      peerId: peer.user_id,
+      peerName,
+      peerAvatar,
+      conversationId: activeChat.id,
+      callState: 'calling'
+    });
+    playTone('dialing');
+
+    try {
+      // Request User Media
+      const constraints: MediaStreamConstraints = {
+        audio: true,
+        video: type === 'video' ? { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } } : false
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      setLocalStream(stream);
+
+      // Create WebRTC PeerConnection
+      const pc = createPeerConnection(peer.user_id);
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+      // Create Offer
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      // Send Signal Offer
+      supabase.channel(`call_signaling_${peer.user_id}`).send({
+        type: 'broadcast',
+        event: 'call-offer',
+        payload: {
+          callId: newCallId,
+          conversationId: activeChat.id,
+          callerId: currentUserId,
+          callerName: currentUserProfile?.name || 'User',
+          callerAvatar: currentUserProfile?.avatar_url || null,
+          callType: type,
+          offer
         }
-        setTypingUsers(currentlyTyping);
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          await channel.track({ user_id: currentUserId, typing: false });
+      });
+    } catch (err: any) {
+      console.error('Media permission error:', err);
+      stopTone();
+      setPermissionError(err.name === 'NotAllowedError' ? 'Microphone or camera permission denied by browser.' : 'Media device not available.');
+      setCallSession(prev => prev ? { ...prev, callState: 'failed' } : null);
+      setTimeout(() => cleanupCall(), 3000);
+    }
+  };
+
+  // Accept Incoming Call
+  const handleAcceptCall = async () => {
+    if (!callSession || !callSession.offer) return;
+    stopTone();
+
+    setCallSession(prev => prev ? { ...prev, callState: 'connecting' } : null);
+
+    try {
+      const constraints: MediaStreamConstraints = {
+        audio: true,
+        video: callSession.type === 'video' ? { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } } : false
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      setLocalStream(stream);
+
+      const pc = createPeerConnection(callSession.peerId);
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+      await pc.setRemoteDescription(new RTCSessionDescription(callSession.offer));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+
+      // Send Signal Answer
+      supabase.channel(`call_signaling_${callSession.peerId}`).send({
+        type: 'broadcast',
+        event: 'call-answer',
+        payload: {
+          callId: callSession.callId,
+          conversationId: callSession.conversationId,
+          answer
         }
       });
 
-    activeChannelRef.current = channel;
+      setCallSession(prev => prev ? { ...prev, callState: 'connected' } : null);
+    } catch (err: any) {
+      console.error('Accept call error:', err);
+      setPermissionError(err.name === 'NotAllowedError' ? 'Permission denied.' : 'Device error.');
+      setCallSession(prev => prev ? { ...prev, callState: 'failed' } : null);
+      setTimeout(() => cleanupCall(), 3000);
+    }
+  };
 
-    return () => {
-      if (activeChannelRef.current === channel) {
-        supabase.removeChannel(channel);
-        activeChannelRef.current = null;
+  // Reject Incoming Call
+  const handleRejectCall = () => {
+    if (!callSession) return;
+    stopTone();
+    supabase.channel(`call_signaling_${callSession.peerId}`).send({
+      type: 'broadcast',
+      event: 'call-reject',
+      payload: { callId: callSession.callId, reason: 'rejected' }
+    });
+    cleanupCall();
+  };
+
+  // Hangup / End Active Call
+  const handleEndCall = () => {
+    if (!callSession) return;
+    stopTone();
+    supabase.channel(`call_signaling_${callSession.peerId}`).send({
+      type: 'broadcast',
+      event: 'call-end',
+      payload: { callId: callSession.callId }
+    });
+    cleanupCall();
+  };
+
+  // Toggle Mic
+  const handleToggleMic = (isMuted: boolean) => {
+    if (localStream) {
+      localStream.getAudioTracks().forEach(track => {
+        track.enabled = !isMuted;
+      });
+    }
+  };
+
+  // Toggle Camera
+  const handleToggleCamera = (isOff: boolean) => {
+    if (localStream) {
+      localStream.getVideoTracks().forEach(track => {
+        track.enabled = !isOff;
+      });
+    }
+  };
+
+  // Switch Front/Back Camera (Mobile Device Support)
+  const handleSwitchCamera = async () => {
+    if (!localStream || !callSession || callSession.type !== 'video') return;
+    const currentVideoTrack = localStream.getVideoTracks()[0];
+    if (!currentVideoTrack) return;
+
+    const nextFacing = facingMode === 'user' ? 'environment' : 'user';
+    setFacingMode(nextFacing);
+
+    try {
+      currentVideoTrack.stop();
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: nextFacing, width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
+      const newVideoTrack = newStream.getVideoTracks()[0];
+
+      if (peerConnectionRef.current) {
+        const sender = peerConnectionRef.current.getSenders().find(s => s.track?.kind === 'video');
+        if (sender) sender.replaceTrack(newVideoTrack);
       }
-    };
-  }, [activeChat, currentUserId]);
 
-  // Broadcast typing state
-  useEffect(() => {
-    if (!activeChat || !currentUserId || !activeChannelRef.current) return;
-    activeChannelRef.current.track({ user_id: currentUserId, typing: msgInput.trim().length > 0 });
-  }, [msgInput]);
+      localStream.removeTrack(currentVideoTrack);
+      localStream.addTrack(newVideoTrack);
+    } catch (e) {
+      console.error('Switch camera failed:', e);
+    }
+  };
 
   // Message Send Action
   const handleSend = async (content: string, attachmentType?: string, attachmentLink?: string) => {
@@ -280,7 +529,6 @@ export default function ChatInterface() {
     const replyId = replyToMessage?.id;
     setReplyToMessage(null);
 
-    // Optimistic insert
     const optimisticId = Date.now().toString();
     const optimisticMessage: ChatMessage = {
       id: optimisticId,
@@ -324,7 +572,7 @@ export default function ChatInterface() {
     }
   };
 
-  // Message Actions
+  // Actions
   const handleReact = async (msgId: string, emoji: string) => {
     try {
       await toggleMessageReaction(msgId, emoji);
@@ -393,7 +641,6 @@ export default function ChatInterface() {
     return <UserIcon size={24} className="text-gray-400" />;
   };
 
-  // Search matches inside active messages
   const matchingMessageIndices = messages.reduce((acc, msg, idx) => {
     if (searchQuery.trim() && msg.content && msg.content.toLowerCase().includes(searchQuery.toLowerCase())) {
       acc.push(idx);
@@ -415,7 +662,6 @@ export default function ChatInterface() {
     virtuosoRef.current?.scrollToIndex({ index: matchingMessageIndices[prevIdx], align: 'center', behavior: 'smooth' });
   };
 
-  // Prepare list items with Date Separators
   const listItems: ({ type: 'date'; date: string } | { type: 'message'; data: ChatMessage; originalIndex: number })[] = [];
   let lastDateStr = '';
 
@@ -439,7 +685,15 @@ export default function ChatInterface() {
         activeChat={activeChat}
         setActiveChat={setActiveChat}
         suggestedUsers={suggestedUsers}
-        handleCreateSuggestedChat={handleCreateSuggestedChat}
+        handleCreateSuggestedChat={async (userId) => {
+          const { data } = await supabase.rpc('get_or_create_direct_chat', { peer_id: userId });
+          if (data) {
+            const updatedChats = await fetchChatsClient();
+            setChats(updatedChats as ChatConversation[]);
+            const newChat = (updatedChats as ChatConversation[]).find(c => c.id === data);
+            if (newChat) setActiveChat(newChat);
+          }
+        }}
         setIsNewChatModalOpen={setIsNewChatModalOpen}
         getChatAvatar={getChatAvatar}
         getChatName={getChatName}
@@ -451,7 +705,7 @@ export default function ChatInterface() {
       <div className="chat-main">
         {activeChat ? (
           <>
-            {/* Header */}
+            {/* Clean Header without Grid Icon */}
             <ChatHeader 
               activeChat={activeChat}
               currentUserId={currentUserId}
@@ -459,11 +713,7 @@ export default function ChatInterface() {
               typingUsers={typingUsers}
               onBack={() => setActiveChat(null)}
               onToggleSearch={() => setIsSearchOpen(!isSearchOpen)}
-              onStartCall={(type) => {
-                const peerName = getChatName(activeChat);
-                const peer = activeChat.members?.find(p => p.user_id !== currentUserId);
-                setCallConfig({ type, peerName, peerAvatar: peer?.profile?.avatar_url });
-              }}
+              onStartCall={handleStartCall}
               onToggleInfo={() => setIsInfoDrawerOpen(!isInfoDrawerOpen)}
               onOpenParticipantsModal={() => setShowParticipantsModal(true)}
               getChatAvatar={getChatAvatar}
@@ -506,7 +756,6 @@ export default function ChatInterface() {
                        }
                        const msg = item.data;
                        const isMine = msg.sender_id === currentUserId;
-                       const isRead = isMine ? checkIsMessageRead(msg, item.originalIndex) : false;
                        const isGroup = activeChat.type === 'group';
 
                        return (
@@ -514,7 +763,7 @@ export default function ChatInterface() {
                            key={msg.id} 
                            msg={msg} 
                            isMine={isMine} 
-                           isRead={isRead} 
+                           isRead={false} 
                            showSenderName={isGroup && !isMine} 
                            onReply={(m) => setReplyToMessage(m)}
                            onReact={handleReact}
@@ -533,7 +782,6 @@ export default function ChatInterface() {
                  </div>
                )}
 
-               {/* Floating Scroll to Bottom Button */}
                {showScrollBottom && (
                  <button
                    onClick={() => virtuosoRef.current?.scrollToIndex({ index: listItems.length - 1, behavior: 'smooth' })}
@@ -549,7 +797,7 @@ export default function ChatInterface() {
                      color: 'var(--neon-cyan)',
                      display: 'flex',
                      alignItems: 'center',
-                     justify: 'center',
+                     justifyContent: 'center',
                      cursor: 'pointer',
                      boxShadow: '0 4px 15px rgba(0, 240, 255, 0.4)',
                      zIndex: 10
@@ -603,13 +851,27 @@ export default function ChatInterface() {
         />
       )}
 
-      {/* Call Interface Modal */}
-      {callConfig && (
+      {/* Real WebRTC Audio & Video Call Interface Modal */}
+      {callSession && currentUserId && (
         <CallModal
-          type={callConfig.type}
-          peerName={callConfig.peerName}
-          peerAvatar={callConfig.peerAvatar}
-          onClose={() => setCallConfig(null)}
+          callId={callSession.callId}
+          type={callSession.type}
+          isIncoming={callSession.isIncoming}
+          peerName={callSession.peerName}
+          peerAvatar={callSession.peerAvatar}
+          peerId={callSession.peerId}
+          currentUserId={currentUserId}
+          conversationId={callSession.conversationId}
+          callState={callSession.callState}
+          localStream={localStream}
+          remoteStream={remoteStream}
+          permissionError={permissionError}
+          onAccept={handleAcceptCall}
+          onReject={handleRejectCall}
+          onEndCall={handleEndCall}
+          onToggleMic={handleToggleMic}
+          onToggleCamera={handleToggleCamera}
+          onSwitchCamera={handleSwitchCamera}
         />
       )}
 

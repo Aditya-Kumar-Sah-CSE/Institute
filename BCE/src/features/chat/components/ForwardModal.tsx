@@ -62,7 +62,7 @@ export default function ForwardModal({
       background: 'rgba(0, 0, 0, 0.8)',
       display: 'flex',
       alignItems: 'center',
-      justify: 'center',
+      justifyContent: 'center',
       zIndex: 99999,
       backdropFilter: 'blur(6px)',
       padding: '16px'
@@ -154,7 +154,7 @@ export default function ForwardModal({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    justify: 'space-between',
+                    justifyContent: 'space-between',
                     padding: '10px 12px',
                     borderRadius: 'var(--radius-md)',
                     background: isSelected ? 'rgba(0, 240, 255, 0.15)' : 'var(--bg-elevated)',

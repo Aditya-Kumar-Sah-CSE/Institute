@@ -80,7 +80,7 @@ export default function LightboxModal({ mediaUrl, mediaType = 'image', allMedia 
         padding: '0 20px',
         display: 'flex',
         alignItems: 'center',
-        justify: 'space-between',
+        justifyContent: 'space-between',
         background: 'rgba(0,0,0,0.4)',
         borderBottom: '1px solid rgba(255,255,255,0.1)',
         zIndex: 10,
@@ -141,7 +141,7 @@ export default function LightboxModal({ mediaUrl, mediaType = 'image', allMedia 
         position: 'relative',
         display: 'flex',
         alignItems: 'center',
-        justify: 'center',
+        justifyContent: 'center',
         overflow: 'hidden',
         padding: '20px',
       }}>
@@ -161,7 +161,7 @@ export default function LightboxModal({ mediaUrl, mediaType = 'image', allMedia 
               height: 48,
               display: 'flex',
               alignItems: 'center',
-              justify: 'center',
+              justifyContent: 'center',
               cursor: 'pointer',
               zIndex: 10,
             }}
@@ -209,7 +209,7 @@ export default function LightboxModal({ mediaUrl, mediaType = 'image', allMedia 
               height: 48,
               display: 'flex',
               alignItems: 'center',
-              justify: 'center',
+              justifyContent: 'center',
               cursor: 'pointer',
               zIndex: 10,
             }}

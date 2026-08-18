@@ -63,7 +63,7 @@ export default function ChatInfoDrawer({
         borderBottom: '1px solid var(--border-divider)',
         display: 'flex',
         alignItems: 'center',
-        justify: 'space-between',
+        justifyContent: 'space-between',
         background: 'var(--bg-card)'
       }}>
         <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: 'var(--neon-cyan)' }}>

@@ -249,7 +249,7 @@ export default function ChatComposer({
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          justify: 'space-between',
+          justifyContent: 'space-between',
           padding: '8px 12px',
           background: 'var(--bg-elevated)',
           borderLeft: '4px solid var(--neon-cyan)',
@@ -276,7 +276,7 @@ export default function ChatComposer({
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          justify: 'space-between',
+          justifyContent: 'space-between',
           padding: '8px 12px',
           background: 'var(--bg-elevated)',
           border: '1px solid var(--glass-border)',
@@ -318,7 +318,7 @@ export default function ChatComposer({
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          justify: 'space-between',
+          justifyContent: 'space-between',
           background: 'rgba(255, 59, 48, 0.1)',
           border: '1px solid rgba(255, 59, 48, 0.3)',
           borderRadius: '24px',
@@ -352,7 +352,7 @@ export default function ChatComposer({
                 height: 38,
                 display: 'flex',
                 alignItems: 'center',
-                justify: 'center',
+                justifyContent: 'center',
                 cursor: 'pointer'
               }}
               title="Send Voice Message"
@@ -506,7 +506,7 @@ export default function ChatComposer({
                 cursor: 'pointer',
                 display: 'flex', 
                 alignItems: 'center', 
-                justify: 'center'
+                justifyContent: 'center'
               }}
               title="Record Voice Message"
             >
@@ -525,7 +525,7 @@ export default function ChatComposer({
                 cursor: isUploading ? 'not-allowed' : 'pointer', 
                 display: 'flex', 
                 alignItems: 'center', 
-                justify: 'center',
+                justifyContent: 'center',
                 boxShadow: '0 4px 15px rgba(0, 240, 255, 0.4)'
               }}
             >

@@ -51,7 +51,7 @@ export default function ChatSidebar({
         padding: '16px',
         borderBottom: '1px solid var(--border-divider)',
         display: 'flex',
-        justify: 'space-between',
+        justifyContent: 'space-between',
         alignItems: 'center',
         background: 'var(--bg-card)',
         zIndex: 10
