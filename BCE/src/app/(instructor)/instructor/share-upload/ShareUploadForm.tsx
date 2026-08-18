@@ -122,7 +122,7 @@ export default function ShareUploadForm({
           type: 'any',
           title: newAssignmentTitle,
           description: `Review the attached file(s) for this assignment: ${localAttachments.map(a => a.url).join(', ')}`,
-          xp_reward: 50,
+          xp_reward: 20,
           requires_github: false,
           requires_deploy: false
         });

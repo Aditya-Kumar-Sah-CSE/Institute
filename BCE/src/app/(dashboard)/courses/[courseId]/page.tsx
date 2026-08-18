@@ -13,6 +13,7 @@ import CoursePollsSection from '@/features/courses/components/CoursePollsSection
 import CourseDoubtsSection from '@/features/courses/components/CourseDoubtsSection';
 import CurriculumListClient from '@/features/courses/components/CurriculumListClient';
 import EnrollCourseButton from '@/features/courses/components/EnrollCourseButton';
+import JoinedStudentsList from '@/features/admin/components/JoinedStudentsList';
 import './CourseDetail.css';
 
 export default async function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
@@ -21,6 +22,9 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) redirect('/login');
+
+  const { data: currentUserProfile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+  const isStaffUser = currentUserProfile && ['admin', 'instructor', 'developer'].includes(currentUserProfile.role);
 
   // Fetch course with explicit foreign key relationship and robust fallback to prevent false 404s
   let course: any = null;
@@ -103,7 +107,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
   const adminClient = await createAdminClient();
   const { data: enrolledStudents } = await adminClient
     .from('enrollments')
-    .select('user_id, profiles(name, avatar_url)')
+    .select('id, user_id, status, profiles(id, name, email, avatar_url, institute_id)')
     .eq('course_id', courseId)
     .eq('status', 'approved');
 
@@ -297,26 +301,12 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
       </div>
 
       <div id="joined-students" className="enrolled-students-section" style={{ marginTop: 'var(--space-xl)' }}>
-        <h2 className="section-title">Joined Students</h2>
-        {(!enrolledStudents || enrolledStudents.length === 0) ? (
-          <p style={{ color: 'var(--text-secondary)' }}>No students have joined this course yet.</p>
-        ) : (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
-            {enrolledStudents.map((enrollment: any) => (
-              <Link 
-                key={enrollment.user_id} 
-                href={`/users/${enrollment.user_id}`}
-                className="student-card glass-card" 
-                style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', padding: 'var(--space-sm) var(--space-md)', borderRadius: 'var(--radius-md)', textDecoration: 'none', color: 'inherit', transition: 'all 0.2s ease' }}
-              >
-                <div style={{ position: 'relative', width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-                  <UserAvatar url={enrollment.profiles?.avatar_url} name={enrollment.profiles?.name} size={40} />
-                </div>
-                <span style={{ fontWeight: 500 }}>{enrollment.profiles?.name || 'Unknown Student'}</span>
-              </Link>
-            ))}
-          </div>
-        )}
+        <h2 className="section-title" style={{ marginBottom: 'var(--space-md)' }}>Joined Students</h2>
+        <JoinedStudentsList 
+          enrollments={enrolledStudents || []} 
+          currentUserId={user.id} 
+          isStaff={Boolean(isStaffUser || course.created_by === user.id)} 
+        />
       </div>
     </div>
   );

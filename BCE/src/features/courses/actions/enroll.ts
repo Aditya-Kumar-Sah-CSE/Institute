@@ -178,3 +178,45 @@ export async function reapplyEnrollmentFormAction(courseId: string): Promise<voi
   await reapplyEnrollment(courseId);
 }
 
+export async function removeStudentEnrollment(enrollmentId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { error: 'Not logged in' };
+
+  // Verify staff/faculty/admin or course creator
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+  const isStaff = profile && ['admin', 'instructor', 'developer'].includes(profile.role);
+
+  const { data: enrollment } = await supabase
+    .from('enrollments')
+    .select('course_id, courses(created_by)')
+    .eq('id', enrollmentId)
+    .single();
+
+  if (!enrollment) return { error: 'Enrollment not found' };
+
+  const courseCreator = Array.isArray(enrollment.courses) ? enrollment.courses[0]?.created_by : (enrollment.courses as any)?.created_by;
+  if (!isStaff && courseCreator !== user.id) {
+    return { error: 'Unauthorized to remove this enrollment' };
+  }
+
+  const { error } = await supabase
+    .from('enrollments')
+    .delete()
+    .eq('id', enrollmentId);
+
+  if (error) return { error: error.message };
+
+  if (enrollment.course_id) {
+    revalidatePath(`/courses/${enrollment.course_id}`);
+    revalidatePath(`/admin/courses/${enrollment.course_id}/builder`);
+    revalidatePath(`/instructor/courses/${enrollment.course_id}/builder`);
+  }
+  revalidatePath('/instructor/students');
+  revalidatePath('/admin/students');
+  revalidatePath('/instructor/enrollments');
+  revalidatePath('/', 'layout');
+  return { success: true, message: 'Student enrollment removed successfully.' };
+}
+

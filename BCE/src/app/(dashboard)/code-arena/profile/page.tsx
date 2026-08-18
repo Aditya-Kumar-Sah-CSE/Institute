@@ -13,11 +13,17 @@ export const revalidate = 0;
 
 export default async function CodingProfilePage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
   const { supabase, user: currentUser } = await getCodeArenaActor();
-  if (!currentUser) redirect('/login');
-
   const { id: queryId } = await searchParams;
-  const targetId = queryId || currentUser.id;
-  const isOwnProfile = targetId === currentUser.id;
+
+  if (!currentUser && !queryId) {
+    redirect('/login');
+  }
+
+  const targetId = queryId || currentUser?.id;
+  if (!targetId) {
+    redirect('/login');
+  }
+  const isOwnProfile = currentUser ? targetId === currentUser.id : false;
 
   const [
     { data: profile },
@@ -66,8 +72,8 @@ export default async function CodingProfilePage({ searchParams }: { searchParams
           />
           
           <div className="platform-cards-grid">
-            <CodeforcesProfileCard account={cfAccount} />
-            <LeetCodeProfileCard account={lcAccount} />
+            <CodeforcesProfileCard account={cfAccount} isOwnProfile={isOwnProfile} />
+            <LeetCodeProfileCard account={lcAccount} isOwnProfile={isOwnProfile} />
           </div>
         </div>
 

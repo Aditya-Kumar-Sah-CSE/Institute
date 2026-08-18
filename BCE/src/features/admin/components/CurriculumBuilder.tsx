@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import Input, { TextArea, Select } from '@/components/ui/Input';
+import Input, { Select } from '@/components/ui/Input';
 import { 
   addLesson, updateLesson, deleteLesson,
   addAssignment, updateAssignment, deleteAssignment,
@@ -66,6 +66,7 @@ interface CurriculumBuilderProps {
 
 export default function CurriculumBuilder({ course, lessons, submissions = [] }: CurriculumBuilderProps) {
   const [modalType, setModalType] = useState<'lesson' | 'assignment' | 'submission' | 'complete_course' | 'preview' | null>(null);
+  const [assignmentMode, setAssignmentMode] = useState<'normal' | 'coding'>('normal');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
   const [parentLessonId, setParentLessonId] = useState<string | null>(null);
@@ -132,13 +133,18 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
   const openAssignmentModal = (lessonId: string, assignment?: Assignment) => {
     setParentLessonId(lessonId);
     setEditingItem(assignment || null);
+    // Detect if editing an existing coding assignment (has LeetCode/Codeforces URL in description)
+    const isCodingAssignment = assignment?.description && /leetcode\.com|codeforces\.com/i.test(assignment.description);
+    const mode = isCodingAssignment ? 'coding' : 'normal';
+    setAssignmentMode(mode);
     setAssignmentFormData({
       title: assignment?.title || '',
-      type: assignment?.type || 'ui',
-      xp_reward: assignment?.xp_reward || 50,
+      type: assignment?.type || 'any',
+      xp_reward: assignment?.xp_reward || (mode === 'coding' ? 50 : 20),
       description: assignment?.description || '',
-      requires_github: assignment?.requires_github ? 'true' : 'false',
-      requires_deploy: assignment?.requires_deploy ? 'true' : 'false'
+      problem_url: isCodingAssignment ? assignment?.description : '',
+      requires_github: 'false',
+      requires_deploy: 'false'
     });
     setModalType('assignment');
   };
@@ -768,11 +774,78 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
             )}
 
             {modalType === 'assignment' && (
-              <form onSubmit={handleAssignmentSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+              <form onSubmit={(e) => {
+                // If coding mode, store problem_url as description before submitting
+                if (assignmentMode === 'coding' && assignmentFormData.problem_url) {
+                  setAssignmentFormData(prev => ({ ...prev, description: prev.problem_url }));
+                }
+                handleAssignmentSubmit(e);
+              }} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+                
+                {/* Normal / Coding Toggle */}
+                <div style={{ display: 'flex', background: 'var(--bg-primary)', borderRadius: 'var(--radius-md)', padding: '4px', gap: '4px', border: '1px solid var(--glass-border)' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAssignmentMode('normal');
+                      setAssignmentFormData(prev => ({ ...prev, xp_reward: prev.xp_reward === 50 ? 20 : prev.xp_reward, description: '', problem_url: '' }));
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '10px 16px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: 'var(--text-sm)',
+                      transition: 'all 0.2s ease',
+                      background: assignmentMode === 'normal' ? 'var(--neon-cyan)' : 'transparent',
+                      color: assignmentMode === 'normal' ? '#000' : 'var(--text-secondary)',
+                    }}
+                  >
+                    📝 Normal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAssignmentMode('coding');
+                      setAssignmentFormData(prev => ({ ...prev, xp_reward: prev.xp_reward === 20 ? 50 : prev.xp_reward, description: prev.problem_url || '' }));
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '10px 16px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: 'var(--text-sm)',
+                      transition: 'all 0.2s ease',
+                      background: assignmentMode === 'coding' ? 'var(--neon-lime)' : 'transparent',
+                      color: assignmentMode === 'coding' ? '#000' : 'var(--text-secondary)',
+                    }}
+                  >
+                    💻 Coding
+                  </button>
+                </div>
+
                 <Input name="title" label="Assignment Title" value={assignmentFormData.title || ''} onChange={handleAssignmentChange} required />
                 
-                <TextArea name="description" label="Instructions (Optional)" value={assignmentFormData.description || ''} onChange={handleAssignmentChange} />
-                
+                {/* Coding mode: Import problem (Optional) */}
+                {assignmentMode === 'coding' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
+                    <Input 
+                      name="problem_url" 
+                      label="Import problem from LeetCode or Codeforces (Optional)" 
+                      value={assignmentFormData.problem_url || ''} 
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        setAssignmentFormData(prev => ({ ...prev, problem_url: e.target.value, description: e.target.value }));
+                      }}
+                      placeholder="e.g. two-sum or 1234A or paste full URL"
+                    />
+                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '-4px' }}>Enter problem ID (e.g. <span style={{ color: 'var(--neon-cyan)' }}>two-sum</span>, <span style={{ color: 'var(--neon-cyan)' }}>1234A</span>) or paste a full URL.</p>
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
                   <label style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>Image or PDF (Optional)</label>
                   {editingItem?.expected_output && (
@@ -807,32 +880,15 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                   value={assignmentFormData.type || ''}
                   onChange={handleAssignmentChange}
                   options={[
+                    { value: 'any', label: 'Any (All inputs enabled)' },
                     { value: 'code', label: 'Code Snippet' },
                     { value: 'github', label: 'GitHub Repository Link' },
                     { value: 'deploy', label: 'Live Deployment URL' },
-                    { value: 'ui', label: 'Screenshot / UI Image' },
-                    { value: 'any', label: 'Any (All inputs enabled)' }
+                    { value: 'ui', label: 'Screenshot / UI Image' }
                   ]}
                 />
 
                 <Input name="xp_reward" type="number" label="XP Reward upon approval" value={assignmentFormData.xp_reward || ''} onChange={handleAssignmentChange} required />
-                
-                <div className="assignment-form-toggles" style={{ display: 'flex', gap: 'var(--space-md)' }}>
-                  <Select 
-                    name="requires_github" 
-                    label="Ask for GitHub Link?" 
-                    value={assignmentFormData.requires_github || ''}
-                    onChange={handleAssignmentChange}
-                    options={[ { value: 'false', label: 'No' }, { value: 'true', label: 'Yes' } ]}
-                  />
-                  <Select 
-                    name="requires_deploy" 
-                    label="Ask for Live URL?" 
-                    value={assignmentFormData.requires_deploy || ''}
-                    onChange={handleAssignmentChange}
-                    options={[ { value: 'false', label: 'No' }, { value: 'true', label: 'Yes' } ]}
-                  />
-                </div>
 
                 <div style={{ display: 'flex', gap: 'var(--space-md)', justifyContent: 'flex-end', marginTop: 'var(--space-md)' }}>
                   <Button type="button" variant="ghost" onClick={closeModal}>Cancel</Button>

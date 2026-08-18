@@ -166,8 +166,26 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
             </div>
           )}
           
-          <div style={{ marginTop: 'var(--space-lg)' }}>
+          <div style={{ marginTop: 'var(--space-lg)', display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <ShareProfileButton userId={id} />
+            <Link 
+              href={`/code-arena/profile?id=${id}`} 
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 16px',
+                borderRadius: 'var(--radius-md)',
+                background: 'rgba(0, 240, 255, 0.1)',
+                border: '1px solid var(--neon-cyan)',
+                color: 'var(--neon-cyan)',
+                fontSize: '0.9rem',
+                fontWeight: 'bold',
+                textDecoration: 'none'
+              }}
+            >
+              💻 Coding Profile
+            </Link>
           </div>
         </div>
       </div>

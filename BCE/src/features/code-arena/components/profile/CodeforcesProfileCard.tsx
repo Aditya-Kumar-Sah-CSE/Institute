@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { RefreshCw, ExternalLink, CheckCircle2, TrendingUp, Target, Award, Key, Unlink } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-export default function CodeforcesProfileCard({ account }: { account: any }) {
+export default function CodeforcesProfileCard({ account, isOwnProfile = true }: { account: any; isOwnProfile?: boolean }) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [handle, setHandle] = useState('');
@@ -100,40 +100,46 @@ export default function CodeforcesProfileCard({ account }: { account: any }) {
           <span className="not-connected-badge">Not Connected</span>
         </div>
         <div className="platform-body" style={{ padding: '0 16px 16px 16px' }}>
-          <form onSubmit={handleConnect} style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', marginTop: '8px' }}>
-            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: 0 }}>
-              Connect your public Codeforces handle to track stats, rating graph, and solves.
+          {isOwnProfile ? (
+            <form onSubmit={handleConnect} style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', marginTop: '8px' }}>
+              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: 0 }}>
+                Connect your public Codeforces handle to track stats, rating graph, and solves.
+              </p>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="text"
+                  className="hub-search-input"
+                  style={{
+                    flex: 1,
+                    padding: '8px 12px',
+                    fontSize: 'var(--text-sm)',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--glass-border)',
+                    borderRadius: 'var(--radius-sm)',
+                    color: 'var(--text-main)',
+                    outline: 'none',
+                  }}
+                  disabled={isConnecting}
+                  placeholder="Codeforces handle (e.g. tourist)"
+                  value={handle}
+                  onChange={(e) => setHandle(e.target.value)}
+                />
+                <button
+                  type="submit"
+                  disabled={isConnecting || !handle.trim()}
+                  className="hub-solve-btn"
+                  style={{ padding: '8px 16px', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: (isConnecting || !handle.trim()) ? 'not-allowed' : 'pointer' }}
+                >
+                  {isConnecting ? <RefreshCw size={13} className="spin animate-spin" /> : <Key size={13} />}
+                  Connect
+                </button>
+              </div>
+            </form>
+          ) : (
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: '8px 0 0 0' }}>
+              No Codeforces account connected.
             </p>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <input
-                type="text"
-                className="hub-search-input"
-                style={{
-                  flex: 1,
-                  padding: '8px 12px',
-                  fontSize: 'var(--text-sm)',
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--glass-border)',
-                  borderRadius: 'var(--radius-sm)',
-                  color: 'var(--text-main)',
-                  outline: 'none',
-                }}
-                disabled={isConnecting}
-                placeholder="Codeforces handle (e.g. tourist)"
-                value={handle}
-                onChange={(e) => setHandle(e.target.value)}
-              />
-              <button
-                type="submit"
-                disabled={isConnecting || !handle.trim()}
-                className="hub-solve-btn"
-                style={{ padding: '8px 16px', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: (isConnecting || !handle.trim()) ? 'not-allowed' : 'pointer' }}
-              >
-                {isConnecting ? <RefreshCw size={13} className="spin animate-spin" /> : <Key size={13} />}
-                Connect
-              </button>
-            </div>
-          </form>
+          )}
 
           {errorMsg && (
             <div className="sync-error-banner" style={{ marginTop: '12px', fontSize: 'var(--text-xs)', color: '#f87171' }}>
@@ -181,22 +187,26 @@ export default function CodeforcesProfileCard({ account }: { account: any }) {
           <a href={`https://codeforces.com/profile/${account.username}`} target="_blank" rel="noopener noreferrer" className="icon-action-btn" title="Open on Codeforces">
             <ExternalLink size={15} />
           </a>
-          <button 
-            className={`sync-btn ${isSyncing ? 'syncing' : ''} ${syncStatus === 'SUCCESS' ? 'success' : ''} ${syncStatus === 'ERROR' ? 'error' : ''}`}
-            onClick={handleSync}
-            disabled={isSyncing}
-          >
-            <RefreshCw size={13} className={isSyncing ? 'spin' : ''} />
-            {isSyncing ? 'Syncing…' : syncStatus === 'SUCCESS' ? 'Synced!' : syncStatus === 'ERROR' ? 'Failed' : 'Sync'}
-          </button>
-          <button
-            className="icon-action-btn"
-            style={{ color: '#f87171' }}
-            title="Disconnect Account"
-            onClick={handleDisconnect}
-          >
-            <Unlink size={15} />
-          </button>
+          {isOwnProfile && (
+            <>
+              <button 
+                className={`sync-btn ${isSyncing ? 'syncing' : ''} ${syncStatus === 'SUCCESS' ? 'success' : ''} ${syncStatus === 'ERROR' ? 'error' : ''}`}
+                onClick={handleSync}
+                disabled={isSyncing}
+              >
+                <RefreshCw size={13} className={isSyncing ? 'spin' : ''} />
+                {isSyncing ? 'Syncing…' : syncStatus === 'SUCCESS' ? 'Synced!' : syncStatus === 'ERROR' ? 'Failed' : 'Sync'}
+              </button>
+              <button
+                className="icon-action-btn"
+                style={{ color: '#f87171' }}
+                title="Disconnect Account"
+                onClick={handleDisconnect}
+              >
+                <Unlink size={15} />
+              </button>
+            </>
+          )}
         </div>
       </div>
 
