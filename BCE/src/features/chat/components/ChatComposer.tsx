@@ -437,32 +437,41 @@ export default function ChatComposer({
             </div>
           )}
 
-          {/* Emoji Toggle */}
-          <button 
-            type="button" 
-            onClick={() => {
-              setShowEmojiPicker(!showEmojiPicker);
-              setShowAttachmentMenu(false);
-            }}
-            style={{ padding: '8px', background: 'transparent', border: 'none', color: showEmojiPicker ? 'var(--neon-cyan)' : 'var(--text-muted)', cursor: 'pointer' }}
-          >
-            <Smile size={22} />
-          </button>
-          
-          {/* Attachment Toggle */}
-          <button 
-            type="button" 
-            onClick={() => {
-              setShowAttachmentMenu(!showAttachmentMenu);
-              setShowEmojiPicker(false);
-            }}
-            style={{ padding: '8px', background: 'transparent', border: 'none', color: showAttachmentMenu ? 'var(--neon-cyan)' : 'var(--text-muted)', cursor: 'pointer' }}
-          >
-            <Paperclip size={22} />
-          </button>
+          {/* Integrated Modern Input Pill Box */}
+          <div style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            background: '#1d2030',
+            borderRadius: '24px',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            padding: '2px 8px 2px 10px',
+            minHeight: '44px',
+            boxSizing: 'border-box'
+          }}>
+            {/* Emoji Toggle (Smile) */}
+            <button 
+              type="button" 
+              onClick={() => {
+                setShowEmojiPicker(!showEmojiPicker);
+                setShowAttachmentMenu(false);
+              }}
+              style={{ 
+                background: 'transparent', 
+                border: 'none', 
+                color: showEmojiPicker ? 'var(--neon-cyan)' : 'var(--text-muted)', 
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '8px',
+                marginRight: '4px'
+              }}
+            >
+              <Smile size={20} />
+            </button>
 
-          {/* Auto-expanding Input Area */}
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+            {/* Auto-expanding Input Area */}
             <textarea 
               ref={textareaRef}
               rows={1}
@@ -476,20 +485,42 @@ export default function ChatComposer({
               }}
               placeholder="Type a message..."
               style={{ 
-                width: '100%', 
-                background: 'rgba(255,255,255,0.05)', 
-                borderRadius: '20px', 
-                padding: '10px 18px', 
+                flex: 1,
+                background: 'transparent', 
                 outline: 'none', 
-                color: 'var(--text-primary)', 
-                border: '1px solid var(--glass-border)', 
-                fontSize: '14px', 
+                color: '#ffffff', 
+                border: 'none', 
+                fontSize: '14.5px', 
                 resize: 'none',
                 boxSizing: 'border-box',
                 fontFamily: 'var(--font-sans)',
-                lineHeight: '1.4'
+                lineHeight: '1.4',
+                padding: '8px 4px',
+                maxHeight: '120px'
               }}
             />
+
+            {/* Attachment Toggle (Paperclip) */}
+            <button 
+              type="button" 
+              onClick={() => {
+                setShowAttachmentMenu(!showAttachmentMenu);
+                setShowEmojiPicker(false);
+              }}
+              style={{ 
+                background: 'transparent', 
+                border: 'none', 
+                color: showAttachmentMenu ? 'var(--neon-cyan)' : 'var(--text-muted)', 
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '8px',
+                marginLeft: '4px'
+              }}
+            >
+              <Paperclip size={20} />
+            </button>
           </div>
 
           {/* Mic OR Send Button */}
@@ -498,15 +529,17 @@ export default function ChatComposer({
               type="button"
               onClick={startVoiceRecording}
               style={{ 
-                padding: '10px', 
-                background: 'var(--bg-elevated)', 
+                width: '42px',
+                height: '42px',
+                background: '#222538', 
                 color: 'var(--neon-cyan)', 
                 borderRadius: '50%', 
-                border: '1px solid var(--border-default)', 
+                border: '1px solid rgba(255, 255, 255, 0.08)', 
                 cursor: 'pointer',
                 display: 'flex', 
                 alignItems: 'center', 
-                justifyContent: 'center'
+                justifyContent: 'center',
+                flexShrink: 0
               }}
               title="Record Voice Message"
             >
@@ -517,7 +550,8 @@ export default function ChatComposer({
               type="submit" 
               disabled={isUploading}
               style={{ 
-                padding: '11px', 
+                width: '42px',
+                height: '42px',
                 background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-blue))', 
                 color: '#000', 
                 borderRadius: '50%', 
@@ -526,7 +560,8 @@ export default function ChatComposer({
                 display: 'flex', 
                 alignItems: 'center', 
                 justifyContent: 'center',
-                boxShadow: '0 4px 15px rgba(0, 240, 255, 0.4)'
+                boxShadow: '0 4px 12px rgba(0, 240, 255, 0.3)',
+                flexShrink: 0
               }}
             >
               {isUploading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} style={{ transform: 'translateX(1px)' }} />}

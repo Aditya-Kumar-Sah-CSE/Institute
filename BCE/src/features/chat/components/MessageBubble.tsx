@@ -122,7 +122,7 @@ export default function MessageBubble({
       transition={{ duration: 0.15 }}
       style={{
         display: 'flex',
-        marginBottom: '14px',
+        marginBottom: Object.keys(reactionCounts).length > 0 ? '22px' : '14px',
         justifyContent: isMine ? 'flex-end' : 'flex-start',
         position: 'relative',
       }}
@@ -252,17 +252,17 @@ export default function MessageBubble({
         <div 
           className="glass-card"
           style={{
-            padding: '10px 14px',
-            borderRadius: '18px',
+            padding: '8px 12px',
+            borderRadius: '16px',
             background: isMine 
-              ? 'linear-gradient(135deg, rgba(0, 240, 255, 0.16) 0%, rgba(0, 150, 255, 0.08) 100%)' 
-              : 'var(--bg-elevated)',
+              ? '#1976d2' 
+              : '#222538',
             backdropFilter: 'blur(20px)',
-            color: isMine ? 'var(--neon-cyan)' : 'var(--text-primary)',
-            borderBottomRightRadius: isMine ? '4px' : '18px',
-            borderBottomLeftRadius: isMine ? '18px' : '4px',
-            border: isMine ? '1px solid rgba(0, 240, 255, 0.25)' : '1px solid var(--glass-border)',
-            boxShadow: isMine ? '0 4px 15px rgba(0, 240, 255, 0.08)' : '0 2px 10px rgba(0,0,0,0.3)',
+            color: '#ffffff',
+            borderBottomRightRadius: isMine ? '4px' : '16px',
+            borderBottomLeftRadius: isMine ? '16px' : '4px',
+            border: isMine ? 'none' : '1px solid rgba(255, 255, 255, 0.06)',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
             position: 'relative'
           }}
         >
@@ -280,18 +280,18 @@ export default function MessageBubble({
             </div>
           )}
 
-          {/* Reply Quoted Preview */}
-          {msg.reply_to && (
+          {/* Reply Quoted Preview (Only rendered if actual reply ID exists) */}
+          {msg.reply_to && msg.reply_to.id && (
             <div style={{
-              background: 'rgba(0,0,0,0.2)',
-              borderLeft: '3px solid var(--neon-cyan)',
-              padding: '4px 8px',
-              borderRadius: '4px',
-              marginBottom: '6px',
+              background: 'rgba(0,0,0,0.25)',
+              borderLeft: '4px solid var(--neon-cyan)',
+              padding: '6px 10px',
+              borderRadius: '8px',
+              marginBottom: '8px',
               fontSize: '11px',
               color: 'var(--text-secondary)'
             }}>
-              <span style={{ fontWeight: 700, color: 'var(--neon-cyan)', display: 'block' }}>
+              <span style={{ fontWeight: 700, color: 'var(--neon-cyan)', display: 'block', marginBottom: '2px' }}>
                 {msg.reply_to.sender?.name || 'Reply'}
               </span>
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
@@ -418,79 +418,118 @@ export default function MessageBubble({
             </div>
           )}
 
-          {/* Text Content */}
-          {msg.content && msg.attachment_type !== 'audio' && (
-            <p style={{ fontSize: '14.5px', margin: 0, lineHeight: 1.45, wordBreak: 'break-word', textAlign: 'left' }}>
-              {renderFormattedText(msg.content)}
-            </p>
-          )}
+          {/* Text Content + Time/Status Layout */}
+          {msg.content && msg.attachment_type !== 'audio' ? (
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <p style={{ 
+                fontSize: '14.5px', 
+                margin: 0, 
+                lineHeight: 1.45, 
+                wordBreak: 'break-word', 
+                textAlign: 'left',
+                color: '#ffffff',
+                paddingBottom: '4px'
+              }}>
+                {renderFormattedText(msg.content)}
+              </p>
 
-          {/* Footer Metadata (Time, Edit Status, Read Checkmarks) */}
-          <div style={{
-            fontSize: '10px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            gap: '6px',
-            opacity: 0.8,
-            marginTop: '4px',
-            fontFamily: 'var(--font-sans)'
-          }}>
-            {msg.is_edited && <span>(edited)</span>}
-            <span>{displayTime}</span>
-            {isMine && (
-              <span 
-                title={isRead ? "Seen" : "Sent"} 
-                style={{ 
-                  fontWeight: 'bold', 
-                  fontSize: '12px',
-                  color: isRead ? 'var(--neon-lime)' : 'var(--text-muted)'
-                }}
-              >
-                {isRead ? '✓✓' : '✓'}
-              </span>
-            )}
-          </div>
+              {/* Inline Metadata footer right-aligned under text */}
+              <div style={{
+                fontSize: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                alignSelf: 'flex-end',
+                gap: '4px',
+                opacity: 0.75,
+                marginTop: '2px',
+                color: isMine ? 'rgba(255, 255, 255, 0.8)' : 'var(--text-muted)',
+                fontFamily: 'var(--font-sans)',
+                whiteSpace: 'nowrap'
+              }}>
+                {msg.is_edited && <span>(edited)</span>}
+                <span>{displayTime}</span>
+                {isMine && (
+                  <span 
+                    title={isRead ? "Seen" : "Sent"} 
+                    style={{ 
+                      fontWeight: 'bold', 
+                      fontSize: '12px',
+                      color: isRead ? '#4ade80' : 'rgba(255,255,255,0.45)'
+                    }}
+                  >
+                    {isRead ? '✓✓' : '✓'}
+                  </span>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* Metadata block for empty content or audio attachments */
+            <div style={{
+              fontSize: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              gap: '4px',
+              opacity: 0.75,
+              marginTop: '6px',
+              color: isMine ? 'rgba(255, 255, 255, 0.8)' : 'var(--text-muted)',
+              fontFamily: 'var(--font-sans)',
+              whiteSpace: 'nowrap'
+            }}>
+              {msg.is_edited && <span>(edited)</span>}
+              <span>{displayTime}</span>
+              {isMine && (
+                <span 
+                  title={isRead ? "Seen" : "Sent"} 
+                  style={{ 
+                    fontWeight: 'bold', 
+                    fontSize: '12px',
+                    color: isRead ? '#4ade80' : 'rgba(255,255,255,0.45)'
+                  }}
+                >
+                  {isRead ? '✓✓' : '✓'}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Reactions List Under Bubble */}
+        {/* Compact Reactions Badge Pill positioned absolutely on the edge of the bubble */}
         {Object.keys(reactionCounts).length > 0 && (
           <div style={{
+            position: 'absolute',
+            bottom: '-10px',
+            right: isMine ? '10px' : 'auto',
+            left: isMine ? 'auto' : '10px',
             display: 'flex',
             gap: '4px',
-            marginTop: '4px',
-            padding: '2px 6px',
-            borderRadius: '12px',
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-divider)',
-            fontSize: '11px',
-            flexWrap: 'wrap'
+            zIndex: 5
           }}>
-            {Object.entries(reactionCounts).map(([emoji, count]) => {
-              return (
-                <button
-                  key={emoji}
-                  onClick={() => onReact?.(msg.id, emoji)}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '3px',
-                    padding: '2px 6px',
-                    borderRadius: '8px',
-                    background: 'rgba(255,255,255,0.06)',
-                    border: '1px solid var(--glass-border)',
-                    cursor: 'pointer',
-                    color: 'var(--text-primary)',
-                    fontSize: '12px',
-                    transition: 'all 0.15s ease'
-                  }}
-                  title={`Toggle ${emoji} reaction`}
-                >
-                  <span>{emoji}</span>
-                  <strong style={{ fontSize: '10px', color: 'var(--neon-cyan)' }}>{count}</strong>
-                </button>
-              );
-            })}
+            {Object.entries(reactionCounts).map(([emoji, count]) => (
+              <button
+                key={emoji}
+                onClick={() => onReact?.(msg.id, emoji)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  padding: '2px 6px',
+                  borderRadius: '10px',
+                  background: '#1d2030',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  cursor: 'pointer',
+                  color: '#fff',
+                  fontSize: '11px',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+                  transition: 'all 0.15s ease'
+                }}
+                title={`Toggle ${emoji} reaction`}
+              >
+                <span>{emoji}</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--neon-cyan)' }}>{count}</span>
+              </button>
+            ))}
           </div>
         )}
       </div>

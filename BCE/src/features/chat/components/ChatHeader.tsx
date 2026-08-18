@@ -105,12 +105,7 @@ export default function ChatHeader({
             {isSomeoneTyping ? (
               <span style={{ color: 'var(--neon-cyan)', fontWeight: 600, animation: 'pulse 1.5s infinite' }}>typing...</span>
             ) : isGroup ? (
-              <span 
-                onClick={(e) => { e.stopPropagation(); onOpenParticipantsModal(); }} 
-                style={{ cursor: 'pointer', textDecoration: 'underline', color: 'var(--text-secondary)' }}
-              >
-                {activeChat.members?.length || 0} participants
-              </span>
+              null
             ) : (
               <span style={{ color: isPeerOnline ? 'var(--neon-lime)' : 'var(--text-muted)' }}>
                 {isPeerOnline ? 'Online' : 'Offline'}
