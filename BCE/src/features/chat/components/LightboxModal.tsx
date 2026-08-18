@@ -175,7 +175,13 @@ export default function LightboxModal({ mediaUrl, mediaType = 'image', allMedia 
             src={currentItem.url} 
             controls 
             autoPlay 
+            playsInline
             style={{ maxWidth: '90vw', maxHeight: '80vh', borderRadius: '12px', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }} 
+            onCanPlay={(e) => {
+              e.currentTarget.muted = false;
+              e.currentTarget.volume = 1.0;
+              e.currentTarget.play().catch(() => {});
+            }}
           />
         ) : (
           <img 

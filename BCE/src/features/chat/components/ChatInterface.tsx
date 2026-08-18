@@ -572,13 +572,31 @@ export default function ChatInterface() {
     }
   };
 
-  // Actions
   const handleReact = async (msgId: string, emoji: string) => {
+    if (!currentUserId) return;
+
+    // Optimistically toggle reaction in local state immediately
+    setMessages(prevMsgs => prevMsgs.map(m => {
+      if (m.id !== msgId) return m;
+
+      const currentReactions = (m as any).reactions || [];
+      const hasReaction = currentReactions.some((r: any) => r.user_id === currentUserId && r.emoji === emoji);
+
+      let updatedReactions;
+      if (hasReaction) {
+        updatedReactions = currentReactions.filter((r: any) => !(r.user_id === currentUserId && r.emoji === emoji));
+      } else {
+        updatedReactions = [...currentReactions, { message_id: msgId, user_id: currentUserId, emoji }];
+      }
+
+      return { ...m, reactions: updatedReactions };
+    }));
+
     try {
       await toggleMessageReaction(msgId, emoji);
       if (activeChat) fetchMessagesClient(activeChat.id).then(setMessages);
     } catch (err) {
-      console.error(err);
+      console.error('Toggle reaction error:', err);
     }
   };
 

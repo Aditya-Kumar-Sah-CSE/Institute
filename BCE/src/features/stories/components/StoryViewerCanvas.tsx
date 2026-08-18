@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronLeft, ChevronRight, Heart, MoreVertical, Play, Pause, Trash2, Eye, Send, Smile, Plus, Loader2, MessageCircle } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Heart, MoreVertical, Play, Pause, Trash2, Eye, Send, Smile, Plus, Loader2, MessageCircle, Volume2, VolumeX } from 'lucide-react';
 import Image from 'next/image';
 import type { Story, StoryItem } from '@/types/database';
 import { registerView, toggleReaction, deleteStoryItem, addStoryReply } from '@/features/stories/actions/stories';
@@ -31,6 +31,7 @@ export default function StoryViewerCanvas({
   const [activeStoryIndex, setActiveStoryIndex] = useState(initialStoryIndex);
   const [activeItemIndex, setActiveItemIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [progress, setProgress] = useState(0);
   const [showMenu, setShowMenu] = useState(false);
   // Delete confirm modal state
@@ -102,7 +103,6 @@ export default function StoryViewerCanvas({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goToNext, goToPrev, onClose, viewsOpen, showEmojiPicker]);
 
-  // Pause when emoji picker or reply focused or views open
   const isInteracting = showEmojiPicker || viewsOpen;
   
   // Read Receipt Registration
@@ -124,7 +124,7 @@ export default function StoryViewerCanvas({
        let interval: NodeJS.Timeout;
        if (videoRef.current) {
           interval = setInterval(() => {
-            if (videoRef.current) {
+            if (videoRef.current && videoRef.current.duration) {
                const percent = (videoRef.current.currentTime / videoRef.current.duration) * 100;
                setProgress(percent);
             }
@@ -245,7 +245,7 @@ export default function StoryViewerCanvas({
           }}
           className="touch-pan-y md:rounded-3xl md:shadow-2xl"
         >
-          {/* Progress Bars */}
+          {/* Segment Progress Bars */}
           <div style={{ position: 'absolute', top: 'clamp(0.5rem, 3vw, 1rem)', left: 0, width: '100%', display: 'flex', gap: '0.25rem', padding: 'clamp(0.5rem, 2vw, 1rem)', zIndex: 50 }}>
             {activeItems.map((item, idx) => (
               <div key={item.id} style={{ height: '0.25rem', flex: 1, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: '9999px', overflow: 'hidden' }}>
@@ -322,6 +322,25 @@ export default function StoryViewerCanvas({
                       </button>
                     )}
 
+                    {/* Audio Sound Mute / Unmute Toggle for Status Videos */}
+                    {currentItem.media_type === 'video' && (
+                      <button 
+                        onClick={() => {
+                          const nextMuted = !isAudioMuted;
+                          setIsAudioMuted(nextMuted);
+                          if (videoRef.current) {
+                            videoRef.current.muted = nextMuted;
+                            videoRef.current.volume = nextMuted ? 0 : 1.0;
+                          }
+                        }} 
+                        style={{ padding: 'clamp(0.35rem, 2vw, 0.45rem)', color: 'rgba(255,255,255,0.9)', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: '9999px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        className="hover:bg-white/25 transition-colors"
+                        title={isAudioMuted ? "Unmute Audio" : "Mute Audio"}
+                      >
+                         {isAudioMuted ? <VolumeX size={18} color="#ff3b30" /> : <Volume2 size={18} color="var(--neon-cyan)" />}
+                      </button>
+                    )}
+
                     {/* Pause / Play Toggle */}
                     <button 
                       onClick={() => setIsPaused(!isPaused)} 
@@ -393,8 +412,16 @@ export default function StoryViewerCanvas({
                  src={currentItem.media_url}
                  autoPlay
                  playsInline
+                 muted={isAudioMuted}
                  className="w-full h-full object-contain"
                  onEnded={goToNext}
+                 onCanPlay={(e) => {
+                   if (!isAudioMuted) {
+                     e.currentTarget.muted = false;
+                     e.currentTarget.volume = 1.0;
+                   }
+                   e.currentTarget.play().catch(console.error);
+                 }}
                />
              ) : currentItem.media_url ? (
                <Image 
@@ -601,7 +628,7 @@ export default function StoryViewerCanvas({
                        cursor: 'pointer', 
                        display: 'flex', 
                        alignItems: 'center', 
-                       justifyContent: 'center', 
+                       justify: 'center', 
                        minWidth: 'clamp(2.25rem, 8vw, 2.5rem)', 
                        height: 'clamp(2.25rem, 8vw, 2.5rem)', 
                        transition: 'background 0.2s',
@@ -610,8 +637,8 @@ export default function StoryViewerCanvas({
                    >
                      {myReaction ? myReaction.emoji : <Heart size={20} className={userHasLiked ? 'fill-rose-500 text-rose-500' : ''} />}
                    </button>
-                </div>
-              )}
+                 </div>
+               )}
           </div>
 
         </div>
@@ -641,7 +668,6 @@ export default function StoryViewerCanvas({
       <AnimatePresence>
         {showDeleteConfirm && (
           <>
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -661,7 +687,6 @@ export default function StoryViewerCanvas({
               }}
             />
 
-            {/* Modal Dialog */}
             <div style={{ position: 'fixed', inset: 0, zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', pointerEvents: 'none' }}>
               <motion.div
                 initial={{ opacity: 0, scale: 0.85, y: 20 }}
@@ -683,7 +708,6 @@ export default function StoryViewerCanvas({
                   textAlign: 'center'
                 }}
               >
-                {/* Trash Icon Circle */}
                 <div style={{ width: '3.5rem', height: '3.5rem', borderRadius: '50%', backgroundColor: 'rgba(244, 63, 94, 0.15)', border: '1px solid rgba(244, 63, 94, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f43f5e', marginBottom: '1rem' }}>
                   <Trash2 size={26} />
                 </div>
@@ -696,7 +720,6 @@ export default function StoryViewerCanvas({
                   Are you sure you want to delete this status update? This action cannot be undone.
                 </p>
 
-                {/* Buttons */}
                 <div style={{ display: 'flex', gap: '0.75rem', width: '100%' }}>
                   <button
                     onClick={() => {
@@ -735,7 +758,7 @@ export default function StoryViewerCanvas({
                       cursor: isDeleting ? 'not-allowed' : 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
+                      justify: 'center',
                       gap: '0.5rem',
                       boxShadow: '0 4px 14px rgba(244, 63, 94, 0.4)',
                       transition: 'all 0.15s'

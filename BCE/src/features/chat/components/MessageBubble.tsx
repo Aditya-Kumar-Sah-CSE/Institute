@@ -458,18 +458,39 @@ export default function MessageBubble({
           <div style={{
             display: 'flex',
             gap: '4px',
-            marginTop: '3px',
+            marginTop: '4px',
             padding: '2px 6px',
             borderRadius: '12px',
             background: 'var(--bg-secondary)',
             border: '1px solid var(--border-divider)',
-            fontSize: '11px'
+            fontSize: '11px',
+            flexWrap: 'wrap'
           }}>
-            {Object.entries(reactionCounts).map(([emoji, count]) => (
-              <span key={emoji} style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-                {emoji} <strong style={{ fontSize: '10px' }}>{count}</strong>
-              </span>
-            ))}
+            {Object.entries(reactionCounts).map(([emoji, count]) => {
+              return (
+                <button
+                  key={emoji}
+                  onClick={() => onReact?.(msg.id, emoji)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    padding: '2px 6px',
+                    borderRadius: '8px',
+                    background: 'rgba(255,255,255,0.06)',
+                    border: '1px solid var(--glass-border)',
+                    cursor: 'pointer',
+                    color: 'var(--text-primary)',
+                    fontSize: '12px',
+                    transition: 'all 0.15s ease'
+                  }}
+                  title={`Toggle ${emoji} reaction`}
+                >
+                  <span>{emoji}</span>
+                  <strong style={{ fontSize: '10px', color: 'var(--neon-cyan)' }}>{count}</strong>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
