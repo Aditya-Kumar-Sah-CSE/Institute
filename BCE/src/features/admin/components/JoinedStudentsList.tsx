@@ -154,7 +154,7 @@ export default function JoinedStudentsList({ enrollments, currentUserId: propUse
                         height: 36,
                         display: 'flex',
                         alignItems: 'center',
-                        justify: 'center',
+                        justifyContent: 'center',
                         cursor: spawningChatId === studentUserId ? 'not-allowed' : 'pointer',
                         transition: 'all 0.2s ease',
                       }}
@@ -181,7 +181,7 @@ export default function JoinedStudentsList({ enrollments, currentUserId: propUse
                         height: 36,
                         display: 'flex',
                         alignItems: 'center',
-                        justify: 'center',
+                        justifyContent: 'center',
                         cursor: deletingId === enrollment.id ? 'not-allowed' : 'pointer',
                         transition: 'all 0.2s ease',
                       }}
