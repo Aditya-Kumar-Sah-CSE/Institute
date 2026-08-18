@@ -9,3 +9,4 @@ export const DynamicFeedbackWidget = dynamic(() => import('@/components/shared/F
 export const DynamicPwaRegister = dynamic(() => import('@/components/PwaRegister'), { ssr: false });
 export const DynamicPWAInstallPrompt = dynamic(() => import('@/components/pwa/PWAInstallPrompt'), { ssr: false });
 export const DynamicCrownBanner = dynamic(() => import('@/app/(dashboard)/profile/components/CrownBanner'), { ssr: false });
+export const DynamicAuthChangeHandler = dynamic(() => import('@/components/AuthChangeHandler'), { ssr: false });

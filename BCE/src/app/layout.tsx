@@ -20,7 +20,8 @@ import {
   DynamicPwaRegister as PwaRegister, 
   DynamicPWAInstallPrompt as PWAInstallPrompt, 
   DynamicFeedbackWidget as FeedbackWidget, 
-  DynamicXpCelebrator as XpCelebrator 
+  DynamicXpCelebrator as XpCelebrator,
+  DynamicAuthChangeHandler as AuthChangeHandler
 } from '@/components/DynamicWrappers';
 
 export const viewport: Viewport = {
@@ -59,6 +60,7 @@ export default function RootLayout({
         <PwaRegister />
         <PWAInstallPrompt />
         <ThemeProvider attribute="data-theme" defaultTheme="dark" enableSystem={false} disableTransitionOnChange={false}>
+          <AuthChangeHandler />
           {children}
           <XpCelebrator />
           <FeedbackWidget />

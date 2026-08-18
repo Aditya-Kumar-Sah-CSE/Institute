@@ -134,15 +134,8 @@ export async function fetchStoryFeed() {
   const { data: userData } = await supabase.auth.getUser();
   const currentUserId = userData?.user?.id;
 
-  // Clean up expired story items and stories first to ensure they are deleted from the database
-  try {
-    const adminClient = await createAdminClient();
-    const nowIso = new Date().toISOString();
-    await adminClient.from('story_items').delete().lt('expires_at', nowIso);
-    await adminClient.from('stories').delete().lt('expires_at', nowIso);
-  } catch (cleanError) {
-    console.error('Failed to clean up expired stories:', cleanError);
-  }
+  // Clean up expired story items and stories first to ensure database and storage stay fully synchronized
+  await cleanupExpiredStories();
 
   // We want to fetch all active stories, along with their items and views 
   // Normally we would enforce privacy (e.g., Contacts only) - handled by RLS partially, but explicit joined checks help
@@ -392,5 +385,79 @@ export async function fetchStoryReplies(storyItemId: string) {
 
   if (error) throw error;
   return data || [];
+}
+
+/**
+ * Scheduled cleanup routine: finds expired stories/items, deletes their storage assets,
+ * and clears database records to maintain compliance with data-retention requirements.
+ */
+export async function cleanupExpiredStories() {
+  try {
+    const adminClient = await createAdminClient();
+    const nowIso = new Date().toISOString();
+
+    // 1. Fetch expired story items to find their media paths
+    const { data: expiredItems, error: fetchError } = await adminClient
+      .from('story_items')
+      .select('id, media_url')
+      .lt('expires_at', nowIso);
+
+    if (fetchError) {
+      console.error('Error fetching expired story items:', fetchError);
+      return { success: false, error: fetchError.message };
+    }
+
+    if (expiredItems && expiredItems.length > 0) {
+      const pathsToDelete: string[] = [];
+      const itemIdsToDelete: string[] = [];
+
+      for (const item of expiredItems) {
+        itemIdsToDelete.push(item.id);
+        if (item.media_url) {
+          // Parse storage path from public URL
+          // publicUrl pattern: http://.../storage/v1/object/public/story_media/{user_id}/{filename}
+          const match = item.media_url.match(/\/storage\/v1\/object\/public\/story_media\/(.+)$/);
+          if (match && match[1]) {
+            pathsToDelete.push(decodeURIComponent(match[1]));
+          }
+        }
+      }
+
+      // 2. Remove files from Supabase Storage
+      if (pathsToDelete.length > 0) {
+        const { error: removeError } = await adminClient.storage
+          .from('story_media')
+          .remove(pathsToDelete);
+        if (removeError) {
+          console.error('Failed to remove media files from Supabase Storage:', removeError.message);
+        } else {
+          console.log(`Successfully purged ${pathsToDelete.length} files from story_media storage.`);
+        }
+      }
+
+      // 3. Delete database story items
+      const { error: deleteItemsError } = await adminClient
+        .from('story_items')
+        .delete()
+        .in('id', itemIdsToDelete);
+      if (deleteItemsError) {
+        console.error('Error deleting expired story items from database:', deleteItemsError.message);
+      }
+    }
+
+    // 4. Delete expired parent story containers
+    const { error: deleteStoriesError } = await adminClient
+      .from('stories')
+      .delete()
+      .lt('expires_at', nowIso);
+    if (deleteStoriesError) {
+      console.error('Error deleting expired stories from database:', deleteStoriesError.message);
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('Stories cleanup job failed:', err);
+    return { success: false, error: err.message };
+  }
 }
 

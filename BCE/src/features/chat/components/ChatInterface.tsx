@@ -22,6 +22,7 @@ import {
   editChatMessage, deleteChatMessage, togglePinChatMessage, toggleMessageReaction 
 } from '@/features/chat/actions/chat';
 import { useRouter } from 'next/navigation';
+import { getOfflineDb } from '@/lib/cache/offlineDb';
 import './ChatInterface.css';
 
 interface CallSession {
@@ -169,35 +170,156 @@ export default function ChatInterface() {
     init();
   }, []);
 
+  // Background Outbox Sync Effect
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const syncOutbox = async () => {
+      if (!navigator.onLine) return;
+      const db = getOfflineDb(currentUserId);
+      const queued = await db.outbox.toArray();
+      if (queued.length === 0) return;
+
+      console.log(`Discovered ${queued.length} queued outbox messages, syncing...`);
+      for (const msg of queued) {
+        try {
+          const { data: serverMsg, error } = await supabase
+            .from('chat_messages')
+            .insert({
+              conversation_id: msg.conversation_id,
+              sender_id: currentUserId,
+              content: msg.content,
+              attachment_type: msg.attachment_type,
+              attachment_link: msg.attachment_link,
+              reply_to_id: msg.reply_to_id
+            })
+            .select(`
+              *,
+              sender:profiles!chat_messages_sender_id_fkey(id, name, avatar_url, role),
+              reply_to:chat_messages!reply_to_id(
+                id, content, sender_id, attachment_type, attachment_link,
+                sender:profiles!chat_messages_sender_id_fkey(name)
+              )
+            `)
+            .single();
+
+          if (!error && serverMsg) {
+            await db.outbox.delete(msg.temp_id);
+            await db.messages.delete(msg.temp_id);
+            await db.messages.put({
+              ...(serverMsg as any),
+              status: 'sent'
+            });
+
+            // Update state dynamically
+            setMessages(prev => prev.map(m => m.id === msg.temp_id ? { ...(serverMsg as any), status: 'sent' } : m));
+          }
+        } catch (syncErr) {
+          console.error("Background sync outbox error for", msg.temp_id, syncErr);
+        }
+      }
+    };
+
+    window.addEventListener('online', syncOutbox);
+    syncOutbox();
+
+    return () => {
+      window.removeEventListener('online', syncOutbox);
+    };
+  }, [currentUserId]);
+
+  // Realtime Postgres Changes Subscription to keep Cache & UI updated
+  useEffect(() => {
+    if (!activeChat || !currentUserId) return;
+    const db = getOfflineDb(currentUserId);
+
+    const messageChannel = supabase.channel(`conversation_messages_${activeChat.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'chat_messages',
+        filter: `conversation_id=eq.${activeChat.id}`
+      }, async (payload) => {
+        console.log('Realtime change payload received:', payload);
+        if (payload.eventType === 'INSERT') {
+          const newMsg = payload.new as ChatMessage;
+          const existing = await db.messages.get(newMsg.id);
+          if (!existing) {
+            await db.messages.put(newMsg);
+            setMessages(prev => {
+              if (prev.some(m => m.id === newMsg.id)) return prev;
+              return [...prev, newMsg].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+            });
+          }
+        } else if (payload.eventType === 'UPDATE') {
+          const updatedMsg = payload.new as ChatMessage;
+          await db.messages.put(updatedMsg);
+          setMessages(prev => prev.map(m => m.id === updatedMsg.id ? { ...m, ...updatedMsg } : m));
+        } else if (payload.eventType === 'DELETE') {
+          const deletedId = payload.old.id;
+          await db.messages.delete(deletedId);
+          setMessages(prev => prev.filter(m => m.id !== deletedId));
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(messageChannel);
+    };
+  }, [activeChat, currentUserId]);
+
   const fetchMessagesClient = async (conversationId: string) => {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData?.user) return [];
+    const userId = userData.user.id;
+    const db = getOfflineDb(userId);
 
-    const { data, error } = await supabase
-      .from('chat_messages')
-      .select(`
-        *,
-        sender:profiles!chat_messages_sender_id_fkey(id, name, avatar_url, role),
-        reply_to:chat_messages!reply_to_id(
-          id, content, sender_id, attachment_type, attachment_link,
-          sender:profiles!chat_messages_sender_id_fkey(name)
-        ),
-        reactions:message_reactions(message_id, user_id, emoji)
-      `)
-      .eq('conversation_id', conversationId)
-      .eq('deleted_for_everyone', false)
-      .order('created_at', { ascending: true })
-      .limit(150);
+    // 1. Instantly load cached messages from IndexedDB for zero-latency startup
+    const cachedMsgs = await db.messages.where('conversation_id').equals(conversationId).sortBy('created_at');
+    setMessages(cachedMsgs);
 
-    if (error) {
-      console.error("Messages fetch error detailed:", {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code
-      });
+    // Calculate maximum updated_at timestamp to sync delta logs
+    const latestLocalTime = cachedMsgs.length > 0
+      ? cachedMsgs.reduce((latest, m) => new Date(m.updated_at).getTime() > new Date(latest).getTime() ? m.updated_at : latest, cachedMsgs[0].updated_at)
+      : '1970-01-01T00:00:00.000Z';
+
+    try {
+      // 2. Query delta updates from database
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select(`
+          *,
+          sender:profiles!chat_messages_sender_id_fkey(id, name, avatar_url, role),
+          reply_to:chat_messages!reply_to_id(
+            id, content, sender_id, attachment_type, attachment_link,
+            sender:profiles!chat_messages_sender_id_fkey(name)
+          ),
+          reactions:message_reactions(message_id, user_id, emoji)
+        `)
+        .eq('conversation_id', conversationId)
+        .eq('deleted_for_everyone', false)
+        .gt('updated_at', latestLocalTime)
+        .order('created_at', { ascending: true })
+        .limit(150);
+
+      if (error) {
+        console.error("Delta messages fetch error:", error);
+      } else if (data && data.length > 0) {
+        // 3. Persist new updates to IndexedDB cache
+        for (const msg of data) {
+          await db.messages.put({
+            ...(msg as any),
+            status: 'sent'
+          });
+        }
+      }
+    } catch (netErr) {
+      console.warn("Offline or network error fetching messages, using local cache:", netErr);
     }
-    return (data as unknown as ChatMessage[]) || [];
+
+    // 4. Load full sorted message list from IndexedDB to maintain consistency
+    const finalCached = await db.messages.where('conversation_id').equals(conversationId).sortBy('created_at');
+    return finalCached;
   };
 
   useEffect(() => {
@@ -808,9 +930,10 @@ export default function ChatInterface() {
     const replyId = replyToMessage?.id;
     setReplyToMessage(null);
 
-    const optimisticId = Date.now().toString();
-    const optimisticMessage: ChatMessage = {
-      id: optimisticId,
+    const tempId = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const optimisticMessage: any = {
+      id: tempId,
+      temp_id: tempId,
       conversation_id: activeChat.id,
       sender_id: currentUserId,
       content: content.trim() || null,
@@ -822,32 +945,66 @@ export default function ChatInterface() {
       deleted_for_everyone: false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      status: 'sending',
       reply_to: (replyToMessage as any) || undefined
     };
+
+    // Optimistically write to IndexedDB database
+    const db = getOfflineDb(currentUserId);
+    await db.messages.put(optimisticMessage);
+    await db.outbox.put({
+      temp_id: tempId,
+      conversation_id: activeChat.id,
+      content: content.trim() || null,
+      attachment_type: attachmentType || null,
+      attachment_link: attachmentLink || null,
+      reply_to_id: replyId || null,
+      created_at: optimisticMessage.created_at
+    });
 
     setMessages(prev => [...prev, optimisticMessage]);
 
     try {
-      const { error } = await supabase.from('chat_messages').insert({
-        conversation_id: activeChat.id,
-        sender_id: currentUserId,
-        content: content.trim() || null,
-        attachment_type: attachmentType || null,
-        attachment_link: attachmentLink || null,
-        reply_to_id: replyId || null
-      });
+      const { data: serverMsg, error } = await supabase
+        .from('chat_messages')
+        .insert({
+          conversation_id: activeChat.id,
+          sender_id: currentUserId,
+          content: content.trim() || null,
+          attachment_type: attachmentType || null,
+          attachment_link: attachmentLink || null,
+          reply_to_id: replyId || null
+        })
+        .select(`
+          *,
+          sender:profiles!chat_messages_sender_id_fkey(id, name, avatar_url, role),
+          reply_to:chat_messages!reply_to_id(
+            id, content, sender_id, attachment_type, attachment_link,
+            sender:profiles!chat_messages_sender_id_fkey(name)
+          )
+        `)
+        .single();
 
-      if (error) {
-        console.error('Insert error:', error);
-        setMessages(prev => prev.filter(m => m.id !== optimisticId));
-        return;
+      if (error) throw error;
+
+      if (serverMsg) {
+        // Complete successfully: evict outbox record and update local cache
+        await db.outbox.delete(tempId);
+        await db.messages.delete(tempId);
+        await db.messages.put({
+          ...(serverMsg as any),
+          status: 'sent'
+        });
+
+        // Replace temp optimistic state with server data
+        setMessages(prev => prev.map(m => m.id === tempId ? { ...(serverMsg as any), status: 'sent' } : m));
+        
+        await supabase.from('chat_conversations').update({ updated_at: new Date().toISOString() }).eq('id', activeChat.id);
       }
-
-      await supabase.from('chat_conversations').update({ updated_at: new Date().toISOString() }).eq('id', activeChat.id);
-      fetchMessagesClient(activeChat.id).then(setMessages);
     } catch (err) {
-      console.error(err);
-      setMessages(prev => prev.filter(m => m.id !== optimisticId));
+      console.warn("Failed to deliver message online, queued in outbox:", err);
+      // Keep optimistic message in sending state
+      await db.messages.update(tempId, { status: 'sending' });
     }
   };
 
