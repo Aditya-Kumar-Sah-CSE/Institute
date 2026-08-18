@@ -385,7 +385,7 @@ export default function ChatComposer({
                   key={emoji}
                   type="button"
                   onClick={() => {
-                    setMsgInput(prev => prev + emoji);
+                    setMsgInput(msgInput + emoji);
                     setShowEmojiPicker(false);
                   }}
                   style={{ fontSize: '20px', background: 'none', border: 'none', cursor: 'pointer', padding: '6px', borderRadius: '8px' }}
