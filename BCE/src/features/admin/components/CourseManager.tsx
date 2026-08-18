@@ -6,7 +6,7 @@ import Button from '@/components/ui/Button';
 import { usePathname } from 'next/navigation';
 import { BookOpen } from 'lucide-react';
 import Input, { TextArea, Select } from '@/components/ui/Input';
-import { addCourse, updateCourse, deleteCourse, restoreCourse } from '@/features/admin/actions/course-actions';
+import { addCourse, updateCourse, deleteCourse, restoreCourse, getEligibleFaculty } from '@/features/admin/actions/course-actions';
 import type { Course } from '@/types';
 import './CourseManager.css';
 
@@ -18,7 +18,7 @@ interface CourseManagerProps {
 }
 
 function MultiSelectFacultyDropdown({
-  instructors,
+  instructors: fallbackInstructors,
   selectedIds,
   onChange,
 }: {
@@ -28,8 +28,13 @@ function MultiSelectFacultyDropdown({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [loadedInstructors, setLoadedInstructors] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Close dropdown on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -40,14 +45,73 @@ function MultiSelectFacultyDropdown({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const filteredInstructors = instructors.filter((inst) => {
-    const name = (inst.full_name || inst.name || inst.email || '').toLowerCase();
+  // Debounce the search input
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  // Fetch eligible faculty based on search query
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      setIsLoading(true);
+      setError('');
+      // Request matching profiles, always specifying currently selectedIds so they are included
+      const res = await getEligibleFaculty(debouncedSearch, selectedIds);
+      if (!active) return;
+      setIsLoading(false);
+      if (res.error) {
+        setError(res.error);
+      } else if (res.faculty) {
+        setLoadedInstructors(prev => {
+          const map = new Map<string, any>();
+          // Preserve previously loaded profiles to keep names/emails intact
+          prev.forEach(item => map.set(item.id, item));
+          res.faculty.forEach(item => map.set(item.id, item));
+          return Array.from(map.values());
+        });
+      }
+    }
+    load();
+    return () => { active = false; };
+  }, [debouncedSearch]);
+
+  // Fetch details of selected IDs that aren't loaded in state yet (e.g. from database on edit course)
+  useEffect(() => {
+    const missing = selectedIds.filter(id => !loadedInstructors.some(x => x.id === id));
+    if (missing.length === 0) return;
+
+    let active = true;
+    async function fetchMissing() {
+      const res = await getEligibleFaculty(undefined, missing);
+      if (!active) return;
+      if (res.faculty) {
+        setLoadedInstructors(prev => {
+          const map = new Map<string, any>();
+          prev.forEach(item => map.set(item.id, item));
+          res.faculty.forEach(item => map.set(item.id, item));
+          return Array.from(map.values());
+        });
+      }
+    }
+    fetchMissing();
+    return () => { active = false; };
+  }, [selectedIds]);
+
+  // Client-side local filtering based on input query for instant UI responsiveness
+  const filteredInstructors = loadedInstructors.filter((inst) => {
+    const name = (inst.name || '').toLowerCase();
+    const email = (inst.email || '').toLowerCase();
     const role = (inst.role || '').toLowerCase();
-    const query = search.toLowerCase();
-    return name.includes(query) || role.includes(query);
+    const query = search.toLowerCase().trim();
+    if (!query) return true;
+    return name.includes(query) || email.includes(query) || role.includes(query);
   });
 
-  const selectedInstructors = instructors.filter((inst) => selectedIds.includes(inst.id));
+  const selectedInstructors = loadedInstructors.filter((inst) => selectedIds.includes(inst.id));
 
   const toggleSelect = (id: string) => {
     if (selectedIds.includes(id)) {
@@ -58,7 +122,10 @@ function MultiSelectFacultyDropdown({
   };
 
   const handleSelectAll = () => {
-    onChange(instructors.map((i) => i.id));
+    // Select all currently visible filtered instructors in the list
+    const visibleIds = filteredInstructors.map((inst) => inst.id);
+    const newSelected = Array.from(new Set([...selectedIds, ...visibleIds]));
+    onChange(newSelected);
   };
 
   const handleClearAll = () => {
@@ -108,7 +175,7 @@ function MultiSelectFacultyDropdown({
                   fontWeight: 500
                 }}
               >
-                {inst.full_name || inst.name || inst.email}
+                {inst.name || inst.email}
                 <span
                   onClick={(e) => {
                     e.stopPropagation();
@@ -150,14 +217,14 @@ function MultiSelectFacultyDropdown({
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
-            maxHeight: '240px'
+            maxHeight: '260px'
           }}
         >
           {/* Header Controls */}
           <div style={{ padding: '0.5rem', borderBottom: '1px solid var(--glass-border)', background: 'var(--bg-input)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <input
               type="text"
-              placeholder="🔍 Search faculty or admin..."
+              placeholder="🔍 Search by name or email..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onClick={(e) => e.stopPropagation()}
@@ -174,7 +241,7 @@ function MultiSelectFacultyDropdown({
             />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', padding: '0 2px' }}>
               <span style={{ color: 'var(--text-secondary)' }}>
-                {selectedIds.length} of {instructors.length} selected
+                {selectedIds.length} of {filteredInstructors.length} visible selected
               </span>
               <div style={{ display: 'flex', gap: '0.75rem' }}>
                 <button
@@ -195,15 +262,31 @@ function MultiSelectFacultyDropdown({
             </div>
           </div>
 
+          {/* Sync status */}
+          {isLoading && (
+            <div style={{ padding: '0.375rem 0.75rem', fontSize: '0.7rem', color: 'var(--accent-primary, #6366f1)', textAlign: 'center', background: 'rgba(99, 102, 241, 0.05)' }}>
+              Syncing list with server...
+            </div>
+          )}
+
+          {/* Error notice */}
+          {error && (
+            <div style={{ padding: '0.375rem 0.75rem', fontSize: '0.7rem', color: '#ef4444', textAlign: 'center', background: 'rgba(239, 68, 68, 0.05)' }}>
+              Error: {error}
+            </div>
+          )}
+
           {/* List Options */}
           <div style={{ overflowY: 'auto', flex: 1, padding: '0.25rem 0' }}>
             {filteredInstructors.length === 0 ? (
               <div style={{ padding: '0.75rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                No faculty or admin found.
+                {isLoading ? 'Loading...' : 'No instructors or admins found.'}
               </div>
             ) : (
               filteredInstructors.map((inst) => {
                 const isSelected = selectedIds.includes(inst.id);
+                const roleLower = (inst.role || '').toLowerCase();
+                const roleLabel = roleLower === 'admin' ? 'Admin' : roleLower === 'instructor' ? 'Instructor' : roleLower === 'developer' ? 'Developer' : 'Faculty';
                 return (
                   <div
                     key={inst.id}
@@ -215,7 +298,8 @@ function MultiSelectFacultyDropdown({
                       gap: '0.625rem',
                       cursor: 'pointer',
                       background: isSelected ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
-                      transition: 'background 0.15s ease'
+                      transition: 'background 0.15s ease',
+                      borderBottom: '1px solid rgba(255, 255, 255, 0.03)'
                     }}
                   >
                     <input
@@ -224,18 +308,29 @@ function MultiSelectFacultyDropdown({
                       onChange={() => {}}
                       style={{ cursor: 'pointer' }}
                     />
-                    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: '2px' }}>
                       <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: isSelected ? 600 : 400 }}>
-                        {inst.full_name || inst.name || inst.email}
+                        👤 {inst.name}
                       </span>
-                      {inst.role && (
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                          Role: {inst.role}
-                        </span>
-                      )}
+                      <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
+                        📧 {inst.email}
+                      </span>
                     </div>
+                    <span style={{
+                      fontSize: '0.625rem',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      background: roleLower === 'admin' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+                      color: roleLower === 'admin' ? '#ef4444' : '#10b981',
+                      border: roleLower === 'admin' ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(16, 185, 129, 0.4)',
+                      fontWeight: 'bold',
+                      minWidth: '70px',
+                      textAlign: 'center'
+                    }}>
+                      {roleLabel}
+                    </span>
                     {isSelected && (
-                      <span style={{ color: 'var(--accent-primary, #6366f1)', fontSize: '0.85rem', fontWeight: 'bold' }}>✓</span>
+                      <span style={{ color: 'var(--accent-primary, #6366f1)', fontSize: '0.85rem', fontWeight: 'bold', marginLeft: '4px' }}>✓</span>
                     )}
                   </div>
                 );
