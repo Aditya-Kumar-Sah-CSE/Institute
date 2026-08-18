@@ -543,7 +543,7 @@ export default function ChatInterface() {
       deleted_for_everyone: false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      reply_to: replyToMessage ? { id: replyToMessage.id, content: replyToMessage.content, sender: replyToMessage.sender } : undefined
+      reply_to: (replyToMessage as any) || undefined
     };
 
     setMessages(prev => [...prev, optimisticMessage]);
