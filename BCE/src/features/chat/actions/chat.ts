@@ -61,7 +61,7 @@ export async function fetchChatMessages(conversationId: string): Promise<ChatMes
     .select(`
       *,
       sender:profiles!chat_messages_sender_id_fkey(id, name, avatar_url, role),
-      reply_to:chat_messages!chat_messages_reply_to_id_fkey(
+      reply_to:chat_messages!reply_to_id(
         id, content, sender_id, attachment_type, attachment_link,
         sender:profiles!chat_messages_sender_id_fkey(name)
       ),

@@ -167,7 +167,7 @@ export default function ChatInterface() {
       .select(`
         *,
         sender:profiles!chat_messages_sender_id_fkey(id, name, avatar_url, role),
-        reply_to:chat_messages!chat_messages_reply_to_id_fkey(
+        reply_to:chat_messages!reply_to_id(
           id, content, sender_id, attachment_type, attachment_link,
           sender:profiles!chat_messages_sender_id_fkey(name)
         ),
@@ -178,7 +178,14 @@ export default function ChatInterface() {
       .order('created_at', { ascending: true })
       .limit(150);
 
-    if (error) console.error("Messages fetch error:", error);
+    if (error) {
+      console.error("Messages fetch error detailed:", {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+    }
     return (data as unknown as ChatMessage[]) || [];
   };
 
