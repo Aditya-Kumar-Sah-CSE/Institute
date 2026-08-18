@@ -38,7 +38,7 @@ export default function CallModal({ type, peerName, peerAvatar, onClose }: CallM
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      justify: 'space-between',
+      justifyContent: 'space-between',
       padding: '40px 20px',
       color: '#fff',
       animation: 'fadeIn 0.3s ease-out'
