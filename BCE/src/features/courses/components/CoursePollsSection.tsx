@@ -33,23 +33,33 @@ export default async function CoursePollsSection({ courseId, currentUserId, isEn
     return null;
   }
 
-  if (!polls || polls.length === 0) {
-    return (
-      <div style={{ marginBottom: 'var(--space-2xl)' }}>
-        {canAlert && <CreateAlertSection courseId={courseId} />}
-        <CreatePollWidget courseId={courseId} />
-        <div style={{ padding: 'var(--space-lg)', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(255,255,255,0.05)' }}>
-          <p style={{ color: 'var(--text-muted)' }}>No active polls for this course.</p>
-        </div>
-      </div>
-    );
-  }
+  const hasPollContent = polls && polls.length > 0;
 
   return (
     <div style={{ marginBottom: 'var(--space-2xl)' }}>
-      {canAlert && <CreateAlertSection courseId={courseId} />}
-      <CreatePollWidget courseId={courseId} />
-      <CoursePollsClient polls={polls} currentUserId={currentUserId} isFaculty={isFaculty} />
+      {/* Desktop: 50/50 two-column layout for Alert + Polls creation */}
+      <div className="polls-desktop-grid">
+        {/* Left column: Emergency Alert */}
+        {canAlert && (
+          <div className="polls-desktop-col-left">
+            <CreateAlertSection courseId={courseId} />
+          </div>
+        )}
+
+        {/* Right column: Course Polls creation */}
+        <div className={`polls-desktop-col-right ${!canAlert ? 'polls-desktop-col-full' : ''}`}>
+          <CreatePollWidget courseId={courseId} />
+        </div>
+      </div>
+
+      {/* Full-width: Poll results list (Active/Ended tabs) */}
+      {hasPollContent ? (
+        <CoursePollsClient polls={polls} currentUserId={currentUserId} isFaculty={isFaculty} />
+      ) : (
+        <div style={{ padding: 'var(--space-lg)', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(255,255,255,0.05)' }}>
+          <p style={{ color: 'var(--text-muted)' }}>No active polls for this course.</p>
+        </div>
+      )}
     </div>
   );
 }

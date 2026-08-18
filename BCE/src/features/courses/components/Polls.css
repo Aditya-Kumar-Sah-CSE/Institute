@@ -1,3 +1,8 @@
+/* ==========================================
+   Polls.css — Desktop 50/50 layout + mobile fixes
+   ========================================== */
+
+/* ─── Base resets ─── */
 .create-poll-widget-header,
 .create-poll-form,
 .create-poll-form-header,
@@ -44,6 +49,69 @@
   max-width: 100%;
 }
 
+/* ─── Desktop grid: stacked by default (mobile) ─── */
+.polls-desktop-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.polls-desktop-col-left,
+.polls-desktop-col-right {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.polls-desktop-col-full {
+  width: 100%;
+}
+
+/* ─── Desktop: 50/50 two-column side-by-side ─── */
+@media (min-width: 769px) {
+  .polls-desktop-grid {
+    flex-direction: row;
+    gap: var(--space-lg, 1.5rem);
+    align-items: flex-start;
+  }
+
+  .polls-desktop-col-left {
+    flex: 1 1 50%;
+    max-width: 50%;
+  }
+
+  .polls-desktop-col-right {
+    flex: 1 1 50%;
+    max-width: 50%;
+  }
+
+  .polls-desktop-col-full {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
+
+  /* Remove bottom margin from alert card on desktop so both columns align */
+  .polls-desktop-col-left .desktop-50-card {
+    margin-bottom: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Compact the poll creation form card on desktop */
+  .polls-desktop-col-right .create-poll-form {
+    margin-bottom: 0;
+  }
+
+  /* Make Active/Ended tabs full-width below the grid */
+  .course-polls-client {
+    width: 100%;
+  }
+}
+
+/* ─── Mobile small ─── */
 @media (max-width: 480px) {
   .create-poll-widget-header-compact,
   .create-poll-form-header,
@@ -87,6 +155,7 @@
   }
 }
 
+/* ─── Mobile / tablet glass effect ─── */
 @media (max-width: 768px) {
   .create-poll-form,
   .curriculum-polls-panel {
