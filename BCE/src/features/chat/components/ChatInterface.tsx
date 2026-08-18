@@ -34,6 +34,7 @@ interface CallSession {
   conversationId: string;
   callState: CallState;
   offer?: RTCSessionDescriptionInit;
+  permissionState: 'granted' | 'prompt' | 'denied';
 }
 
 export default function ChatInterface() {
@@ -77,6 +78,16 @@ export default function ChatInterface() {
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const audioToneRef = useRef<{ stop: () => void } | null>(null);
   const supabase = createClient();
+
+  // WebRTC References for State-Sync and Timeouts
+  const callSessionRef = useRef<CallSession | null>(null);
+  const ringTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Sync state to ref to avoid stale closures in event subscriptions
+  useEffect(() => {
+    callSessionRef.current = callSession;
+  }, [callSession]);
 
   // Web Audio synth ringtone helper
   const playTone = (kind: 'dialing' | 'ringing') => {
@@ -238,7 +249,8 @@ export default function ChatInterface() {
     signalChannel
       .on('broadcast', { event: 'call-offer' }, async ({ payload }) => {
         // Handle incoming call offer
-        if (callSession) {
+        const activeSession = callSessionRef.current;
+        if (activeSession) {
           // Reject as busy if already in call
           signalChannel.send({
             type: 'broadcast',
@@ -246,6 +258,20 @@ export default function ChatInterface() {
             payload: { callId: payload.callId, callerId: payload.callerId, reason: 'busy' }
           });
           return;
+        }
+
+        let initialPermState: 'granted' | 'prompt' | 'denied' = 'prompt';
+        try {
+          const micStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+          initialPermState = micStatus.state;
+          if (payload.callType === 'video') {
+            const camStatus = await navigator.permissions.query({ name: 'camera' as PermissionName });
+            if (camStatus.state === 'denied' || micStatus.state === 'denied') {
+              initialPermState = 'denied';
+            }
+          }
+        } catch (e) {
+          initialPermState = 'prompt';
         }
 
         setCallSession({
@@ -257,22 +283,33 @@ export default function ChatInterface() {
           peerAvatar: payload.callerAvatar,
           conversationId: payload.conversationId,
           callState: 'ringing',
-          offer: payload.offer
+          offer: payload.offer,
+          permissionState: initialPermState
         });
         playTone('ringing');
       })
       .on('broadcast', { event: 'call-answer' }, async ({ payload }) => {
+        const activeSession = callSessionRef.current;
+        if (!activeSession || activeSession.callId !== payload.callId) return;
+
         if (peerConnectionRef.current && payload.answer) {
           try {
             await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(payload.answer));
             setCallSession(prev => prev ? { ...prev, callState: 'connected' } : null);
             stopTone();
+            if (ringTimeoutRef.current) {
+              clearTimeout(ringTimeoutRef.current);
+              ringTimeoutRef.current = null;
+            }
           } catch (e) {
             console.error('Remote description error:', e);
           }
         }
       })
       .on('broadcast', { event: 'ice-candidate' }, async ({ payload }) => {
+        const activeSession = callSessionRef.current;
+        if (!activeSession || activeSession.callId !== payload.callId) return;
+
         if (peerConnectionRef.current && payload.candidate) {
           try {
             await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(payload.candidate));
@@ -282,14 +319,21 @@ export default function ChatInterface() {
         }
       })
       .on('broadcast', { event: 'call-reject' }, ({ payload }) => {
+        const activeSession = callSessionRef.current;
+        if (!activeSession || activeSession.callId !== payload.callId) return;
+
         stopTone();
         setCallSession(prev => prev ? { ...prev, callState: payload.reason === 'busy' ? 'failed' : 'rejected' } : null);
-        setTimeout(() => cleanupCall(), 1500);
+        setPermissionError(payload.reason === 'busy' ? 'Peer is busy in another call.' : 'Call declined.');
+        setTimeout(() => cleanupCall(), 2000);
       })
-      .on('broadcast', { event: 'call-end' }, () => {
+      .on('broadcast', { event: 'call-end' }, ({ payload }) => {
+        const activeSession = callSessionRef.current;
+        if (!activeSession || activeSession.callId !== payload.callId) return;
+
         stopTone();
         setCallSession(prev => prev ? { ...prev, callState: 'ended' } : null);
-        setTimeout(() => cleanupCall(), 1000);
+        setTimeout(() => cleanupCall(), 1500);
       })
       .subscribe();
 
@@ -298,21 +342,33 @@ export default function ChatInterface() {
     return () => {
       supabase.removeChannel(signalChannel);
     };
-  }, [currentUserId, callSession]);
+  }, [currentUserId]);
 
   // Clean WebRTC PeerConnection and media tracks
   const cleanupCall = () => {
     stopTone();
+    if (ringTimeoutRef.current) {
+      clearTimeout(ringTimeoutRef.current);
+      ringTimeoutRef.current = null;
+    }
+    if (connectionTimeoutRef.current) {
+      clearTimeout(connectionTimeoutRef.current);
+      connectionTimeoutRef.current = null;
+    }
     if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
+      localStream.getTracks().forEach(track => {
+        try { track.stop(); } catch (e) {}
+      });
       setLocalStream(null);
     }
     if (remoteStream) {
-      remoteStream.getTracks().forEach(track => track.stop());
+      remoteStream.getTracks().forEach(track => {
+        try { track.stop(); } catch (e) {}
+      });
       setRemoteStream(null);
     }
     if (peerConnectionRef.current) {
-      peerConnectionRef.current.close();
+      try { peerConnectionRef.current.close(); } catch (e) {}
       peerConnectionRef.current = null;
     }
     setCallSession(null);
@@ -330,11 +386,12 @@ export default function ChatInterface() {
     });
 
     pc.onicecandidate = (event) => {
-      if (event.candidate && peerSignalChannelRef.current) {
+      const activeSession = callSessionRef.current;
+      if (event.candidate && activeSession && peerSignalChannelRef.current) {
         supabase.channel(`call_signaling_${peerId}`).send({
           type: 'broadcast',
           event: 'ice-candidate',
-          payload: { candidate: event.candidate, senderId: currentUserId }
+          payload: { candidate: event.candidate, senderId: currentUserId, callId: activeSession.callId }
         });
       }
     };
@@ -345,8 +402,223 @@ export default function ChatInterface() {
       }
     };
 
+    pc.oniceconnectionstatechange = () => {
+      console.log('WebRTC ICE State:', pc.iceConnectionState);
+      if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
+        if (pc.iceConnectionState === 'failed') {
+          setCallSession(prev => prev ? { ...prev, callState: 'failed' } : null);
+          setPermissionError('WebRTC connection failed. ICE candidate negotiation failed.');
+          setTimeout(() => cleanupCall(), 3000);
+        }
+      }
+    };
+
+    pc.onconnectionstatechange = () => {
+      console.log('WebRTC Connection State:', pc.connectionState);
+      if (pc.connectionState === 'connected') {
+        if (connectionTimeoutRef.current) {
+          clearTimeout(connectionTimeoutRef.current);
+          connectionTimeoutRef.current = null;
+        }
+        if (ringTimeoutRef.current) {
+          clearTimeout(ringTimeoutRef.current);
+          ringTimeoutRef.current = null;
+        }
+      } else if (pc.connectionState === 'failed') {
+        setCallSession(prev => prev ? { ...prev, callState: 'failed' } : null);
+        setPermissionError('Call connection failure.');
+        setTimeout(() => cleanupCall(), 3000);
+      } else if (pc.connectionState === 'closed') {
+        cleanupCall();
+      }
+    };
+
     peerConnectionRef.current = pc;
     return pc;
+  };
+
+  // Verify secure context (HTTPS)
+  const isSecureContextActive = () => {
+    if (typeof window === 'undefined') return false;
+    return window.isSecureContext || window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  };
+
+  // Secure Media Permission State Audit
+  const checkMediaPermissions = async (type: 'video' | 'audio'): Promise<'granted' | 'prompt' | 'denied'> => {
+    if (!isSecureContextActive()) {
+      return 'denied';
+    }
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices) {
+      return 'denied';
+    }
+
+    try {
+      const micStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+      let micState = micStatus.state;
+
+      let camState: PermissionState = 'granted';
+      if (type === 'video') {
+        const camStatus = await navigator.permissions.query({ name: 'camera' as PermissionName });
+        camState = camStatus.state;
+      }
+
+      if (micState === 'denied' || camState === 'denied') {
+        return 'denied';
+      }
+      if (micState === 'prompt' || camState === 'prompt') {
+        return 'prompt';
+      }
+      return 'granted';
+    } catch (e) {
+      return 'prompt';
+    }
+  };
+
+  // Secure getUserMedia constraints acquisition
+  const acquireLocalStream = async (type: 'video' | 'audio'): Promise<MediaStream> => {
+    if (!isSecureContextActive()) {
+      throw new Error('Calling is only supported inside a secure context (HTTPS or localhost).');
+    }
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices) {
+      throw new Error('Calling is not supported in this browser version.');
+    }
+
+    const constraints: MediaStreamConstraints = {
+      audio: true,
+      video: type === 'video' ? { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } } : false
+    };
+
+    try {
+      return await navigator.mediaDevices.getUserMedia(constraints);
+    } catch (err: any) {
+      console.error('getUserMedia device acquisition failed:', err);
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        throw { name: 'NotAllowedError', message: 'Access to microphone or camera was denied by browser/device settings.' };
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        throw { name: 'NotFoundError', message: 'No input device (microphone or camera) was found.' };
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        throw { name: 'NotReadableError', message: 'Mic/camera is already in use by another app.' };
+      } else if (err.name === 'SecurityError') {
+        throw { name: 'SecurityError', message: 'Secure origin constraint error.' };
+      } else {
+        throw { name: 'AbortError', message: err.message || 'Media device acquisition error.' };
+      }
+    }
+  };
+
+  // Outgoing WebRTC stream helper
+  const initiateCallWithStream = async (type: 'video' | 'audio', peerId: string, callId: string) => {
+    if (ringTimeoutRef.current) clearTimeout(ringTimeoutRef.current);
+    ringTimeoutRef.current = setTimeout(() => {
+      console.warn('Call ringing timeout. Recipient did not answer.');
+      handleEndCall();
+    }, 45000);
+
+    playTone('dialing');
+
+    try {
+      const stream = await acquireLocalStream(type);
+      setLocalStream(stream);
+      setPermissionError(null);
+      setCallSession(prev => prev ? { ...prev, permissionState: 'granted' } : null);
+
+      const pc = createPeerConnection(peerId);
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      if (peerSignalChannelRef.current) {
+        supabase.channel(`call_signaling_${peerId}`).send({
+          type: 'broadcast',
+          event: 'call-offer',
+          payload: {
+            callId,
+            conversationId: activeChat?.id,
+            callerId: currentUserId,
+            callerName: currentUserProfile?.name || 'User',
+            callerAvatar: currentUserProfile?.avatar_url || null,
+            callType: type,
+            offer
+          }
+        });
+      }
+    } catch (err: any) {
+      console.error('initiateCallWithStream failed:', err);
+      stopTone();
+      if (ringTimeoutRef.current) {
+        clearTimeout(ringTimeoutRef.current);
+        ringTimeoutRef.current = null;
+      }
+
+      const errorMsg = err.message || 'Media device not available.';
+      if (err.name === 'NotAllowedError') {
+        setCallSession(prev => prev ? { ...prev, permissionState: 'denied', callState: 'failed' } : null);
+      } else {
+        setCallSession(prev => prev ? { ...prev, callState: 'failed' } : null);
+      }
+      setPermissionError(errorMsg);
+      setTimeout(() => cleanupCall(), 5000);
+    }
+  };
+
+  // Incoming WebRTC stream helper
+  const acceptCallWithStream = async () => {
+    if (!callSession || !callSession.offer) return;
+    stopTone();
+    setCallSession(prev => prev ? { ...prev, callState: 'connecting', permissionState: 'granted' } : null);
+
+    if (connectionTimeoutRef.current) clearTimeout(connectionTimeoutRef.current);
+    connectionTimeoutRef.current = setTimeout(() => {
+      if (peerConnectionRef.current?.connectionState !== 'connected') {
+        console.warn('WebRTC connection establishment timed out.');
+        setCallSession(prev => prev ? { ...prev, callState: 'failed' } : null);
+        setPermissionError('WebRTC connection failed (timeout).');
+        setTimeout(() => cleanupCall(), 3000);
+      }
+    }, 15000);
+
+    try {
+      const stream = await acquireLocalStream(callSession.type);
+      setLocalStream(stream);
+      setPermissionError(null);
+
+      const pc = createPeerConnection(callSession.peerId);
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+      await pc.setRemoteDescription(new RTCSessionDescription(callSession.offer));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+
+      if (peerSignalChannelRef.current) {
+        supabase.channel(`call_signaling_${callSession.peerId}`).send({
+          type: 'broadcast',
+          event: 'call-answer',
+          payload: {
+            callId: callSession.callId,
+            conversationId: callSession.conversationId,
+            answer
+          }
+        });
+      }
+
+      setCallSession(prev => prev ? { ...prev, callState: 'connected' } : null);
+    } catch (err: any) {
+      console.error('acceptCallWithStream failed:', err);
+      if (connectionTimeoutRef.current) {
+        clearTimeout(connectionTimeoutRef.current);
+        connectionTimeoutRef.current = null;
+      }
+
+      const errorMsg = err.message || 'Device configuration error.';
+      if (err.name === 'NotAllowedError') {
+        setCallSession(prev => prev ? { ...prev, permissionState: 'denied', callState: 'failed' } : null);
+      } else {
+        setCallSession(prev => prev ? { ...prev, callState: 'failed' } : null);
+      }
+      setPermissionError(errorMsg);
+      setTimeout(() => cleanupCall(), 5000);
+    }
   };
 
   // Start Outbound WebRTC Call
@@ -365,6 +637,8 @@ export default function ChatInterface() {
     const peerName = peer.profile?.name || 'User';
     const peerAvatar = peer.profile?.avatar_url;
 
+    const permState = await checkMediaPermissions(type);
+
     setCallSession({
       callId: newCallId,
       type,
@@ -373,47 +647,12 @@ export default function ChatInterface() {
       peerName,
       peerAvatar,
       conversationId: activeChat.id,
-      callState: 'calling'
+      callState: 'calling',
+      permissionState: permState
     });
-    playTone('dialing');
 
-    try {
-      // Request User Media
-      const constraints: MediaStreamConstraints = {
-        audio: true,
-        video: type === 'video' ? { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } } : false
-      };
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      setLocalStream(stream);
-
-      // Create WebRTC PeerConnection
-      const pc = createPeerConnection(peer.user_id);
-      stream.getTracks().forEach(track => pc.addTrack(track, stream));
-
-      // Create Offer
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-
-      // Send Signal Offer
-      supabase.channel(`call_signaling_${peer.user_id}`).send({
-        type: 'broadcast',
-        event: 'call-offer',
-        payload: {
-          callId: newCallId,
-          conversationId: activeChat.id,
-          callerId: currentUserId,
-          callerName: currentUserProfile?.name || 'User',
-          callerAvatar: currentUserProfile?.avatar_url || null,
-          callType: type,
-          offer
-        }
-      });
-    } catch (err: any) {
-      console.error('Media permission error:', err);
-      stopTone();
-      setPermissionError(err.name === 'NotAllowedError' ? 'Microphone or camera permission denied by browser.' : 'Media device not available.');
-      setCallSession(prev => prev ? { ...prev, callState: 'failed' } : null);
-      setTimeout(() => cleanupCall(), 3000);
+    if (permState === 'granted') {
+      await initiateCallWithStream(type, peer.user_id, newCallId);
     }
   };
 
@@ -422,40 +661,40 @@ export default function ChatInterface() {
     if (!callSession || !callSession.offer) return;
     stopTone();
 
-    setCallSession(prev => prev ? { ...prev, callState: 'connecting' } : null);
+    const permState = await checkMediaPermissions(callSession.type);
+    setCallSession(prev => prev ? { ...prev, permissionState: permState } : null);
 
-    try {
-      const constraints: MediaStreamConstraints = {
-        audio: true,
-        video: callSession.type === 'video' ? { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } } : false
-      };
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      setLocalStream(stream);
+    if (permState === 'granted') {
+      await acceptCallWithStream();
+    }
+  };
 
-      const pc = createPeerConnection(callSession.peerId);
-      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+  const handleContinuePermission = async () => {
+    if (!callSession) return;
+    if (callSession.isIncoming) {
+      await acceptCallWithStream();
+    } else {
+      await initiateCallWithStream(callSession.type, callSession.peerId, callSession.callId);
+    }
+  };
 
-      await pc.setRemoteDescription(new RTCSessionDescription(callSession.offer));
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
+  const handleRetryPermission = async () => {
+    if (!callSession) return;
+    const permState = await checkMediaPermissions(callSession.type);
+    setCallSession(prev => prev ? { ...prev, permissionState: permState } : null);
 
-      // Send Signal Answer
-      supabase.channel(`call_signaling_${callSession.peerId}`).send({
-        type: 'broadcast',
-        event: 'call-answer',
-        payload: {
-          callId: callSession.callId,
-          conversationId: callSession.conversationId,
-          answer
-        }
-      });
-
-      setCallSession(prev => prev ? { ...prev, callState: 'connected' } : null);
-    } catch (err: any) {
-      console.error('Accept call error:', err);
-      setPermissionError(err.name === 'NotAllowedError' ? 'Permission denied.' : 'Device error.');
-      setCallSession(prev => prev ? { ...prev, callState: 'failed' } : null);
-      setTimeout(() => cleanupCall(), 3000);
+    if (permState === 'granted') {
+      if (callSession.isIncoming) {
+        await acceptCallWithStream();
+      } else {
+        await initiateCallWithStream(callSession.type, callSession.peerId, callSession.callId);
+      }
+    } else {
+      if (callSession.isIncoming) {
+        await acceptCallWithStream();
+      } else {
+        await initiateCallWithStream(callSession.type, callSession.peerId, callSession.callId);
+      }
     }
   };
 
@@ -891,12 +1130,15 @@ export default function ChatInterface() {
           localStream={localStream}
           remoteStream={remoteStream}
           permissionError={permissionError}
+          permissionState={callSession.permissionState}
           onAccept={handleAcceptCall}
           onReject={handleRejectCall}
           onEndCall={handleEndCall}
           onToggleMic={handleToggleMic}
           onToggleCamera={handleToggleCamera}
           onSwitchCamera={handleSwitchCamera}
+          onContinuePermission={handleContinuePermission}
+          onRetryPermission={handleRetryPermission}
         />
       )}
 

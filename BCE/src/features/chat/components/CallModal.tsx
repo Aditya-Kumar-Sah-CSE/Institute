@@ -23,12 +23,15 @@ interface CallModalProps {
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
   permissionError: string | null;
+  permissionState: 'granted' | 'prompt' | 'denied';
   onAccept: () => void;
   onReject: () => void;
   onEndCall: () => void;
   onToggleMic: (isMuted: boolean) => void;
   onToggleCamera: (isOff: boolean) => void;
   onSwitchCamera?: () => void;
+  onContinuePermission: () => void;
+  onRetryPermission: () => void;
 }
 
 export default function CallModal({
@@ -44,12 +47,15 @@ export default function CallModal({
   localStream,
   remoteStream,
   permissionError,
+  permissionState,
   onAccept,
   onReject,
   onEndCall,
   onToggleMic,
   onToggleCamera,
-  onSwitchCamera
+  onSwitchCamera,
+  onContinuePermission,
+  onRetryPermission
 }: CallModalProps) {
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(type === 'audio');
@@ -133,6 +139,149 @@ export default function CallModal({
       userSelect: 'none',
       animation: 'fadeIn 0.25s ease-out'
     }}>
+      {/* Custom Permission Overlay */}
+      {permissionState !== 'granted' && (
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(10, 12, 20, 0.95)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px',
+          zIndex: 100000,
+          textAlign: 'center',
+          backdropFilter: 'blur(10px)'
+        }}>
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.03)',
+            border: '1px solid var(--glass-border)',
+            borderRadius: '24px',
+            padding: '32px 24px',
+            maxWidth: '380px',
+            width: '100%',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '16px'
+          }}>
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              background: permissionState === 'denied' ? 'rgba(255, 59, 48, 0.1)' : 'rgba(0, 240, 255, 0.1)',
+              border: permissionState === 'denied' ? '1px solid #ff3b30' : '1px solid var(--neon-cyan)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '8px'
+            }}>
+              {permissionState === 'denied' ? (
+                <AlertTriangle size={32} color="#ff3b30" />
+              ) : type === 'video' ? (
+                <VideoIcon size={32} color="var(--neon-cyan)" />
+              ) : (
+                <Mic size={32} color="var(--neon-cyan)" />
+              )}
+            </div>
+
+            <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#fff', margin: 0 }}>
+              {permissionState === 'denied' 
+                ? `${type === 'video' ? 'Camera/Mic' : 'Microphone'} Access Blocked` 
+                : `${type === 'video' ? 'Camera/Mic' : 'Microphone'} Permission Needed`}
+            </h3>
+
+            <p style={{ fontSize: '13px', color: '#a0aec0', lineHeight: 1.6, margin: 0 }}>
+              {permissionState === 'denied' 
+                ? `Chrome needs permission to access your ${type === 'video' ? 'camera and microphone' : 'microphone'}. Please update your Chrome Site Settings to allow access and try again.`
+                : `Chrome needs permission to access your ${type === 'video' ? 'camera and microphone' : 'microphone'} for this site to establish the call.`}
+            </p>
+
+            {permissionState === 'denied' && (
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid rgba(255, 255, 255, 0.05)',
+                borderRadius: '12px',
+                padding: '12px',
+                fontSize: '11px',
+                color: '#718096',
+                textAlign: 'left',
+                width: '100%',
+                lineHeight: 1.4
+              }}>
+                <strong>How to unblock on Chrome (Android/Desktop):</strong>
+                <ol style={{ margin: '6px 0 0 16px', padding: 0 }}>
+                  <li>Tap the <strong>Lock / Settings icon</strong> to the left of the URL bar.</li>
+                  <li>Toggle the <strong>Microphone</strong> (and <strong>Camera</strong>) to <strong>Allow</strong>.</li>
+                  <li>Return here and tap <strong>Retry Permission</strong>.</li>
+                </ol>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '12px', width: '100%', marginTop: '8px' }}>
+              {permissionState === 'prompt' ? (
+                <button
+                  type="button"
+                  onClick={onContinuePermission}
+                  style={{
+                    flex: 1,
+                    background: 'var(--neon-cyan)',
+                    color: '#000',
+                    border: 'none',
+                    borderRadius: '12px',
+                    padding: '12px',
+                    fontWeight: 700,
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    boxShadow: '0 0 15px rgba(0, 240, 255, 0.4)'
+                  }}
+                >
+                  Continue
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onRetryPermission}
+                  style={{
+                    flex: 1,
+                    background: 'var(--neon-cyan)',
+                    color: '#000',
+                    border: 'none',
+                    borderRadius: '12px',
+                    padding: '12px',
+                    fontWeight: 700,
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    boxShadow: '0 0 15px rgba(0, 240, 255, 0.4)'
+                  }}
+                >
+                  Retry Permission
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={isIncoming ? onReject : onEndCall}
+                style={{
+                  flex: 1,
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  color: '#fff',
+                  border: '1px solid var(--glass-border)',
+                  borderRadius: '12px',
+                  padding: '12px',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Hidden audio element for remote audio stream during audio calls */}
       <audio ref={remoteAudioRef} autoPlay playsInline />
 
