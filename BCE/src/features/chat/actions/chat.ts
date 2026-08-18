@@ -24,7 +24,7 @@ export async function fetchUserChats(): Promise<ChatConversation[]> {
     .select(`
       *,
       members:chat_members(
-        conversation_id, user_id, role, last_read_message_id, joined_at,
+        conversation_id, user_id, role, last_read_message_id, joined_at, is_pinned,
         profile:profiles!chat_members_user_id_fkey(id, name, avatar_url, role, level)
       )
     `)

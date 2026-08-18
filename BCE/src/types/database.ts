@@ -232,6 +232,7 @@ export interface ChatMember {
   mute_until: string | null;
   last_read_message_id: string | null;
   joined_at: string;
+  is_pinned?: boolean;
   
   profile?: Profile;
 }

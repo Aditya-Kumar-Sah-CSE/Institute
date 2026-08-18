@@ -40,35 +40,42 @@ export default function ChatHeader({
 
   return (
     <div style={{
-      height: '64px',
+      minHeight: '64px',
+      height: 'auto',
+      paddingTop: 'calc(env(safe-area-inset-top, 0px) + 6px)',
+      paddingBottom: '6px',
       borderBottom: '1px solid var(--border-divider)',
       display: 'flex',
       alignItems: 'center',
-      padding: '0 16px',
+      paddingLeft: '12px',
+      paddingRight: '12px',
       justifyContent: 'space-between',
       background: 'var(--bg-secondary)',
       position: 'sticky',
       top: 0,
       zIndex: 20,
-      boxShadow: '0 2px 10px rgba(0,0,0,0.2)'
+      boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+      boxSizing: 'border-box',
+      width: '100%',
+      overflow: 'hidden'
     }}>
       {/* Left Avatar & Name */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
         <button 
           className="mobile-back-btn" 
           onClick={onBack}
-          style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', padding: '6px', borderRadius: '50%' }}
+          style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', padding: '6px', borderRadius: '50%', flexShrink: 0, marginRight: '2px' }}
           aria-label="Back to chats"
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={18} />
         </button>
 
         <div 
           onClick={onToggleInfo}
           style={{
             position: 'relative',
-            width: '42px',
-            height: '42px',
+            width: '38px',
+            height: '38px',
             borderRadius: '50%',
             background: 'var(--bg-elevated)',
             display: 'flex',
@@ -84,24 +91,24 @@ export default function ChatHeader({
           {!isGroup && isPeerOnline && (
             <span style={{
               position: 'absolute',
-              bottom: 2,
-              right: 2,
-              width: 10,
-              height: 10,
+              bottom: 1,
+              right: 1,
+              width: 9,
+              height: 9,
               borderRadius: '50%',
               background: 'var(--neon-lime)',
-              border: '2px solid var(--bg-secondary)',
-              boxShadow: '0 0 6px var(--neon-lime)'
+              border: '1.5px solid var(--bg-secondary)',
+              boxShadow: '0 0 4px var(--neon-lime)'
             }} />
           )}
         </div>
 
-        <div style={{ minWidth: 0, cursor: 'pointer' }} onClick={onToggleInfo}>
-          <h3 style={{ margin: 0, fontWeight: 'bold', color: 'var(--text-primary)', fontSize: '15px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ minWidth: 0, cursor: 'pointer', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }} onClick={onToggleInfo}>
+          <h3 style={{ margin: 0, fontWeight: 'bold', color: 'var(--text-primary)', fontSize: '14.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: '1.2' }}>
             {chatTitle}
           </h3>
 
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
             {isSomeoneTyping ? (
               <span style={{ color: 'var(--neon-cyan)', fontWeight: 600, animation: 'pulse 1.5s infinite' }}>typing...</span>
             ) : isGroup ? (
@@ -116,13 +123,13 @@ export default function ChatHeader({
       </div>
 
       {/* Right Header Actions (Search, Video Call, Audio Call, Info) */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0 }}>
         {/* Search */}
         <button 
           onClick={onToggleSearch}
           style={{
-            width: '40px',
-            height: '40px',
+            width: '36px',
+            height: '36px',
             borderRadius: '50%',
             background: 'transparent',
             border: 'none',
@@ -131,21 +138,22 @@ export default function ChatHeader({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            flexShrink: 0
           }}
           title="Search Messages"
           onMouseOver={e => e.currentTarget.style.color = 'var(--neon-cyan)'}
           onMouseOut={e => e.currentTarget.style.color = 'var(--text-primary)'}
         >
-          <Search size={19} />
+          <Search size={18} />
         </button>
 
         {/* Video Call */}
         <button 
           onClick={() => onStartCall('video')}
           style={{
-            width: '40px',
-            height: '40px',
+            width: '36px',
+            height: '36px',
             borderRadius: '50%',
             background: 'transparent',
             border: 'none',
@@ -154,21 +162,22 @@ export default function ChatHeader({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            flexShrink: 0
           }}
           title="Video Call"
           onMouseOver={e => e.currentTarget.style.color = 'var(--neon-cyan)'}
           onMouseOut={e => e.currentTarget.style.color = 'var(--text-primary)'}
         >
-          <Video size={19} />
+          <Video size={18} />
         </button>
 
         {/* Voice Call */}
         <button 
           onClick={() => onStartCall('audio')}
           style={{
-            width: '40px',
-            height: '40px',
+            width: '36px',
+            height: '36px',
             borderRadius: '50%',
             background: 'transparent',
             border: 'none',
@@ -177,21 +186,22 @@ export default function ChatHeader({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            flexShrink: 0
           }}
           title="Voice Call"
           onMouseOver={e => e.currentTarget.style.color = 'var(--neon-cyan)'}
           onMouseOut={e => e.currentTarget.style.color = 'var(--text-primary)'}
         >
-          <Phone size={19} />
+          <Phone size={18} />
         </button>
 
         {/* Info Drawer */}
         <button 
           onClick={onToggleInfo}
           style={{
-            width: '40px',
-            height: '40px',
+            width: '36px',
+            height: '36px',
             borderRadius: '50%',
             background: 'transparent',
             border: 'none',
@@ -200,13 +210,14 @@ export default function ChatHeader({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            flexShrink: 0
           }}
           title="Info & Media"
           onMouseOver={e => e.currentTarget.style.color = 'var(--neon-cyan)'}
           onMouseOut={e => e.currentTarget.style.color = 'var(--text-primary)'}
         >
-          <Info size={19} />
+          <Info size={18} />
         </button>
       </div>
     </div>

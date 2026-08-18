@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Search, User as UserIcon, Users, LayoutDashboard, MessageCircle } from 'lucide-react';
+import { Plus, Search, User as UserIcon, Users, LayoutDashboard, MessageCircle, Pin } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import type { ChatConversation } from '@/types/database';
@@ -18,6 +18,7 @@ interface ChatSidebarProps {
   getChatName: (chat: ChatConversation) => string;
   onlineUsers?: Set<string>;
   currentUserId?: string | null;
+  onTogglePinChat?: (conversationId: string, currentPinStatus: boolean) => void;
 }
 
 export default function ChatSidebar({
@@ -30,11 +31,17 @@ export default function ChatSidebar({
   getChatAvatar,
   getChatName,
   onlineUsers = new Set(),
-  currentUserId
+  currentUserId,
+  onTogglePinChat
 }: ChatSidebarProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'direct' | 'groups'>('all');
+
+  const isChatPinned = (chat: ChatConversation) => {
+    const member = chat.members?.find(m => m.user_id === currentUserId);
+    return !!member?.is_pinned;
+  };
 
   const filteredChats = chats.filter(chat => {
     const name = getChatName(chat).toLowerCase();
@@ -42,6 +49,14 @@ export default function ChatSidebar({
     if (activeTab === 'direct') return matchesSearch && chat.type === 'personal';
     if (activeTab === 'groups') return matchesSearch && chat.type === 'group';
     return matchesSearch;
+  });
+
+  const sortedChats = [...filteredChats].sort((a, b) => {
+    const aPinned = isChatPinned(a);
+    const bPinned = isChatPinned(b);
+    if (aPinned && !bPinned) return -1;
+    if (!aPinned && bPinned) return 1;
+    return new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime();
   });
 
   return (
@@ -164,7 +179,7 @@ export default function ChatSidebar({
       
       {/* Chat List Scrollable Area */}
       <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '0 8px 12px 8px' }}>
-        {filteredChats.length === 0 ? (
+        {sortedChats.length === 0 ? (
           <div style={{ padding: '24px 16px', textAlign: 'center' }}>
             <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '16px' }}>
               No chats found.
@@ -207,10 +222,11 @@ export default function ChatSidebar({
             )}
           </div>
         ) : (
-          filteredChats.map(chat => {
+          sortedChats.map(chat => {
             const isActive = activeChat?.id === chat.id;
             const peer = chat.type === 'personal' ? chat.members?.find(m => m.user_id !== currentUserId) : null;
             const isPeerOnline = peer ? onlineUsers.has(peer.user_id) : false;
+            const isPinned = isChatPinned(chat);
 
             return (
               <div 
@@ -256,9 +272,34 @@ export default function ChatSidebar({
                     </span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', opacity: isActive ? 1 : 0.8 }}>
+                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', opacity: isActive ? 1 : 0.8, flex: 1 }}>
                       {chat.type === 'group' ? `${chat.members?.length || 0} members` : isPeerOnline ? 'Online' : 'Click to chat'}
                     </p>
+                    
+                    {/* Minimal Pin Toggle Indicator */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onTogglePinChat?.(chat.id, isPinned);
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: isPinned ? 'var(--neon-cyan)' : 'rgba(255, 255, 255, 0.15)',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        marginLeft: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: '50%',
+                        transition: 'all 0.2s',
+                        zIndex: 5
+                      }}
+                      title={isPinned ? "Unpin Chat" : "Pin Chat"}
+                    >
+                      <Pin size={12} style={{ transform: isPinned ? 'none' : 'rotate(45deg)' }} />
+                    </button>
                   </div>
                 </div>
               </div>

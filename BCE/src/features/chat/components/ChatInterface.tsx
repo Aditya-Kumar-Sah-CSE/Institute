@@ -148,7 +148,7 @@ export default function ChatInterface() {
       .select(`
         *,
         members:chat_members(
-          conversation_id, user_id, role, last_read_message_id, joined_at,
+          conversation_id, user_id, role, last_read_message_id, joined_at, is_pinned,
           profile:profiles!chat_members_user_id_fkey(id, name, avatar_url, role, level)
         )
       `)
@@ -621,6 +621,39 @@ export default function ChatInterface() {
     }
   };
 
+  // Toggle Pin Status of a Chat/Conversation
+  const handleTogglePinChat = async (conversationId: string, currentPinStatus: boolean) => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData?.user) return;
+
+      const { error } = await supabase
+        .from('chat_members')
+        .update({ is_pinned: !currentPinStatus })
+        .eq('conversation_id', conversationId)
+        .eq('user_id', userData.user.id);
+
+      if (error) throw error;
+
+      // Update state locally
+      setChats(prevChats => 
+        prevChats.map(c => {
+          if (c.id === conversationId) {
+            return {
+              ...c,
+              members: c.members?.map(m => 
+                m.user_id === userData.user.id ? { ...m, is_pinned: !currentPinStatus } : m
+              )
+            };
+          }
+          return c;
+        })
+      );
+    } catch (err: any) {
+      console.error("Error toggling chat pin status:", err.message);
+    }
+  };
+
   // Start Outbound WebRTC Call
   const handleStartCall = async (type: 'video' | 'audio') => {
     if (!activeChat || !currentUserId) return;
@@ -963,6 +996,7 @@ export default function ChatInterface() {
         getChatName={getChatName}
         onlineUsers={onlineUsers}
         currentUserId={currentUserId}
+        onTogglePinChat={handleTogglePinChat}
       />
 
       {/* Main Chat Window */}
