@@ -628,7 +628,7 @@ export default function StoryViewerCanvas({
                        cursor: 'pointer', 
                        display: 'flex', 
                        alignItems: 'center', 
-                       justify: 'center', 
+                       justifyContent: 'center', 
                        minWidth: 'clamp(2.25rem, 8vw, 2.5rem)', 
                        height: 'clamp(2.25rem, 8vw, 2.5rem)', 
                        transition: 'background 0.2s',
