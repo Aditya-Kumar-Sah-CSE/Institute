@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath, unstable_noStore as noStore } from 'next/cache';
-import type { ChatConversation, ChatMessage, ChatMember } from '@/types/database';
+import type { ChatConversation, ChatMessage } from '@/types/database';
 
 export async function fetchUserChats(): Promise<ChatConversation[]> {
   noStore();
@@ -44,7 +44,6 @@ export async function createDirectChat(targetUserId: string) {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData?.user) throw new Error('Not authenticated');
 
-  // Uses RPC we defined in V2 migration
   const { data: convId } = await supabase.rpc('get_or_create_direct_chat', {
     peer_id: targetUserId,
   }).single();
@@ -61,22 +60,33 @@ export async function fetchChatMessages(conversationId: string): Promise<ChatMes
     .from('chat_messages')
     .select(`
       *,
-      sender:profiles!chat_messages_sender_id_fkey(id, name, avatar_url, role)
+      sender:profiles!chat_messages_sender_id_fkey(id, name, avatar_url, role),
+      reply_to:chat_messages!chat_messages_reply_to_id_fkey(
+        id, content, sender_id, attachment_type, attachment_link,
+        sender:profiles!chat_messages_sender_id_fkey(name)
+      ),
+      reactions:message_reactions(message_id, user_id, emoji)
     `)
     .eq('conversation_id', conversationId)
     .eq('deleted_for_everyone', false)
     .order('created_at', { ascending: true })
-    .limit(100); // Pagination ready for later
+    .limit(150);
 
   if (error) {
     console.error('Error fetching messages:', error);
     return [];
   }
 
-  return data as ChatMessage[];
+  return data as unknown as ChatMessage[];
 }
 
-export async function sendChatMessage(conversationId: string, content: string, attachmentType?: any, attachmentLink?: string) {
+export async function sendChatMessage(
+  conversationId: string, 
+  content: string, 
+  attachmentType?: any, 
+  attachmentLink?: string,
+  replyToId?: string
+) {
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
   if (!userData?.user) throw new Error('Not authenticated');
@@ -85,16 +95,17 @@ export async function sendChatMessage(conversationId: string, content: string, a
   const rl = checkRateLimit(`chatMsg:${userData.user.id}`, 60, 60000);
   if (!rl.success) throw new Error(rl.error);
 
-  if (!content.trim()) throw new Error('Message cannot be empty');
+  if (!content.trim() && !attachmentLink) throw new Error('Message cannot be empty');
 
   const { error } = await supabase
     .from('chat_messages')
     .insert({
       conversation_id: conversationId,
       sender_id: userData.user.id,
-      content: content.trim(),
+      content: content.trim() || null,
       attachment_type: attachmentType || null,
-      attachment_link: attachmentLink || null
+      attachment_link: attachmentLink || null,
+      reply_to_id: replyToId || null
     });
 
   if (error) throw new Error(error.message);
@@ -107,10 +118,98 @@ export async function sendChatMessage(conversationId: string, content: string, a
   revalidatePath(`/dashboard/chat`);
 }
 
-/**
- * Creates a new group conversation server-side.
- * Runs with the authenticated Supabase client so RLS policies pass correctly.
- */
+export async function editChatMessage(messageId: string, newContent: string) {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData?.user) throw new Error('Not authenticated');
+
+  if (!newContent.trim()) throw new Error('Message content cannot be empty');
+
+  const { error } = await supabase
+    .from('chat_messages')
+    .update({
+      content: newContent.trim(),
+      is_edited: true,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', messageId)
+    .eq('sender_id', userData.user.id);
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/dashboard/chat`);
+}
+
+export async function deleteChatMessage(messageId: string, deleteForEveryone: boolean = true) {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData?.user) throw new Error('Not authenticated');
+
+  if (deleteForEveryone) {
+    const { error } = await supabase
+      .from('chat_messages')
+      .update({
+        deleted_for_everyone: true,
+        content: 'This message was deleted',
+        attachment_type: null,
+        attachment_link: null
+      })
+      .eq('id', messageId)
+      .eq('sender_id', userData.user.id);
+
+    if (error) throw new Error(error.message);
+  } else {
+    // Soft hide for current user if applicable
+  }
+  revalidatePath(`/dashboard/chat`);
+}
+
+export async function togglePinChatMessage(messageId: string, currentPinStatus: boolean) {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData?.user) throw new Error('Not authenticated');
+
+  const { error } = await supabase
+    .from('chat_messages')
+    .update({ is_pinned: !currentPinStatus })
+    .eq('id', messageId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/dashboard/chat`);
+}
+
+export async function toggleMessageReaction(messageId: string, emoji: string) {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData?.user) throw new Error('Not authenticated');
+
+  // Check if reaction already exists
+  const { data: existing } = await supabase
+    .from('message_reactions')
+    .select('*')
+    .eq('message_id', messageId)
+    .eq('user_id', userData.user.id)
+    .eq('emoji', emoji)
+    .maybeSingle();
+
+  if (existing) {
+    await supabase
+      .from('message_reactions')
+      .delete()
+      .eq('message_id', messageId)
+      .eq('user_id', userData.user.id)
+      .eq('emoji', emoji);
+  } else {
+    await supabase
+      .from('message_reactions')
+      .insert({
+        message_id: messageId,
+        user_id: userData.user.id,
+        emoji
+      });
+  }
+  revalidatePath(`/dashboard/chat`);
+}
+
 export async function createGroupChat(groupName: string, memberIds: string[]) {
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
@@ -121,7 +220,6 @@ export async function createGroupChat(groupName: string, memberIds: string[]) {
   if (!groupName.trim()) throw new Error('Group name is required');
   if (memberIds.length === 0) throw new Error('At least one member is required');
 
-  // Create conversation
   const { data: conv, error: convError } = await supabase
     .from('chat_conversations')
     .insert({
@@ -135,7 +233,6 @@ export async function createGroupChat(groupName: string, memberIds: string[]) {
 
   if (convError) throw new Error(`Failed to create group: ${convError.message}`);
 
-  // Deduplicate members and always include the creator as owner
   const uniqueMemberIds = Array.from(new Set(memberIds.filter(id => id !== currentUserId)));
   const members = [
     { conversation_id: conv.id, user_id: currentUserId, role: 'owner' },
@@ -144,7 +241,6 @@ export async function createGroupChat(groupName: string, memberIds: string[]) {
 
   const { error: membersError } = await supabase.from('chat_members').insert(members);
   if (membersError) {
-    // Rollback the group creation if members fail
     await supabase.from('chat_conversations').delete().eq('id', conv.id);
     throw new Error(`Failed to add members: ${membersError.message}`);
   }

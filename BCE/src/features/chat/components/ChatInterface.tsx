@@ -3,8 +3,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { ChatConversation, ChatMessage } from '@/types/database';
-import { Send, User as UserIcon, Users, MoreVertical, Plus, Image as ImageIcon, Smile, X, Loader2, Search, ArrowLeft, LayoutDashboard } from 'lucide-react';
-import Image from 'next/image';
+import { 
+  Send, User as UserIcon, Users, ArrowLeft, ChevronDown, Loader2 
+} from 'lucide-react';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { Virtuoso } from 'react-virtuoso';
 import NewChatModal from './NewChatModal';
@@ -12,6 +13,16 @@ import EmptyChatState from './EmptyChatState';
 import MessageBubble from './MessageBubble';
 import ChatComposer from './ChatComposer';
 import ChatSidebar from './ChatSidebar';
+import ChatHeader from './ChatHeader';
+import MessageSearch from './MessageSearch';
+import ChatInfoDrawer from './ChatInfoDrawer';
+import LightboxModal from './LightboxModal';
+import CallModal from './CallModal';
+import ForwardModal from './ForwardModal';
+import DateSeparator, { formatDateLabel } from './DateSeparator';
+import { 
+  editChatMessage, deleteChatMessage, togglePinChatMessage, toggleMessageReaction 
+} from '@/features/chat/actions/chat';
 import { useRouter } from 'next/navigation';
 import './ChatInterface.css';
 
@@ -22,16 +33,33 @@ export default function ChatInterface() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [msgInput, setMsgInput] = useState('');
-  const [isTyping, setIsTyping] = useState<boolean>(false);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
   const [suggestedUsers, setSuggestedUsers] = useState<any[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [showParticipantsModal, setShowParticipantsModal] = useState(false);
+
+  // Advanced Feature States
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+
+  const [isInfoDrawerOpen, setIsInfoDrawerOpen] = useState(false);
+  const [replyToMessage, setReplyToMessage] = useState<ChatMessage | null>(null);
+
+  const [lightboxMedia, setLightboxMedia] = useState<{ url: string; type: string } | null>(null);
+  const [callConfig, setCallConfig] = useState<{ type: 'video' | 'audio'; peerName: string; peerAvatar?: string | null } | null>(null);
+  const [forwardingMessage, setForwardingMessage] = useState<ChatMessage | null>(null);
+
+  const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null);
+  const [editText, setEditText] = useState('');
+
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
+  const virtuosoRef = useRef<any>(null);
   const activeChannelRef = useRef<any>(null);
   const supabase = createClient();
 
-  // Client-side direct fetch to avoid Next.js Server Action caching bugs
+  // Fetch chats client-side
   const fetchChatsClient = async () => {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData?.user) return [];
@@ -59,7 +87,6 @@ export default function ChatInterface() {
     async function init() {
       const { data } = await supabase.auth.getUser();
       setCurrentUserId(data.user?.id || null);
-      
       const userChats = await fetchChatsClient();
       setChats(userChats as any[]);
     }
@@ -72,45 +99,36 @@ export default function ChatInterface() {
 
     const { data, error } = await supabase
       .from('chat_messages')
-      .select(`*, sender:profiles!chat_messages_sender_id_fkey(id, name, avatar_url, role)`)
+      .select(`
+        *,
+        sender:profiles!chat_messages_sender_id_fkey(id, name, avatar_url, role),
+        reply_to:chat_messages!chat_messages_reply_to_id_fkey(
+          id, content, sender_id, attachment_type, attachment_link,
+          sender:profiles!chat_messages_sender_id_fkey(name)
+        ),
+        reactions:message_reactions(message_id, user_id, emoji)
+      `)
       .eq('conversation_id', conversationId)
       .eq('deleted_for_everyone', false)
       .order('created_at', { ascending: true })
-      .limit(100);
+      .limit(150);
 
     if (error) {
        console.error("Messages fetch error:", error);
     }
-    return (data as ChatMessage[]) || [];
-  };
-
-  const sendChatMessageClient = async (conversationId: string, content: string) => {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData?.user) return false;
-    
-    // Check if inserted message is actually successful
-    const { error } = await supabase.from('chat_messages').insert({
-       conversation_id: conversationId,
-       sender_id: userData.user.id,
-       content: content
-    });
-    if (error) {
-       console.error("Failed to insert message:", error);
-       return false;
-    }
-    
-    // Also update chat_conversations updated_at
-    await supabase.from('chat_conversations').update({ updated_at: new Date().toISOString() }).eq('id', conversationId);
-    return true;
+    return (data as unknown as ChatMessage[]) || [];
   };
 
   useEffect(() => {
     if (activeChat) {
       fetchMessagesClient(activeChat.id).then(setMessages);
+      setIsSearchOpen(false);
+      setSearchQuery('');
+      setReplyToMessage(null);
     }
   }, [activeChat]);
 
-  // Mark latest message as read when activeChat/messages update
+  // Mark latest message as read
   useEffect(() => {
     if (activeChat && messages.length > 0 && currentUserId) {
       const lastMsg = messages[messages.length - 1];
@@ -137,6 +155,7 @@ export default function ChatInterface() {
     });
   };
 
+  // Suggested users query
   useEffect(() => {
     async function fetchSuggestions() {
       if (!currentUserId) return;
@@ -160,40 +179,20 @@ export default function ChatInterface() {
   }, [currentUserId]);
 
   const handleCreateSuggestedChat = async (userId: string) => {
-    console.group("Create Chat: Auto-Suggestion");
-    console.log("Request: Attempting to create direct chat with user", userId);
     try {
       const { data, error } = await supabase.rpc('get_or_create_direct_chat', { peer_id: userId });
-      if (error) {
-        console.error('Response Error:', error);
-        console.groupEnd();
-        return;
-      }
-      if (data) {
-         console.log("Response: Success! Conversation ID generated:", data);
-         // Optimistic Update: Immediately add a placeholder object before the network returns
-         const optimisticChat = { id: data, type: 'personal', updated_at: new Date().toISOString(), members: [] } as unknown as ChatConversation;
-         setChats(prev => [optimisticChat, ...prev.filter(c => c.id !== data)]);
-         setActiveChat(optimisticChat);
+      if (error || !data) return;
 
-         console.log("State Update: Triggering full hydration fetch...");
-         const updatedChats = await fetchChatsClient();
-         
-         const newChat = (updatedChats as ChatConversation[]).find(c => c.id === data);
-         if (newChat) {
-           console.log("Hydration: Conversation verified. Syncing state...", newChat);
-           setChats(updatedChats as ChatConversation[]);
-           setActiveChat(newChat);
-         } else {
-           console.warn("Hydration failed: New chat not found in query results.");
-         }
-      }
+      const updatedChats = await fetchChatsClient();
+      setChats(updatedChats as ChatConversation[]);
+      const newChat = (updatedChats as ChatConversation[]).find(c => c.id === data);
+      if (newChat) setActiveChat(newChat);
     } catch(e) {
-      console.error("Critical Failure:", e);
+      console.error(e);
     }
-    console.groupEnd();
   };
 
+  // Presence channel subscription
   useEffect(() => {
     if (!currentUserId) return;
 
@@ -224,7 +223,7 @@ export default function ChatInterface() {
     };
   }, [currentUserId]);
 
-  // Real-time subscription placeholder for messages
+  // Real-time channel for messages & reactions
   useEffect(() => {
     if (!activeChat || !currentUserId) return;
 
@@ -234,10 +233,11 @@ export default function ChatInterface() {
 
     const channel = supabase
       .channel(`chat_${activeChat.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `conversation_id=eq.${activeChat.id}` }, (payload: any) => {
-        if (payload.new.sender_id !== currentUserId) {
-          fetchMessagesClient(activeChat.id).then(setMessages);
-        }
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages', filter: `conversation_id=eq.${activeChat.id}` }, () => {
+        fetchMessagesClient(activeChat.id).then(setMessages);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'message_reactions' }, () => {
+        fetchMessagesClient(activeChat.id).then(setMessages);
       })
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
@@ -253,7 +253,7 @@ export default function ChatInterface() {
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
-          await channel.track({ user_id: currentUserId, typing: isTyping });
+          await channel.track({ user_id: currentUserId, typing: false });
         }
       });
 
@@ -267,50 +267,115 @@ export default function ChatInterface() {
     };
   }, [activeChat, currentUserId]);
 
+  // Broadcast typing state
   useEffect(() => {
-    // We update presence when typing state changes
     if (!activeChat || !currentUserId || !activeChannelRef.current) return;
     activeChannelRef.current.track({ user_id: currentUserId, typing: msgInput.trim().length > 0 });
   }, [msgInput]);
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!msgInput.trim() || !activeChat) return;
+  // Message Send Action
+  const handleSend = async (content: string, attachmentType?: string, attachmentLink?: string) => {
+    if (!activeChat || !currentUserId) return;
 
-    const tempMsg = msgInput;
-    setMsgInput('');
-    
-    // Add optimistic message
+    const replyId = replyToMessage?.id;
+    setReplyToMessage(null);
+
+    // Optimistic insert
     const optimisticId = Date.now().toString();
-    if (currentUserId) {
-      const optimisticMessage = {
+    const optimisticMessage: ChatMessage = {
       id: optimisticId,
       conversation_id: activeChat.id,
-      sender_id: currentUserId || '',
-      content: tempMsg,
-      attachment_type: null,
-      attachment_link: null,
-      reply_to_id: null,
+      sender_id: currentUserId,
+      content: content.trim() || null,
+      attachment_type: (attachmentType as any) || null,
+      attachment_link: attachmentLink || null,
+      reply_to_id: replyId || null,
       is_edited: false,
       is_pinned: false,
       deleted_for_everyone: false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      sender: undefined
-    } as unknown as ChatMessage;
+      reply_to: replyToMessage ? { id: replyToMessage.id, content: replyToMessage.content, sender: replyToMessage.sender } : undefined
+    };
 
     setMessages(prev => [...prev, optimisticMessage]);
-    }
 
     try {
-      const success = await sendChatMessageClient(activeChat.id, tempMsg);
-      if (!success) {
-         setMessages(prev => prev.filter(m => m.id !== optimisticId));
+      const { error } = await supabase.from('chat_messages').insert({
+        conversation_id: activeChat.id,
+        sender_id: currentUserId,
+        content: content.trim() || null,
+        attachment_type: attachmentType || null,
+        attachment_link: attachmentLink || null,
+        reply_to_id: replyId || null
+      });
+
+      if (error) {
+        console.error('Insert error:', error);
+        setMessages(prev => prev.filter(m => m.id !== optimisticId));
+        return;
       }
-    } catch(err) {
+
+      await supabase.from('chat_conversations').update({ updated_at: new Date().toISOString() }).eq('id', activeChat.id);
+      fetchMessagesClient(activeChat.id).then(setMessages);
+    } catch (err) {
       console.error(err);
       setMessages(prev => prev.filter(m => m.id !== optimisticId));
     }
+  };
+
+  // Message Actions
+  const handleReact = async (msgId: string, emoji: string) => {
+    try {
+      await toggleMessageReaction(msgId, emoji);
+      if (activeChat) fetchMessagesClient(activeChat.id).then(setMessages);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingMessage || !editText.trim()) return;
+    try {
+      await editChatMessage(editingMessage.id, editText.trim());
+      setEditingMessage(null);
+      setEditText('');
+      if (activeChat) fetchMessagesClient(activeChat.id).then(setMessages);
+    } catch (err: any) {
+      alert('Edit failed: ' + err.message);
+    }
+  };
+
+  const handleDelete = async (msgId: string) => {
+    if (!confirm('Are you sure you want to delete this message for everyone?')) return;
+    try {
+      await deleteChatMessage(msgId, true);
+      if (activeChat) fetchMessagesClient(activeChat.id).then(setMessages);
+    } catch (err: any) {
+      alert('Delete failed: ' + err.message);
+    }
+  };
+
+  const handlePin = async (msgId: string, currentPinned: boolean) => {
+    try {
+      await togglePinChatMessage(msgId, currentPinned);
+      if (activeChat) fetchMessagesClient(activeChat.id).then(setMessages);
+    } catch (err: any) {
+      alert('Pin failed: ' + err.message);
+    }
+  };
+
+  const handleForwardConfirm = async (targetConversationId: string) => {
+    if (!forwardingMessage) return;
+    await supabase.from('chat_messages').insert({
+      conversation_id: targetConversationId,
+      sender_id: currentUserId,
+      content: forwardingMessage.content ? `[Forwarded]\n${forwardingMessage.content}` : '[Forwarded Attachment]',
+      attachment_type: forwardingMessage.attachment_type,
+      attachment_link: forwardingMessage.attachment_link
+    });
+    setForwardingMessage(null);
+    alert('Message forwarded successfully!');
   };
 
   const getChatName = (chat: ChatConversation) => {
@@ -322,13 +387,50 @@ export default function ChatInterface() {
   const getChatAvatar = (chat: ChatConversation) => {
     if (chat.type === 'group') return <Users size={24} className="text-white" />;
     const otherParticipant = chat.members?.find(p => p.user_id !== currentUserId);
-    
     if (otherParticipant?.profile) {
       return <UserAvatar url={otherParticipant.profile.avatar_url} name={otherParticipant.profile.name || 'User'} size={48} />;
     }
-    
     return <UserIcon size={24} className="text-gray-400" />;
   };
+
+  // Search matches inside active messages
+  const matchingMessageIndices = messages.reduce((acc, msg, idx) => {
+    if (searchQuery.trim() && msg.content && msg.content.toLowerCase().includes(searchQuery.toLowerCase())) {
+      acc.push(idx);
+    }
+    return acc;
+  }, [] as number[]);
+
+  const handleNextMatch = () => {
+    if (matchingMessageIndices.length === 0) return;
+    const nextIdx = (currentMatchIndex + 1) % matchingMessageIndices.length;
+    setCurrentMatchIndex(nextIdx);
+    virtuosoRef.current?.scrollToIndex({ index: matchingMessageIndices[nextIdx], align: 'center', behavior: 'smooth' });
+  };
+
+  const handlePrevMatch = () => {
+    if (matchingMessageIndices.length === 0) return;
+    const prevIdx = (currentMatchIndex - 1 + matchingMessageIndices.length) % matchingMessageIndices.length;
+    setCurrentMatchIndex(prevIdx);
+    virtuosoRef.current?.scrollToIndex({ index: matchingMessageIndices[prevIdx], align: 'center', behavior: 'smooth' });
+  };
+
+  // Prepare list items with Date Separators
+  const listItems: ({ type: 'date'; date: string } | { type: 'message'; data: ChatMessage; originalIndex: number })[] = [];
+  let lastDateStr = '';
+
+  messages.forEach((msg, idx) => {
+    const msgDateStr = new Date(msg.created_at).toDateString();
+    if (msgDateStr !== lastDateStr) {
+      listItems.push({ type: 'date', date: msg.created_at });
+      lastDateStr = msgDateStr;
+    }
+    listItems.push({ type: 'message', data: msg, originalIndex: idx });
+  });
+
+  const allMediaList = messages
+    .filter(m => m.attachment_type === 'image' || m.attachment_type === 'video')
+    .map(m => ({ url: m.attachment_link || '', type: m.attachment_type || 'image' }));
 
   return (
     <div className={`chat-container ${activeChat ? 'mobile-chat-active' : 'mobile-sidebar-active'}`}>
@@ -341,84 +443,72 @@ export default function ChatInterface() {
         setIsNewChatModalOpen={setIsNewChatModalOpen}
         getChatAvatar={getChatAvatar}
         getChatName={getChatName}
+        onlineUsers={onlineUsers}
+        currentUserId={currentUserId}
       />
 
       {/* Main Chat Window */}
       <div className="chat-main">
         {activeChat ? (
           <>
-            {/* Chat header */}
-            <div style={{ height: '64px', borderBottom: '1px solid var(--border-divider)', display: 'flex', alignItems: 'center', padding: '0 var(--space-lg)', justifyContent: 'space-between', background: 'var(--bg-secondary)', zIndex: 10 }}>
-               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
-                 <button className="mobile-back-btn" onClick={() => setActiveChat(null)}>
-                   <ArrowLeft size={20} />
-                 </button>
-                 <div style={{ position: 'relative', width: '40px', height: '40px', borderRadius: '50%', background: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '1px solid var(--border-default)' }}>
-                    {getChatAvatar(activeChat)}
-                 </div>
-                 <div>
-                    <h3 style={{ margin: 0, fontWeight: 'bold', color: 'var(--text-primary)', fontSize: '15px' }}>{getChatName(activeChat)}</h3>
-                    {(() => {
-                       if (activeChat.type === 'group') {
-                          return (
-                            <p 
-                              onClick={() => setShowParticipantsModal(true)}
-                              style={{ 
-                                margin: 0, 
-                                fontSize: '12px', 
-                                color: 'var(--text-muted)', 
-                                cursor: 'pointer',
-                                textDecoration: 'underline',
-                                display: 'inline-block'
-                              }}
-                            >
-                              {activeChat.members?.length || 0} participants
-                            </p>
-                          );
-                       }
-                       const peer = activeChat.members?.find(p => p.user_id !== currentUserId);
-                       const isOnline = peer ? onlineUsers.has(peer.user_id) : false;
-                       return (
-                         <p style={{ margin: 0, fontSize: '12px', color: isOnline ? 'var(--neon-lime)' : 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                           <style>{`
-                             @keyframes neon-pulse-dot {
-                               0% { box-shadow: 0 0 8px var(--neon-lime); }
-                               50% { box-shadow: 0 0 16px var(--neon-lime); }
-                               100% { box-shadow: 0 0 8px var(--neon-lime); }
-                             }
-                           `}</style>
-                           <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: isOnline ? 'var(--neon-lime)' : 'var(--text-muted)', animation: isOnline ? 'neon-pulse-dot 2s infinite' : 'none' }}></span>
-                           {isOnline ? 'Online' : 'Offline'}
-                         </p>
-                       );
-                    })()}
-                 </div>
-               </div>
-                <button 
-                  onClick={() => router.push('/dashboard')} 
-                  style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', color: 'var(--neon-cyan)', padding: '8px', borderRadius: '50%', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  title="Go to Dashboard"
-                >
-                  <LayoutDashboard size={18} />
-                </button>
-            </div>
+            {/* Header */}
+            <ChatHeader 
+              activeChat={activeChat}
+              currentUserId={currentUserId}
+              onlineUsers={onlineUsers}
+              typingUsers={typingUsers}
+              onBack={() => setActiveChat(null)}
+              onToggleSearch={() => setIsSearchOpen(!isSearchOpen)}
+              onStartCall={(type) => {
+                const peerName = getChatName(activeChat);
+                const peer = activeChat.members?.find(p => p.user_id !== currentUserId);
+                setCallConfig({ type, peerName, peerAvatar: peer?.profile?.avatar_url });
+              }}
+              onToggleInfo={() => setIsInfoDrawerOpen(!isInfoDrawerOpen)}
+              onOpenParticipantsModal={() => setShowParticipantsModal(true)}
+              getChatAvatar={getChatAvatar}
+              getChatName={getChatName}
+            />
 
-            {/* Messages Area */}
-            <div style={{ flex: 1, padding: 'var(--space-lg)', position: 'relative', overflowY: 'auto' }}>
+            {/* Conversation Search Bar */}
+            {isSearchOpen && (
+              <MessageSearch
+                searchQuery={searchQuery}
+                setSearchQuery={(val) => {
+                  setSearchQuery(val);
+                  setCurrentMatchIndex(0);
+                }}
+                matchCount={matchingMessageIndices.length}
+                currentMatchIndex={currentMatchIndex}
+                onNextMatch={handleNextMatch}
+                onPrevMatch={handlePrevMatch}
+                onClose={() => setIsSearchOpen(false)}
+              />
+            )}
+
+            {/* Messages Scroll Area */}
+            <div style={{ flex: 1, position: 'relative', overflowY: 'hidden' }}>
                {messages.length === 0 ? (
                  <EmptyChatState onQuickReply={(text) => setMsgInput(text)} />
                ) : (
-                 <div style={{ position: 'absolute', inset: 0, padding: 'var(--space-md)' }}>
+                 <div style={{ position: 'absolute', inset: 0, padding: '12px' }}>
                    <Virtuoso
-                     data={messages}
+                     ref={virtuosoRef}
+                     data={listItems}
                      followOutput="smooth"
                      alignToBottom={true}
-                     initialTopMostItemIndex={messages.length > 0 ? messages.length - 1 : 0}
+                     initialTopMostItemIndex={listItems.length > 0 ? listItems.length - 1 : 0}
                      style={{ height: '100%' }}
-                     itemContent={(index, msg) => {
+                     atBottomStateChange={(atBottom) => setShowScrollBottom(!atBottom)}
+                     itemContent={(index, item) => {
+                       if (item.type === 'date') {
+                         return <DateSeparator key={`date-${index}`} dateStr={item.date} />;
+                       }
+                       const msg = item.data;
                        const isMine = msg.sender_id === currentUserId;
-                       const isRead = isMine ? checkIsMessageRead(msg, index) : false;
+                       const isRead = isMine ? checkIsMessageRead(msg, item.originalIndex) : false;
                        const isGroup = activeChat.type === 'group';
+
                        return (
                          <MessageBubble 
                            key={msg.id} 
@@ -426,20 +516,58 @@ export default function ChatInterface() {
                            isMine={isMine} 
                            isRead={isRead} 
                            showSenderName={isGroup && !isMine} 
+                           onReply={(m) => setReplyToMessage(m)}
+                           onReact={handleReact}
+                           onEdit={(m) => {
+                             setEditingMessage(m);
+                             setEditText(m.content || '');
+                           }}
+                           onDelete={handleDelete}
+                           onPin={handlePin}
+                           onForward={(m) => setForwardingMessage(m)}
+                           onOpenLightbox={(url, type) => setLightboxMedia({ url, type })}
                          />
                        );
                      }}
                    />
                  </div>
                )}
+
+               {/* Floating Scroll to Bottom Button */}
+               {showScrollBottom && (
+                 <button
+                   onClick={() => virtuosoRef.current?.scrollToIndex({ index: listItems.length - 1, behavior: 'smooth' })}
+                   style={{
+                     position: 'absolute',
+                     bottom: '16px',
+                     right: '24px',
+                     width: '40px',
+                     height: '40px',
+                     borderRadius: '50%',
+                     background: 'var(--bg-secondary)',
+                     border: '1px solid var(--neon-cyan)',
+                     color: 'var(--neon-cyan)',
+                     display: 'flex',
+                     alignItems: 'center',
+                     justify: 'center',
+                     cursor: 'pointer',
+                     boxShadow: '0 4px 15px rgba(0, 240, 255, 0.4)',
+                     zIndex: 10
+                   }}
+                 >
+                   <ChevronDown size={22} />
+                 </button>
+               )}
             </div>
 
-            {/* Input target */}
+            {/* Input Composer */}
             <ChatComposer 
               msgInput={msgInput} 
               setMsgInput={setMsgInput} 
               handleSend={handleSend} 
               isSomeoneTyping={typingUsers.length > 0} 
+              replyToMessage={replyToMessage}
+              onCancelReply={() => setReplyToMessage(null)}
             />
           </>
         ) : (
@@ -452,147 +580,89 @@ export default function ChatInterface() {
         )}
       </div>
 
-      <NewChatModal 
-        isOpen={isNewChatModalOpen} 
-        onClose={() => setIsNewChatModalOpen(false)} 
-        onChatCreated={async (chatId) => {
-          console.group("Create Chat: Modal Generation");
-          console.log("Modal Hand-off: Received Conversation ID from backend:", chatId);
-          
-          // Optimistic injection
-          const optimisticChat = { id: chatId, type: 'personal', updated_at: new Date().toISOString(), members: [] } as unknown as ChatConversation;
-          setChats(prev => [optimisticChat, ...prev.filter(c => c.id !== chatId)]);
-          setActiveChat(optimisticChat);
+      {/* Right Slide-over Info Drawer */}
+      {activeChat && (
+        <ChatInfoDrawer
+          isOpen={isInfoDrawerOpen}
+          activeChat={activeChat}
+          messages={messages}
+          currentUserId={currentUserId}
+          onlineUsers={onlineUsers}
+          onClose={() => setIsInfoDrawerOpen(false)}
+          onSelectMedia={(url, type) => setLightboxMedia({ url, type })}
+        />
+      )}
 
-          const updatedChats = await fetchChatsClient();
-          const newChat = (updatedChats as ChatConversation[]).find(c => c.id === chatId);
-          if (newChat) {
-             console.log("Client Update: Refresh matched freshly created row.");
-             setChats(updatedChats as ChatConversation[]);
-             setActiveChat(newChat);
-          } else {
-             console.warn("Missing Row: Database successfully responded but client fetch returned empty array.", updatedChats);
-          }
-          console.groupEnd();
-        }} 
-      />
+      {/* Lightbox Media Viewer */}
+      {lightboxMedia && (
+        <LightboxModal
+          mediaUrl={lightboxMedia.url}
+          mediaType={lightboxMedia.type as any}
+          allMedia={allMediaList}
+          onClose={() => setLightboxMedia(null)}
+        />
+      )}
 
-      {showParticipantsModal && activeChat && (
+      {/* Call Interface Modal */}
+      {callConfig && (
+        <CallModal
+          type={callConfig.type}
+          peerName={callConfig.peerName}
+          peerAvatar={callConfig.peerAvatar}
+          onClose={() => setCallConfig(null)}
+        />
+      )}
+
+      {/* Forward Message Modal */}
+      {forwardingMessage && (
+        <ForwardModal
+          isOpen={!!forwardingMessage}
+          messageContent={forwardingMessage.content || ''}
+          attachmentType={forwardingMessage.attachment_type}
+          attachmentLink={forwardingMessage.attachment_link}
+          chats={chats}
+          currentUserId={currentUserId}
+          onClose={() => setForwardingMessage(null)}
+          onForward={handleForwardConfirm}
+        />
+      )}
+
+      {/* Edit Message Modal */}
+      {editingMessage && (
         <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.8)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          backdropFilter: 'blur(6px)',
-          padding: '16px'
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px'
         }}>
-          <div style={{
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-default)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '24px',
-            maxWidth: '400px',
-            width: '100%',
-            color: 'var(--text-primary)',
-            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px',
-            animation: 'fadeInUp 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-divider)', paddingBottom: '12px' }}>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Users size={18} style={{ color: 'var(--neon-cyan)' }} /> Group Participants
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowParticipantsModal(false)}
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', display: 'flex' }}
-                aria-label="Close modal"
-              >
-                <X size={20} />
+          <div style={{ background: 'var(--bg-secondary)', padding: '24px', borderRadius: '16px', border: '1px solid var(--border-default)', maxWidth: '400px', width: '100%' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', color: 'var(--neon-cyan)' }}>Edit Message</h3>
+            <textarea
+              rows={3}
+              value={editText}
+              onChange={e => setEditText(e.target.value)}
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', background: 'var(--bg-input)', border: '1px solid var(--border-default)', color: 'var(--text-primary)', outline: 'none', resize: 'none' }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
+              <button onClick={() => setEditingMessage(null)} style={{ padding: '8px 16px', background: 'transparent', border: '1px solid var(--border-default)', color: 'var(--text-muted)', borderRadius: '6px', cursor: 'pointer' }}>
+                Cancel
               </button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '300px', overflowY: 'auto', paddingRight: '4px' }} className="no-scrollbar">
-              {activeChat.members?.map((member: any) => {
-                const prof = member.profile || {};
-                const isUserOnline = onlineUsers.has(member.user_id);
-                
-                // Get role designation string & color
-                let designation = 'Student';
-                let desColor = 'var(--neon-gold)';
-                if (prof.role === 'admin') {
-                  designation = 'Admin';
-                  desColor = 'var(--neon-pink)';
-                } else if (prof.role === 'instructor') {
-                  designation = 'Instructor';
-                  desColor = 'var(--neon-cyan)';
-                } else {
-                  designation = `Student (Lvl ${prof.level || 1})`;
-                }
-
-                return (
-                  <div key={member.user_id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderRadius: '8px', background: 'var(--bg-elevated)', border: '1px solid var(--glass-border)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <div style={{ position: 'relative', width: '36px', height: '36px', borderRadius: '50%', overflow: 'hidden', border: '1px solid var(--border-default)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-secondary)' }}>
-                        {prof.avatar_url ? (
-                          <Image src={prof.avatar_url} alt={prof.name || 'User'} fill style={{ objectFit: 'cover' }} unoptimized />
-                        ) : (
-                          <UserIcon size={16} style={{ color: 'var(--text-muted)' }} />
-                        )}
-                        {isUserOnline && (
-                          <span style={{ position: 'absolute', bottom: 0, right: 0, width: '8px', height: '8px', borderRadius: '50%', background: 'var(--neon-lime)', border: '1px solid var(--bg-secondary)' }}></span>
-                        )}
-                      </div>
-                      <div>
-                        <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          {prof.name || 'Member'}
-                          {member.role === 'admin' && (
-                            <span style={{ fontSize: '9px', padding: '1px 4px', borderRadius: '4px', background: 'rgba(219,39,119,0.1)', color: 'var(--neon-pink)', fontWeight: 600 }}>Admin</span>
-                          )}
-                        </div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                          {member.user_id === currentUserId ? 'You' : isUserOnline ? 'Online' : 'Offline'}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <span style={{ fontSize: '10px', fontWeight: 700, color: desColor, border: `1px solid ${desColor}40`, padding: '2px 8px', borderRadius: '12px', background: `${desColor}10`, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      {designation}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-            
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
-              <button
-                type="button"
-                onClick={() => setShowParticipantsModal(false)}
-                style={{
-                  background: 'var(--bg-elevated)',
-                  border: '1px solid var(--border-default)',
-                  color: 'var(--text-primary)',
-                  padding: '8px 16px',
-                  borderRadius: 'var(--radius-sm)',
-                  cursor: 'pointer',
-                  fontSize: '12px',
-                  fontWeight: 600
-                }}
-              >
-                Close
+              <button onClick={handleSaveEdit} style={{ padding: '8px 16px', background: 'var(--neon-cyan)', border: 'none', color: '#000', fontWeight: 'bold', borderRadius: '6px', cursor: 'pointer' }}>
+                Save Changes
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* New Chat Modal */}
+      <NewChatModal 
+        isOpen={isNewChatModalOpen} 
+        onClose={() => setIsNewChatModalOpen(false)} 
+        onChatCreated={async (chatId) => {
+          const updatedChats = await fetchChatsClient();
+          setChats(updatedChats as ChatConversation[]);
+          const newChat = (updatedChats as ChatConversation[]).find(c => c.id === chatId);
+          if (newChat) setActiveChat(newChat);
+        }} 
+      />
     </div>
   );
 }

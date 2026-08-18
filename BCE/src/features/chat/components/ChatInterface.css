@@ -30,6 +30,44 @@
   }
 }
 
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
 /* Chat Layout Base Classes */
 .chat-container {
   display: flex;
@@ -41,6 +79,7 @@
   border: 1px solid var(--glass-border);
   box-shadow: 0 10px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
   font-family: var(--font-sans);
+  position: relative;
 }
 
 .chat-sidebar {
@@ -61,6 +100,7 @@
   flex-direction: column;
   background: transparent;
   position: relative;
+  overflow: hidden;
 }
 
 .mobile-back-btn {
@@ -94,7 +134,7 @@
     border: none;
     color: var(--text-primary);
     cursor: pointer;
-    margin-right: 12px;
+    margin-right: 8px;
   }
 
   /* Split View Logic: Hide elements based on active state */

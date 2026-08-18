@@ -1,12 +1,12 @@
 import ChatInterface from '@/features/chat/components/ChatInterface';
 
 export const metadata = {
-  title: 'Global Chat | Dashboard',
+  title: 'Campus Chat | SkillArena',
 };
 
 export default function ChatPage() {
   return (
-    <div className="h-[calc(100vh-80px)] w-full max-w-[1400px] mx-auto bg-white dark:bg-[#13161f] rounded-2xl overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-800 flex">
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <ChatInterface />
     </div>
   );
