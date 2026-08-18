@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { createClient } from '@/lib/supabase/client';
 import Card from '@/components/ui/Card';
@@ -77,7 +77,14 @@ export default function BattleArenaClient({
   const [language, setLanguage] = useState<CodeLanguage>('cpp17');
   const [code, setCode] = useState('');
   const [stdin, setStdin] = useState('');
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(true); // Default fullscreen mode in battle
+
+  // Editor save states
+  const [saveStatus, setSaveStatus] = useState<'Saved' | 'Saving...' | 'Unsaved changes'>('Saved');
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Anti-cheat states
+  const [cheatWarning, setCheatWarning] = useState<string | null>(null);
 
   const [running, setRunning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -183,12 +190,110 @@ export default function BattleArenaClient({
     }
   }, [battle.status, participants, currentUser, isVirtualPractice]);
 
-  // Helper to load or derive draft code
+  // Helper to load or derive draft code partitioned by user + battle + problem + language
+  const getSaveKey = (probId: string, lang: CodeLanguage) => {
+    return `bce:code-save:${currentUser?.id || 'guest'}:${battle.id}:${probId}:${lang}`;
+  };
+
   const getDraftOrStarter = (problem: any, lang: CodeLanguage) => {
-    if (!problem || typeof window === 'undefined') return starters[lang];
-    const draftKey = `bce:code-draft:${battle.id}:${problem.id}:${lang}`;
-    const savedDraft = localStorage.getItem(draftKey);
-    return savedDraft || problem.starterCode?.[lang] || starters[lang];
+    if (!problem) return starters[lang];
+    const savedKey = getSaveKey(problem.id, lang);
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(savedKey);
+      if (saved) return saved;
+      // Fallback to legacy draft key to never lose code
+      const draftKey = `bce:code-draft:${battle.id}:${problem.id}:${lang}`;
+      const legacySaved = localStorage.getItem(draftKey);
+      if (legacySaved) return legacySaved;
+    }
+    return problem.starterCode?.[lang] || starters[lang];
+  };
+
+  // Load initial code draft on mount
+  useEffect(() => {
+    if (problems && problems[0]) {
+      setCode(getDraftOrStarter(problems[0], language));
+    }
+  }, [problems, currentUser]);
+
+  // Anti-cheat activity reporter
+  const reportSuspiciousActivity = async (eventType: 'paste' | 'tab_switch' | 'focus_loss' | 'devtools', detail: string) => {
+    let warningMsg = '';
+    if (eventType === 'tab_switch') {
+      warningMsg = 'Warning: Tab/window switching detected! Suspicious activity is logged.';
+    } else if (eventType === 'focus_loss') {
+      warningMsg = 'Warning: Focus loss detected! Keep your coding workspace active.';
+    } else if (eventType === 'devtools') {
+      warningMsg = 'Warning: Developer tools shortcut detected! Suspicious activity is logged.';
+    } else if (eventType === 'paste') {
+      warningMsg = 'Warning: Paste action blocked! Manual coding is required in battles.';
+    }
+
+    setCheatWarning(warningMsg);
+    setTimeout(() => setCheatWarning(null), 5000);
+
+    try {
+      const res = await fetch(`/api/coding/battles/${battle.id}/report-activity`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventType, detail }),
+      });
+      if (res.ok) {
+        // Refresh participants roster to fetch latest flagged stats
+        const partRes = await fetch(`/api/coding/battles/${battle.id}/leaderboard`);
+        if (partRes.ok) {
+          const partData = await partRes.json();
+          if (partData.participants) setParticipants(partData.participants);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to report anti-cheat event:', err);
+    }
+  };
+
+  // Anti-cheat visibility & window focus event listeners
+  useEffect(() => {
+    if (battle.status !== 'LIVE' || isInstructor || isVirtualPractice) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        reportSuspiciousActivity('tab_switch', 'User minimized window or switched browser tabs');
+      }
+    };
+
+    const handleWindowBlur = () => {
+      reportSuspiciousActivity('focus_loss', 'User clicked outside coding screen area');
+    };
+
+    const handleKeyDownGlobal = (e: KeyboardEvent) => {
+      const isF12 = e.key === 'F12';
+      const isCtrlShiftI = (e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j');
+      const isMacDevTools = e.metaKey && e.altKey && (e.key === 'I' || e.key === 'i');
+
+      if (isF12 || isCtrlShiftI || isMacDevTools) {
+        e.preventDefault();
+        reportSuspiciousActivity('devtools', `Keyboard shortcut devtools access: ${e.key}`);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleWindowBlur);
+    window.addEventListener('keydown', handleKeyDownGlobal);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleWindowBlur);
+      window.removeEventListener('keydown', handleKeyDownGlobal);
+    };
+  }, [battle.status, isInstructor, isVirtualPractice]);
+
+  const saveCode = (newCode: string, probId: string, lang: CodeLanguage) => {
+    setSaveStatus('Saving...');
+    const savedKey = getSaveKey(probId, lang);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(savedKey, newCode);
+    }
+    setSaveStatus('Saved');
   };
 
   // Initialize code when problem or language changes
@@ -197,6 +302,7 @@ export default function BattleArenaClient({
     const prob = problems[idx];
     if (prob) {
       setCode(getDraftOrStarter(prob, language));
+      setSaveStatus('Saved');
     }
   };
 
@@ -204,26 +310,33 @@ export default function BattleArenaClient({
     setLanguage(lang);
     if (currentProblem) {
       setCode(getDraftOrStarter(currentProblem, lang));
+      setSaveStatus('Saved');
     }
   };
 
   const handleCodeChange = (newVal: string) => {
     setCode(newVal);
-    if (currentProblem && typeof window !== 'undefined') {
-      const draftKey = `bce:code-draft:${battle.id}:${currentProblem.id}:${language}`;
-      localStorage.setItem(draftKey, newVal);
-    }
+    setSaveStatus('Unsaved changes');
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      if (currentProblem) {
+        saveCode(newVal, currentProblem.id, language);
+      }
+    }, 1000);
   };
+
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
+  }, []);
 
   const resetCode = () => {
     if (confirm(`Reset code editor to starter template for ${language}?`)) {
       if (currentProblem) {
         const starter = currentProblem.starterCode?.[language] || starters[language];
         setCode(starter);
-        if (typeof window !== 'undefined') {
-          const draftKey = `bce:code-draft:${battle.id}:${currentProblem.id}:${language}`;
-          localStorage.removeItem(draftKey);
-        }
+        saveCode(starter, currentProblem.id, language);
       }
     }
   };
@@ -374,6 +487,32 @@ export default function BattleArenaClient({
 
   return (
     <div className="code-arena-page">
+      {/* Anti-cheat suspension warning banner */}
+      {cheatWarning && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(239, 68, 68, 0.95)',
+          color: 'white',
+          padding: '12px 24px',
+          borderRadius: 'var(--radius-md)',
+          boxShadow: '0 4px 20px rgba(239, 68, 68, 0.4)',
+          zIndex: 10000,
+          fontWeight: 700,
+          fontSize: '13px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          border: '1px solid #f87171',
+          backdropFilter: 'blur(8px)',
+        }}>
+          <AlertTriangle size={16} />
+          {cheatWarning}
+        </div>
+      )}
+
       {/* End Battle Summary Modal */}
       {showEndModal && (
         <BattleEndScreen
@@ -599,10 +738,32 @@ export default function BattleArenaClient({
                 <ProblemStatementRenderer problem={currentProblem} />
               </section>
 
-              {/* Right Workspace Panel */}
+               {/* Right Workspace Panel */}
               <section className="code-workspace-panel">
-                {/* Monaco Container */}
-                <div className={`code-monaco-wrapper ${isFullscreen ? 'code-editor-fullscreen' : ''}`}>
+                {/* Monaco Container with protections and captures */}
+                <div 
+                  className={`code-monaco-wrapper ${isFullscreen ? 'code-editor-fullscreen' : ''}`}
+                  onContextMenuCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onCopyCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onCutCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onPasteCapture={(e) => { 
+                    e.preventDefault(); 
+                    e.stopPropagation(); 
+                    reportSuspiciousActivity('paste', 'User attempted to paste text into editor');
+                  }}
+                  onDragStartCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onDropCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onKeyDownCapture={(e) => {
+                    const isMod = e.ctrlKey || e.metaKey;
+                    if (isMod && ['c', 'v', 'x'].includes(e.key.toLowerCase())) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (e.key.toLowerCase() === 'v') {
+                        reportSuspiciousActivity('paste', 'User attempted to paste code via keyboard shortcut');
+                      }
+                    }
+                  }}
+                >
                   <div className="code-editor-toolbar">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Language:</span>
@@ -620,6 +781,28 @@ export default function BattleArenaClient({
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {/* Save Button and Status indicator */}
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginRight: '6px' }}>
+                        {saveStatus}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => currentProblem && saveCode(code, currentProblem.id, language)}
+                        style={{
+                          background: 'rgba(6, 182, 212, 0.1)',
+                          border: '1px solid rgba(6, 182, 212, 0.3)',
+                          color: 'var(--neon-cyan)',
+                          fontSize: '11px',
+                          padding: '4px 10px',
+                          borderRadius: 'var(--radius-sm)',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          marginRight: '8px',
+                        }}
+                      >
+                        Save
+                      </button>
+
                       <button
                         type="button"
                         className="oj-icon-btn"
@@ -964,8 +1147,28 @@ export default function BattleArenaClient({
                     <span style={{ fontWeight: 800, fontSize: 'var(--text-sm)', color: idx === 0 ? 'var(--neon-gold)' : 'var(--text-muted)' }}>
                       #{idx + 1}
                     </span>
-                    <div style={{ fontWeight: isSelf ? 800 : 600, fontSize: 'var(--text-sm)' }}>
-                      {pt.profiles?.full_name || pt.student?.full_name || 'Anonymous Student'} {isSelf && <span style={{ color: 'var(--neon-cyan)' }}>(You)</span>}
+                    <div style={{ fontWeight: isSelf ? 800 : 600, fontSize: 'var(--text-sm)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span>{pt.profiles?.full_name || pt.student?.full_name || 'Anonymous Student'} {isSelf && <span style={{ color: 'var(--neon-cyan)' }}>(You)</span>}</span>
+                      {pt.is_flagged && (
+                        <span 
+                          style={{ 
+                            background: 'rgba(239, 68, 68, 0.15)', 
+                            color: '#f87171', 
+                            fontSize: '9px', 
+                            padding: '1px 6px', 
+                            borderRadius: '4px', 
+                            fontWeight: 700, 
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '2px',
+                            cursor: 'help'
+                          }}
+                          title={`Suspicious violations detail:\n- Paste attempts: ${pt.suspicious_paste_count || 0}\n- Tab/Window switches: ${pt.tab_switch_count || 0}\n- Focus losses: ${pt.focus_loss_count || 0}\n- DevTools events: ${pt.devtools_count || 0}`}
+                        >
+                          <AlertTriangle size={10} /> SUSPICIOUS
+                        </span>
+                      )}
                     </div>
                   </div>
 

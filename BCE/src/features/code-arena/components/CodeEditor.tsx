@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Play,
   Send,
@@ -58,6 +58,10 @@ export default function CodeEditor({
   const supportedLanguages = (problem.supported_languages || ['cpp17', 'c', 'java', 'python', 'javascript']) as CodeLanguage[];
 
   const router = useRouter();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<'Saved' | 'Saving...' | 'Unsaved changes'>('Saved');
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const [language, setLanguage] = useState<CodeLanguage>(supportedLanguages[0] || 'cpp17');
   const [code, setCode] = useState(() => {
     const firstLang = supportedLanguages[0] || 'cpp17';
@@ -68,7 +72,7 @@ export default function CodeEditor({
     return starters[firstLang] || starters.cpp17;
   });
   const [customInput, setCustomInput] = useState(samples[0]?.input || '');
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(true); // Fullscreen by default
   const [activeTab, setActiveTab] = useState<ConsoleTab>('output');
 
   const [running, setRunning] = useState(false);
@@ -78,12 +82,73 @@ export default function CodeEditor({
   const [showCFModal, setShowCFModal] = useState(false);
   const [showLCModal, setShowLCModal] = useState(false);
 
+  // Fetch current user and load initial saved code
+  useEffect(() => {
+    async function loadUserAndCode() {
+      try {
+        const supabaseClient = (await import('@/lib/supabase/client')).createClient();
+        const { data } = await supabaseClient.auth.getUser();
+        const uid = data.user?.id || 'guest';
+        setCurrentUserId(uid);
+
+        // Load saved code if any
+        const savedKey = `bce:code-save:${uid}:${problemId}:${language}`;
+        const saved = localStorage.getItem(savedKey);
+        if (saved) {
+          setCode(saved);
+        }
+      } catch (err) {
+        console.error('Failed to load user state:', err);
+      }
+    }
+    loadUserAndCode();
+  }, [problemId]);
+
+  const saveCode = (newCode: string, lang: CodeLanguage) => {
+    setSaveStatus('Saving...');
+    const uid = currentUserId || 'guest';
+    const savedKey = `bce:code-save:${uid}:${problemId}:${lang}`;
+    localStorage.setItem(savedKey, newCode);
+    setSaveStatus('Saved');
+  };
+
+  const handleCodeChange = (newVal: string) => {
+    setCode(newVal);
+    setSaveStatus('Unsaved changes');
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      saveCode(newVal, language);
+    }, 1000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
+  }, []);
+
+  const handleLanguageChange = (nextLang: CodeLanguage) => {
+    setLanguage(nextLang);
+    const uid = currentUserId || 'guest';
+    const savedKey = `bce:code-save:${uid}:${problemId}:${nextLang}`;
+    const saved = localStorage.getItem(savedKey);
+    if (saved) {
+      setCode(saved);
+    } else {
+      const starter = (problem.starterCode && typeof problem.starterCode === 'object')
+        ? ((problem.starterCode as Record<string, string>)[nextLang] || starters[nextLang])
+        : (starters[nextLang] || starters.cpp17);
+      setCode(starter);
+    }
+  };
+
   const resetCode = () => {
     if (confirm(`Reset code editor to starter template for ${language}?`)) {
       const resetTo = (problem.starterCode && typeof problem.starterCode === 'object')
         ? ((problem.starterCode as Record<string, string>)[language] || starters[language])
         : (starters[language] || starters.cpp17);
       setCode(resetTo);
+      saveCode(resetTo, language);
     }
   };
 
@@ -171,8 +236,23 @@ export default function CodeEditor({
 
   return (
     <section className="code-workspace-panel" aria-label="Coding Workspace">
-      {/* Monaco Container with Fullscreen Toggle */}
-      <div className={`code-monaco-wrapper ${isFullscreen ? 'code-editor-fullscreen' : ''}`}>
+      {/* Monaco Container with Fullscreen Toggle and Event Captures */}
+      <div 
+        className={`code-monaco-wrapper ${isFullscreen ? 'code-editor-fullscreen' : ''}`}
+        onContextMenuCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
+        onCopyCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
+        onCutCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
+        onPasteCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
+        onDragStartCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
+        onDropCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
+        onKeyDownCapture={(e) => {
+          const isMod = e.ctrlKey || e.metaKey;
+          if (isMod && ['c', 'v', 'x'].includes(e.key.toLowerCase())) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }}
+      >
         {/* Editor Toolbar */}
         <div className="code-editor-toolbar">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -181,14 +261,7 @@ export default function CodeEditor({
             </span>
             <select
               value={language}
-              onChange={(e) => {
-                const next = e.target.value as CodeLanguage;
-                setLanguage(next);
-                const nextCode = (problem.starterCode && typeof problem.starterCode === 'object')
-                  ? ((problem.starterCode as Record<string, string>)[next] || starters[next])
-                  : (starters[next] || starters.cpp17);
-                setCode(nextCode);
-              }}
+              onChange={(e) => handleLanguageChange(e.target.value as CodeLanguage)}
               aria-label="Select programming language"
               style={{
                 background: 'var(--bg-elevated)',
@@ -210,6 +283,28 @@ export default function CodeEditor({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {/* Save Status & Button */}
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginRight: '6px' }}>
+              {saveStatus}
+            </span>
+            <button
+              type="button"
+              onClick={() => saveCode(code, language)}
+              style={{
+                background: 'rgba(6, 182, 212, 0.1)',
+                border: '1px solid rgba(6, 182, 212, 0.3)',
+                color: 'var(--neon-cyan)',
+                fontSize: '11px',
+                padding: '4px 10px',
+                borderRadius: 'var(--radius-sm)',
+                fontWeight: 600,
+                cursor: 'pointer',
+                marginRight: '8px',
+              }}
+            >
+              Save
+            </button>
+
             <button
               type="button"
               onClick={resetCode}
@@ -238,7 +333,7 @@ export default function CodeEditor({
           language={languageMap[language]}
           theme="vs-dark"
           value={code}
-          onChange={(v) => setCode(v || '')}
+          onChange={(v) => handleCodeChange(v || '')}
           options={{
             minimap: { enabled: false },
             fontSize: 14,
