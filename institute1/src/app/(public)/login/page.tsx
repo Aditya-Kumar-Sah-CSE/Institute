@@ -10,14 +10,21 @@ export const metadata: Metadata = {
 };
 
 export default async function LoginPage() {
-  const supabase = await createClient();
-  const { data: settings } = await supabase.from('company_settings').select('company_name, logo_url').maybeSingle();
-  
-  const routingMode = 'development';
+  let companyName: string | undefined;
+  let logoUrl: string | undefined;
+  try {
+    const supabase = await createClient();
+    const { data: settings } = await supabase
+      .from('company_settings')
+      .select('company_name, logo_url')
+      .maybeSingle();
+    companyName = settings?.company_name ?? undefined;
+    logoUrl = settings?.logo_url ?? undefined;
+  } catch {
+    // Fall back to defaults so the login form still renders
+  }
 
-  const companyName = settings?.company_name;
-  const logoUrl = settings?.logo_url;
-  const baseUrl = generateTenantBaseUrl(null, routingMode);
+  const baseUrl = generateTenantBaseUrl(null, 'root');
 
   return (
     <Suspense fallback={<div className="auth-container"><div className="auth-card" style={{ padding: 'var(--space-2xl)', textAlign: 'center' }}>Loading...</div></div>}>

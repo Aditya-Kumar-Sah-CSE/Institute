@@ -30,10 +30,17 @@ export const viewport: Viewport = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { createClient } = await import('@/lib/supabase/server');
-  const supabase = await createClient();
-  const { data: settings } = await supabase.from('company_settings').select('company_name, logo_url').single();
-  const companyName = settings?.company_name || 'Smart Hybrid Learning';
+  let companyName = 'Smart Hybrid Learning';
+  let settings: { company_name?: string; logo_url?: string } | null = null;
+  try {
+    const { createClient } = await import('@/lib/supabase/server');
+    const supabase = await createClient();
+    const { data } = await supabase.from('company_settings').select('company_name, logo_url').maybeSingle();
+    settings = data;
+    companyName = data?.company_name || 'Smart Hybrid Learning';
+  } catch {
+    // Fallback to defaults if Supabase is unreachable
+  }
 
   return {
     title: `${companyName} | Student Engagement Platform`,

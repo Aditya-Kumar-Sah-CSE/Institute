@@ -44,24 +44,38 @@ export default async function LandingPage({
     }
   }
 
-  const supabase = await createClient();
-  const { data: settings } = await supabase.from('company_settings').select('*').single();
-  const companyName = settings?.company_name || 'Smart Learning';
-  const logoUrl = settings?.logo_url || '/images/smart_learning_logo.png';
+  let companyName = 'Smart Learning';
+  let logoUrl = '/images/smart_learning_logo.png';
+  let activePlans: any[] = [];
 
-  // If a tenant is viewing their root domain/route, render their custom landing page.
-  if (tenant) {
-    return <InstitutionLanding tenant={tenant} routingMode={routingMode as any} companyName={companyName} />;
+  try {
+    const supabase = await createClient();
+    const { data: settings } = await supabase
+      .from('company_settings')
+      .select('company_name, logo_url')
+      .maybeSingle();
+    companyName = settings?.company_name || 'Smart Learning';
+    logoUrl = settings?.logo_url || '/images/smart_learning_logo.png';
+
+    // If a tenant is viewing their root domain/route, render their custom landing page.
+    if (tenant) {
+      return <InstitutionLanding tenant={tenant} routingMode={routingMode as any} companyName={companyName} />;
+    }
+
+    // Fetch dynamic plans for the Pricing section
+    const { data: plansData } = await supabase
+      .from('pricing_plans')
+      .select('*')
+      .eq('status', 'active')
+      .order('monthly_price', { ascending: true });
+
+    activePlans = plansData || [];
+  } catch {
+    // Fallback to defaults if Supabase is unreachable — page still renders
+    if (tenant) {
+      return <InstitutionLanding tenant={tenant} routingMode={routingMode as any} companyName={companyName} />;
+    }
   }
-
-  // Fetch dynamic plans for the Pricing section
-  const { data: plansData } = await supabase
-    .from('pricing_plans')
-    .select('*')
-    .eq('status', 'active')
-    .order('monthly_price', { ascending: true });
-
-  const activePlans = plansData || [];
 
   return (
     <div className="landing-container b2b-enterprise">
