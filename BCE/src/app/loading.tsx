@@ -1,13 +1,39 @@
 'use client';
 
+import { useState, useEffect, useRef } from 'react';
+
 /**
  * Global Loading / Splash Screen
- * 
+ *
  * PERF: No network calls here. Uses static public assets only.
- * The logo and name are baked into the public folder — 
+ * The logo and name are baked into the public folder —
  * fetching them from the DB during loading defeats the purpose of a splash screen.
+ *
+ * RECOVERY: After RECOVERY_TIMEOUT_MS the spinner is replaced with a friendly
+ * recovery panel (Retry + Go to Login). This does NOT cancel the underlying
+ * server suspension — it gives the user an escape hatch when the server is
+ * unresponsive. The timer is cleared on unmount so normal fast loads are
+ * unaffected.
  */
+const RECOVERY_TIMEOUT_MS = 10_000;
+
 export default function GlobalLoading() {
+  const [showRecovery, setShowRecovery] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    timerRef.current = setTimeout(() => {
+      setShowRecovery(true);
+    }, RECOVERY_TIMEOUT_MS);
+
+    return () => {
+      if (timerRef.current !== null) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, []);
+
   return (
     <div style={{ 
       display: 'flex', 
@@ -61,18 +87,67 @@ export default function GlobalLoading() {
         }}>
           Smart Learn
         </h2>
-        <div style={{ display: 'flex', gap: '6px' }}>
-          {[0, 1, 2].map((i) => (
-            <div key={i} style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              backgroundColor: 'var(--neon-cyan, #00f2fe)',
-              animation: `bounce-dot 1.4s ease-in-out infinite`,
-              animationDelay: `${i * 0.16}s`
-            }} />
-          ))}
-        </div>
+
+        {/* Normal bounce-dot spinner — hidden once recovery kicks in */}
+        {!showRecovery && (
+          <div style={{ display: 'flex', gap: '6px' }} aria-hidden="true">
+            {[0, 1, 2].map((i) => (
+              <div key={i} style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--neon-cyan, #00f2fe)',
+                animation: `bounce-dot 1.4s ease-in-out infinite`,
+                animationDelay: `${i * 0.16}s`
+              }} />
+            ))}
+          </div>
+        )}
+
+        {/* Recovery panel — shown after RECOVERY_TIMEOUT_MS */}
+        {showRecovery && (
+          <div role="alert" aria-live="assertive" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', marginTop: '8px' }}>
+            <p style={{ margin: 0, fontSize: '14px', color: 'rgba(255,255,255,0.6)', textAlign: 'center' }}>
+              Still loading&hellip; The server may be temporarily unavailable.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <button
+                onClick={() => window.location.reload()}
+                style={{
+                  padding: '8px 20px',
+                  background: 'linear-gradient(to right, #00f2fe, #4facfe)',
+                  border: 'none',
+                  borderRadius: '24px',
+                  color: '#000',
+                  fontWeight: 700,
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  letterSpacing: '0.5px',
+                }}
+                aria-label="Retry loading the application"
+              >
+                Retry
+              </button>
+              <a
+                href="/login"
+                style={{
+                  padding: '8px 20px',
+                  border: '1px solid rgba(0,242,254,0.5)',
+                  borderRadius: '24px',
+                  color: 'var(--neon-cyan, #00f2fe)',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                }}
+                aria-label="Go to login page"
+              >
+                Go to Login
+              </a>
+            </div>
+          </div>
+        )}
       </div>
 
       <style>{`
