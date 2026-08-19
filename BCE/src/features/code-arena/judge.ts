@@ -158,9 +158,11 @@ export interface JudgeService {
   execute(request: CodeExecutionRequest): Promise<CodeExecutionResult>;
 }
 
+import { wrapCodeWithHarness } from './harness';
+
 export const judgeService: JudgeService = {
   async execute(request) {
-    const { language, sourceCode, testCases } = request;
+    let { language, sourceCode, testCases, problemId } = request;
     if (!testCases || testCases.length === 0) {
       return {
         status: 'ACCEPTED',
@@ -168,6 +170,24 @@ export const judgeService: JudgeService = {
         totalTests: 0,
         runtimeOutput: JSON.stringify([]),
       };
+    }
+
+    if (problemId) {
+      try {
+        const { createAdminClient } = await import('@/lib/supabase/server');
+        const adminClient = await createAdminClient();
+        const { data: problem } = await adminClient
+          .from('coding_problems')
+          .select('source_type, external_platform, signature')
+          .eq('id', problemId)
+          .single();
+
+        if (problem && (problem.source_type === 'LEETCODE' || problem.external_platform === 'LEETCODE') && problem.signature) {
+          sourceCode = wrapCodeWithHarness(sourceCode, problem.signature, language);
+        }
+      } catch (err) {
+        console.error('Error loading problem signature in judge service:', err);
+      }
     }
 
     const compiler = WANDBOX_COMPILERS[language] || 'gcc-head';

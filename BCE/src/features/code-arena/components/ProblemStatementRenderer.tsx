@@ -53,10 +53,12 @@ export interface ProblemData {
   explanation?: string | null;
   hasSolved?: boolean;
   hasAttempted?: boolean;
-  supported_languages?: CodeLanguage[];
   external_problem_id?: string | null;
   externalId?: string | null;
   starterCode?: Record<string, string> | null;
+  hints?: string[];
+  follow_up?: string | null;
+  supported_languages?: CodeLanguage[];
 }
 
 export function ExampleCopyBlock({ label, content }: { label: string; content: string }) {
@@ -717,6 +719,89 @@ export default function ProblemStatementRenderer({ problem }: { problem: Problem
           <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>No sample cases available.</span>
         )}
       </section>
+
+      {/* Follow-up Section */}
+      {problem.follow_up && (
+        <section style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-xs)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', borderLeft: '3px solid var(--neon-purple)', paddingLeft: '10px', letterSpacing: '0.5px' }}>
+            Follow-up
+          </div>
+          <div style={{
+            background: 'rgba(168, 85, 247, 0.03)',
+            border: '1px solid rgba(168, 85, 247, 0.15)',
+            borderRadius: '6px',
+            padding: '10px 12px',
+            fontSize: '12.5px',
+            color: '#c084fc',
+            lineHeight: '1.5'
+          }}>
+            {problem.follow_up}
+          </div>
+        </section>
+      )}
+
+      {/* Hints Section */}
+      {problem.hints && problem.hints.length > 0 && (
+        <section style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-xs)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', borderLeft: '3px solid #3b82f6', paddingLeft: '10px', letterSpacing: '0.5px' }}>
+            Hints ({problem.hints.length})
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {problem.hints.map((hint, idx) => (
+              <CollapsibleHint key={idx} index={idx + 1} content={hint} />
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function CollapsibleHint({ index, content }: { index: number; content: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <div style={{
+      background: 'rgba(255, 255, 255, 0.01)',
+      border: '1px solid var(--glass-border)',
+      borderRadius: '6px',
+      overflow: 'hidden'
+    }}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          width: '100%',
+          textAlign: 'left',
+          background: 'none',
+          border: 'none',
+          color: 'var(--text-main)',
+          padding: '10px 12px',
+          fontSize: '12px',
+          fontWeight: 700,
+          cursor: 'pointer',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}
+      >
+        <span>Hint {index}</span>
+        <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+          {isOpen ? '▲ Hide' : '▼ Show'}
+        </span>
+      </button>
+      {isOpen && (
+        <div 
+          style={{
+            padding: '10px 12px',
+            borderTop: '1px solid var(--glass-border)',
+            fontSize: '12.5px',
+            color: 'var(--text-secondary)',
+            lineHeight: '1.6',
+            background: 'rgba(0, 0, 0, 0.1)'
+          }}
+          dangerouslySetInnerHTML={{ __html: content }}
+        />
+      )}
     </div>
   );
 }

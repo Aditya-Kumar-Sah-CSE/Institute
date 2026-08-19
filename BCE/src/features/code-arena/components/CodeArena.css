@@ -4007,5 +4007,20 @@
   }
 }
 
+/* Resizable IDE Splitter overrides */
+@media (max-width: 900px) {
+  .resizable-ide {
+    flex-direction: column !important;
+    height: auto !important;
+  }
+  .resizable-ide .code-statement-panel,
+  .resizable-ide .code-editor-resizable-wrapper {
+    width: 100% !important;
+  }
+  .resizable-ide .ide-resizer-bar {
+    display: none !important;
+  }
+}
+
 
 

@@ -30,6 +30,11 @@ export interface ExternalProblem {
   tags: string[];
   officialUrl: string;
   starterCode: Record<string, string>;
+  signature?: any;
+  hints?: string[];
+  followUp?: string;
+  isPremium?: boolean;
+  metadata?: any;
 }
 
 export interface CodingPlatformAdapter {

@@ -111,6 +111,7 @@ export async function POST(request: Request) {
       .eq('is_hidden', false);
 
     const result = await judgeService.execute({
+      problemId,
       language,
       sourceCode,
       testCases: (tests || []).map((testCase) => ({

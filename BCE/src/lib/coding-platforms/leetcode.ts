@@ -99,6 +99,9 @@ export const leetcodeAdapter: CodingPlatformAdapter = {
             }
             sampleTestCase
             exampleTestcases
+            metaData
+            hints
+            isPaidOnly
           }
         }
       `,
@@ -229,6 +232,24 @@ export const leetcodeAdapter: CodingPlatformAdapter = {
 
     const tags = Array.isArray(data.topicTags) ? data.topicTags.map((t: any) => t.name) : ['leetcode'];
 
+    let signature: any = null;
+    if (data.metaData) {
+      try {
+        signature = JSON.parse(data.metaData);
+      } catch (e) {
+        console.error('Failed to parse LeetCode metaData:', e);
+      }
+    }
+
+    // Try to extract follow-up from statement HTML if present
+    let followUp = undefined;
+    if (statement) {
+      const followUpMatch = statement.match(/<(?:strong|p|h4)[^>]*>\s*Follow-up:?\s*<\/(?:strong|p|h4)>([\s\S]*?)(?:<\/div>|<\/p>|<\/ul>|$)/i);
+      if (followUpMatch) {
+        followUp = stripTags(followUpMatch[1]).trim();
+      }
+    }
+
     return {
       platform: 'LEETCODE',
       externalId: slug,
@@ -244,6 +265,13 @@ export const leetcodeAdapter: CodingPlatformAdapter = {
       tags,
       officialUrl,
       starterCode,
+      signature,
+      hints: Array.isArray(data.hints) ? data.hints : [],
+      isPremium: !!data.isPaidOnly,
+      followUp,
+      metadata: {
+        questionId: data.questionId,
+      },
     };
   },
 };

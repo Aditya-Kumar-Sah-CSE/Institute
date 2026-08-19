@@ -56,7 +56,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { code, language, stdin = '' } = await request.json();
+    const { code, language, stdin = '', problemId, testCases } = await request.json();
 
     if (language === 'html') {
       return NextResponse.json({
@@ -89,6 +89,27 @@ export async function POST(request: Request) {
         } as NormalizedExecutionResult,
         { status: 400 }
       );
+    }
+
+    // Support running batch test cases via judgeService
+    if (Array.isArray(testCases) && testCases.length > 0) {
+      const { judgeService } = await import('@/features/code-arena/judge');
+      const result = await judgeService.execute({
+        problemId,
+        language,
+        sourceCode: code,
+        testCases: testCases.map((tc: any) => ({
+          input: tc.input || '',
+          expectedOutput: tc.expectedOutput || '',
+        })),
+        timeLimitMs: 2000,
+        memoryLimitMb: 256,
+      });
+
+      return NextResponse.json({
+        isBatch: true,
+        ...result,
+      });
     }
 
     const compiler = WANDBOX_COMPILERS[language] || 'gcc-head';

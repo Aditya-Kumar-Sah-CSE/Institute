@@ -35,6 +35,7 @@ export type NormalizedExecutionResult = {
 };
 
 export interface CodeExecutionRequest {
+  problemId?: string;
   language: CodeLanguage;
   sourceCode: string;
   testCases: { input: string; expectedOutput: string }[];

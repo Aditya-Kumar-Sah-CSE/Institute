@@ -3,6 +3,7 @@ import { Code2, Bell, UserCircle, Trophy } from 'lucide-react';
 import { getCodeArenaActor } from '@/features/code-arena/server';
 import ProblemStatementRenderer from '@/features/code-arena/components/ProblemStatementRenderer';
 import CodeEditor from '@/features/code-arena/components/CodeEditor';
+import ResizableIdeLayout from '@/features/code-arena/components/ResizableIdeLayout';
 import { unstable_cache } from 'next/cache';
 import { codeforcesAdapter } from '@/lib/coding-platforms/codeforces';
 import { leetcodeAdapter } from '@/lib/coding-platforms/leetcode';
@@ -85,17 +86,105 @@ export default async function CodeProblemPage({ params }: { params: Promise<{ id
   const hasSolved = (submissions || []).some(s => s.status === 'ACCEPTED');
   const hasAttempted = (submissions || []).length > 0;
 
+  const pAny = problem as any;
   let problemData = {
     ...problem,
     samples: samples || [],
     hasSolved,
     hasAttempted,
+    starterCode: pAny.starter_code || null,
+    hints: pAny.hints || [],
+    follow_up: pAny.follow_up || null,
+    is_premium: !!pAny.is_premium,
+    examples: pAny.examples || [],
   };
 
-  if ((problem.source_type === 'CODEFORCES' || problem.external_platform === 'CODEFORCES') && problem.external_problem_id) {
-    const ident = codeforcesAdapter.parseIdentifier(problem.external_problem_id);
-    if (ident && ident.contestId && ident.problemIndex) {
-      const scraped = await getCodeforcesProblemSafe(ident.contestId, ident.problemIndex);
+  const isLc = problem.source_type === 'LEETCODE' || problem.external_platform === 'LEETCODE';
+  const isCf = problem.source_type === 'CODEFORCES' || problem.external_platform === 'CODEFORCES';
+
+  if (isLc) {
+    const needSync = !pAny.starter_code || Object.keys(pAny.starter_code).length === 0 || !problem.description || (samples || []).length === 0;
+    if (needSync) {
+      console.log(`[PAGE] LeetCode problem ${problem.external_problem_id} cache incomplete. Fetching and syncing...`);
+      const scraped = await getLeetCodeProblemSafe(problem.external_problem_id || '');
+      if (scraped) {
+        const { createAdminClient } = await import('@/lib/supabase/server');
+        const adminClient = await createAdminClient();
+        await adminClient
+          .from('coding_problems')
+          .update({
+            title: scraped.title || problem.title,
+            description: scraped.statement || problem.description,
+            constraints: scraped.constraints || problem.constraints,
+            explanation: scraped.explanation || problem.explanation,
+            signature: scraped.signature || null,
+            starter_code: scraped.starterCode || {},
+            examples: scraped.examples || [],
+            hints: scraped.hints || [],
+            follow_up: scraped.followUp || null,
+            is_premium: !!scraped.isPremium,
+            metadata: scraped.metadata || {},
+          })
+          .eq('id', problem.id);
+        
+        if ((samples || []).length === 0 && scraped.examples && scraped.examples.length > 0) {
+          const testCasesToInsert = scraped.examples.map((ex, idx) => ({
+            problem_id: problem.id,
+            input: ex.input,
+            expected_output: ex.output,
+            is_hidden: false,
+            sample_name: `Sample ${idx + 1}`,
+            order_index: idx,
+          }));
+          await adminClient.from('coding_problem_test_cases').insert(testCasesToInsert);
+        }
+
+        problemData = {
+          ...problemData,
+          title: scraped.title || problemData.title,
+          description: scraped.statement || problemData.description,
+          statement: scraped.statement || problemData.statement,
+          input_format: scraped.inputFormat || problemData.input_format,
+          output_format: scraped.outputFormat || problemData.output_format,
+          explanation: scraped.explanation || problemData.explanation,
+          constraints: scraped.constraints || problemData.constraints,
+          starterCode: scraped.starterCode || null,
+          hints: scraped.hints || [],
+          follow_up: scraped.followUp || null,
+          is_premium: !!scraped.isPremium,
+          examples: scraped.examples || [],
+          samples: scraped.examples ? scraped.examples.map((ex, idx) => ({
+            input: ex.input,
+            expected_output: ex.output,
+            sample_name: `Sample #${idx + 1}`,
+            order_index: idx,
+          })) : samples || [],
+        };
+      }
+    } else {
+      problemData = {
+        ...problemData,
+        statement: problem.description,
+        starterCode: pAny.starter_code || null,
+        hints: pAny.hints || [],
+        follow_up: pAny.follow_up || null,
+        is_premium: !!pAny.is_premium,
+        examples: pAny.examples || [],
+      };
+      
+      if (problemData.samples.length === 0 && pAny.examples && pAny.examples.length > 0) {
+        problemData.samples = pAny.examples.map((ex: any, idx: number) => ({
+          input: ex.input,
+          expected_output: ex.output,
+          sample_name: `Sample #${idx + 1}`,
+          order_index: idx,
+        }));
+      }
+    }
+  } else if (isCf && problem.external_problem_id) {
+    const match = problem.external_problem_id.match(/^(\d+)([A-Z]\d*)$/i);
+    if (match) {
+      const scraped = await getCodeforcesProblemSafe(match[1], match[2]);
       if (scraped) {
         problemData = {
           ...problemData,
@@ -105,6 +194,7 @@ export default async function CodeProblemPage({ params }: { params: Promise<{ id
           output_format: scraped.outputFormat || problemData.output_format,
           explanation: scraped.explanation || problemData.explanation,
           constraints: scraped.constraints || problemData.constraints,
+          starterCode: scraped.starterCode || null,
         };
 
         if (scraped.examples && scraped.examples.length > 0) {
@@ -115,31 +205,6 @@ export default async function CodeProblemPage({ params }: { params: Promise<{ id
             order_index: idx,
           }));
         }
-      }
-    }
-  }
-
-  if ((problem.source_type === 'LEETCODE' || problem.external_platform === 'LEETCODE') && problem.external_problem_id) {
-    const scraped = await getLeetCodeProblemSafe(problem.external_problem_id);
-    if (scraped) {
-      problemData = {
-        ...problemData,
-        title: scraped.title || problemData.title,
-        statement: scraped.statement || problemData.statement,
-        input_format: scraped.inputFormat || problemData.input_format,
-        output_format: scraped.outputFormat || problemData.output_format,
-        explanation: scraped.explanation || problemData.explanation,
-        constraints: scraped.constraints || problemData.constraints,
-        starterCode: scraped.starterCode || null,
-      };
-
-      if (scraped.examples && scraped.examples.length > 0) {
-        problemData.samples = scraped.examples.map((ex, idx) => ({
-          input: ex.input,
-          expected_output: ex.output,
-          sample_name: `Sample #${idx + 1}`,
-          order_index: idx,
-        }));
       }
     }
   }
@@ -186,20 +251,9 @@ export default async function CodeProblemPage({ params }: { params: Promise<{ id
         </div>
       </header>
 
-      {/* 3-Pane Desktop IDE Grid Layout wrapped in workspace-container */}
+      {/* Resizable Desktop IDE Layout */}
       <div className="code-arena-workspace-container">
-        <div className="code-arena-ide-layout">
-          {/* Left Problem Statement Panel */}
-          <section className="code-statement-panel">
-            <ProblemStatementRenderer problem={problemData} />
-          </section>
-
-          {/* Right Monaco Editor Panel */}
-          <CodeEditor
-            problem={problemData}
-            samples={problemData.samples}
-          />
-        </div>
+        <ResizableIdeLayout problemData={problemData} />
       </div>
     </div>
   );

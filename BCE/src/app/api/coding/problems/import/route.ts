@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     // 2. Check Database Cache First
     const { data: cachedProblem } = await supabase
       .from('coding_problems')
-      .select('id, title, slug, description, difficulty, tags, constraints, input_format, output_format, explanation, source_type, external_platform, external_problem_id, external_url, time_limit_ms, memory_limit_mb, supported_languages')
+      .select('id, title, slug, description, difficulty, tags, constraints, input_format, output_format, explanation, source_type, external_platform, external_problem_id, external_url, time_limit_ms, memory_limit_mb, supported_languages, signature, starter_code, examples, hints, follow_up, is_premium, metadata')
       .eq('external_platform', externalPlatform)
       .eq('external_problem_id', externalProblemId)
       .maybeSingle();
@@ -58,11 +58,13 @@ export async function POST(request: Request) {
         .eq('is_hidden', false)
         .order('order_index', { ascending: true });
 
+      const isLc = cachedProblem.source_type === 'LEETCODE' || cachedProblem.external_platform === 'LEETCODE';
       const isIncomplete =
         !cachedProblem.description ||
         cachedProblem.description.includes('Solve Codeforces Problem') ||
         cachedProblem.description.includes('Solve LeetCode Problem') ||
-        (samples || []).length === 0;
+        (samples || []).length === 0 ||
+        (isLc && (!cachedProblem.starter_code || Object.keys(cachedProblem.starter_code || {}).length === 0));
 
       if (!isIncomplete) {
         return NextResponse.json({
@@ -120,6 +122,14 @@ export async function POST(request: Request) {
           external_url: externalProblem.officialUrl,
           is_published: true,
           created_by: user.id,
+          signature: externalProblem.signature || null,
+          starter_code: externalProblem.starterCode || {},
+          examples: externalProblem.examples || [],
+          hints: externalProblem.hints || [],
+          follow_up: externalProblem.followUp || null,
+          is_premium: !!externalProblem.isPremium,
+          metadata: externalProblem.metadata || {},
+          fetched_at: new Date().toISOString(),
         },
         { onConflict: 'external_platform,external_problem_id' }
       )
