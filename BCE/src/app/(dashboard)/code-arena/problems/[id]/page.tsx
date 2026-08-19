@@ -186,18 +186,20 @@ export default async function CodeProblemPage({ params }: { params: Promise<{ id
         </div>
       </header>
 
-      {/* 3-Pane Desktop IDE Grid Layout */}
-      <div className="code-arena-ide-layout">
-        {/* Left Problem Statement Panel */}
-        <section className="code-statement-panel">
-          <ProblemStatementRenderer problem={problemData} />
-        </section>
+      {/* 3-Pane Desktop IDE Grid Layout wrapped in workspace-container */}
+      <div className="code-arena-workspace-container">
+        <div className="code-arena-ide-layout">
+          {/* Left Problem Statement Panel */}
+          <section className="code-statement-panel">
+            <ProblemStatementRenderer problem={problemData} />
+          </section>
 
-        {/* Right Monaco Editor Panel */}
-        <CodeEditor
-          problem={problemData}
-          samples={problemData.samples}
-        />
+          {/* Right Monaco Editor Panel */}
+          <CodeEditor
+            problem={problemData}
+            samples={problemData.samples}
+          />
+        </div>
       </div>
     </div>
   );
