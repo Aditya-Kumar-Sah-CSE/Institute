@@ -164,7 +164,6 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isConsoleFullscreen, setIsConsoleFullscreen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('input');
-  const [consoleMode, setConsoleMode] = useState<'terminal' | 'result'>('terminal');
   const [isConsoleCollapsed, setIsConsoleCollapsed] = useState(true);
   const [expectedOutput, setExpectedOutput] = useState('');
 
@@ -704,14 +703,12 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
       const data: NormalizedExecutionResult = await res.json();
       setResult(data);
 
-      setConsoleMode('result');
       if (data.status === 'COMPILATION_ERROR' || (data.status === 'RUNTIME_ERROR' && !data.stdout)) {
         setActiveTab('error');
       } else {
         setActiveTab('output');
       }
     } catch {
-      setConsoleMode('result');
       setResult({
         status: 'SYSTEM_ERROR',
         stdout: '',
@@ -771,13 +768,28 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
   return (
     <div
       ref={workspaceContainerRef}
-      className={`compiler-layout ${isFullscreen ? 'code-editor-fullscreen' : ''}`}
-      style={{
+      className="compiler-layout"
+      style={isFullscreen ? {
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        background: 'var(--bg-primary)',
+        display: 'flex',
+        width: '100vw',
+        height: '100vh',
+        padding: '16px',
+        minHeight: 0,
+      } : {
         display: 'flex',
         width: '100%',
         height: '100%',
-        minHeight: 0,
+        flex: 1,
+        minHeight: 'calc(100vh - 120px)',
         position: 'relative',
+        background: 'var(--bg-primary)',
+        borderRadius: '8px',
+        border: '1px solid var(--glass-border)',
+        overflow: 'hidden'
       }}
     >
       {/* 20% Panel: Local Explorer / Fallback tree */}
@@ -903,7 +915,8 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
         }}
       >
         <header className="code-editor-toolbar">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Left part: filename */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
             <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--text-main)' }}>
               {activeFile?.name || 'No file selected'}
             </span>
@@ -912,7 +925,122 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
             )}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Center part: Toggle tabs (Testcase, Output, Error) */}
+          <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flex: 1 }}>
+            <button
+              type="button"
+              className={`oj-tab ${activeTab === 'input' && !isConsoleCollapsed ? 'active' : ''}`}
+              onClick={() => {
+                if (activeTab === 'input' && !isConsoleCollapsed) {
+                  setIsConsoleCollapsed(true);
+                } else {
+                  setActiveTab('input');
+                  setIsConsoleCollapsed(false);
+                }
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '4px 10px',
+                fontSize: '11px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                borderRadius: '4px',
+                border: '1px solid var(--glass-border)',
+                background: activeTab === 'input' && !isConsoleCollapsed ? 'rgba(0, 240, 255, 0.15)' : 'transparent',
+                color: activeTab === 'input' && !isConsoleCollapsed ? 'var(--neon-cyan)' : 'var(--text-secondary)'
+              }}
+            >
+              📋 Testcase
+            </button>
+            <button
+              type="button"
+              className={`oj-tab ${activeTab === 'output' && !isConsoleCollapsed ? 'active' : ''}`}
+              onClick={() => {
+                if (activeTab === 'output' && !isConsoleCollapsed) {
+                  setIsConsoleCollapsed(true);
+                } else {
+                  setActiveTab('output');
+                  setIsConsoleCollapsed(false);
+                }
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '4px 10px',
+                fontSize: '11px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                borderRadius: '4px',
+                border: '1px solid var(--glass-border)',
+                background: activeTab === 'output' && !isConsoleCollapsed ? 'rgba(0, 240, 255, 0.15)' : 'transparent',
+                color: activeTab === 'output' && !isConsoleCollapsed ? 'var(--neon-cyan)' : 'var(--text-secondary)'
+              }}
+            >
+              📊 Output
+            </button>
+            <button
+              type="button"
+              className={`oj-tab ${activeTab === 'error' && !isConsoleCollapsed ? 'active' : ''}`}
+              onClick={() => {
+                if (activeTab === 'error' && !isConsoleCollapsed) {
+                  setIsConsoleCollapsed(true);
+                } else {
+                  setActiveTab('error');
+                  setIsConsoleCollapsed(false);
+                }
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '4px 10px',
+                fontSize: '11px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                borderRadius: '4px',
+                border: '1px solid var(--glass-border)',
+                background: activeTab === 'error' && !isConsoleCollapsed ? 'rgba(239, 68, 68, 0.12)' : 'transparent',
+                color: activeTab === 'error' && !isConsoleCollapsed ? '#ef4444' : 'var(--text-secondary)'
+              }}
+            >
+              ⚠️ Error {errorCount > 0 && <span className="oj-err-badge" style={{ padding: '1px 5px', fontSize: '9px', marginLeft: '4px' }}>{errorCount}</span>}
+            </button>
+            {language === 'html' && (
+              <button
+                type="button"
+                className={`oj-tab ${activeTab === 'preview' && !isConsoleCollapsed ? 'active' : ''}`}
+                onClick={() => {
+                  if (activeTab === 'preview' && !isConsoleCollapsed) {
+                    setIsConsoleCollapsed(true);
+                  } else {
+                    setActiveTab('preview');
+                    setIsConsoleCollapsed(false);
+                  }
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 10px',
+                  fontSize: '11px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  borderRadius: '4px',
+                  border: '1px solid var(--glass-border)',
+                  background: activeTab === 'preview' && !isConsoleCollapsed ? 'rgba(0, 240, 255, 0.15)' : 'transparent',
+                  color: activeTab === 'preview' && !isConsoleCollapsed ? 'var(--neon-cyan)' : 'var(--text-secondary)'
+                }}
+              >
+                🌐 UI Preview
+              </button>
+            )}
+          </div>
+
+          {/* Right part: Actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, justifyContent: 'flex-end' }}>
             <select
               value={language}
               aria-label="Language Mode"
@@ -1005,83 +1133,7 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
           />
         </div>
          {/* Bottom Console Panel */}
-        {isConsoleCollapsed ? (
-          /* Slim status bar when collapsed */
-          <div
-            className="oj-console-wrapper"
-            style={{
-              padding: '6px 12px',
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              cursor: 'pointer',
-              userSelect: 'none',
-              borderRadius: '4px',
-              background: 'var(--bg-secondary)',
-              border: '1px solid var(--glass-border)',
-              marginTop: '8px'
-            }}
-            onClick={() => setIsConsoleCollapsed(false)}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 'bold' }}>
-                ▲ Show Console & Output
-              </span>
-              <span className={`oj-pill ${engineHealth === 'Ready' ? 'oj-pill-ready' : 'oj-err-badge'}`} style={{ fontSize: '9px', padding: '1px 6px', margin: 0 }}>
-                <span className="oj-dot" /> {engineHealth === 'Ready' ? 'Compiler Connected' : 'Offline'}
-              </span>
-              {errorCount > 0 && (
-                <span className="oj-err-badge" style={{ fontSize: '9px', padding: '1px 6px' }}>
-                  {errorCount} Error{errorCount > 1 ? 's' : ''}
-                </span>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setConsoleMode('terminal');
-                  setIsConsoleCollapsed(false);
-                  setActiveTab('input');
-                }}
-                style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid var(--glass-border)',
-                  color: 'var(--text-secondary)',
-                  fontSize: '11px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  padding: '3px 8px',
-                  borderRadius: '4px'
-                }}
-              >
-                💻 Terminal / Input
-              </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setConsoleMode('result');
-                  setIsConsoleCollapsed(false);
-                  setActiveTab('output');
-                }}
-                style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid var(--glass-border)',
-                  color: 'var(--text-secondary)',
-                  fontSize: '11px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  padding: '3px 8px',
-                  borderRadius: '4px'
-                }}
-              >
-                📊 Output Result
-              </button>
-            </div>
-          </div>
-        ) : (
+        {isConsoleCollapsed ? null : (
           /* Expanded bottom console */
           <section
             className={`oj-console-wrapper ${isConsoleFullscreen ? 'console-fullscreen' : ''}`}
@@ -1124,82 +1176,6 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
               </div>
             </div>
 
-            {/* Main Segmented Toggle: Terminal vs Result */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px' }}>
-              <button
-                type="button"
-                className={`oj-tab ${consoleMode === 'terminal' ? 'active' : ''}`}
-                onClick={() => {
-                  setConsoleMode('terminal');
-                  setActiveTab('input');
-                }}
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 'bold' }}
-              >
-                💻 Terminal
-              </button>
-              <button
-                type="button"
-                className={`oj-tab ${consoleMode === 'result' ? 'active' : ''}`}
-                onClick={() => {
-                  setConsoleMode('result');
-                  setActiveTab(errorCount > 0 ? 'error' : 'output');
-                }}
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 'bold' }}
-              >
-                📊 Output Result {errorCount > 0 && <span className="oj-err-badge">{errorCount}</span>}
-              </button>
-            </div>
-
-            {/* Sub-tabs based on Mode */}
-            <div className="oj-tabs-bar" style={{ marginTop: '0px', marginBottom: '8px' }}>
-              {consoleMode === 'terminal' && (
-                <>
-                  <button
-                    type="button"
-                    className={`oj-tab ${activeTab === 'input' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('input')}
-                  >
-                    Custom Testcase (Stdin)
-                  </button>
-                  <button
-                    type="button"
-                    className={`oj-tab ${activeTab === 'details' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('details')}
-                  >
-                    Execution Details
-                  </button>
-                </>
-              )}
-
-              {consoleMode === 'result' && (
-                <>
-                  <button
-                    type="button"
-                    className={`oj-tab ${activeTab === 'output' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('output')}
-                  >
-                    Stdout Output
-                  </button>
-                  <button
-                    type="button"
-                    className={`oj-tab ${activeTab === 'error' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('error')}
-                  >
-                    Stderr Errors {errorCount > 0 && <span className="oj-err-badge">{errorCount}</span>}
-                  </button>
-                  {language === 'html' && (
-                    <button
-                      type="button"
-                      className={`oj-tab ${activeTab === 'preview' ? 'active' : ''}`}
-                      onClick={() => setActiveTab('preview')}
-                    >
-                      UI Preview
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
-
             {/* Console Output Body */}
             <div className="oj-console-body" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
               {activeTab === 'preview' && language === 'html' && (
@@ -1215,8 +1191,17 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
               )}
 
               {activeTab === 'input' && (
-                <div className="oj-input-card" style={{ height: '100%', display: 'flex', gap: '12px', flexDirection: 'row' }}>
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div 
+                  className="oj-input-card" 
+                  style={{ 
+                    display: 'flex', 
+                    gap: '16px', 
+                    flexDirection: 'row', 
+                    flexWrap: 'wrap',
+                    width: '100%' 
+                  }}
+                >
+                  <div style={{ flex: '1 1 calc(50% - 8px)', minWidth: '280px', height: '20rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>Custom Stdin Input</span>
                       <button
@@ -1245,7 +1230,7 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
                       }}
                     />
                   </div>
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ flex: '1 1 calc(50% - 8px)', minWidth: '280px', height: '20rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>Expected Output (Optional)</span>
                       <button
