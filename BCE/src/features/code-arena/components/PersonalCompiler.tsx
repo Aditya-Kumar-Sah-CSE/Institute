@@ -817,11 +817,10 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
         </div>
 
         <button
-          className="view-toggle-btn"
           onClick={openFolder}
           style={{
             width: '100%',
-            padding: '8px',
+            height: '2.2rem',
             fontSize: '12px',
             display: 'flex',
             alignItems: 'center',
@@ -830,7 +829,9 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
             borderRadius: '4px',
             border: '1px solid var(--glass-border)',
             background: 'rgba(255, 255, 255, 0.03)',
+            color: 'var(--text-secondary)',
             cursor: 'pointer',
+            flexShrink: 0
           }}
         >
           <FolderOpen size={13} /> {rootDirectoryHandle ? 'Change Folder' : 'Open Folder'}
