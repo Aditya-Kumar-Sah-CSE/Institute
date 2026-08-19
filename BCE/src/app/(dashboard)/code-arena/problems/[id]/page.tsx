@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
-import { Code2, Bell, UserCircle, Trophy } from 'lucide-react';
+import { ArrowLeft, Bell, UserCircle, Trophy } from 'lucide-react';
+import Link from 'next/link';
 import { getCodeArenaActor } from '@/features/code-arena/server';
 import ProblemStatementRenderer from '@/features/code-arena/components/ProblemStatementRenderer';
 import CodeEditor from '@/features/code-arena/components/CodeEditor';
@@ -221,13 +222,29 @@ export default async function CodeProblemPage({ params }: { params: Promise<{ id
       {/* Compact IDE Header Bar */}
       <header className="code-arena-header-compact">
         <div className="code-arena-header-left">
-          <div className="code-arena-logo-box">
-            <Code2 size={20} />
-          </div>
+          <Link
+            href="/code-arena/problems"
+            style={{
+              display: 'grid',
+              placeItems: 'center',
+              width: '34px',
+              height: '34px',
+              borderRadius: '8px',
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid var(--glass-border)',
+              color: 'var(--text-muted)',
+              textDecoration: 'none',
+              transition: 'all 0.15s ease',
+            }}
+            title="Back to Problems"
+            aria-label="Back to Problems List"
+            className="oj-icon-btn"
+          >
+            <ArrowLeft size={16} />
+          </Link>
           <div>
             <h1 className="code-arena-header-title">
-              BCE Bhagalpur
-              <span className="code-arena-badge-sub">· Code Arena</span>
+              Code Arena
             </h1>
           </div>
         </div>
