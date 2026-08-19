@@ -501,36 +501,3 @@ export async function uploadAvatarToServer(formData: FormData) {
   return { success: true, publicUrl };
 }
 
-export async function getLoginConfig() {
-  try {
-    const { getCurrentTenant } = await import('@/lib/tenant');
-    const supabase = await createClient();
-    
-    // Add timeout to database operations to prevent infinite pending state
-    const tenantPromise = getCurrentTenant();
-    const settingsPromise = supabase.from('company_settings').select('company_name, logo_url').maybeSingle();
-    
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Database timeout')), 8000)
-    );
-    
-    const [tenant, { data: settings }] = await Promise.race([
-      Promise.all([tenantPromise, settingsPromise]),
-      timeoutPromise
-    ]) as [any, { data: any }];
-
-    return {
-      companyName: tenant?.name || settings?.company_name || null,
-      logoUrl: tenant?.logo || settings?.logo_url || null,
-      tenantId: tenant?.id || null,
-    };
-  } catch (err) {
-    console.error('Error fetching login config:', err);
-    return {
-      companyName: null,
-      logoUrl: null,
-      tenantId: null,
-    };
-  }
-}
-
