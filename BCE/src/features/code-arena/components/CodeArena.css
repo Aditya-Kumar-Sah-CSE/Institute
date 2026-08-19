@@ -120,13 +120,71 @@
   gap: var(--space-md);
 }
 
+/* View Toggle Bar */
+.right-panel-view-toggle {
+  display: flex;
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  gap: 4px;
+}
+
+.view-toggle-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid transparent;
+}
+
+.view-toggle-btn.active {
+  background: rgba(6, 182, 212, 0.15);
+  color: var(--neon-cyan);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.1);
+}
+
+.view-toggle-btn:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-main);
+}
+
 @media (min-width: 901px) {
   .code-workspace-panel {
     display: grid !important;
-    grid-template-rows: minmax(90px, 1fr) 0.4fr 0.6fr !important;
+    grid-template-rows: auto minmax(90px, 1fr) 0.4fr !important;
     height: 100% !important;
     min-height: 0 !important;
     overflow: hidden !important;
+  }
+
+  /* When showing editor only, hide console */
+  .code-workspace-panel.show-editor .oj-console-wrapper {
+    display: none !important;
+  }
+  .code-workspace-panel.show-editor {
+    grid-template-rows: auto minmax(90px, 1fr) 0.4fr !important;
+  }
+
+  /* When showing results only, hide editor and input */
+  .code-workspace-panel.show-results .code-monaco-wrapper,
+  .code-workspace-panel.show-results .oj-input-card {
+    display: none !important;
+  }
+  .code-workspace-panel.show-results {
+    grid-template-rows: auto 1fr !important;
   }
 }
 

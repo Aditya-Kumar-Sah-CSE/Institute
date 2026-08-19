@@ -78,6 +78,7 @@ export default function BattleArenaClient({
   const [code, setCode] = useState('');
   const [stdin, setStdin] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(true); // Default fullscreen mode in battle
+  const [activeRightTab, setActiveRightTab] = useState<'editor' | 'results'>('editor');
 
   // Editor save states
   const [saveStatus, setSaveStatus] = useState<'Saved' | 'Saving...' | 'Unsaved changes'>('Saved');
@@ -385,17 +386,18 @@ export default function BattleArenaClient({
     setRunning(true);
     setRunResult(null);
     setLastSubmission(null);
-
+    setActiveRightTab('results');
+ 
     try {
       const res = await fetch('/api/coding/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, language, stdin }),
       });
-
+ 
       const data: NormalizedExecutionResult = await res.json();
       setRunResult(data);
-
+ 
       if (data.status === 'COMPILATION_ERROR' || data.status === 'RUNTIME_ERROR' || data.status === 'SYSTEM_ERROR') {
         setConsoleTab('error');
       } else {
@@ -419,13 +421,14 @@ export default function BattleArenaClient({
       setRunning(false);
     }
   };
-
+ 
   // Submit Code Handler
   const handleSubmitCode = async () => {
     if (!currentProblem) return;
     setSubmitting(true);
     setRunResult(null);
     setLastSubmission(null);
+    setActiveRightTab('results');
 
     try {
       const res = await fetch('/api/coding/submissions', {
@@ -739,7 +742,24 @@ export default function BattleArenaClient({
               </section>
 
                {/* Right Workspace Panel */}
-              <section className="code-workspace-panel">
+              <section className={`code-workspace-panel ${activeRightTab === 'editor' ? 'show-editor' : 'show-results'}`}>
+                {/* Right panel view toggle */}
+                <div className="right-panel-view-toggle">
+                  <button 
+                    type="button"
+                    className={`view-toggle-btn ${activeRightTab === 'editor' ? 'active' : ''}`}
+                    onClick={() => setActiveRightTab('editor')}
+                  >
+                    Terminal
+                  </button>
+                  <button 
+                    type="button"
+                    className={`view-toggle-btn ${activeRightTab === 'results' ? 'active' : ''}`}
+                    onClick={() => setActiveRightTab('results')}
+                  >
+                    Result
+                  </button>
+                </div>
                 {/* Monaco Container with protections and captures */}
                 <div 
                   className={`code-monaco-wrapper ${isFullscreen ? 'code-editor-fullscreen' : ''}`}

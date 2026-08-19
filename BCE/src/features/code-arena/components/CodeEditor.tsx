@@ -74,6 +74,7 @@ export default function CodeEditor({
   const [customInput, setCustomInput] = useState(samples[0]?.input || '');
   const [isFullscreen, setIsFullscreen] = useState(false); // Do not open fullscreen by default
   const [activeTab, setActiveTab] = useState<ConsoleTab>('output');
+  const [activeRightTab, setActiveRightTab] = useState<'editor' | 'results'>('editor');
 
   const [running, setRunning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -156,6 +157,7 @@ export default function CodeEditor({
     setRunning(true);
     setExecResult(null);
     setSubmissionResult(null);
+    setActiveRightTab('results');
 
     try {
       const res = await fetch('/api/coding/execute', {
@@ -199,6 +201,7 @@ export default function CodeEditor({
     setSubmitting(true);
     setSubmissionResult(null);
     setExecResult(null);
+    setActiveRightTab('results');
 
     try {
       const res = await fetch('/api/coding/submissions', {
@@ -235,7 +238,24 @@ export default function CodeEditor({
       : 0;
 
   return (
-    <section className="code-workspace-panel" aria-label="Coding Workspace">
+    <section className={`code-workspace-panel ${activeRightTab === 'editor' ? 'show-editor' : 'show-results'}`} aria-label="Coding Workspace">
+      {/* Right panel view toggle */}
+      <div className="right-panel-view-toggle">
+        <button 
+          type="button"
+          className={`view-toggle-btn ${activeRightTab === 'editor' ? 'active' : ''}`}
+          onClick={() => setActiveRightTab('editor')}
+        >
+          Terminal
+        </button>
+        <button 
+          type="button"
+          className={`view-toggle-btn ${activeRightTab === 'results' ? 'active' : ''}`}
+          onClick={() => setActiveRightTab('results')}
+        >
+          Result
+        </button>
+      </div>
       {/* Monaco Container with Fullscreen Toggle and Event Captures */}
       <div 
         className={`code-monaco-wrapper ${isFullscreen ? 'code-editor-fullscreen' : ''}`}
