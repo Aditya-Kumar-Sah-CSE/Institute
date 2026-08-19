@@ -3773,4 +3773,80 @@
   }
 }
 
+/* ==========================================================================
+   Desktop IDE Viewport Layout Refactor (>900px)
+   ========================================================================== */
+@media (min-width: 901px) {
+  .code-arena-page {
+    height: calc(100vh - 120px);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .code-arena-ide-layout {
+    flex: 1;
+    height: 100%;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(320px, 42%) minmax(0, 58%);
+    gap: var(--space-md);
+    align-items: stretch;
+  }
+
+  .code-statement-panel {
+    height: 100%;
+    max-height: 100% !important;
+    overflow-y: auto;
+  }
+
+  .code-workspace-panel {
+    height: 100%;
+    max-height: 100% !important;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .code-monaco-wrapper {
+    flex: 2 1 350px;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .oj-input-card {
+    flex: 0 0 140px;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .oj-input-textarea {
+    flex: 1;
+    min-height: 0;
+    resize: none !important;
+    overflow-y: auto;
+  }
+
+  .oj-console-wrapper {
+    flex: 1.5 1 260px;
+    min-height: 180px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .oj-console-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none !important;
+    overflow-y: auto;
+  }
+}
+
+
 

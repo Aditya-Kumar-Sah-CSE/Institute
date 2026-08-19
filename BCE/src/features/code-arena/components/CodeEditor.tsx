@@ -327,23 +327,25 @@ export default function CodeEditor({
           </div>
         </div>
 
-        {/* Monaco Editor */}
-        <Editor
-          height={isFullscreen ? 'calc(100vh - 50px)' : '380px'}
-          language={languageMap[language]}
-          theme="vs-dark"
-          value={code}
-          onChange={(v) => handleCodeChange(v || '')}
-          options={{
-            minimap: { enabled: false },
-            fontSize: 14,
-            automaticLayout: true,
-            scrollBeyondLastLine: false,
-            lineNumbers: 'on',
-            renderLineHighlight: 'all',
-            padding: { top: 10, bottom: 10 },
-          }}
-        />
+        {/* Monaco Editor wrapped in flex wrapper */}
+        <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+          <Editor
+            height="100%"
+            language={languageMap[language]}
+            theme="vs-dark"
+            value={code}
+            onChange={(v) => handleCodeChange(v || '')}
+            options={{
+              minimap: { enabled: false },
+              fontSize: 14,
+              automaticLayout: true,
+              scrollBeyondLastLine: false,
+              lineNumbers: 'on',
+              renderLineHighlight: 'all',
+              padding: { top: 10, bottom: 10 },
+            }}
+          />
+        </div>
       </div>
 
       {/* Terminal Custom Input Card */}
