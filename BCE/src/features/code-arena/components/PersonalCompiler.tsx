@@ -161,7 +161,8 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
   const [engineHealth, setEngineHealth] = useState<'Ready' | 'Offline'>('Ready');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isConsoleFullscreen, setIsConsoleFullscreen] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>('output');
+  const [activeTab, setActiveTab] = useState<TabType>('input');
+  const [consoleMode, setConsoleMode] = useState<'terminal' | 'result'>('terminal');
 
   // Execution outputs
   const [result, setResult] = useState<NormalizedExecutionResult | null>(null);
@@ -698,12 +699,14 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
       const data: NormalizedExecutionResult = await res.json();
       setResult(data);
 
+      setConsoleMode('result');
       if (data.status === 'COMPILATION_ERROR' || (data.status === 'RUNTIME_ERROR' && !data.stdout)) {
         setActiveTab('error');
       } else {
         setActiveTab('output');
       }
     } catch {
+      setConsoleMode('result');
       setResult({
         status: 'SYSTEM_ERROR',
         stdout: '',
@@ -1024,43 +1027,79 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
             </div>
           </div>
 
-          <div className="oj-tabs-bar">
+          {/* Main Segmented Toggle: Terminal vs Result */}
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px' }}>
             <button
               type="button"
-              className={`oj-tab ${activeTab === 'output' ? 'active' : ''}`}
-              onClick={() => setActiveTab('output')}
+              className={`oj-tab ${consoleMode === 'terminal' ? 'active' : ''}`}
+              onClick={() => {
+                setConsoleMode('terminal');
+                setActiveTab('input');
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 'bold' }}
             >
-              Output
+              💻 Terminal
             </button>
             <button
               type="button"
-              className={`oj-tab ${activeTab === 'error' ? 'active' : ''}`}
-              onClick={() => setActiveTab('error')}
+              className={`oj-tab ${consoleMode === 'result' ? 'active' : ''}`}
+              onClick={() => {
+                setConsoleMode('result');
+                setActiveTab(errorCount > 0 ? 'error' : 'output');
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 'bold' }}
             >
-              Error <span className="oj-err-badge">{errorCount}</span>
+              📊 Output Result {errorCount > 0 && <span className="oj-err-badge">{errorCount}</span>}
             </button>
-            <button
-              type="button"
-              className={`oj-tab ${activeTab === 'input' ? 'active' : ''}`}
-              onClick={() => setActiveTab('input')}
-            >
-              Input
-            </button>
-            <button
-              type="button"
-              className={`oj-tab ${activeTab === 'details' ? 'active' : ''}`}
-              onClick={() => setActiveTab('details')}
-            >
-              Details
-            </button>
-            {language === 'html' && (
-              <button
-                type="button"
-                className={`oj-tab ${activeTab === 'preview' ? 'active' : ''}`}
-                onClick={() => setActiveTab('preview')}
-              >
-                UI Preview
-              </button>
+          </div>
+
+          {/* Sub-tabs based on Mode */}
+          <div className="oj-tabs-bar" style={{ marginTop: '0px' }}>
+            {consoleMode === 'terminal' && (
+              <>
+                <button
+                  type="button"
+                  className={`oj-tab ${activeTab === 'input' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('input')}
+                >
+                  Custom Input (Stdin)
+                </button>
+                <button
+                  type="button"
+                  className={`oj-tab ${activeTab === 'details' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('details')}
+                >
+                  Execution Details
+                </button>
+              </>
+            )}
+
+            {consoleMode === 'result' && (
+              <>
+                <button
+                  type="button"
+                  className={`oj-tab ${activeTab === 'output' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('output')}
+                >
+                  Stdout Output
+                </button>
+                <button
+                  type="button"
+                  className={`oj-tab ${activeTab === 'error' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('error')}
+                >
+                  Stderr Errors {errorCount > 0 && <span className="oj-err-badge">{errorCount}</span>}
+                </button>
+                {language === 'html' && (
+                  <button
+                    type="button"
+                    className={`oj-tab ${activeTab === 'preview' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('preview')}
+                  >
+                    UI Preview
+                  </button>
+                )}
+              </>
             )}
           </div>
 
