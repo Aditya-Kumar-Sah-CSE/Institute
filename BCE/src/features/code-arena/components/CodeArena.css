@@ -170,21 +170,21 @@
     overflow: hidden !important;
   }
 
-  /* When showing editor only, hide console */
+  /* When showing editor only, hide input and console */
+  .code-workspace-panel.show-editor .oj-input-card,
   .code-workspace-panel.show-editor .oj-console-wrapper {
     display: none !important;
   }
   .code-workspace-panel.show-editor {
-    grid-template-rows: auto minmax(90px, 1fr) 0.4fr !important;
+    grid-template-rows: auto 1fr !important;
   }
 
-  /* When showing results only, hide editor and input */
-  .code-workspace-panel.show-results .code-monaco-wrapper,
-  .code-workspace-panel.show-results .oj-input-card {
+  /* When showing results only, hide editor. Show input and console */
+  .code-workspace-panel.show-results .code-monaco-wrapper {
     display: none !important;
   }
   .code-workspace-panel.show-results {
-    grid-template-rows: auto 1fr !important;
+    grid-template-rows: auto 0.4fr 0.6fr !important;
   }
 }
 
