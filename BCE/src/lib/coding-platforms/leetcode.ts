@@ -32,6 +32,38 @@ const COMMON_LEETCODE_ID_MAP: Record<string, string> = {
   '206': 'reverse-linked-list',
 };
 
+let leetcodeAllProblemsCache: any[] | null = null;
+let lastCacheFetchTime = 0;
+
+async function getLeetCodeRealSlug(problemIdNum: string): Promise<string | null> {
+  const now = Date.now();
+  if (leetcodeAllProblemsCache && (now - lastCacheFetchTime < 24 * 60 * 60 * 1000)) {
+    const match = leetcodeAllProblemsCache.find(p => String(p.stat.frontend_question_id) === problemIdNum);
+    return match ? match.stat.question__title_slug : null;
+  }
+
+  try {
+    const res = await fetch('https://leetcode.com/api/problems/all/', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Referer': 'https://leetcode.com/'
+      },
+      next: { revalidate: 86400 }
+    });
+    if (res.ok) {
+      const json = await res.json();
+      const pairs = json.stat_status_pairs || [];
+      leetcodeAllProblemsCache = pairs;
+      lastCacheFetchTime = now;
+      const match = pairs.find((p: any) => String(p.stat.frontend_question_id) === problemIdNum);
+      return match ? match.stat.question__title_slug : null;
+    }
+  } catch (e) {
+    console.error('[LEETCODE SLUG RESOLVER ERROR]', e);
+  }
+  return null;
+}
+
 export const leetcodeAdapter: CodingPlatformAdapter = {
   platform: 'LEETCODE',
 
@@ -72,9 +104,21 @@ export const leetcodeAdapter: CodingPlatformAdapter = {
   },
 
   async fetchProblem(identifier: PlatformProblemIdentifier): Promise<ExternalProblem> {
-    const slug = identifier.slug;
+    let slug = identifier.slug;
     if (!slug) {
       throw new Error('Invalid LeetCode problem identifier or slug.');
+    }
+
+    if (slug.startsWith('problem-')) {
+      const numStr = slug.replace('problem-', '');
+      if (/^\d+$/.test(numStr)) {
+        console.log(`[LEETCODE] Resolving slug for fallback numeric ID: ${numStr}`);
+        const realSlug = await getLeetCodeRealSlug(numStr);
+        if (realSlug) {
+          console.log(`[LEETCODE] Successfully resolved fallback ${slug} to real slug: ${realSlug}`);
+          slug = realSlug;
+        }
+      }
     }
 
     const officialUrl = `https://leetcode.com/problems/${slug}/`;

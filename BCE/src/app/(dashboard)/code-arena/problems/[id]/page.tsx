@@ -110,10 +110,13 @@ export default async function CodeProblemPage({ params }: { params: Promise<{ id
       if (scraped) {
         const { createAdminClient } = await import('@/lib/supabase/server');
         const adminClient = await createAdminClient();
+        const cleanTitle = (scraped.title || problem.title).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        const correctSlug = `leetcode-${scraped.externalId || problem.external_problem_id}-${cleanTitle}`;
         await adminClient
           .from('coding_problems')
           .update({
             title: scraped.title || problem.title,
+            slug: correctSlug,
             description: scraped.statement || problem.description,
             constraints: scraped.constraints || problem.constraints,
             explanation: scraped.explanation || problem.explanation,
@@ -124,6 +127,8 @@ export default async function CodeProblemPage({ params }: { params: Promise<{ id
             follow_up: scraped.followUp || null,
             is_premium: !!scraped.isPremium,
             metadata: scraped.metadata || {},
+            external_problem_id: scraped.externalId || problem.external_problem_id,
+            external_url: scraped.officialUrl || problem.external_url,
           })
           .eq('id', problem.id);
         
