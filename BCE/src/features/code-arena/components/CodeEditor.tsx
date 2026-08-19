@@ -72,7 +72,7 @@ export default function CodeEditor({
     return starters[firstLang] || starters.cpp17;
   });
   const [customInput, setCustomInput] = useState(samples[0]?.input || '');
-  const [isFullscreen, setIsFullscreen] = useState(true); // Fullscreen by default
+  const [isFullscreen, setIsFullscreen] = useState(false); // Do not open fullscreen by default
   const [activeTab, setActiveTab] = useState<ConsoleTab>('output');
 
   const [running, setRunning] = useState(false);
@@ -614,29 +614,128 @@ export default function CodeEditor({
 
           {activeTab === 'tests' && (
             submissionResult ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div className={`oj-status-banner oj-status-${submissionResult.status || 'SUCCESS'}`}>
                   {submissionResult.status === 'ACCEPTED'
                     ? '✓ Accepted — All Tests Passed'
-                    : `● ${submissionResult.status || 'Evaluated'}`}
+                    : submissionResult.status === 'WRONG_ANSWER'
+                    ? '● Wrong Answer'
+                    : submissionResult.status === 'COMPILATION_ERROR'
+                    ? '● Compilation Error'
+                    : submissionResult.status === 'RUNTIME_ERROR'
+                    ? '● Runtime Error'
+                    : submissionResult.status === 'TIME_LIMIT_EXCEEDED'
+                    ? '● Time Limit Exceeded'
+                    : `● ${submissionResult.status}`}
                 </div>
 
-                <div className="oj-testcases-list">
-                  <div className="oj-testcases-header">
-                    <span style={{ fontWeight: 600 }}>Test Cases Evaluated</span>
-                    <strong style={{ color: submissionResult.status === 'ACCEPTED' ? 'var(--neon-green)' : '#f87171' }}>
+                <div className="oj-testcases-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div className="oj-testcases-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px' }}>
+                    <span style={{ fontWeight: 650, fontSize: '13px' }}>Test Cases Evaluated</span>
+                    <strong style={{ fontSize: '13px', color: submissionResult.status === 'ACCEPTED' ? 'var(--neon-green)' : '#f87171' }}>
                       {submissionResult.passed_tests || 0} / {submissionResult.total_tests || (samples ? samples.length : 1)} Passed
                     </strong>
                   </div>
 
-                  {samples.map((sample, idx) => (
-                    <div key={idx} className="oj-testcase-row">
-                      <span style={{ color: 'var(--text-muted)' }}>{sample.sample_name || `Sample Case #${idx + 1}`}</span>
-                      <span className="oj-testcase-passed">
-                        <CheckCircle2 size={13} /> Passed
-                      </span>
-                    </div>
-                  ))}
+                  {(() => {
+                    let evaluatedCases: any[] = [];
+                    try {
+                      if (submissionResult.runtime_output) {
+                        evaluatedCases = typeof submissionResult.runtime_output === 'string'
+                          ? JSON.parse(submissionResult.runtime_output)
+                          : submissionResult.runtime_output;
+                      }
+                    } catch (e) {
+                      console.error("Failed to parse runtime_output:", e);
+                    }
+
+                    if (evaluatedCases && evaluatedCases.length > 0) {
+                      return evaluatedCases.map((tc, idx) => {
+                        const isPassed = tc.passed || tc.status === 'PASSED';
+                        return (
+                          <div 
+                            key={idx} 
+                            style={{ 
+                              background: 'rgba(255, 255, 255, 0.01)', 
+                              border: '1px solid var(--glass-border)', 
+                              borderRadius: '8px', 
+                              padding: '12px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '8px'
+                            }}
+                          >
+                            {/* Header */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontWeight: 700, fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                Test Case #{idx + 1}
+                              </span>
+                              <span style={{ 
+                                fontSize: '11px', 
+                                fontWeight: 700, 
+                                color: isPassed ? 'var(--neon-green)' : '#f87171',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}>
+                                {isPassed ? '✓ Passed' : `✗ ${tc.status}`}
+                              </span>
+                            </div>
+
+                            {/* Details Grid */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '4px' }}>
+                              <div>
+                                <div style={{ fontSize: '9px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>Input</div>
+                                <pre style={{ margin: '2px 0 0 0', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', borderRadius: '4px', padding: '6px', fontSize: '11px', fontFamily: 'monospace', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+                                  {tc.input || 'N/A'}
+                                </pre>
+                              </div>
+                              <div>
+                                <div style={{ fontSize: '9px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>Your Output</div>
+                                <pre style={{ margin: '2px 0 0 0', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', borderRadius: '4px', padding: '6px', fontSize: '11px', fontFamily: 'monospace', color: isPassed ? 'var(--neon-green)' : '#f87171', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+                                  {tc.actualOutput || (tc.status === 'TIME_LIMIT_EXCEEDED' ? 'Time Limit Exceeded' : 'N/A')}
+                                </pre>
+                              </div>
+                              <div>
+                                <div style={{ fontSize: '9px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>Expected Output</div>
+                                <pre style={{ margin: '2px 0 0 0', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', borderRadius: '4px', padding: '6px', fontSize: '11px', fontFamily: 'monospace', color: 'var(--text-main)', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+                                  {tc.expectedOutput || 'N/A'}
+                                </pre>
+                              </div>
+                            </div>
+
+                            {/* Error / Mismatch Details */}
+                            {!isPassed && tc.mismatchInfo && (
+                              <div style={{ color: '#f87171', fontSize: '12px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                <div style={{ fontWeight: 700 }}>✗ Wrong Answer</div>
+                                <div style={{ background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '4px', padding: '6px', fontFamily: 'monospace', fontSize: '11px' }}>
+                                  {tc.mismatchInfo}
+                                </div>
+                              </div>
+                            )}
+                            {!isPassed && tc.stderr && (
+                              <div style={{ color: '#f87171', fontSize: '12px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                <div style={{ fontWeight: 700 }}>Diagnostics / Error Output</div>
+                                <pre style={{ margin: '2px 0 0 0', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '4px', padding: '6px', fontFamily: 'monospace', fontSize: '11px', overflowX: 'auto', whiteSpace: 'pre-wrap', color: '#f87171' }}>
+                                  {tc.stderr}
+                                </pre>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      });
+                    }
+
+                    // Fallback to static sample view if no detailed results
+                    return samples.map((sample, idx) => (
+                      <div key={idx} className="oj-testcase-row" style={{ display: 'flex', justifyContent: 'space-between', border: '1px solid var(--glass-border)', borderRadius: '6px', padding: '8px 12px' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>{sample.sample_name || `Sample Case #${idx + 1}`}</span>
+                        <span className="oj-testcase-passed" style={{ color: 'var(--neon-green)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <CheckCircle2 size={13} /> Passed
+                        </span>
+                      </div>
+                    ));
+                  })()}
                 </div>
               </div>
             ) : (

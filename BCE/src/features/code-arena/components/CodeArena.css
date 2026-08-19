@@ -60,7 +60,7 @@
   display: grid;
   grid-template-columns: minmax(320px, 42%) minmax(0, 58%);
   gap: var(--space-md);
-  align-items: start;
+  align-items: stretch; /* Stretch columns to match tallest height */
   min-height: calc(100vh - 160px);
 }
 
@@ -70,9 +70,16 @@
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   padding: var(--space-lg);
-  max-height: calc(100vh - 170px);
+  height: 100%; /* Take full layout cell height */
   overflow-y: auto;
 }
+
+@media (min-width: 901px) {
+  .code-statement-panel {
+    max-height: none; /* Let height be controlled by grid stretching */
+  }
+}
+
 
 .code-workspace-panel {
   min-width: 0;
@@ -311,7 +318,6 @@
   font-weight: 700;
   color: var(--text-main);
   display: flex;
-  aria-label: "Input header label";
   align-items: center;
   gap: 6px;
   letter-spacing: 0.5px;

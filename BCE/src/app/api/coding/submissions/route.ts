@@ -135,7 +135,7 @@ export async function POST(request: Request) {
         compiler_output: result.compilerOutput,
         runtime_output: result.runtimeOutput,
       })
-      .select('id, status, created_at')
+      .select('id, status, passed_tests, total_tests, compiler_output, runtime_output, created_at')
       .single();
 
     if (!error && data && finalBattleId && data.status === 'ACCEPTED') {
