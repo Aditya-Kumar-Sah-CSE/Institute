@@ -607,7 +607,7 @@ export default function BattleArenaClient({
 
       {/* ARENA MAIN VIEW */}
       {activeTab === 'arena' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+        <div className="code-arena-workspace-container">
           {/* Virtual Practice and Completion Banners */}
           {battle.status === 'COMPLETED' && !isVirtualPractice && (
             <Card
@@ -825,7 +825,7 @@ export default function BattleArenaClient({
                   </div>
 
                   <Editor
-                    height={isFullscreen ? 'calc(100vh - 50px)' : '360px'}
+                    height={isFullscreen ? 'calc(100vh - 50px)' : '100%'}
                     theme="vs-dark"
                     language={language === 'cpp17' ? 'cpp' : language}
                     value={code}
