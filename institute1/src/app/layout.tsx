@@ -46,10 +46,16 @@ export async function generateMetadata(): Promise<Metadata> {
     title: `${companyName} | Student Engagement Platform`,
     description: "To transform traditional classrooms into intelligent, data-driven learning environments.",
     keywords: ['full stack', 'web development', 'Student Engagement platform', 'gamified', 'coding', 'institute'],
-    manifest: '/manifest.json?v=2',
+    manifest: '/manifest.json?v=3',
     icons: {
-      icon: settings?.logo_url ? settings.logo_url : '/icon-192x192.png?v=2',
-      apple: settings?.logo_url ? settings.logo_url : '/icon-192x192.png?v=2',
+      icon: [
+        { url: '/favicon.ico', sizes: '32x32', type: 'image/png' },
+        { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+        { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+        { url: settings?.logo_url ?? '/icon-192x192.png?v=3', sizes: '192x192', type: 'image/png' },
+      ],
+      apple: settings?.logo_url ? settings.logo_url : '/icon-192x192.png?v=3',
+      shortcut: '/favicon.ico',
     },
     appleWebApp: {
       capable: true,
