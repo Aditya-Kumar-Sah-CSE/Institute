@@ -5,22 +5,26 @@ import { useEffect, useRef, useState } from 'react';
 import Button from '@/components/ui/Button';
 import {
   Play,
-  RotateCcw,
   Eraser,
   Trash2,
   Copy,
   Maximize2,
-  X,
-  Info,
+  Minimize2,
   Terminal,
   CheckCircle2,
-  Zap,
-  Maximize,
   Share2,
+  Folder,
+  FolderOpen,
+  FolderPlus,
+  FileCode,
+  Plus,
+  Edit3,
+  Save,
+  RefreshCw
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import Modal from '@/components/ui/Modal';
-import type { CodeLanguage, ExecutionStatus, NormalizedExecutionResult } from '../types';
+import type { CodeLanguage, NormalizedExecutionResult } from '../types';
 import './CodeArena.css';
 
 const Editor = dynamic(() => import('@monaco-editor/react'), {
@@ -110,6 +114,16 @@ const monaco: Record<CodeLanguage, string> = {
   html: 'html',
 };
 
+export interface FileItem {
+  name: string;
+  path: string;
+  kind: 'file' | 'directory';
+  handle?: FileSystemHandle;
+  children?: FileItem[];
+  content?: string;
+  isDirty?: boolean;
+}
+
 type Snippet = {
   id: string;
   title: string;
@@ -121,148 +135,552 @@ type Snippet = {
 
 type TabType = 'output' | 'error' | 'input' | 'details' | 'preview';
 
+const EXCLUDED_FOLDERS = ['.git', 'node_modules', '.next', 'dist', 'build', 'out'];
+
 export default function PersonalCompiler({ initialSnippets }: { initialSnippets: Snippet[] }) {
-  const [snippets, setSnippets] = useState<Snippet[]>(initialSnippets);
-  const [active, setActive] = useState<Snippet | undefined>(initialSnippets[0]);
-  const [title, setTitle] = useState(initialSnippets[0]?.title || 'Untitled snippet');
-  const [language, setLanguage] = useState<CodeLanguage>(initialSnippets[0]?.language || 'cpp17');
-  const [code, setCode] = useState(initialSnippets[0]?.source_code || starters.cpp17);
-  const [stdin, setStdin] = useState(initialSnippets[0]?.stdin || '');
+  const [explorerWidth, setExplorerWidth] = useState(20);
+  const [isResizing, setIsResizing] = useState(false);
+  const workspaceContainerRef = useRef<HTMLDivElement>(null);
+
+  // File explorer states
+  const [files, setFiles] = useState<FileItem[]>([]);
+  const [activeFile, setActiveFile] = useState<FileItem | null>(null);
+  const [rootDirectoryHandle, setRootDirectoryHandle] = useState<FileSystemDirectoryHandle | null>(null);
+  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
+
+  const [title, setTitle] = useState('Untitled snippet');
+  const [language, setLanguage] = useState<CodeLanguage>('cpp17');
+  const [code, setCode] = useState(starters.cpp17);
+  const [stdin, setStdin] = useState('');
   const [state, setState] = useState('Saved');
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
 
-  // Input Box UI state
-  const [expandedInput, setExpandedInput] = useState(false);
-
-  // OJ Output state
-  const [result, setResult] = useState<NormalizedExecutionResult | null>(null);
+  // Health and screen modes
+  const [engineHealth, setEngineHealth] = useState<'Ready' | 'Offline'>('Ready');
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isConsoleFullscreen, setIsConsoleFullscreen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('output');
+
+  // Execution outputs
+  const [result, setResult] = useState<NormalizedExecutionResult | null>(null);
   const [iframeKey, setIframeKey] = useState(0);
 
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dirty = useRef(false);
+  // 1. Introspect Wandbox compiler service health dynamically
+  useEffect(() => {
+    async function checkHealth() {
+      try {
+        const res = await fetch('https://wandbox.org/api/list.json');
+        if (res.ok) {
+          setEngineHealth('Ready');
+        } else {
+          setEngineHealth('Offline');
+        }
+      } catch (_e) {
+        setEngineHealth('Offline');
+      }
+    }
+    checkHealth();
+  }, []);
 
-  const persist = async (force = false) => {
-    if (!dirty.current && !force) return;
+  // 2. Load fallback files or resolve queries
+  useEffect(() => {
+    // If opening from share link query parameters
+    const params = new URLSearchParams(window.location.search);
+    const codeParam = params.get('code');
+    const langParam = params.get('lang');
+    const titleParam = params.get('title');
+
+    if (codeParam) {
+      const decodedCode = decodeURIComponent(codeParam);
+      const decodedTitle = titleParam ? decodeURIComponent(titleParam) : 'Shared code';
+      const decodedLang = (langParam as CodeLanguage) || 'cpp17';
+
+      const sharedFile: FileItem = {
+        name: decodedTitle,
+        path: decodedTitle,
+        kind: 'file',
+        content: decodedCode,
+      };
+
+      setFiles([sharedFile]);
+      setLanguage(decodedLang);
+      selectFile(sharedFile);
+      return;
+    }
+
+    // Default initialization: Virtual Local Storage FS
+    const saved = localStorage.getItem('bce:playground-virtual-files');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setFiles(parsed);
+        const first = findFirstFile(parsed);
+        if (first) selectFile(first);
+      } catch (_e) {
+        loadDefaultVirtualFiles();
+      }
+    } else {
+      loadDefaultVirtualFiles();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 3. Save virtual files to localstorage
+  useEffect(() => {
+    if (files.length > 0 && !rootDirectoryHandle) {
+      // Clean handle references before saving to local storage
+      const cleanTree = stripHandles(files);
+      localStorage.setItem('bce:playground-virtual-files', JSON.stringify(cleanTree));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [files, rootDirectoryHandle]);
+
+  // 4. Keyboard shortcuts listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const cmdKey = isMac ? e.metaKey : e.ctrlKey;
+
+      if (cmdKey && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          handleProjectSave();
+        } else {
+          handleSaveActiveFile();
+        }
+      } else if (cmdKey && e.key === 'Enter') {
+        e.preventDefault();
+        runCode();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeFile, code, language, stdin, files]);
+
+  // 5. Beforeunload unsaved alert
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const hasUnsaved = activeFile?.isDirty || files.some(f => hasUnsavedChanges(f));
+      if (hasUnsaved) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeFile, files]);
+
+  // Helper utility functions
+  function stripHandles(tree: FileItem[]): FileItem[] {
+    return tree.map(node => ({
+      name: node.name,
+      path: node.path,
+      kind: node.kind,
+      content: node.content,
+      isDirty: node.isDirty,
+      children: node.children ? stripHandles(node.children) : undefined,
+    }));
+  }
+
+  function hasUnsavedChanges(node: FileItem): boolean {
+    if (node.isDirty) return true;
+    if (node.children) {
+      return node.children.some(child => hasUnsavedChanges(child));
+    }
+    return false;
+  }
+
+  function loadDefaultVirtualFiles() {
+    const defaultTree: FileItem[] = [
+      { name: 'main.cpp', path: 'main.cpp', kind: 'file', content: starters.cpp17 },
+      { name: 'Main.java', path: 'Main.java', kind: 'file', content: starters.java },
+      { name: 'solve.py', path: 'solve.py', kind: 'file', content: starters.python },
+      { name: 'index.html', path: 'index.html', kind: 'file', content: starters.html },
+      { name: 'script.js', path: 'script.js', kind: 'file', content: starters.javascript },
+    ];
+    setFiles(defaultTree);
+    selectFile(defaultTree[0]);
+  }
+
+  function findFirstFile(tree: FileItem[]): FileItem | null {
+    for (const item of tree) {
+      if (item.kind === 'file') return item;
+      if (item.children) {
+        const found = findFirstFile(item.children);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  async function buildFileTree(dirHandle: FileSystemDirectoryHandle, relativePath = ''): Promise<FileItem[]> {
+    const items: FileItem[] = [];
+    for await (const entry of (dirHandle as any).values()) {
+      const entryPath = relativePath ? `${relativePath}/${entry.name}` : entry.name;
+      if (entry.kind === 'file') {
+        items.push({
+          name: entry.name,
+          path: entryPath,
+          kind: 'file',
+          handle: entry,
+        });
+      } else if (entry.kind === 'directory') {
+        if (EXCLUDED_FOLDERS.includes(entry.name)) continue;
+        const children = await buildFileTree(entry, entryPath);
+        items.push({
+          name: entry.name,
+          path: entryPath,
+          kind: 'directory',
+          handle: entry,
+          children,
+        });
+      }
+    }
+    return items.sort((a, b) => {
+      if (a.kind !== b.kind) return a.kind === 'directory' ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
+  }
+
+  // File explorer interactions
+  const openFolder = async () => {
+    try {
+      if (activeFile?.isDirty) {
+        if (confirm(`You have unsaved changes in "${activeFile.name}". Save now?`)) {
+          await handleSaveActiveFile();
+        }
+      }
+      const dirHandle = await (window as any).showDirectoryPicker();
+      setRootDirectoryHandle(dirHandle);
+      const tree = await buildFileTree(dirHandle);
+      setFiles(tree);
+      const first = findFirstFile(tree);
+      if (first) {
+        await selectFile(first);
+      } else {
+        setActiveFile(null);
+        setCode('');
+      }
+    } catch (e: any) {
+      if (e.name !== 'AbortError') {
+        alert('Could not mount directory: ' + e.message);
+      }
+    }
+  };
+
+  const selectFile = async (item: FileItem) => {
+    try {
+      let content = item.content || '';
+      if (item.handle && item.handle.kind === 'file') {
+        const file = await (item.handle as FileSystemFileHandle).getFile();
+        content = await file.text();
+      }
+
+      const parts = item.name.split('.');
+      const ext = parts[parts.length - 1]?.toLowerCase() || '';
+      let detectedLang: CodeLanguage = 'cpp17';
+      if (['cpp', 'cc', 'cxx', 'h', 'hpp'].includes(ext)) detectedLang = 'cpp17';
+      else if (ext === 'c') detectedLang = 'c';
+      else if (ext === 'java') detectedLang = 'java';
+      else if (['py', 'py3'].includes(ext)) detectedLang = 'python';
+      else if (['js', 'mjs', 'cjs'].includes(ext)) detectedLang = 'javascript';
+      else if (['html', 'htm'].includes(ext)) detectedLang = 'html';
+
+      setActiveFile({ ...item, content, isDirty: !!item.isDirty });
+      setCode(content);
+      setLanguage(detectedLang);
+      setTitle(item.name);
+      setState(item.isDirty ? 'Unsaved changes' : 'Saved');
+    } catch (e: any) {
+      alert('Error reading file contents: ' + e.message);
+    }
+  };
+
+  const handleCodeChange = (newCode: string) => {
+    setCode(newCode);
+    if (activeFile) {
+      setActiveFile(prev => prev ? { ...prev, content: newCode, isDirty: true } : null);
+      setFiles(prev => updateFileInTree(prev, activeFile.path, { content: newCode, isDirty: true }));
+      setState('Unsaved changes');
+    }
+  };
+
+  function updateFileInTree(nodes: FileItem[], path: string, updates: Partial<FileItem>): FileItem[] {
+    return nodes.map(node => {
+      if (node.path === path) {
+        return { ...node, ...updates };
+      }
+      if (node.children) {
+        return { ...node, children: updateFileInTree(node.children, path, updates) };
+      }
+      return node;
+    });
+  }
+
+  // Save actions
+  const handleSaveActiveFile = async () => {
+    if (!activeFile) return;
     setSaving(true);
     setState('Saving…');
+
     try {
-      const r = await fetch('/api/coding/snippets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: active?.id, title, language, sourceCode: code, stdin }),
-      });
-      const p = await r.json();
-      if (!r.ok) throw new Error(p.error || 'Failed to save');
-      if (p.data) {
-        setActive(p.data);
-        setSnippets((items) => [p.data, ...items.filter((x) => x.id !== p.data.id)]);
+      if (activeFile.handle && activeFile.handle.kind === 'file') {
+        const writable = await (activeFile.handle as any).createWritable();
+        await writable.write(code);
+        await writable.close();
       }
-      dirty.current = false;
+
+      setFiles(prev => updateFileInTree(prev, activeFile.path, { content: code, isDirty: false }));
+      setActiveFile(prev => prev ? { ...prev, content: code, isDirty: false } : null);
       setState('Saved');
-    } catch (e) {
-      setState(e instanceof Error ? e.message : 'Save failed');
+    } catch (err: any) {
+      alert('Failed to save file: ' + err.message);
+      setState('Unsaved changes');
     } finally {
       setSaving(false);
     }
   };
 
-  const schedule = () => {
-    dirty.current = true;
-    setState('Unsaved changes');
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => persist(), 1000);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (timer.current) clearTimeout(timer.current);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const codeParam = params.get('code');
-      const langParam = params.get('lang');
-      const titleParam = params.get('title');
-
-      if (codeParam) {
-        try {
-          const decodedCode = decodeURIComponent(codeParam);
-          setCode(decodedCode);
-        } catch (e) {
-          setCode(codeParam);
-        }
-      }
-      if (langParam) {
-        setLanguage(langParam as CodeLanguage);
-      }
-      if (titleParam) {
-        try {
-          setTitle(decodeURIComponent(titleParam));
-        } catch {
-          setTitle(titleParam);
-        }
-      }
-    }
-  }, []);
-
-  const select = (s: Snippet) => {
-    if (timer.current) clearTimeout(timer.current);
-    setActive(s);
-    setTitle(s.title);
-    setLanguage(s.language);
-    setCode(s.source_code);
-    setStdin(s.stdin);
-    dirty.current = false;
-    setState('Saved');
-    if (s.language === 'html') {
-      setActiveTab('preview');
-    } else if (activeTab === 'preview') {
-      setActiveTab('output');
-    }
-  };
-
-  const newSnippet = () => {
-    setActive(undefined);
-    setTitle('Untitled snippet');
-    setLanguage('cpp17');
-    setCode(starters.cpp17);
-    setStdin('');
-    dirty.current = true;
-    setState('Unsaved changes');
-  };
-
-  // Delete saved snippet file (Destructive action)
-  const delSnippet = async () => {
-    if (!active || !confirm(`Are you sure you want to delete "${active.title}" snippet?`)) return;
+  const handleProjectSave = async () => {
+    setSaving(true);
+    setState('Saving Project…');
     try {
-      await fetch(`/api/coding/snippets/${active.id}`, { method: 'DELETE' });
-    } catch {}
-    setSnippets((items) => items.filter((x) => x.id !== active.id));
-    newSnippet();
-  };
-
-  // Clear output console only
-  const clearConsole = () => {
-    setResult(null);
-    setActiveTab('output');
-  };
-
-  // Reset code to starter template
-  const resetCode = () => {
-    if (confirm('Reset editor to default starter template for ' + language + '?')) {
-      setCode(starters[language]);
-      schedule();
+      const res = await fetch('/api/coding/snippets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: title || activeFile?.name || 'Untitled project',
+          language,
+          sourceCode: code,
+          stdin,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Request failed');
+      setState('Project Saved on Server');
+    } catch (e: any) {
+      alert('Could not persist project on server: ' + e.message);
+      setState('Unsaved changes');
+    } finally {
+      setSaving(false);
     }
   };
 
+  // Node creations / operations
+  const triggerCreateFile = async (parentPath: string) => {
+    const filename = prompt('Enter new filename (e.g. hello.cpp):');
+    if (!filename) return;
+
+    try {
+      if (rootDirectoryHandle) {
+        const parentHandle = await findDirectoryHandle(rootDirectoryHandle, parentPath);
+        if (parentHandle) {
+          const fileHandle = await parentHandle.getFileHandle(filename, { create: true });
+          const writable = await fileHandle.createWritable();
+          await writable.write(starters[getFileLanguage(filename)] || '');
+          await writable.close();
+          const tree = await buildFileTree(rootDirectoryHandle);
+          setFiles(tree);
+        }
+      } else {
+        const fullPath = parentPath ? `${parentPath}/${filename}` : filename;
+        const newNode: FileItem = {
+          name: filename,
+          path: fullPath,
+          kind: 'file',
+          content: starters[getFileLanguage(filename)] || '',
+        };
+        setFiles(prev => addNodeToTree(prev, parentPath, newNode));
+      }
+    } catch (e: any) {
+      alert('Error creating file: ' + e.message);
+    }
+  };
+
+  const triggerCreateFolder = async (parentPath: string) => {
+    const foldername = prompt('Enter new folder name:');
+    if (!foldername) return;
+
+    try {
+      if (rootDirectoryHandle) {
+        const parentHandle = await findDirectoryHandle(rootDirectoryHandle, parentPath);
+        if (parentHandle) {
+          await parentHandle.getDirectoryHandle(foldername, { create: true });
+          const tree = await buildFileTree(rootDirectoryHandle);
+          setFiles(tree);
+        }
+      } else {
+        const fullPath = parentPath ? `${parentPath}/${foldername}` : foldername;
+        const newNode: FileItem = {
+          name: foldername,
+          path: fullPath,
+          kind: 'directory',
+          children: [],
+        };
+        setFiles(prev => addNodeToTree(prev, parentPath, newNode));
+      }
+    } catch (e: any) {
+      alert('Error creating folder: ' + e.message);
+    }
+  };
+
+  const triggerRename = async (item: FileItem) => {
+    const newName = prompt(`Enter new name for "${item.name}":`, item.name);
+    if (!newName || newName === item.name) return;
+
+    try {
+      if (rootDirectoryHandle) {
+        if (item.handle) {
+          if (typeof (item.handle as any).move === 'function') {
+            await (item.handle as any).move(newName);
+          } else {
+            // Manual fallback if handle.move is not supported
+            if (item.kind === 'file') {
+              const file = await (item.handle as FileSystemFileHandle).getFile();
+              const text = await file.text();
+              const parentPath = item.path.split('/').slice(0, -1).join('/');
+              const parentHandle = await findDirectoryHandle(rootDirectoryHandle, parentPath);
+              if (parentHandle) {
+                const newHandle = await parentHandle.getFileHandle(newName, { create: true });
+                const wr = await newHandle.createWritable();
+                await wr.write(text);
+                await wr.close();
+                await parentHandle.removeEntry(item.name);
+              }
+            } else {
+              throw new Error('Folder renaming not supported natively on this browser.');
+            }
+          }
+          const tree = await buildFileTree(rootDirectoryHandle);
+          setFiles(tree);
+        }
+      } else {
+        setFiles(prev => renameNodeInTree(prev, item.path, newName));
+        if (activeFile?.path === item.path) {
+          const parts = item.path.split('/');
+          parts[parts.length - 1] = newName;
+          setActiveFile(prev => prev ? { ...prev, name: newName, path: parts.join('/') } : null);
+        }
+      }
+    } catch (e: any) {
+      alert('Rename failed: ' + e.message);
+    }
+  };
+
+  const triggerDelete = async (item: FileItem) => {
+    if (!confirm(`Are you sure you want to delete "${item.name}"?`)) return;
+
+    try {
+      if (rootDirectoryHandle) {
+        const parentPath = item.path.split('/').slice(0, -1).join('/');
+        const parentHandle = await findDirectoryHandle(rootDirectoryHandle, parentPath);
+        if (parentHandle) {
+          await parentHandle.removeEntry(item.name, { recursive: true });
+          const tree = await buildFileTree(rootDirectoryHandle);
+          setFiles(tree);
+        }
+      } else {
+        setFiles(prev => deleteNodeFromTree(prev, item.path));
+      }
+
+      if (activeFile?.path === item.path) {
+        setActiveFile(null);
+        setCode('');
+      }
+    } catch (e: any) {
+      alert('Deletion failed: ' + e.message);
+    }
+  };
+
+  const refreshExplorer = async () => {
+    if (rootDirectoryHandle) {
+      const tree = await buildFileTree(rootDirectoryHandle);
+      setFiles(tree);
+    }
+  };
+
+  // Helper traversal methods for explorer
+  async function findDirectoryHandle(root: FileSystemDirectoryHandle, targetPath: string): Promise<FileSystemDirectoryHandle | null> {
+    if (!targetPath) return root;
+    const parts = targetPath.split('/');
+    let current = root;
+    for (const part of parts) {
+      current = await current.getDirectoryHandle(part);
+    }
+    return current;
+  }
+
+  function addNodeToTree(nodes: FileItem[], parentPath: string, newNode: FileItem): FileItem[] {
+    if (!parentPath) {
+      return [...nodes, newNode].sort((a, b) => {
+        if (a.kind !== b.kind) return a.kind === 'directory' ? -1 : 1;
+        return a.name.localeCompare(b.name);
+      });
+    }
+    return nodes.map(node => {
+      if (node.path === parentPath) {
+        return {
+          ...node,
+          children: [...(node.children || []), newNode].sort((a, b) => {
+            if (a.kind !== b.kind) return a.kind === 'directory' ? -1 : 1;
+            return a.name.localeCompare(b.name);
+          }),
+        };
+      }
+      if (node.children) {
+        return { ...node, children: addNodeToTree(node.children, parentPath, newNode) };
+      }
+      return node;
+    });
+  }
+
+  function deleteNodeFromTree(nodes: FileItem[], path: string): FileItem[] {
+    return nodes
+      .filter(node => node.path !== path)
+      .map(node => {
+        if (node.children) {
+          return { ...node, children: deleteNodeFromTree(node.children, path) };
+        }
+        return node;
+      });
+  }
+
+  function renameNodeInTree(nodes: FileItem[], oldPath: string, newName: string): FileItem[] {
+    return nodes.map(node => {
+      if (node.path === oldPath) {
+        const parts = oldPath.split('/');
+        parts[parts.length - 1] = newName;
+        const newPath = parts.join('/');
+        return { ...node, name: newName, path: newPath };
+      }
+      if (node.children) {
+        return { ...node, children: renameNodeInTree(node.children, oldPath, newName) };
+      }
+      return node;
+    });
+  }
+
+  function getFileLanguage(filename: string): CodeLanguage {
+    const ext = filename.split('.').pop()?.toLowerCase();
+    if (ext === 'cpp' || ext === 'cc') return 'cpp17';
+    if (ext === 'c') return 'c';
+    if (ext === 'java') return 'java';
+    if (ext === 'py') return 'python';
+    if (ext === 'js') return 'javascript';
+    if (ext === 'html') return 'html';
+    return 'cpp17';
+  }
+
+  // Compiler logic
   const runCode = async () => {
     if (language === 'html') {
-      setIframeKey((k) => k + 1);
+      setIframeKey(k => k + 1);
       setActiveTab('preview');
       return;
     }
@@ -274,11 +692,7 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
       const res = await fetch('/api/coding/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          code,
-          language,
-          stdin,
-        }),
+        body: JSON.stringify({ code, language, stdin }),
       });
 
       const data: NormalizedExecutionResult = await res.json();
@@ -289,7 +703,7 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
       } else {
         setActiveTab('output');
       }
-    } catch (err: any) {
+    } catch {
       setResult({
         status: 'SYSTEM_ERROR',
         stdout: '',
@@ -308,90 +722,293 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
     }
   };
 
+  const clearConsole = () => {
+    setResult(null);
+    setActiveTab('output');
+  };
+
+
+
+  // Drag resizing between explorer and editor
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing || !workspaceContainerRef.current) return;
+      const rect = workspaceContainerRef.current.getBoundingClientRect();
+      const pct = ((e.clientX - rect.left) / rect.width) * 100;
+      if (pct >= 10 && pct <= 50) {
+        setExplorerWidth(pct);
+      }
+    };
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
+
   const errorCount = result && (result.compileStderr || result.stderr || result.status === 'COMPILATION_ERROR' || result.status === 'RUNTIME_ERROR') ? 1 : 0;
 
   return (
-    <div className="compiler-layout">
-      <aside className="snippet-panel">
+    <div
+      ref={workspaceContainerRef}
+      className={`compiler-layout ${isFullscreen ? 'code-editor-fullscreen' : ''}`}
+      style={{
+        display: 'flex',
+        width: '100%',
+        height: '100%',
+        minHeight: 0,
+        position: 'relative',
+      }}
+    >
+      {/* 20% Panel: Local Explorer / Fallback tree */}
+      <aside
+        className="snippet-panel"
+        style={{
+          width: `${explorerWidth}%`,
+          flexShrink: 0,
+          flexGrow: 0,
+          padding: 'var(--space-md)',
+          borderRight: '1px solid var(--glass-border)',
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}
+      >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <strong>Files / Snippets</strong>
-          <Button size="sm" variant="ghost" onClick={newSnippet}>
-            + New
-          </Button>
-        </div>
-        <div className="snippet-list">
-          {snippets.map((s) => (
-            <button key={s.id} className={active?.id === s.id ? 'snippet-active' : ''} onClick={() => select(s)}>
-              {s.title}
+          <strong style={{ fontSize: 'var(--text-sm)' }}>Explorer</strong>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <button
+              onClick={() => triggerCreateFile('')}
+              title="New File"
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: '4px' }}
+            >
+              <Plus size={14} />
             </button>
+            <button
+              onClick={() => triggerCreateFolder('')}
+              title="New Folder"
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: '4px' }}
+            >
+              <FolderPlus size={14} />
+            </button>
+            {rootDirectoryHandle && (
+              <button
+                onClick={refreshExplorer}
+                title="Refresh Explorer"
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: '4px' }}
+              >
+                <RefreshCw size={12} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <button
+          className="view-toggle-btn"
+          onClick={openFolder}
+          style={{
+            width: '100%',
+            padding: '8px',
+            fontSize: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            borderRadius: '6px',
+            cursor: 'pointer',
+          }}
+        >
+          <FolderOpen size={13} /> {rootDirectoryHandle ? 'Change Folder' : 'Open Folder'}
+        </button>
+
+        {rootDirectoryHandle && (
+          <div style={{ fontSize: '11px', color: 'var(--neon-cyan)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            📁 {rootDirectoryHandle.name}
+          </div>
+        )}
+
+        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          {files.map((file, idx) => (
+            <FileExplorerItem
+              key={idx}
+              item={file}
+              depth={0}
+              activePath={activeFile?.path}
+              expandedPaths={expandedPaths}
+              onSelect={selectFile}
+              onToggle={(p) => setExpandedPaths(prev => {
+                const next = new Set(prev);
+                if (next.has(p)) next.delete(p);
+                else next.add(p);
+                return next;
+              })}
+              onCreateFile={triggerCreateFile}
+              onCreateFolder={triggerCreateFolder}
+              onRename={triggerRename}
+              onDelete={triggerDelete}
+            />
           ))}
         </div>
       </aside>
 
-      <section className="compiler-main">
+      {/* Resize bar handler */}
+      <div
+        onMouseDown={handleMouseDown}
+        style={{
+          width: '8px',
+          cursor: 'col-resize',
+          background: isResizing ? 'var(--neon-cyan)' : 'transparent',
+          borderLeft: '1px solid var(--glass-border)',
+          borderRight: '1px solid var(--glass-border)',
+          flexShrink: 0,
+          zIndex: 10,
+          userSelect: 'none',
+        }}
+      />
+
+      {/* 80% Panel: Editor + Console */}
+      <section
+        className="compiler-main"
+        style={{
+          width: `${100 - explorerWidth}%`,
+          flexShrink: 0,
+          flexGrow: 0,
+          minWidth: 0,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
         <header className="code-editor-toolbar">
-          <input aria-label="Snippet title" value={title} onChange={(e) => { setTitle(e.target.value); schedule(); }} />
-          <select
-            value={language}
-            onChange={(e) => {
-              const l = e.target.value as CodeLanguage;
-              setLanguage(l);
-              setCode(starters[l]);
-              schedule();
-              if (l === 'html') {
-                setActiveTab('preview');
-              } else if (activeTab === 'preview') {
-                setActiveTab('output');
-              }
-            }}
-          >
-            {Object.keys(starters).map((l) => (
-              <option key={l} value={l}>
-                {l === 'cpp17' ? 'C++17' : l.toUpperCase()}
-              </option>
-            ))}
-          </select>
-          <span className="text-secondary" style={{ fontSize: 'var(--text-xs)' }}>
-            {state}
-          </span>
-          <Button size="sm" variant="secondary" onClick={() => persist(true)} isLoading={saving}>
-            Save
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => setShareOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
-            <Share2 size={13} /> Share
-          </Button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--text-main)' }}>
+              {activeFile?.name || 'No file selected'}
+            </span>
+            {activeFile?.isDirty && (
+              <span style={{ color: 'var(--neon-gold)', fontSize: '10px' }}>● Unsaved</span>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <select
+              value={language}
+              aria-label="Language Mode"
+              style={{ padding: '4px 8px', fontSize: '12px' }}
+              onChange={(e) => {
+                const l = e.target.value as CodeLanguage;
+                setLanguage(l);
+                setCode(starters[l]);
+                if (activeFile) {
+                  setFiles(prev => updateFileInTree(prev, activeFile.path, { content: starters[l], isDirty: true }));
+                  setActiveFile(prev => prev ? { ...prev, content: starters[l], isDirty: true } : null);
+                }
+                setState('Unsaved changes');
+              }}
+            >
+              {Object.keys(starters).map((l) => (
+                <option key={l} value={l}>
+                  {l === 'cpp17' ? 'C++17' : l.toUpperCase()}
+                </option>
+              ))}
+            </select>
+
+            <span className="text-secondary" style={{ fontSize: '11px' }}>
+              {state}
+            </span>
+
+            {/* Run Code icon button */}
+            <button
+              onClick={runCode}
+              disabled={running}
+              title="Run Code (Ctrl+Enter)"
+              className="oj-icon-btn"
+              style={{ color: 'var(--neon-cyan)', border: '1px solid rgba(6, 182, 212, 0.25)', padding: '6px 10px', display: 'flex', alignItems: 'center', gap: '4px' }}
+            >
+              <Play size={14} fill="currentColor" />
+            </button>
+
+            {/* Save Active File icon button */}
+            <button
+              onClick={handleSaveActiveFile}
+              title="Save File (Ctrl+S)"
+              className="oj-icon-btn"
+              style={{ color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.25)', padding: '6px' }}
+            >
+              <Save size={14} />
+            </button>
+
+            {/* Share snapshot icon button */}
+            <button
+              onClick={() => setShareOpen(true)}
+              title="Share Workspace link"
+              className="oj-icon-btn"
+              style={{ color: '#fb923c', border: '1px solid rgba(251, 146, 60, 0.25)', padding: '6px' }}
+            >
+              <Share2 size={14} />
+            </button>
+
+            {/* Fullscreen icon button */}
+            <button
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              title="Toggle Fullscreen"
+              className="oj-icon-btn"
+              style={{ padding: '6px' }}
+            >
+              <Maximize2 size={14} />
+            </button>
+          </div>
         </header>
 
-        <Editor
-          height="420px"
-          theme="vs-dark"
-          language={monaco[language]}
-          value={code}
-          onChange={(v) => {
-            setCode(v || '');
-            schedule();
-          }}
-          options={{ automaticLayout: true, minimap: { enabled: false }, fontSize: 14 }}
-        />
+        <div style={{ flex: 1, minHeight: '260px', position: 'relative' }}>
+          <Editor
+            height="100%"
+            theme="vs-dark"
+            language={monaco[language]}
+            value={code}
+            onChange={(v) => handleCodeChange(v || '')}
+            options={{ automaticLayout: true, minimap: { enabled: false }, fontSize: 14 }}
+          />
+        </div>
 
-        {/* Console & Output Wrapper matching Screenshot */}
-        <section className="oj-console-wrapper">
-          {/* Header row */}
+        {/* Bottom Console Panel */}
+        <section
+          className={`oj-console-wrapper ${isConsoleFullscreen ? 'console-fullscreen' : ''}`}
+          style={isConsoleFullscreen ? {
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            background: 'var(--bg-primary)',
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+          } : undefined}
+        >
           <div className="oj-top-header">
             <div className="oj-title-group">
               <h3>Console & Output</h3>
-              <span className="oj-pill oj-pill-ready">
-                <span className="oj-dot" /> Ready
+              <span className={`oj-pill ${engineHealth === 'Ready' ? 'oj-pill-ready' : 'oj-err-badge'}`}>
+                <span className="oj-dot" /> {engineHealth === 'Ready' ? 'Ready' : 'Offline'}
               </span>
             </div>
             <div className="oj-header-pills">
-              <span className="oj-pill oj-pill-system">
-                <span className="oj-dot" /> All Systems Operational
+              <span className={`oj-pill ${engineHealth === 'Ready' ? 'oj-pill-ready' : 'oj-err-badge'}`}>
+                <span className="oj-dot" /> {engineHealth === 'Ready' ? 'Compiler Engine Connected' : 'Compiler Offline'}
               </span>
             </div>
           </div>
 
-          {/* Navigation Tabs */}
           <div className="oj-tabs-bar">
             <button
               type="button"
@@ -432,102 +1049,34 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
             )}
           </div>
 
-          {/* Custom Input Card placed BEFORE Output/Console as requested */}
-          <div className="oj-input-card">
-            <div className="oj-input-header">
-              <span className="oj-input-title">
-                Custom Input <span title="Enter standard input (stdin) for your code execution" style={{ display: 'inline-flex', alignItems: 'center' }}><Info size={14} /></span>
-              </span>
-              <div className="oj-icon-actions">
-                <button
-                  type="button"
-                  className="oj-icon-btn"
-                  aria-label="Clear input content"
-                  title="Clear input"
-                  onClick={() => {
-                    setStdin('');
-                    schedule();
-                  }}
-                >
-                  <Trash2 size={14} />
-                </button>
-                <button
-                  type="button"
-                  className="oj-icon-btn"
-                  aria-label="Copy input"
-                  title="Copy input"
-                  onClick={() => {
-                    if (stdin) navigator.clipboard.writeText(stdin);
-                  }}
-                >
-                  <Copy size={14} />
-                </button>
-                <button
-                  type="button"
-                  className="oj-icon-btn"
-                  aria-label="Expand input"
-                  title="Toggle fullscreen input"
-                  onClick={() => setExpandedInput(!expandedInput)}
-                >
-                  <Maximize2 size={14} />
-                </button>
+          {/* Stdin card */}
+          {activeTab === 'input' && (
+            <div className="oj-input-card" style={{ flex: 1, minHeight: 0 }}>
+              <div className="oj-input-header">
+                <span className="oj-input-title">Custom Stdin Input</span>
+                <div className="oj-icon-actions">
+                  <button
+                    type="button"
+                    className="oj-icon-btn"
+                    title="Clear Input"
+                    onClick={() => setStdin('')}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
               </div>
+              <textarea
+                className="oj-input-textarea"
+                value={stdin}
+                placeholder="Enter standard input (stdin) for code execution..."
+                onChange={(e) => setStdin(e.target.value)}
+                style={{ flex: 1, minHeight: '80px', resize: 'none' }}
+              />
             </div>
-            <textarea
-              className="oj-input-textarea"
-              style={{ minHeight: expandedInput ? '180px' : '80px' }}
-              value={stdin}
-              placeholder="Enter custom input for your program (stdin)"
-              onChange={(e) => {
-                setStdin(e.target.value);
-                schedule();
-              }}
-            />
-          </div>
+          )}
 
-          {/* Output / Console Controls Header */}
-          <div className="oj-output-header">
-            <span className="oj-output-title">Output / Console</span>
-            <div className="oj-control-btns">
-              <button
-                type="button"
-                className="oj-btn-run"
-                disabled={running}
-                onClick={runCode}
-              >
-                <Play size={15} fill="currentColor" /> {running ? 'Running code...' : 'Run Code'}
-              </button>
-              <button
-                type="button"
-                className="oj-btn-reset"
-                onClick={resetCode}
-                title="Restore starter code template"
-              >
-                <RotateCcw size={14} /> Reset
-              </button>
-              <button
-                type="button"
-                className="oj-btn-clear"
-                onClick={clearConsole}
-                title="Clear console output area only"
-              >
-                <Eraser size={14} /> Clear
-              </button>
-              {active && (
-                <button
-                  type="button"
-                  className="oj-btn-delete"
-                  onClick={delSnippet}
-                  title="Delete saved snippet file"
-                >
-                  <Trash2 size={14} /> Delete
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Console Display Body */}
-          <div className="oj-console-body">
+          {/* Console Output Body */}
+          <div className="oj-console-body" style={{ flex: 1, minHeight: 0, marginTop: '8px' }}>
             {activeTab === 'preview' && language === 'html' && (
               <div style={{ width: '100%', height: '350px', background: '#ffffff', borderRadius: '8px', border: '1px solid var(--glass-border)', overflow: 'hidden' }}>
                 <iframe
@@ -541,7 +1090,6 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
             )}
             {activeTab === 'output' && (
               !result ? (
-                /* Initial Terminal Graphic Empty State */
                 <div className="oj-empty-state">
                   <div className="oj-terminal-icon-box">
                     <Terminal size={24} />
@@ -549,19 +1097,16 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
                       <CheckCircle2 size={14} />
                     </span>
                   </div>
-                  <p className="oj-empty-title">Ready to run your code</p>
-                  <p className="oj-empty-sub">Enter input (if required) and click “Run Code” to see the output.</p>
+                  <p className="oj-empty-title">Console ready</p>
+                  <p className="oj-empty-sub">Press Run Code to see compiler results.</p>
                 </div>
               ) : (
                 <div>
                   <div className={`oj-status-banner oj-status-${result.status}`}>
-                    {result.status === 'SUCCESS' && '✓ Accepted'}
-                    {result.status === 'COMPILATION_ERROR' && '● Compilation Error'}
-                    {result.status === 'RUNTIME_ERROR' && '● Runtime Error'}
-                    {result.status === 'SYSTEM_ERROR' && '● System Error'}
+                    {result.status === 'SUCCESS' ? '✓ Executed successfully' : `● ${result.status}`}
                   </div>
                   <pre className="oj-code-block">
-                    {result.stdout ? result.stdout : <span className="text-secondary">Program executed with no stdout output.</span>}
+                    {result.stdout ? result.stdout : 'Program executed with no stdout output.'}
                   </pre>
                 </div>
               )
@@ -570,88 +1115,77 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
             {activeTab === 'error' && (
               !result ? (
                 <div className="oj-empty-state">
-                  <p className="oj-empty-sub">No errors recorded.</p>
+                  <p className="oj-empty-sub">No errors.</p>
                 </div>
               ) : (
                 <div>
-                  <div className={`oj-status-banner oj-status-${result.status}`}>
-                    {result.status === 'COMPILATION_ERROR' ? '● Compilation Error' : result.status === 'SYSTEM_ERROR' ? '● System Error' : '● Error Output'}
-                  </div>
                   <pre className="oj-code-block oj-code-error">
-                    {result.compileStderr
-                      ? result.compileStderr
-                      : result.stderr
-                      ? result.stderr
-                      : result.message
-                      ? result.message
-                      : <span className="text-secondary" style={{ color: '#4ade80' }}>No errors. Program ran cleanly.</span>}
+                    {result.compileStderr || result.stderr || result.message || 'No errors.'}
                   </pre>
                 </div>
               )
             )}
 
-            {activeTab === 'input' && (
-              <pre className="oj-code-block">
-                {stdin ? stdin : <span className="text-secondary">No custom stdin input provided.</span>}
-              </pre>
-            )}
-
             {activeTab === 'details' && (
               <div className="oj-details-grid">
                 <div className="oj-detail-item">
-                  <span className="oj-detail-label">Language</span>
-                  <span className="oj-detail-val">{language === 'cpp17' ? 'C++17' : language.toUpperCase()}</span>
+                  <span className="oj-detail-label">Status</span>
+                  <span className="oj-detail-val">{result?.status || 'Ready'}</span>
                 </div>
                 <div className="oj-detail-item">
-                  <span className="oj-detail-label">Status</span>
-                  <span className="oj-detail-val">{result ? result.status : 'Ready'}</span>
+                  <span className="oj-detail-label">Language Mode</span>
+                  <span className="oj-detail-val">{language.toUpperCase()}</span>
                 </div>
                 <div className="oj-detail-item">
                   <span className="oj-detail-label">Exit Code</span>
-                  <span className="oj-detail-val">{result?.exitCode !== null && result?.exitCode !== undefined ? result.exitCode : '—'}</span>
+                  <span className="oj-detail-val">{result?.exitCode !== null ? result?.exitCode : '—'}</span>
                 </div>
                 <div className="oj-detail-item">
                   <span className="oj-detail-label">Signal</span>
                   <span className="oj-detail-val">{result?.signal || '—'}</span>
                 </div>
-                <div className="oj-detail-item">
-                  <span className="oj-detail-label">Execution Server</span>
-                  <span className="oj-detail-val">Wandbox / GCC Engine</span>
-                </div>
               </div>
             )}
           </div>
 
-          {/* Bottom Bar matching mockup screenshot */}
-          <div className="oj-bottom-meta-bar">
+          {/* Bottom actions bar */}
+          <div className="oj-bottom-meta-bar" style={{ marginTop: '8px' }}>
             <div className="oj-meta-left">
-              <select
-                className="oj-meta-select"
-                value={language}
-                onChange={(e) => {
-                  const l = e.target.value as CodeLanguage;
-                  setLanguage(l);
-                  setCode(starters[l]);
-                  schedule();
-                }}
-              >
-                {Object.keys(starters).map((l) => (
-                  <option key={l} value={l}>
-                    {l === 'cpp17' ? 'C++17' : l.toUpperCase()}
-                  </option>
-                ))}
-              </select>
-              <span title="Wandbox Engine Active"><Zap size={14} style={{ color: 'var(--neon-gold)' }} /></span>
-              <span>Time Limit: <strong style={{ color: 'var(--neon-cyan)' }}>1000 ms</strong></span>
-              <span>Memory Limit: <strong style={{ color: 'var(--neon-cyan)' }}>256 MB</strong></span>
+              <span>Time Limit: <strong>1.0s</strong></span>
+              <span>Memory Limit: <strong>256MB</strong></span>
             </div>
-            <button
-              type="button"
-              className="oj-tab"
-              onClick={() => alert('Compiler is now running in workspace mode.')}
-            >
-              <Maximize size={14} /> Open in Fullscreen
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                className="oj-btn-clear"
+                onClick={clearConsole}
+                title="Clear console output"
+                style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px' }}
+              >
+                <Eraser size={12} /> Clear
+              </button>
+              <button
+                type="button"
+                className="oj-btn-clear"
+                onClick={() => {
+                  if (result?.stdout) {
+                    navigator.clipboard.writeText(result.stdout);
+                  }
+                }}
+                title="Copy output"
+                style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px' }}
+              >
+                <Copy size={12} /> Copy
+              </button>
+              <button
+                type="button"
+                className="oj-btn-clear"
+                onClick={() => setIsConsoleFullscreen(!isConsoleFullscreen)}
+                style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px' }}
+              >
+                {isConsoleFullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />} Expand
+              </button>
+            </div>
           </div>
         </section>
       </section>
@@ -663,6 +1197,153 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
         language={language}
         title={title}
       />
+    </div>
+  );
+}
+
+function FileExplorerItem({
+  item,
+  depth,
+  activePath,
+  expandedPaths,
+  onSelect,
+  onToggle,
+  onCreateFile,
+  onCreateFolder,
+  onRename,
+  onDelete,
+}: {
+  item: FileItem;
+  depth: number;
+  activePath?: string;
+  expandedPaths: Set<string>;
+  onSelect: (item: FileItem) => void;
+  onToggle: (path: string) => void;
+  onCreateFile: (parentPath: string) => void;
+  onCreateFolder: (parentPath: string) => void;
+  onRename: (item: FileItem) => void;
+  onDelete: (item: FileItem) => void;
+}) {
+  const isExpanded = expandedPaths.has(item.path);
+  const isActive = activePath === item.path;
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{ display: 'flex', flexDirection: 'column' }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '6px 8px',
+          paddingLeft: `${depth * 12 + 8}px`,
+          background: isActive ? 'rgba(6, 182, 212, 0.12)' : 'transparent',
+          borderLeft: isActive ? '2px solid var(--neon-cyan)' : '2px solid transparent',
+          cursor: 'pointer',
+          borderRadius: '4px',
+          transition: 'all 0.15s',
+        }}
+        onClick={() => {
+          if (item.kind === 'directory') {
+            onToggle(item.path);
+          } else {
+            onSelect(item);
+          }
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+          {item.kind === 'directory' ? (
+            <span style={{ color: 'var(--neon-cyan)', display: 'flex', alignItems: 'center' }}>
+              {isExpanded ? <FolderOpen size={14} /> : <Folder size={14} />}
+            </span>
+          ) : (
+            <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+              {item.name.endsWith('.html') ? <FileCode size={14} style={{ color: '#fb923c' }} /> :
+               item.name.endsWith('.java') ? <FileCode size={14} style={{ color: '#ee7700' }} /> :
+               item.name.endsWith('.py') ? <FileCode size={14} style={{ color: '#3b82f6' }} /> :
+               item.name.endsWith('.js') ? <FileCode size={14} style={{ color: '#facc15' }} /> :
+               <FileCode size={14} style={{ color: 'var(--neon-cyan)' }} />}
+            </span>
+          )}
+          <span
+            style={{
+              fontSize: '12.5px',
+              color: isActive ? 'var(--text-main)' : 'var(--text-secondary)',
+              fontWeight: isActive ? 700 : 500,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {item.name}
+            {item.isDirty && (
+              <span style={{ marginLeft: '4px', color: 'var(--neon-gold)', fontSize: '10px' }}>●</span>
+            )}
+          </span>
+        </div>
+
+        {/* Action icons shown on hover */}
+        {hovered && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+            {item.kind === 'directory' && (
+              <>
+                <button
+                  onClick={() => onCreateFile(item.path)}
+                  title="Create File"
+                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: '2px' }}
+                >
+                  <Plus size={12} />
+                </button>
+                <button
+                  onClick={() => onCreateFolder(item.path)}
+                  title="Create Folder"
+                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: '2px' }}
+                >
+                  <FolderPlus size={12} />
+                </button>
+              </>
+            )}
+            <button
+              onClick={() => onRename(item)}
+              title="Rename"
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: '2px' }}
+            >
+              <Edit3 size={11} />
+            </button>
+            <button
+              onClick={() => onDelete(item)}
+              title="Delete"
+              style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', padding: '2px' }}
+            >
+              <Trash2 size={11} />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {item.kind === 'directory' && isExpanded && item.children && (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {item.children.map((child, idx) => (
+            <FileExplorerItem
+              key={idx}
+              item={child}
+              depth={depth + 1}
+              activePath={activePath}
+              expandedPaths={expandedPaths}
+              onSelect={onSelect}
+              onToggle={onToggle}
+              onCreateFile={onCreateFile}
+              onCreateFolder={onCreateFolder}
+              onRename={onRename}
+              onDelete={onDelete}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
