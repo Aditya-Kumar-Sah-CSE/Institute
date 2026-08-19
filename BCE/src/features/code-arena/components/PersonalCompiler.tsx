@@ -167,6 +167,41 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
   const [isConsoleCollapsed, setIsConsoleCollapsed] = useState(true);
   const [expectedOutput, setExpectedOutput] = useState('');
 
+  // Multiple testcases support
+  interface Testcase {
+    id: number;
+    stdin: string;
+    expectedOutput: string;
+  }
+  const [testcases, setTestcases] = useState<Testcase[]>([
+    { id: 1, stdin: '', expectedOutput: '' }
+  ]);
+  const [activeTestcaseIdx, setActiveTestcaseIdx] = useState(0);
+  const [testcaseResults, setTestcaseResults] = useState<Record<number, NormalizedExecutionResult | null>>({});
+
+  const handleAddTestcase = () => {
+    const nextId = testcases.length > 0 ? Math.max(...testcases.map(tc => tc.id)) + 1 : 1;
+    setTestcases(prev => [...prev, { id: nextId, stdin: '', expectedOutput: '' }]);
+    setActiveTestcaseIdx(testcases.length);
+  };
+
+  const handleDeleteTestcase = (idxToDelete: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (testcases.length <= 1) return;
+    setTestcases(prev => prev.filter((_, idx) => idx !== idxToDelete));
+    if (activeTestcaseIdx >= testcases.length - 1) {
+      setActiveTestcaseIdx(Math.max(0, testcases.length - 2));
+    }
+  };
+
+  const handleStdinChange = (val: string) => {
+    setTestcases(prev => prev.map((tc, idx) => idx === activeTestcaseIdx ? { ...tc, stdin: val } : tc));
+  };
+
+  const handleExpectedChange = (val: string) => {
+    setTestcases(prev => prev.map((tc, idx) => idx === activeTestcaseIdx ? { ...tc, expectedOutput: val } : tc));
+  };
+
   // Execution outputs
   const [result, setResult] = useState<NormalizedExecutionResult | null>(null);
   const [iframeKey, setIframeKey] = useState(0);
@@ -692,35 +727,60 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
 
     setRunning(true);
     setResult(null);
+    setTestcaseResults({});
 
     try {
-      const res = await fetch('/api/coding/execute', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, language, stdin }),
+      const executePromises = testcases.map(async (tc) => {
+        try {
+          const res = await fetch('/api/coding/execute', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, language, stdin: tc.stdin }),
+          });
+          const data: NormalizedExecutionResult = await res.json();
+          return { id: tc.id, result: data };
+        } catch {
+          return {
+            id: tc.id,
+            result: {
+              status: 'SYSTEM_ERROR',
+              stdout: '',
+              stderr: '',
+              compileStdout: '',
+              compileStderr: '',
+              exitCode: null,
+              signal: null,
+              executionTimeMs: null,
+              memoryUsedMb: null,
+              message: 'Unable to reach execution server. Please try again.',
+            } as NormalizedExecutionResult
+          };
+        }
       });
 
-      const data: NormalizedExecutionResult = await res.json();
-      setResult(data);
+      const resolved = await Promise.all(executePromises);
+      
+      const newResults: Record<number, NormalizedExecutionResult> = {};
+      resolved.forEach((item) => {
+        newResults[item.id] = item.result;
+      });
+      
+      setTestcaseResults(newResults);
 
-      if (data.status === 'COMPILATION_ERROR' || (data.status === 'RUNTIME_ERROR' && !data.stdout)) {
+      const firstTc = testcases[0];
+      const mainRes = newResults[firstTc.id];
+      setResult(mainRes);
+
+      const hasCompileErr = Object.values(newResults).some(
+        r => r?.status === 'COMPILATION_ERROR'
+      );
+      if (hasCompileErr) {
         setActiveTab('error');
       } else {
         setActiveTab('output');
       }
-    } catch {
-      setResult({
-        status: 'SYSTEM_ERROR',
-        stdout: '',
-        stderr: '',
-        compileStdout: '',
-        compileStderr: '',
-        exitCode: null,
-        signal: null,
-        executionTimeMs: null,
-        memoryUsedMb: null,
-        message: 'Unable to reach execution server. Please try again.',
-      });
+    } catch (e) {
+      console.error(e);
       setActiveTab('error');
     } finally {
       setRunning(false);
@@ -1191,73 +1251,136 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
               )}
 
               {activeTab === 'input' && (
-                <div 
-                  className="oj-input-card" 
-                  style={{ 
-                    display: 'flex', 
-                    gap: '16px', 
-                    flexDirection: 'row', 
-                    flexWrap: 'wrap',
-                    width: '100%' 
-                  }}
-                >
-                  <div style={{ flex: '1 1 calc(50% - 8px)', minWidth: '280px', height: '20rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>Custom Stdin Input</span>
-                      <button
-                        type="button"
-                        onClick={() => setStdin('')}
-                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '10px' }}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                  {/* Case tabs row */}
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '4px', width: '100%' }}>
+                    {testcases.map((tc, idx) => (
+                      <div
+                        key={tc.id}
+                        onClick={() => setActiveTestcaseIdx(idx)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '6px 12px',
+                          borderRadius: '6px',
+                          border: '1px solid var(--glass-border)',
+                          background: idx === activeTestcaseIdx ? 'rgba(0, 240, 255, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                          color: idx === activeTestcaseIdx ? 'var(--neon-cyan)' : 'var(--text-secondary)',
+                          cursor: 'pointer',
+                          fontSize: '11px',
+                          fontWeight: 'bold',
+                          transition: 'all 0.2s'
+                        }}
                       >
-                        Clear
-                      </button>
-                    </div>
-                    <textarea
-                      value={stdin}
-                      onChange={(e) => setStdin(e.target.value)}
-                      placeholder="Enter standard input (stdin) for code execution..."
+                        <span>Case {idx + 1}</span>
+                        {testcases.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteTestcase(idx, e)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--text-muted)',
+                              cursor: 'pointer',
+                              padding: 0,
+                              fontSize: '10px',
+                              marginLeft: '2px',
+                              display: 'flex',
+                              alignItems: 'center'
+                            }}
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={handleAddTestcase}
                       style={{
-                        flex: 1,
-                        background: 'rgba(0,0,0,0.15)',
-                        border: '1px solid var(--glass-border)',
-                        borderRadius: '4px',
-                        padding: '6px 8px',
-                        color: 'white',
-                        fontFamily: 'monospace',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        border: '1px dashed var(--glass-border)',
+                        background: 'transparent',
+                        color: 'var(--text-muted)',
+                        cursor: 'pointer',
                         fontSize: '11px',
-                        resize: 'none',
-                        outline: 'none'
+                        fontWeight: 'bold'
                       }}
-                    />
+                    >
+                      + Add Case
+                    </button>
                   </div>
-                  <div style={{ flex: '1 1 calc(50% - 8px)', minWidth: '280px', height: '20rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>Expected Output (Optional)</span>
-                      <button
-                        type="button"
-                        onClick={() => setExpectedOutput('')}
-                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '10px' }}
-                      >
-                        Clear
-                      </button>
+
+                  <div 
+                    className="oj-input-card" 
+                    style={{ 
+                      display: 'flex', 
+                      gap: '16px', 
+                      flexDirection: 'row', 
+                      flexWrap: 'wrap',
+                      width: '100%' 
+                    }}
+                  >
+                    <div style={{ flex: '1 1 calc(50% - 8px)', minWidth: '280px', height: '20rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>Custom Stdin Input</span>
+                        <button
+                          type="button"
+                          onClick={() => handleStdinChange('')}
+                          style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '10px' }}
+                        >
+                          Clear
+                        </button>
+                      </div>
+                      <textarea
+                        value={testcases[activeTestcaseIdx]?.stdin || ''}
+                        onChange={(e) => handleStdinChange(e.target.value)}
+                        placeholder="Enter standard input (stdin) for code execution..."
+                        style={{
+                          flex: 1,
+                          background: 'rgba(0,0,0,0.15)',
+                          border: '1px solid var(--glass-border)',
+                          borderRadius: '4px',
+                          padding: '6px 8px',
+                          color: 'white',
+                          fontFamily: 'monospace',
+                          fontSize: '11px',
+                          resize: 'none',
+                          outline: 'none'
+                        }}
+                      />
                     </div>
-                    <textarea
-                      value={expectedOutput}
-                      onChange={(e) => setExpectedOutput(e.target.value)}
-                      placeholder="Enter expected output to verify testcase correctness..."
-                      style={{
-                        flex: 1,
-                        background: 'rgba(0,0,0,0.15)',
-                        border: '1px solid var(--glass-border)',
-                        borderRadius: '4px',
-                        padding: '6px 8px',
-                        color: 'white',
-                        fontFamily: 'monospace',
-                        fontSize: '11px',
-                        resize: 'none',
-                        outline: 'none'
-                      }}
-                    />
+                    <div style={{ flex: '1 1 calc(50% - 8px)', minWidth: '280px', height: '20rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>Expected Output (Optional)</span>
+                        <button
+                          type="button"
+                          onClick={() => handleExpectedChange('')}
+                          style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '10px' }}
+                        >
+                          Clear
+                        </button>
+                      </div>
+                      <textarea
+                        value={testcases[activeTestcaseIdx]?.expectedOutput || ''}
+                        onChange={(e) => handleExpectedChange(e.target.value)}
+                        placeholder="Enter expected output to verify testcase correctness..."
+                        style={{
+                          flex: 1,
+                          background: 'rgba(0,0,0,0.15)',
+                          border: '1px solid var(--glass-border)',
+                          borderRadius: '4px',
+                          padding: '6px 8px',
+                          color: 'white',
+                          fontFamily: 'monospace',
+                          fontSize: '11px',
+                          resize: 'none',
+                          outline: 'none'
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
               )}
@@ -1269,65 +1392,124 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
                     <p style={{ margin: '8px 0 0 0' }}>Click "Run Code ▶" to execute code and see stdout outputs here.</p>
                   </div>
                 ) : (
-                  <div>
-                    {expectedOutput.trim() && result.stdout && (
-                      (() => {
-                        const matched = result.stdout.trim() === expectedOutput.trim();
-                        return matched ? (
-                          <div style={{
-                            background: 'rgba(16, 185, 129, 0.1)',
-                            border: '1px solid rgba(16, 185, 129, 0.3)',
-                            borderRadius: '6px',
-                            padding: '8px 12px',
-                            marginBottom: '12px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            color: '#10b981'
-                          }}>
-                            <CheckCircle2 size={16} />
-                            <div>
-                              <strong style={{ fontSize: '12px' }}>✓ Testcase Passed</strong>
-                              <div style={{ fontSize: '10px', color: 'var(--text-secondary)', marginTop: '2px' }}>Your stdout matches expected output.</div>
-                            </div>
-                          </div>
-                        ) : (
-                          <div style={{
-                            background: 'rgba(239, 68, 68, 0.08)',
-                            border: '1px solid rgba(239, 68, 68, 0.25)',
-                            borderRadius: '6px',
-                            padding: '8px 12px',
-                            marginBottom: '12px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '6px',
-                            color: '#ef4444'
-                          }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <AlertTriangle size={16} />
-                              <strong style={{ fontSize: '12px' }}>✗ Testcase Failed (Output Mismatch)</strong>
-                            </div>
-                            <div style={{ display: 'flex', gap: '12px', marginTop: '2px' }}>
-                              <div style={{ flex: 1 }}>
-                                <span style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 'bold', textTransform: 'uppercase' }}>Expected</span>
-                                <pre style={{ margin: '2px 0 0 0', padding: '4px 6px', background: 'rgba(0,0,0,0.25)', borderRadius: '4px', fontSize: '11px', color: '#10b981', overflowX: 'auto', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
-                                  {expectedOutput.trim()}
-                                </pre>
-                              </div>
-                              <div style={{ flex: 1 }}>
-                                <span style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 'bold', textTransform: 'uppercase' }}>Actual Output</span>
-                                <pre style={{ margin: '2px 0 0 0', padding: '4px 6px', background: 'rgba(0,0,0,0.25)', borderRadius: '4px', fontSize: '11px', color: '#ef4444', overflowX: 'auto', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
-                                  {result.stdout.trim() || '(empty)'}
-                                </pre>
-                              </div>
-                            </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', height: '100%' }}>
+                    {/* Case tabs row for output */}
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px' }}>
+                      {testcases.map((tc, idx) => {
+                        const tcRes = testcaseResults[tc.id];
+                        const hasOutcome = tcRes && tc.expectedOutput.trim() && tcRes.stdout;
+                        const matched = hasOutcome && tcRes.stdout.trim() === tc.expectedOutput.trim();
+                        
+                        return (
+                          <div
+                            key={tc.id}
+                            onClick={() => setActiveTestcaseIdx(idx)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '6px 12px',
+                              borderRadius: '6px',
+                              border: '1px solid var(--glass-border)',
+                              background: idx === activeTestcaseIdx ? 'rgba(0, 240, 255, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                              color: idx === activeTestcaseIdx 
+                                ? 'var(--neon-cyan)' 
+                                : hasOutcome 
+                                  ? (matched ? '#10b981' : '#ef4444')
+                                  : 'var(--text-secondary)',
+                              cursor: 'pointer',
+                              fontSize: '11px',
+                              fontWeight: 'bold',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            <span>Case {idx + 1}</span>
+                            {hasOutcome && (
+                              <span style={{ fontSize: '9px', marginLeft: '4px', color: matched ? '#10b981' : '#ef4444' }}>
+                                {matched ? '✓' : '✗'}
+                              </span>
+                            )}
                           </div>
                         );
-                      })()
-                    )}
-                    <pre className="oj-code-block">
-                      {result.stdout || 'Program executed successfully with no stdout output.'}
-                    </pre>
+                      })}
+                    </div>
+
+                    {/* Display result for active testcase */}
+                    {(() => {
+                      const activeTc = testcases[activeTestcaseIdx];
+                      const activeTcRes = testcaseResults[activeTc.id];
+                      
+                      if (!activeTcRes) {
+                        return (
+                          <div className="oj-empty-state" style={{ minHeight: '120px' }}>
+                            <p>No result for this testcase. Press Run Code to execute.</p>
+                          </div>
+                        );
+                      }
+                      
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {activeTc.expectedOutput.trim() && activeTcRes.stdout && (
+                            (() => {
+                              const matched = activeTcRes.stdout.trim() === activeTc.expectedOutput.trim();
+                              return matched ? (
+                                <div style={{
+                                  background: 'rgba(16, 185, 129, 0.1)',
+                                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                                  borderRadius: '6px',
+                                  padding: '8px 12px',
+                                  marginBottom: '12px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '8px',
+                                  color: '#10b981'
+                                }}>
+                                  <CheckCircle2 size={16} />
+                                  <div>
+                                    <strong style={{ fontSize: '12px' }}>✓ Testcase {activeTestcaseIdx + 1} Passed</strong>
+                                    <div style={{ fontSize: '10px', color: 'var(--text-secondary)', marginTop: '2px' }}>Your stdout matches expected output.</div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div style={{
+                                  background: 'rgba(239, 68, 68, 0.08)',
+                                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                                  borderRadius: '6px',
+                                  padding: '8px 12px',
+                                  marginBottom: '12px',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '6px',
+                                  color: '#ef4444'
+                                }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <AlertTriangle size={16} />
+                                    <strong style={{ fontSize: '12px' }}>✗ Testcase {activeTestcaseIdx + 1} Failed (Output Mismatch)</strong>
+                                  </div>
+                                  <div style={{ display: 'flex', gap: '12px', marginTop: '2px' }}>
+                                    <div style={{ flex: 1 }}>
+                                      <span style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 'bold', textTransform: 'uppercase' }}>Expected</span>
+                                      <pre style={{ margin: '2px 0 0 0', padding: '4px 6px', background: 'rgba(0,0,0,0.25)', borderRadius: '4px', fontSize: '11px', color: '#10b981', overflowX: 'auto', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+                                        {activeTc.expectedOutput.trim()}
+                                      </pre>
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                      <span style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 'bold', textTransform: 'uppercase' }}>Actual Output</span>
+                                      <pre style={{ margin: '2px 0 0 0', padding: '4px 6px', background: 'rgba(0,0,0,0.25)', borderRadius: '4px', fontSize: '11px', color: '#ef4444', overflowX: 'auto', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+                                        {activeTcRes.stdout.trim() || '(empty)'}
+                                      </pre>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })()
+                          )}
+                          <pre className="oj-code-block" style={{ maxHeight: '180px', overflowY: 'auto' }}>
+                            {activeTcRes.stdout || 'Program executed successfully with no stdout output.'}
+                          </pre>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )
               )}
