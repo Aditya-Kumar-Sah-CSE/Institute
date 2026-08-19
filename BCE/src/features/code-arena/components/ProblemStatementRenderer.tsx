@@ -623,6 +623,26 @@ export default function ProblemStatementRenderer({ problem }: { problem: Problem
         </section>
       )}
 
+      {/* Input Section */}
+      {(problem.input_format || problem.inputDescription) && (
+        <section style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-xs)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', borderLeft: '3px solid var(--neon-cyan)', paddingLeft: '10px', letterSpacing: '0.5px' }}>
+            <FileText size={14} style={{ color: 'var(--neon-cyan)' }} /> Input
+          </div>
+          <SafeContentRenderer rawContent={problem.input_format || problem.inputDescription || ''} />
+        </section>
+      )}
+
+      {/* Output Section */}
+      {(problem.output_format || problem.outputDescription) && (
+        <section style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-xs)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', borderLeft: '3px solid var(--neon-pink)', paddingLeft: '10px', letterSpacing: '0.5px' }}>
+            <FileText size={14} style={{ color: 'var(--neon-pink)' }} /> Output
+          </div>
+          <SafeContentRenderer rawContent={problem.output_format || problem.outputDescription || ''} />
+        </section>
+      )}
+
       {/* Constraints Section */}
       <section style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-xs)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', borderLeft: '3px solid var(--neon-gold)', paddingLeft: '10px', letterSpacing: '0.5px' }}>
