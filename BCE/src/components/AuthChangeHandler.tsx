@@ -24,34 +24,36 @@ export default function AuthChangeHandler() {
         lastUserRef.current = session.user.id;
       }
 
-      if (event === 'SIGNED_OUT' || !session?.user) {
+      if (event === 'SIGNED_OUT') {
         const userId = lastUserRef.current;
         if (userId) {
           console.log(`User ${userId} logged out, purging private client-side databases...`);
           
-          // 1. Wipe IndexedDB cache
+          // 1. Wipe IndexedDB cache (user-specific offline data)
           await clearOfflineCache(userId);
           lastUserRef.current = null;
         }
 
-        // 2. Wipe PWA caches
-        if ('caches' in window) {
-          try {
-            const cacheKeys = await caches.keys();
-            await Promise.all(cacheKeys.map(key => caches.delete(key)));
-            console.log('Static PWA cache stores evicted successfully.');
-          } catch (cacheErr) {
-            console.error('Failed to clear static PWA cache stores:', cacheErr);
-          }
-        }
-
-        // 3. Wipe sessionStorage/localStorage settings
+        // 2. Clear ONLY auth-related localStorage keys.
+        //    DO NOT call localStorage.clear() — it nukes SW reload guards,
+        //    theme prefs, and the sw_reloaded_for key that prevents reload loops.
         try {
-          localStorage.clear();
-          sessionStorage.clear();
-        } catch (storageErr) {}
+          const authKeyPrefixes = ['sb-', 'supabase.auth.', 'supabase-'];
+          Object.keys(localStorage).forEach((key) => {
+            if (authKeyPrefixes.some((p) => key.startsWith(p))) {
+              localStorage.removeItem(key);
+            }
+          });
+          // Only clear auth-related sessionStorage keys too
+          Object.keys(sessionStorage).forEach((key) => {
+            if (authKeyPrefixes.some((p) => key.startsWith(p))) {
+              sessionStorage.removeItem(key);
+            }
+          });
+        } catch (_) {}
 
-        // 4. Force a clean refresh to dump React router memory
+        // 3. Navigate to /login for a clean start
+        //    (No full location.reload — the normal navigation is enough)
         window.location.href = '/login';
       }
     });
