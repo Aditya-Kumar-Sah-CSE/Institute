@@ -116,30 +116,53 @@ export function ExampleCopyBlock({ label, content }: { label: string; content: s
       </pre>
     </div>
   );
-}
-
-// Helper to translate $$$formula$$$ to beautifully formatted inline HTML elements
+}// Helper to translate $$$formula$$$ to beautifully formatted inline HTML elements
 export const cleanMathNotationHtml = (text: string): string => {
   if (!text) return '';
-  return text.replace(/\$\$\$(.*?)\$\$\$/g, (match: string, formula: string) => {
+  return text.replace(/\$\$\$([\s\S]*?)\$\$\$/g, (match: string, formula: string) => {
     let formatted = formula
-      .replace(/_(?:{(.*?)})|_(.)/g, (m: string, p1: string | undefined, p2: string | undefined) => {
-        const subVal = p1 || p2;
-        return `<sub>${subVal}</sub>`;
-      })
-      .replace(/\^(?:{(.*?)})|\^(.)/g, (m: string, p1: string | undefined, p2: string | undefined) => {
-        const supVal = p1 || p2;
-        return `<sup>${supVal}</sup>`;
-      })
-      .replace(/\\bmod/g, ' mod ')
-      .replace(/\\le/g, ' ≤ ')
-      .replace(/\\ge/g, ' ≥ ')
-      .replace(/\\ne/g, ' ≠ ')
-      .replace(/\\lt/g, ' &lt; ')
-      .replace(/\\gt/g, ' &gt; ')
+      // Subscripts: _x or _{...}
+      .replace(/_(?:\{([\s\S]*?)\}|([^{]))/g, (_m, p1, p2) => `<sub>${p1 ?? p2}</sub>`)
+      // Superscripts: ^x or ^{...}
+      .replace(/\^(?:\{([\s\S]*?)\}|([^{]))/g, (_m, p1, p2) => `<sup>${p1 ?? p2}</sup>`)
+      // Math operators and symbols — ORDER MATTERS: longer patterns first
+      .replace(/\\ldots/g, '…')
+      .replace(/\\cdots/g, '…')
+      .replace(/\\dots/g, '…')
+      .replace(/\\leq/g, ' ≤ ')
+      .replace(/\\geq/g, ' ≥ ')
+      .replace(/\\neq/g, ' ≠ ')
+      .replace(/\\bmod\b/g, ' mod ')
+      .replace(/\\pmod\{([\s\S]*?)\}/g, ' (mod $1)')
+      .replace(/\\le\b/g, ' ≤ ')
+      .replace(/\\ge\b/g, ' ≥ ')
+      .replace(/\\ne\b/g, ' ≠ ')
+      .replace(/\\lt\b/g, ' < ')
+      .replace(/\\gt\b/g, ' > ')
       .replace(/\\times/g, ' × ')
       .replace(/\\cdot/g, ' · ')
-      .replace(/\\dots/g, '…')
+      .replace(/\\infty/g, '∞')
+      .replace(/\\sqrt\{([\s\S]*?)\}/g, '√($1)')
+      .replace(/\\sqrt/g, '√')
+      .replace(/\\lfloor/g, '⌊')
+      .replace(/\\rfloor/g, '⌋')
+      .replace(/\\lceil/g, '⌈')
+      .replace(/\\rceil/g, '⌉')
+      .replace(/\\leftarrow/g, '←')
+      .replace(/\\rightarrow/g, '→')
+      .replace(/\\Rightarrow/g, '⇒')
+      .replace(/\\Leftarrow/g, '⇐')
+      .replace(/\\oplus/g, '⊕')
+      .replace(/\\land\b/g, ' ∧ ')
+      .replace(/\\lor\b/g, ' ∨ ')
+      .replace(/\\lnot\b/g, '¬')
+      .replace(/\\text\{([\s\S]*?)\}/g, '$1')
+      .replace(/\\mathbf\{([\s\S]*?)\}/g, '<b>$1</b>')
+      .replace(/\\mathrm\{([\s\S]*?)\}/g, '$1')
+      .replace(/\\mathit\{([\s\S]*?)\}/g, '<i>$1</i>')
+      // Remove remaining unknown backslash commands (after specific replacements)
+      .replace(/\\[a-zA-Z]+/g, '')
+      // Strip lone backslash
       .replace(/\\/g, '');
     return `<code class="math-formula" style="font-family: 'Cambria Math', 'Times New Roman', serif; font-style: italic; background: rgba(255,255,255,0.04); padding: 1px 4px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.03); color: var(--neon-cyan); font-weight: 500;">${formatted}</code>`;
   });
@@ -148,17 +171,28 @@ export const cleanMathNotationHtml = (text: string): string => {
 // Helper for pure text mathematical sanitizations (e.g. for pre tags)
 export const cleanMathNotationText = (text: string): string => {
   if (!text) return '';
-  return text.replace(/\$\$\$(.*?)\$\$\$/g, (match: string, formula: string) => {
+  return text.replace(/\$\$\$([\s\S]*?)\$\$\$/g, (_match: string, formula: string) => {
     return formula
-      .replace(/\\bmod/g, ' mod ')
-      .replace(/\\le/g, ' ≤ ')
-      .replace(/\\ge/g, ' ≥ ')
-      .replace(/\\ne/g, ' ≠ ')
-      .replace(/\\lt/g, ' < ')
-      .replace(/\\gt/g, ' > ')
+      .replace(/\\ldots/g, '…')
+      .replace(/\\cdots/g, '…')
+      .replace(/\\dots/g, '…')
+      .replace(/\\leq/g, ' ≤ ')
+      .replace(/\\geq/g, ' ≥ ')
+      .replace(/\\neq/g, ' ≠ ')
+      .replace(/\\bmod\b/g, ' mod ')
+      .replace(/\\le\b/g, ' ≤ ')
+      .replace(/\\ge\b/g, ' ≥ ')
+      .replace(/\\ne\b/g, ' ≠ ')
+      .replace(/\\lt\b/g, ' < ')
+      .replace(/\\gt\b/g, ' > ')
       .replace(/\\times/g, ' × ')
       .replace(/\\cdot/g, ' · ')
-      .replace(/\\dots/g, '…')
+      .replace(/\\infty/g, '∞')
+      .replace(/\\text\{([\s\S]*?)\}/g, '$1')
+      .replace(/\\mathbf\{([\s\S]*?)\}/g, '$1')
+      .replace(/\\mathrm\{([\s\S]*?)\}/g, '$1')
+      .replace(/\\mathit\{([\s\S]*?)\}/g, '$1')
+      .replace(/\\[a-zA-Z]+/g, '')
       .replace(/\\/g, '');
   });
 };
@@ -170,17 +204,17 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
   useEffect(() => {
     if (!containerRef.current) return;
     
-    // First, style normal paragraphs
+    // Style normal paragraphs with cycling colors
     const paragraphs = containerRef.current.querySelectorAll('p');
     const colors = [
       'var(--neon-cyan)',
-      '#a855f7', // light purple
+      '#a855f7',
       'var(--neon-gold)',
       'var(--neon-pink)',
-      '#3b82f6', // blue
-      '#10b981', // emerald
-      '#fb923c', // orange
-      '#f43f5e', // rose
+      '#3b82f6',
+      '#10b981',
+      '#fb923c',
+      '#f43f5e',
     ];
     paragraphs.forEach((p, idx) => {
       p.style.color = colors[idx % colors.length];
@@ -206,9 +240,7 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
       }
       
       const paras = el.querySelectorAll('p');
-      paras.forEach(p => {
-        p.style.color = '#22d3ee';
-      });
+      paras.forEach(p => { p.style.color = '#22d3ee'; });
     });
 
     const outputSpecs = containerRef.current.querySelectorAll('.output-specification');
@@ -228,12 +260,10 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
       }
       
       const paras = el.querySelectorAll('p');
-      paras.forEach(p => {
-        p.style.color = '#f472b6';
-      });
+      paras.forEach(p => { p.style.color = '#f472b6'; });
     });
 
-    // Fallback scanner for flat text structures (e.g. Markdown headers)
+    // Fallback scanner for flat text structures (Markdown headers)
     const allElements = Array.from(containerRef.current.querySelectorAll('*'));
     let inInputSec = false;
     let inOutputSec = false;
@@ -242,18 +272,14 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
       const text = el.textContent?.trim();
       const tagName = el.tagName.toLowerCase();
       
-      // Ignore scanning if we are inside already styled spec containers
-      if (el.closest('.input-specification') || el.closest('.output-specification')) {
-        return;
-      }
+      if (el.closest('.input-specification') || el.closest('.output-specification')) return;
       
       const isHeader = (tagName === 'div' && el.classList.contains('section-title')) || 
           tagName === 'h3' || tagName === 'h4' || tagName === 'strong' || tagName === 'b';
           
       if (isHeader) {
         if (text === 'Input') {
-          inInputSec = true;
-          inOutputSec = false;
+          inInputSec = true; inOutputSec = false;
           (el as HTMLElement).style.color = 'var(--neon-cyan)';
           (el as HTMLElement).style.fontSize = '15px';
           (el as HTMLElement).style.fontWeight = '800';
@@ -264,8 +290,7 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
           (el as HTMLElement).style.paddingLeft = '8px';
           return;
         } else if (text === 'Output') {
-          inInputSec = false;
-          inOutputSec = true;
+          inInputSec = false; inOutputSec = true;
           (el as HTMLElement).style.color = 'var(--neon-pink)';
           (el as HTMLElement).style.fontSize = '15px';
           (el as HTMLElement).style.fontWeight = '800';
@@ -276,22 +301,17 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
           (el as HTMLElement).style.paddingLeft = '8px';
           return;
         } else if (text === 'Note' || text === 'Examples' || text === 'Example') {
-          inInputSec = false;
-          inOutputSec = false;
+          inInputSec = false; inOutputSec = false;
         }
       }
       
       if (el.tagName.toLowerCase() === 'table' || el.classList.contains('sample-tests') || el.classList.contains('sample-test')) {
-        inInputSec = false;
-        inOutputSec = false;
+        inInputSec = false; inOutputSec = false;
       }
       
       if (tagName === 'p' || (tagName === 'div' && !el.children.length)) {
-        if (inInputSec) {
-          (el as HTMLElement).style.color = '#22d3ee';
-        } else if (inOutputSec) {
-          (el as HTMLElement).style.color = '#f472b6';
-        }
+        if (inInputSec) (el as HTMLElement).style.color = '#22d3ee';
+        else if (inOutputSec) (el as HTMLElement).style.color = '#f472b6';
       }
     });
   }, [rawContent]);
@@ -300,23 +320,26 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
     return <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Not provided.</span>;
   }
 
-  // Pre-process math variables inside raw content
+  // Process math variables inside raw content
   const processedMath = cleanMathNotationHtml(rawContent.trim());
   let contentToRender = processedMath;
 
-  // Strip the entire header section if present to avoid duplicating limits
+  // Strip the header section (time limit, memory limit) — but NOT Input/Output body content
   contentToRender = contentToRender.replace(/<div\s+class=["']header["']>[\s\S]*?<\/div>/gi, '');
-  // Clean up any residual limit/input/output blocks from raw content
-  contentToRender = contentToRender.replace(/<div\s+class=["'](?:time-limit|memory-limit|input-file|output-file)["']>[\s\S]*?<\/div>\s*[^<]*<\/div>/gi, '');
-  contentToRender = contentToRender.replace(/<div\s+class=["'](?:time-limit|memory-limit|input-file|output-file)["']>[\s\S]*?<\/div>/gi, '');
-  contentToRender = contentToRender.replace(/<div[^>]*>\s*(?:time limit per test|memory limit per test|input|output|stdin|stdout|standard input|standard output|seconds|megabytes)\s*<\/div>/gi, '');
-  contentToRender = contentToRender.replace(/<(?:p|div|span)[^>]*>\s*(?:stdin|stdout|standard input|standard output|time limit per test|memory limit per test|input|output|2 seconds|256 megabytes)\s*<\/(?:p|div|span)>/gi, '');
-  contentToRender = contentToRender.replace(/      *(?:stdin|stdout|standard input|standard output|time limit per test|memory limit per test|seconds|megabytes|2 seconds|256 megabytes)\b[ \t]*$/gim, '');
-  contentToRender = contentToRender.replace(/(?:time limit per test|memory limit per test|input|output)\s*(?:1 second|2 seconds|1\.0 second|2\.0 seconds|256 megabytes|512 megabytes|stdin|stdout|standard input|standard output)?\s*/gi, '');
-  contentToRender = contentToRender.replace(/^\s*(?:1 second|2 seconds|1\.0 second|2\.0 seconds|256 megabytes|512 megabytes|stdin|stdout|standard input|standard output)\s*$/gim, '');
-  // Replace relative URLs to Codeforces assets
-  contentToRender = contentToRender.replace(/src="\/(predownloaded|images|assets)\/([^"]+)"/g, 'src="https://codeforces.com/$1/$2"');
-  contentToRender = contentToRender.replace(/src='\/(predownloaded|images|assets)\/([^']+)'/g, "src='https://codeforces.com/$1/$2'");
+  // Strip only the metadata divs (time-limit, memory-limit, input-file, output-file)
+  contentToRender = contentToRender.replace(/<div\s+class=["'](?:time-limit|memory-limit|input-file|output-file)["'][^>]*>[\s\S]*?<\/div>/gi, '');
+
+  // Fix image URLs: handle all Codeforces relative paths
+  // Pattern covers /predownloaded/, /images/, /espresso/, /data/, /userpic/
+  contentToRender = contentToRender.replace(
+    /src=["']\/(predownloaded|images|assets|espresso|data|userpic)\/([^"']+)["']/g,
+    'src="https://codeforces.com/$1/$2"'
+  );
+  // Also handle bare paths without protocol in img tags
+  contentToRender = contentToRender.replace(
+    /(<img[^>]+src=["'])(?!https?:\/\/)(?!data:)([^"']+)(["'])/gi,
+    '$1https://codeforces.com$2$3'
+  );
 
   const hasHtml = /<[a-z][\s\S]*>/i.test(contentToRender);
 
