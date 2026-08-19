@@ -20,7 +20,9 @@ import {
   Plus,
   Edit3,
   Save,
-  RefreshCw
+  RefreshCw,
+  AlertTriangle,
+  ChevronDown
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import Modal from '@/components/ui/Modal';
@@ -163,6 +165,8 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
   const [isConsoleFullscreen, setIsConsoleFullscreen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('input');
   const [consoleMode, setConsoleMode] = useState<'terminal' | 'result'>('terminal');
+  const [isConsoleCollapsed, setIsConsoleCollapsed] = useState(true);
+  const [expectedOutput, setExpectedOutput] = useState('');
 
   // Execution outputs
   const [result, setResult] = useState<NormalizedExecutionResult | null>(null);
@@ -680,6 +684,7 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
 
   // Compiler logic
   const runCode = async () => {
+    setIsConsoleCollapsed(false);
     if (language === 'html') {
       setIframeKey(k => k + 1);
       setActiveTab('preview');
@@ -999,260 +1004,438 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
             options={{ automaticLayout: true, minimap: { enabled: false }, fontSize: 14 }}
           />
         </div>
-
-        {/* Bottom Console Panel */}
-        <section
-          className={`oj-console-wrapper ${isConsoleFullscreen ? 'console-fullscreen' : ''}`}
-          style={isConsoleFullscreen ? {
-            position: 'fixed',
-            inset: 0,
-            zIndex: 9999,
-            background: 'var(--bg-primary)',
-            padding: '24px',
-            display: 'flex',
-            flexDirection: 'column',
-          } : undefined}
-        >
-          <div className="oj-top-header">
-            <div className="oj-title-group">
-              <h3>Console & Output</h3>
-              <span className={`oj-pill ${engineHealth === 'Ready' ? 'oj-pill-ready' : 'oj-err-badge'}`}>
-                <span className="oj-dot" /> {engineHealth === 'Ready' ? 'Ready' : 'Offline'}
+         {/* Bottom Console Panel */}
+        {isConsoleCollapsed ? (
+          /* Slim status bar when collapsed */
+          <div
+            className="oj-console-wrapper"
+            style={{
+              padding: '6px 12px',
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              cursor: 'pointer',
+              userSelect: 'none',
+              borderRadius: '4px',
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--glass-border)',
+              marginTop: '8px'
+            }}
+            onClick={() => setIsConsoleCollapsed(false)}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 'bold' }}>
+                ▲ Show Console & Output
               </span>
-            </div>
-            <div className="oj-header-pills">
-              <span className={`oj-pill ${engineHealth === 'Ready' ? 'oj-pill-ready' : 'oj-err-badge'}`}>
-                <span className="oj-dot" /> {engineHealth === 'Ready' ? 'Compiler Engine Connected' : 'Compiler Offline'}
+              <span className={`oj-pill ${engineHealth === 'Ready' ? 'oj-pill-ready' : 'oj-err-badge'}`} style={{ fontSize: '9px', padding: '1px 6px', margin: 0 }}>
+                <span className="oj-dot" /> {engineHealth === 'Ready' ? 'Compiler Connected' : 'Offline'}
               </span>
-            </div>
-          </div>
-
-          {/* Main Segmented Toggle: Terminal vs Result */}
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px' }}>
-            <button
-              type="button"
-              className={`oj-tab ${consoleMode === 'terminal' ? 'active' : ''}`}
-              onClick={() => {
-                setConsoleMode('terminal');
-                setActiveTab('input');
-              }}
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 'bold' }}
-            >
-              💻 Terminal
-            </button>
-            <button
-              type="button"
-              className={`oj-tab ${consoleMode === 'result' ? 'active' : ''}`}
-              onClick={() => {
-                setConsoleMode('result');
-                setActiveTab(errorCount > 0 ? 'error' : 'output');
-              }}
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 'bold' }}
-            >
-              📊 Output Result {errorCount > 0 && <span className="oj-err-badge">{errorCount}</span>}
-            </button>
-          </div>
-
-          {/* Sub-tabs based on Mode */}
-          <div className="oj-tabs-bar" style={{ marginTop: '0px' }}>
-            {consoleMode === 'terminal' && (
-              <>
-                <button
-                  type="button"
-                  className={`oj-tab ${activeTab === 'input' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('input')}
-                >
-                  Custom Input (Stdin)
-                </button>
-                <button
-                  type="button"
-                  className={`oj-tab ${activeTab === 'details' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('details')}
-                >
-                  Execution Details
-                </button>
-              </>
-            )}
-
-            {consoleMode === 'result' && (
-              <>
-                <button
-                  type="button"
-                  className={`oj-tab ${activeTab === 'output' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('output')}
-                >
-                  Stdout Output
-                </button>
-                <button
-                  type="button"
-                  className={`oj-tab ${activeTab === 'error' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('error')}
-                >
-                  Stderr Errors {errorCount > 0 && <span className="oj-err-badge">{errorCount}</span>}
-                </button>
-                {language === 'html' && (
-                  <button
-                    type="button"
-                    className={`oj-tab ${activeTab === 'preview' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('preview')}
-                  >
-                    UI Preview
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-
-          {/* Stdin card */}
-          {activeTab === 'input' && (
-            <div className="oj-input-card" style={{ flex: 1, minHeight: 0 }}>
-              <div className="oj-input-header">
-                <span className="oj-input-title">Custom Stdin Input</span>
-                <div className="oj-icon-actions">
-                  <button
-                    type="button"
-                    className="oj-icon-btn"
-                    title="Clear Input"
-                    onClick={() => setStdin('')}
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              </div>
-              <textarea
-                className="oj-input-textarea"
-                value={stdin}
-                placeholder="Enter standard input (stdin) for code execution..."
-                onChange={(e) => setStdin(e.target.value)}
-                style={{ flex: 1, minHeight: '80px', resize: 'none' }}
-              />
-            </div>
-          )}
-
-          {/* Console Output Body */}
-          <div className="oj-console-body" style={{ flex: 1, minHeight: 0, marginTop: '8px' }}>
-            {activeTab === 'preview' && language === 'html' && (
-              <div style={{ width: '100%', height: '350px', background: '#ffffff', borderRadius: '8px', border: '1px solid var(--glass-border)', overflow: 'hidden' }}>
-                <iframe
-                  key={iframeKey}
-                  srcDoc={code}
-                  sandbox="allow-scripts"
-                  style={{ width: '100%', height: '100%', border: 'none' }}
-                  title="UI Preview"
-                />
-              </div>
-            )}
-            {activeTab === 'output' && (
-              !result ? (
-                <div className="oj-empty-state">
-                  <div className="oj-terminal-icon-box">
-                    <Terminal size={24} />
-                    <span className="oj-check-badge">
-                      <CheckCircle2 size={14} />
-                    </span>
-                  </div>
-                  <p className="oj-empty-title">Console ready</p>
-                  <p className="oj-empty-sub">Press Run Code to see compiler results.</p>
-                </div>
-              ) : (
-                <div>
-                  <div className={`oj-status-banner oj-status-${result.status}`}>
-                    {result.status === 'SUCCESS' ? '✓ Executed successfully' : `● ${result.status}`}
-                  </div>
-                  <pre className="oj-code-block">
-                    {result.stdout ? result.stdout : 'Program executed with no stdout output.'}
-                  </pre>
-                </div>
-              )
-            )}
-
-            {activeTab === 'error' && (
-              !result ? (
-                <div className="oj-empty-state">
-                  <p className="oj-empty-sub">No errors.</p>
-                </div>
-              ) : (
-                <div>
-                  <pre className="oj-code-block oj-code-error">
-                    {result.compileStderr || result.stderr || result.message || 'No errors.'}
-                  </pre>
-                </div>
-              )
-            )}
-
-            {activeTab === 'details' && (
-              <div className="oj-details-grid">
-                <div className="oj-detail-item">
-                  <span className="oj-detail-label">Status</span>
-                  <span className="oj-detail-val">{result?.status || 'Ready'}</span>
-                </div>
-                <div className="oj-detail-item">
-                  <span className="oj-detail-label">Language Mode</span>
-                  <span className="oj-detail-val">{language.toUpperCase()}</span>
-                </div>
-                <div className="oj-detail-item">
-                  <span className="oj-detail-label">Exit Code</span>
-                  <span className="oj-detail-val">{result?.exitCode !== null ? result?.exitCode : '—'}</span>
-                </div>
-                <div className="oj-detail-item">
-                  <span className="oj-detail-label">Signal</span>
-                  <span className="oj-detail-val">{result?.signal || '—'}</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Bottom actions bar */}
-          <div className="oj-bottom-meta-bar" style={{ marginTop: '8px' }}>
-            <div className="oj-meta-left">
-              <span>Time Limit: <strong>1.0s</strong></span>
-              <span>Memory Limit: <strong>256MB</strong></span>
+              {errorCount > 0 && (
+                <span className="oj-err-badge" style={{ fontSize: '9px', padding: '1px 6px' }}>
+                  {errorCount} Error{errorCount > 1 ? 's' : ''}
+                </span>
+              )}
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
                 type="button"
-                className="oj-btn-clear"
-                onClick={clearConsole}
-                title="Clear console output"
-                style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px' }}
-              >
-                <Eraser size={12} /> Clear
-              </button>
-              <button
-                type="button"
-                className="oj-btn-clear"
-                onClick={() => {
-                  if (result?.stdout) {
-                    navigator.clipboard.writeText(result.stdout);
-                  }
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setConsoleMode('terminal');
+                  setIsConsoleCollapsed(false);
+                  setActiveTab('input');
                 }}
-                title="Copy output"
-                style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px' }}
+                style={{
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid var(--glass-border)',
+                  color: 'var(--text-secondary)',
+                  fontSize: '11px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  padding: '3px 8px',
+                  borderRadius: '4px'
+                }}
               >
-                <Copy size={12} /> Copy
+                💻 Terminal / Input
               </button>
               <button
                 type="button"
-                className="oj-btn-clear"
-                onClick={() => setIsConsoleFullscreen(!isConsoleFullscreen)}
-                style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setConsoleMode('result');
+                  setIsConsoleCollapsed(false);
+                  setActiveTab('output');
+                }}
+                style={{
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid var(--glass-border)',
+                  color: 'var(--text-secondary)',
+                  fontSize: '11px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  padding: '3px 8px',
+                  borderRadius: '4px'
+                }}
               >
-                {isConsoleFullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />} Expand
+                📊 Output Result
               </button>
-              {activeFile && (
+            </div>
+          </div>
+        ) : (
+          /* Expanded bottom console */
+          <section
+            className={`oj-console-wrapper ${isConsoleFullscreen ? 'console-fullscreen' : ''}`}
+            style={{
+              height: isConsoleFullscreen ? '100%' : '350px',
+              minHeight: '220px',
+              display: 'flex',
+              flexDirection: 'column',
+              position: isConsoleFullscreen ? 'fixed' : 'relative',
+              inset: isConsoleFullscreen ? 0 : 'auto',
+              zIndex: isConsoleFullscreen ? 9999 : 'auto',
+              marginTop: '8px'
+            }}
+          >
+            {/* Console Header */}
+            <div className="oj-top-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <div className="oj-title-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 style={{ margin: 0, fontSize: '13px' }}>Console & Output</h3>
+                <span className={`oj-pill ${engineHealth === 'Ready' ? 'oj-pill-ready' : 'oj-err-badge'}`} style={{ fontSize: '9px', padding: '1px 6px' }}>
+                  <span className="oj-dot" /> {engineHealth === 'Ready' ? 'Connected' : 'Offline'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsConsoleCollapsed(true)}
+                  title="Collapse Console"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '4px'
+                  }}
+                >
+                  <ChevronDown size={14} />
+                </button>
+              </div>
+            </div>
+
+            {/* Main Segmented Toggle: Terminal vs Result */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px' }}>
+              <button
+                type="button"
+                className={`oj-tab ${consoleMode === 'terminal' ? 'active' : ''}`}
+                onClick={() => {
+                  setConsoleMode('terminal');
+                  setActiveTab('input');
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 'bold' }}
+              >
+                💻 Terminal
+              </button>
+              <button
+                type="button"
+                className={`oj-tab ${consoleMode === 'result' ? 'active' : ''}`}
+                onClick={() => {
+                  setConsoleMode('result');
+                  setActiveTab(errorCount > 0 ? 'error' : 'output');
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 'bold' }}
+              >
+                📊 Output Result {errorCount > 0 && <span className="oj-err-badge">{errorCount}</span>}
+              </button>
+            </div>
+
+            {/* Sub-tabs based on Mode */}
+            <div className="oj-tabs-bar" style={{ marginTop: '0px', marginBottom: '8px' }}>
+              {consoleMode === 'terminal' && (
+                <>
+                  <button
+                    type="button"
+                    className={`oj-tab ${activeTab === 'input' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('input')}
+                  >
+                    Custom Testcase (Stdin)
+                  </button>
+                  <button
+                    type="button"
+                    className={`oj-tab ${activeTab === 'details' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('details')}
+                  >
+                    Execution Details
+                  </button>
+                </>
+              )}
+
+              {consoleMode === 'result' && (
+                <>
+                  <button
+                    type="button"
+                    className={`oj-tab ${activeTab === 'output' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('output')}
+                  >
+                    Stdout Output
+                  </button>
+                  <button
+                    type="button"
+                    className={`oj-tab ${activeTab === 'error' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('error')}
+                  >
+                    Stderr Errors {errorCount > 0 && <span className="oj-err-badge">{errorCount}</span>}
+                  </button>
+                  {language === 'html' && (
+                    <button
+                      type="button"
+                      className={`oj-tab ${activeTab === 'preview' ? 'active' : ''}`}
+                      onClick={() => setActiveTab('preview')}
+                    >
+                      UI Preview
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Console Output Body */}
+            <div className="oj-console-body" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+              {activeTab === 'preview' && language === 'html' && (
+                <div style={{ width: '100%', height: '100%', minHeight: '220px', background: '#ffffff', borderRadius: '4px', border: '1px solid var(--glass-border)', overflow: 'hidden' }}>
+                  <iframe
+                    key={iframeKey}
+                    srcDoc={code}
+                    sandbox="allow-scripts"
+                    style={{ width: '100%', height: '100%', border: 'none' }}
+                    title="UI Preview"
+                  />
+                </div>
+              )}
+
+              {activeTab === 'input' && (
+                <div className="oj-input-card" style={{ height: '100%', display: 'flex', gap: '12px', flexDirection: 'row' }}>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>Custom Stdin Input</span>
+                      <button
+                        type="button"
+                        onClick={() => setStdin('')}
+                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '10px' }}
+                      >
+                        Clear
+                      </button>
+                    </div>
+                    <textarea
+                      value={stdin}
+                      onChange={(e) => setStdin(e.target.value)}
+                      placeholder="Enter standard input (stdin) for code execution..."
+                      style={{
+                        flex: 1,
+                        background: 'rgba(0,0,0,0.15)',
+                        border: '1px solid var(--glass-border)',
+                        borderRadius: '4px',
+                        padding: '6px 8px',
+                        color: 'white',
+                        fontFamily: 'monospace',
+                        fontSize: '11px',
+                        resize: 'none',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>Expected Output (Optional)</span>
+                      <button
+                        type="button"
+                        onClick={() => setExpectedOutput('')}
+                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '10px' }}
+                      >
+                        Clear
+                      </button>
+                    </div>
+                    <textarea
+                      value={expectedOutput}
+                      onChange={(e) => setExpectedOutput(e.target.value)}
+                      placeholder="Enter expected output to verify testcase correctness..."
+                      style={{
+                        flex: 1,
+                        background: 'rgba(0,0,0,0.15)',
+                        border: '1px solid var(--glass-border)',
+                        borderRadius: '4px',
+                        padding: '6px 8px',
+                        color: 'white',
+                        fontFamily: 'monospace',
+                        fontSize: '11px',
+                        resize: 'none',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'output' && (
+                !result ? (
+                  <div className="oj-empty-state">
+                    <Play size={24} style={{ color: 'var(--text-muted)' }} />
+                    <p style={{ margin: '8px 0 0 0' }}>Click "Run Code ▶" to execute code and see stdout outputs here.</p>
+                  </div>
+                ) : (
+                  <div>
+                    {expectedOutput.trim() && result.stdout && (
+                      (() => {
+                        const matched = result.stdout.trim() === expectedOutput.trim();
+                        return matched ? (
+                          <div style={{
+                            background: 'rgba(16, 185, 129, 0.1)',
+                            border: '1px solid rgba(16, 185, 129, 0.3)',
+                            borderRadius: '6px',
+                            padding: '8px 12px',
+                            marginBottom: '12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            color: '#10b981'
+                          }}>
+                            <CheckCircle2 size={16} />
+                            <div>
+                              <strong style={{ fontSize: '12px' }}>✓ Testcase Passed</strong>
+                              <div style={{ fontSize: '10px', color: 'var(--text-secondary)', marginTop: '2px' }}>Your stdout matches expected output.</div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{
+                            background: 'rgba(239, 68, 68, 0.08)',
+                            border: '1px solid rgba(239, 68, 68, 0.25)',
+                            borderRadius: '6px',
+                            padding: '8px 12px',
+                            marginBottom: '12px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '6px',
+                            color: '#ef4444'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <AlertTriangle size={16} />
+                              <strong style={{ fontSize: '12px' }}>✗ Testcase Failed (Output Mismatch)</strong>
+                            </div>
+                            <div style={{ display: 'flex', gap: '12px', marginTop: '2px' }}>
+                              <div style={{ flex: 1 }}>
+                                <span style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 'bold', textTransform: 'uppercase' }}>Expected</span>
+                                <pre style={{ margin: '2px 0 0 0', padding: '4px 6px', background: 'rgba(0,0,0,0.25)', borderRadius: '4px', fontSize: '11px', color: '#10b981', overflowX: 'auto', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+                                  {expectedOutput.trim()}
+                                </pre>
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                <span style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 'bold', textTransform: 'uppercase' }}>Actual Output</span>
+                                <pre style={{ margin: '2px 0 0 0', padding: '4px 6px', background: 'rgba(0,0,0,0.25)', borderRadius: '4px', fontSize: '11px', color: '#ef4444', overflowX: 'auto', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+                                  {result.stdout.trim() || '(empty)'}
+                                </pre>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()
+                    )}
+                    <pre className="oj-code-block">
+                      {result.stdout || 'Program executed successfully with no stdout output.'}
+                    </pre>
+                  </div>
+                )
+              )}
+
+              {activeTab === 'error' && (
+                !result ? (
+                  <div className="oj-empty-state">
+                    <Play size={24} style={{ color: 'var(--text-muted)' }} />
+                    <p style={{ margin: '8px 0 0 0' }}>Compiler stderr errors and diagnostics will be shown here.</p>
+                  </div>
+                ) : (
+                  <div>
+                    <pre className="oj-code-block oj-code-error">
+                      {result.compileStderr || result.stderr || result.message || 'No errors.'}
+                    </pre>
+                  </div>
+                )
+              )}
+
+              {activeTab === 'details' && (
+                <div className="oj-details-grid">
+                  <div className="oj-detail-item">
+                    <span className="oj-detail-label">Status</span>
+                    <span className="oj-detail-val">{result?.status || 'Ready'}</span>
+                  </div>
+                  <div className="oj-detail-item">
+                    <span className="oj-detail-label">Language Mode</span>
+                    <span className="oj-detail-val">{language.toUpperCase()}</span>
+                  </div>
+                  <div className="oj-detail-item">
+                    <span className="oj-detail-label">Exit Code</span>
+                    <span className="oj-detail-val">{result?.exitCode !== null ? result?.exitCode : '—'}</span>
+                  </div>
+                  <div className="oj-detail-item">
+                    <span className="oj-detail-label">Signal</span>
+                    <span className="oj-detail-val">{result?.signal || '—'}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom actions bar */}
+            <div className="oj-bottom-meta-bar" style={{ marginTop: '8px', borderTop: '1px solid var(--glass-border)', paddingTop: '6px' }}>
+              <div className="oj-meta-left" style={{ fontSize: '11px' }}>
+                <span>Time Limit: <strong>1.0s</strong></span>
+                <span>Memory Limit: <strong>256MB</strong></span>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
                 <button
                   type="button"
                   className="oj-btn-clear"
-                  onClick={() => triggerDelete(activeFile)}
-                  title="Delete active file"
-                  style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.2)' }}
+                  onClick={clearConsole}
+                  title="Clear console output"
+                  style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px' }}
                 >
-                  <Trash2 size={12} /> Delete
+                  <Eraser size={12} /> Clear
                 </button>
-              )}
+                <button
+                  type="button"
+                  className="oj-btn-clear"
+                  onClick={() => {
+                    if (result?.stdout) {
+                      navigator.clipboard.writeText(result.stdout);
+                    }
+                  }}
+                  title="Copy output"
+                  style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px' }}
+                >
+                  <Copy size={12} /> Copy
+                </button>
+                <button
+                  type="button"
+                  className="oj-btn-clear"
+                  onClick={() => setIsConsoleFullscreen(!isConsoleFullscreen)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px' }}
+                >
+                  {isConsoleFullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />} Expand
+                </button>
+                {activeFile && (
+                  <button
+                    type="button"
+                    className="oj-btn-clear"
+                    onClick={() => triggerDelete(activeFile)}
+                    title="Delete active file"
+                    style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.2)' }}
+                  >
+                    <Trash2 size={12} /> Delete
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
       </section>
 
       <ShareSnippetModal
