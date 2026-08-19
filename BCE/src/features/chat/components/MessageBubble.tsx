@@ -4,7 +4,7 @@ import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Play, Pause, Download, ExternalLink, FileText, Pin, MoreHorizontal, 
-  Reply, Smile, Copy, Forward, Trash2, Edit2, Volume2, Check
+  Reply, Smile, Copy, Forward, Trash2, Edit2, Volume2, Check, Share2
 } from 'lucide-react';
 import type { ChatMessage } from '@/types/database';
 
@@ -81,6 +81,65 @@ export default function MessageBubble({
       setTimeout(() => setCopied(false), 2000);
     }
     setShowMenu(false);
+  };
+
+  const handleShareFile = async (e: React.MouseEvent, url: string, filename: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!url) return;
+
+    let sharedSuccess = false;
+    if (navigator.share) {
+      try {
+        const res = await fetch(url);
+        const blob = await res.blob();
+        let extension = 'bin';
+        if (msg.attachment_type === 'pdf') extension = 'pdf';
+        else if (/\.(ppt|pptx)$/i.test(url)) extension = 'ppt';
+        else if (/\.(pdf)$/i.test(url)) extension = 'pdf';
+        else if (/\.(xls|xlsx)$/i.test(url)) extension = 'xls';
+        else if (/\.(doc|docx)$/i.test(url)) extension = 'doc';
+        else if (msg.attachment_type === 'text') extension = 'txt';
+        
+        let cleanedName = filename.replace(/[^\w\s.-]/g, '');
+        if (!cleanedName.toLowerCase().endsWith(`.${extension}`)) {
+          cleanedName = `${cleanedName}.${extension}`;
+        }
+
+        const file = new File([blob], cleanedName, { type: blob.type });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title: cleanedName,
+            files: [file]
+          });
+          sharedSuccess = true;
+        }
+      } catch (err) {
+        console.warn("Native file sharing failed, trying text/URL share...", err);
+      }
+
+      if (!sharedSuccess) {
+        try {
+          await navigator.share({
+            title: filename,
+            url: url
+          });
+          sharedSuccess = true;
+        } catch (err) {
+          console.warn("Native text sharing failed...", err);
+        }
+      }
+    }
+
+    if (!sharedSuccess) {
+      try {
+        await navigator.clipboard.writeText(url);
+        alert('File link copied to clipboard!');
+      } catch (_) {
+        alert('Sharing action not supported.');
+      }
+    }
   };
 
   // Convert URLs to clickable links
@@ -389,10 +448,7 @@ export default function MessageBubble({
               )}
 
               {(msg.attachment_type === 'pdf' || msg.attachment_type === 'text' || (msg.attachment_type && !['image', 'video', 'audio'].includes(msg.attachment_type))) && (
-                <a 
-                  href={msg.attachment_link} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
+                <div 
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -400,7 +456,6 @@ export default function MessageBubble({
                     padding: '8px 12px',
                     background: 'rgba(0,0,0,0.2)',
                     borderRadius: '10px',
-                    textDecoration: 'none',
                     color: 'inherit',
                     border: '1px solid var(--glass-border)'
                   }}
@@ -410,10 +465,27 @@ export default function MessageBubble({
                     <div style={{ fontSize: '13px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {msg.content || 'Attached Document'}
                     </div>
-                    <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Click to Download</div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Document File</div>
                   </div>
-                  <Download size={16} color="var(--text-muted)" />
-                </a>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }} className="no-share">
+                    <a 
+                      href={msg.attachment_link} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      title="Download File"
+                      style={{ color: 'var(--text-muted)', display: 'flex', padding: '4px' }}
+                    >
+                      <Download size={16} />
+                    </a>
+                    <button 
+                      onClick={(e) => handleShareFile(e, msg.attachment_link!, msg.content || 'document')}
+                      title="Share File"
+                      style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', display: 'flex' }}
+                    >
+                      <Share2 size={16} />
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           )}

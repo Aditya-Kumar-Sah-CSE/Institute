@@ -7,8 +7,13 @@ import { signOut } from '@/features/auth/actions/auth';
 import { updateStreak } from '@/features/gamification/actions/gamification';
 import { 
   DynamicBadgeCelebrator as BadgeCelebrator, 
-  DynamicMonthlyCelebrator as MonthlyCelebrator 
+  DynamicMonthlyCelebrator as MonthlyCelebrator,
+  DynamicPwaRegister as PwaRegister,
+  DynamicPWAInstallPrompt as PWAInstallPrompt,
+  DynamicFeedbackWidget as FeedbackWidget,
+  DynamicXpCelebrator as XpCelebrator
 } from '@/components/DynamicWrappers';
+import { Analytics } from "@vercel/analytics/react";
 
 export default async function DashboardLayout({
   children,
@@ -77,6 +82,11 @@ export default async function DashboardLayout({
       </div>
       <BadgeCelebrator />
       <MonthlyCelebrator />
+      <PwaRegister />
+      <PWAInstallPrompt />
+      <XpCelebrator />
+      <FeedbackWidget />
+      <Analytics />
     </div>
   );
 }

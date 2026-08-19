@@ -14,15 +14,8 @@ const jetbrainsMono = JetBrains_Mono({
   variable: '--font-mono',
 });
 
-import { Analytics } from "@vercel/analytics/react";
 import { ThemeProvider } from '@/components/ThemeProvider';
-import { 
-  DynamicPwaRegister as PwaRegister, 
-  DynamicPWAInstallPrompt as PWAInstallPrompt, 
-  DynamicFeedbackWidget as FeedbackWidget, 
-  DynamicXpCelebrator as XpCelebrator,
-  DynamicAuthChangeHandler as AuthChangeHandler
-} from '@/components/DynamicWrappers';
+import AuthChangeHandler from '@/components/AuthChangeHandler';
 
 export const viewport: Viewport = {
   themeColor: '#000000',
@@ -57,15 +50,10 @@ export default function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning className={`${outfit.variable} ${jetbrainsMono.variable}`}>
       <body suppressHydrationWarning className={`${outfit.variable} ${jetbrainsMono.variable}`}>
-        <PwaRegister />
-        <PWAInstallPrompt />
         <ThemeProvider attribute="data-theme" defaultTheme="dark" enableSystem={false} disableTransitionOnChange={false}>
           <AuthChangeHandler />
           {children}
-          <XpCelebrator />
-          <FeedbackWidget />
         </ThemeProvider>
-        <Analytics />
       </body>
     </html>
   );

@@ -5,6 +5,13 @@ import '../(dashboard)/DashboardLayout.css';
 import { signOut } from '@/features/auth/actions/auth';
 import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 
+import { 
+  DynamicPwaRegister as PwaRegister, 
+  DynamicPWAInstallPrompt as PWAInstallPrompt, 
+  DynamicFeedbackWidget as FeedbackWidget 
+} from '@/components/DynamicWrappers';
+import { Analytics } from "@vercel/analytics/react";
+
 export default async function AdminLayout({
   children,
 }: {
@@ -52,6 +59,10 @@ export default async function AdminLayout({
           {children}
         </main>
       </div>
+      <PwaRegister />
+      <PWAInstallPrompt />
+      <FeedbackWidget />
+      <Analytics />
     </div>
   );
 }

@@ -51,15 +51,52 @@ export default function LightboxModal({ mediaUrl, mediaType = 'image', allMedia 
   };
 
   const handleShare = async () => {
+    if (!currentItem.url) return;
+    
+    let sharedSuccess = false;
+    
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Shared Media', url: currentItem.url });
-      } catch (err) {
-        console.log(err);
+        // Fetch file as blob to build a proper File object for native app sharing
+        const response = await fetch(currentItem.url);
+        const blob = await response.blob();
+        
+        // Detect extension / name
+        const filename = currentItem.url.split('/').pop()?.split('?')[0] || (isVideo ? 'video.mp4' : 'image.png');
+        const file = new File([blob], filename, { type: blob.type });
+        
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title: filename,
+            files: [file]
+          });
+          sharedSuccess = true;
+        }
+      } catch (fileShareErr) {
+        console.warn("Native file sharing failed, trying URL/Text sharing...", fileShareErr);
       }
-    } else {
-      navigator.clipboard.writeText(currentItem.url);
-      alert('Link copied to clipboard!');
+      
+      // Fallback: Share as a standard text URL link
+      if (!sharedSuccess) {
+        try {
+          await navigator.share({
+            title: 'Shared Media',
+            url: currentItem.url
+          });
+          sharedSuccess = true;
+        } catch (textShareErr) {
+          console.warn("Native text sharing failed...", textShareErr);
+        }
+      }
+    }
+    
+    if (!sharedSuccess) {
+      try {
+        await navigator.clipboard.writeText(currentItem.url);
+        alert('Link copied to clipboard!');
+      } catch (_) {
+        alert('Sharing action not supported.');
+      }
     }
   };
 

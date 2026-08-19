@@ -79,24 +79,51 @@ export default function XpCelebrator() {
       if (!blob) throw new Error('Failed to create image blob');
 
       const file = new File([blob], 'xp-earned.png', { type: 'image/png' });
+      let sharedSuccess = false;
 
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          title: 'XP Earned!',
-          text: `I just earned +${eventObj.xp_amount} XP for ${eventObj.action} on the platform! ⚡`,
-          files: [file]
-        });
-      } else {
+      if (navigator.share) {
+        // Try file sharing if supported
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              title: 'XP Earned!',
+              text: `I just earned +${eventObj.xp_amount} XP for ${eventObj.action} on the platform! ⚡`,
+              files: [file]
+            });
+            sharedSuccess = true;
+          } catch (shareErr) {
+            console.warn("Native file sharing failed, trying text-only sharing...", shareErr);
+          }
+        }
+        
+        // If file sharing wasn't supported or failed, try text/url sharing
+        if (!sharedSuccess) {
+          try {
+            await navigator.share({
+              title: 'XP Earned!',
+              text: `I just earned +${eventObj.xp_amount} XP for ${eventObj.action} on the platform! ⚡`,
+              url: window.location.origin
+            });
+            sharedSuccess = true;
+          } catch (textShareErr) {
+            console.warn("Native text sharing failed, downloading instead...", textShareErr);
+          }
+        }
+      }
+
+      // Fallback: If native share didn't succeed or isn't supported, download the image
+      if (!sharedSuccess) {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = 'xp-earned.png';
         a.click();
         URL.revokeObjectURL(url);
+        alert('Sharing not supported on this device. The image has been downloaded.');
       }
     } catch (error) {
       console.error('Error sharing:', error);
-      alert('Failed to construct image.');
+      alert('Failed to share.');
     } finally {
       setIsSharing(false);
     }
