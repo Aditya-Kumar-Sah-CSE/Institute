@@ -959,6 +959,18 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
               <Share2 size={14} />
             </button>
 
+            {/* Delete active file button */}
+            {activeFile && (
+              <button
+                onClick={() => triggerDelete(activeFile)}
+                title="Delete Active File"
+                className="oj-icon-btn"
+                style={{ color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.25)', padding: '6px' }}
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
+
             {/* Fullscreen icon button */}
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
@@ -1185,6 +1197,17 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
               >
                 {isConsoleFullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />} Expand
               </button>
+              {activeFile && (
+                <button
+                  type="button"
+                  className="oj-btn-clear"
+                  onClick={() => triggerDelete(activeFile)}
+                  title="Delete active file"
+                  style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.2)' }}
+                >
+                  <Trash2 size={12} /> Delete
+                </button>
+              )}
             </div>
           </div>
         </section>
