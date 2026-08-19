@@ -153,57 +153,36 @@ function LoginForm({ companyName, logoUrl, tenantId }: LoginFormProps) {
     }
   }, [companyName, loadConfig]);
 
+  // Redirect guard — prevent double-redirect races
+  const redirectingRef = useRef(false);
+
   useEffect(() => {
-    // Check if user is already logged in (handles browser back button).
-    // Race against a 5-second deadline: if Supabase is unavailable the
-    // login page still renders rather than appearing to hang.
-    let sessionTimerId: ReturnType<typeof setTimeout> | null = null;
-    let settled = false;
+    // Use getUser() — server-validated JWT check.
+    // getSession() reads stale localStorage and can fire redirects on
+    // logged-out sessions, causing /login → / → /login loops.
+    let cancelled = false;
 
     const deadline = new Promise<null>((resolve) => {
-      sessionTimerId = setTimeout(() => {
-        if (!settled) {
-          settled = true;
-          console.warn('[LoginForm] getSession() deadline reached (5 s) — Supabase may be unavailable.');
-          resolve(null);
-        }
-      }, 5_000);
+      setTimeout(() => resolve(null), 5_000);
     });
 
-    const sessionCheck = supabase.auth.getSession()
-      .then(({ data: { session } }) => {
-        if (!settled) {
-          settled = true;
-          return session;
-        }
-        return null;
+    const userCheck = supabase.auth.getUser()
+      .then(({ data: { user }, error }) => {
+        if (error || !user) return null;
+        return user;
       })
-      .catch((err: unknown) => {
-        console.error('[LoginForm] getSession() error:', err);
-        return null;
-      });
+      .catch(() => null);
 
-    Promise.race([sessionCheck, deadline]).then((session) => {
-      if (sessionTimerId !== null) {
-        clearTimeout(sessionTimerId);
-        sessionTimerId = null;
-      }
-      if (session && isMountedRef.current) {
-        router.push('/');
-        router.refresh();
-      }
-    }).catch((err: unknown) => {
-      // Should never reach here because both branches resolve, but guard anyway
-      console.error('[LoginForm] Unexpected session check error:', err);
-      if (sessionTimerId !== null) clearTimeout(sessionTimerId);
+    Promise.race([userCheck, deadline]).then((user) => {
+      if (cancelled || !user || !isMountedRef.current) return;
+      if (redirectingRef.current) return;
+      redirectingRef.current = true;
+      // Redirect to /dashboard (not '/') to skip the middleware / → /login hop
+      router.replace('/dashboard');
     });
 
     return () => {
-      settled = true; // prevent stale .then() callbacks from acting
-      if (sessionTimerId !== null) {
-        clearTimeout(sessionTimerId);
-        sessionTimerId = null;
-      }
+      cancelled = true;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
