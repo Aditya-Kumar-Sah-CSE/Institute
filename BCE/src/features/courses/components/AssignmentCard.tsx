@@ -29,8 +29,16 @@ export default function AssignmentCard({ assignment, submission, communitySubmis
 
   useEffect(() => {
     if (typeof window !== 'undefined' && searchParams) {
-      const fromCompiler = searchParams.get('fromCompiler');
-      const sharedCode = searchParams.get('sharedCode');
+      let fromCompiler = searchParams.get('fromCompiler');
+      let sharedCode = searchParams.get('sharedCode');
+      
+      const lsCode = localStorage.getItem('bce:shared-code');
+      if (lsCode) {
+        sharedCode = lsCode;
+        fromCompiler = 'true';
+        localStorage.removeItem('bce:shared-code');
+        localStorage.removeItem('bce:shared-language');
+      }
       
       if (fromCompiler === 'true' && sharedCode) {
         if (assignment.type === 'code' || assignment.type === 'any') {

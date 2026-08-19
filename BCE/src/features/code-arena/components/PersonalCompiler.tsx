@@ -827,7 +827,9 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
             alignItems: 'center',
             justifyContent: 'center',
             gap: '6px',
-            borderRadius: '6px',
+            borderRadius: '4px',
+            border: '1px solid var(--glass-border)',
+            background: 'rgba(255, 255, 255, 0.03)',
             cursor: 'pointer',
           }}
         >
@@ -1457,19 +1459,23 @@ function ShareSnippetModal({
 
   const handleShareToDoubt = () => {
     if (!selectedCourse || !selectedLesson) return alert('Select course and lesson first');
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('bce:shared-code', code);
+      localStorage.setItem('bce:shared-language', language);
+    }
     const targetUrl = new URL(`/courses/${selectedCourse}/${selectedLesson}`, window.location.origin);
     targetUrl.searchParams.set('askDoubt', 'true');
-    targetUrl.searchParams.set('sharedCode', code);
-    targetUrl.searchParams.set('sharedLanguage', language);
     window.open(targetUrl.toString(), '_blank');
   };
 
   const handleShareToAssignment = () => {
     if (!selectedCourse || !selectedLesson) return alert('Select course and lesson first');
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('bce:shared-code', code);
+      localStorage.setItem('bce:shared-language', language);
+    }
     const targetUrl = new URL(`/courses/${selectedCourse}/${selectedLesson}`, window.location.origin);
     targetUrl.searchParams.set('fromCompiler', 'true');
-    targetUrl.searchParams.set('sharedCode', code);
-    targetUrl.searchParams.set('sharedLanguage', language);
     window.open(targetUrl.toString(), '_blank');
   };
 
@@ -1480,14 +1486,7 @@ function ShareSnippetModal({
           Generate a shareable playground link or attach your code directly to your course materials:
         </p>
 
-        {/* Share outside platforms */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)', background: 'var(--bg-secondary)', padding: 'var(--space-sm)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--glass-border)' }}>
-          <div style={{ fontWeight: 'bold', fontSize: 'var(--text-xs)', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Share with external platforms</div>
-          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: 0 }}>Copies a playground URL that opens this workspace (code, language) instantly.</p>
-          <Button size="sm" variant="secondary" onClick={handleCopyLink} style={{ alignSelf: 'flex-start', marginTop: 'var(--space-xs)', cursor: 'pointer' }}>
-            {copiedLink ? 'Copied Link! ✓' : 'Copy Shareable Link'}
-          </Button>
-        </div>
+
 
         {/* Share inside courses */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)', background: 'var(--bg-secondary)', padding: 'var(--space-sm)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--glass-border)' }}>

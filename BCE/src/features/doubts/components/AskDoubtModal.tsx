@@ -23,8 +23,27 @@ export default function AskDoubtModal({ isOpen, onClose, courseId, lessonId, ini
   const [description, setDescription] = useState('');
   
   const searchParams = useSearchParams();
-  const sharedCode = searchParams ? searchParams.get('sharedCode') : null;
-  const sharedLanguage = searchParams ? searchParams.get('sharedLanguage') : null;
+  const [sharedCode, setSharedCode] = useState<string | null>(null);
+  const [sharedLanguage, setSharedLanguage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let code = searchParams ? searchParams.get('sharedCode') : null;
+    let lang = searchParams ? searchParams.get('sharedLanguage') : null;
+    if (typeof window !== 'undefined') {
+      const lsCode = localStorage.getItem('bce:shared-code');
+      const lsLang = localStorage.getItem('bce:shared-language');
+      if (lsCode) {
+        code = lsCode;
+        localStorage.removeItem('bce:shared-code');
+      }
+      if (lsLang) {
+        lang = lsLang;
+        localStorage.removeItem('bce:shared-language');
+      }
+    }
+    setSharedCode(code);
+    setSharedLanguage(lang);
+  }, [searchParams, isOpen]);
 
   useEffect(() => {
     if (isOpen) {
