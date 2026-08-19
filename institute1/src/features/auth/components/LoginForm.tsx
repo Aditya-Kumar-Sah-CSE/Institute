@@ -1,9 +1,10 @@
 'use client';
-// cache-buster to reset Next.js turbopack stale module graph
+// Fix: use server-validated getUser() NOT locally-cached getSession()
+// getSession() can return a stale session even after logout, causing redirect loops.
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { signIn } from '@/features/auth/actions/auth';
 import { createClient } from '@/lib/supabase/client';
 import Button from '@/components/ui/Button';
@@ -60,19 +61,43 @@ export default function LoginForm({ companyName, logoUrl, baseUrl }: LoginFormPr
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
   const supabase = createClient();
 
   const [formData, setFormData] = useState({ email: '', password: '' });
 
+  // Guard: track if we've already triggered a redirect to avoid loops
+  const redirectingRef = useRef(false);
+
   useEffect(() => {
-    // Check if user is already logged in (handles browser back button)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        router.push(`${baseUrl || ''}/dashboard`);
-        router.refresh();
-      }
+    // Use getUser() — this hits the Supabase server to validate the token.
+    // getSession() only reads from localStorage/cookies and can be stale,
+    // which causes the login page to redirect to /dashboard even after logout.
+    let cancelled = false;
+
+    supabase.auth.getUser().then(({ data: { user }, error: userError }) => {
+      if (cancelled) return;
+      if (userError || !user) return; // Not logged in — stay on login page
+
+      // Already redirecting or already NOT on a login-like page → skip
+      if (redirectingRef.current) return;
+
+      const destination = `${baseUrl || ''}/dashboard`;
+
+      // Prevent self-redirect: if we'd be pushing to the current path, skip
+      if (pathname === destination || pathname?.startsWith(`${baseUrl || ''}/dashboard`)) return;
+
+      redirectingRef.current = true;
+      router.replace(destination); // replace keeps the browser history clean
+    }).catch(() => {
+      // Ignore errors — just stay on the login page
     });
-  }, [router, supabase.auth, baseUrl]);
+
+    return () => {
+      cancelled = true;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseUrl]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -95,6 +120,7 @@ export default function LoginForm({ companyName, logoUrl, baseUrl }: LoginFormPr
       setError(result.error);
       setIsLoading(false);
     }
+    // On success signIn() does a server redirect — setIsLoading(false) not needed
   }
 
   async function handleGoogleSignIn() {

@@ -67,8 +67,21 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Expose the build-time deploy ID to the Service Worker.
+  // sw.js is a static file and cannot import env vars directly, so we
+  // inject it as a global via an inline <script> in the HTML shell.
+  const deployId = process.env.NEXT_PUBLIC_DEPLOY_ID || 'dev';
+
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning className={`${outfit.variable} ${jetbrainsMono.variable}`}>
+      <head>
+        {/* Inject deploy ID for the Service Worker cache versioning */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `self.__DEPLOY_ID__ = ${JSON.stringify(deployId)};`,
+          }}
+        />
+      </head>
       <body suppressHydrationWarning className={`${outfit.variable} ${jetbrainsMono.variable}`}>
         <PwaRegister />
         <PWAInstallPrompt />
@@ -82,3 +95,4 @@ export default async function RootLayout({
     </html>
   );
 }
+

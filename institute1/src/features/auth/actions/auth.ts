@@ -187,7 +187,9 @@ export async function signOut(formDataOrOverride?: FormData | string) {
   }
 
   revalidatePath('/', 'layout');
-  redirect(`${baseUrl}/`);
+  // Redirect directly to /login — not to / — so unauthenticated users
+  // don't trigger the middleware's / → /login redirect chain.
+  redirect(`${baseUrl}/login`);
 }
 
 export async function resetPasswordRequest(formData: FormData) {

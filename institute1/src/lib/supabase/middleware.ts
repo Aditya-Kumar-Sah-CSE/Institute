@@ -73,7 +73,13 @@ export async function updateSession(request: NextRequest) {
   };
 
   // Helper function to redirect while preserving cookies
+  // LOOP PREVENTION: if the computed redirect URL equals the current URL,
+  // return next() instead of a 302 to break any /login → /login cycle.
   const redirectWithCookies = (url: URL) => {
+    // Detect self-redirect: same pathname, same hostname
+    if (url.pathname === pathname && url.hostname === request.nextUrl.hostname) {
+      return supabaseResponse; // just pass through
+    }
     const redirectResponse = NextResponse.redirect(url);
     const setCookieHeaders = supabaseResponse.headers.getSetCookie();
     setCookieHeaders.forEach((header) => {
