@@ -158,6 +158,8 @@ export default async function CodeProblemPage({ params }: { params: Promise<{ id
           follow_up: scraped.followUp || null,
           is_premium: !!scraped.isPremium,
           examples: scraped.examples || [],
+          external_url: scraped.officialUrl || problemData.external_url,
+          external_problem_id: scraped.externalId || problemData.external_problem_id,
           samples: scraped.examples ? scraped.examples.map((ex, idx) => ({
             input: ex.input,
             expected_output: ex.output,
