@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import AssignmentCard from '@/features/courses/components/AssignmentCard';
 import LessonDoubts from './LessonDoubts';
 import { ClipboardList, MessageCircle } from 'lucide-react';
@@ -53,9 +54,23 @@ export default function LessonPageClient({
     });
   }
 
-  const [activeSection, setActiveSection] = useState<SectionTab>(
-    sectionTabs.length > 0 ? sectionTabs[0].id : 'assignments'
-  );
+  const searchParams = useSearchParams();
+  const askDoubtParam = searchParams ? searchParams.get('askDoubt') : null;
+  const fromCompilerParam = searchParams ? searchParams.get('fromCompiler') : null;
+
+  const [activeSection, setActiveSection] = useState<SectionTab>(() => {
+    if (askDoubtParam === 'true') return 'doubts';
+    if (fromCompilerParam === 'true') return 'assignments';
+    return sectionTabs.length > 0 ? sectionTabs[0].id : 'assignments';
+  });
+
+  useEffect(() => {
+    if (askDoubtParam === 'true') {
+      setActiveSection('doubts');
+    } else if (fromCompilerParam === 'true') {
+      setActiveSection('assignments');
+    }
+  }, [askDoubtParam, fromCompilerParam]);
 
   if (sectionTabs.length === 0) return null;
 
