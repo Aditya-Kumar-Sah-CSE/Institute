@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Bell, ExternalLink, Timer, Radio, Calendar, RefreshCw, MoreVertical, ChefHat, BarChart3, Code2, Trophy, Globe, Zap, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Bell, ExternalLink, Timer, Radio, Calendar, RefreshCw, MoreVertical, X, ChefHat, BarChart3, Code2, Trophy, Globe, Zap, CheckCircle2, AlertCircle } from 'lucide-react';
 import type { UnifiedContest } from '@/app/api/coding/contests/route';
 
 export function formatTimeRemaining(targetTimeMs: number): string {
@@ -238,29 +238,29 @@ export default function UpcomingContestsAlert({ initialExpand = false }: Upcomin
           </div>
         </div>
 
-        {/* 3-Dots Menu Icon Toggle Button */}
+        {/* 3-Dots / Close Toggle Button */}
         <button
           onClick={(e) => {
             e.stopPropagation();
             handleToggle();
           }}
-          title={isExpanded ? 'Hide Contests' : 'View Contests'}
+          title={isExpanded ? 'Close Contests' : 'View Contests'}
           style={{
-            background: isExpanded ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-            border: isExpanded ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid var(--glass-border)',
+            background: isExpanded ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+            border: isExpanded ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid var(--glass-border)',
             borderRadius: '8px',
             width: '36px',
             height: '36px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: isExpanded ? '#22c55e' : 'var(--text-main)',
+            color: isExpanded ? '#f87171' : 'var(--text-main)',
             cursor: 'pointer',
             flexShrink: 0,
             transition: 'all 0.2s ease',
           }}
         >
-          <MoreVertical size={20} />
+          {isExpanded ? <X size={20} /> : <MoreVertical size={20} />}
         </button>
       </div>
 
