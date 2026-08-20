@@ -14,7 +14,7 @@ export const XP_VALUES = {
   FEEDBACK_SUBMIT: 5,
 } as const;
 
-export const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL || '';
+export const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL || 'iambestadi@gmail.com';
 
 // Level thresholds
 export const LEVEL_THRESHOLDS = [

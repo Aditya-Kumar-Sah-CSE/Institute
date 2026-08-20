@@ -254,3 +254,63 @@ export async function updatePrimaryDomain(institutionId: string, newDomain: stri
     return { error: e.message };
   }
 }
+
+export async function updateInstitutionFeatures(institutionId: string, featureFlags: Record<string, boolean>) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || user.email !== SUPER_ADMIN_EMAIL) {
+      return { error: 'Unauthorised: Only Super Admin can modify feature flags.' };
+    }
+
+    const admin = await getAdminClient();
+    const { error } = await admin
+      .from('institutions')
+      .update({ feature_flags: featureFlags })
+      .eq('id', institutionId);
+
+    if (error) return { error: error.message };
+
+    revalidatePath('/admin/institutions');
+    revalidatePath(`/admin/domain-settings/${institutionId}`);
+    return { success: true };
+  } catch (e: any) {
+    return { error: e.message };
+  }
+}
+
+export async function updateInstitutionLimits(
+  institutionId: string,
+  maxStudents: number,
+  maxFaculty: number,
+  planTier?: string
+) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || user.email !== SUPER_ADMIN_EMAIL) {
+      return { error: 'Unauthorised: Only Super Admin can modify limits.' };
+    }
+
+    const admin = await getAdminClient();
+    const updateData: any = {
+      max_students: maxStudents,
+      max_faculty: maxFaculty,
+    };
+    if (planTier) updateData.plan_tier = planTier;
+
+    const { error } = await admin
+      .from('institutions')
+      .update(updateData)
+      .eq('id', institutionId);
+
+    if (error) return { error: error.message };
+
+    revalidatePath('/admin/institutions');
+    revalidatePath(`/admin/domain-settings/${institutionId}`);
+    return { success: true };
+  } catch (e: any) {
+    return { error: e.message };
+  }
+}
+

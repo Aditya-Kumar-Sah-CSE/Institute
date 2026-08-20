@@ -20,6 +20,9 @@ const DashboardAlerts = dynamic(() => import('@/features/dashboard/components/Da
 const ActivityFeed = dynamic(() => import('@/features/activity/components/ActivityFeed'), { 
   loading: () => <div className="skeleton-dash" style={{ height: '300px', borderRadius: '12px' }}></div> 
 });
+const UpcomingContestsAlert = dynamic(() => import('@/features/code-arena/components/contests/UpcomingContestsAlert'), {
+  loading: () => <div className="skeleton-dash" style={{ height: '70px', borderRadius: '12px' }}></div>
+});
 
 interface DashboardEnrollment {
   progress: number;
@@ -164,6 +167,8 @@ export default async function SharedDashboard(props: {
             Ready to continue your learning journey?
           </p>
         </div>
+
+        <UpcomingContestsAlert />
 
         <div className="dashboard-stats-grid">
           <Link href="/profile" style={{ textDecoration: 'none' }}>

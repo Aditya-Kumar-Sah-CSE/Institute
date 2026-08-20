@@ -196,10 +196,11 @@ export async function updateSession(request: NextRequest) {
 
   // Super Admin route protection (/super-admin)
   if (pathname.startsWith('/super-admin')) {
-    const isOwnerEmail = user?.email?.trim().toLowerCase() === 'iambestadi@gmail.com';
+    const targetOwnerEmail = (process.env.SUPER_ADMIN_EMAIL || 'iambestadi@gmail.com').trim().toLowerCase();
+    const isOwnerEmail = user?.email?.trim().toLowerCase() === targetOwnerEmail;
     const isOwnerRole = userRole === 'super_admin' || userRole === 'superadmin' || userRole === 'platform_owner';
 
-    if (!user || !isOwnerEmail || !isOwnerRole) {
+    if (!user || (!isOwnerEmail && !isOwnerRole)) {
       return new NextResponse(
         `<!DOCTYPE html>
         <html lang="en">
@@ -219,7 +220,7 @@ export async function updateSession(request: NextRequest) {
           <div class="card">
             <h1>403</h1>
             <h2>Access Denied</h2>
-            <p>Only the Platform Owner (<code>iambestadi@gmail.com</code>) can access the Super Admin control area.</p>
+            <p>Only the Platform Owner (<code>${targetOwnerEmail}</code>) can access the Super Admin control area.</p>
             <a href="/dashboard">Return to Dashboard</a>
           </div>
         </body>

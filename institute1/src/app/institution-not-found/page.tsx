@@ -1,10 +1,21 @@
-import React from 'react';
+'use client';
+
+import React, { useTransition } from 'react';
 import Link from 'next/link';
-import { Bot, HelpCircle } from 'lucide-react';
+import { Bot, HelpCircle, LogOut } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
+import { signOut } from '@/features/auth/actions/auth';
 
 export default function InstitutionNotFound() {
+  const [isPending, startTransition] = useTransition();
+
+  const handleLogout = () => {
+    startTransition(async () => {
+      await signOut();
+    });
+  };
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-default)', padding: '1rem' }}>
       <Card padding="lg" style={{ maxWidth: '32rem', textAlign: 'center', borderColor: 'var(--border-default)' }}>
@@ -18,8 +29,16 @@ export default function InstitutionNotFound() {
         </p>
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <Button 
+            onClick={handleLogout} 
+            disabled={isPending}
+            variant="danger" 
+            style={{ width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+          >
+            <LogOut size={16} /> {isPending ? 'Logging out...' : 'Logout Session'}
+          </Button>
           <Link href="https://smartlearn.in">
-             <Button variant="primary" style={{ width: '100%' }}>Return to Smart Learn AI</Button>
+             <Button variant="secondary" style={{ width: '100%' }}>Return to Smart Learn AI</Button>
           </Link>
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', marginTop: '1rem', color: 'var(--text-muted)' }}>
             <HelpCircle size={16} /> 

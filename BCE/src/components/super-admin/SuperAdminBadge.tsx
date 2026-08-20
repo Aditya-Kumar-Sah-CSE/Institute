@@ -8,7 +8,7 @@ interface SuperAdminBadgeProps {
 }
 
 export const SuperAdminBadge: React.FC<SuperAdminBadgeProps> = ({
-  email = 'iambestadi@gmail.com',
+  email = process.env.SUPER_ADMIN_EMAIL || 'iambestadi@gmail.com',
   showDetails = true,
   compact = false,
 }) => {

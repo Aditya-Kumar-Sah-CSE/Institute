@@ -345,7 +345,9 @@ body:not(.sidebar-is-collapsed) .open-sidebar-btn {
   .sidebar-nav-item[href="/notices"],
   .sidebar-nav-item[href="/code-arena"],
   .sidebar-nav-item[href="/instructor/code-arena"],
-  .sidebar-nav-item[href*="compiler"] {
+  .sidebar-nav-item[href*="compiler"],
+  .sidebar-nav-item[href*="latex-editor"],
+  .sidebar-nav-item[href*="super-admin"] {
     display: none !important;
   }
 

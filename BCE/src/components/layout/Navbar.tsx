@@ -95,7 +95,11 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
             </button>
             {isMenuOpen && (
               <div className="mobile-dropdown">
-                 {/* Removed Instructors link */}
+                 {(profile.email?.trim().toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase() || (profile.role as string) === 'super_admin') && (
+                   <Link href="/super-admin" onClick={() => setIsMenuOpen(false)} style={{ color: '#facc15', fontWeight: 'bold' }}>
+                     {getIcon('Admin', { size: 16, className: 'mobile-nav-icon' })} Super Admin Panel
+                   </Link>
+                 )}
                  {currentView === 'admin' && (
                    <>
                      {profile.email === SUPER_ADMIN_EMAIL && (
@@ -149,6 +153,9 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
                  </Link>
                  <Link href="/code-arena/compiler" onClick={() => setIsMenuOpen(false)}>
                    {getIcon('Code', { size: 16, className: 'mobile-nav-icon' })} Compiler
+                 </Link>
+                 <Link href="/latex-editor" onClick={() => setIsMenuOpen(false)}>
+                   {getIcon('LaTeX', { size: 16, className: 'mobile-nav-icon' })} LaTeX Editor
                  </Link>
                  <Link href="/profile" onClick={() => setIsMenuOpen(false)}>
                    {getIcon('Profile', { size: 16, className: 'mobile-nav-icon' })} Profile

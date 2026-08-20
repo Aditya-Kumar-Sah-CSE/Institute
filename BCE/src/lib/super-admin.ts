@@ -1,6 +1,6 @@
 import { normalizeRole } from './role-utils';
 
-export const SUPER_ADMIN_EMAIL = 'iambestadi@gmail.com';
+export const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL || 'iambestadi@gmail.com';
 export const SUPER_ADMIN_ROLE = 'super_admin';
 
 export interface UserAuthContext {
@@ -12,12 +12,18 @@ export interface UserAuthContext {
 
 /**
  * Server-side authorization check for Super Admin.
- * Verifies BOTH email === 'iambestadi@gmail.com' AND role === 'super_admin'.
+ * Verifies email matches SUPER_ADMIN_EMAIL OR user has super_admin / platform_owner role.
  */
 export function isSuperAdmin(user?: UserAuthContext | null): boolean {
-  if (!user || !user.email) return false;
-  const normalizedEmail = user.email.trim().toLowerCase();
-  return normalizedEmail === SUPER_ADMIN_EMAIL.toLowerCase();
+  if (!user) return false;
+  const targetEmail = (process.env.SUPER_ADMIN_EMAIL || SUPER_ADMIN_EMAIL).trim().toLowerCase();
+  const normalizedEmail = user.email ? user.email.trim().toLowerCase() : '';
+  const normalizedRole = normalizeRole(user.role);
+
+  if (normalizedEmail && normalizedEmail === targetEmail) return true;
+  if (normalizedRole === 'super_admin' || normalizedRole === 'superadmin' || normalizedRole === 'platform_owner') return true;
+
+  return false;
 }
 
 /**
@@ -25,12 +31,13 @@ export function isSuperAdmin(user?: UserAuthContext | null): boolean {
  */
 export function isSuperAdminEmail(email?: string | null): boolean {
   if (!email) return false;
-  return email.trim().toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+  const targetEmail = (process.env.SUPER_ADMIN_EMAIL || SUPER_ADMIN_EMAIL).trim().toLowerCase();
+  return email.trim().toLowerCase() === targetEmail;
 }
 
 /**
  * Immutability Guard: Asserts that a target account is NOT the Super Admin.
- * Throws a 403 error if an operation attempts to modify, demote, suspend, or delete iambestadi@gmail.com.
+ * Throws a 403 error if an operation attempts to modify, demote, suspend, or delete the platform owner.
  */
 export function assertNotSuperAdminTarget(targetEmail?: string | null, actionDescription = 'modify'): void {
   if (isSuperAdminEmail(targetEmail)) {
@@ -47,7 +54,7 @@ export function assertNotSuperAdminTarget(targetEmail?: string | null, actionDes
 export function canAssignRole(callerUser: UserAuthContext | null, targetRole: string): boolean {
   const normalizedTargetRole = normalizeRole(targetRole);
   if (normalizedTargetRole === SUPER_ADMIN_ROLE || normalizedTargetRole === 'superadmin') {
-    // Only the existing Super Admin caller can manage super admin privileges, but even then, there is only one immutable owner.
+    // Only the existing Super Admin caller can manage super admin privileges.
     return isSuperAdmin(callerUser);
   }
   return true;
@@ -70,7 +77,7 @@ export function getSuperAdminMetadata() {
  * Throws a formatted error object with status 401/403 if unauthorized.
  */
 export async function requireSuperAdmin() {
-  const { createClient } = await import('@/lib/supabase/server');
+  const { createClient, createAdminClient } = await import('@/lib/supabase/server');
   const supabase = await createClient();
   const { data: { user }, error } = await supabase.auth.getUser();
 
@@ -81,7 +88,24 @@ export async function requireSuperAdmin() {
     throw err;
   }
 
-  if (!isSuperAdmin({ email: user.email })) {
+  let userRole = normalizeRole(user.user_metadata?.role);
+
+  try {
+    const adminSupabase = await createAdminClient();
+    const { data: profile } = await adminSupabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (profile?.role) {
+      userRole = normalizeRole(profile.role);
+    }
+  } catch (e) {
+    console.warn('[requireSuperAdmin] Could not query profiles table for user role:', e);
+  }
+
+  if (!isSuperAdmin({ email: user.email, role: userRole })) {
     const err: any = new Error('Super Admin access required. Only the Platform Owner can access this resource.');
     err.status = 403;
     err.code = 'FORBIDDEN_SUPER_ADMIN_ONLY';
@@ -92,5 +116,6 @@ export async function requireSuperAdmin() {
     user,
     email: user.email!,
     id: user.id,
+    role: userRole,
   };
 }

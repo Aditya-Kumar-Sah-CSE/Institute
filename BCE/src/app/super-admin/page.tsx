@@ -83,7 +83,7 @@ export default function SuperAdminDashboardPage() {
     const res = await safeFetch('/api/super-admin/overview');
     if (!res.success) {
       if (res.status === 403 || res.error?.code === 'FORBIDDEN_SUPER_ADMIN_ONLY') {
-        setError('403 Forbidden: Only the Platform Owner (iambestadi@gmail.com) can access this control plane.');
+        setError(res.error?.message || '403 Access Denied: Only the Platform Owner can access this control plane.');
       } else {
         setError(res.error?.message || 'Failed to load Super Admin dashboard data.');
       }
@@ -332,7 +332,7 @@ export default function SuperAdminDashboardPage() {
             </p>
           </div>
 
-          <SuperAdminBadge email="iambestadi@gmail.com" />
+          <SuperAdminBadge email={overviewData?.owner?.email} />
         </div>
 
         {/* Navigation Tabs */}

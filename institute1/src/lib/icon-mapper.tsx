@@ -15,6 +15,7 @@ import {
   LogOut,
   CreditCard,
   Code2,
+  FileCode,
   LucideProps
 } from 'lucide-react';
 
@@ -37,6 +38,7 @@ export function getIcon(name: string, props?: LucideProps) {
     case 'Chat': return <MessageSquare {...props} />;
     case 'Payments': return <CreditCard {...props} />;
     case 'Code': return <Code2 {...props} />;
+    case 'LaTeX': return <FileCode {...props} />;
     default: return <LayoutDashboard {...props} />;
   }
 }

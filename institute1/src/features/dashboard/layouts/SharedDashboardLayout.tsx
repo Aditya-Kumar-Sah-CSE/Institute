@@ -62,7 +62,7 @@ export default async function SharedDashboardLayout({
     tenant = await resolveTenantCache(context.tenantSlug, 'development');
   }
 
-  // Strict Muti-Tenant Isolation
+  // Multi-Tenant validation: if on a specific customer tenant, verify user institution
   if (!isSuperAdmin && tenant) {
     if (profile.institution_id !== tenant.id) {
       return (
@@ -77,20 +77,6 @@ export default async function SharedDashboardLayout({
         </div>
       );
     }
-  }
-  
-  if (isPlatform && !isSuperAdmin) {
-     return (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: '20px', textAlign: 'center', color: 'white' }}>
-          <div>
-            <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Global Access Restricted</h3>
-            <p>You do not have administrative clearance for the Global Platform.</p>
-          </div>
-          <form action={signOut}>
-            <button type="submit" style={{ padding: '10px 20px', background: 'var(--accent-red, #ff4444)', color: 'white', border: 'none', borderRadius: '5px' }}>Sign Out</button>
-          </form>
-        </div>
-      );
   }
 
   const now = new Date();

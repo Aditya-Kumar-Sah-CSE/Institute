@@ -1,11 +1,20 @@
 'use client';
 
-import Link from 'next/link';
+import React, { useTransition } from 'react';
 import Button from '@/components/ui/Button';
 import { useRouter } from 'next/navigation';
+import { signOut } from '@/features/auth/actions/auth';
+import { LogOut, ArrowLeft } from 'lucide-react';
 
 export default function NotFound() {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  const handleLogout = () => {
+    startTransition(async () => {
+      await signOut();
+    });
+  };
 
   return (
     <div style={{
@@ -19,7 +28,7 @@ export default function NotFound() {
       background: 'var(--bg-main)'
     }}>
       <div className="glass-card" style={{ padding: 'var(--space-2xl)', maxWidth: '500px', width: '100%' }}>
-        <div style={{ fontSize: '6rem', marginBottom: 'var(--space-md)', textShadow: '0 0 20px rgba(0, 242, 254, 0.5)' }}>
+        <div style={{ fontSize: '6rem', marginBottom: 'var(--space-md)', textShadow: '0 0 20px rgba(0, 242, 254, 0.5)', fontWeight: 800 }}>
           404
         </div>
         <h1 style={{ marginBottom: 'var(--space-md)', color: 'var(--text-primary)' }}>
@@ -29,10 +38,17 @@ export default function NotFound() {
           We couldn't find the page you're looking for. The student profile or page might have been removed, or the link is incorrect.
         </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)', justifyContent: 'center' }}>
-          <Button onClick={() => router.back()}>Go Back</Button>
-          <Link href="/" style={{ textDecoration: 'none' }}>
-            <Button variant="secondary">Go to Home</Button>
-          </Link>
+          <Button onClick={() => router.back()} variant="secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+            <ArrowLeft size={16} /> Go Back
+          </Button>
+          <Button 
+            onClick={handleLogout} 
+            disabled={isPending}
+            variant="danger" 
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+          >
+            <LogOut size={16} /> {isPending ? 'Logging out...' : 'Logout'}
+          </Button>
         </div>
       </div>
     </div>

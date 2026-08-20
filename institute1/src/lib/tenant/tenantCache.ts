@@ -1,23 +1,17 @@
 import { createClient } from '@/lib/supabase/server';
 
 export const resolveTenantCache = async (slug: string, routingMode: string) => {
-    if (!slug) {
-      return null;
-    }
+  if (!slug) {
+    return null;
+  }
 
-    // Create an admin client bypassing RLS specifically for fetching basic tenant info.
-    // We shouldn't use the standard Server Component client if RLS expects user session to fetch institution,
-    // because unauthenticated users (e.g. login page) also need this data!
-    
-    // We'll dynamically impart the service role purely for fast cached reading of public institution data.
+  try {
     const { createClient: createAdminClient } = await import('@supabase/supabase-js');
     const supabaseAdmin = createAdminClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Include is_platform so callers can distinguish platform from customer tenants.
-    // For the platform institution, skip the status filter (is_platform is the authoritative flag).
     let query = supabaseAdmin
       .from('institutions')
       .select('id, name, slug, status, is_platform, plan_id, primary_domain, custom_domain, logo');
@@ -28,10 +22,37 @@ export const resolveTenantCache = async (slug: string, routingMode: string) => {
       query = query.eq('slug', slug);
     }
 
-    const { data, error } = await query.single();
+    let { data, error } = await query.single();
 
-    // For customer tenants, enforce active status after resolution.
-    // Platform institution (is_platform = true) is always reachable.
+    // Fallback 1: If slug query failed or returned nothing, check if slug is 'smart-learning' or fetch default platform institution
+    if ((error || !data) && (slug === 'smart-learning' || slug === '__platform__')) {
+      const { data: platformData } = await supabaseAdmin
+        .from('institutions')
+        .select('id, name, slug, status, is_platform, plan_id, primary_domain, custom_domain, logo')
+        .eq('is_platform', true)
+        .maybeSingle();
+
+      if (platformData) {
+        data = platformData;
+        error = null;
+      }
+    }
+
+    // Fallback 2: Virtual Platform Tenant for zero-downtime bootstrap
+    if (!data && (slug === 'smart-learning' || slug === '__platform__')) {
+      return {
+        id: '00000000-0000-0000-0000-000000000000',
+        name: 'Smart Learn',
+        slug: 'smart-learning',
+        status: 'active',
+        is_platform: true,
+        plan_id: null,
+        primary_domain: null,
+        custom_domain: null,
+        logo: null
+      };
+    }
+
     if (data && !data.is_platform && data.status !== 'active') {
       return null;
     }
@@ -41,4 +62,21 @@ export const resolveTenantCache = async (slug: string, routingMode: string) => {
     }
 
     return data;
+  } catch (e) {
+    console.warn('resolveTenantCache error:', e);
+    if (slug === 'smart-learning' || slug === '__platform__') {
+      return {
+        id: '00000000-0000-0000-0000-000000000000',
+        name: 'Smart Learn',
+        slug: 'smart-learning',
+        status: 'active',
+        is_platform: true,
+        plan_id: null,
+        primary_domain: null,
+        custom_domain: null,
+        logo: null
+      };
+    }
+    return null;
+  }
 };

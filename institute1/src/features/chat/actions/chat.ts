@@ -237,3 +237,38 @@ export async function updateGroupSettings(conversationId: string, updates: { nam
   revalidatePath('/dashboard/chat');
   return true;
 }
+
+export async function uploadGroupAvatarAction(formData: FormData) {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData?.user) throw new Error('Not authenticated');
+
+  const file = formData.get('file') as File;
+  if (!file) throw new Error('No file provided');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('institution_id')
+    .eq('id', userData.user.id)
+    .single();
+
+  const tenantPrefix = profile?.institution_id || 'default';
+  const ext = file.name.split('.').pop() || 'png';
+  const filePath = `${tenantPrefix}/group_avatars/group_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from('avatars')
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: true,
+    });
+
+  if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+
+  const { data: publicUrlData } = supabase.storage
+    .from('avatars')
+    .getPublicUrl(filePath);
+
+  return publicUrlData.publicUrl;
+}
+

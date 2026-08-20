@@ -68,8 +68,17 @@ export async function getRequestContext(): Promise<RequestContext> {
     });
   }
 
-  const tenantId   = headersList.get('x-tenant-id')   || '';
+  let tenantId   = headersList.get('x-tenant-id')   || '';
   const tenantSlug = headersList.get('x-tenant-slug') || '';
+
+  if (!tenantId && tenantSlug) {
+    const { resolveTenantCache } = await import('@/lib/tenant/tenantCache');
+    const routingMode = headersList.get('x-routing-mode') || 'development';
+    const tenant = await resolveTenantCache(tenantSlug, routingMode);
+    if (tenant) {
+      tenantId = tenant.id;
+    }
+  }
 
   return Object.freeze({
     type: 'TENANT',

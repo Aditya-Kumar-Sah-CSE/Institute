@@ -114,17 +114,11 @@ export default function ChatInfoPanel({ chatId, isOpen, onClose, currentUserId }
 
     try {
       setSaving(true);
-      const fileExt = file.name.split('.').pop();
-      const filePath = `group-icons/${chatId}-${Math.random()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('branding')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage.from('branding').getPublicUrl(filePath);
-      const newUrl = data.publicUrl;
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const { uploadGroupAvatarAction } = await import('@/features/chat/actions/chat');
+      const newUrl = await uploadGroupAvatarAction(formData);
 
       await updateGroupSettings(chatId, { icon_url: newUrl });
       setChatIconUrl(newUrl);
