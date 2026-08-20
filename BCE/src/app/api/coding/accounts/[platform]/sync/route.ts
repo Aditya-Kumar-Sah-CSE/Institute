@@ -37,8 +37,8 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
       let contestCount = 0;
       const recentSubmissions: any[] = [];
 
+      // 1. Fetch user profile + submit stats using public GraphQL (Main Profile Query)
       try {
-        // Fetch user profile + submit stats using public GraphQL
         const profileRes = await fetch('https://leetcode.com/graphql', {
           method: 'POST',
           headers: {
@@ -60,11 +60,6 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
                       count
                     }
                   }
-                }
-                userContestRanking(username: $username) {
-                  rating
-                  attendedContestsCount
-                  globalRanking
                 }
                 recentAcSubmissionList(username: $username, limit: 10) {
                   title
@@ -88,7 +83,6 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
         }
 
         const lcUser = json?.data?.matchedUser;
-        const contestData = json?.data?.userContestRanking;
         const recentAcs = json?.data?.recentAcSubmissionList;
 
         if (!lcUser) {
@@ -114,58 +108,157 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
             });
           }
         }
-
-        if (contestData) {
-          contestRating = contestData.rating ? Math.round(contestData.rating) : null;
-          contestCount = contestData.attendedContestsCount || 0;
-        }
       } catch (e: any) {
-        console.error('[LC SYNC] Sync failure:', e);
-        return NextResponse.json({ error: e.message || 'LeetCode API sync failed.' }, { status: 400 });
+        console.error('[LC SYNC] Main profile fetch failed:', e);
+        return NextResponse.json({ error: e.message || 'LeetCode profile verification failed.' }, { status: 400 });
+      }
+
+      // 2. Fetch submission calendar (Optional)
+      const lcDaily: Record<string, number> = {};
+      try {
+        const calendarRes = await fetch('https://leetcode.com/graphql', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+            Referer: 'https://leetcode.com/',
+          },
+          body: JSON.stringify({
+            query: `
+              query userProfileCalendar($username: String!) {
+                matchedUser(username: $username) {
+                  userCalendar {
+                    submissionCalendar
+                  }
+                }
+              }
+            `,
+            variables: { username: handle },
+          }),
+        });
+
+        if (calendarRes.ok) {
+          const calJson = await calendarRes.json();
+          const calendarStr = calJson?.data?.matchedUser?.userCalendar?.submissionCalendar || '{}';
+          const calendarJsonObj = JSON.parse(calendarStr);
+          Object.entries(calendarJsonObj).forEach(([timestampStr, count]) => {
+            const ms = Number(timestampStr) * 1000;
+            const dateStr = new Date(ms).toISOString().slice(0, 10);
+            lcDaily[dateStr] = (lcDaily[dateStr] || 0) + Number(count);
+          });
+        }
+      } catch (err) {
+        console.warn('[LC SYNC] Calendar query failed, using empty calendar:', err);
+      }
+
+      // 3. Fetch LeetCode Contest Stats & History (Optional)
+      let contestStatsObj: any = {};
+      let contestHistoryArr: any[] = [];
+      try {
+        const contestRes = await fetch('https://leetcode.com/graphql', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+            Referer: 'https://leetcode.com/',
+          },
+          body: JSON.stringify({
+            query: `
+              query userContestRankingInfo($username: String!) {
+                userContestRanking(username: $username) {
+                  rating
+                  attendedContestsCount
+                  globalRanking
+                  totalParticipants
+                  topPercentage
+                  ratingDistribution {
+                    minRating
+                    maxRating
+                    userCount
+                  }
+                }
+                userContestRankingHistory(username: $username) {
+                  attended
+                  rating
+                  ranking
+                  contest {
+                    title
+                    startTime
+                  }
+                }
+              }
+            `,
+            variables: { username: handle },
+          }),
+        });
+
+        if (contestRes.ok) {
+          const contestJson = await contestRes.json();
+          const contestData = contestJson?.data?.userContestRanking;
+          if (contestData) {
+            contestRating = contestData.rating ? Math.round(contestData.rating) : null;
+            contestCount = contestData.attendedContestsCount || 0;
+            contestStatsObj = {
+              rating: contestRating,
+              totalContests: contestCount,
+              globalRanking: contestData.globalRanking || null,
+              totalParticipants: contestData.totalParticipants || null,
+              topPercentage: contestData.topPercentage || null,
+              ratingDistribution: contestData.ratingDistribution || [],
+            };
+          }
+          contestHistoryArr = contestJson?.data?.userContestRankingHistory || [];
+        }
+      } catch (err) {
+        console.warn('[LC SYNC] Contest stats query failed, using mock fallbacks:', err);
       }
 
       // Update database
-      const existingMetadata = account.metadata || {};
-      const { error: updateError } = await supabase
-        .from('student_external_accounts')
-        .update({
-          rating: contestRating,
-          rank: ranking ? `#${ranking}` : null,
-          problems_solved: totalSolved,
-          easy_solved: easySolved,
-          medium_solved: mediumSolved,
-          hard_solved: hardSolved,
-          last_synced_at: new Date().toISOString(),
-          metadata: {
-            ...existingMetadata,
-            recent_submissions: recentSubmissions,
-            contest_stats: {
-              rating: contestRating,
-              totalContests: contestCount,
+      try {
+        const existingMetadata = account.metadata || {};
+        const { error: updateError } = await supabase
+          .from('student_external_accounts')
+          .update({
+            rating: contestRating,
+            rank: ranking ? `#${ranking}` : null,
+            problems_solved: totalSolved,
+            easy_solved: easySolved,
+            medium_solved: mediumSolved,
+            hard_solved: hardSolved,
+            last_synced_at: new Date().toISOString(),
+            metadata: {
+              ...existingMetadata,
+              recent_submissions: recentSubmissions,
+              lc_daily_activity: lcDaily,
+              contest_stats: Object.keys(contestStatsObj).length > 0 ? contestStatsObj : existingMetadata.contest_stats || {},
+              contest_history: contestHistoryArr.length > 0 ? contestHistoryArr : existingMetadata.contest_history || [],
             },
+          })
+          .eq('id', account.id);
+
+        if (updateError) {
+          console.error('[LC SYNC] DB update failed:', updateError.message);
+          return NextResponse.json({ error: 'Sync completed but failed to save. Try again.' }, { status: 500 });
+        }
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            handle,
+            rating: contestRating,
+            maxRating: null,
+            rank: ranking ? `#${ranking}` : null,
+            problemsSolved: totalSolved,
+            easySolved,
+            mediumSolved,
+            hardSolved,
+            syncedAt: new Date().toISOString(),
           },
-        })
-        .eq('id', account.id);
-
-      if (updateError) {
-        console.error('[LC SYNC] DB update failed:', updateError.message);
-        return NextResponse.json({ error: 'Sync completed but failed to save. Try again.' }, { status: 500 });
+        });
+      } catch (e: any) {
+        console.error('[LC SYNC] Database update failed:', e);
+        return NextResponse.json({ error: e.message || 'Sync failed to save.' }, { status: 500 });
       }
-
-      return NextResponse.json({
-        success: true,
-        data: {
-          handle,
-          rating: contestRating,
-          maxRating: null,
-          rank: ranking ? `#${ranking}` : null,
-          problemsSolved: totalSolved,
-          easySolved,
-          mediumSolved,
-          hardSolved,
-          syncedAt: new Date().toISOString(),
-        },
-      });
     }
 
     // ==================== CODEFORCES SYNC ====================
@@ -199,6 +292,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
     let mediumSolved = 0;
     let hardSolved = 0;
     const recentSubmissions: any[] = [];
+    const cfDaily: Record<string, number> = {};
 
     try {
       const statusRes = await fetch(
@@ -231,6 +325,11 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
               else if (sub.problem.rating <= 1600) mediumSolved++;
               else hardSolved++;
             }
+          }
+          // Collect daily solve counts
+          if (sub.creationTimeSeconds) {
+            const dateStr = new Date(sub.creationTimeSeconds * 1000).toISOString().slice(0, 10);
+            cfDaily[dateStr] = (cfDaily[dateStr] || 0) + 1;
           }
         }
       }
@@ -279,6 +378,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
           ...existingMetadata,
           cf_solved_ids: Array.from(solvedIds),
           recent_submissions: recentSubmissions,
+          cf_daily_activity: cfDaily,
           contest_stats: contestStats,
           max_rank: maxRank
         },

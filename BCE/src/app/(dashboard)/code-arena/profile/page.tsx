@@ -52,6 +52,49 @@ export default async function CodingProfilePage({ searchParams }: { searchParams
     .order('created_at', { ascending: false })
     .limit(30);
 
+  // Fetch 365 days of accepted BCE submissions for contribution calendar
+  const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: bceAcceptedHistory } = await supabase
+    .from('coding_submissions')
+    .select('created_at')
+    .eq('student_id', targetId)
+    .eq('status', 'ACCEPTED')
+    .gte('created_at', oneYearAgo);
+
+  const bceDaily: Record<string, number> = {};
+  (bceAcceptedHistory || []).forEach((sub: any) => {
+    try {
+      const dateStr = new Date(sub.created_at).toISOString().slice(0, 10);
+      bceDaily[dateStr] = (bceDaily[dateStr] || 0) + 1;
+    } catch (e) {
+      // Ignored
+    }
+  });
+
+  // Extract external platform activity maps
+  const cfDaily = cfAccount?.metadata?.cf_daily_activity || {};
+  const lcDaily = lcAccount?.metadata?.lc_daily_activity || {};
+
+  // Build unified daily activity map for the last 365 days
+  const dailyActivity: Record<string, { bce: number; cf: number; lc: number; total: number }> = {};
+  const allDates = new Set<string>([
+    ...Object.keys(bceDaily),
+    ...Object.keys(cfDaily),
+    ...Object.keys(lcDaily),
+  ]);
+
+  allDates.forEach((dateStr) => {
+    const bceCount = bceDaily[dateStr] || 0;
+    const cfCount = cfDaily[dateStr] || 0;
+    const lcCount = lcDaily[dateStr] || 0;
+    dailyActivity[dateStr] = {
+      bce: bceCount,
+      cf: cfCount,
+      lc: lcCount,
+      total: bceCount + cfCount + lcCount,
+    };
+  });
+
   return (
     <div className="code-arena-profile-page">
       <MobileCodeArenaToggle />
@@ -60,6 +103,7 @@ export default async function CodingProfilePage({ searchParams }: { searchParams
         codeforcesConnected={!!cfAccount}
         leetCodeConnected={!!lcAccount}
         isOwnProfile={isOwnProfile}
+        dailyActivity={dailyActivity}
       />
       
       <div className="profile-grid-container">
