@@ -1,10 +1,9 @@
-'use client';
-
-import React, { useState } from 'react';
-import { X, Users, Image as ImageIcon, FileText, Pin, Bell, BellOff, Trash2, ExternalLink, Shield } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { X, Users, Image as ImageIcon, FileText, Pin, Bell, BellOff, Trash2, ExternalLink, Shield, Camera, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import UserAvatar from '@/components/shared/UserAvatar';
 import type { ChatConversation, ChatMessage } from '@/types/database';
+import { uploadGroupAvatarAction } from '@/features/chat/actions/chat';
 
 interface ChatInfoDrawerProps {
   isOpen: boolean;
@@ -15,6 +14,7 @@ interface ChatInfoDrawerProps {
   onClose: () => void;
   onSelectMedia: (url: string, type: string) => void;
   onClearChat?: () => void;
+  onUpdateGroupAvatar?: (newIconUrl: string) => void;
 }
 
 export default function ChatInfoDrawer({
@@ -25,16 +25,47 @@ export default function ChatInfoDrawer({
   onlineUsers,
   onClose,
   onSelectMedia,
-  onClearChat
+  onClearChat,
+  onUpdateGroupAvatar
 }: ChatInfoDrawerProps) {
   const [activeTab, setActiveTab] = useState<'info' | 'media' | 'docs' | 'pins'>('info');
   const [isMuted, setIsMuted] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
 
   const isGroup = activeChat.type === 'group';
   const otherMember = !isGroup ? activeChat.members?.find(m => m.user_id !== currentUserId) : null;
   const titleName = isGroup ? (activeChat.name || 'Group Chat') : (otherMember?.profile?.name || 'User');
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !isGroup) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setAvatarError('Image size must be less than 5MB');
+      return;
+    }
+
+    try {
+      setIsUploadingAvatar(true);
+      setAvatarError(null);
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await uploadGroupAvatarAction(formData, activeChat.id);
+      if (res.error) throw new Error(res.error);
+      if (res.publicUrl) {
+        onUpdateGroupAvatar?.(res.publicUrl);
+      }
+    } catch (err: any) {
+      setAvatarError(err.message || 'Failed to update group avatar');
+    } finally {
+      setIsUploadingAvatar(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   // Filter media, docs, pinned
   const mediaMessages = messages.filter(m => m.attachment_type === 'image' || m.attachment_type === 'video');
@@ -57,6 +88,17 @@ export default function ChatInfoDrawer({
       animation: 'slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
       color: 'var(--text-primary)'
     }}>
+      {/* Hidden file input */}
+      {isGroup && (
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleAvatarChange}
+          accept="image/png, image/jpeg, image/webp"
+          style={{ display: 'none' }}
+        />
+      )}
+
       {/* Drawer Header */}
       <div style={{
         padding: '16px 20px',
@@ -79,20 +121,64 @@ export default function ChatInfoDrawer({
 
       {/* Hero Profile Info */}
       <div style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', borderBottom: '1px solid var(--border-divider)', background: 'rgba(0,0,0,0.1)' }}>
-        <div style={{ position: 'relative', width: 80, height: 80, borderRadius: '50%', overflow: 'hidden', border: '3px solid var(--neon-cyan)', marginBottom: '12px', boxShadow: '0 0 20px rgba(0,240,255,0.2)' }}>
-          {isGroup ? (
-            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-elevated)' }}>
-              <Users size={36} color="var(--neon-cyan)" />
-            </div>
+        <div
+          onClick={() => isGroup && !isUploadingAvatar && fileInputRef.current?.click()}
+          style={{
+            position: 'relative',
+            width: 80,
+            height: 80,
+            borderRadius: '50%',
+            overflow: 'hidden',
+            border: '3px solid var(--neon-cyan)',
+            marginBottom: '12px',
+            boxShadow: '0 0 20px rgba(0,240,255,0.2)',
+            cursor: isGroup ? 'pointer' : 'default',
+            background: 'var(--bg-elevated)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+          title={isGroup ? "Click to change group avatar" : undefined}
+        >
+          {isUploadingAvatar ? (
+            <Loader2 className="animate-spin" size={30} color="var(--neon-cyan)" />
+          ) : isGroup ? (
+            activeChat.icon_url ? (
+              <UserAvatar url={activeChat.icon_url} name={titleName} size={80} />
+            ) : (
+              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-elevated)' }}>
+                <Users size={36} color="var(--neon-cyan)" />
+              </div>
+            )
           ) : (
             <UserAvatar url={otherMember?.profile?.avatar_url} name={titleName} size={80} />
           )}
+
+          {isGroup && !isUploadingAvatar && (
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'rgba(0,0,0,0.4)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: 0,
+              transition: 'opacity 0.2s'
+            }}
+            onMouseOver={e => e.currentTarget.style.opacity = '1'}
+            onMouseOut={e => e.currentTarget.style.opacity = '0'}
+            >
+              <Camera size={22} color="#fff" />
+            </div>
+          )}
         </div>
+        {avatarError && <p style={{ color: '#ef4444', fontSize: '11px', margin: '0 0 8px 0' }}>{avatarError}</p>}
         <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: '0 0 4px 0' }}>{titleName}</h2>
         <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
           {isGroup ? `${activeChat.members?.length || 0} Members` : (otherMember && onlineUsers.has(otherMember.user_id) ? '🟢 Online' : 'Offline')}
         </p>
       </div>
+
 
       {/* Tabs */}
       <div style={{ display: 'flex', borderBottom: '1px solid var(--border-divider)', background: 'var(--bg-card)' }}>

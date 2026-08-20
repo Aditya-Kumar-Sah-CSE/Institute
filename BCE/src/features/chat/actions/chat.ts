@@ -210,7 +210,7 @@ export async function toggleMessageReaction(messageId: string, emoji: string) {
   revalidatePath(`/dashboard/chat`);
 }
 
-export async function createGroupChat(groupName: string, memberIds: string[]) {
+export async function createGroupChat(groupName: string, memberIds: string[], iconUrl?: string) {
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
   if (!userData?.user) throw new Error('Not authenticated');
@@ -225,6 +225,7 @@ export async function createGroupChat(groupName: string, memberIds: string[]) {
     .insert({
       type: 'group',
       name: groupName.trim(),
+      icon_url: iconUrl?.trim() || null,
       is_private: true,
       created_by: currentUserId,
     })
@@ -248,3 +249,61 @@ export async function createGroupChat(groupName: string, memberIds: string[]) {
   revalidatePath('/dashboard/chat');
   return conv.id;
 }
+
+export async function uploadGroupAvatarAction(formData: FormData, conversationId?: string) {
+  const { createAdminClient } = await import('@/lib/supabase/server');
+  const supabaseAdmin = await createAdminClient();
+  const supabase = await createClient();
+
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData?.user) return { error: 'Not authenticated' };
+
+  const file = formData.get('file') as File;
+  if (!file) return { error: 'No file provided' };
+
+  if (file.size > 5 * 1024 * 1024) {
+    return { error: 'Image size must be less than 5MB' };
+  }
+
+  const fileExt = file.name.split('.').pop() || 'png';
+  const filePath = `${userData.user.id}/group_avatar_${Date.now()}.${fileExt}`;
+
+  const { error: uploadError } = await supabaseAdmin.storage
+    .from('avatars')
+    .upload(filePath, file, { upsert: true });
+
+  if (uploadError) return { error: uploadError.message };
+
+  const { data: { publicUrl } } = supabaseAdmin.storage
+    .from('avatars')
+    .getPublicUrl(filePath);
+
+  if (conversationId) {
+    const { error: updateError } = await supabase
+      .from('chat_conversations')
+      .update({ icon_url: publicUrl, updated_at: new Date().toISOString() })
+      .eq('id', conversationId);
+
+    if (updateError) return { error: updateError.message };
+    revalidatePath('/dashboard/chat');
+  }
+
+  return { success: true, publicUrl };
+}
+
+export async function updateGroupAvatar(conversationId: string, iconUrl: string) {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData?.user) throw new Error('Not authenticated');
+
+  const { error } = await supabase
+    .from('chat_conversations')
+    .update({ icon_url: iconUrl || null, updated_at: new Date().toISOString() })
+    .eq('id', conversationId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/dashboard/chat');
+  return { success: true };
+}
+

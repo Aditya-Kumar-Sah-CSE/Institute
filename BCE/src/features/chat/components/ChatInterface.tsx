@@ -1080,6 +1080,13 @@ export default function ChatInterface() {
     alert('Message forwarded successfully!');
   };
 
+  const handleUpdateGroupAvatar = (newIconUrl: string) => {
+    if (!activeChat) return;
+    const updated = { ...activeChat, icon_url: newIconUrl };
+    setActiveChat(updated);
+    setChats(prev => prev.map(c => c.id === activeChat.id ? { ...c, icon_url: newIconUrl } : c));
+  };
+
   const getChatName = (chat: ChatConversation) => {
     if (chat.type === 'group') return chat.name || 'Group Chat';
     const otherParticipant = chat.members?.find(p => p.user_id !== currentUserId);
@@ -1087,7 +1094,12 @@ export default function ChatInterface() {
   };
   
   const getChatAvatar = (chat: ChatConversation) => {
-    if (chat.type === 'group') return <Users size={24} className="text-white" />;
+    if (chat.type === 'group') {
+      if (chat.icon_url) {
+        return <UserAvatar url={chat.icon_url} name={chat.name || 'Group'} size={48} />;
+      }
+      return <Users size={24} className="text-white" />;
+    }
     const otherParticipant = chat.members?.find(p => p.user_id !== currentUserId);
     if (otherParticipant?.profile) {
       return <UserAvatar url={otherParticipant.profile.avatar_url} name={otherParticipant.profile.name || 'User'} size={48} />;
@@ -1293,6 +1305,7 @@ export default function ChatInterface() {
           onlineUsers={onlineUsers}
           onClose={() => setIsInfoDrawerOpen(false)}
           onSelectMedia={(url, type) => setLightboxMedia({ url, type })}
+          onUpdateGroupAvatar={handleUpdateGroupAvatar}
         />
       )}
 

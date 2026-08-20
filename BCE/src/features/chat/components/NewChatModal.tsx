@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useTransition } from 'react';
+import React, { useState, useEffect, useTransition, useRef } from 'react';
 import Modal from '@/components/ui/Modal';
 import { createClient } from '@/lib/supabase/client';
-import { createGroupChat } from '@/features/chat/actions/chat';
-import { Search, UserPlus, Users, Loader2, Check, AlertCircle } from 'lucide-react';
+import { createGroupChat, uploadGroupAvatarAction } from '@/features/chat/actions/chat';
+import { Search, UserPlus, Users, Loader2, Check, AlertCircle, Camera, Upload } from 'lucide-react';
 import Image from 'next/image';
+import UserAvatar from '@/components/shared/UserAvatar';
 
 interface NewChatModalProps {
   isOpen: boolean;
@@ -19,9 +20,12 @@ export default function NewChatModal({ isOpen, onClose, onChatCreated }: NewChat
   const [users, setUsers] = useState<any[]>([]);
   const [isFetching, setIsFetching] = useState(false);
   const [groupName, setGroupName] = useState('');
+  const [groupIconUrl, setGroupIconUrl] = useState<string | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
 
   // Reset state when modal opens
@@ -30,6 +34,7 @@ export default function NewChatModal({ isOpen, onClose, onChatCreated }: NewChat
       setMode('direct');
       setSearch('');
       setGroupName('');
+      setGroupIconUrl(null);
       setSelectedUsers([]);
       setError(null);
     }
@@ -50,6 +55,35 @@ export default function NewChatModal({ isOpen, onClose, onChatCreated }: NewChat
     const timer = setTimeout(fetchUsers, 300);
     return () => clearTimeout(timer);
   }, [search, isOpen]);
+
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image must be less than 5MB');
+      return;
+    }
+
+    try {
+      setIsUploadingAvatar(true);
+      setError(null);
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await uploadGroupAvatarAction(formData);
+      if (res.error) {
+        throw new Error(res.error);
+      }
+      if (res.publicUrl) {
+        setGroupIconUrl(res.publicUrl);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to upload group avatar');
+    } finally {
+      setIsUploadingAvatar(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const handleCreateDirectChat = async (userId: string) => {
     setError(null);
@@ -75,7 +109,7 @@ export default function NewChatModal({ isOpen, onClose, onChatCreated }: NewChat
     startTransition(async () => {
       try {
         // Uses server action — authenticated server client, passes RLS correctly
-        const groupId = await createGroupChat(groupName, selectedUsers);
+        const groupId = await createGroupChat(groupName, selectedUsers, groupIconUrl || undefined);
         onChatCreated(groupId);
         onClose();
       } catch (e: any) {
@@ -90,7 +124,7 @@ export default function NewChatModal({ isOpen, onClose, onChatCreated }: NewChat
     );
   };
 
-  const isLoading = isFetching || isPending;
+  const isLoading = isFetching || isPending || isUploadingAvatar;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="New Message">
@@ -113,24 +147,79 @@ export default function NewChatModal({ isOpen, onClose, onChatCreated }: NewChat
         ))}
       </div>
 
-      {/* Group Name Input */}
+      {/* Hidden File Input for Group Avatar */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleAvatarFileChange}
+        accept="image/png, image/jpeg, image/webp"
+        style={{ display: 'none' }}
+      />
+
+      {/* Group Name & Avatar Input */}
       {mode === 'group' && (
-        <input
-          type="text"
-          placeholder="Enter group name..."
-          value={groupName}
-          onChange={e => setGroupName(e.target.value)}
-          style={{
-            width: '100%', boxSizing: 'border-box', marginBottom: 'var(--space-md)',
-            background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)',
-            padding: '12px 14px', outline: 'none', color: 'var(--text-primary)',
-            border: '1px solid var(--border-default)', fontSize: 'var(--text-sm)',
-            transition: 'border-color 0.2s'
-          }}
-          onFocus={e => e.currentTarget.style.borderColor = 'var(--neon-cyan)'}
-          onBlur={e => e.currentTarget.style.borderColor = 'var(--border-default)'}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: 'var(--space-md)' }}>
+          {/* Avatar Upload Circle */}
+          <div
+            onClick={() => !isUploadingAvatar && fileInputRef.current?.click()}
+            style={{
+              position: 'relative',
+              width: '50px',
+              height: '50px',
+              borderRadius: '50%',
+              background: 'var(--bg-elevated)',
+              border: '2px dashed var(--neon-cyan)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: isUploadingAvatar ? 'wait' : 'pointer',
+              overflow: 'hidden',
+              flexShrink: 0,
+              boxShadow: '0 0 10px rgba(0,240,255,0.15)',
+              transition: 'all 0.2s'
+            }}
+            title="Upload Group Avatar Image"
+          >
+            {isUploadingAvatar ? (
+              <Loader2 className="animate-spin" size={20} color="var(--neon-cyan)" />
+            ) : groupIconUrl ? (
+              <UserAvatar url={groupIconUrl} name={groupName || 'Group'} size={50} />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--neon-cyan)' }}>
+                <Camera size={20} />
+              </div>
+            )}
+            <div style={{
+              position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              opacity: 0, transition: 'opacity 0.2s'
+            }}
+            onMouseOver={e => e.currentTarget.style.opacity = '1'}
+            onMouseOut={e => e.currentTarget.style.opacity = '0'}
+            >
+              <Camera size={18} color="#fff" />
+            </div>
+          </div>
+
+          {/* Group Name Input */}
+          <input
+            type="text"
+            placeholder="Enter group name..."
+            value={groupName}
+            onChange={e => setGroupName(e.target.value)}
+            style={{
+              flex: 1, boxSizing: 'border-box',
+              background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)',
+              padding: '12px 14px', outline: 'none', color: 'var(--text-primary)',
+              border: '1px solid var(--border-default)', fontSize: 'var(--text-sm)',
+              transition: 'border-color 0.2s'
+            }}
+            onFocus={e => e.currentTarget.style.borderColor = 'var(--neon-cyan)'}
+            onBlur={e => e.currentTarget.style.borderColor = 'var(--border-default)'}
+          />
+        </div>
       )}
+
 
       {/* Search */}
       <div style={{ position: 'relative', marginBottom: 'var(--space-md)' }}>
