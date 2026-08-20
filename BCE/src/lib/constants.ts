@@ -48,6 +48,7 @@ export const NAV_ITEMS = [
   { label: 'Courses', href: '/courses', icon: 'Courses' },
   { label: 'Code Arena', href: '/code-arena', icon: 'Code' },
   { label: 'Compiler', href: '/code-arena/compiler', icon: 'Code' },
+  { label: 'LaTeX Editor', href: '/latex-editor', icon: 'LaTeX' },
   { label: 'Leaderboard', href: '/leaderboard', icon: 'Leaderboard' },
   { label: 'Batch Doubts', href: '/doubts', icon: 'Doubts' },
   { label: 'Notices', href: '/notices', icon: 'Notices' },

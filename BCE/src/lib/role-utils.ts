@@ -5,12 +5,22 @@ export function normalizeRole(role?: unknown): string {
   return String(role || '').trim().toLowerCase();
 }
 
+export function isSuperAdminRole(role?: unknown): boolean {
+  const normalized = normalizeRole(role);
+  return (
+    normalized === 'super_admin' ||
+    normalized === 'superadmin' ||
+    normalized === 'platform_owner' ||
+    normalized === 'root_admin'
+  );
+}
+
 export function isAdminRole(role?: unknown): boolean {
   const normalized = normalizeRole(role);
-  return normalized === 'admin' || normalized === 'developer';
+  return isSuperAdminRole(normalized) || normalized === 'admin' || normalized === 'developer';
 }
 
 export function isInstructorRole(role?: unknown): boolean {
   const normalized = normalizeRole(role);
-  return normalized === 'instructor' || normalized === 'admin' || normalized === 'developer';
+  return isSuperAdminRole(normalized) || normalized === 'instructor' || normalized === 'admin' || normalized === 'developer';
 }

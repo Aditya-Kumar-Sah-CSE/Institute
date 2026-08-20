@@ -37,7 +37,7 @@ export async function updateSession(request: NextRequest) {
   // the middleware treat e.g. /leaderboard as a tenant landing page and redirect
   // authenticated users back to /dashboard (production navigation bug).
   const reservedPaths = [
-    'api', '_next', 'login', 'signup', 'dashboard', 'admin', 'instructor',
+    'api', '_next', 'login', 'signup', 'dashboard', 'admin', 'super-admin', 'instructor',
     'apply-instructor', 'apply-institution', 'forgot-password', 'reset-password',
     // Root-level app routes (route groups (dashboard), (admin), (instructor), (public))
     'courses', 'leaderboard', 'doubts', 'notices', 'profile', 'feedbacks',
@@ -194,9 +194,47 @@ export async function updateSession(request: NextRequest) {
     return redirectWithCookies(url);
   }
 
+  // Super Admin route protection (/super-admin)
+  if (pathname.startsWith('/super-admin')) {
+    const isOwnerEmail = user?.email?.trim().toLowerCase() === 'iambestadi@gmail.com';
+    const isOwnerRole = userRole === 'super_admin' || userRole === 'superadmin' || userRole === 'platform_owner';
+
+    if (!user || !isOwnerEmail || !isOwnerRole) {
+      return new NextResponse(
+        `<!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <title>403 Access Denied | Platform Owner Area</title>
+          <style>
+            body { font-family: system-ui, sans-serif; background: #0b0f19; color: #f8fafc; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+            .card { background: rgba(255,255,255,0.03); border: 1px solid rgba(239,68,68,0.3); padding: 40px; border-radius: 12px; max-width: 480px; text-align: center; }
+            h1 { color: #ef4444; font-size: 48px; margin: 0 0 10px 0; }
+            h2 { font-size: 20px; margin: 0 0 16px 0; }
+            p { color: #94a3b8; font-size: 14px; line-height: 1.6; }
+            a { display: inline-block; margin-top: 20px; background: #06b6d4; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <h1>403</h1>
+            <h2>Access Denied</h2>
+            <p>Only the Platform Owner (<code>iambestadi@gmail.com</code>) can access the Super Admin control area.</p>
+            <a href="/dashboard">Return to Dashboard</a>
+          </div>
+        </body>
+        </html>`,
+        {
+          status: 403,
+          headers: { 'content-type': 'text/html' },
+        }
+      );
+    }
+  }
+
   // Admin route protection
   if (user && pathname.startsWith('/admin')) {
-    if (userRole !== 'admin' && userRole !== 'developer') {
+    if (userRole !== 'admin' && userRole !== 'developer' && userRole !== 'super_admin' && userRole !== 'superadmin') {
       const url = request.nextUrl.clone();
       url.pathname = '/dashboard';
       return redirectWithCookies(url);
@@ -205,7 +243,7 @@ export async function updateSession(request: NextRequest) {
 
   // Instructor route protection
   if (user && pathname.startsWith('/instructor') && pathname !== '/apply-instructor') {
-    if (userRole !== 'instructor' && userRole !== 'admin' && userRole !== 'developer') {
+    if (userRole !== 'instructor' && userRole !== 'admin' && userRole !== 'developer' && userRole !== 'super_admin' && userRole !== 'superadmin') {
       const url = request.nextUrl.clone();
       url.pathname = '/dashboard';
       return redirectWithCookies(url);

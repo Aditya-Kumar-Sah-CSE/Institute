@@ -9,6 +9,7 @@ import {
   GraduationCap,
   Users,
   FileText,
+  FileCode,
   MessageSquare,
   Shield,
   Building,
@@ -34,6 +35,7 @@ export function getIcon(name: string, props?: any) {
     case 'Logout': return <LogOut {...props} />;
     case 'Chat': return <MessageSquare {...props} />;
     case 'Code': return <Code2 {...props} />;
+    case 'LaTeX': return <FileCode {...props} />;
     default: return <LayoutDashboard {...props} />;
   }
 }

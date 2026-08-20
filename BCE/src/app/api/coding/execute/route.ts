@@ -15,6 +15,25 @@ const WANDBOX_COMPILERS: Record<string, string> = {
 
 export async function POST(request: Request) {
   try {
+    const { isFeatureAllowed } = await import('@/lib/feature-flags');
+    if (!isFeatureAllowed('coding_arena') || !isFeatureAllowed('compiler')) {
+      return NextResponse.json(
+        {
+          status: 'SYSTEM_ERROR',
+          stdout: '',
+          stderr: '',
+          compileStdout: '',
+          compileStderr: '',
+          exitCode: null,
+          signal: null,
+          executionTimeMs: null,
+          memoryUsedMb: null,
+          message: 'Coding Arena and Compiler have been disabled globally by the Platform Owner.',
+        } as NormalizedExecutionResult,
+        { status: 403 }
+      );
+    }
+
     const { createClient } = await import('@/lib/supabase/server');
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();

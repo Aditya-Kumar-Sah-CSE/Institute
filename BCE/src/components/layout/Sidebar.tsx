@@ -13,7 +13,7 @@ import XPBar from '@/components/shared/XPBar';
 import LevelBadge from '@/components/shared/LevelBadge';
 import Modal from '@/components/ui/Modal';
 import type { Profile } from '@/types';
-import { LogOut, User, Download, X, MoreVertical, ChevronRight, ChevronDown, ChevronLeft } from 'lucide-react';
+import { LogOut, User, Download, X, MoreVertical, ChevronRight, ChevronDown, ChevronLeft, Crown } from 'lucide-react';
 import { signOut } from '@/features/auth/actions/auth';
 
 interface SidebarProps {
@@ -99,8 +99,12 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
   // Administrative switching is handled in the sidebar footer natively instead.
   const isInstructorUser = isInstructorRole(profile.role);
   const isAdminUser = isAdminRole(profile.role);
+  const isPlatformOwner = profile?.email?.trim().toLowerCase() === 'iambestadi@gmail.com';
 
   const navItems = [...baseNavItems];
+  if (isPlatformOwner && !navItems.some(i => i.href === '/super-admin')) {
+    navItems.push({ label: 'Super Admin', href: '/super-admin', icon: 'Admin' });
+  }
 
   if (isCollapsed) {
     return null; // The toggle button is now in Navbar.tsx
@@ -187,7 +191,7 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
         </div>
       )}
 
-      <nav className="sidebar-nav">
+      <nav className="sidebar-nav" suppressHydrationWarning>
         <button 
           suppressHydrationWarning
           className="wrap-toggle-btn"
@@ -202,17 +206,38 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
             href={item.href}
             className={`sidebar-nav-item ${pathname === item.href ? 'active' : ''}`}
             onClick={handleNavClick}
+            suppressHydrationWarning
           >
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span className="sidebar-nav-icon">{getIcon(item.icon, { className: 'w-5 h-5' })}</span>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }} suppressHydrationWarning>
+              <span className="sidebar-nav-icon" suppressHydrationWarning>{getIcon(item.icon, { className: 'w-5 h-5' })}</span>
             </div>
-            <span className="sidebar-nav-label">{item.label}</span>
-            {pathname === item.href && <span className="sidebar-nav-indicator" />}
+            <span className="sidebar-nav-label" suppressHydrationWarning>{item.label}</span>
+            {pathname === item.href && <span className="sidebar-nav-indicator" suppressHydrationWarning />}
           </Link>
         ))}
       </nav>
 
       <div className="sidebar-footer">
+        {isPlatformOwner && (
+          <Link
+            href="/super-admin"
+            className="sidebar-nav-item sidebar-switch"
+            onClick={handleNavClick}
+            suppressHydrationWarning
+            style={{
+              background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.2), rgba(245, 158, 11, 0.1))',
+              border: '1px solid rgba(234, 179, 8, 0.4)',
+              color: '#facc15',
+              fontWeight: 700,
+              marginBottom: '6px',
+            }}
+          >
+            <span className="sidebar-nav-icon">
+              <Crown className="w-5 h-5" style={{ color: '#facc15' }} />
+            </span>
+            <span className="sidebar-nav-label">👑 Super Admin Panel</span>
+          </Link>
+        )}
         {currentView !== 'student' && (
           <a href="/dashboard" className="sidebar-nav-item sidebar-switch" onClick={handleNavClick}>
             <span className="sidebar-nav-icon">{getIcon('Instructors', { className: 'w-5 h-5' })}</span>

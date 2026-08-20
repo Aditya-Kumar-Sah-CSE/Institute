@@ -22,11 +22,20 @@ import {
   Save,
   RefreshCw,
   AlertTriangle,
-  ChevronDown
+  ChevronDown,
+  RotateCcw,
+  FileText,
+  BarChart2,
+  Globe,
+  Loader2,
+  Check,
+  Settings
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import Modal from '@/components/ui/Modal';
 import type { CodeLanguage, NormalizedExecutionResult } from '../types';
+import { loadWorkspace, saveWorkspace, resetWorkspace, clearWorkspaceData, getDefaultWorkspace } from '../storage/compilerStorage';
+import type { CompilerFile, CompilerWorkspace, SaveStatus } from '../storage/compilerTypes';
 import './CodeArena.css';
 
 const Editor = dynamic(() => import('@monaco-editor/react'), {
@@ -91,7 +100,7 @@ const starters: Record<CodeLanguage, string> = {
       const [count, setCount] = React.useState(0);
       return (
         <div className="card">
-          <h1>⚛️ Hello, React & HTML Sandbox!</h1>
+          <h1>Hello, React & HTML Sandbox!</h1>
           <p>This is compiled locally in your browser.</p>
           <button onClick={() => setCount(count + 1)}>
             Count: {count}
@@ -206,6 +215,14 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
   const [result, setResult] = useState<NormalizedExecutionResult | null>(null);
   const [iframeKey, setIframeKey] = useState(0);
 
+  // Local-First IndexedDB state management
+  const [isWorkspaceLoading, setIsWorkspaceLoading] = useState(true);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('Saved locally');
+  const [resetModalOpen, setResetModalOpen] = useState(false);
+  const [clearModalOpen, setClearModalOpen] = useState(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isInitialMountRef = useRef(true);
+
   // 1. Introspect Wandbox compiler service health dynamically
   useEffect(() => {
     async function checkHealth() {
@@ -223,58 +240,184 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
     checkHealth();
   }, []);
 
-  // 2. Load fallback files or resolve queries
+  // 2. Local-First IndexedDB Workspace Restoration on Mount
   useEffect(() => {
-    // If opening from share link query parameters
-    const params = new URLSearchParams(window.location.search);
-    const codeParam = params.get('code');
-    const langParam = params.get('lang');
-    const titleParam = params.get('title');
-
-    if (codeParam) {
-      const decodedCode = decodeURIComponent(codeParam);
-      const decodedTitle = titleParam ? decodeURIComponent(titleParam) : 'Shared code';
-      const decodedLang = (langParam as CodeLanguage) || 'cpp17';
-
-      const sharedFile: FileItem = {
-        name: decodedTitle,
-        path: decodedTitle,
-        kind: 'file',
-        content: decodedCode,
-      };
-
-      setFiles([sharedFile]);
-      setLanguage(decodedLang);
-      selectFile(sharedFile);
-      return;
-    }
-
-    // Default initialization: Virtual Local Storage FS
-    const saved = localStorage.getItem('bce:playground-virtual-files');
-    if (saved) {
+    async function initIndexedDBWorkspace() {
+      setIsWorkspaceLoading(true);
       try {
-        const parsed = JSON.parse(saved);
-        setFiles(parsed);
-        const first = findFirstFile(parsed);
-        if (first) selectFile(first);
-      } catch (_e) {
+        const params = new URLSearchParams(window.location.search);
+        const codeParam = params.get('code');
+        const langParam = params.get('lang');
+        const titleParam = params.get('title');
+
+        if (codeParam) {
+          const decodedCode = decodeURIComponent(codeParam);
+          const decodedTitle = titleParam ? decodeURIComponent(titleParam) : 'Shared code';
+          const decodedLang = (langParam as CodeLanguage) || 'cpp17';
+
+          const sharedFile: FileItem = {
+            name: decodedTitle,
+            path: decodedTitle,
+            kind: 'file',
+            content: decodedCode,
+          };
+
+          setFiles([sharedFile]);
+          setLanguage(decodedLang);
+          setActiveFile(sharedFile);
+          setCode(decodedCode);
+          setTitle(decodedTitle);
+          setIsWorkspaceLoading(false);
+          return;
+        }
+
+        const ws = await loadWorkspace();
+        if (ws && ws.files && ws.files.length > 0) {
+          const mappedFiles: FileItem[] = ws.files.map(f => ({
+            name: f.name,
+            path: f.path,
+            kind: f.kind,
+            content: f.content,
+            isDirty: f.isDirty,
+          }));
+
+          setFiles(mappedFiles);
+          setLanguage(ws.language || 'cpp17');
+          if (ws.testcases && ws.testcases.length > 0) {
+            setTestcases(ws.testcases);
+            setActiveTestcaseIdx(ws.activeTestcaseIdx || 0);
+          }
+
+          const active = mappedFiles.find(f => f.path === ws.activeFileId) || mappedFiles[0];
+          if (active) {
+            setActiveFile(active);
+            setCode(active.content || '');
+            setTitle(active.name);
+          }
+        } else {
+          loadDefaultVirtualFiles();
+        }
+      } catch (e) {
+        console.warn('Error loading workspace from IndexedDB:', e);
         loadDefaultVirtualFiles();
+      } finally {
+        setIsWorkspaceLoading(false);
       }
-    } else {
-      loadDefaultVirtualFiles();
     }
+
+    initIndexedDBWorkspace();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 3. Save virtual files to localstorage
+  // 3. Debounced (500ms) Auto-Save to IndexedDB
   useEffect(() => {
-    if (files.length > 0 && !rootDirectoryHandle) {
-      // Clean handle references before saving to local storage
-      const cleanTree = stripHandles(files);
-      localStorage.setItem('bce:playground-virtual-files', JSON.stringify(cleanTree));
+    if (isWorkspaceLoading || isInitialMountRef.current) {
+      if (!isWorkspaceLoading) {
+        isInitialMountRef.current = false;
+      }
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [files, rootDirectoryHandle]);
+
+    if (rootDirectoryHandle) return;
+
+    setSaveStatus('Saving...');
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(async () => {
+      try {
+        const cleanFiles: CompilerFile[] = files.map(f => ({
+          id: f.path,
+          name: f.name,
+          path: f.path,
+          kind: f.kind,
+          content: f.path === activeFile?.path ? code : (f.content || ''),
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        }));
+
+        const wsToSave: CompilerWorkspace = {
+          id: 'bce-default-workspace',
+          name: 'BCE Code Arena Workspace',
+          activeFileId: activeFile?.path || 'main.cpp',
+          files: cleanFiles,
+          language,
+          testcases,
+          activeTestcaseIdx,
+          compilerSettings: { fontSize: 14, tabSize: 2, autoSave: true },
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+
+        await saveWorkspace(wsToSave);
+        setSaveStatus('Saved locally');
+      } catch (err) {
+        console.error('Failed to auto-save to IndexedDB:', err);
+        setSaveStatus('Local save unavailable');
+      }
+    }, 500);
+
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
+  }, [code, files, activeFile, language, testcases, activeTestcaseIdx, isWorkspaceLoading, rootDirectoryHandle]);
+
+  const handleResetWorkspace = async () => {
+    try {
+      setIsWorkspaceLoading(true);
+      const defaultWs = await resetWorkspace();
+      const mappedFiles: FileItem[] = defaultWs.files.map(f => ({
+        name: f.name,
+        path: f.path,
+        kind: f.kind,
+        content: f.content,
+      }));
+      setFiles(mappedFiles);
+      setLanguage(defaultWs.language);
+      setTestcases(defaultWs.testcases);
+      setActiveTestcaseIdx(0);
+      const active = mappedFiles[0];
+      setActiveFile(active);
+      setCode(active.content || '');
+      setTitle(active.name);
+      setSaveStatus('Saved locally');
+    } catch (e: any) {
+      alert('Reset failed: ' + e.message);
+    } finally {
+      setIsWorkspaceLoading(false);
+      setResetModalOpen(false);
+    }
+  };
+
+  const handleClearLocalData = async () => {
+    try {
+      setIsWorkspaceLoading(true);
+      await clearWorkspaceData();
+      const defaultWs = getDefaultWorkspace();
+      const mappedFiles: FileItem[] = defaultWs.files.map(f => ({
+        name: f.name,
+        path: f.path,
+        kind: f.kind,
+        content: f.content,
+      }));
+      setFiles(mappedFiles);
+      setLanguage(defaultWs.language);
+      setTestcases(defaultWs.testcases);
+      setActiveTestcaseIdx(0);
+      const active = mappedFiles[0];
+      setActiveFile(active);
+      setCode(active.content || '');
+      setTitle(active.name);
+      setSaveStatus('Saved locally');
+    } catch (e: any) {
+      alert('Clear failed: ' + e.message);
+    } finally {
+      setIsWorkspaceLoading(false);
+      setClearModalOpen(false);
+    }
+  };
 
   // 4. Keyboard shortcuts listener
   useEffect(() => {
@@ -1001,7 +1144,7 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
+                gap: '5px',
                 padding: '4px 10px',
                 fontSize: '11px',
                 fontWeight: 'bold',
@@ -1012,7 +1155,7 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
                 color: activeTab === 'input' && !isConsoleCollapsed ? 'var(--neon-cyan)' : 'var(--text-secondary)'
               }}
             >
-              📋 Testcase
+              <FileText size={13} /> Testcase
             </button>
             <button
               type="button"
@@ -1028,7 +1171,7 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
+                gap: '5px',
                 padding: '4px 10px',
                 fontSize: '11px',
                 fontWeight: 'bold',
@@ -1039,7 +1182,7 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
                 color: activeTab === 'output' && !isConsoleCollapsed ? 'var(--neon-cyan)' : 'var(--text-secondary)'
               }}
             >
-              📊 Output
+              <BarChart2 size={13} /> Output
             </button>
             <button
               type="button"
@@ -1055,7 +1198,7 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
+                gap: '5px',
                 padding: '4px 10px',
                 fontSize: '11px',
                 fontWeight: 'bold',
@@ -1066,7 +1209,7 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
                 color: activeTab === 'error' && !isConsoleCollapsed ? '#ef4444' : 'var(--text-secondary)'
               }}
             >
-              ⚠️ Error {errorCount > 0 && <span className="oj-err-badge" style={{ padding: '1px 5px', fontSize: '9px', marginLeft: '4px' }}>{errorCount}</span>}
+              <AlertTriangle size={13} /> Error {errorCount > 0 && <span className="oj-err-badge" style={{ padding: '1px 5px', fontSize: '9px', marginLeft: '4px' }}>{errorCount}</span>}
             </button>
             {language === 'html' && (
               <button
@@ -1083,7 +1226,7 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '4px',
+                  gap: '5px',
                   padding: '4px 10px',
                   fontSize: '11px',
                   fontWeight: 'bold',
@@ -1094,7 +1237,7 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
                   color: activeTab === 'preview' && !isConsoleCollapsed ? 'var(--neon-cyan)' : 'var(--text-secondary)'
                 }}
               >
-                🌐 UI Preview
+                <Globe size={13} /> UI Preview
               </button>
             )}
           </div>
@@ -1113,7 +1256,6 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
                   setFiles(prev => updateFileInTree(prev, activeFile.path, { content: starters[l], isDirty: true }));
                   setActiveFile(prev => prev ? { ...prev, content: starters[l], isDirty: true } : null);
                 }
-                setState('Unsaved changes');
               }}
             >
               {Object.keys(starters).map((l) => (
@@ -1123,9 +1265,41 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
               ))}
             </select>
 
-            <span className="text-secondary" style={{ fontSize: '11px' }}>
-              {state}
+            {/* Local Save Status Indicator */}
+            <span
+              style={{
+                fontSize: '11px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                color: saveStatus === 'Saved locally' ? '#10b981' : saveStatus === 'Saving...' ? 'var(--neon-cyan)' : '#f59e0b',
+                fontWeight: 600,
+                padding: '2px 8px',
+                borderRadius: '4px',
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid var(--glass-border)'
+              }}
+              title="Local IndexedDB Persistence Status"
+            >
+              {saveStatus === 'Saving...' ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : saveStatus === 'Saved locally' ? (
+                <CheckCircle2 size={12} />
+              ) : (
+                <AlertTriangle size={12} />
+              )}
+              {saveStatus}
             </span>
+
+            {/* Reset Workspace button */}
+            <button
+              onClick={() => setResetModalOpen(true)}
+              title="Reset Local Workspace"
+              className="oj-icon-btn"
+              style={{ color: 'var(--text-muted)', border: '1px solid var(--glass-border)', padding: '6px' }}
+            >
+              <RotateCcw size={14} />
+            </button>
 
             {/* Run Code icon button */}
             <button
@@ -1612,6 +1786,24 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
         language={language}
         title={title}
       />
+
+      <Modal isOpen={resetModalOpen} onClose={() => setResetModalOpen(false)} title="Reset Local Workspace">
+        <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+            Are you sure you want to reset your local Code Arena workspace?
+            <br />
+            This will restore the default template files (<code>main.cpp</code>, <code>Main.java</code>, <code>solve.py</code>, <code>index.html</code>, <code>script.js</code>) and reset testcases locally.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
+            <Button variant="ghost" size="sm" onClick={() => setResetModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="danger" size="sm" onClick={handleResetWorkspace}>
+              Reset Workspace
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
