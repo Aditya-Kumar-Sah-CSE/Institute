@@ -52,14 +52,14 @@ export default async function CodingProfilePage({ searchParams }: { searchParams
     .order('created_at', { ascending: false })
     .limit(30);
 
-  // Fetch 365 days of accepted BCE submissions for contribution calendar
-  const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
+  // Fetch last 3 years of accepted BCE submissions for contribution calendar
+  const threeYearsAgo = new Date(Date.now() - 3 * 365 * 24 * 60 * 60 * 1000).toISOString();
   const { data: bceAcceptedHistory } = await supabase
     .from('coding_submissions')
     .select('created_at')
     .eq('student_id', targetId)
     .eq('status', 'ACCEPTED')
-    .gte('created_at', oneYearAgo);
+    .gte('created_at', threeYearsAgo);
 
   const bceDaily: Record<string, number> = {};
   (bceAcceptedHistory || []).forEach((sub: any) => {

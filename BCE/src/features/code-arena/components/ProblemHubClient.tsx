@@ -24,6 +24,7 @@ export default function ProblemHubClient({ userId }: { userId: string }) {
   const [importProblemId, setImportProblemId] = useState('');
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState('');
+  const [visibleCount, setVisibleCount] = useState(4);
 
   const handleImport = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,6 +83,7 @@ export default function ProblemHubClient({ userId }: { userId: string }) {
         setProblems(json.data || []);
         setTotalPages(json.pagination?.totalPages || 1);
         setTotal(json.pagination?.total || 0);
+        setVisibleCount(4);
         if (json.availableTags) setAvailableTags(json.availableTags);
       }
     } catch (e) {
@@ -128,7 +130,7 @@ export default function ProblemHubClient({ userId }: { userId: string }) {
   ].reduce((a, b) => a + b, 0);
 
   return (
-    <div className="code-arena-page" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
+    <div className="code-arena-page" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)', paddingBottom: '1rem', marginBottom: '1rem' }}>
       <MobileCodeArenaToggle />
       {/* Hero Header */}
       <header className="hub-hero">
@@ -281,11 +283,34 @@ export default function ProblemHubClient({ userId }: { userId: string }) {
           <p>Try adjusting your search or filters.</p>
         </div>
       ) : (
-        <div className="hub-problem-grid">
-          {problems.map((p) => (
-            <ProblemCard key={p.id} problem={p} />
-          ))}
-        </div>
+        <>
+          <div className="hub-problem-grid">
+            {problems.slice(0, visibleCount).map((p) => (
+              <ProblemCard key={p.id} problem={p} />
+            ))}
+          </div>
+          {problems.length > visibleCount && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '12px', marginBottom: '16px' }}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setVisibleCount((prev) => Math.min(problems.length, prev + 8))}
+                style={{
+                  padding: '8px 24px',
+                  borderRadius: '20px',
+                  fontSize: 'var(--text-xs)',
+                  fontWeight: 'bold',
+                  boxShadow: '0 4px 15px rgba(6,182,212,0.2)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                Show More
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {/* Pagination */}

@@ -3,7 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { User, Flame, CheckCircle2, TerminalSquare, Swords, Sparkles } from 'lucide-react';
+import { User, Flame, CheckCircle2, TerminalSquare, Swords, Sparkles, Calendar } from 'lucide-react';
 import type { Profile } from '@/types';
 
 interface CodingProfileHeroProps {
@@ -15,50 +15,82 @@ interface CodingProfileHeroProps {
 }
 
 export default function CodingProfileHero({ profile, codeforcesConnected, leetCodeConnected, isOwnProfile = true, dailyActivity }: CodingProfileHeroProps) {
+  const [selectedPeriod, setSelectedPeriod] = React.useState<string>('last12');
   const [copied, setCopied] = React.useState(false);
 
-  // Generate 365 days of calendar cells grouped by week
-  const cells: { dateStr: string; dateObj: Date; dayOfWeek: number; weekIdx: number; activity: { bce: number; cf: number; lc: number; total: number } }[] = [];
-  const today = new Date();
-  
-  // Find start date: 364 days ago
-  const startDate = new Date();
-  startDate.setDate(today.getDate() - 364);
-  
-  // Align start date to Sunday for a clean layout
-  const startDay = startDate.getDay();
-  const adjustedStartDate = new Date(startDate);
-  adjustedStartDate.setDate(startDate.getDate() - startDay); // Shift back to Sunday
-  
-  let current = new Date(adjustedStartDate);
-  while (current <= today) {
-    const dateStr = current.toISOString().slice(0, 10);
-    const dayOfWeek = current.getDay();
-    // Compute week index from start of timeline
-    const diffTime = current.getTime() - adjustedStartDate.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    const weekIdx = Math.floor(diffDays / 7);
-    
-    cells.push({
-      dateStr,
-      dateObj: new Date(current),
-      dayOfWeek,
-      weekIdx,
-      activity: dailyActivity?.[dateStr] || { bce: 0, cf: 0, lc: 0, total: 0 },
+  // Extract unique active years from activity data
+  const availableYears = React.useMemo(() => {
+    const years = new Set<number>();
+    years.add(new Date().getFullYear());
+    Object.keys(dailyActivity || {}).forEach(dateStr => {
+      try {
+        const y = new Date(dateStr).getFullYear();
+        if (!isNaN(y)) {
+          years.add(y);
+        }
+      } catch (e) {
+        // Ignored
+      }
     });
-    
-    current.setDate(current.getDate() + 1);
-  }
+    return Array.from(years).sort((a, b) => b - a);
+  }, [dailyActivity]);
 
-  const weeks: typeof cells[] = [];
-  for (let w = 0; w <= 53; w++) {
-    weeks[w] = [];
-  }
-  cells.forEach(cell => {
-    if (cell.weekIdx >= 0 && cell.weekIdx <= 53) {
-      weeks[cell.weekIdx][cell.dayOfWeek] = cell;
+  // Generate cells based on selectedPeriod (either sliding last12 months or full calendar year)
+  const weeks = React.useMemo(() => {
+    const cells: { dateStr: string; dateObj: Date; dayOfWeek: number; weekIdx: number; activity: { bce: number; cf: number; lc: number; total: number } }[] = [];
+    const today = new Date();
+    
+    let startDate = new Date();
+    let endDate = new Date();
+
+    if (selectedPeriod === 'last12') {
+      startDate.setDate(today.getDate() - 364);
+    } else {
+      const year = Number(selectedPeriod);
+      startDate = new Date(year, 0, 1); // Jan 1
+      endDate = new Date(year, 11, 31); // Dec 31
+      // If selected year is current year, clamp endDate to today
+      const currentYear = today.getFullYear();
+      if (year === currentYear) {
+        endDate = today;
+      }
     }
-  });
+
+    // Align startDate to Sunday for a clean layout
+    const startDay = startDate.getDay();
+    const adjustedStartDate = new Date(startDate);
+    adjustedStartDate.setDate(startDate.getDate() - startDay); // Shift back to Sunday
+
+    let current = new Date(adjustedStartDate);
+    while (current <= endDate) {
+      const dateStr = current.toISOString().slice(0, 10);
+      const dayOfWeek = current.getDay();
+      
+      const diffTime = current.getTime() - adjustedStartDate.getTime();
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      const weekIdx = Math.floor(diffDays / 7);
+
+      cells.push({
+        dateStr,
+        dateObj: new Date(current),
+        dayOfWeek,
+        weekIdx,
+        activity: dailyActivity?.[dateStr] || { bce: 0, cf: 0, lc: 0, total: 0 },
+      });
+
+      current.setDate(current.getDate() + 1);
+    }
+
+    const gridWeeks: typeof cells[] = [];
+    cells.forEach(cell => {
+      if (!gridWeeks[cell.weekIdx]) {
+        gridWeeks[cell.weekIdx] = [];
+      }
+      gridWeeks[cell.weekIdx][cell.dayOfWeek] = cell;
+    });
+
+    return gridWeeks;
+  }, [selectedPeriod, dailyActivity]);
 
   const handleShare = () => {
     if (!profile) return;
@@ -130,22 +162,31 @@ export default function CodingProfileHero({ profile, codeforcesConnected, leetCo
       </div>
       
       {/* 12-Month Solving Contribution Calendar Grid */}
-      <div className="profile-hero-calendar-section" style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '8px',
-        background: 'rgba(255, 255, 255, 0.01)',
-        border: '1px solid rgba(255, 255, 255, 0.05)',
-        padding: '12px 16px',
-        borderRadius: 'var(--radius-lg)',
-        maxWidth: '750px',
-        width: '100%',
-        margin: '0 20px',
-        overflowX: 'auto',
-      }}>
+      <div className="profile-hero-calendar-section">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
           <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            📊 Activity Grid <span style={{ fontSize: '9px', fontWeight: 500, color: 'var(--text-muted)' }}>(Last 12 Months)</span>
+            <Calendar size={13} style={{ color: 'var(--neon-emerald)' }} /> Activity Grid 
+            <select
+              value={selectedPeriod}
+              onChange={(e) => setSelectedPeriod(e.target.value)}
+              style={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid var(--glass-border)',
+                borderRadius: '4px',
+                color: 'var(--text-main)',
+                fontSize: '9px',
+                fontWeight: 700,
+                padding: '2px 4px',
+                marginLeft: '8px',
+                outline: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              <option value="last12" style={{ background: '#0f172a', color: '#f8fafc' }}>Last 12 Months</option>
+              {availableYears.map(year => (
+                <option key={year} value={String(year)} style={{ background: '#0f172a', color: '#f8fafc' }}>{year}</option>
+              ))}
+            </select>
           </span>
           <div style={{ display: 'flex', gap: '6px', fontSize: '9px', color: 'var(--text-muted)', fontWeight: 600 }}>
             <span>BCE</span>
