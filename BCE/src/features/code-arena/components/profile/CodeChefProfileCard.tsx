@@ -143,14 +143,14 @@ export default function CodeChefProfileCard({ account, isOwnProfile = true }: { 
           )}
 
           {errorMsg && (
-            <div className="sync-error-banner" style={{ marginTop: '12px', fontSize: 'var(--text-xs)', color: '#f87171' }}>
-              ⚠️ {errorMsg}
+            <div className="sync-error-banner" style={{ marginTop: '12px', fontSize: 'var(--text-xs)', color: '#f87171', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Unlink size={13} /> {errorMsg}
             </div>
           )}
 
           {successMsg && (
-            <div className="sync-success-banner" style={{ marginTop: '12px', fontSize: 'var(--text-xs)', color: 'var(--neon-emerald)' }}>
-              ✓ {successMsg}
+            <div className="sync-success-banner" style={{ marginTop: '12px', fontSize: 'var(--text-xs)', color: 'var(--neon-emerald)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <CheckCircle2 size={13} /> {successMsg}
             </div>
           )}
         </div>

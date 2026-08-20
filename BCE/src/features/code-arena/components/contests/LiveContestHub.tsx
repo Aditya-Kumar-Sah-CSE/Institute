@@ -133,7 +133,7 @@ export default function LiveContestHub({ contest, onClose }: LiveContestHubProps
             fontSize: '11px',
             fontWeight: 800,
           }}>
-            <Radio size={12} /> 🔴 LIVE CONTEST
+            <Radio size={12} /> LIVE CONTEST
           </span>
           <h2 style={{ margin: 0, fontSize: 'var(--text-md)', fontWeight: 800, color: '#fff' }}>
             {contest.title}
