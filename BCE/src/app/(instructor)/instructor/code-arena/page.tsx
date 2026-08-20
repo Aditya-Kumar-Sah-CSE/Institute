@@ -1,10 +1,19 @@
 import { getCodeArenaActor } from '@/features/code-arena/server';
+import { isFeatureAllowed } from '@/lib/feature-flags';
+import LockedFeatureScreen from '@/components/ui/LockedFeatureScreen';
 import InstructorCodeArenaClient from '@/features/code-arena/components/InstructorCodeArenaClient';
 import '@/features/code-arena/components/CodeArena.css';
 
 export default async function InstructorCodeArenaPage() {
   const { supabase, user } = await getCodeArenaActor();
   if (!user) return null;
+
+  // Check Feature Flag / Emergency Kill Switch
+  const { data: userProfile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+  const isAllowed = isFeatureAllowed('coding_arena', null, null, null, user.email, userProfile?.role);
+  if (!isAllowed) {
+    return <LockedFeatureScreen featureName="Coding Arena" />;
+  }
 
   // 1. Fetch Instructor Created Problems
   const { data: problems } = await supabase

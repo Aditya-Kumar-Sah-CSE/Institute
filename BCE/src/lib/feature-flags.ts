@@ -1,3 +1,6 @@
+import fs from 'fs';
+import path from 'path';
+
 export interface GlobalFeatureFlags {
   // Communication
   personal_chat: boolean;
@@ -80,19 +83,55 @@ export const DEFAULT_EMERGENCY_KILL_SWITCHES: EmergencyKillSwitches = {
   enable_maintenance_mode: false,
 };
 
-let inMemoryGlobalFlags: GlobalFeatureFlags = { ...DEFAULT_GLOBAL_FEATURE_FLAGS };
-let inMemoryEmergencySwitches: EmergencyKillSwitches = { ...DEFAULT_EMERGENCY_KILL_SWITCHES };
+// Persistence helper file path
+const STORE_PATH = path.join(process.cwd(), 'src', 'lib', 'feature-flags-store.json');
+
+function loadPersistedFlags(): { flags: GlobalFeatureFlags; emergency: EmergencyKillSwitches } {
+  try {
+    if (fs.existsSync(STORE_PATH)) {
+      const content = fs.readFileSync(STORE_PATH, 'utf-8');
+      const parsed = JSON.parse(content);
+      return {
+        flags: { ...DEFAULT_GLOBAL_FEATURE_FLAGS, ...(parsed.flags || {}) },
+        emergency: { ...DEFAULT_EMERGENCY_KILL_SWITCHES, ...(parsed.emergency || {}) },
+      };
+    }
+  } catch (err) {
+    console.warn('[FEATURE_FLAGS_PERSIST_WARN]', err);
+  }
+  return {
+    flags: { ...DEFAULT_GLOBAL_FEATURE_FLAGS },
+    emergency: { ...DEFAULT_EMERGENCY_KILL_SWITCHES },
+  };
+}
+
+function persistFlags(flags: GlobalFeatureFlags, emergency: EmergencyKillSwitches) {
+  try {
+    const data = JSON.stringify({ flags, emergency, updatedAt: new Date().toISOString() }, null, 2);
+    fs.writeFileSync(STORE_PATH, data, 'utf-8');
+  } catch (err) {
+    console.warn('[FEATURE_FLAGS_WRITE_WARN]', err);
+  }
+}
+
+let { flags: inMemoryGlobalFlags, emergency: inMemoryEmergencySwitches } = loadPersistedFlags();
 
 export function getGlobalFeatureFlags(): GlobalFeatureFlags {
+  const loaded = loadPersistedFlags();
+  inMemoryGlobalFlags = loaded.flags;
   return { ...inMemoryGlobalFlags };
 }
 
 export function getEmergencyKillSwitches(): EmergencyKillSwitches {
+  const loaded = loadPersistedFlags();
+  inMemoryEmergencySwitches = loaded.emergency;
   return { ...inMemoryEmergencySwitches };
 }
 
 export function updateGlobalFeatureFlags(updates: Partial<GlobalFeatureFlags>): GlobalFeatureFlags {
-  inMemoryGlobalFlags = { ...inMemoryGlobalFlags, ...updates };
+  const current = loadPersistedFlags();
+  inMemoryGlobalFlags = { ...current.flags, ...updates };
+  inMemoryEmergencySwitches = { ...current.emergency };
 
   // Sync maintenance mode with emergency kill switches
   if (typeof updates.maintenance_mode === 'boolean') {
@@ -105,11 +144,14 @@ export function updateGlobalFeatureFlags(updates: Partial<GlobalFeatureFlags>): 
     inMemoryEmergencySwitches.disable_coding_arena = true;
   }
 
+  persistFlags(inMemoryGlobalFlags, inMemoryEmergencySwitches);
   return getGlobalFeatureFlags();
 }
 
 export function updateEmergencyKillSwitches(updates: Partial<EmergencyKillSwitches>): EmergencyKillSwitches {
-  inMemoryEmergencySwitches = { ...inMemoryEmergencySwitches, ...updates };
+  const current = loadPersistedFlags();
+  inMemoryGlobalFlags = { ...current.flags };
+  inMemoryEmergencySwitches = { ...current.emergency, ...updates };
 
   // Reflect emergency kill switches back to global feature flags
   if (updates.disable_all_chat) {
@@ -134,6 +176,7 @@ export function updateEmergencyKillSwitches(updates: Partial<EmergencyKillSwitch
     inMemoryGlobalFlags.maintenance_mode = updates.enable_maintenance_mode;
   }
 
+  persistFlags(inMemoryGlobalFlags, inMemoryEmergencySwitches);
   return getEmergencyKillSwitches();
 }
 
@@ -145,31 +188,46 @@ export function isFeatureAllowed(
   featureName: keyof GlobalFeatureFlags,
   adminPreference?: boolean | null,
   rolePermission?: boolean | null,
-  userPermission?: boolean | null
+  userPermission?: boolean | null,
+  userEmail?: string | null,
+  userRole?: string | null
 ): boolean {
+  // Super Admin Immunity Check: Super Admin can still view/access features for testing
+  const superAdminEmail = (process.env.SUPER_ADMIN_EMAIL || 'iambestadi@gmail.com').toLowerCase();
+  if (userEmail && userEmail.trim().toLowerCase() === superAdminEmail) {
+    return true;
+  }
+  if (userRole && (userRole === 'super_admin' || userRole === 'platform_owner')) {
+    return true;
+  }
+
+  const loaded = loadPersistedFlags();
+  const globalFlags = loaded.flags;
+  const emergency = loaded.emergency;
+
   // 1. Super Admin Global Control (Highest Priority)
-  const superAdminFlag = inMemoryGlobalFlags[featureName];
+  const superAdminFlag = globalFlags[featureName];
   if (superAdminFlag === false) {
     return false;
   }
 
   // Check emergency kill switches
-  if (inMemoryEmergencySwitches.enable_maintenance_mode && featureName !== 'maintenance_mode') {
+  if (emergency.enable_maintenance_mode && featureName !== 'maintenance_mode') {
     return false;
   }
-  if (inMemoryEmergencySwitches.disable_all_chat && (featureName === 'personal_chat' || featureName === 'group_chat')) {
+  if (emergency.disable_all_chat && (featureName === 'personal_chat' || featureName === 'group_chat')) {
     return false;
   }
-  if (inMemoryEmergencySwitches.disable_video_calls && featureName === 'video_call') {
+  if (emergency.disable_video_calls && featureName === 'video_call') {
     return false;
   }
-  if (inMemoryEmergencySwitches.disable_coding_arena && (featureName === 'coding_arena' || featureName === 'coding_battles')) {
+  if (emergency.disable_coding_arena && (featureName === 'coding_arena' || featureName === 'coding_battles')) {
     return false;
   }
-  if (inMemoryEmergencySwitches.disable_external_integrations && (featureName === 'leetcode_integration' || featureName === 'codeforces_integration')) {
+  if (emergency.disable_external_integrations && (featureName === 'leetcode_integration' || featureName === 'codeforces_integration')) {
     return false;
   }
-  if (inMemoryEmergencySwitches.disable_contest_alerts && featureName === 'contest_alerts') {
+  if (emergency.disable_contest_alerts && featureName === 'contest_alerts') {
     return false;
   }
 
