@@ -2,7 +2,7 @@
 
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { Trophy, Target, Award, CheckCircle2, BarChart2, ArrowLeft } from 'lucide-react';
+import { Trophy, Target, Award, CheckCircle2, BarChart2, ArrowLeft, X } from 'lucide-react';
 import Link from 'next/link';
 
 interface BattleEndScreenProps {
@@ -16,6 +16,7 @@ interface BattleEndScreenProps {
   };
   onViewLeaderboard: () => void;
   onViewAnalytics: () => void;
+  onClose?: () => void;
 }
 
 export default function BattleEndScreen({
@@ -23,10 +24,42 @@ export default function BattleEndScreen({
   userStats,
   onViewLeaderboard,
   onViewAnalytics,
+  onClose,
 }: BattleEndScreenProps) {
   return (
     <div className="battle-complete-wrapper">
-      <Card className="battle-complete-card">
+      <Card className="battle-complete-card" style={{ position: 'relative' }}>
+        {onClose && (
+          <button
+            onClick={onClose}
+            style={{
+              position: 'absolute',
+              top: '16px',
+              right: '16px',
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              padding: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              borderRadius: '50%',
+              transition: 'all 0.2s',
+              zIndex: 10
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = 'var(--text-primary)';
+              e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'var(--text-muted)';
+              e.currentTarget.style.background = 'transparent';
+            }}
+            title="Close"
+          >
+            <X size={20} />
+          </button>
+        )}
         <div
           style={{
             width: '72px',

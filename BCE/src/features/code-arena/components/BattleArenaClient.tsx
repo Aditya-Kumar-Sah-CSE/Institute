@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { createClient } from '@/lib/supabase/client';
 import Card from '@/components/ui/Card';
@@ -28,6 +29,7 @@ import {
   XCircle,
   AlertTriangle,
   Flame,
+  ArrowLeft,
 } from 'lucide-react';
 import type { CodeLanguage, NormalizedExecutionResult } from '../types';
 import BattleLobby from './BattleLobby';
@@ -516,38 +518,39 @@ export default function BattleArenaClient({
         </div>
       )}
 
-      {/* End Battle Summary Modal */}
-      {showEndModal && (
-        <BattleEndScreen
-          battle={battle}
-          userStats={{
-            rank: userRank,
-            score: userScore,
-            solvedCount: officialSolvedProblemIds.size,
-            totalProblems: problems.length,
-            accuracy: userAccuracy,
-          }}
-          onViewLeaderboard={() => {
-            setShowEndModal(false);
-            setActiveTab('leaderboard');
-          }}
-          onViewAnalytics={() => {
-            setShowEndModal(false);
-            setActiveTab('analytics');
-          }}
-        />
-      )}
-
       {/* Compact Battle Room IDE Header Bar */}
       <header className="code-arena-header-compact">
-        <div className="code-arena-header-left">
-          <div className="code-arena-logo-box">
-            <Swords size={20} />
-          </div>
+        <div className="code-arena-header-left" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <Link 
+            href="/code-arena" 
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              color: 'var(--text-danger, #ef4444)',
+              background: 'rgba(239, 68, 68, 0.08)',
+              border: '1px solid rgba(239, 68, 68, 0.25)',
+              padding: '6px 12px',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '12px',
+              fontWeight: 700,
+              textDecoration: 'none',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => {
+              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.18)';
+              e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+            }}
+            onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => {
+              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)';
+              e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.25)';
+            }}
+          >
+            <ArrowLeft size={14} /> Leave Battle
+          </Link>
           <div>
-            <h1 className="code-arena-header-title">
-              BCE Bhagalpur
-              <span className="code-arena-badge-sub">· {battle.title}</span>
+            <h1 className="code-arena-header-title" style={{ display: 'flex', alignItems: 'center' }}>
+              <span style={{ color: 'var(--text-muted)', fontWeight: 500, marginRight: '4px' }}>Battle:</span> {battle.title}
             </h1>
           </div>
         </div>
@@ -607,6 +610,29 @@ export default function BattleArenaClient({
           </div>
         </div>
       </header>
+
+      {/* End Battle Summary Modal */}
+      {showEndModal && (
+        <BattleEndScreen
+          battle={battle}
+          userStats={{
+            rank: userRank,
+            score: userScore,
+            solvedCount: officialSolvedProblemIds.size,
+            totalProblems: problems.length,
+            accuracy: userAccuracy,
+          }}
+          onViewLeaderboard={() => {
+            setShowEndModal(false);
+            setActiveTab('leaderboard');
+          }}
+          onViewAnalytics={() => {
+            setShowEndModal(false);
+            setActiveTab('analytics');
+          }}
+          onClose={() => setShowEndModal(false)}
+        />
+      )}
 
       {/* ARENA MAIN VIEW */}
       {activeTab === 'arena' && (

@@ -3789,15 +3789,16 @@
   border: 1px solid var(--glass-border);
 }
 
-/* Battle Complete page styles */
 .battle-complete-wrapper {
-  max-width: 680px;
-  margin: var(--space-xl) auto;
-  padding: 0 var(--space-sm);
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
   display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
-  width: 100%;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  padding: var(--space-md);
   box-sizing: border-box;
 }
 
@@ -3813,6 +3814,8 @@
   align-items: center;
   gap: var(--space-lg);
   width: 100%;
+  max-width: 680px;
+  position: relative;
   box-sizing: border-box;
 }
 
