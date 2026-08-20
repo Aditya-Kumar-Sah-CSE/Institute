@@ -18,7 +18,7 @@ export default function RecentCodingActivity({ bceRecent, cfRecent }: RecentCodi
 
   const normalizedBCE = bceRecent.map(r => ({
     id: `bce-${r.id}`,
-    platform: 'BCE',
+    platform: 'Smart Learn',
     problemName: r.coding_problems?.title || r.problem_id,
     verdict: r.status === 'ACCEPTED' ? 'OK' : r.status,
     language: r.language,
@@ -37,7 +37,7 @@ export default function RecentCodingActivity({ bceRecent, cfRecent }: RecentCodi
   const allActivity = [...normalizedBCE, ...normalizedCF]
     .sort((a, b) => b.time - a.time);
 
-  const filteredActivity = allActivity.filter(a => filter === 'ALL' || a.platform.toUpperCase() === filter);
+  const filteredActivity = allActivity.filter(a => filter === 'ALL' || (filter === 'BCE' ? a.platform === 'Smart Learn' : a.platform.toUpperCase() === filter));
 
   const formatVerdict = (verdict: string) => {
     switch(verdict) {
@@ -61,7 +61,7 @@ export default function RecentCodingActivity({ bceRecent, cfRecent }: RecentCodi
 
   const filters: { key: 'ALL' | 'BCE' | 'CODEFORCES'; label: string }[] = [
     { key: 'ALL', label: 'All' },
-    { key: 'BCE', label: 'BCE' },
+    { key: 'BCE', label: 'SL' },
     { key: 'CODEFORCES', label: 'CF' },
   ];
 

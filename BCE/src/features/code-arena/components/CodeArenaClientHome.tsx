@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import CreateBattleWizard from './CreateBattleWizard';
 import MobileCodeArenaToggle from './MobileCodeArenaToggle';
+import UpcomingContestsAlert from './contests/UpcomingContestsAlert';
 import './CodeArena.css';
 
 export default function CodeArenaClientHome({
@@ -93,6 +94,7 @@ export default function CodeArenaClientHome({
 
   const cfAccount = externalAccounts?.find(a => a.platform === 'CODEFORCES');
   const lcAccount = externalAccounts?.find(a => a.platform === 'LEETCODE');
+  const ccAccount = externalAccounts?.find(a => a.platform === 'CODECHEF');
   
   const liveBattles = battles.filter((b) => b.status === 'LIVE');
   const liveBattlesCount = liveBattles.length;
@@ -127,7 +129,7 @@ export default function CodeArenaClientHome({
         <div className="hero-details">
           <div className="arena-pill-badge">
             <span className="pill-dot"></span>
-            ⚡ BCE CODE ARENA
+            ⚡ SL CODE ARENA
           </div>
           <h1 className="hero-main-title">Compete. Solve. Improve.</h1>
 
@@ -164,6 +166,9 @@ export default function CodeArenaClientHome({
           </div>
         </div>
       </div>
+
+      {/* 3. Upcoming & Live Contests Alert (CodeChef, Codeforces, LeetCode) */}
+      <UpcomingContestsAlert />
 
       {/* Removed Quick Actions Cards row */}
 
@@ -432,8 +437,16 @@ export default function CodeArenaClientHome({
 
             <div className="stats-list-box">
               <div className="stat-list-item">
-                <span className="lbl">BCE Solved</span>
+                <span className="lbl">SL Solved</span>
                 <span className="val text-neon-cyan">{bceSolved}</span>
+              </div>
+              <div className="stat-list-item">
+                <span className="lbl">CodeChef Rating</span>
+                <span className="val" style={{ color: '#f59e0b' }}>{ccAccount ? ccAccount.rating || '—' : 'Unlinked'}</span>
+              </div>
+              <div className="stat-list-item">
+                <span className="lbl">CodeChef Solved</span>
+                <span className="val" style={{ color: '#f59e0b' }}>{ccAccount ? ccAccount.problems_solved || 0 : 'Unlinked'}</span>
               </div>
               <div className="stat-list-item">
                 <span className="lbl">Codeforces Rating</span>

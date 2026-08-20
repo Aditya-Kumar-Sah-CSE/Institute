@@ -12,7 +12,7 @@ import MobileCodeArenaToggle from './MobileCodeArenaToggle';
 import Modal from '@/components/ui/Modal';
 import './CodeArena.css';
 
-const PLATFORMS = ['All', 'CODEFORCES', 'LEETCODE', 'BCE'] as const;
+const PLATFORMS = ['All', 'CODEFORCES', 'LEETCODE', 'SL'] as const;
 const DIFFICULTIES = ['All', 'EASY', 'MEDIUM', 'HARD'] as const;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -70,7 +70,7 @@ export default function ProblemHubClient({ userId }: { userId: string }) {
       const params = new URLSearchParams();
       if (searchVal) params.set('q', searchVal);
       if (platformVal && platformVal !== 'All') {
-        params.set('platform', platformVal === 'BCE' ? 'INTERNAL' : platformVal);
+        params.set('platform', platformVal === 'SL' || platformVal === 'BCE' ? 'INTERNAL' : platformVal);
       }
       if (difficultyVal && difficultyVal !== 'All') params.set('difficulty', difficultyVal);
       if (tagVal) params.set('tag', tagVal);
@@ -143,7 +143,7 @@ export default function ProblemHubClient({ userId }: { userId: string }) {
           </div>
           <h1 className="hub-title">Competitive Programming Hub</h1>
           <p className="hub-subtitle">
-            Practice Codeforces, LeetCode and BCE problems directly inside BCE.
+            Practice Codeforces, LeetCode and SL problems directly inside Smart Learn.
           </p>
         </div>
         <div className="hub-hero-actions">
@@ -202,7 +202,7 @@ export default function ProblemHubClient({ userId }: { userId: string }) {
                   className={`hub-chip ${platform === p || (!platform && p === 'All') ? 'active' : ''}`}
                   onClick={() => applyFilter(p === 'All' ? '' : p, difficulty, selectedTag)}
                 >
-                  {p === 'All' ? 'All' : p === 'BCE' ? 'BCE' : p === 'CODEFORCES' ? '● CF' : '● LC'}
+                  {p === 'All' ? 'All' : p === 'SL' ? '● SL' : p === 'CODEFORCES' ? '● CF' : '● LC'}
                 </button>
               ))}
             </div>

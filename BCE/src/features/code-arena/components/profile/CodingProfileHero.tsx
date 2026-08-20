@@ -10,11 +10,12 @@ interface CodingProfileHeroProps {
   profile: Profile | null;
   codeforcesConnected: boolean;
   leetCodeConnected: boolean;
+  codechefConnected?: boolean;
   isOwnProfile?: boolean;
   dailyActivity?: Record<string, { bce: number; cf: number; lc: number; total: number }>;
 }
 
-export default function CodingProfileHero({ profile, codeforcesConnected, leetCodeConnected, isOwnProfile = true, dailyActivity }: CodingProfileHeroProps) {
+export default function CodingProfileHero({ profile, codeforcesConnected, leetCodeConnected, codechefConnected = false, isOwnProfile = true, dailyActivity }: CodingProfileHeroProps) {
   const [selectedPeriod, setSelectedPeriod] = React.useState<string>('last12');
   const [copied, setCopied] = React.useState(false);
 
@@ -133,9 +134,9 @@ export default function CodingProfileHero({ profile, codeforcesConnected, leetCo
           <p className="profile-hero-title">
             {isOwnProfile ? 'Competitive Programmer' : `Viewing ${profile?.name || 'User'}'s Coding Profile`}
           </p>
-          <p className="profile-hero-college">
+          <p className="profile-hero-college" suppressHydrationWarning>
             <span className="college-dot" />
-            BCE Bhagalpur
+            Smart Learn App
           </p>
           
           <div className="profile-hero-badges">
@@ -155,6 +156,12 @@ export default function CodingProfileHero({ profile, codeforcesConnected, leetCo
               <span className="profile-badge connection-badge lc-badge">
                 <CheckCircle2 size={14} />
                 LeetCode
+              </span>
+            )}
+            {codechefConnected && (
+              <span className="profile-badge connection-badge cc-badge" style={{ borderColor: 'rgba(245, 158, 11, 0.4)', color: '#f59e0b' }}>
+                <CheckCircle2 size={14} />
+                CodeChef
               </span>
             )}
           </div>

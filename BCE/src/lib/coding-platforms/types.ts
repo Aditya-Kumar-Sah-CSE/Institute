@@ -1,10 +1,11 @@
-export type PlatformName = 'CODEFORCES' | 'LEETCODE';
+export type PlatformName = 'CODEFORCES' | 'LEETCODE' | 'CODECHEF';
 
 export interface PlatformProblemIdentifier {
   platform: PlatformName;
-  contestId?: string; // Codeforces contestId (e.g., "4")
+  contestId?: string; // Codeforces contestId (e.g., "4") or CodeChef contest code (e.g., "START100")
   problemIndex?: string; // Codeforces problemIndex (e.g., "A")
   slug?: string; // LeetCode title slug (e.g., "two-sum")
+  codechefCode?: string; // CodeChef problem code (e.g., "FLOW001")
   rawInput: string;
 }
 

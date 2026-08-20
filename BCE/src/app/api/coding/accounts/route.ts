@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCodeArenaActor } from '@/features/code-arena/server';
+import { fetchCodeChefUserProfile } from '@/lib/coding-platforms/codechef';
 
 export async function GET() {
   const { supabase, user } = await getCodeArenaActor();
@@ -7,7 +8,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from('student_external_accounts')
-    .select('id,platform,username,profile_url,rating,max_rating,rank,problems_solved,easy_solved,medium_solved,hard_solved,is_public,last_synced_at')
+    .select('id,platform,username,profile_url,rating,max_rating,rank,problems_solved,easy_solved,medium_solved,hard_solved,is_public,last_synced_at,metadata')
     .eq('student_id', user.id);
 
   return error
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
 
   const { platform, username, isPublic = false } = await request.json();
 
-  if (!['CODEFORCES', 'LEETCODE'].includes(platform) || !String(username || '').match(/^[A-Za-z0-9_-]{1,64}$/)) {
+  if (!['CODEFORCES', 'LEETCODE', 'CODECHEF'].includes(platform) || !String(username || '').match(/^[A-Za-z0-9_-]{1,64}$/)) {
     return NextResponse.json({ error: 'Enter a valid public handle.' }, { status: 400 });
   }
 
@@ -121,6 +122,41 @@ export async function POST(request: Request) {
         hard_solved: hardSolved,
         is_public: Boolean(isPublic),
         last_synced_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase
+        .from('student_external_accounts')
+        .upsert(data, { onConflict: 'student_id,platform' });
+
+      return error
+        ? NextResponse.json({ error: error.message }, { status: 400 })
+        : NextResponse.json({ data });
+    }
+
+    if (platform === 'CODECHEF') {
+      const ccProfile = await fetchCodeChefUserProfile(username);
+
+      const data = {
+        student_id: user.id,
+        platform: 'CODECHEF',
+        username: ccProfile.handle,
+        external_user_id: ccProfile.handle,
+        profile_url: ccProfile.profileUrl,
+        rating: ccProfile.rating,
+        max_rating: ccProfile.maxRating,
+        rank: ccProfile.starsLabel,
+        problems_solved: ccProfile.totalSolved,
+        easy_solved: ccProfile.easySolved,
+        medium_solved: ccProfile.mediumSolved,
+        hard_solved: ccProfile.hardSolved,
+        is_public: Boolean(isPublic),
+        last_synced_at: new Date().toISOString(),
+        metadata: {
+          stars: ccProfile.stars,
+          stars_label: ccProfile.starsLabel,
+          global_rank: ccProfile.globalRank,
+          country_rank: ccProfile.countryRank,
+        },
       };
 
       const { error } = await supabase

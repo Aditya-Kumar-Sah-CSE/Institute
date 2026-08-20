@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCodeArenaActor } from '@/features/code-arena/server';
+import { fetchCodeChefUserProfile } from '@/lib/coding-platforms/codechef';
 
 export async function POST(_: Request, { params }: { params: Promise<{ platform: string }> }) {
   try {
@@ -8,7 +9,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
     const { supabase, user } = await getCodeArenaActor();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    if (platformUpper !== 'CODEFORCES' && platformUpper !== 'LEETCODE') {
+    if (platformUpper !== 'CODEFORCES' && platformUpper !== 'LEETCODE' && platformUpper !== 'CODECHEF') {
       return NextResponse.json({ error: 'Unsupported platform.' }, { status: 400 });
     }
 
@@ -25,6 +26,52 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
     }
 
     const handle = account.username;
+
+    // ==================== CODECHEF SYNC ====================
+    if (platformUpper === 'CODECHEF') {
+      const ccProfile = await fetchCodeChefUserProfile(handle);
+
+      const existingMetadata = account.metadata || {};
+      const { error: updateError } = await supabase
+        .from('student_external_accounts')
+        .update({
+          rating: ccProfile.rating,
+          max_rating: ccProfile.maxRating,
+          rank: ccProfile.starsLabel,
+          problems_solved: ccProfile.totalSolved,
+          easy_solved: ccProfile.easySolved,
+          medium_solved: ccProfile.mediumSolved,
+          hard_solved: ccProfile.hardSolved,
+          last_synced_at: new Date().toISOString(),
+          metadata: {
+            ...existingMetadata,
+            stars: ccProfile.stars,
+            stars_label: ccProfile.starsLabel,
+            global_rank: ccProfile.globalRank,
+            country_rank: ccProfile.countryRank,
+          },
+        })
+        .eq('id', account.id);
+
+      if (updateError) {
+        return NextResponse.json({ error: 'Sync completed but failed to save. Try again.' }, { status: 500 });
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          handle,
+          rating: ccProfile.rating,
+          maxRating: ccProfile.maxRating,
+          rank: ccProfile.starsLabel,
+          problemsSolved: ccProfile.totalSolved,
+          easySolved: ccProfile.easySolved,
+          mediumSolved: ccProfile.mediumSolved,
+          hardSolved: ccProfile.hardSolved,
+          syncedAt: new Date().toISOString(),
+        },
+      });
+    }
 
     // ==================== LEETCODE SYNC ====================
     if (platformUpper === 'LEETCODE') {

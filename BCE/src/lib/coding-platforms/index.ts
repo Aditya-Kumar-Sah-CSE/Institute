@@ -1,10 +1,12 @@
 import { codeforcesAdapter } from './codeforces';
 import { leetcodeAdapter } from './leetcode';
+import { codechefAdapter } from './codechef';
 import type { CodingPlatformAdapter, ExternalProblem, PlatformName, PlatformProblemIdentifier } from './types';
 
 const adapters: Record<PlatformName, CodingPlatformAdapter> = {
   CODEFORCES: codeforcesAdapter,
   LEETCODE: leetcodeAdapter,
+  CODECHEF: codechefAdapter,
 };
 
 /**
@@ -47,9 +49,10 @@ export function validateAndNormalizeInput(rawInput: string, preferredPlatform?: 
       // Check allowed whitelisted domains
       const isCodeforces = hostname === 'codeforces.com' || hostname.endsWith('.codeforces.com');
       const isLeetCode = hostname === 'leetcode.com' || hostname.endsWith('.leetcode.com');
+      const isCodeChef = hostname === 'codechef.com' || hostname.endsWith('.codechef.com');
 
-      if (!isCodeforces && !isLeetCode) {
-        throw new Error('Only official Codeforces (codeforces.com) and LeetCode (leetcode.com) URLs are supported.');
+      if (!isCodeforces && !isLeetCode && !isCodeChef) {
+        throw new Error('Only official Codeforces, LeetCode, and CodeChef URLs are supported.');
       }
 
       if (isCodeforces) {
@@ -59,6 +62,11 @@ export function validateAndNormalizeInput(rawInput: string, preferredPlatform?: 
 
       if (isLeetCode) {
         const parsed = leetcodeAdapter.parseIdentifier(trimmed);
+        if (parsed) return parsed;
+      }
+
+      if (isCodeChef) {
+        const parsed = codechefAdapter.parseIdentifier(trimmed);
         if (parsed) return parsed;
       }
     } catch (err: any) {
@@ -79,7 +87,10 @@ export function validateAndNormalizeInput(rawInput: string, preferredPlatform?: 
   const lcParsed = leetcodeAdapter.parseIdentifier(trimmed);
   if (lcParsed) return lcParsed;
 
-  throw new Error('Could not identify problem platform. Use format like 4A for Codeforces or 1 / two-sum for LeetCode.');
+  const ccParsed = codechefAdapter.parseIdentifier(trimmed);
+  if (ccParsed) return ccParsed;
+
+  throw new Error('Could not identify problem platform. Use format like 4A for Codeforces, two-sum for LeetCode, or FLOW001 for CodeChef.');
 }
 
 /**

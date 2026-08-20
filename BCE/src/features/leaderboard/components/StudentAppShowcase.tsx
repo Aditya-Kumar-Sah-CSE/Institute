@@ -158,7 +158,7 @@ export default function StudentAppShowcase({
             <Rocket className="text-neon-cyan" size={22} /> Innovation Hub & Apps
           </h2>
           <p className="text-secondary text-sm" style={{ margin: '4px 0 0 0' }}>
-            Showcasing working projects, full-stack websites, and apps developed by BCE students.
+            Showcasing working projects, full-stack websites, and apps developed by Smart Learn students.
           </p>
         </div>
         <Button variant="primary" onClick={() => setShowSubmitModal(true)}>

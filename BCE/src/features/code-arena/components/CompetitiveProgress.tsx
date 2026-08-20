@@ -25,6 +25,7 @@ export default function CompetitiveProgress({
   accounts: AccountData[];
 }) {
   const cf = accounts.find((a) => a.platform === 'CODEFORCES');
+  const cc = accounts.find((a) => a.platform === 'CODECHEF');
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
@@ -39,7 +40,7 @@ export default function CompetitiveProgress({
             <div className="progress-icon" style={{ background: 'rgba(6,182,212,0.15)', color: '#22d3ee' }}>
               <Code2 size={18} />
             </div>
-            <span className="progress-platform">BCE Code Arena</span>
+            <span className="progress-platform">Smart Learn Code Arena</span>
           </div>
           <div className="progress-stats">
             <div className="progress-stat-item">
@@ -84,6 +85,37 @@ export default function CompetitiveProgress({
           ) : (
             <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: 0 }}>
               Connect your Codeforces handle in Profile → Connected Accounts.
+            </p>
+          )}
+        </div>
+
+        {/* CodeChef Stats */}
+        <div className="progress-card">
+          <div className="progress-card-header">
+            <div className="progress-icon" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>
+              <Star size={18} />
+            </div>
+            <span className="progress-platform">CodeChef</span>
+            {cc ? (
+              <span style={{ fontSize: '10px', color: '#4ade80', marginLeft: 'auto' }}>● Connected</span>
+            ) : (
+              <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginLeft: 'auto' }}>○ Not connected</span>
+            )}
+          </div>
+          {cc ? (
+            <div className="progress-stats">
+              <div className="progress-stat-item">
+                <span className="progress-stat-number" style={{ color: '#f59e0b' }}>{cc.rating ?? '—'}</span>
+                <span className="progress-stat-label">Rating</span>
+              </div>
+              <div className="progress-stat-item">
+                <span className="progress-stat-number" style={{ color: '#4ade80' }}>{cc.problems_solved ?? 0}</span>
+                <span className="progress-stat-label">Solved</span>
+              </div>
+            </div>
+          ) : (
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: 0 }}>
+              Connect your CodeChef handle in Profile → Connected Accounts.
             </p>
           )}
         </div>

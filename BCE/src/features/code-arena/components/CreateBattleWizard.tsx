@@ -632,7 +632,7 @@ export default function CreateBattleWizard({
                       variant={problemSource === 'INTERNAL' ? 'primary' : 'secondary'}
                       onClick={() => setProblemSource('INTERNAL')}
                     >
-                      <BookOpen size={14} /> Internal BCE
+                      <BookOpen size={14} /> Internal SL
                     </Button>
                     <Button
                       type="button"

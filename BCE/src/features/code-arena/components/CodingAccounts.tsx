@@ -173,7 +173,7 @@ export default function CodingAccounts({ initial }: { initial: Account[] }) {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
             <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: 0 }}>
-              Connect your public Codeforces handle. BCE never requests passwords or private data.
+              Connect your public Codeforces handle. Smart Learn never requests passwords or private data.
             </p>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               <input
@@ -257,7 +257,7 @@ export default function CodingAccounts({ initial }: { initial: Account[] }) {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
             <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: 0 }}>
-              Connect your public LeetCode username. BCE uses LeetCode&apos;s public API — no passwords or cookies needed.
+              Connect your public LeetCode username. Smart Learn uses LeetCode&apos;s public API — no passwords or cookies needed.
             </p>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               <input

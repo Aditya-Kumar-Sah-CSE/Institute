@@ -4,6 +4,7 @@ import CodingProfileHero from '@/features/code-arena/components/profile/CodingPr
 import CompetitiveOverview from '@/features/code-arena/components/profile/CompetitiveOverview';
 import CodeforcesProfileCard from '@/features/code-arena/components/profile/CodeforcesProfileCard';
 import LeetCodeProfileCard from '@/features/code-arena/components/profile/LeetCodeProfileCard';
+import CodeChefProfileCard from '@/features/code-arena/components/profile/CodeChefProfileCard';
 import RecentCodingActivity from '@/features/code-arena/components/profile/RecentCodingActivity';
 import MobileCodeArenaToggle from '@/features/code-arena/components/MobileCodeArenaToggle';
 import '@/features/code-arena/components/CodeArena.css';
@@ -43,7 +44,8 @@ export default async function CodingProfilePage({ searchParams }: { searchParams
 
   const cfAccount = accounts?.find(a => a.platform === 'CODEFORCES');
   const lcAccount = accounts?.find(a => a.platform === 'LEETCODE');
-  
+  const ccAccount = accounts?.find(a => a.platform === 'CODECHEF');
+
   // Total Submissions from BCE to merge into activity
   const { data: bceSubmissions } = await supabase
     .from('coding_submissions')
@@ -102,6 +104,7 @@ export default async function CodingProfilePage({ searchParams }: { searchParams
         profile={profile} 
         codeforcesConnected={!!cfAccount}
         leetCodeConnected={!!lcAccount}
+        codechefConnected={!!ccAccount}
         isOwnProfile={isOwnProfile}
         dailyActivity={dailyActivity}
       />
@@ -113,9 +116,13 @@ export default async function CodingProfilePage({ searchParams }: { searchParams
             streak={profile?.streak_days || 0}
             cfRating={cfAccount?.rating || null}
             lcSolved={lcAccount?.problems_solved || null}
+            ccRating={ccAccount?.rating || null}
+            ccMaxRating={ccAccount?.max_rating || null}
+            ccStars={ccAccount?.metadata?.stars || null}
           />
           
           <div className="platform-cards-grid">
+            <CodeChefProfileCard account={ccAccount} isOwnProfile={isOwnProfile} />
             <CodeforcesProfileCard account={cfAccount} isOwnProfile={isOwnProfile} />
             <LeetCodeProfileCard account={lcAccount} isOwnProfile={isOwnProfile} />
           </div>

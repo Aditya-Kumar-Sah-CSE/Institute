@@ -20,17 +20,18 @@ export interface ProblemCardData {
 }
 
 function PlatformBadge({ platform }: { platform: string | null | undefined }) {
-  const label = platform || 'BCE';
+  const label = platform || 'SL';
   const colors: Record<string, { bg: string; color: string; border: string }> = {
     CODEFORCES: { bg: 'rgba(59,130,246,0.1)', color: '#60a5fa', border: 'rgba(59,130,246,0.25)' },
     LEETCODE: { bg: 'rgba(234,179,8,0.1)', color: '#facc15', border: 'rgba(234,179,8,0.25)' },
+    SL: { bg: 'rgba(6,182,212,0.1)', color: '#22d3ee', border: 'rgba(6,182,212,0.25)' },
     BCE: { bg: 'rgba(6,182,212,0.1)', color: '#22d3ee', border: 'rgba(6,182,212,0.25)' },
     INTERNAL: { bg: 'rgba(6,182,212,0.1)', color: '#22d3ee', border: 'rgba(6,182,212,0.25)' },
   };
-  const c = colors[label] || colors.BCE;
+  const c = colors[label] || colors.SL;
   return (
     <span className="platform-badge-pill" style={{ background: c.bg, color: c.color, border: `1px solid ${c.border}` }}>
-      ● {label === 'INTERNAL' ? 'BCE' : label}
+      ● {label === 'INTERNAL' || label === 'BCE' ? 'SL' : label}
     </span>
   );
 }
@@ -104,7 +105,7 @@ export default function ProblemCard({ problem }: { problem: ProblemCardData }) {
           href={`/code-arena/problems/${problem.id}`}
           className="hub-solve-btn"
         >
-          <Code2 size={13} /> Solve in BCE
+          <Code2 size={13} /> Solve in SL
         </Link>
         {problem.external_url && (
           <a
