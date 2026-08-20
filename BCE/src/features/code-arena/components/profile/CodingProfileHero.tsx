@@ -136,11 +136,11 @@ export default function CodingProfileHero({ profile, codeforcesConnected, leetCo
         gap: '8px',
         background: 'rgba(255, 255, 255, 0.01)',
         border: '1px solid rgba(255, 255, 255, 0.05)',
-        padding: '10px 14px',
+        padding: '12px 16px',
         borderRadius: 'var(--radius-lg)',
-        maxWidth: '520px',
+        maxWidth: '750px',
         width: '100%',
-        margin: '0 auto',
+        margin: '0 20px',
         overflowX: 'auto',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
@@ -158,7 +158,7 @@ export default function CodingProfileHero({ profile, codeforcesConnected, leetCo
         </div>
 
         {/* Contribution Calendar Grid */}
-        <div className="contribution-calendar-grid" style={{ display: 'flex', gap: '3px', minWidth: '450px' }}>
+        <div className="contribution-calendar-grid" style={{ display: 'flex', gap: '4px', minWidth: '450px' }}>
           {weeks.map((week, wIdx) => {
             // Find month label if it's the start of a month
             const firstCell = week.find(c => c !== undefined);
@@ -166,13 +166,13 @@ export default function CodingProfileHero({ profile, codeforcesConnected, leetCo
             const monthName = firstCell ? firstCell.dateObj.toLocaleString('default', { month: 'short' }) : '';
 
             return (
-              <div key={wIdx} style={{ display: 'flex', flexDirection: 'column', gap: '3px', position: 'relative' }}>
+              <div key={wIdx} style={{ display: 'flex', flexDirection: 'column', gap: '4px', position: 'relative' }}>
                 {showMonthLabel && (
                   <span style={{
                     position: 'absolute',
-                    top: '-14px',
+                    top: '-15px',
                     left: '0',
-                    fontSize: '8px',
+                    fontSize: '8.5px',
                     color: 'var(--text-muted)',
                     fontWeight: 700,
                     whiteSpace: 'nowrap'
@@ -184,7 +184,7 @@ export default function CodingProfileHero({ profile, codeforcesConnected, leetCo
                 {Array.from({ length: 7 }).map((_, dIdx) => {
                   const cell = week[dIdx];
                   if (!cell) {
-                    return <div key={dIdx} style={{ width: '8px', height: '8px', opacity: 0 }} />;
+                    return <div key={dIdx} style={{ width: '10px', height: '10px', opacity: 0 }} />;
                   }
 
                   // Compute background color based on activity
@@ -205,9 +205,9 @@ export default function CodingProfileHero({ profile, codeforcesConnected, leetCo
                       key={dIdx}
                       className="calendar-cell"
                       style={{
-                        width: '8px',
-                        height: '8px',
-                        borderRadius: '1.5px',
+                        width: '10px',
+                        height: '10px',
+                        borderRadius: '2px',
                         background: bgColor,
                         border: borderStyle,
                         cursor: 'pointer',
@@ -268,7 +268,14 @@ export default function CodingProfileHero({ profile, codeforcesConnected, leetCo
         }
       `}</style>
       
-      <div className="profile-hero-actions">
+      <div className="profile-hero-actions" style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
+        minWidth: '150px',
+        alignItems: 'stretch',
+        justifyContent: 'center',
+      }}>
         {isOwnProfile ? (
           <>
             <button 
@@ -280,23 +287,55 @@ export default function CodingProfileHero({ profile, codeforcesConnected, leetCo
                 color: copied ? '#22c55e' : 'var(--text-main)',
                 display: 'inline-flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: '6px',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                padding: '6px 12px',
+                fontSize: '11px',
+                height: '32px',
+                width: '100%',
               }}
             >
-              {copied ? 'Copied Link! ✓' : 'Share Profile 🔗'}
+              {copied ? 'Copied! ✓' : 'Share Profile 🔗'}
             </button>
-            <Link href="/code-arena/problems" className="hero-action-btn primary">
-              <TerminalSquare size={18} />
+            <Link href="/code-arena/problems" className="hero-action-btn primary" style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              fontSize: '11px',
+              height: '32px',
+              width: '100%',
+            }}>
+              <TerminalSquare size={13} />
               Problem Hub
             </Link>
-            <Link href="/code-arena" className="hero-action-btn secondary">
-              <Swords size={18} />
+            <Link href="/code-arena" className="hero-action-btn secondary" style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              fontSize: '11px',
+              height: '32px',
+              width: '100%',
+            }}>
+              <Swords size={13} />
               Coding Battles
             </Link>
           </>
         ) : (
-          <Link href="/code-arena/profile" className="hero-action-btn primary">
+          <Link href="/code-arena/profile" className="hero-action-btn primary" style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            padding: '6px 12px',
+            fontSize: '11px',
+            height: '32px',
+            width: '100%',
+          }}>
             Back to My Profile
           </Link>
         )}
