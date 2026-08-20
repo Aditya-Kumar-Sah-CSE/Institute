@@ -169,3 +169,16 @@
     box-shadow: var(--shadow-sm) !important;
   }
 }
+
+/* ─── Stack polls in right column ─── */
+@media (min-width: 769px) {
+  .polls-desktop-col-right .polls-flex {
+    flex-direction: column !important;
+  }
+  
+  .polls-desktop-col-right .polls-flex > * {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}

@@ -113,6 +113,12 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
 
   return (
     <div className="course-detail-page">
+      <div>
+        <Link href="/courses" style={{ color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '6px', marginBottom: 'var(--space-md)', fontSize: 'var(--text-sm)', textDecoration: 'none', transition: 'color 0.2s' }}>
+          ← Back to Courses
+        </Link>
+      </div>
+
       <div className="course-interactions-row" style={{ display: 'block' }}>
         <div className="course-interaction-col">
           <CoursePollsSection 

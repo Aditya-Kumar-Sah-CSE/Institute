@@ -46,20 +46,21 @@ export default async function CoursePollsSection({ courseId, currentUserId, isEn
           </div>
         )}
 
-        {/* Right column: Course Polls creation */}
+        {/* Right column: Course Polls creation & List */}
         <div className={`polls-desktop-col-right ${!canAlert ? 'polls-desktop-col-full' : ''}`}>
           <CreatePollWidget courseId={courseId} />
+          
+          {hasPollContent ? (
+            <div style={{ marginTop: 'var(--space-md)' }}>
+              <CoursePollsClient polls={polls} currentUserId={currentUserId} isFaculty={isFaculty} />
+            </div>
+          ) : (
+            <div style={{ padding: 'var(--space-lg)', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(255,255,255,0.05)', marginTop: 'var(--space-md)' }}>
+              <p style={{ color: 'var(--text-muted)', margin: 0 }}>No active polls for this course.</p>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Full-width: Poll results list (Active/Ended tabs) */}
-      {hasPollContent ? (
-        <CoursePollsClient polls={polls} currentUserId={currentUserId} isFaculty={isFaculty} />
-      ) : (
-        <div style={{ padding: 'var(--space-lg)', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(255,255,255,0.05)' }}>
-          <p style={{ color: 'var(--text-muted)' }}>No active polls for this course.</p>
-        </div>
-      )}
     </div>
   );
 }
