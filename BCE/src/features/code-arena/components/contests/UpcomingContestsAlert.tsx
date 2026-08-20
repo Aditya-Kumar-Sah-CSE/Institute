@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Bell, ExternalLink, Timer, Radio, Calendar, RefreshCw, MoreVertical, ChefHat, BarChart3, Code2, Trophy, Globe, Zap } from 'lucide-react';
+import { Bell, ExternalLink, Timer, Radio, Calendar, RefreshCw, MoreVertical, ChefHat, BarChart3, Code2, Trophy, Globe, Zap, CheckCircle2 } from 'lucide-react';
 import type { UnifiedContest } from '@/app/api/coding/contests/route';
 
 export function formatTimeRemaining(targetTimeMs: number): string {
@@ -29,7 +29,33 @@ export default function UpcomingContestsAlert({ initialExpand = false }: Upcomin
   const [loading, setLoading] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<'ALL' | 'CODECHEF' | 'CODEFORCES' | 'LEETCODE'>('ALL');
+  const [registeredIds, setRegisteredIds] = useState<string[]>([]);
   const [, setNowTick] = useState(Date.now());
+
+  // Load registered contests from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('sl_registered_contests');
+      if (saved) {
+        setRegisteredIds(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.warn('Failed to load registered contests:', e);
+    }
+  }, []);
+
+  const handleRegister = (cId: string, url: string) => {
+    if (!registeredIds.includes(cId)) {
+      const updated = [...registeredIds, cId];
+      setRegisteredIds(updated);
+      try {
+        localStorage.setItem('sl_registered_contests', JSON.stringify(updated));
+      } catch (e) {
+        console.warn('Failed to save registered contest:', e);
+      }
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
   const fetchContests = async () => {
     try {
@@ -218,6 +244,7 @@ export default function UpcomingContestsAlert({ initialExpand = false }: Upcomin
             const badge = getPlatformBadge(c.platform);
             const isLive = c.status === 'LIVE' || Date.now() >= c.startTime && Date.now() <= c.endTime;
             const isStartingSoon = c.status === 'STARTING_SOON' || (!isLive && c.startTime - Date.now() <= 3 * 3600 * 1000);
+            const isRegistered = registeredIds.includes(c.id);
 
             return (
               <div
@@ -265,7 +292,7 @@ export default function UpcomingContestsAlert({ initialExpand = false }: Upcomin
                         borderRadius: '12px',
                         animation: 'pulse 1.5s infinite',
                       }}>
-                        <Radio size={12} /> 🔴 LIVE NOW
+                        <Radio size={12} /> LIVE NOW
                       </span>
                     ) : isStartingSoon ? (
                       <span style={{
@@ -279,7 +306,7 @@ export default function UpcomingContestsAlert({ initialExpand = false }: Upcomin
                         padding: '2px 8px',
                         borderRadius: '12px',
                       }}>
-                        ⚡ STARTING SOON
+                        <Zap size={12} /> STARTING SOON
                       </span>
                     ) : (
                       <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
@@ -300,10 +327,8 @@ export default function UpcomingContestsAlert({ initialExpand = false }: Upcomin
                   </div>
                 </div>
 
-                <a
-                  href={c.registerUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={() => handleRegister(c.id, c.registerUrl)}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -313,15 +338,31 @@ export default function UpcomingContestsAlert({ initialExpand = false }: Upcomin
                     borderRadius: '6px',
                     fontSize: '12px',
                     fontWeight: 700,
-                    textDecoration: 'none',
-                    background: isLive ? 'linear-gradient(90deg, #ef4444, #dc2626)' : 'var(--neon-emerald)',
-                    color: isLive ? '#fff' : '#000',
-                    transition: 'opacity 0.2s ease',
+                    cursor: 'pointer',
+                    background: isRegistered
+                      ? 'rgba(34, 197, 94, 0.18)'
+                      : isLive
+                      ? 'linear-gradient(90deg, #ef4444, #dc2626)'
+                      : 'var(--neon-emerald)',
+                    color: isRegistered ? '#22c55e' : isLive ? '#fff' : '#000',
+                    border: isRegistered ? '1px solid rgba(34, 197, 94, 0.4)' : 'none',
+                    transition: 'all 0.2s ease',
                   }}
                 >
-                  {isLive ? '🔴 Enter Live Contest' : 'Register Now'}
-                  <ExternalLink size={13} />
-                </a>
+                  {isRegistered ? (
+                    <>
+                      <CheckCircle2 size={14} /> Registered ✓
+                    </>
+                  ) : isLive ? (
+                    <>
+                      <Radio size={13} className="animate-pulse" /> Enter Live Contest
+                    </>
+                  ) : (
+                    <>
+                      Register Now <ExternalLink size={13} />
+                    </>
+                  )}
+                </button>
               </div>
             );
           })}
