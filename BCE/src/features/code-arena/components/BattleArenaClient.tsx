@@ -96,7 +96,6 @@ export default function BattleArenaClient({
 
   const [mySubmissions, setMySubmissions] = useState<any[]>([]);
   const [showEndModal, setShowEndModal] = useState(false);
-  const [hasShownEndModal, setHasShownEndModal] = useState(false);
   const [copied, setCopied] = useState(false);
 
   // Synchronized Clock & Virtual Practice States
@@ -184,16 +183,7 @@ export default function BattleArenaClient({
     loadSubmissions();
   }, [battle.id]);
 
-  // 4. Show results screen on mount if battle is already completed and user was a participant
-  useEffect(() => {
-    if (battle.status === 'COMPLETED' && !isVirtualPractice && !hasShownEndModal) {
-      const isParticipant = participants.some((p) => (p.student_id || p.profiles?.id) === currentUser?.id);
-      if (isParticipant) {
-        setShowEndModal(true);
-        setHasShownEndModal(true);
-      }
-    }
-  }, [battle.status, participants, currentUser, isVirtualPractice, hasShownEndModal]);
+
 
   // Helper to load or derive draft code partitioned by user + battle + problem + language
   const getSaveKey = (probId: string, lang: CodeLanguage) => {
@@ -579,8 +569,6 @@ export default function BattleArenaClient({
                 alert('Virtual practice session has expired! You can still submit and test solution drafts.');
               } else {
                 setBattle((prev: any) => ({ ...prev, status: 'COMPLETED' }));
-                setShowEndModal(true);
-                setHasShownEndModal(true);
               }
             }}
           />
