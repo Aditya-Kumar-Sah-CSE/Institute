@@ -104,7 +104,8 @@ export default function UpcomingContestsAlert({ initialExpand = false }: Upcomin
         body: JSON.stringify({
           platform: c.platform,
           contestId: c.id,
-          status: 'pending_verification'
+          status: 'pending_verification',
+          endTime: c.endTime
         })
       });
     } catch (e) {
@@ -127,7 +128,8 @@ export default function UpcomingContestsAlert({ initialExpand = false }: Upcomin
         body: JSON.stringify({
           platform: c.platform,
           contestId: c.id,
-          userConfirmed: true
+          userConfirmed: true,
+          endTime: c.endTime
         })
       });
 

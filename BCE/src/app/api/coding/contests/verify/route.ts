@@ -6,11 +6,13 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
-    const { platform, contestId, userConfirmed = false } = await request.json();
+    const { platform, contestId, userConfirmed = false, endTime } = await request.json();
 
     if (!platform || !contestId) {
       return NextResponse.json({ error: 'Missing platform or contestId' }, { status: 400 });
     }
+
+    const formattedEndTime = endTime ? new Date(Number(endTime)).toISOString() : null;
 
     // 1. Fetch user's linked handle for platform from student_external_accounts
     const { data: extAccount } = await supabase
@@ -56,6 +58,7 @@ export async function POST(request: Request) {
           contest_id: contestId,
           registered: false,
           status: 'failed',
+          end_time: formattedEndTime,
           updated_at: new Date().toISOString()
         }, { onConflict: 'user_id,platform,contest_id' });
 
@@ -66,7 +69,7 @@ export async function POST(request: Request) {
       });
     }
 
-    // 4. Update database record with verified status
+    // 4. Update database record with verified status and end_time
     const verifiedAt = new Date().toISOString();
     const { data, error } = await supabase
       .from('contest_registrations')
@@ -76,6 +79,7 @@ export async function POST(request: Request) {
         contest_id: contestId,
         registered: true,
         status: 'verified',
+        end_time: formattedEndTime,
         verified_at: verifiedAt,
         updated_at: verifiedAt
       }, { onConflict: 'user_id,platform,contest_id' })
@@ -97,6 +101,7 @@ export async function POST(request: Request) {
         contest_id: contestId,
         registered: true,
         status: 'verified',
+        end_time: formattedEndTime,
         verified_at: verifiedAt
       }
     });
