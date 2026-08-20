@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Bell, ExternalLink, Timer, Radio, Calendar, RefreshCw, MoreVertical, ChevronDown } from 'lucide-react';
+import { Bell, ExternalLink, Timer, Radio, Calendar, RefreshCw, MoreVertical, ChefHat, BarChart3, Code2, Trophy, Globe, Zap } from 'lucide-react';
 import type { UnifiedContest } from '@/app/api/coding/contests/route';
 
 export function formatTimeRemaining(targetTimeMs: number): string {
@@ -78,13 +78,13 @@ export default function UpcomingContestsAlert({ initialExpand = false }: Upcomin
   const getPlatformBadge = (platform: string) => {
     switch (platform) {
       case 'CODECHEF':
-        return { name: 'CodeChef', icon: '👨‍🍳', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.4)' };
+        return { name: 'CodeChef', icon: <ChefHat size={13} />, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.4)' };
       case 'CODEFORCES':
-        return { name: 'Codeforces', icon: '📊', color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.15)', border: 'rgba(56, 189, 248, 0.4)' };
+        return { name: 'Codeforces', icon: <BarChart3 size={13} />, color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.15)', border: 'rgba(56, 189, 248, 0.4)' };
       case 'LEETCODE':
-        return { name: 'LeetCode', icon: '💻', color: '#ffa116', bg: 'rgba(255, 161, 22, 0.15)', border: 'rgba(255, 161, 22, 0.4)' };
+        return { name: 'LeetCode', icon: <Code2 size={13} />, color: '#ffa116', bg: 'rgba(255, 161, 22, 0.15)', border: 'rgba(255, 161, 22, 0.4)' };
       default:
-        return { name: platform, icon: '🏆', color: 'var(--neon-cyan)', bg: 'rgba(6, 182, 212, 0.15)', border: 'rgba(6, 182, 212, 0.4)' };
+        return { name: platform, icon: <Trophy size={13} />, color: 'var(--neon-cyan)', bg: 'rgba(6, 182, 212, 0.15)', border: 'rgba(6, 182, 212, 0.4)' };
     }
   };
 
@@ -194,7 +194,15 @@ export default function UpcomingContestsAlert({ initialExpand = false }: Upcomin
                   textAlign: 'center',
                 }}
               >
-                {plt === 'ALL' ? 'All' : plt === 'CODECHEF' ? '👨‍🍳 CodeChef' : plt === 'CODEFORCES' ? '📊 Codeforces' : '💻 LeetCode'}
+                {plt === 'ALL' ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Globe size={13} /> All</span>
+                ) : plt === 'CODECHEF' ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><ChefHat size={13} /> CodeChef</span>
+                ) : plt === 'CODEFORCES' ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><BarChart3 size={13} /> Codeforces</span>
+                ) : (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Code2 size={13} /> LeetCode</span>
+                )}
               </button>
             ))}
           </div>

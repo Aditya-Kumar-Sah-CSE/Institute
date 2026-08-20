@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, ExternalLink, CheckCircle2, TrendingUp, Target, Award, Key, Unlink, Star } from 'lucide-react';
+import { RefreshCw, ExternalLink, CheckCircle2, TrendingUp, Target, Award, Key, Unlink, Star, ChefHat } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function CodeChefProfileCard({ account, isOwnProfile = true }: { account: any; isOwnProfile?: boolean }) {
@@ -94,7 +94,7 @@ export default function CodeChefProfileCard({ account, isOwnProfile = true }: { 
         <div className="platform-header">
           <div className="platform-title">
             <div className="platform-icon-badge cc-icon" style={{ background: 'rgba(217, 119, 6, 0.2)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.4)' }}>
-              👨‍🍳
+              <ChefHat size={18} />
             </div>
             <h3>CodeChef</h3>
           </div>
@@ -178,7 +178,7 @@ export default function CodeChefProfileCard({ account, isOwnProfile = true }: { 
       <div className="platform-header">
         <div className="platform-title">
           <div className="platform-icon-badge cc-icon" style={{ background: 'rgba(245, 158, 11, 0.2)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.4)' }}>
-            👨‍🍳
+            <ChefHat size={18} />
           </div>
           <div className="platform-title-info">
             <h3>CodeChef</h3>
