@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import Image from 'next/image';
-import { User } from 'lucide-react';
+import { User, BarChart3 } from 'lucide-react';
 
 interface Faculty {
   id: string;
@@ -23,13 +23,16 @@ export default function FacultySection({ faculty }: FacultySectionProps) {
 
   if (!faculty || faculty.length === 0) return null;
 
-  const displayedFaculty = showAll ? faculty : faculty.slice(0, 1);
+  const displayedFaculty = showAll ? faculty : faculty.slice(0, 5);
 
   return (
     <div style={{ marginBottom: 'var(--space-2xl)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
-        <h2 style={{ fontSize: 'var(--text-2xl)', margin: 0 }}>Meet Your Faculty</h2>
-        {faculty.length > 1 && (
+        <h2 style={{ fontSize: 'var(--text-2xl)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <BarChart3 size={24} style={{ color: 'var(--neon-cyan)' }} />
+          Meet Your Faculty
+        </h2>
+        {faculty.length > 5 && (
           <button 
             onClick={() => setShowAll(!showAll)}
             style={{ 
@@ -41,7 +44,7 @@ export default function FacultySection({ faculty }: FacultySectionProps) {
               fontWeight: 'var(--weight-semibold)'
             }}
           >
-            {showAll ? 'Show Less' : 'Meet All'}
+            {showAll ? 'Show Less' : 'Show More'}
           </button>
         )}
       </div>

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import { 
   Swords, Plus, Code2, Trophy, ArrowRight, 
-  User, Flame, CheckCircle2, Circle, Activity
+  User, Flame, CheckCircle2, Circle, Activity, Trash2
 } from 'lucide-react';
 import CreateBattleWizard from './CreateBattleWizard';
 import MobileCodeArenaToggle from './MobileCodeArenaToggle';
@@ -38,6 +38,28 @@ export default function CodeArenaClientHome({
 
   const [battles, setBattles] = useState<any[]>(initialBattles);
   const [visibleProblemsCount, setVisibleProblemsCount] = useState(6);
+
+  const handleDeleteBattle = async (battleId: string) => {
+    if (!window.confirm('Are you sure you want to delete this battle? This action cannot be undone.')) {
+      return;
+    }
+    
+    try {
+      const res = await fetch(`/api/coding/battles/${battleId}`, {
+        method: 'DELETE',
+      });
+      
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || json.message || 'Failed to delete battle.');
+      }
+      
+      // Update local state
+      setBattles(prev => prev.filter(b => b.id !== battleId));
+    } catch (err: any) {
+      alert(err.message || 'An error occurred while deleting the battle.');
+    }
+  };
 
   const handleJoinBattle = async () => {
     const cleanCode = joinCodeInput.trim().toUpperCase();
@@ -261,12 +283,45 @@ export default function CodeArenaClientHome({
 
               return (
                 <div key={b.id} className={`arena-battle-card ${borderGlowClass}`}>
-                  <div className="battle-card-top">
+                  <div className="battle-card-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span suppressHydrationWarning className={`status-badge-styled ${b.status.toLowerCase()}`}>
                       <span className="status-dot"></span>
                       {b.status === 'LOBBY' ? 'UPCOMING' : b.status}
                     </span>
-                    <span className="join-code-disp">{b.join_code}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span className="join-code-disp">{b.join_code}</span>
+                      {(b.created_by === profile?.id || isInstructor) && (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleDeleteBattle(b.id);
+                          }}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: 'rgba(239, 68, 68, 0.7)',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            borderRadius: '4px',
+                            transition: 'all 0.2s',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = '#ef4444';
+                            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = 'rgba(239, 68, 68, 0.7)';
+                            e.currentTarget.style.background = 'transparent';
+                          }}
+                          title="Delete Battle"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="battle-card-body">

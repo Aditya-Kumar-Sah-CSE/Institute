@@ -36,9 +36,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (battle.status === 'CANCELLED' || battle.status === 'COMPLETED') {
+    if (battle.status === 'CANCELLED') {
       return NextResponse.json(
-        { success: false, error: { code: 'BATTLE_ENDED', message: `This battle is ${battle.status.toLowerCase()}.` } },
+        { success: false, error: { code: 'BATTLE_ENDED', message: 'This battle has been cancelled.' } },
         { status: 400 }
       );
     }

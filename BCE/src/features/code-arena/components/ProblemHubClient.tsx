@@ -133,7 +133,10 @@ export default function ProblemHubClient({ userId }: { userId: string }) {
       {/* Hero Header */}
       <header className="hub-hero">
         <div>
-          <div className="hub-badge">
+          <div className="hub-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <Link href="/code-arena" style={{ display: 'inline-flex', alignItems: 'center', color: 'inherit', textDecoration: 'none', marginRight: '4px' }}>
+              <ChevronLeft size={16} style={{ strokeWidth: 3 }} />
+            </Link>
             <Trophy size={14} /> Code Arena
           </div>
           <h1 className="hub-title">Competitive Programming Hub</h1>

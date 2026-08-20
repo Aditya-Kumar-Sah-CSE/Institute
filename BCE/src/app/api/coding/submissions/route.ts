@@ -195,15 +195,25 @@ export async function GET(request: Request) {
   const { supabase, user } = await getCodeArenaActor();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const problemId = new URL(request.url).searchParams.get('problemId');
+  const url = new URL(request.url);
+  const problemId = url.searchParams.get('problemId');
+  const battleId = url.searchParams.get('battleId');
+
   let query = supabase
     .from('coding_submissions')
     .select('id, problem_id, battle_id, language, status, score, passed_tests, total_tests, execution_time_ms, created_at')
-    .eq('student_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(25);
+    .eq('student_id', user.id);
 
-  if (problemId) query = query.eq('problem_id', problemId);
+  if (problemId) {
+    query = query.eq('problem_id', problemId);
+  }
+
+  if (battleId) {
+    // Return submissions that belong to the battle, OR virtual practice submissions (battle_id is null)
+    query = query.or(`battle_id.eq.${battleId},battle_id.is.null`);
+  }
+
+  query = query.order('created_at', { ascending: false }).limit(50);
   const { data, error } = await query;
 
   return error
