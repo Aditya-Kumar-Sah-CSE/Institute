@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getCodeArenaActor } from '@/features/code-arena/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import BattleArenaClient from '@/features/code-arena/components/BattleArenaClient';
 import '@/features/code-arena/components/CodeArena.css';
 
@@ -18,8 +19,13 @@ export default async function BattleRoomPage({ params }: { params: Promise<{ id:
 
   if (!battle) return notFound();
 
-  // 2. Fetch linked battle problems with platform badges
-  const { data: problemLinks } = await supabase
+  // Create admin client to bypass RLS for fetching problems & testcases, 
+  // since RLS on coding_battle_problems restricts standard students who are not active participants.
+  // The primary authorization check is already done above via user's `supabase` client check on `coding_battles`.
+  const adminClient = await createAdminClient();
+
+  // 2. Fetch linked battle problems with platform badges (using admin client to support virtual practice participants)
+  const { data: problemLinks } = await adminClient
     .from('coding_battle_problems')
     .select('points, order_index, coding_problems(id, title, slug, difficulty, tags, description, constraints, input_format, output_format, source_type, external_platform, external_problem_id, external_url)')
     .eq('battle_id', battleId)
@@ -41,7 +47,7 @@ export default async function BattleRoomPage({ params }: { params: Promise<{ id:
   // 4. Fetch testcases for first problem
   let initialTestCases: any[] = [];
   if (problems.length > 0) {
-    const { data: tcData } = await supabase
+    const { data: tcData } = await adminClient
       .from('coding_problem_test_cases')
       .select('id, input, expected_output, is_hidden, sample_name, order_index')
       .eq('problem_id', problems[0].id)
