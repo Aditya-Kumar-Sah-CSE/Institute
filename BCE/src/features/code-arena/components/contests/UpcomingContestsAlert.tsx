@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Bell, ExternalLink, Timer, Radio, Calendar, RefreshCw } from 'lucide-react';
+import { Bell, ExternalLink, Timer, Radio, Calendar, RefreshCw, MoreVertical, ChevronDown } from 'lucide-react';
 import type { UnifiedContest } from '@/app/api/coding/contests/route';
 
 export function formatTimeRemaining(targetTimeMs: number): string {
@@ -19,9 +19,15 @@ export function formatTimeRemaining(targetTimeMs: number): string {
   return `${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`;
 }
 
-export default function UpcomingContestsAlert() {
+interface UpcomingContestsAlertProps {
+  initialExpand?: boolean;
+}
+
+export default function UpcomingContestsAlert({ initialExpand = false }: UpcomingContestsAlertProps) {
+  const [isExpanded, setIsExpanded] = useState(initialExpand);
   const [contests, setContests] = useState<UnifiedContest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [hasFetched, setHasFetched] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<'ALL' | 'CODECHEF' | 'CODEFORCES' | 'LEETCODE'>('ALL');
   const [, setNowTick] = useState(Date.now());
 
@@ -32,6 +38,7 @@ export default function UpcomingContestsAlert() {
       if (res.ok) {
         const json = await res.json();
         setContests(json.contests || []);
+        setHasFetched(true);
       }
     } catch (e) {
       console.warn('Failed to fetch upcoming contests:', e);
@@ -41,16 +48,27 @@ export default function UpcomingContestsAlert() {
   };
 
   useEffect(() => {
-    fetchContests();
-  }, []);
+    if (initialExpand && !hasFetched) {
+      fetchContests();
+    }
+  }, [initialExpand]);
+
+  const handleToggle = () => {
+    const nextState = !isExpanded;
+    setIsExpanded(nextState);
+    if (nextState && !hasFetched && !loading) {
+      fetchContests();
+    }
+  };
 
   // Update timer tick every second without drift
   useEffect(() => {
+    if (!isExpanded) return;
     const timer = setInterval(() => {
       setNowTick(Date.now());
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [isExpanded]);
 
   const filteredContests = contests.filter((c) => {
     if (selectedPlatform !== 'ALL' && c.platform !== selectedPlatform) return false;
@@ -76,15 +94,26 @@ export default function UpcomingContestsAlert() {
       backdropFilter: 'blur(12px)',
       border: '1px solid var(--glass-border)',
       borderRadius: 'var(--radius-md)',
-      padding: '16px 20px',
+      padding: '14px 18px',
       marginBottom: '20px',
       boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+      transition: 'all 0.3s ease',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <div 
+        onClick={handleToggle}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          cursor: 'pointer',
+          userSelect: 'none',
+          gap: '12px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
           <div style={{
-            width: '32px',
-            height: '32px',
+            width: '34px',
+            height: '34px',
             borderRadius: '8px',
             background: 'rgba(34, 197, 94, 0.15)',
             border: '1px solid rgba(34, 197, 94, 0.3)',
@@ -92,43 +121,83 @@ export default function UpcomingContestsAlert() {
             alignItems: 'center',
             justifyContent: 'center',
             color: '#22c55e',
+            flexShrink: 0,
           }}>
             <Bell size={18} />
           </div>
-          <div>
+          <div style={{ minWidth: 0 }}>
             <h3 style={{ margin: 0, fontSize: 'var(--text-md)', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
               Upcoming & Live Contests Alert
-              {loading && <RefreshCw size={14} className="spin animate-spin" style={{ color: 'var(--text-muted)' }} />}
+              {loading && <RefreshCw size={14} className="spin animate-spin" style={{ color: 'var(--neon-emerald)' }} />}
             </h3>
-            <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-              Live countdown timers & direct register links for CodeChef, Codeforces, and LeetCode
+            <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {isExpanded ? 'Live countdown timers & direct register links' : 'Tap 3-dots menu to view CodeChef, Codeforces & LeetCode contests'}
             </p>
           </div>
         </div>
 
-        {/* Platform Filter Buttons */}
-        <div style={{ display: 'flex', gap: '6px', background: 'rgba(0, 0, 0, 0.3)', padding: '4px', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
-          {(['ALL', 'CODECHEF', 'CODEFORCES', 'LEETCODE'] as const).map((plt) => (
-            <button
-              key={plt}
-              onClick={() => setSelectedPlatform(plt)}
-              style={{
-                padding: '4px 10px',
-                fontSize: '11px',
-                fontWeight: 700,
-                borderRadius: '6px',
-                border: 'none',
-                background: selectedPlatform === plt ? 'var(--neon-emerald)' : 'transparent',
-                color: selectedPlatform === plt ? '#000' : 'var(--text-muted)',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              {plt === 'ALL' ? 'All' : plt === 'CODECHEF' ? '👨‍🍳 CodeChef' : plt === 'CODEFORCES' ? '📊 Codeforces' : '💻 LeetCode'}
-            </button>
-          ))}
-        </div>
+        {/* 3-Dots Menu Icon Toggle Button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleToggle();
+          }}
+          title={isExpanded ? 'Hide Contests' : 'View Contests'}
+          style={{
+            background: isExpanded ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+            border: isExpanded ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid var(--glass-border)',
+            borderRadius: '8px',
+            width: '36px',
+            height: '36px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: isExpanded ? '#22c55e' : 'var(--text-main)',
+            cursor: 'pointer',
+            flexShrink: 0,
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <MoreVertical size={20} />
+        </button>
       </div>
+
+      {/* Expanded Content Area */}
+      {isExpanded && (
+        <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid var(--glass-border)' }}>
+          {/* Platform Filter Buttons (Mobile Wrapped) */}
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '6px',
+            background: 'rgba(0, 0, 0, 0.3)',
+            padding: '6px',
+            borderRadius: '8px',
+            border: '1px solid var(--glass-border)',
+            marginBottom: '14px',
+          }}>
+            {(['ALL', 'CODECHEF', 'CODEFORCES', 'LEETCODE'] as const).map((plt) => (
+              <button
+                key={plt}
+                onClick={() => setSelectedPlatform(plt)}
+                style={{
+                  padding: '5px 12px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: selectedPlatform === plt ? 'var(--neon-emerald)' : 'transparent',
+                  color: selectedPlatform === plt ? '#000' : 'var(--text-muted)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  flex: '1 1 auto',
+                  textAlign: 'center',
+                }}
+              >
+                {plt === 'ALL' ? 'All' : plt === 'CODECHEF' ? '👨‍🍳 CodeChef' : plt === 'CODEFORCES' ? '📊 Codeforces' : '💻 LeetCode'}
+              </button>
+            ))}
+          </div>
 
       {/* Contest Cards Grid */}
       {filteredContests.length === 0 ? (
@@ -248,6 +317,8 @@ export default function UpcomingContestsAlert() {
               </div>
             );
           })}
+        </div>
+      )}
         </div>
       )}
     </div>
