@@ -40,6 +40,26 @@ export function runSqlEngineTests() {
   assert(selectRes.success, 'SELECT FROM test_table should succeed');
   assert(selectRes.rows.length === 1 && selectRes.rows[0].name === 'BCE Admin', 'Row matching check');
 
+  // Test 3b: User screenshot test (VARCHAR(30), CHAR(6), PRIMARY KEY (Roll))
+  const userSql = `
+    CREATE TABLE Student (
+      Name VARCHAR(30),
+      Roll CHAR(6),
+      Branch VARCHAR(10),
+      PRIMARY KEY (Roll)
+    );
+  `;
+  const userCreateRes = executeSQL(userSql, insertRes.updatedDatabase || db);
+  assert(userCreateRes.success, 'User CREATE TABLE Student with VARCHAR(30) and PRIMARY KEY (Roll) should succeed');
+  assert((userCreateRes.updatedDatabase?.tables['Student'] || userCreateRes.updatedDatabase?.tables['student']) !== undefined, 'Table Student should exist in db');
+
+  const userInsertRes = executeSQL(`INSERT INTO Student VALUES ('Aditya', '21101', 'CSE');`, userCreateRes.updatedDatabase || db);
+  assert(userInsertRes.success, 'INSERT INTO Student should succeed');
+
+  const userSelectRes = executeSQL(`SELECT * FROM Student;`, userInsertRes.updatedDatabase || db);
+  assert(userSelectRes.success && userSelectRes.rows.length === 1, 'SELECT * FROM Student should return inserted row');
+  assert((userSelectRes.rows[0].Name || userSelectRes.rows[0].name) === 'Aditya', 'Name should match');
+
   // Test 4: UPDATE & DELETE
   const updateRes = executeSQL(`UPDATE employees SET salary = 150000 WHERE id = 101;`, db);
   assert(updateRes.success && updateRes.affectedRows === 1, 'UPDATE should succeed');
@@ -71,3 +91,5 @@ export function runSqlEngineTests() {
 
   console.log('✅ All SQL Engine Unit Tests Passed Successfully!');
 }
+
+runSqlEngineTests();
