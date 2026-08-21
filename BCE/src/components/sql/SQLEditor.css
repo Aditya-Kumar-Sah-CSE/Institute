@@ -423,12 +423,144 @@
   background: #1e293b;
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #f1f5f9;
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: 4px;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .sql-page-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* Mobile Segmented Navigation */
+.sql-mobile-nav {
+  display: none;
+  background: #0f172a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 6px;
+  gap: 4px;
+}
+
+.sql-mobile-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #94a3b8;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  touch-action: manipulation;
+}
+
+.sql-mobile-tab.active {
+  background: #1e293b;
+  color: #38bdf8;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Responsive Media Queries */
+@media (max-width: 1024px) {
+  .sql-sidebar {
+    width: 220px;
+    min-width: 180px;
+  }
+}
+
+@media (max-width: 768px) {
+  .sql-editor-container {
+    border-radius: 0;
+    min-height: calc(100vh - 60px);
+  }
+
+  .sql-toolbar {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .sql-title {
+    font-size: 0.95rem;
+    margin-right: 0;
+  }
+
+  .sql-select {
+    width: 100%;
+    font-size: 0.8rem;
+  }
+
+  .sql-toolbar-group {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .sql-btn {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+  }
+
+  .sql-mobile-nav {
+    display: flex;
+  }
+
+  .sql-main-layout {
+    flex-direction: column;
+  }
+
+  .sql-sidebar {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    max-height: 280px;
+  }
+
+  .sql-editor-workspace {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .sql-editor-panel {
+    min-height: 260px;
+  }
+
+  .sql-results-panel {
+    height: 280px;
+    min-height: 220px;
+  }
+
+  .sql-results-tabs {
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .sql-data-table th,
+  .sql-data-table td {
+    padding: 6px 8px;
+    font-size: 0.78rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .sql-title span {
+    display: inline-block;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sql-btn {
+    flex: 1;
+    justify-content: center;
+  }
 }
