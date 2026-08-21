@@ -35,7 +35,7 @@ import {
 } from '@/lib/sql';
 import './SQLEditor.css';
 
-const Editor = dynamic(() => import('@monaco-editor/react').then(mod => mod.default), {
+const Editor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
   loading: () => <div style={{ padding: 20, color: '#94a3b8' }}>Loading Monaco SQL Editor…</div>
 }) as any;

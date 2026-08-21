@@ -14,7 +14,8 @@ import {
   Shield,
   Building,
   Code2,
-  LogOut
+  LogOut,
+  Database
 } from 'lucide-react';
 
 export function getIcon(name: string, props?: any) {
@@ -36,6 +37,8 @@ export function getIcon(name: string, props?: any) {
     case 'Chat': return <MessageSquare {...props} />;
     case 'Code': return <Code2 {...props} />;
     case 'LaTeX': return <FileCode {...props} />;
+    case 'Database':
+    case 'SQL': return <Database {...props} />;
     default: return <LayoutDashboard {...props} />;
   }
 }
