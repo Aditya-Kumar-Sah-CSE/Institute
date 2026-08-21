@@ -475,12 +475,20 @@ export class Parser {
   }
 
   private parseAndExpression(): ASTExpression {
-    let expr = this.parseEqualityExpression();
+    let expr = this.parseNotExpression();
     while (this.matchKeyword('AND')) {
-      const right = this.parseEqualityExpression();
+      const right = this.parseNotExpression();
       expr = { type: 'BINARY_OP', operator: 'AND', left: expr, right };
     }
     return expr;
+  }
+
+  private parseNotExpression(): ASTExpression {
+    if (this.matchKeyword('NOT')) {
+      const expr = this.parseNotExpression();
+      return { type: 'UNARY_OP', operator: 'NOT', left: expr };
+    }
+    return this.parseEqualityExpression();
   }
 
   private parseEqualityExpression(): ASTExpression {
@@ -492,7 +500,8 @@ export class Parser {
       this.checkKeyword('LIKE') ||
       this.checkKeyword('IS') ||
       this.checkKeyword('IN') ||
-      this.checkKeyword('BETWEEN')
+      this.checkKeyword('BETWEEN') ||
+      this.checkKeyword('NOT')
     ) {
       if (this.matchKeyword('LIKE')) {
         const right = this.parseRelationalExpression();
@@ -517,6 +526,29 @@ export class Parser {
         this.consumeKeyword('AND', "Expected 'AND' in BETWEEN clause");
         const high = this.parseRelationalExpression();
         expr = { type: 'BINARY_OP', operator: 'BETWEEN', left: expr, right: { type: 'LITERAL', value: [low, high] } };
+      } else if (this.matchKeyword('NOT')) {
+        if (this.matchKeyword('IN')) {
+          this.consumePunctuation('(', "Expected '(' after IN");
+          const list: ASTExpression[] = [];
+          do {
+            list.push(this.parseExpression());
+          } while (this.matchPunctuation(','));
+          this.consumePunctuation(')', "Expected ')' after IN list");
+          const inExpr: ASTExpression = { type: 'BINARY_OP', operator: 'IN', left: expr, right: { type: 'LITERAL', value: list } };
+          expr = { type: 'UNARY_OP', operator: 'NOT', left: inExpr };
+        } else if (this.matchKeyword('BETWEEN')) {
+          const low = this.parseRelationalExpression();
+          this.consumeKeyword('AND', "Expected 'AND' in BETWEEN clause");
+          const high = this.parseRelationalExpression();
+          const betweenExpr: ASTExpression = { type: 'BINARY_OP', operator: 'BETWEEN', left: expr, right: { type: 'LITERAL', value: [low, high] } };
+          expr = { type: 'UNARY_OP', operator: 'NOT', left: betweenExpr };
+        } else if (this.matchKeyword('LIKE')) {
+          const right = this.parseRelationalExpression();
+          const likeExpr: ASTExpression = { type: 'BINARY_OP', operator: 'LIKE', left: expr, right };
+          expr = { type: 'UNARY_OP', operator: 'NOT', left: likeExpr };
+        } else {
+          throw new ParserError("Expected 'IN', 'BETWEEN', or 'LIKE' after 'NOT'", this.peek());
+        }
       } else {
         const op = this.advance().value;
         const right = this.parseRelationalExpression();

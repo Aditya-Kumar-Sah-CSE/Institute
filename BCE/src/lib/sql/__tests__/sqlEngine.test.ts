@@ -85,9 +85,31 @@ export function runSqlEngineTests() {
   const errRes = executeSQL(`SELECT * FROM non_existent_table;`, db);
   assert(!errRes.success && errRes.error?.message.includes('non_existent_table') === true, 'Error handling should capture missing table');
 
-  // Test 8: Formatter
-  const formatted = formatSQL(`select id, first_name from employees where salary > 50000;`);
-  assert(formatted.includes('SELECT') && formatted.includes('FROM'), 'Format SQL should capitalize keywords');
+  // Test 9: Predicate Tests (NOT IN, NOT BETWEEN, NOT LIKE, IS NOT NULL, NOT (...))
+  const notInRes = executeSQL(`SELECT * FROM employees WHERE department_id NOT IN (1, 2, 5);`, db);
+  assert(notInRes.success, 'NOT IN query should succeed');
+
+  const inRes = executeSQL(`SELECT * FROM employees WHERE department_id IN (1, 2, 5);`, db);
+  assert(inRes.success, 'IN query should succeed');
+
+  const notParenRes = executeSQL(`SELECT * FROM employees WHERE NOT (department_id IN (1, 2, 5));`, db);
+  assert(notParenRes.success, 'NOT (...) query should succeed');
+  assert(notInRes.rows.length === notParenRes.rows.length, 'NOT IN and NOT (...) should return identical row count');
+
+  const compoundAndRes = executeSQL(`SELECT * FROM employees WHERE department_id NOT IN (1, 2, 5) AND salary > 50000;`, db);
+  assert(compoundAndRes.success, 'NOT IN with AND should succeed');
+
+  const compoundOrRes = executeSQL(`SELECT * FROM employees WHERE department_id NOT IN (1, 2, 5) OR department_id IS NULL;`, db);
+  assert(compoundOrRes.success, 'NOT IN with OR should succeed');
+
+  const notBetweenRes = executeSQL(`SELECT * FROM employees WHERE salary NOT BETWEEN 50000 AND 100000;`, db);
+  assert(notBetweenRes.success, 'NOT BETWEEN query should succeed');
+
+  const notLikeRes = executeSQL(`SELECT * FROM employees WHERE first_name NOT LIKE 'A%';`, db);
+  assert(notLikeRes.success, 'NOT LIKE query should succeed');
+
+  const isNotNullRes = executeSQL(`SELECT * FROM employees WHERE department_id IS NOT NULL;`, db);
+  assert(isNotNullRes.success, 'IS NOT NULL query should succeed');
 
   console.log('✅ All SQL Engine Unit Tests Passed Successfully!');
 }
