@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import {
   Database as DatabaseIcon,
@@ -416,23 +416,25 @@ export default function SQLEditor({
 
         <div className="sql-editor-workspace">
           <div className="sql-editor-panel">
-            <Editor
-              height="100%"
-              language="sql"
-              theme="vs-dark"
-              value={query}
-              onChange={(val: any) => setQuery(val || '')}
-              onMount={handleEditorMount}
-              options={{
-                fontSize: 14,
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-                lineNumbers: 'on',
-                fontFamily: 'JetBrains Mono, Fira Code, monospace',
-                automaticLayout: true,
-                padding: { top: 12 }
-              }}
-            />
+            <Suspense fallback={<div style={{ padding: 20, color: '#94a3b8' }}>Loading Monaco SQL Editor…</div>}>
+              <Editor
+                height="100%"
+                language="sql"
+                theme="vs-dark"
+                value={query}
+                onChange={(val: any) => setQuery(val || '')}
+                onMount={handleEditorMount}
+                options={{
+                  fontSize: 14,
+                  minimap: { enabled: false },
+                  scrollBeyondLastLine: false,
+                  lineNumbers: 'on',
+                  fontFamily: 'JetBrains Mono, Fira Code, monospace',
+                  automaticLayout: true,
+                  padding: { top: 12 }
+                }}
+              />
+            </Suspense>
           </div>
 
           <div className="sql-results-panel">
