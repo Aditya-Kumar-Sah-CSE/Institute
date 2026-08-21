@@ -25,6 +25,7 @@ export const routes = {
   leaderboard: (t: string) => `/${t}/leaderboard`,
   profile: (t: string) => `/${t}/profile`,
   chat: (t: string) => `/${t}/dashboard/chat`,
+  sqlEditor: (t: string) => `/${t}/dashboard/sql-editor`,
   feedbacks: (t: string) => `/${t}/feedbacks`,
   shareDoubt: (t: string) => `/${t}/share-doubt`,
   userProfile: (t: string, userId: string) => `/${t}/users/${userId}`,

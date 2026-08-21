@@ -50,6 +50,7 @@ export const NAV_ITEMS = [
   { label: 'Batch Doubts', href: '/doubts', icon: 'Doubts' },
   { label: 'Notices', href: '/notices', icon: 'Notices' },
   { label: 'Chat', href: '/dashboard/chat', icon: 'Chat' },
+  { label: 'SQL Editor', href: '/dashboard/sql-editor', icon: 'Database' },
   { label: 'Profile', href: '/profile', icon: 'Profile' },
 ];
 

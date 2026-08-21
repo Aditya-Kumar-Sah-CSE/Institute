@@ -16,6 +16,7 @@ import {
   CreditCard,
   Code2,
   FileCode,
+  Database,
   LucideProps
 } from 'lucide-react';
 
@@ -39,6 +40,7 @@ export function getIcon(name: string, props?: LucideProps) {
     case 'Payments': return <CreditCard {...props} />;
     case 'Code': return <Code2 {...props} />;
     case 'LaTeX': return <FileCode {...props} />;
+    case 'Database': return <Database {...props} />;
     default: return <LayoutDashboard {...props} />;
   }
 }

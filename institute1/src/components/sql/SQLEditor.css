@@ -1,0 +1,436 @@
+.sql-editor-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: calc(100vh - 80px);
+  background: #090d16;
+  color: #f1f5f9;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* Toolbar */
+.sql-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: rgba(15, 23, 42, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sql-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sql-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #38bdf8;
+
+  margin-right: 12px;
+}
+
+.sql-select {
+  background: #1e293b;
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sql-select:hover {
+  border-color: #38bdf8;
+}
+
+.sql-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.sql-btn-primary {
+  background: linear-gradient(135deg, #0284c7, #2563eb);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+}
+
+.sql-btn-primary:hover {
+  background: linear-gradient(135deg, #0369a1, #1d4ed8);
+  box-shadow: 0 6px 16px rgba(2, 132, 199, 0.4);
+}
+
+.sql-btn-secondary {
+  background: #1e293b;
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sql-btn-secondary:hover {
+  background: #334155;
+  color: #ffffff;
+}
+
+.sql-btn-danger {
+  background: rgba(225, 29, 72, 0.15);
+  color: #fb7185;
+  border: 1px solid rgba(225, 29, 72, 0.3);
+}
+
+.sql-btn-danger:hover {
+  background: rgba(225, 29, 72, 0.3);
+  color: #ffffff;
+}
+
+/* Main Split View */
+.sql-main-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Sidebar Schema Explorer */
+.sql-sidebar {
+  width: 260px;
+  min-width: 200px;
+  max-width: 380px;
+  background: #0f172a;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sql-sidebar-header {
+  padding: 12px 14px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sql-sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.sql-table-item {
+  margin-bottom: 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+}
+
+.sql-table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  transition: background 0.15s ease;
+}
+
+.sql-table-header:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sql-table-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.sql-badge {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.sql-badge-pk {
+  background: rgba(234, 179, 8, 0.2);
+  color: #fde047;
+}
+
+.sql-badge-fk {
+  background: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+}
+
+.sql-badge-count {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+}
+
+.sql-columns-list {
+  padding: 4px 8px 8px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.sql-column-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  padding: 3px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.sql-column-item:hover {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+}
+
+.sql-type-label {
+  font-size: 0.7rem;
+  color: #64748b;
+  font-family: monospace;
+}
+
+/* Editor & Results Container */
+.sql-editor-workspace {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sql-editor-panel {
+  flex: 1;
+  min-height: 220px;
+  position: relative;
+  background: #090d16;
+}
+
+/* Results Panel */
+.sql-results-panel {
+  height: 320px;
+  min-height: 180px;
+  background: #0f172a;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sql-results-tabs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #090d16;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0 12px;
+}
+
+.sql-tab-list {
+  display: flex;
+  gap: 2px;
+}
+
+.sql-tab {
+  padding: 8px 16px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #94a3b8;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+  background: transparent;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+
+.sql-tab:hover {
+  color: #f1f5f9;
+}
+
+.sql-tab.active {
+  color: #38bdf8;
+  border-bottom-color: #38bdf8;
+}
+
+.sql-stats-badge {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sql-results-content {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+}
+
+/* Data Grid Table */
+.sql-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.83rem;
+  text-align: left;
+}
+
+.sql-data-table th {
+  position: sticky;
+  top: 0;
+  background: #1e293b;
+  color: #38bdf8;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sql-data-table th:hover {
+  background: #334155;
+}
+
+.sql-data-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: #e2e8f0;
+  white-space: nowrap;
+  font-family: monospace;
+}
+
+.sql-data-table tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.sql-null-tag {
+  color: #64748b;
+  font-style: italic;
+  font-size: 0.75rem;
+}
+
+/* Error Diagnostic Box */
+.sql-error-box {
+  margin: 16px;
+  padding: 14px 18px;
+  background: rgba(225, 29, 72, 0.1);
+  border: 1px solid rgba(225, 29, 72, 0.3);
+  border-radius: 8px;
+  color: #fca5a5;
+  font-family: monospace;
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sql-error-title {
+  font-weight: 700;
+  color: #f43f5e;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* History List */
+.sql-history-list {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sql-history-item {
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sql-history-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+.sql-history-query {
+  font-family: monospace;
+  font-size: 0.82rem;
+  color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sql-history-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+/* Pagination Bar */
+.sql-pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: #090d16;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.sql-page-btn {
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f1f5f9;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+
+}
+
+.sql-page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
