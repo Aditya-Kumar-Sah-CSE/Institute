@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import SQLEditor from '@/components/sql/SQLEditor';
 
 export const metadata = {
@@ -7,8 +8,10 @@ export const metadata = {
 
 export default function SQLEditorPage() {
   return (
-    <div className="w-full max-w-[1600px] mx-auto p-4 sm:p-6">
-      <SQLEditor height="calc(100vh - 120px)" />
-    </div>
+    <Suspense fallback={<div className="w-full max-w-[1600px] mx-auto p-6 text-slate-400">Loading SQL Workspace...</div>}>
+      <div className="w-full max-w-[1600px] mx-auto p-4 sm:p-6">
+        <SQLEditor height="calc(100vh - 120px)" />
+      </div>
+    </Suspense>
   );
 }
