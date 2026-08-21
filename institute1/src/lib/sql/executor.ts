@@ -546,32 +546,60 @@ export class SQLExecutor {
         const operandVal = this.evaluateExpression(expr.left!, row);
         if (expr.operator === 'IS NULL') return operandVal === null || operandVal === undefined;
         if (expr.operator === 'IS NOT NULL') return operandVal !== null && operandVal !== undefined;
-        if (expr.operator === '-') return -operandVal;
+        if (expr.operator === 'NOT') {
+          if (operandVal === null || operandVal === undefined) return null;
+          return !operandVal;
+        }
+        if (expr.operator === '-') {
+          return operandVal !== null && operandVal !== undefined ? -operandVal : null;
+        }
         return operandVal;
       }
 
       case 'BINARY_OP': {
+        if (expr.operator === 'AND') {
+          const leftVal = this.evaluateExpression(expr.left!, row);
+          const rightVal = this.evaluateExpression(expr.right!, row);
+          if (leftVal === false || rightVal === false) return false;
+          if (leftVal === true && rightVal === true) return true;
+          return null;
+        }
+
+        if (expr.operator === 'OR') {
+          const leftVal = this.evaluateExpression(expr.left!, row);
+          const rightVal = this.evaluateExpression(expr.right!, row);
+          if (leftVal === true || rightVal === true) return true;
+          if (leftVal === false && rightVal === false) return false;
+          return null;
+        }
+
         const leftVal = this.evaluateExpression(expr.left!, row);
 
-        if (expr.operator === 'AND') {
-          return Boolean(leftVal) && Boolean(this.evaluateExpression(expr.right!, row));
-        }
-        if (expr.operator === 'OR') {
-          return Boolean(leftVal) || Boolean(this.evaluateExpression(expr.right!, row));
-        }
         if (expr.operator === 'IN') {
+          if (leftVal === null || leftVal === undefined) return null;
           const list = (expr.right?.value as ASTExpression[]) || [];
           const evaluatedList = list.map(item => this.evaluateExpression(item, row));
-          return evaluatedList.includes(leftVal);
+          if (evaluatedList.some(item => String(item).toLowerCase() === String(leftVal).toLowerCase())) return true;
+          if (evaluatedList.some(item => item === null || item === undefined)) return null;
+          return false;
         }
+
         if (expr.operator === 'BETWEEN') {
+          if (leftVal === null || leftVal === undefined) return null;
           const [lowExpr, highExpr] = expr.right?.value as [ASTExpression, ASTExpression];
           const low = this.evaluateExpression(lowExpr, row);
           const high = this.evaluateExpression(highExpr, row);
+          if (low === null || low === undefined || high === null || high === undefined) return null;
           return leftVal >= low && leftVal <= high;
         }
 
         const rightVal = this.evaluateExpression(expr.right!, row);
+
+        if (leftVal === null || rightVal === null || leftVal === undefined || rightVal === undefined) {
+          if (['=', '!=', '<>', '<', '>', '<=', '>=', 'LIKE'].includes(expr.operator || '')) {
+            return null;
+          }
+        }
 
         switch (expr.operator) {
           case '=': return leftVal === rightVal;
