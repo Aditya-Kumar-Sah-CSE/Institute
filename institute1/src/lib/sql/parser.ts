@@ -323,9 +323,72 @@ export class Parser {
     this.consumePunctuation('(', "Expected '(' for table definitions");
 
     const columns: ColumnDefinition[] = [];
+    const tablePrimaryKeys: string[] = [];
+
     do {
+      // Optional CONSTRAINT clause
+      if (this.matchKeyword('CONSTRAINT')) {
+        this.consumeIdentifier('Expected constraint name');
+      }
+
+      // Check table-level PRIMARY KEY constraint e.g., PRIMARY KEY (Roll)
+      if (this.matchKeyword('PRIMARY')) {
+        this.consumeKeyword('KEY', "Expected 'KEY' after 'PRIMARY'");
+        this.consumePunctuation('(', "Expected '(' after PRIMARY KEY");
+        do {
+          const pkCol = this.consumeIdentifier('Expected column name in PRIMARY KEY');
+          tablePrimaryKeys.push(pkCol);
+        } while (this.matchPunctuation(','));
+        this.consumePunctuation(')', "Expected ')' after PRIMARY KEY columns");
+        continue;
+      }
+
+      // Check table-level FOREIGN KEY constraint e.g., FOREIGN KEY (col) REFERENCES table(col)
+      if (this.matchKeyword('FOREIGN')) {
+        this.consumeKeyword('KEY', "Expected 'KEY' after 'FOREIGN'");
+        this.consumePunctuation('(', "Expected '(' after FOREIGN KEY");
+        const fkCol = this.consumeIdentifier('Expected column name in FOREIGN KEY');
+        this.consumePunctuation(')', "Expected ')' after FOREIGN KEY column");
+        this.consumeKeyword('REFERENCES', "Expected 'REFERENCES'");
+        const refTable = this.consumeIdentifier('Expected referenced table');
+        this.consumePunctuation('(', "Expected '('");
+        const refCol = this.consumeIdentifier('Expected referenced column');
+        this.consumePunctuation(')', "Expected ')'");
+        
+        const existingCol = columns.find(c => c.name.toLowerCase() === fkCol.toLowerCase());
+        if (existingCol) {
+          existingCol.foreignKey = { table: refTable, column: refCol };
+        }
+        continue;
+      }
+
       const name = this.consumeIdentifier('Expected column name');
-      const typeStr = this.advance().value.toUpperCase() as DataType;
+      const rawType = this.advance().value.toUpperCase();
+
+      // Skip type length/precision parameters e.g., VARCHAR(30) or DECIMAL(10,2)
+      if (this.matchPunctuation('(')) {
+        do {
+          this.advance();
+        } while (this.matchPunctuation(',') || !this.checkPunctuation(')'));
+        this.consumePunctuation(')', "Expected ')' after data type parameters");
+      }
+
+      // Normalize DataType
+      let typeStr: DataType = 'VARCHAR';
+      if (['INT', 'INTEGER', 'BIGINT', 'SMALLINT', 'TINYINT', 'SERIAL'].includes(rawType)) {
+        typeStr = 'INT';
+      } else if (['FLOAT', 'DOUBLE', 'REAL', 'DECIMAL', 'NUMERIC'].includes(rawType)) {
+        typeStr = 'FLOAT';
+      } else if (['BOOLEAN', 'BOOL'].includes(rawType)) {
+        typeStr = 'BOOLEAN';
+      } else if (['DATE', 'TIME', 'DATETIME', 'TIMESTAMP'].includes(rawType)) {
+        typeStr = 'TIMESTAMP';
+      } else if (rawType === 'JSON') {
+        typeStr = 'JSON';
+      } else {
+        typeStr = 'VARCHAR';
+      }
+
       let primaryKey = false;
       let nullable = true;
       let foreignKey: ColumnDefinition['foreignKey'];
@@ -333,6 +396,7 @@ export class Parser {
       while (
         this.checkKeyword('PRIMARY') ||
         this.checkKeyword('NOT') ||
+        this.checkKeyword('NULL') ||
         this.checkKeyword('REFERENCES')
       ) {
         if (this.matchKeyword('PRIMARY')) {
@@ -341,6 +405,8 @@ export class Parser {
         } else if (this.matchKeyword('NOT')) {
           this.consumeKeyword('NULL', "Expected 'NULL' after 'NOT'");
           nullable = false;
+        } else if (this.matchKeyword('NULL')) {
+          nullable = true;
         } else if (this.matchKeyword('REFERENCES')) {
           const refTable = this.consumeIdentifier('Expected referenced table');
           this.consumePunctuation('(', "Expected '('");
@@ -352,6 +418,15 @@ export class Parser {
 
       columns.push({ name, type: typeStr, primaryKey, nullable, foreignKey });
     } while (this.matchPunctuation(','));
+
+    // Apply table-level primary keys
+    if (tablePrimaryKeys.length > 0) {
+      for (const col of columns) {
+        if (tablePrimaryKeys.some(pk => pk.toLowerCase() === col.name.toLowerCase())) {
+          col.primaryKey = true;
+        }
+      }
+    }
 
     this.consumePunctuation(')', "Expected ')' after table definition");
     return { type: 'CREATE_TABLE', table, ifNotExists, columns };

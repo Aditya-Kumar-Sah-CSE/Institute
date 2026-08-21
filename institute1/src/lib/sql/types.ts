@@ -1,4 +1,4 @@
-export type DataType = 'INT' | 'TEXT' | 'REAL' | 'BOOLEAN' | 'DATE' | 'TIMESTAMP';
+export type DataType = 'INT' | 'TEXT' | 'REAL' | 'FLOAT' | 'BOOLEAN' | 'DATE' | 'TIMESTAMP' | 'VARCHAR' | 'CHAR' | 'JSON' | 'DECIMAL';
 
 export interface ColumnDefinition {
   name: string;

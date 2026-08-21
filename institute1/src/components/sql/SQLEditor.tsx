@@ -154,6 +154,16 @@ export default function SQLEditor({
 
       if (res.updatedDatabase) {
         setDatabase(res.updatedDatabase);
+        const newTableNames = Object.keys(res.updatedDatabase.tables);
+        setExpandedTables(prev => {
+          const next = { ...prev };
+          newTableNames.forEach(tbl => {
+            if (next[tbl] === undefined) {
+              next[tbl] = true;
+            }
+          });
+          return next;
+        });
       }
 
       setResult(res);
