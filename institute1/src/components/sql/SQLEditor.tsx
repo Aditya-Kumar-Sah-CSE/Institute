@@ -19,7 +19,8 @@ import {
   Key,
   Layers,
   Sparkles,
-  ArrowUpDown
+  ArrowUpDown,
+  Code2
 } from 'lucide-react';
 import {
   Database,
@@ -117,6 +118,7 @@ export default function SQLEditor({
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(25);
+  const [mobileTab, setMobileTab] = useState<'all' | 'schema' | 'editor' | 'results'>('all');
 
   const editorRef = useRef<any>(null);
   const monacoRef = useRef<any>(null);
@@ -369,10 +371,38 @@ export default function SQLEditor({
         </div>
       </div>
 
+      {/* Mobile Segmented Navigation Bar */}
+      <div className="sql-mobile-nav">
+        <button
+          className={`sql-mobile-tab ${mobileTab === 'all' ? 'active' : ''}`}
+          onClick={() => setMobileTab('all')}
+        >
+          <Layers className="w-4 h-4" /> All
+        </button>
+        <button
+          className={`sql-mobile-tab ${mobileTab === 'schema' ? 'active' : ''}`}
+          onClick={() => setMobileTab('schema')}
+        >
+          <Layers className="w-4 h-4" /> Schema ({schema.length})
+        </button>
+        <button
+          className={`sql-mobile-tab ${mobileTab === 'editor' ? 'active' : ''}`}
+          onClick={() => setMobileTab('editor')}
+        >
+          <Code2 className="w-4 h-4" /> SQL Editor
+        </button>
+        <button
+          className={`sql-mobile-tab ${mobileTab === 'results' ? 'active' : ''}`}
+          onClick={() => setMobileTab('results')}
+        >
+          <TableIcon className="w-4 h-4" /> Results ({result?.rowCount ?? 0})
+        </button>
+      </div>
+
       {/* Main Layout */}
       <div className="sql-main-layout">
         {/* Sidebar: Schema Explorer */}
-        <div className="sql-sidebar">
+        <div className={`sql-sidebar ${mobileTab !== 'all' && mobileTab !== 'schema' ? 'hidden md:flex' : ''}`}>
           <div className="sql-sidebar-header">
             <span>Schema Explorer</span>
             <Layers className="w-4 h-4 text-slate-400" />
@@ -444,9 +474,9 @@ export default function SQLEditor({
         </div>
 
         {/* Editor & Results Workspace */}
-        <div className="sql-editor-workspace">
+        <div className={`sql-editor-workspace ${mobileTab !== 'all' && mobileTab === 'schema' ? 'hidden md:flex' : ''}`}>
           {/* Monaco SQL Editor */}
-          <div className="sql-editor-panel">
+          <div className={`sql-editor-panel ${mobileTab === 'results' ? 'hidden md:block' : ''}`}>
             <Suspense fallback={<div style={{ padding: 20, color: '#94a3b8' }}>Loading Monaco SQL Editor…</div>}>
               <Editor
                 height="100%"
@@ -469,7 +499,7 @@ export default function SQLEditor({
           </div>
 
           {/* Results & History Panel */}
-          <div className="sql-results-panel">
+          <div className={`sql-results-panel ${mobileTab === 'editor' ? 'hidden md:flex' : ''}`}>
             <div className="sql-results-tabs">
               <div className="sql-tab-list">
                 <button
