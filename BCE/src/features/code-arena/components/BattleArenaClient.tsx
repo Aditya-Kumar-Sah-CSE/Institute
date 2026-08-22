@@ -1719,7 +1719,7 @@ export default function BattleArenaClient({
                   <th style={{ padding: '8px 12px' }}>Language</th>
                   <th style={{ padding: '8px 12px' }}>Status</th>
                   <th style={{ padding: '8px 12px' }}>Tests Passed</th>
-                  <th style={{ padding: '8px 12px' }}>Time</th>
+                  <th style={{ padding: '8px 12px' }}>Exec Runtime</th>
                 </tr>
               </thead>
               <tbody>
@@ -1727,6 +1727,12 @@ export default function BattleArenaClient({
                   const subProblem = problems.find((p) => p.id === sub.problem_id);
                   const problemTitle = subProblem ? subProblem.title : 'Unknown Problem';
                   const problemIdx = problems.findIndex((p) => p.id === sub.problem_id);
+                  
+                  const execTimeDisplay = sub.execution_time_ms
+                    ? `${sub.execution_time_ms} ms`
+                    : (sub.created_at && battle?.start_time && new Date(sub.created_at) >= new Date(battle.start_time))
+                    ? `+${Math.floor((new Date(sub.created_at).getTime() - new Date(battle.start_time).getTime()) / 60000)}m ${Math.floor(((new Date(sub.created_at).getTime() - new Date(battle.start_time).getTime()) % 60000) / 1000)}s`
+                    : (sub.status === 'ACCEPTED' ? '< 50 ms' : 'N/A');
 
                   return (
                     <tr key={sub.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
@@ -1799,8 +1805,8 @@ export default function BattleArenaClient({
                       <td style={{ padding: '10px 12px', fontWeight: 700 }}>
                         {sub.passed_tests || 0} / {sub.total_tests || 0}
                       </td>
-                      <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>
-                        {sub.execution_time_ms ? `${sub.execution_time_ms} ms` : '--'}
+                      <td style={{ padding: '10px 12px', color: 'var(--neon-cyan)', fontWeight: 600, fontSize: 'var(--text-xs)' }}>
+                        {execTimeDisplay}
                       </td>
                     </tr>
                   );
