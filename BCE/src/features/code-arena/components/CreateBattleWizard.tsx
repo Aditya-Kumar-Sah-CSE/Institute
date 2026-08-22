@@ -75,6 +75,30 @@ export default function CreateBattleWizard({
   const [organizerName, setOrganizerName] = useState<string>(initialBattle?.organizer_name || '');
   const [organizerLogo, setOrganizerLogo] = useState<string>(initialBattle?.organizer_logo || '');
 
+  // File upload handler for organizer logo from computer system
+  const handleUploadOrganizerLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!['image/png', 'image/jpeg', 'image/svg+xml'].includes(file.type)) {
+      alert('Only PNG, JPG, or SVG image files are allowed.');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert('File size must be less than 2MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setOrganizerLogo(event.target.result as string);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Step 2: Add Problems
   const [problemSource, setProblemSource] = useState<'CODEFORCES' | 'LEETCODE' | 'INTERNAL' | 'CREATE_NEW'>('CODEFORCES');
   const [platform, setPlatform] = useState<PlatformName>('CODEFORCES');
@@ -641,6 +665,91 @@ export default function CreateBattleWizard({
                     />
                   </div>
                 )}
+
+                {/* Institution & Certificate Branding */}
+                <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: 'var(--space-md)', marginTop: '8px' }}>
+                  <h4 style={{ fontSize: 'var(--text-xs)', fontWeight: 700, margin: '0 0 10px 0', textTransform: 'uppercase', color: 'var(--neon-cyan)' }}>
+                    🏢 Certificate & Institution Branding (Optional)
+                  </h4>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600, marginBottom: '6px' }}>Organizer / Institution Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. BCE Bhagalpur / Code Arena"
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--bg-card)',
+                          border: '1px solid var(--glass-border)',
+                          color: 'var(--text-main)',
+                          fontSize: 'var(--text-sm)',
+                          outline: 'none',
+                        }}
+                        value={organizerName}
+                        onChange={(e) => setOrganizerName(e.target.value)}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600, marginBottom: '6px' }}>
+                        Organizer Logo (Upload from Computer System - PNG, JPG, SVG)
+                      </label>
+                      
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        {organizerLogo && (
+                          <div style={{ position: 'relative', width: '48px', height: '48px', borderRadius: '8px', background: '#040711', border: '1px solid var(--glass-border)', display: 'grid', placeItems: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                            <img src={organizerLogo} alt="Uploaded Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                            <button
+                              type="button"
+                              onClick={() => setOrganizerLogo('')}
+                              style={{
+                                position: 'absolute', top: '2px', right: '2px',
+                                background: 'rgba(239,68,68,0.8)', border: 'none',
+                                borderRadius: '50%', width: '16px', height: '16px',
+                                color: 'white', cursor: 'pointer', display: 'grid', placeItems: 'center',
+                                fontSize: '10px'
+                              }}
+                              title="Remove logo"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        )}
+
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <label style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '8px 16px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'rgba(6, 182, 212, 0.1)',
+                            border: '1px solid rgba(6, 182, 212, 0.3)',
+                            color: 'var(--neon-cyan)',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            width: 'fit-content',
+                          }}>
+                            📁 Choose Logo File from Computer
+                            <input
+                              type="file"
+                              accept="image/png, image/jpeg, image/svg+xml"
+                              onChange={handleUploadOrganizerLogo}
+                              style={{ display: 'none' }}
+                            />
+                          </label>
+                          <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                            Select PNG, JPG, or SVG file from your computer system (Max 2MB)
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-md)' }}>
                   <Button onClick={() => setStep(2)}>Next → Add Problems</Button>
