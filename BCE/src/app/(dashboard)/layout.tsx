@@ -68,7 +68,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="dashboard-layout">
-      <Sidebar profile={profile} roleView="student" isSuperAdmin={profile.email === SUPER_ADMIN_EMAIL} />
+      <Sidebar key="student" profile={profile} roleView="student" isSuperAdmin={profile.email === SUPER_ADMIN_EMAIL} />
       <div className="dashboard-main">
         <Navbar 
           companyName={settings?.company_name} 

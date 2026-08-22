@@ -47,7 +47,7 @@ export default async function AdminLayout({
 
   return (
     <div className="dashboard-layout">
-      <Sidebar profile={profile} isAdmin={true} isSuperAdmin={profile.email === SUPER_ADMIN_EMAIL} />
+      <Sidebar key="admin" profile={profile} isAdmin={true} isSuperAdmin={profile.email === SUPER_ADMIN_EMAIL} />
       <div className="dashboard-main">
         <Navbar 
           companyName={settings?.company_name} 
