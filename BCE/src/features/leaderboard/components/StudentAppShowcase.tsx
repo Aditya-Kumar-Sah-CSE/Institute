@@ -262,50 +262,67 @@ export default function StudentAppShowcase({
         <>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-            gap: 'var(--space-lg)'
+            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+            gap: 'var(--space-md)'
           }}>
             {visibleApps.map((app: any) => (
               <Card 
                 key={app.id} 
                 variant="glass" 
                 className="hover-lift"
-                style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '20px', cursor: 'pointer', background: 'rgba(30, 41, 59, 0.2)', border: '1px solid var(--glass-border)' }}
+                style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: '12px', 
+                  padding: '16px', 
+                  cursor: 'pointer', 
+                  background: 'rgba(30, 41, 59, 0.25)', 
+                  border: '1px solid var(--glass-border)',
+                  borderRadius: 'var(--radius-md)',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
                 onClick={() => setSelectedApp(app)}
               >
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  <div style={{ position: 'relative', width: 48, height: 48, borderRadius: '10px', overflow: 'hidden', flexShrink: 0, border: '1px solid var(--glass-border)' }}>
+                {/* Medium Size App Logo & Name */}
+                <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+                  <div style={{ position: 'relative', width: 56, height: 56, borderRadius: '14px', overflow: 'hidden', flexShrink: 0, border: '1px solid rgba(255, 255, 255, 0.1)', boxShadow: '0 4px 14px rgba(0, 0, 0, 0.3)' }}>
                     <img src={app.app_logo_url} alt={app.app_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text-primary)' }}>
+                    <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text-primary)', letterSpacing: '-0.2px' }}>
                       {app.app_name}
                     </h3>
-                    <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {app.student_name} ({app.batch})
+                    <p style={{ margin: '3px 0 0 0', fontSize: '12px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      By {app.student_name}
                     </p>
                   </div>
                 </div>
-                
-                <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', height: '36px', lineHeight: '18px' }}>
-                  {app.solution}
-                </p>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                {/* Card Footer Actions */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                   <span style={{ fontSize: '11px', color: 'var(--neon-cyan)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                     <Sparkles size={11} /> Learn More
                   </span>
                   
-                  {/* Prevent click bubbling to card onClick */}
                   <a 
                     href={app.working_url} 
                     target="_blank" 
                     rel="noopener noreferrer" 
                     className="btn btn-secondary btn-sm"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', fontSize: '11px', height: '26px' }}
+                    style={{ 
+                      display: 'inline-flex', 
+                      alignItems: 'center', 
+                      gap: '4px', 
+                      padding: '4px 12px', 
+                      fontSize: '11px', 
+                      height: '28px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'rgba(255,255,255,0.06)',
+                      border: '1px solid var(--glass-border)'
+                    }}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    Launch App <ExternalLink size={10} />
+                    Launch <ExternalLink size={10} />
                   </a>
                 </div>
               </Card>
@@ -333,7 +350,7 @@ export default function StudentAppShowcase({
 
       {/* Submission Modal Sheet */}
       {showSubmitModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--space-md)' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(6px)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--space-md)' }}>
           <div style={{ position: 'fixed', inset: 0 }} onClick={() => { if (!isSubmitting) setShowSubmitModal(false); }} />
           <Card variant="glass" style={{ width: '100%', maxWidth: '580px', background: 'var(--bg-secondary)', zIndex: 2001, maxHeight: '90vh', overflowY: 'auto', position: 'relative' }}>
             <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: 'var(--text-lg)', margin: '0 0 16px 0' }}>
@@ -402,61 +419,150 @@ export default function StudentAppShowcase({
         </div>
       )}
 
-      {/* Details View Modal */}
+      {/* Details View Modal - PlayStore / AppStore Style */}
       {selectedApp && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--space-md)' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--space-md)' }}>
           <div style={{ position: 'fixed', inset: 0 }} onClick={() => setSelectedApp(null)} />
-          <Card variant="glass" style={{ width: '100%', maxWidth: '580px', background: 'var(--bg-secondary)', zIndex: 2001, maxHeight: '90vh', overflowY: 'auto', padding: '24px', position: 'relative' }}>
-            <button onClick={() => setSelectedApp(null)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '18px' }}>
-              ✕
-            </button>
+          
+          <Card 
+            variant="glass" 
+            style={{ 
+              width: '100%', 
+              maxWidth: '620px', 
+              background: 'var(--bg-elevated)', 
+              border: '1px solid var(--glass-border)',
+              borderRadius: 'var(--radius-lg)',
+              zIndex: 2001, 
+              maxHeight: '90vh', 
+              overflowY: 'auto', 
+              padding: '0', 
+              position: 'relative',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.6)'
+            }}
+          >
+            {/* PlayStore Style Header Banner */}
+            <div 
+              style={{ 
+                padding: '24px 24px 18px 24px', 
+                borderBottom: '1px solid var(--glass-border)', 
+                background: 'linear-gradient(180deg, rgba(6,182,212,0.08) 0%, rgba(0,0,0,0) 100%)',
+                position: 'relative'
+              }}
+            >
+              <button 
+                onClick={() => setSelectedApp(null)} 
+                style={{ 
+                  position: 'absolute', 
+                  top: '18px', 
+                  right: '18px', 
+                  background: 'rgba(255,255,255,0.05)', 
+                  border: '1px solid var(--glass-border)', 
+                  color: 'var(--text-muted)', 
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'grid',
+                  placeItems: 'center',
+                  cursor: 'pointer', 
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                title="Close"
+              >
+                ✕
+              </button>
 
-            <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '20px' }}>
-              <img src={selectedApp.app_logo_url} alt={selectedApp.app_name} style={{ width: '64px', height: '64px', borderRadius: '12px', objectFit: 'cover', border: '1px solid var(--glass-border)', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }} />
-              <div>
-                <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{selectedApp.app_name}</h2>
-                <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
-                  Developed by <strong>{selectedApp.student_name}</strong> ({selectedApp.batch})
-                </p>
+              <div style={{ display: 'flex', gap: '18px', alignItems: 'center' }}>
+                <img 
+                  src={selectedApp.app_logo_url} 
+                  alt={selectedApp.app_name} 
+                  style={{ 
+                    width: '72px', 
+                    height: '72px', 
+                    borderRadius: '16px', 
+                    objectFit: 'cover', 
+                    border: '1px solid var(--neon-cyan)', 
+                    boxShadow: '0 8px 24px rgba(0, 240, 255, 0.2)',
+                    flexShrink: 0
+                  }} 
+                />
+                <div style={{ flex: 1, minWidth: 0, paddingRight: '28px' }}>
+                  <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
+                    {selectedApp.app_name}
+                  </h2>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--neon-cyan)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>By {selectedApp.student_name}</span>
+                    <span style={{ color: 'rgba(255,255,255,0.2)' }}>•</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>{selectedApp.batch}</span>
+                  </p>
+                  
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '11px', background: 'rgba(16,185,129,0.15)', color: 'var(--neon-emerald)', padding: '2px 8px', borderRadius: '12px', fontWeight: 700, border: '1px solid rgba(16,185,129,0.3)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <CheckCircle size={11} /> Approved App
+                    </span>
+                    <span style={{ fontSize: '11px', background: 'rgba(6,182,212,0.15)', color: 'var(--neon-cyan)', padding: '2px 8px', borderRadius: '12px', fontWeight: 700, border: '1px solid rgba(6,182,212,0.3)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <Sparkles size={11} /> Smart Learn Showcase
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
-              <div>
-                <h4 style={{ margin: '0 0 6px 0', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }} className="text-neon-cyan">
-                  <AlertCircle size={14} /> Problem Addressed
+            {/* PlayStore Style Content Body */}
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Problem Addressed Card */}
+              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+                <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--neon-gold)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <AlertCircle size={15} /> Problem Addressed
                 </h4>
-                <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                   {selectedApp.problem_addressing}
                 </p>
               </div>
 
-              <div>
-                <h4 style={{ margin: '0 0 6px 0', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }} className="text-neon-purple">
-                  <FileText size={14} /> Our Solution
+              {/* Solution Card */}
+              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+                <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--neon-purple)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <FileText size={15} /> Solution & Implementation
                 </h4>
-                <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                   {selectedApp.solution}
                 </p>
               </div>
-            </div>
 
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px' }}>
-              {isAdmin && (
-                <Button variant="danger" size="sm" onClick={() => handleDelete(selectedApp.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  <Trash2 size={13} /> Delete App
-                </Button>
-              )}
-              
-              <a 
-                href={selectedApp.working_url} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="btn btn-primary"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginLeft: 'auto' }}
-              >
-                Launch Working Application <ExternalLink size={13} />
-              </a>
+              {/* PlayStore Actions Footer */}
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--glass-border)', paddingTop: '18px', marginTop: '8px' }}>
+                {isAdmin && (
+                  <Button variant="danger" size="sm" onClick={() => handleDelete(selectedApp.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <Trash2 size={14} /> Delete App
+                  </Button>
+                )}
+
+                <div style={{ display: 'flex', gap: '12px', marginLeft: 'auto' }}>
+                  <Button variant="secondary" size="md" onClick={() => setSelectedApp(null)}>
+                    Close
+                  </Button>
+                  <a 
+                    href={selectedApp.working_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="btn btn-primary"
+                    style={{ 
+                      display: 'inline-flex', 
+                      alignItems: 'center', 
+                      gap: '8px', 
+                      background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))',
+                      fontWeight: 800,
+                      padding: '10px 22px',
+                      borderRadius: 'var(--radius-md)',
+                      boxShadow: 'var(--glow-cyan)'
+                    }}
+                  >
+                    🚀 Launch Application <ExternalLink size={14} />
+                  </a>
+                </div>
+              </div>
             </div>
           </Card>
         </div>
