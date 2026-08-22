@@ -421,7 +421,7 @@ export default function ProblemHubClient({ userId }: { userId: string }) {
               className="btn btn-secondary"
               onClick={() => setShowImportModal(false)}
               disabled={importing}
-              style={{ fontSize: 'var(--text-xs)' }}
+              style={{ fontSize: 'var(--text-xs)', padding: '8px 20px', borderRadius: '20px' }}
             >
               Cancel
             </button>
@@ -429,7 +429,7 @@ export default function ProblemHubClient({ userId }: { userId: string }) {
               type="submit"
               className="btn btn-primary"
               disabled={importing}
-              style={{ fontSize: 'var(--text-xs)', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
+              style={{ fontSize: 'var(--text-xs)', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '8px 20px', borderRadius: '20px' }}
             >
               {importing ? (
                 <>
