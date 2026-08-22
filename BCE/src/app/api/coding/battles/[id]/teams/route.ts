@@ -9,7 +9,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   // Fetch all teams for this battle along with members
   const { data: teams, error: teamsError } = await supabase
     .from('coding_battle_teams')
-    .select('*, profiles:created_by(full_name)')
+    .select('*, profiles:created_by(full_name:name)')
     .eq('battle_id', id);
 
   if (teamsError) {
@@ -18,7 +18,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
   const { data: participants, error: partsError } = await supabase
     .from('coding_battle_participants')
-    .select('student_id, score, team_id, profiles:student_id(full_name, avatar_url)')
+    .select('student_id, score, team_id, profiles:student_id(full_name:name, avatar_url)')
     .eq('battle_id', id);
 
   if (partsError) {

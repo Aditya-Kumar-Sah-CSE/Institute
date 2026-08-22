@@ -88,6 +88,7 @@ export default function BattleArenaClient({
 
   // Anti-cheat states
   const [cheatWarning, setCheatWarning] = useState<string | null>(null);
+  const [isScreenHidden, setIsScreenHidden] = useState(false);
 
   const [running, setRunning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -212,7 +213,7 @@ export default function BattleArenaClient({
   }, [problems, currentUser]);
 
   // Anti-cheat activity reporter
-  const reportSuspiciousActivity = async (eventType: 'paste' | 'tab_switch' | 'focus_loss' | 'devtools', detail: string) => {
+  const reportSuspiciousActivity = async (eventType: 'paste' | 'tab_switch' | 'focus_loss' | 'devtools' | 'screenshot' | 'copy', detail: string) => {
     let warningMsg = '';
     if (eventType === 'tab_switch') {
       warningMsg = 'Warning: Tab/window switching detected! Suspicious activity is logged.';
@@ -222,6 +223,10 @@ export default function BattleArenaClient({
       warningMsg = 'Warning: Developer tools shortcut detected! Suspicious activity is logged.';
     } else if (eventType === 'paste') {
       warningMsg = 'Warning: Paste action blocked! Manual coding is required in battles.';
+    } else if (eventType === 'screenshot') {
+      warningMsg = 'Warning: Screenshot taking attempt detected and blocked!';
+    } else if (eventType === 'copy') {
+      warningMsg = 'Warning: Copying problem statement is strictly prohibited!';
     }
 
     setCheatWarning(warningMsg);
@@ -250,6 +255,22 @@ export default function BattleArenaClient({
   useEffect(() => {
     if (battle.status !== 'LIVE' || isInstructor || isVirtualPractice) return;
 
+    let screenHiddenTimer: NodeJS.Timeout;
+
+    const triggerScreenBlock = (detail: string) => {
+      setIsScreenHidden(true);
+      reportSuspiciousActivity('screenshot', detail);
+
+      try {
+        navigator.clipboard.writeText('');
+      } catch (err) {}
+
+      clearTimeout(screenHiddenTimer);
+      screenHiddenTimer = setTimeout(() => {
+        setIsScreenHidden(false);
+      }, 2000);
+    };
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
         reportSuspiciousActivity('tab_switch', 'User minimized window or switched browser tabs');
@@ -269,16 +290,61 @@ export default function BattleArenaClient({
         e.preventDefault();
         reportSuspiciousActivity('devtools', `Keyboard shortcut devtools access: ${e.key}`);
       }
+
+      // 1. Detect PrintScreen Key
+      if (e.key === 'PrintScreen') {
+        e.preventDefault();
+        triggerScreenBlock('User pressed PrintScreen key');
+      }
+
+      // 2. Detect Screenshot Shortcuts
+      const isShiftS = e.shiftKey && e.key.toLowerCase() === 's';
+      const isWinShiftS = e.metaKey && isShiftS; // Windows Key + Shift + S
+      const isCtrlShiftS = e.ctrlKey && isShiftS; // Ctrl + Shift + S
+      
+      // Mac Screenshot commands: Cmd + Shift + 3, 4, 5
+      const isMacScreenshot = e.metaKey && e.shiftKey && ['3', '4', '5'].includes(e.key);
+
+      if (isWinShiftS || isCtrlShiftS || isMacScreenshot) {
+        e.preventDefault();
+        triggerScreenBlock(`User triggered screenshot shortcut: ${e.key}`);
+      }
+
+      // 3. Prevent Print Page (Ctrl + P or Cmd + P)
+      const isPrint = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p';
+      if (isPrint) {
+        e.preventDefault();
+        triggerScreenBlock('User attempted to print/save page');
+      }
+    };
+
+    const handleKeyUpGlobal = (e: KeyboardEvent) => {
+      if (e.key === 'PrintScreen') {
+        triggerScreenBlock('User released PrintScreen key');
+      }
+    };
+
+    const handleCopyGlobal = (e: Event) => {
+      e.preventDefault();
+      try {
+        navigator.clipboard.writeText('Copying is disabled in live battles.');
+      } catch (err) {}
+      reportSuspiciousActivity('copy', 'User attempted to copy screen content');
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('blur', handleWindowBlur);
     window.addEventListener('keydown', handleKeyDownGlobal);
+    window.addEventListener('keyup', handleKeyUpGlobal);
+    document.addEventListener('copy', handleCopyGlobal);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleWindowBlur);
       window.removeEventListener('keydown', handleKeyDownGlobal);
+      window.removeEventListener('keyup', handleKeyUpGlobal);
+      document.removeEventListener('copy', handleCopyGlobal);
+      clearTimeout(screenHiddenTimer);
     };
   }, [battle.status, isInstructor, isVirtualPractice]);
 
@@ -484,6 +550,30 @@ export default function BattleArenaClient({
 
   return (
     <div className="code-arena-page">
+      {/* Visual Overlay for Screenshot Blocker */}
+      {isScreenHidden && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(11, 15, 25, 0.96)',
+          backdropFilter: 'blur(20px)',
+          zIndex: 99999,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--text-danger, #ef4444)',
+          gap: '16px',
+        }}>
+          <AlertTriangle size={64} style={{ animation: 'bounce 1s infinite' }} />
+          <h2 style={{ fontSize: '24px', fontWeight: 800, margin: 0, letterSpacing: '1px' }}>
+            SCREENSHOT DETECTED / PROHIBITED!
+          </h2>
+          <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
+            Taking screenshots is strictly forbidden during live coding battles.
+          </p>
+        </div>
+      )}
       {/* Anti-cheat suspension warning banner */}
       {cheatWarning && (
         <div style={{

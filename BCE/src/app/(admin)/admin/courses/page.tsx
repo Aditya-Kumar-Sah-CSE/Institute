@@ -8,7 +8,7 @@ export default async function AdminCoursesPage() {
   const { data: { user } } = await supabase.auth.getUser();
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, name, full_name, email, role, institute_id')
+    .select('id, name, full_name:name, email, role, institute_id')
     .eq('id', user?.id)
     .single();
 
@@ -22,9 +22,9 @@ export default async function AdminCoursesPage() {
   // Fetch all profiles with instructor/admin/developer roles for the faculty dropdown
   let instructorsQuery = supabase
     .from('profiles')
-    .select('id, name, full_name, email, role, institute_id')
+    .select('id, name, full_name:name, email, role, institute_id')
     .in('role', ['instructor', 'admin', 'developer', 'faculty', 'Instructor', 'Admin', 'Developer'])
-    .order('full_name', { ascending: true });
+    .order('name', { ascending: true });
 
   if (profile?.institute_id) {
     instructorsQuery = instructorsQuery.eq('institute_id', profile.institute_id);

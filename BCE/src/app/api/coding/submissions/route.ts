@@ -201,8 +201,30 @@ export async function GET(request: Request) {
 
   let query = supabase
     .from('coding_submissions')
-    .select('id, problem_id, battle_id, language, status, score, passed_tests, total_tests, execution_time_ms, created_at')
-    .eq('student_id', user.id);
+    .select('id, student_id, problem_id, battle_id, language, status, score, passed_tests, total_tests, execution_time_ms, created_at');
+
+  let isHostOrInstructor = false;
+  if (battleId) {
+    const { data: battle } = await supabase
+      .from('coding_battles')
+      .select('created_by')
+      .eq('id', battleId)
+      .maybeSingle();
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    isHostOrInstructor =
+      battle?.created_by === user.id ||
+      ['admin', 'instructor', 'developer'].includes(profile?.role || '');
+  }
+
+  if (!isHostOrInstructor) {
+    query = query.eq('student_id', user.id);
+  }
 
   if (problemId) {
     query = query.eq('problem_id', problemId);
@@ -213,7 +235,7 @@ export async function GET(request: Request) {
     query = query.or(`battle_id.eq.${battleId},battle_id.is.null`);
   }
 
-  query = query.order('created_at', { ascending: false }).limit(50);
+  query = query.order('created_at', { ascending: false }).limit(100);
   const { data, error } = await query;
 
   return error

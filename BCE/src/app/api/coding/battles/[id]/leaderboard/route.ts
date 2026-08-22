@@ -8,7 +8,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 
   const { data, error } = await supabase
     .from('coding_battle_participants')
-    .select('*, profiles:student_id(full_name, avatar_url)')
+    .select('*, profiles:student_id(full_name:name, avatar_url)')
     .eq('battle_id', id)
     .order('score', { ascending: false })
     .order('finished_at', { ascending: true, nullsFirst: false });

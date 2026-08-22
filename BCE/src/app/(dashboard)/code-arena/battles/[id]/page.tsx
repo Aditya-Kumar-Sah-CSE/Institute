@@ -70,7 +70,7 @@ export default async function BattleRoomPage({ params }: { params: Promise<{ id:
   // 3. Fetch participants roster
   const { data: participants } = await supabase
     .from('coding_battle_participants')
-    .select('score, rank, joined_at, profiles(id, full_name, email, avatar_url)')
+    .select('score, rank, joined_at, profiles(id, full_name:name, email, avatar_url)')
     .eq('battle_id', battleId)
     .order('score', { ascending: false });
 

@@ -206,8 +206,8 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
   useEffect(() => {
     if (!containerRef.current) return;
     
-    // Style normal paragraphs with cycling colors
-    const paragraphs = containerRef.current.querySelectorAll('p');
+    // Style normal paragraphs, list items, and table cells with cycling colors
+    const paragraphs = containerRef.current.querySelectorAll('p, li, td, dd, dt');
     const colors = [
       'var(--neon-cyan)',
       '#a855f7',
@@ -219,9 +219,10 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
       '#f43f5e',
     ];
     paragraphs.forEach((p, idx) => {
-      p.style.color = colors[idx % colors.length];
-      p.style.textShadow = '0 0 1px rgba(0,0,0,0.5)';
-      p.style.transition = 'color 0.3s ease';
+      const el = p as HTMLElement;
+      el.style.color = colors[idx % colors.length];
+      el.style.textShadow = '0 0 1px rgba(0,0,0,0.5)';
+      el.style.transition = 'color 0.3s ease';
     });
 
     // Style the structured spec divs if present (standard Codeforces HTML structure)
