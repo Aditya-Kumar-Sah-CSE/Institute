@@ -45,14 +45,15 @@ export async function PATCH(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // 3. Update signature fields
+    // 3. Update signature & branding fields
     const body = await request.json();
-    const { signatureType, signatureName, signatureDesignation, signatureImageUrl } = body;
+    const { signatureType, signatureName, signatureDesignation, signatureImageUrl, organizerName, organizerLogo } = body;
 
     const updates: any = {};
     if (signatureType !== undefined) updates.signature_type = signatureType;
     if (signatureName !== undefined) updates.signature_name = signatureName.trim() || 'Aditya Kumar Sah';
     if (signatureDesignation !== undefined) updates.signature_designation = signatureDesignation.trim() || 'The Developer & The Coder';
+    if (organizerName !== undefined) updates.company_name = organizerName.trim() || 'BCE Code Arena';
     
     // Safely replace signature image URL (which can be a Base64 string or public upload link)
     if (signatureImageUrl !== undefined) {
@@ -68,6 +69,18 @@ export async function PATCH(
 
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 500 });
+    }
+
+    // Also update associated battle if battle_id is present and organizer params provided
+    if (cert.battle_id && (organizerName !== undefined || organizerLogo !== undefined)) {
+      const battleUpdates: any = {};
+      if (organizerName !== undefined) battleUpdates.organizer_name = organizerName.trim() || null;
+      if (organizerLogo !== undefined) battleUpdates.organizer_logo = organizerLogo || null;
+
+      await supabase
+        .from('coding_battles')
+        .update(battleUpdates)
+        .eq('id', cert.battle_id);
     }
 
     return NextResponse.json({ success: true, data: updatedCert });

@@ -24,6 +24,14 @@ export default function CertificateRenderer({
   const [signatureDesignation, setSignatureDesignation] = useState(cert.signature_designation || 'The Developer & The Coder');
   const [signatureImage, setSignatureImage] = useState<string | null>(cert.signature_image_url || null);
   
+  // Organizer branding state
+  const [organizerName, setOrganizerName] = useState<string>(
+    cert.coding_battles?.organizer_name || cert.company_name || 'BCE Code Arena'
+  );
+  const [organizerLogo, setOrganizerLogo] = useState<string | null>(
+    cert.coding_battles?.organizer_logo || null
+  );
+
   const [isDrawing, setIsDrawing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -50,6 +58,28 @@ export default function CertificateRenderer({
     }, 1000);
     return () => clearInterval(interval);
   }, [shareExpiresAt, router]);
+
+  // Handle organizer logo upload
+  const handleUploadLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!['image/png', 'image/jpeg', 'image/svg+xml'].includes(file.type)) {
+      alert('Only PNG, JPG, or SVG images are allowed.');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      alert('File size must be less than 2MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setOrganizerLogo(event.target.result as string);
+        setMessage('Logo uploaded! Click Save Settings to persist.');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Canvas drawing event handlers
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -167,6 +197,8 @@ export default function CertificateRenderer({
           signatureName,
           signatureDesignation,
           signatureImageUrl: signatureImage,
+          organizerName,
+          organizerLogo,
         }),
       });
       const json = await res.json();
@@ -338,13 +370,19 @@ export default function CertificateRenderer({
               {/* Left Shield Badge */}
               <g transform="translate(60, 65)">
                 <circle cx="45" cy="45" r="40" fill="rgba(6, 182, 212, 0.1)" stroke="#00f0ff" strokeWidth="1.5" filter="url(#glow)" />
-                <path d="M45,23 L28,30 C28,42 35,53 45,57 C55,53 62,42 62,30 L45,23 Z" fill="none" stroke="#00f0ff" strokeWidth="2" />
-                <text x="45" y="44" textAnchor="middle" fill="#00f0ff" fontSize="11" fontWeight="800" fontFamily="monospace">&lt;/&gt;</text>
+                {organizerLogo ? (
+                  <image href={organizerLogo} x="15" y="15" width="60" height="60" preserveAspectRatio="xMidYMid meet" />
+                ) : (
+                  <>
+                    <path d="M45,23 L28,30 C28,42 35,53 45,57 C55,53 62,42 62,30 L45,23 Z" fill="none" stroke="#00f0ff" strokeWidth="2" />
+                    <text x="45" y="44" textAnchor="middle" fill="#00f0ff" fontSize="11" fontWeight="800" fontFamily="monospace">&lt;/&gt;</text>
+                  </>
+                )}
               </g>
 
               {/* Top Center Branding Logo */}
               <g transform="translate(480, 75)">
-                <text x="0" y="0" textAnchor="middle" fill="#ffffff" fontSize="24" fontWeight="900" letterSpacing="4">CODING ARENA</text>
+                <text x="0" y="0" textAnchor="middle" fill="#ffffff" fontSize="24" fontWeight="900" letterSpacing="4">{(organizerName || 'CODING ARENA').toUpperCase()}</text>
                 <text x="0" y="16" textAnchor="middle" fill="#00f0ff" fontSize="9" fontWeight="700" letterSpacing="2">CODE. SOLVE. CONQUER.</text>
               </g>
               
@@ -476,7 +514,7 @@ export default function CertificateRenderer({
           </div>
         </div>
 
-        {/* Right Side: The Signature controls panel (only shown if not in public share mode) */}
+        {/* Right Side: The Signature & Branding controls panel (only shown if not in public share mode) */}
         {!isPublicShare && (
           <div style={{
             background: 'rgba(15,23,42,0.4)',
@@ -489,8 +527,47 @@ export default function CertificateRenderer({
             width: '100%',
           }}>
             <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0, borderBottom: '1px solid var(--glass-border)', paddingBottom: '10px' }} className="text-gradient">
-              Certificate Signature
+              Institution & Signature Setup
             </h3>
+
+            {/* Organizer Name input */}
+            <div>
+              <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Organizer / Institution Name</label>
+              <input
+                type="text"
+                value={organizerName}
+                onChange={(e) => setOrganizerName(e.target.value)}
+                placeholder="e.g. BCE Code Arena"
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--glass-border)',
+                  color: 'var(--text-main)',
+                  fontSize: '13px',
+                  outline: 'none',
+                }}
+              />
+            </div>
+
+            {/* Organizer Logo Upload */}
+            <div>
+              <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Organizer Logo (PNG, JPG, SVG)</label>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                {organizerLogo && (
+                  <div style={{ width: '36px', height: '36px', borderRadius: '6px', background: '#040711', border: '1px solid var(--glass-border)', display: 'grid', placeItems: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                    <img src={organizerLogo} alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/png, image/jpeg, image/svg+xml"
+                  onChange={handleUploadLogo}
+                  style={{ fontSize: '11px', color: 'var(--text-secondary)' }}
+                />
+              </div>
+            </div>
 
             {/* Type selector */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

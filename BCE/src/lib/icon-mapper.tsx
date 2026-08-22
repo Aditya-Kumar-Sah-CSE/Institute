@@ -19,26 +19,27 @@ import {
 } from 'lucide-react';
 
 export function getIcon(name: string, props?: any) {
+  const iconProps = { suppressHydrationWarning: true, ...props };
   switch (name) {
-    case 'Dashboard': return <LayoutDashboard {...props} />;
-    case 'Courses': return <BookOpen {...props} />;
-    case 'Leaderboard': return <Trophy {...props} />;
-    case 'Doubts': return <HelpCircle {...props} />;
-    case 'Notices': return <Megaphone {...props} />;
-    case 'Profile': return <User {...props} />;
-    case 'Enrollments': return <Users {...props} />;
-    case 'Students': return <Users {...props} />;
-    case 'Submissions': return <FileText {...props} />;
-    case 'Instructors': return <GraduationCap {...props} />;
-    case 'Feedback': return <MessageSquare {...props} />;
-    case 'Admin': return <Shield {...props} />;
-    case 'Building': return <Building {...props} />;
-    case 'Logout': return <LogOut {...props} />;
-    case 'Chat': return <MessageSquare {...props} />;
-    case 'Code': return <Code2 {...props} />;
-    case 'LaTeX': return <FileCode {...props} />;
+    case 'Dashboard': return <LayoutDashboard {...iconProps} />;
+    case 'Courses': return <BookOpen {...iconProps} />;
+    case 'Leaderboard': return <Trophy {...iconProps} />;
+    case 'Doubts': return <HelpCircle {...iconProps} />;
+    case 'Notices': return <Megaphone {...iconProps} />;
+    case 'Profile': return <User {...iconProps} />;
+    case 'Enrollments': return <Users {...iconProps} />;
+    case 'Students': return <Users {...iconProps} />;
+    case 'Submissions': return <FileText {...iconProps} />;
+    case 'Instructors': return <GraduationCap {...iconProps} />;
+    case 'Feedback': return <MessageSquare {...iconProps} />;
+    case 'Admin': return <Shield {...iconProps} />;
+    case 'Building': return <Building {...iconProps} />;
+    case 'Logout': return <LogOut {...iconProps} />;
+    case 'Chat': return <MessageSquare {...iconProps} />;
+    case 'Code': return <Code2 {...iconProps} />;
+    case 'LaTeX': return <FileCode {...iconProps} />;
     case 'Database':
-    case 'SQL': return <Database {...props} />;
-    default: return <LayoutDashboard {...props} />;
+    case 'SQL': return <Database {...iconProps} />;
+    default: return <LayoutDashboard {...iconProps} />;
   }
 }

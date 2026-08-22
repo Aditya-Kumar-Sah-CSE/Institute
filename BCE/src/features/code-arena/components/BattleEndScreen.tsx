@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { Trophy, Target, Award, CheckCircle2, BarChart2, ArrowLeft, X, Download, Share2, Shield } from 'lucide-react';
+import { Trophy, Target, Award, CheckCircle2, BarChart2, ArrowLeft, X, Download, Share2, Shield, Settings } from 'lucide-react';
 import Link from 'next/link';
 
 interface BattleEndScreenProps {
@@ -29,6 +30,23 @@ export default function BattleEndScreen({
   onViewAnalytics,
   onClose,
 }: BattleEndScreenProps) {
+  const router = useRouter();
+  const [claiming, setClaiming] = useState(false);
+
+  const handleOpenCertificate = async () => {
+    setClaiming(true);
+    try {
+      const res = await fetch(`/api/coding/battles/${battle.id}/certificate`, { method: 'POST' });
+      const json = await res.json();
+      if (json.success && json.data?.id) {
+        router.push(`/certificates/${json.data.id}`);
+      }
+    } catch (e) {
+      console.error('Failed to load certificate:', e);
+    } finally {
+      setClaiming(false);
+    }
+  };
   const userName = currentUser?.name || currentUser?.user_metadata?.name || 'BCE Star Programmer';
   const organizerName = battle.organizer_name || battle.profiles?.full_name || 'BCE Faculty';
   const organizerLogo = battle.organizer_logo || null;
@@ -451,6 +469,23 @@ export default function BattleEndScreen({
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', width: '100%', justifyContent: 'center' }}>
               <Button
                 variant="primary"
+                onClick={handleOpenCertificate}
+                disabled={claiming}
+                style={{
+                  background: 'linear-gradient(135deg, #fbbf24, #d97706)',
+                  color: '#000',
+                  fontWeight: 800,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 0 15px rgba(251, 191, 36, 0.3)'
+                }}
+              >
+                <Award size={16} /> {claiming ? 'Loading Certificate...' : '🏆 View / Customize Certificate & Signatures'}
+              </Button>
+
+              <Button
+                variant="secondary"
                 onClick={downloadPNG}
                 style={{
                   background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))',
