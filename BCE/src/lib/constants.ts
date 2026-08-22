@@ -47,6 +47,7 @@ export const NAV_ITEMS = [
   { label: 'Dashboard', href: '/dashboard', icon: 'Dashboard' },
   { label: 'Courses', href: '/courses', icon: 'Courses' },
   { label: 'Code Arena', href: '/code-arena', icon: 'Code' },
+  { label: 'Coding Sheets', href: '/code-arena/sheets', icon: 'Submissions' },
   { label: 'Compiler', href: '/code-arena/compiler', icon: 'Code' },
   { label: 'SQL Editor', href: '/dashboard/sql-editor', icon: 'Database' },
   { label: 'LaTeX Editor', href: '/latex-editor', icon: 'LaTeX' },
@@ -72,6 +73,7 @@ export const INSTRUCTOR_NAV_ITEMS = [
   { label: 'Dashboard', href: '/instructor', icon: 'Dashboard' },
   { label: 'My Courses', href: '/instructor/courses', icon: 'Courses' },
   { label: 'Code Arena', href: '/instructor/code-arena', icon: 'Code' },
+  { label: 'Coding Sheets', href: '/code-arena/sheets', icon: 'Submissions' },
   { label: 'Enrollments', href: '/instructor/enrollments', icon: 'Enrollments' },
   { label: 'Review Submissions', href: '/instructor/submissions', icon: 'Submissions' },
 ];

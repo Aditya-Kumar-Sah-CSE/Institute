@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import { 
   Swords, Plus, Code2, Trophy, ArrowRight, 
-  User, Flame, CheckCircle2, Circle, Activity, Trash2
+  User, Flame, CheckCircle2, Circle, Activity, Trash2, BookOpen
 } from 'lucide-react';
 import CreateBattleWizard from './CreateBattleWizard';
 import MobileCodeArenaToggle from './MobileCodeArenaToggle';
@@ -116,6 +116,10 @@ export default function CodeArenaClientHome({
         <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
           <Link href="/code-arena/problems" className="navbar-link">
             <Trophy size={13} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'text-bottom' }} /> Problem Hub
+          </Link>
+          <span style={{ color: 'rgba(255,255,255,0.1)' }}>|</span>
+          <Link href="/code-arena/sheets" className="navbar-link">
+            <BookOpen size={13} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'text-bottom' }} /> Coding Sheets
           </Link>
           <span style={{ color: 'rgba(255,255,255,0.1)' }}>|</span>
           <Link href="/code-arena/profile" className="navbar-link">
