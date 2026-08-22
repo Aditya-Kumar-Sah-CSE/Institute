@@ -138,9 +138,11 @@ export default function CodeArenaClientHome({
           <h1 className="hero-main-title">Compete. Solve. Improve.</h1>
 
           <div className="hero-action-buttons">
-            <button className="btn-hero-primary" onClick={() => setShowWizard(true)}>
-              <Plus size={14} /> Create Battle
-            </button>
+            {isInstructor && (
+              <button className="btn-hero-primary" onClick={() => setShowWizard(true)}>
+                <Plus size={14} /> Create Battle
+              </button>
+            )}
             <Link href="/code-arena/problems" className="btn-hero-secondary">
               Explore Problems <ArrowRight size={14} />
             </Link>
@@ -279,9 +281,11 @@ export default function CodeArenaClientHome({
             <Swords size={32} className="text-muted" style={{ marginBottom: '8px' }} />
             <h3>No battles found</h3>
             <p className="text-secondary">There are no battles matching this criteria at the moment.</p>
-            <Button size="sm" style={{ marginTop: 'var(--space-md)' }} onClick={() => setShowWizard(true)}>
-              + Create Battle
-            </Button>
+            {isInstructor && (
+              <Button size="sm" style={{ marginTop: 'var(--space-md)' }} onClick={() => setShowWizard(true)}>
+                + Create Battle
+              </Button>
+            )}
           </div>
         ) : (
           <div className="arena-battles-grid">

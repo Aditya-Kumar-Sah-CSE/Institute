@@ -72,6 +72,8 @@ export default function CreateBattleWizard({
   const [maxTeamSize, setMaxTeamSize] = useState<number>(initialBattle?.max_team_size || 1);
   const [isScheduled, setIsScheduled] = useState<boolean>(initialBattle?.status === 'SCHEDULED' || !!initialBattle?.start_time);
   const [scheduledStartTime, setScheduledStartTime] = useState<string>(formatDateTimeLocal(initialBattle?.start_time));
+  const [organizerName, setOrganizerName] = useState<string>(initialBattle?.organizer_name || '');
+  const [organizerLogo, setOrganizerLogo] = useState<string>(initialBattle?.organizer_logo || '');
 
   // Step 2: Add Problems
   const [problemSource, setProblemSource] = useState<'CODEFORCES' | 'LEETCODE' | 'INTERNAL' | 'CREATE_NEW'>('CODEFORCES');
@@ -286,6 +288,8 @@ export default function CreateBattleWizard({
           minTeamSize,
           maxTeamSize,
           scheduledStartTime: isScheduled ? scheduledStartTime : null,
+          organizerName: organizerName.trim() || null,
+          organizerLogo: organizerLogo.trim() || null,
         }),
       });
 
@@ -383,6 +387,48 @@ export default function CreateBattleWizard({
                     value={title}
                     placeholder="e.g. DSA Battle #01"
                     onChange={(e) => setTitle(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600, marginBottom: '6px' }}>
+                    Organizer Name
+                  </label>
+                  <input
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--glass-border)',
+                      color: 'var(--text-main)',
+                      fontSize: 'var(--text-sm)',
+                      outline: 'none',
+                    }}
+                    value={organizerName}
+                    placeholder="e.g. Code Arena League / Prof. Sharma (Optional)"
+                    onChange={(e) => setOrganizerName(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600, marginBottom: '6px' }}>
+                    Organizer Logo (Image / SVG URL)
+                  </label>
+                  <input
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--glass-border)',
+                      color: 'var(--text-main)',
+                      fontSize: 'var(--text-sm)',
+                      outline: 'none',
+                    }}
+                    value={organizerLogo}
+                    placeholder="e.g. https://example.com/logo.png or SVG link (Optional)"
+                    onChange={(e) => setOrganizerLogo(e.target.value)}
                   />
                 </div>
 

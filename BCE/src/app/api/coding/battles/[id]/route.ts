@@ -116,11 +116,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     const body = await request.json();
-    const { title, description, durationMinutes, batchId, visibility, problems, maxParticipants, teamMode, minTeamSize, maxTeamSize, scheduledStartTime } = body;
+    const { title, description, durationMinutes, batchId, visibility, problems, maxParticipants, teamMode, minTeamSize, maxTeamSize, scheduledStartTime, organizerName, organizerLogo } = body;
 
     const updates: any = {};
     if (title?.trim()) updates.title = title.trim();
     if (description !== undefined) updates.description = description || null;
+    if (organizerName !== undefined) updates.organizer_name = organizerName?.trim() || null;
+    if (organizerLogo !== undefined) updates.organizer_logo = organizerLogo?.trim() || null;
     if (durationMinutes && Number.isInteger(Number(durationMinutes))) {
       updates.duration_minutes = Number(durationMinutes);
     }

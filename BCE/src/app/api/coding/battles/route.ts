@@ -28,7 +28,7 @@ export async function GET() {
 
   let query = supabase
     .from('coding_battles')
-    .select('id, title, description, status, start_time, end_time, duration_minutes, batch_id, creator_role, join_code, visibility, created_by, created_at, max_participants, team_mode, min_team_size, max_team_size, coding_battle_problems(count), coding_battle_participants(count)')
+    .select('id, title, description, status, start_time, end_time, duration_minutes, batch_id, creator_role, join_code, visibility, created_by, created_at, max_participants, team_mode, min_team_size, max_team_size, organizer_name, organizer_logo, coding_battle_problems(count), coding_battle_participants(count)')
     .order('created_at', { ascending: false })
     .limit(50);
 
@@ -48,6 +48,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } }, { status: 401 });
   }
 
+  if (!isInstructor) {
+    return NextResponse.json(
+      { success: false, error: { code: 'FORBIDDEN', message: 'Only faculty and instructors can create coding battles.' } },
+      { status: 403 }
+    );
+  }
+
   try {
     const body = await request.json();
     const { 
@@ -62,6 +69,8 @@ export async function POST(request: Request) {
       minTeamSize = 1,
       maxTeamSize = 1,
       scheduledStartTime,
+      organizerName,
+      organizerLogo,
     } = body;
     const duration = Number(durationMinutes || 30);
 
@@ -114,6 +123,8 @@ export async function POST(request: Request) {
         team_mode: Boolean(teamMode),
         min_team_size: Number(minTeamSize || 1),
         max_team_size: Number(maxTeamSize || 1),
+        organizer_name: organizerName?.trim() || null,
+        organizer_logo: organizerLogo?.trim() || null,
       })
       .select()
       .single();

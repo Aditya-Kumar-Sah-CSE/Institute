@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { Trophy, Target, Award, CheckCircle2, BarChart2, ArrowLeft, X, Download, Share2 } from 'lucide-react';
+import { Trophy, Target, Award, CheckCircle2, BarChart2, ArrowLeft, X, Download, Share2, Shield } from 'lucide-react';
 import Link from 'next/link';
 
 interface BattleEndScreenProps {
@@ -30,6 +30,8 @@ export default function BattleEndScreen({
   onClose,
 }: BattleEndScreenProps) {
   const userName = currentUser?.name || currentUser?.user_metadata?.name || 'BCE Star Programmer';
+  const organizerName = battle.organizer_name || battle.profiles?.full_name || 'BCE Faculty';
+  const organizerLogo = battle.organizer_logo || null;
   const [particles, setParticles] = useState<any[]>([]);
 
   useEffect(() => {
@@ -126,6 +128,61 @@ export default function BattleEndScreen({
       </div>
 
       <Card className="battle-complete-card" style={{ position: 'relative', maxWidth: '850px', width: '90%' }}>
+        {/* Top Left Organizer Logo */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '16px',
+            left: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            zIndex: 10,
+          }}
+          title={`Organized by ${organizerName}`}
+        >
+          {organizerLogo ? (
+            organizerLogo.trim().startsWith('<svg') ? (
+              <div
+                style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                dangerouslySetInnerHTML={{ __html: organizerLogo }}
+              />
+            ) : (
+              <img
+                src={organizerLogo}
+                alt={organizerName}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '6px',
+                  objectFit: 'contain',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid var(--glass-border)',
+                  padding: '2px',
+                }}
+              />
+            )
+          ) : (
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '6px',
+                background: 'linear-gradient(135deg, rgba(6,182,212,0.2), rgba(168,85,247,0.2))',
+                border: '1px solid var(--neon-cyan)',
+                color: 'var(--neon-cyan)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 'bold',
+                fontSize: '13px',
+              }}
+            >
+              <Shield size={16} />
+            </div>
+          )}
+        </div>
+
         {onClose && (
           <button
             onClick={onClose}
