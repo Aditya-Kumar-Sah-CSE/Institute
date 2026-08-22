@@ -681,14 +681,7 @@ export default function BattleArenaClient({
             </Button>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)' }}>
-            <button type="button" className="oj-icon-btn" aria-label="Notifications" title="Notifications">
-              <Bell size={15} />
-            </button>
-            <button type="button" className="oj-icon-btn" aria-label="User profile" title="User profile">
-              <UserCircle size={15} />
-            </button>
-          </div>
+
         </div>
       </header>
 
