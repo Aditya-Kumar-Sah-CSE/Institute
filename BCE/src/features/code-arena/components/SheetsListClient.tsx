@@ -94,9 +94,11 @@ export default function SheetsListClient({
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--neon-cyan)', background: 'rgba(6,182,212,0.1)', padding: '4px 10px', borderRadius: '12px', fontWeight: 600 }}>
             <BookOpen size={13} /> Coding Practice Sheets
           </div>
-          <Button size="sm" onClick={() => setShowWizard(true)}>
-            <Plus size={14} /> New Sheet
-          </Button>
+          {isInstructor && (
+            <Button size="sm" onClick={() => setShowWizard(true)}>
+              <Plus size={14} /> New Sheet
+            </Button>
+          )}
         </div>
       </header>
 
@@ -126,9 +128,11 @@ export default function SheetsListClient({
           <p className="text-secondary" style={{ fontSize: 'var(--text-xs)', maxWidth: '320px', margin: '6px auto 16px auto' }}>
             Get started by creating your first curated practice coding sheet.
           </p>
-          <Button size="sm" onClick={() => setShowWizard(true)}>
-            + Create Practice Sheet
-          </Button>
+          {isInstructor && (
+            <Button size="sm" onClick={() => setShowWizard(true)}>
+              + Create Practice Sheet
+            </Button>
+          )}
         </Card>
       ) : (
         <div className="problem-grid">
@@ -198,32 +202,34 @@ export default function SheetsListClient({
                     View Sheet <ChevronRight size={14} />
                   </Link>
 
-                  <button
-                    onClick={() => handleDeleteSheet(sheet.id)}
-                    style={{
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: 'var(--radius-sm)',
-                      background: 'rgba(239, 68, 68, 0.08)',
-                      border: '1px solid rgba(239, 68, 68, 0.2)',
-                      color: 'rgba(239, 68, 68, 0.8)',
-                      cursor: 'pointer',
-                      display: 'grid',
-                      placeItems: 'center',
-                      transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(239, 68, 68, 0.18)';
-                      e.currentTarget.style.borderColor = '#ef4444';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)';
-                      e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.2)';
-                    }}
-                    title="Delete Sheet"
-                  >
-                    <Trash2 size={15} />
-                  </button>
+                  {isInstructor && (
+                    <button
+                      onClick={() => handleDeleteSheet(sheet.id)}
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'rgba(239, 68, 68, 0.08)',
+                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                        color: 'rgba(239, 68, 68, 0.8)',
+                        cursor: 'pointer',
+                        display: 'grid',
+                        placeItems: 'center',
+                        transition: 'all 0.2s',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.18)';
+                        e.currentTarget.style.borderColor = '#ef4444';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)';
+                        e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+                      }}
+                      title="Delete Sheet"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
                 </div>
               </Card>
             );

@@ -53,8 +53,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ success: false, error: { message: 'Sheet not found' } }, { status: 404 });
     }
 
-    if (sheet.created_by !== user.id && !isInstructor) {
-      return NextResponse.json({ success: false, error: { message: 'Forbidden' } }, { status: 403 });
+    if (!isInstructor) {
+      return NextResponse.json({ success: false, error: { message: 'Forbidden: Only instructors can edit coding sheets.' } }, { status: 403 });
     }
 
     const body = await request.json();
@@ -108,8 +108,8 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     return NextResponse.json({ success: false, error: { message: 'Sheet not found' } }, { status: 404 });
   }
 
-  if (sheet.created_by !== user.id && !isInstructor) {
-    return NextResponse.json({ success: false, error: { message: 'Forbidden' } }, { status: 403 });
+  if (!isInstructor) {
+    return NextResponse.json({ success: false, error: { message: 'Forbidden: Only instructors can delete coding sheets.' } }, { status: 403 });
   }
 
   const { error: deleteError } = await supabase.from('coding_sheets').delete().eq('id', id);

@@ -23,6 +23,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } }, { status: 401 });
   }
 
+  if (!isInstructor) {
+    return NextResponse.json(
+      { success: false, error: { code: 'FORBIDDEN', message: 'Only instructors and admins can create coding sheets.' } },
+      { status: 403 }
+    );
+  }
+
   try {
     const body = await request.json();
     const { title, description, problems = [] } = body;
