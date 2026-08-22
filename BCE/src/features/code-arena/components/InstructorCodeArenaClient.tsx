@@ -37,7 +37,7 @@ export default function InstructorCodeArenaClient({
   batches?: any[];
 }) {
   const [activeTab, setActiveTab] = useState<'BATTLES' | 'PROBLEMS'>('BATTLES');
-  const [battleFilter, setBattleFilter] = useState<'ALL' | 'ACTIVE' | 'LOBBY' | 'COMPLETED'>('ALL');
+  const [battleFilter, setBattleFilter] = useState<'ALL' | 'ACTIVE' | 'LOBBY' | 'COMPLETED' | 'MY_BATTLES'>('ALL');
 
   const [battles, setBattles] = useState<any[]>(initialBattles);
   const [problems, setProblems] = useState<any[]>(initialProblems);
@@ -54,6 +54,7 @@ export default function InstructorCodeArenaClient({
     if (battleFilter === 'ACTIVE') return b.status === 'LIVE';
     if (battleFilter === 'LOBBY') return b.status === 'LOBBY' || b.status === 'SCHEDULED' || b.status === 'DRAFT';
     if (battleFilter === 'COMPLETED') return b.status === 'COMPLETED';
+    if (battleFilter === 'MY_BATTLES') return b.created_by === user?.id;
     return true;
   });
 
@@ -205,7 +206,7 @@ export default function InstructorCodeArenaClient({
       {activeTab === 'BATTLES' && (
         <section style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
           {/* Battle Filter Pills */}
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             <Button size="sm" variant={battleFilter === 'ALL' ? 'primary' : 'secondary'} onClick={() => setBattleFilter('ALL')}>
               All Battles
             </Button>
@@ -217,6 +218,9 @@ export default function InstructorCodeArenaClient({
             </Button>
             <Button size="sm" variant={battleFilter === 'COMPLETED' ? 'primary' : 'secondary'} onClick={() => setBattleFilter('COMPLETED')}>
               Completed
+            </Button>
+            <Button size="sm" variant={battleFilter === 'MY_BATTLES' ? 'primary' : 'secondary'} onClick={() => setBattleFilter('MY_BATTLES')}>
+              🛡️ Your Battles
             </Button>
           </div>
 
@@ -243,6 +247,7 @@ export default function InstructorCodeArenaClient({
                 const isLobby = b.status === 'LOBBY' || b.status === 'DRAFT' || b.status === 'SCHEDULED';
                 const isLive = b.status === 'LIVE';
                 const isDone = b.status === 'COMPLETED';
+                const isCreator = b.created_by === user?.id || user?.role === 'admin' || user?.role === 'instructor';
 
                 return (
                   <Card
@@ -296,22 +301,25 @@ export default function InstructorCodeArenaClient({
                         Open <ArrowRight size={14} />
                       </Link>
 
+                      {/* Creator can edit battle anytime (Lobby, Live, or Completed) */}
+                      {isCreator && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          title="Edit Battle & Certificate Details"
+                          onClick={() => {
+                            setEditingBattle(b);
+                            setShowBattleWizard(true);
+                          }}
+                        >
+                          <Edit size={14} /> Edit
+                        </Button>
+                      )}
+
                       {isLobby && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => {
-                              setEditingBattle(b);
-                              setShowBattleWizard(true);
-                            }}
-                          >
-                            <Edit size={14} />
-                          </Button>
-                          <Button size="sm" onClick={() => handleStartBattle(b.id)} isLoading={startingId === b.id}>
-                            <Play size={14} /> Start
-                          </Button>
-                        </>
+                        <Button size="sm" onClick={() => handleStartBattle(b.id)} isLoading={startingId === b.id}>
+                          <Play size={14} /> Start
+                        </Button>
                       )}
 
                       {isLive && (

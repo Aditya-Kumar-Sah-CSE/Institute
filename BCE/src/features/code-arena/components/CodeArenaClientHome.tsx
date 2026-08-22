@@ -35,9 +35,10 @@ export default function CodeArenaClientHome({
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [joinSuccess, setJoinSuccess] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'ALL' | 'LIVE' | 'UPCOMING' | 'COMPLETED'>('ALL');
+  const [activeTab, setActiveTab] = useState<'ALL' | 'LIVE' | 'UPCOMING' | 'COMPLETED' | 'MY_BATTLES'>('ALL');
 
   const [battles, setBattles] = useState<any[]>(initialBattles);
+  const [editingBattle, setEditingBattle] = useState<any | null>(null);
   const [visibleProblemsCount, setVisibleProblemsCount] = useState(6);
 
   const handleDeleteBattle = async (battleId: string) => {
@@ -102,8 +103,9 @@ export default function CodeArenaClientHome({
   const filteredBattles = battles.filter(b => {
     if (activeTab === 'ALL') return true;
     if (activeTab === 'LIVE') return b.status === 'LIVE';
-    if (activeTab === 'UPCOMING') return b.status === 'LOBBY';
+    if (activeTab === 'UPCOMING') return b.status === 'LOBBY' || b.status === 'SCHEDULED';
     if (activeTab === 'COMPLETED') return b.status === 'COMPLETED';
+    if (activeTab === 'MY_BATTLES') return Boolean(profile?.id && b.created_by === profile.id);
     return true;
   });
 
@@ -273,6 +275,12 @@ export default function CodeArenaClientHome({
             >
               Completed
             </button>
+            <button 
+              className={`arena-tab-btn ${activeTab === 'MY_BATTLES' ? 'active' : ''}`}
+              onClick={() => setActiveTab('MY_BATTLES')}
+            >
+              🛡️ Your Battles
+            </button>
           </div>
         </div>
 
@@ -304,35 +312,61 @@ export default function CodeArenaClientHome({
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span className="join-code-disp">{b.join_code}</span>
                       {(b.created_by === profile?.id || isInstructor) && (
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleDeleteBattle(b.id);
-                          }}
-                          style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: 'rgba(239, 68, 68, 0.7)',
-                            cursor: 'pointer',
-                            padding: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            borderRadius: '4px',
-                            transition: 'all 0.2s',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.color = '#ef4444';
-                            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.color = 'rgba(239, 68, 68, 0.7)';
-                            e.currentTarget.style.background = 'transparent';
-                          }}
-                          title="Delete Battle"
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setEditingBattle(b);
+                              setShowWizard(true);
+                            }}
+                            style={{
+                              background: 'rgba(6, 182, 212, 0.1)',
+                              border: '1px solid rgba(6, 182, 212, 0.3)',
+                              color: '#00f0ff',
+                              cursor: 'pointer',
+                              padding: '2px 6px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              borderRadius: '4px',
+                              fontSize: '10px',
+                              fontWeight: 600,
+                              transition: 'all 0.2s',
+                            }}
+                            title="Edit Battle & Certificate Details"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleDeleteBattle(b.id);
+                            }}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: 'rgba(239, 68, 68, 0.7)',
+                              cursor: 'pointer',
+                              padding: '4px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              borderRadius: '4px',
+                              transition: 'all 0.2s',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.color = '#ef4444';
+                              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.color = 'rgba(239, 68, 68, 0.7)';
+                              e.currentTarget.style.background = 'transparent';
+                            }}
+                            title="Delete Battle"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -489,15 +523,24 @@ export default function CodeArenaClientHome({
 
       </div>
 
-      {/* Create Battle Wizard Modal */}
+      {/* Create / Edit Battle Wizard Modal */}
       {showWizard && (
         <CreateBattleWizard
           isInstructor={isInstructor}
           batches={batches}
-          onClose={() => setShowWizard(false)}
-          onSuccess={(newBattle) => {
-            setBattles([newBattle, ...battles]);
+          initialBattle={editingBattle}
+          onClose={() => {
             setShowWizard(false);
+            setEditingBattle(null);
+          }}
+          onSuccess={(savedBattle) => {
+            if (editingBattle) {
+              setBattles(prev => prev.map(b => b.id === savedBattle.id ? { ...b, ...savedBattle } : b));
+            } else {
+              setBattles([savedBattle, ...battles]);
+            }
+            setShowWizard(false);
+            setEditingBattle(null);
           }}
         />
       )}
