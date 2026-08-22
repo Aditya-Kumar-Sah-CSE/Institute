@@ -79,7 +79,7 @@ export default function BattleArenaClient({
   const [language, setLanguage] = useState<CodeLanguage>('cpp17');
   const [code, setCode] = useState('');
   const [stdin, setStdin] = useState('');
-  const [isFullscreen, setIsFullscreen] = useState(true); // Default fullscreen mode in battle
+  const [isFullscreen, setIsFullscreen] = useState(false); // Default fullscreen mode in battle off
   const [activeRightTab, setActiveRightTab] = useState<'editor' | 'results'>('editor');
 
   // Editor save states
@@ -696,6 +696,7 @@ export default function BattleArenaClient({
       {showEndModal && (
         <BattleEndScreen
           battle={battle}
+          currentUser={currentUser}
           userStats={{
             rank: userRank,
             score: userScore,
@@ -719,92 +720,142 @@ export default function BattleArenaClient({
       {activeTab === 'arena' && (
         <div className="code-arena-workspace-container">
           {/* Virtual Practice and Completion Banners */}
-          {battle.status === 'COMPLETED' && !isVirtualPractice && (
+          {battle.status === 'COMPLETED' && !isVirtualPractice ? (
             <Card
               style={{
-                background: 'linear-gradient(135deg, rgba(6,182,212,0.1), rgba(124,58,237,0.1))',
+                background: 'linear-gradient(135deg, rgba(11, 15, 25, 0.9), rgba(30, 27, 75, 0.9))',
                 border: '1px solid var(--neon-cyan)',
                 borderRadius: 'var(--radius-lg)',
-                padding: 'var(--space-md) var(--space-lg)',
+                padding: 'var(--space-2xl) var(--space-xl)',
+                textAlign: 'center',
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '12px',
+                gap: 'var(--space-lg)',
+                maxWidth: '650px',
+                margin: '40px auto',
+                boxShadow: '0 10px 30px rgba(0,240,255,0.1)'
               }}
             >
-              <div style={{ textAlign: 'left' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--neon-cyan)', margin: 0 }}>
-                  🏁 Battle Completed
-                </h3>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
-                  This competitive battle has officially ended. You can enter Virtual Practice mode to test your solutions and solve the problems at your own pace.
+              <div
+                style={{
+                  width: '80px',
+                  height: '80px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, rgba(6,182,212,0.2), rgba(124,58,237,0.2))',
+                  border: '2px solid var(--neon-cyan)',
+                  color: 'var(--neon-cyan)',
+                  display: 'grid',
+                  placeItems: 'center',
+                }}
+              >
+                <Trophy size={40} style={{ animation: 'pulse 2s infinite' }} />
+              </div>
+
+              <div>
+                <h2 className="text-gradient" style={{ fontSize: '28px', fontWeight: 800, margin: '4px 0' }}>
+                  Thank You for Participating!
+                </h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '15px', lineHeight: 1.6, marginTop: '8px' }}>
+                  The battle <strong>{battle.title}</strong> has ended. Coding workspace and submissions are now closed. 
+                  You can view your stats in the <strong>Analytics</strong> tab or view the final ranks in the <strong>Leaderboard</strong>.
                 </p>
               </div>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setShowEndModal(true)}
-                  style={{ fontWeight: 800 }}
-                >
-                  🏆 View Results
-                </Button>
+
+              <div style={{
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid var(--glass-border)',
+                borderRadius: '8px',
+                padding: '16px 24px',
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'space-around',
+                margin: '8px 0'
+              }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Rank</span>
+                  <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--neon-gold)' }}>#{userRank}</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Score</span>
+                  <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--neon-cyan)' }}>{userScore} pts</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Solved</span>
+                  <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--neon-emerald)' }}>{officialSolvedProblemIds.size} / {problems.length}</span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
                 <Button
                   variant="primary"
-                  size="sm"
                   onClick={() => {
                     setIsVirtualPractice(true);
                     setVirtualStartTime(new Date().toISOString());
                   }}
                   style={{
                     background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))',
-                    fontWeight: 800
+                    fontWeight: 800,
+                    padding: '10px 24px'
                   }}
                 >
-                  ⚡ Start Virtual Practice
+                  ⚡ Start Practice Mode (Re-Attempt)
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => setActiveTab('leaderboard')}
+                  style={{ fontWeight: 700 }}
+                >
+                  🏆 View Leaderboard
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => setActiveTab('analytics')}
+                  style={{ fontWeight: 700 }}
+                >
+                  📊 View Analytics
                 </Button>
               </div>
             </Card>
-          )}
-
-          {isVirtualPractice && (
-            <Card
-              style={{
-                background: 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(6,182,212,0.1))',
-                border: '1px solid var(--neon-emerald)',
-                borderRadius: 'var(--radius-lg)',
-                padding: 'var(--space-md) var(--space-lg)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '12px',
-              }}
-            >
-              <div style={{ textAlign: 'left' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--neon-emerald)', margin: 0 }}>
-                  ⚡ Virtual Practice / Re-Attempt Mode
-                </h3>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
-                  Solving problems in retry mode. Submissions are for practice only and do not affect the official lobby scoreboard.
-                </p>
-              </div>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  if (confirm('Exit virtual practice mode? Your code drafts are saved, but the virtual timer will reset.')) {
-                    setIsVirtualPractice(false);
-                    setVirtualStartTime(null);
-                  }
-                }}
-                style={{ fontWeight: 700 }}
-              >
-                Exit Practice
-              </Button>
-            </Card>
-          )}
+          ) : (
+            <>
+              {isVirtualPractice && (
+                <Card
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(6,182,212,0.1))',
+                    border: '1px solid var(--neon-emerald)',
+                    borderRadius: 'var(--radius-lg)',
+                    padding: 'var(--space-md) var(--space-lg)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '12px',
+                  }}
+                >
+                  <div style={{ textAlign: 'left' }}>
+                    <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--neon-emerald)', margin: 0 }}>
+                      ⚡ Virtual Practice / Re-Attempt Mode
+                    </h3>
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
+                      Solving problems in retry mode. Submissions are for practice only and do not affect the official lobby scoreboard.
+                    </p>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      if (confirm('Exit virtual practice mode? Your code drafts are saved, but the virtual timer will reset.')) {
+                        setIsVirtualPractice(false);
+                        setVirtualStartTime(null);
+                      }
+                    }}
+                    style={{ fontWeight: 700 }}
+                  >
+                    Exit Practice
+                  </Button>
+                </Card>
+              )}
 
           {/* Problem Selector Tabs */}
           <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
@@ -1243,6 +1294,8 @@ export default function BattleArenaClient({
             <Card variant="glass" style={{ textAlign: 'center', padding: 'var(--space-xl)' }}>
               <p>No problems configured for this battle.</p>
             </Card>
+          )}
+            </>
           )}
         </div>
       )}
