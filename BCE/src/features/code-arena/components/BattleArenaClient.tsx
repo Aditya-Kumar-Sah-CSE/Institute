@@ -603,33 +603,67 @@ export default function BattleArenaClient({
       {/* Compact Battle Room IDE Header Bar */}
       <header className="code-arena-header-compact">
         <div className="code-arena-header-left" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <Link 
-            href="/code-arena" 
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              color: 'var(--text-danger, #ef4444)',
-              background: 'rgba(239, 68, 68, 0.08)',
-              border: '1px solid rgba(239, 68, 68, 0.25)',
-              padding: '6px 12px',
-              borderRadius: 'var(--radius-md)',
-              fontSize: '12px',
-              fontWeight: 700,
-              textDecoration: 'none',
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => {
-              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.18)';
-              e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.4)';
-            }}
-            onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => {
-              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)';
-              e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.25)';
-            }}
-          >
-            <ArrowLeft size={14} /> Leave Battle
-          </Link>
+          {activeTab !== 'arena' ? (
+            <button 
+              onClick={() => setActiveTab('arena')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: 'var(--neon-cyan, #06b6d4)',
+                background: 'rgba(6, 182, 212, 0.08)',
+                border: '1px solid rgba(6, 182, 212, 0.25)',
+                padding: '6px 12px',
+                borderRadius: 'var(--radius-md)',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => {
+                e.currentTarget.style.background = 'rgba(6, 182, 212, 0.18)';
+                e.currentTarget.style.borderColor = 'rgba(6, 182, 212, 0.4)';
+              }}
+              onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => {
+                e.currentTarget.style.background = 'rgba(6, 182, 212, 0.08)';
+                e.currentTarget.style.borderColor = 'rgba(6, 182, 212, 0.25)';
+              }}
+            >
+              <ArrowLeft size={14} /> Back to Arena
+            </button>
+          ) : (
+            <button 
+              onClick={() => {
+                if (confirm('Are you sure you want to leave the battle room?')) {
+                  window.location.href = '/code-arena';
+                }
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: 'var(--text-danger, #ef4444)',
+                background: 'rgba(239, 68, 68, 0.08)',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                padding: '6px 12px',
+                borderRadius: 'var(--radius-md)',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => {
+                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.18)';
+                e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+              }}
+              onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => {
+                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)';
+                e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.25)';
+              }}
+            >
+              <ArrowLeft size={14} /> Leave Battle
+            </button>
+          )}
           <div>
             <h1 className="code-arena-header-title" style={{ display: 'flex', alignItems: 'center' }}>
               <span style={{ color: 'var(--text-muted)', fontWeight: 500, marginRight: '4px' }}>Battle:</span> {battle.title}

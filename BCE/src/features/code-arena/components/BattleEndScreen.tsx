@@ -1,8 +1,9 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { Trophy, Target, Award, CheckCircle2, BarChart2, ArrowLeft, X, Download } from 'lucide-react';
+import { Trophy, Target, Award, CheckCircle2, BarChart2, ArrowLeft, X, Download, Share2 } from 'lucide-react';
 import Link from 'next/link';
 
 interface BattleEndScreenProps {
@@ -29,6 +30,24 @@ export default function BattleEndScreen({
   onClose,
 }: BattleEndScreenProps) {
   const userName = currentUser?.name || currentUser?.user_metadata?.name || 'BCE Star Programmer';
+  const [particles, setParticles] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Generate celebration confetti particles
+    const colors = ['#00f0ff', '#ff007f', '#fbbf24', '#10b981', '#a855f7', '#3b82f6'];
+    const newParticles = Array.from({ length: 80 }).map((_, i) => ({
+      id: i,
+      x: Math.random() * 100, // percentage from left
+      y: -10 - Math.random() * 20, // start above view
+      size: 5 + Math.random() * 10,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      delay: Math.random() * 5,
+      duration: 3 + Math.random() * 4,
+      rotation: Math.random() * 360,
+      shape: Math.random() > 0.5 ? 'circle' : 'rect'
+    }));
+    setParticles(newParticles);
+  }, []);
 
   const downloadSVG = () => {
     const svgEl = document.getElementById('battle-certificate-svg');
@@ -45,8 +64,67 @@ export default function BattleEndScreen({
     URL.revokeObjectURL(svgUrl);
   };
 
+  const shareAchievement = async () => {
+    const shareText = `🏆 I completed the BCE Coding Battle "${battle.title}"! \n\n🎯 Score: ${userStats.score} PTS\n🥇 Rank: #${userStats.rank}\n✅ Solved: ${userStats.solvedCount}/${userStats.totalProblems} Problems\n⏱️ Accuracy: ${userStats.accuracy}%\n\nJoin the BCE code arena and level up your coding skills! 🚀`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'BCE Code Arena Achievement',
+          text: shareText,
+          url: window.location.origin + '/code-arena',
+        });
+      } catch (err) {
+        copyToClipboard(shareText);
+      }
+    } else {
+      copyToClipboard(shareText);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    alert('Congratulations! Share details copied to clipboard. Paste it on LinkedIn, Twitter, or WhatsApp to celebrate! 🎉');
+  };
+
   return (
     <div className="battle-complete-wrapper">
+      {/* Confetti Celebration Style block */}
+      <style>{`
+        @keyframes confettiFall {
+          0% {
+            transform: translateY(0) rotate(0deg);
+            opacity: 1;
+          }
+          100% {
+            transform: translateY(115vh) rotate(720deg);
+            opacity: 0;
+          }
+        }
+      `}</style>
+
+      {/* Celebration Confetti rain */}
+      <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 99999 }}>
+        {particles.map((p) => (
+          <div
+            key={p.id}
+            style={{
+              position: 'absolute',
+              left: `${p.x}%`,
+              top: `${p.y}%`,
+              width: `${p.size}px`,
+              height: p.shape === 'rect' ? `${p.size * 0.6}px` : `${p.size}px`,
+              borderRadius: p.shape === 'circle' ? '50%' : '2px',
+              backgroundColor: p.color,
+              transform: `rotate(${p.rotation}deg)`,
+              animation: `confettiFall ${p.duration}s linear infinite`,
+              animationDelay: `${p.delay}s`,
+              opacity: 0.8
+            }}
+          />
+        ))}
+      </div>
+
       <Card className="battle-complete-card" style={{ position: 'relative', maxWidth: '850px', width: '90%' }}>
         {onClose && (
           <button
@@ -99,13 +177,16 @@ export default function BattleEndScreen({
             🎉 Thank You for Participating!
           </h1>
           <p style={{ color: 'var(--text-primary)', fontSize: '15px', fontWeight: 600, maxWidth: '650px', margin: '8px auto', lineHeight: 1.6 }}>
-            Congratulations! You scored <span style={{ color: 'var(--neon-cyan)' }}>{userStats.score} pts</span>, 
-            secured <span style={{ color: 'var(--neon-gold)' }}>Rank #{userStats.rank}</span>, 
-            and successfully solved <span style={{ color: 'var(--neon-emerald)' }}>{userStats.solvedCount}/{userStats.totalProblems}</span> problems!
+            Congratulations, <span style={{ color: 'var(--neon-gold)' }}>{userName}</span>! You performed incredibly well!
+          </p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', maxWidth: '600px', margin: '0 auto' }}>
+            You scored <span style={{ color: 'var(--neon-cyan)', fontWeight: 700 }}>{userStats.score} pts</span>, 
+            secured <span style={{ color: 'var(--neon-gold)', fontWeight: 700 }}>Rank #{userStats.rank}</span>, 
+            and successfully solved <span style={{ color: 'var(--neon-emerald)', fontWeight: 700 }}>{userStats.solvedCount}/{userStats.totalProblems}</span> problems!
           </p>
         </div>
 
-        {/* Shareable Certificate Display and Download Button */}
+        {/* Shareable Certificate Display and Controls */}
         <div style={{ width: '100%', marginBottom: 'var(--space-lg)' }}>
           <div style={{
             background: 'rgba(255,255,255,0.01)',
@@ -253,20 +334,34 @@ export default function BattleEndScreen({
               </svg>
             </div>
             
-            <Button
-              variant="primary"
-              onClick={downloadSVG}
-              style={{
-                background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))',
-                fontWeight: 800,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                marginTop: '4px'
-              }}
-            >
-              <Download size={16} /> Download Shareable Certificate (LinkedIn / WhatsApp Status)
-            </Button>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', width: '100%', justifyContent: 'center' }}>
+              <Button
+                variant="primary"
+                onClick={downloadSVG}
+                style={{
+                  background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))',
+                  fontWeight: 800,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <Download size={16} /> Download Shareable Certificate (SVG)
+              </Button>
+
+              <Button
+                variant="secondary"
+                onClick={shareAchievement}
+                style={{
+                  fontWeight: 800,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <Share2 size={16} /> Share Achievement
+              </Button>
+            </div>
           </div>
         </div>
 
