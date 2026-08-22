@@ -151,6 +151,12 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
                  <Link href="/code-arena" onClick={() => setIsMenuOpen(false)}>
                    {getIcon('Code', { size: 16, className: 'mobile-nav-icon' })} Code Arena
                  </Link>
+                 <Link href="/code-arena/sheets" onClick={() => setIsMenuOpen(false)}>
+                   {getIcon('Submissions', { size: 16, className: 'mobile-nav-icon' })} Coding Sheets
+                 </Link>
+                 <Link href="/dashboard/sql-editor" onClick={() => setIsMenuOpen(false)}>
+                   {getIcon('Database', { size: 16, className: 'mobile-nav-icon' })} SQL Editor
+                 </Link>
                  <Link href="/code-arena/compiler" onClick={() => setIsMenuOpen(false)}>
                    {getIcon('Code', { size: 16, className: 'mobile-nav-icon' })} Compiler
                  </Link>
