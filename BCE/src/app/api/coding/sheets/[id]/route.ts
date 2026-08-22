@@ -9,7 +9,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   // Fetch sheet details
   const { data: sheet, error: sheetError } = await supabase
     .from('coding_sheets')
-    .select('id, title, description, created_by, created_at')
+    .select('id, title, description, created_by, created_at, enrollment_access')
     .eq('id', id)
     .maybeSingle();
 
@@ -58,11 +58,20 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     const body = await request.json();
-    const { title, description, problems } = body;
+    const { title, description, problems, enrollment_access, enrollment_passcode } = body;
 
     const updates: any = {};
     if (title !== undefined) updates.title = title.trim();
     if (description !== undefined) updates.description = description || null;
+    if (enrollment_access !== undefined) {
+      const validAccess = ['public', 'restricted', 'private'];
+      if (validAccess.includes(enrollment_access)) {
+        updates.enrollment_access = enrollment_access;
+        updates.enrollment_passcode = enrollment_access === 'restricted' ? (enrollment_passcode || null) : null;
+      }
+    } else if (enrollment_passcode !== undefined) {
+      updates.enrollment_passcode = enrollment_passcode || null;
+    }
 
     if (Object.keys(updates).length > 0) {
       const { error: updateError } = await supabase

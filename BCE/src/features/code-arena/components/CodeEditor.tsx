@@ -20,6 +20,7 @@ import {
 import type { CodeLanguage, NormalizedExecutionResult } from '../types';
 import { useRouter } from 'next/navigation';
 import type { ProblemData } from './ProblemStatementRenderer';
+import { saveDraft, getDraft } from '../storage/problemStorage';
 import './CodeArena.css';
 
 const Editor = dynamic(() => import('@monaco-editor/react'), {
@@ -92,24 +93,33 @@ export default function CodeEditor({
         const uid = data.user?.id || 'guest';
         setCurrentUserId(uid);
 
-        // Load saved code if any
-        const savedKey = `bce:code-save:${uid}:${problemId}:${language}`;
-        const saved = localStorage.getItem(savedKey);
-        if (saved) {
-          setCode(saved);
+        // Check for legacy localStorage data first for migration
+        const legacyKey = `bce:code-save:${uid}:${problemId}:${language}`;
+        const legacySaved = localStorage.getItem(legacyKey);
+        
+        if (legacySaved) {
+          setCode(legacySaved);
+          // Migrate to IndexedDB
+          await saveDraft(uid, problemId, language, legacySaved);
+          localStorage.removeItem(legacyKey);
+        } else {
+          // Load from IndexedDB
+          const draft = await getDraft(uid, problemId, language);
+          if (draft) {
+            setCode(draft.code);
+          }
         }
       } catch (err) {
-        console.error('Failed to load user state:', err);
+        console.error('Failed to load user state or draft:', err);
       }
     }
     loadUserAndCode();
-  }, [problemId]);
+  }, [problemId]); // We only trigger on mount or problem change, language change handled separately
 
-  const saveCode = (newCode: string, lang: CodeLanguage) => {
+  const saveCode = async (newCode: string, lang: CodeLanguage) => {
     setSaveStatus('Saving...');
     const uid = currentUserId || 'guest';
-    const savedKey = `bce:code-save:${uid}:${problemId}:${lang}`;
-    localStorage.setItem(savedKey, newCode);
+    await saveDraft(uid, problemId, lang, newCode);
     setSaveStatus('Saved');
   };
 
@@ -128,13 +138,24 @@ export default function CodeEditor({
     };
   }, []);
 
-  const handleLanguageChange = (nextLang: CodeLanguage) => {
+  const handleLanguageChange = async (nextLang: CodeLanguage) => {
     setLanguage(nextLang);
     const uid = currentUserId || 'guest';
-    const savedKey = `bce:code-save:${uid}:${problemId}:${nextLang}`;
-    const saved = localStorage.getItem(savedKey);
-    if (saved) {
-      setCode(saved);
+    
+    // Check migration first
+    const legacyKey = `bce:code-save:${uid}:${problemId}:${nextLang}`;
+    const legacySaved = localStorage.getItem(legacyKey);
+    
+    if (legacySaved) {
+      setCode(legacySaved);
+      await saveDraft(uid, problemId, nextLang, legacySaved);
+      localStorage.removeItem(legacyKey);
+      return;
+    }
+
+    const draft = await getDraft(uid, problemId, nextLang);
+    if (draft) {
+      setCode(draft.code);
     } else {
       const starter = (problem.starterCode && typeof problem.starterCode === 'object')
         ? ((problem.starterCode as Record<string, string>)[nextLang] || starters[nextLang])

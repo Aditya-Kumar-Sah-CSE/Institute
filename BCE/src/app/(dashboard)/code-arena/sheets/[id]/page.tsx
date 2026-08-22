@@ -10,10 +10,10 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
   const { supabase, user, isInstructor } = await getCodeArenaActor();
   if (!user) return null;
 
-  // 1. Fetch sheet details
+  // 1. Fetch sheet details including enrollment settings
   const { data: sheet, error: sheetError } = await supabase
     .from('coding_sheets')
-    .select('id, title, description, created_by, created_at')
+    .select('id, title, description, created_by, created_at, enrollment_access')
     .eq('id', id)
     .maybeSingle();
 
@@ -46,10 +46,38 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
 
   const solvedProblemIds = Array.from(new Set((submissions || []).map(s => s.problem_id)));
 
+  // 4. Check if user is enrolled in this sheet
+  const { data: enrollment } = await supabase
+    .from('coding_sheet_enrollments')
+    .select('id')
+    .eq('sheet_id', id)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  const isEnrolled = Boolean(enrollment);
+
+  // 5. Creator analytics: unique students solving
+  const problemIds = problems.map((p: any) => p.id);
+  let totalStudentsSolving = 0;
+  if (problemIds.length > 0) {
+    const { data: submissionStudents } = await supabase
+      .from('coding_submissions')
+      .select('student_id')
+      .in('problem_id', problemIds);
+
+    const uniqueIds = new Set((submissionStudents || []).map((s: any) => s.student_id));
+    totalStudentsSolving = uniqueIds.size;
+  }
+
   return (
-    <SheetDetailClient 
+    <SheetDetailClient
       sheet={{ ...sheet, problems }}
       solvedProblemIds={solvedProblemIds}
+      isInstructor={isInstructor}
+      currentUser={user}
+      totalStudentsSolving={totalStudentsSolving}
+      enrollmentAccess={sheet.enrollment_access || 'public'}
+      isEnrolled={isEnrolled}
     />
   );
 }

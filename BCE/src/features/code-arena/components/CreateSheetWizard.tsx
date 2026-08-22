@@ -16,6 +16,9 @@ import {
   Loader2,
   Copy,
   AlertTriangle,
+  Globe,
+  Lock,
+  Shield,
 } from 'lucide-react';
 
 type ImportedProblem = {
@@ -49,6 +52,10 @@ export default function CreateSheetWizard({
   // Step 1: Basic Info
   const [title, setTitle] = useState(initialSheet?.title || 'Recursion & Backtracking');
   const [description, setDescription] = useState(initialSheet?.description || 'Curated problem sheet for fundamental DSA patterns.');
+
+  // Enrollment Access
+  const [enrollmentAccess, setEnrollmentAccess] = useState<'public' | 'restricted' | 'private'>(initialSheet?.enrollment_access || 'public');
+  const [enrollmentPasscode, setEnrollmentPasscode] = useState(initialSheet?.enrollment_passcode || '');
 
   // Step 2: Add Problems (Bulk Importer)
   const [addedProblems, setAddedProblems] = useState<ImportedProblem[]>([]);
@@ -200,6 +207,8 @@ export default function CreateSheetWizard({
           title: title.trim(),
           description: description.trim(),
           problems: addedProblems.map((p) => p.id),
+          enrollment_access: enrollmentAccess,
+          enrollment_passcode: enrollmentAccess === 'restricted' ? enrollmentPasscode.trim() : null,
         }),
       });
 
@@ -317,6 +326,73 @@ export default function CreateSheetWizard({
                   placeholder="e.g. Learn fundamental recursion concepts and build backtracking logic."
                   onChange={(e) => setDescription(e.target.value)}
                 />
+              </div>
+
+              {/* Enrollment Access Setting */}
+              <div>
+                <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600, marginBottom: '8px' }}>Enrollment Access</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {[
+                    { value: 'public' as const, label: 'Public', desc: 'Anyone can enroll and access problems.', icon: <Globe size={16} /> },
+                    { value: 'restricted' as const, label: 'Restricted', desc: 'Students must enter a passcode to enroll.', icon: <Shield size={16} /> },
+                    { value: 'private' as const, label: 'Private', desc: 'Only you (the creator) and admins can access.', icon: <Lock size={16} /> },
+                  ].map(opt => (
+                    <label
+                      key={opt.value}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '10px',
+                        padding: '10px 14px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: enrollmentAccess === opt.value ? '1px solid rgba(6,182,212,0.4)' : '1px solid var(--glass-border)',
+                        background: enrollmentAccess === opt.value ? 'rgba(6,182,212,0.06)' : 'rgba(255,255,255,0.01)',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="enrollment_access"
+                        value={opt.value}
+                        checked={enrollmentAccess === opt.value}
+                        onChange={() => setEnrollmentAccess(opt.value)}
+                        style={{ marginTop: '2px', accentColor: 'var(--neon-cyan)' }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, fontSize: 'var(--text-xs)' }}>
+                          {opt.icon} {opt.label}
+                        </div>
+                        <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>{opt.desc}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+
+                {/* Passcode input for restricted */}
+                {enrollmentAccess === 'restricted' && (
+                  <div style={{ marginTop: '10px' }}>
+                    <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, marginBottom: '4px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Enrollment Passcode</label>
+                    <input
+                      type="text"
+                      value={enrollmentPasscode}
+                      onChange={(e) => setEnrollmentPasscode(e.target.value)}
+                      placeholder="e.g. CSE2024"
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--glass-border)',
+                        color: 'var(--text-main)',
+                        fontSize: 'var(--text-sm)',
+                        outline: 'none',
+                        fontFamily: 'monospace',
+                      }}
+                    />
+                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>Students will need this code to enroll in the sheet.</div>
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-md)' }}>

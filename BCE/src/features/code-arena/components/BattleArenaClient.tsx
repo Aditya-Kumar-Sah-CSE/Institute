@@ -41,6 +41,8 @@ import BattleTimer from './BattleTimer';
 import BattleEndScreen from './BattleEndScreen';
 import BattleAnalyticsView from './BattleAnalyticsView';
 import ProblemStatementRenderer from './ProblemStatementRenderer';
+import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
+import { saveDraft, getDraft } from '../storage/problemStorage';
 import './CodeArena.css';
 
 const Editor = dynamic(() => import('@monaco-editor/react'), {
@@ -273,29 +275,44 @@ export default function BattleArenaClient({
 
 
   // Helper to load or derive draft code partitioned by user + battle + problem + language
-  const getSaveKey = (probId: string, lang: CodeLanguage) => {
-    return `bce:code-save:${currentUser?.id || 'guest'}:${battle.id}:${probId}:${lang}`;
-  };
-
-  const getDraftOrStarter = (problem: any, lang: CodeLanguage) => {
+  const loadDraftOrStarter = async (problem: any, lang: CodeLanguage) => {
     if (!problem) return starters[lang];
-    const savedKey = getSaveKey(problem.id, lang);
+    const uid = currentUser?.id || 'guest';
+    const storageProbId = `${battle.id}:${problem.id}`;
+    
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(savedKey);
-      if (saved) return saved;
+      const legacyKey = `bce:code-save:${uid}:${battle.id}:${problem.id}:${lang}`;
+      const legacySaved = localStorage.getItem(legacyKey);
+      if (legacySaved) {
+        await saveDraft(uid, storageProbId, lang, legacySaved);
+        localStorage.removeItem(legacyKey);
+        return legacySaved;
+      }
+      
       // Fallback to legacy draft key to never lose code
       const draftKey = `bce:code-draft:${battle.id}:${problem.id}:${lang}`;
-      const legacySaved = localStorage.getItem(draftKey);
-      if (legacySaved) return legacySaved;
+      const legacySaved2 = localStorage.getItem(draftKey);
+      if (legacySaved2) {
+        await saveDraft(uid, storageProbId, lang, legacySaved2);
+        localStorage.removeItem(draftKey);
+        return legacySaved2;
+      }
     }
+
+    const draft = await getDraft(uid, storageProbId, lang);
+    if (draft) return draft.code;
     return problem.starterCode?.[lang] || starters[lang];
   };
 
   // Load initial code draft on mount
   useEffect(() => {
-    if (problems && problems[0]) {
-      setCode(getDraftOrStarter(problems[0], language));
+    async function initCode() {
+      if (problems && problems[0]) {
+        const initialCode = await loadDraftOrStarter(problems[0], language);
+        setCode(initialCode);
+      }
     }
+    initCode();
   }, [problems, currentUser]);
 
   // Anti-cheat activity reporter
@@ -434,29 +451,29 @@ export default function BattleArenaClient({
     };
   }, [battle.status, isInstructor, isVirtualPractice]);
 
-  const saveCode = (newCode: string, probId: string, lang: CodeLanguage) => {
+  const saveCode = async (newCode: string, probId: string, lang: CodeLanguage) => {
     setSaveStatus('Saving...');
-    const savedKey = getSaveKey(probId, lang);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(savedKey, newCode);
-    }
+    const uid = currentUser?.id || 'guest';
+    await saveDraft(uid, `${battle.id}:${probId}`, lang, newCode);
     setSaveStatus('Saved');
   };
 
   // Initialize code when problem or language changes
-  const handleSelectProblem = (idx: number) => {
+  const handleSelectProblem = async (idx: number) => {
     setActiveProblemIdx(idx);
     const prob = problems[idx];
     if (prob) {
-      setCode(getDraftOrStarter(prob, language));
+      const loadedCode = await loadDraftOrStarter(prob, language);
+      setCode(loadedCode);
       setSaveStatus('Saved');
     }
   };
 
-  const handleSelectLanguage = (lang: CodeLanguage) => {
+  const handleSelectLanguage = async (lang: CodeLanguage) => {
     setLanguage(lang);
     if (currentProblem) {
-      setCode(getDraftOrStarter(currentProblem, lang));
+      const loadedCode = await loadDraftOrStarter(currentProblem, lang);
+      setCode(loadedCode);
       setSaveStatus('Saved');
     }
   };

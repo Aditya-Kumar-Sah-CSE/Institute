@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
-import PrintButton from './PrintButton';
+import CertificateRenderer from '@/features/code-arena/components/CertificateRenderer';
 import './Certificate.css';
 
 export default async function CertificatePage({ params }: { params: Promise<{ id: string }> }) {
@@ -30,15 +30,19 @@ export default async function CertificatePage({ params }: { params: Promise<{ id
       id: 'dummy',
       user_id: user.id,
       issued_at: new Date().toISOString(),
-      institute_id: 'DUMMY-ID-1234',
-      xp_earned: 5000,
-      course_rank: 1,
-      tasks_completed: 12,
-      total_tasks: 12,
-      days_active: 30,
-      company_name: 'Your Institute',
-      courses: {
-        title: 'Sample Course Title',
+      xp_earned: 1420,
+      course_rank: 3,
+      tasks_completed: 4,
+      total_tasks: 5,
+      accuracy: 85,
+      duration_minutes: 42,
+      company_name: 'BCE Code Arena',
+      certificate_code: 'CB-2025-0524-1420-DUMMY',
+      signature_type: 'default',
+      signature_name: 'Aditya Kumar Sah',
+      signature_designation: 'The Developer & The Coder',
+      coding_battles: {
+        title: 'Weekly Practice Battle #12',
         created_by: user.id
       },
       profiles: {
@@ -50,7 +54,7 @@ export default async function CertificatePage({ params }: { params: Promise<{ id
   } else {
     const { data: fetchedCert, error } = await supabase
       .from('certificates')
-      .select('*, courses(title, created_by), profiles!certificates_user_id_fkey(name, role)')
+      .select('*, courses(title, created_by), coding_battles(title, created_by), coding_sheets(title, created_by), profiles!certificates_user_id_fkey(name, role)')
       .eq('id', id)
       .single();
 
@@ -61,90 +65,28 @@ export default async function CertificatePage({ params }: { params: Promise<{ id
 
     isOwner = cert.user_id === user.id;
     isAdmin = currentUserProfile?.role === 'admin';
-    isInstructor = currentUserProfile?.role === 'instructor' && cert.courses?.created_by === user.id;
+    isInstructor = 
+      (currentUserProfile?.role === 'instructor') && 
+      (
+        (cert.courses && cert.courses.created_by === user.id) ||
+        (cert.coding_battles && (cert.coding_battles as any).created_by === user.id)
+      );
   }
 
+  // Allow the owner of the certificate, or instructor of course/battle, or admin to view
   if (!isOwner && !isAdmin && !isInstructor) {
     redirect('/dashboard');
   }
 
-  const issueDate = new Date(cert.issued_at).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-
   return (
-    <div className="certificate-page">
-      <div className="certificate-actions">
+    <div className="certificate-page" style={{ padding: '24px 16px', background: 'radial-gradient(circle at center, #0b0f19 0%, #020617 100%)', minHeight: '100vh', color: '#f8fafc' }}>
+      <div className="certificate-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', maxWidth: '1080px', margin: '0 auto 24px auto' }}>
         <Link href="/profile" style={{ textDecoration: 'none' }}>
           <Button variant="ghost" style={{ color: 'var(--text-secondary)' }}>← Back to Profile</Button>
         </Link>
-        {/* We use a client-side print button, but since this is a server component, we'll just use a basic onClick script or wrap it in a client component. For simplicity, we can use an inline script on the button if needed, but in App Router we can just use a simple form or a button with onClick via a small client component. Let's just use a native button with window.print() if possible, but React Server Components don't allow onClick. So we'll use a small client wrapper for the print button. */}
-        <PrintButton />
       </div>
 
-      <div className="certificate-container" id="certificate-node">
-        <div className="cert-corner top-right"></div>
-        <div className="cert-corner bottom-left"></div>
-        
-        <div className="certificate-inner">
-          <div className="cert-header">
-            <h1 className="cert-title">Certificate</h1>
-            <div className="cert-subtitle">of Completion</div>
-          </div>
-
-          <div className="cert-badge">
-            <div className="cert-badge-text">
-              100%<br/>Completed
-            </div>
-          </div>
-
-          <div className="cert-body">
-            <div className="cert-presented-to">This certificate is proudly presented to</div>
-            <h2 className="cert-name">{cert.profiles?.name}</h2>
-            <div className="cert-course">for successfully completing <strong>{cert.courses?.title}</strong></div>
-            
-            {cert.institute_id && (
-              <div style={{ color: '#aaa', marginTop: '0.5rem', fontSize: '0.9rem', letterSpacing: '1px', textTransform: 'uppercase' }}>
-                Institute ID: {cert.institute_id}
-              </div>
-            )}
-
-            <div className="cert-stats">
-              <div className="cert-stat-box">
-                <div className="cert-stat-value">{cert.xp_earned}</div>
-                <div className="cert-stat-label">Total XP</div>
-              </div>
-              <div className="cert-stat-box">
-                <div className="cert-stat-value">#{cert.course_rank}</div>
-                <div className="cert-stat-label">Course Rank</div>
-              </div>
-              <div className="cert-stat-box">
-                <div className="cert-stat-value">{cert.tasks_completed}/{cert.total_tasks}</div>
-                <div className="cert-stat-label">Tasks Done</div>
-              </div>
-              <div className="cert-stat-box">
-                <div className="cert-stat-value">{cert.days_active}</div>
-                <div className="cert-stat-label">Days Active</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="cert-footer">
-            <div className="cert-signature">
-              <div className="cert-signature-line">{issueDate}</div>
-              <div className="cert-signature-label">Date</div>
-            </div>
-            <div className="cert-signature">
-              <div className="cert-signature-line" style={{ fontFamily: 'var(--font-sans)', fontStyle: 'normal', fontWeight: 'bold', fontSize: '1rem' }}>
-                {cert.company_name}
-              </div>
-              <div className="cert-signature-label">Issued By</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <CertificateRenderer cert={cert} isPublicShare={false} />
     </div>
   );
 }

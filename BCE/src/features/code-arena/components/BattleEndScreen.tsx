@@ -465,6 +465,54 @@ export default function BattleEndScreen({
 
               <Button
                 variant="secondary"
+                onClick={() => {
+                  const svgEl = document.getElementById('battle-certificate-svg') as SVGSVGElement | null;
+                  if (!svgEl) return;
+                  try {
+                    const svgString = new XMLSerializer().serializeToString(svgEl);
+                    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                    const URLObj = window.URL || window.webkitURL || window;
+                    const blobURL = URLObj.createObjectURL(svgBlob);
+                    const image = new Image();
+                    image.onload = () => {
+                      const canvas = document.createElement('canvas');
+                      canvas.width = 1600;
+                      canvas.height = 900;
+                      const ctx = canvas.getContext('2d');
+                      if (ctx) {
+                        ctx.fillStyle = '#0b0f19';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+                        const jpgUrl = canvas.toDataURL('image/jpeg', 0.95);
+                        const downloadLink = document.createElement('a');
+                        downloadLink.href = jpgUrl;
+                        const cleanName = userName.replace(/[^a-zA-Z0-9]/g, '-');
+                        downloadLink.download = `Coding-Battle-Certificate-${cleanName}.jpg`;
+                        document.body.appendChild(downloadLink);
+                        downloadLink.click();
+                        document.body.removeChild(downloadLink);
+                      }
+                      URLObj.revokeObjectURL(blobURL);
+                    };
+                    image.src = blobURL;
+                  } catch (e) {
+                    console.error('JPG conversion failed:', e);
+                  }
+                }}
+                style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid var(--glass-border)',
+                  fontWeight: 800,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <Download size={16} /> Download JPG Certificate
+              </Button>
+
+              <Button
+                variant="secondary"
                 onClick={shareToStatus}
                 style={{
                   background: 'linear-gradient(135deg, rgba(37,99,235,0.2), rgba(168,85,247,0.2))',

@@ -7,7 +7,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from('coding_sheets')
-    .select('id, title, description, created_by, created_at, coding_sheet_problems(problem_id)')
+    .select('id, title, description, created_by, created_at, enrollment_access, coding_sheet_problems(problem_id)')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { title, description, problems = [] } = body;
+    const { title, description, problems = [], enrollment_access = 'public', enrollment_passcode = null } = body;
 
     if (!title?.trim()) {
       return NextResponse.json(
@@ -49,12 +49,18 @@ export async function POST(request: Request) {
     }
 
     // 1. Insert coding sheet
+    // Validate enrollment_access
+    const validAccess = ['public', 'restricted', 'private'];
+    const accessValue = validAccess.includes(enrollment_access) ? enrollment_access : 'public';
+
     const { data: sheet, error: createError } = await supabase
       .from('coding_sheets')
       .insert({
         title: title.trim(),
         description: description || null,
         created_by: user.id,
+        enrollment_access: accessValue,
+        enrollment_passcode: accessValue === 'restricted' ? (enrollment_passcode || null) : null,
       })
       .select()
       .single();

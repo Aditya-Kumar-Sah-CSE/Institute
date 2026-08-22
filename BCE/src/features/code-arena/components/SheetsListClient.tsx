@@ -4,7 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { 
   Trophy, ArrowLeft, BookOpen, Plus, Search, 
-  ChevronRight, Trash2, CheckCircle2, Award, X 
+  ChevronRight, Trash2, CheckCircle2, Award, X,
+  Globe, Shield, Lock
 } from 'lucide-react';
 import CreateSheetWizard from './CreateSheetWizard';
 import MobileCodeArenaToggle from './MobileCodeArenaToggle';
@@ -18,6 +19,7 @@ type CodingSheet = {
   description: string;
   created_by: string;
   created_at: string;
+  enrollment_access?: string;
   coding_sheet_problems: { problem_id: string }[];
 };
 
@@ -162,6 +164,21 @@ export default function SheetsListClient({
                 {isCompleted && (
                   <div style={{ position: 'absolute', top: '12px', right: '12px', color: '#22c55e', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 'bold', background: 'rgba(34, 197, 94, 0.1)', padding: '2px 8px', borderRadius: '10px' }}>
                     <Award size={12} /> SHEET DONE
+                  </div>
+                )}
+
+                {/* Access type badge */}
+                {!isCompleted && sheet.enrollment_access && sheet.enrollment_access !== 'public' && (
+                  <div style={{
+                    position: 'absolute', top: '12px', right: '12px',
+                    display: 'flex', alignItems: 'center', gap: '4px',
+                    fontSize: '10px', fontWeight: 'bold',
+                    padding: '2px 8px', borderRadius: '10px',
+                    color: sheet.enrollment_access === 'restricted' ? '#facc15' : '#f87171',
+                    background: sheet.enrollment_access === 'restricted' ? 'rgba(250,204,21,0.08)' : 'rgba(248,113,113,0.08)',
+                  }}>
+                    {sheet.enrollment_access === 'restricted' ? <Shield size={11} /> : <Lock size={11} />}
+                    {sheet.enrollment_access === 'restricted' ? 'PASSCODE' : 'PRIVATE'}
                   </div>
                 )}
 

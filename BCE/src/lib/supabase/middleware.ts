@@ -98,7 +98,11 @@ export async function updateSession(request: NextRequest) {
 
   // Public routes that don't require auth
   const publicRoutes = ['/', '/login', '/signup', '/apply-instructor', '/forgot-password', '/reset-password'];
-  const isPublicRoute = publicRoutes.includes(pathname) || (tenantSlug && pathname === `/${tenantSlug}`);
+  const isPublicRoute = 
+    publicRoutes.includes(pathname) || 
+    (tenantSlug && pathname === `/${tenantSlug}`) ||
+    pathname.startsWith('/share/') ||
+    pathname.startsWith('/verify/');
 
   // Helper function to redirect while preserving cookies
   const redirectWithCookies = (url: URL) => {
