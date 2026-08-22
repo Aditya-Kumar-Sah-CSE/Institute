@@ -13,7 +13,7 @@ export default async function BattleRoomPage({ params }: { params: Promise<{ id:
   // 1. Fetch battle details
   const { data: battle } = await supabase
     .from('coding_battles')
-    .select('id, title, description, status, start_time, end_time, duration_minutes, creator_role, join_code, visibility, created_by, created_at')
+    .select('id, title, description, status, start_time, end_time, duration_minutes, creator_role, join_code, visibility, created_by, created_at, profiles:created_by(full_name:name)')
     .eq('id', battleId)
     .maybeSingle();
 

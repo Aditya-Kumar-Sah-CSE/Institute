@@ -30,6 +30,9 @@ import {
   AlertTriangle,
   Flame,
   ArrowLeft,
+  X,
+  Download,
+  Share2,
 } from 'lucide-react';
 import type { CodeLanguage, NormalizedExecutionResult } from '../types';
 import BattleLobby from './BattleLobby';
@@ -103,6 +106,11 @@ export default function BattleArenaClient({
   const [serverNow, setServerNow] = useState<string | null>(null);
   const [isVirtualPractice, setIsVirtualPractice] = useState(false);
   const [virtualStartTime, setVirtualStartTime] = useState<string | null>(null);
+
+  const [dismissCompletedBanner, setDismissCompletedBanner] = useState(false);
+  const myParticipant = participants.find(p => p.profiles?.id === currentUser?.id);
+  const studentName = myParticipant?.profiles?.full_name || currentUser?.name || currentUser?.user_metadata?.name || 'BCE Star Programmer';
+  const organizerName = battle.profiles?.full_name || 'BCE Team';
 
   const currentProblem = problems[activeProblemIdx];
   const isHost = battle.created_by === currentUser?.id || isInstructor;
@@ -421,6 +429,44 @@ export default function BattleArenaClient({
   const userRank = participants.findIndex((p) => (p.student_id || p.profiles?.id) === currentUser?.id) + 1 || 1;
   const userScore = participants.find((p) => (p.student_id || p.profiles?.id) === currentUser?.id)?.score || 0;
   const userAccuracy = officialSubmissions.length > 0 ? Math.round((officialSubmissions.filter((s) => s.status === 'ACCEPTED').length / officialSubmissions.length) * 100) : 0;
+
+  const shareAchievement = async () => {
+    const shareText = `🏆 I completed the BCE Coding Battle "${battle.title}"! \n\n🎯 Score: ${userScore} PTS\n🥇 Rank: #${userRank}\n✅ Solved: ${officialSolvedProblemIds.size}/${problems.length} Problems\n⏱️ Accuracy: ${userAccuracy}%\n\nJoin the BCE code arena and level up your coding skills! 🚀`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'BCE Code Arena Achievement',
+          text: shareText,
+          url: window.location.origin + '/code-arena',
+        });
+      } catch (err) {
+        copyToClipboard(shareText);
+      }
+    } else {
+      copyToClipboard(shareText);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    alert('Congratulations! Share details copied to clipboard. Paste it on LinkedIn, Twitter, or WhatsApp to celebrate! 🎉');
+  };
+
+  const downloadCertificate = () => {
+    const svgEl = document.getElementById('battle-certificate-svg-arena');
+    if (!svgEl) return;
+    const svgString = new XMLSerializer().serializeToString(svgEl);
+    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const svgUrl = URL.createObjectURL(svgBlob);
+    const downloadLink = document.createElement('a');
+    downloadLink.href = svgUrl;
+    downloadLink.download = `${battle.title.replace(/\s+/g, '_')}_BCE_Certificate.svg`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    URL.revokeObjectURL(svgUrl);
+  };
 
   // Virtual active countdown configurations
   const activeEndTime = isVirtualPractice
@@ -747,7 +793,7 @@ export default function BattleArenaClient({
       {activeTab === 'arena' && (
         <div className="code-arena-workspace-container">
           {/* Virtual Practice and Completion Banners */}
-          {battle.status === 'COMPLETED' && !isVirtualPractice ? (
+          {battle.status === 'COMPLETED' && !isVirtualPractice && !dismissCompletedBanner ? (
             <Card
               style={{
                 background: 'linear-gradient(135deg, rgba(11, 15, 25, 0.9), rgba(30, 27, 75, 0.9))',
@@ -761,9 +807,176 @@ export default function BattleArenaClient({
                 gap: 'var(--space-lg)',
                 maxWidth: '650px',
                 margin: '40px auto',
-                boxShadow: '0 10px 30px rgba(0,240,255,0.1)'
+                boxShadow: '0 10px 30px rgba(0,240,255,0.1)',
+                position: 'relative'
               }}
             >
+              {/* Dismiss cross button */}
+              <button
+                type="button"
+                onClick={() => setDismissCompletedBanner(true)}
+                style={{
+                  position: 'absolute',
+                  top: '16px',
+                  right: '16px',
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  borderRadius: '50%',
+                  transition: 'all 0.2s',
+                  zIndex: 10
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = 'var(--text-primary)';
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'var(--text-muted)';
+                  e.currentTarget.style.background = 'transparent';
+                }}
+                title="Dismiss Banner"
+              >
+                <X size={20} />
+              </button>
+
+              {/* The Hidden SVG Container for Certificate Download */}
+              <div style={{ display: 'none' }}>
+                <svg id="battle-certificate-svg-arena" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="100%" height="100%" style={{ borderRadius: '8px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+                  <defs>
+                    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#0b0f19" />
+                      <stop offset="50%" stopColor="#111827" />
+                      <stop offset="100%" stopColor="#0f172a" />
+                    </linearGradient>
+                    
+                    <linearGradient id="neonCyan" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#00f0ff" />
+                      <stop offset="100%" stopColor="#0072ff" />
+                    </linearGradient>
+                    
+                    <linearGradient id="neonPink" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="#ff007f" />
+                      <stop offset="100%" stopColor="#7f00ff" />
+                    </linearGradient>
+                    
+                    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#fbbf24" />
+                      <stop offset="50%" stopColor="#d97706" />
+                      <stop offset="100%" stopColor="#b45309" />
+                    </linearGradient>
+                    
+                    <filter id="glowCyan" x="-20%" y="-20%" width="140%" height="140%">
+                      <feGaussianBlur stdDeviation="8" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                    
+                    <filter id="glowGold" x="-20%" y="-20%" width="140%" height="140%">
+                      <feGaussianBlur stdDeviation="10" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                    
+                    <style>{`
+                      @keyframes borderRotate {
+                        0% { stroke-dashoffset: 0; }
+                        100% { stroke-dashoffset: 2500; }
+                      }
+                      @keyframes pulseGlow {
+                        0%, 100% { opacity: 0.3; }
+                        50% { opacity: 0.8; }
+                      }
+                      @keyframes floatTrophy {
+                        0%, 100% { transform: translateY(0px) scale(1); }
+                        50% { transform: translateY(-8px) scale(1.02); }
+                      }
+                      .rotating-border {
+                        stroke: url(#neonCyan);
+                        stroke-dasharray: 250, 100;
+                        animation: borderRotate 20s linear infinite;
+                      }
+                      .trophy-group {
+                        transform-origin: 400px 95px;
+                        animation: floatTrophy 4s ease-in-out infinite;
+                      }
+                      .glow-light {
+                        animation: pulseGlow 3s ease-in-out infinite;
+                      }
+                    `}</style>
+                  </defs>
+
+                  {/* Background */}
+                  <rect width="800" height="450" fill="url(#bgGrad)" rx="12" />
+                  
+                  {/* Mesh Grid Effect */}
+                  <g opacity="0.05">
+                    <path d="M 0,45 L 800,45 M 0,90 L 800,90 M 0,135 L 800,135 M 0,180 L 800,180 M 0,225 L 800,225 M 0,270 L 800,270 M 0,315 L 800,315 M 0,360 L 800,360 M 0,405 L 800,405" stroke="#ffffff" strokeWidth="1" />
+                    <path d="M 80,0 L 80,450 M 160,0 L 160,450 M 240,0 L 240,450 M 320,0 L 320,450 M 400,0 L 400,450 M 480,0 L 480,450 M 560,0 L 560,450 M 640,0 L 640,450 M 720,0 L 720,450" stroke="#ffffff" strokeWidth="1" />
+                  </g>
+
+                  {/* Glowing Corners */}
+                  <circle cx="0" cy="0" r="150" fill="#00f0ff" opacity="0.15" filter="url(#glowCyan)" className="glow-light" />
+                  <circle cx="800" cy="450" r="180" fill="#7f00ff" opacity="0.15" filter="url(#glowCyan)" className="glow-light" />
+
+                  {/* Animated Border */}
+                  <rect x="15" y="15" width="770" height="420" rx="10" fill="none" stroke="rgba(255, 255, 255, 0.05)" strokeWidth="2" />
+                  <rect x="15" y="15" width="770" height="420" rx="10" fill="none" strokeWidth="3" className="rotating-border" />
+
+                  {/* Trophy Icon */}
+                  <g className="trophy-group">
+                    <circle cx="400" cy="95" r="45" fill="rgba(251, 191, 36, 0.1)" filter="url(#glowGold)" />
+                    <path d="M400,68 C392,68 388,72 388,80 C388,86 394,92 400,95 C406,92 412,86 412,80 C412,72 408,68 400,68 Z M382,74 C378,74 376,77 376,81 C376,85 379,88 383,89 L384,81 Z M418,74 C422,74 424,77 424,81 C424,85 421,88 417,89 L416,81 Z M400,96 L400,105 M392,105 L408,105" stroke="url(#goldGrad)" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" fill="none" filter="url(#glowGold)" />
+                  </g>
+
+                  {/* Header Text */}
+                  <text x="400" y="175" textAnchor="middle" fill="#00f0ff" fontSize="14" fontWeight="700" letterSpacing="4" filter="url(#glowCyan)">BCE CODE ARENA CHAMPION</text>
+                  <text x="400" y="210" textAnchor="middle" fill="#ffffff" fontSize="28" fontWeight="800" letterSpacing="1">CERTIFICATE OF ACHIEVEMENT</text>
+
+                  {/* Divider Line */}
+                  <line x1="250" y1="230" x2="550" y2="230" stroke="rgba(255,255,255,0.1)" strokeWidth="1.5" />
+
+                  {/* Recipient Name */}
+                  <text x="400" y="265" textAnchor="middle" fill="#ffffff" fontSize="20" fontWeight="600">This is proudly awarded to</text>
+                  <text x="400" y="305" textAnchor="middle" fill="#fbbf24" fontSize="34" fontWeight="800" letterSpacing="0.5" filter="url(#glowGold)">{studentName}</text>
+
+                  {/* Achievement Description */}
+                  <text x="400" y="340" textAnchor="middle" fill="#94a3b8" fontSize="14" fontWeight="500">for exceptional coding performance in the live battle</text>
+                  <text x="400" y="365" textAnchor="middle" fill="#e2e8f0" fontSize="16" fontWeight="700">"{battle.title}"</text>
+
+                  {/* Stats Indicators footer */}
+                  <g transform="translate(140, 395)">
+                    {/* Score */}
+                    <g transform="translate(0, 0)">
+                      <rect x="0" y="0" width="120" height="28" rx="6" fill="rgba(6, 182, 212, 0.08)" stroke="rgba(6, 182, 212, 0.2)" strokeWidth="1" />
+                      <text x="60" y="18" textAnchor="middle" fill="#00f0ff" fontSize="11" fontWeight="700">{userScore} PTS</text>
+                    </g>
+                    {/* Rank */}
+                    <g transform="translate(135, 0)">
+                      <rect x="0" y="0" width="120" height="28" rx="6" fill="rgba(251, 191, 36, 0.08)" stroke="rgba(251, 191, 36, 0.2)" strokeWidth="1" />
+                      <text x="60" y="18" textAnchor="middle" fill="#fbbf24" fontSize="11" fontWeight="700">RANK #{userRank}</text>
+                    </g>
+                    {/* Solved */}
+                    <g transform="translate(270, 0)">
+                      <rect x="0" y="0" width="120" height="28" rx="6" fill="rgba(16, 185, 129, 0.08)" stroke="rgba(16, 185, 129, 0.2)" strokeWidth="1" />
+                      <text x="60" y="18" textAnchor="middle" fill="#10b981" fontSize="11" fontWeight="700">SOLVED {officialSolvedProblemIds.size}/{problems.length}</text>
+                    </g>
+                    {/* Accuracy */}
+                    <g transform="translate(405, 0)">
+                      <rect x="0" y="0" width="120" height="28" rx="6" fill="rgba(168, 85, 247, 0.08)" stroke="rgba(168, 85, 247, 0.2)" strokeWidth="1" />
+                      <text x="60" y="18" textAnchor="middle" fill="#a855f7" fontSize="11" fontWeight="700">{userAccuracy}% ACC</text>
+                    </g>
+                  </g>
+                </svg>
+              </div>
+
               <div
                 style={{
                   width: '80px',
@@ -783,9 +996,16 @@ export default function BattleArenaClient({
                 <h2 className="text-gradient" style={{ fontSize: '28px', fontWeight: 800, margin: '4px 0' }}>
                   Thank You for Participating!
                 </h2>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '15px', lineHeight: 1.6, marginTop: '8px' }}>
-                  The battle <strong>{battle.title}</strong> has ended. Coding workspace and submissions are now closed. 
-                  You can view your stats in the <strong>Analytics</strong> tab or view the final ranks in the <strong>Leaderboard</strong>.
+
+                {/* Participant and Organizer Info */}
+                <div style={{ margin: '12px 0 6px 0', fontSize: '14px', color: 'var(--text-primary)', fontWeight: 600 }}>
+                  Participant: <span style={{ color: 'var(--neon-gold)' }}>{studentName}</span>
+                  <span style={{ margin: '0 8px', color: 'rgba(255,255,255,0.2)' }}>|</span>
+                  Organized by: <span style={{ color: 'var(--neon-cyan)' }}>{organizerName}</span>
+                </div>
+
+                <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.6, marginTop: '6px' }}>
+                  The battle <strong>{battle.title}</strong> has ended. Coding workspace and submissions are now closed.
                 </p>
               </div>
 
@@ -816,17 +1036,45 @@ export default function BattleArenaClient({
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
                 <Button
                   variant="primary"
+                  onClick={downloadCertificate}
+                  style={{
+                    background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))',
+                    fontWeight: 800,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <Download size={16} /> Download Certificate (SVG)
+                </Button>
+
+                <Button
+                  variant="secondary"
+                  onClick={shareAchievement}
+                  style={{
+                    fontWeight: 800,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <Share2 size={16} /> Share Achievement
+                </Button>
+
+                <Button
+                  variant="secondary"
                   onClick={() => {
                     setIsVirtualPractice(true);
                     setVirtualStartTime(new Date().toISOString());
                   }}
                   style={{
-                    background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))',
-                    fontWeight: 800,
-                    padding: '10px 24px'
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
                   }}
                 >
-                  ⚡ Start Practice Mode (Re-Attempt)
+                  ⚡ Practice Mode
                 </Button>
                 <Button
                   variant="secondary"
