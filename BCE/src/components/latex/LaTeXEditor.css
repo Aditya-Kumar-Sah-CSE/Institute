@@ -414,7 +414,20 @@
 @media (max-width: 900px) {
   .latex-editor-container {
     height: auto;
-    min-height: calc(100vh - 80px);
+    min-height: calc(100dvh - 70px);
+    overflow-y: auto;
+  }
+
+  .latex-toolbar {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+
+  .latex-toolbar-actions {
+    overflow-x: auto;
+    width: 100%;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
   }
 
   .latex-workspace {
@@ -424,7 +437,7 @@
 
   .latex-pane-editor {
     width: 100% !important;
-    height: 450px !important;
+    height: 380px !important;
   }
 
   .latex-resizer {
@@ -441,12 +454,12 @@
   .latex-pane-preview {
     width: 100% !important;
     height: auto;
-    min-height: 600px;
+    min-height: 500px;
   }
 
   .ats-resume-paper {
-    padding: 16px;
-    min-height: 600px;
+    padding: 12px;
+    min-height: 500px;
   }
 }
 

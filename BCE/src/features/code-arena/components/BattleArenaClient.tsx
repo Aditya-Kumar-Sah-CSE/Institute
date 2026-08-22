@@ -196,6 +196,82 @@ export default function BattleArenaClient({
 
 
 
+  const downloadPNG = () => {
+    const svgEl = document.getElementById('battle-certificate-svg') as SVGSVGElement | null;
+    if (!svgEl) return;
+    try {
+      const svgString = new XMLSerializer().serializeToString(svgEl);
+      const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const URLObj = window.URL || window.webkitURL || window;
+      const blobURL = URLObj.createObjectURL(svgBlob);
+
+      const image = new Image();
+      image.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1600;
+        canvas.height = 900;
+        const context = canvas.getContext('2d');
+        if (context) {
+          context.fillStyle = '#0b0f19';
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+          
+          const pngUrl = canvas.toDataURL('image/png');
+          const downloadLink = document.createElement('a');
+          downloadLink.href = pngUrl;
+          downloadLink.download = `${battle.title.replace(/\s+/g, '_')}_SDE_Certificate.png`;
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+          document.body.removeChild(downloadLink);
+        }
+        URLObj.revokeObjectURL(blobURL);
+      };
+      image.src = blobURL;
+    } catch (e) {
+      console.error('PNG conversion failed:', e);
+      downloadCertificate();
+    }
+  };
+
+  const downloadCertificate = () => {
+    const svgEl = document.getElementById('battle-certificate-svg-arena');
+    if (!svgEl) return;
+    const svgString = new XMLSerializer().serializeToString(svgEl);
+    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const URLObj = window.URL || window.webkitURL || window;
+    const svgUrl = URLObj.createObjectURL(svgBlob);
+    const downloadLink = document.createElement('a');
+    downloadLink.href = svgUrl;
+    downloadLink.download = `${battle.title.replace(/\s+/g, '_')}_BCE_Certificate.svg`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    URLObj.revokeObjectURL(svgUrl);
+  };
+
+  const shareToStatus = async () => {
+    downloadPNG();
+    const statusCaption = `🔥 Just completed "${battle.title}" SDE Battle on BCE Code Arena!\n🏆 Rank: #${userRank} | 🎯 Score: ${userScore} PTS\n✅ Solved: ${officialSolvedProblemIds.size}/${problems.length} Problems (${userAccuracy}% Accuracy)\n\n#Coding #BCECodeArena #Programmer #SDE`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${battle.title} SDE Battle Achievement`,
+          text: statusCaption,
+          url: window.location.origin + '/code-arena',
+        });
+      } catch (err) {
+        navigator.clipboard.writeText(statusCaption);
+        alert('Image downloaded! Status caption copied to clipboard. Share it on WhatsApp / Instagram Story! 🚀');
+      }
+    } else {
+      navigator.clipboard.writeText(statusCaption);
+      alert('Image downloaded! Status caption copied to clipboard. Share it on WhatsApp / Instagram Story! 🚀');
+    }
+  };
+
+
+
   // Helper to load or derive draft code partitioned by user + battle + problem + language
   const getSaveKey = (probId: string, lang: CodeLanguage) => {
     return `bce:code-save:${currentUser?.id || 'guest'}:${battle.id}:${probId}:${lang}`;
@@ -432,43 +508,6 @@ export default function BattleArenaClient({
   const userScore = participants.find((p) => (p.student_id || p.profiles?.id) === currentUser?.id)?.score || 0;
   const userAccuracy = officialSubmissions.length > 0 ? Math.round((officialSubmissions.filter((s) => s.status === 'ACCEPTED').length / officialSubmissions.length) * 100) : 0;
 
-  const shareAchievement = async () => {
-    const shareText = `🏆 I completed the BCE Coding Battle "${battle.title}"! \n\n🎯 Score: ${userScore} PTS\n🥇 Rank: #${userRank}\n✅ Solved: ${officialSolvedProblemIds.size}/${problems.length} Problems\n⏱️ Accuracy: ${userAccuracy}%\n\nJoin the BCE code arena and level up your coding skills! 🚀`;
-    
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'BCE Code Arena Achievement',
-          text: shareText,
-          url: window.location.origin + '/code-arena',
-        });
-      } catch (err) {
-        copyToClipboard(shareText);
-      }
-    } else {
-      copyToClipboard(shareText);
-    }
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    alert('Congratulations! Share details copied to clipboard. Paste it on LinkedIn, Twitter, or WhatsApp to celebrate! 🎉');
-  };
-
-  const downloadCertificate = () => {
-    const svgEl = document.getElementById('battle-certificate-svg-arena');
-    if (!svgEl) return;
-    const svgString = new XMLSerializer().serializeToString(svgEl);
-    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-    const svgUrl = URL.createObjectURL(svgBlob);
-    const downloadLink = document.createElement('a');
-    downloadLink.href = svgUrl;
-    downloadLink.download = `${battle.title.replace(/\s+/g, '_')}_BCE_Certificate.svg`;
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
-    URL.revokeObjectURL(svgUrl);
-  };
 
   // Virtual active countdown configurations
   const activeEndTime = isVirtualPractice
@@ -1093,7 +1132,7 @@ export default function BattleArenaClient({
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
                 <Button
                   variant="primary"
-                  onClick={downloadCertificate}
+                  onClick={downloadPNG}
                   style={{
                     background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))',
                     fontWeight: 800,
@@ -1102,20 +1141,23 @@ export default function BattleArenaClient({
                     gap: '8px'
                   }}
                 >
-                  <Download size={16} /> Download Certificate (SVG)
+                  <Download size={16} /> Download PNG Certificate
                 </Button>
 
                 <Button
                   variant="secondary"
-                  onClick={shareAchievement}
+                  onClick={shareToStatus}
                   style={{
+                    background: 'linear-gradient(135deg, rgba(37,99,235,0.2), rgba(168,85,247,0.2))',
+                    border: '1px solid #3b82f6',
+                    color: '#60a5fa',
                     fontWeight: 800,
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '8px'
                   }}
                 >
-                  <Share2 size={16} /> Share Achievement
+                  <Share2 size={16} /> 📲 Add to Status / Story
                 </Button>
 
                 <Button

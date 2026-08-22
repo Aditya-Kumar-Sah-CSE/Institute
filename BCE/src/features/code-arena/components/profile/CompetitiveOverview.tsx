@@ -23,6 +23,8 @@ const statCards = [
 export default function CompetitiveOverview({ bceSolved, cfRating, lcSolved, ccRating, ccMaxRating, ccStars }: CompetitiveOverviewProps) {
   const ccDisplay = ccRating != null 
     ? `${ccRating}${ccMaxRating ? ` (Max: ${ccMaxRating})` : ''}` 
+    : ccStars 
+    ? ccStars 
     : '—';
 
   const values: Record<string, string | number> = {

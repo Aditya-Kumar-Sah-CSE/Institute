@@ -56,14 +56,71 @@ export default function BattleEndScreen({
     if (!svgEl) return;
     const svgString = new XMLSerializer().serializeToString(svgEl);
     const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-    const svgUrl = URL.createObjectURL(svgBlob);
+    const URLObj = window.URL || window.webkitURL || window;
+    const svgUrl = URLObj.createObjectURL(svgBlob);
     const downloadLink = document.createElement('a');
     downloadLink.href = svgUrl;
     downloadLink.download = `${battle.title.replace(/\s+/g, '_')}_BCE_Certificate.svg`;
     document.body.appendChild(downloadLink);
     downloadLink.click();
     document.body.removeChild(downloadLink);
-    URL.revokeObjectURL(svgUrl);
+    URLObj.revokeObjectURL(svgUrl);
+  };
+
+  const downloadPNG = () => {
+    const svgEl = document.getElementById('battle-certificate-svg') as SVGSVGElement | null;
+    if (!svgEl) return;
+    try {
+      const svgString = new XMLSerializer().serializeToString(svgEl);
+      const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const URLObj = window.URL || window.webkitURL || window;
+      const blobURL = URLObj.createObjectURL(svgBlob);
+
+      const image = new Image();
+      image.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1600;
+        canvas.height = 900;
+        const context = canvas.getContext('2d');
+        if (context) {
+          context.fillStyle = '#0b0f19';
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+          
+          const pngUrl = canvas.toDataURL('image/png');
+          const downloadLink = document.createElement('a');
+          downloadLink.href = pngUrl;
+          downloadLink.download = `${battle.title.replace(/\s+/g, '_')}_SDE_Certificate.png`;
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+          document.body.removeChild(downloadLink);
+        }
+        URLObj.revokeObjectURL(blobURL);
+      };
+      image.src = blobURL;
+    } catch (e) {
+      console.error('PNG conversion failed:', e);
+      downloadSVG();
+    }
+  };
+
+  const shareToStatus = async () => {
+    downloadPNG();
+    const statusCaption = `🔥 Just completed "${battle.title}" SDE Battle on BCE Code Arena!\n🏆 Rank: #${userStats.rank} | 🎯 Score: ${userStats.score} PTS\n✅ Solved: ${userStats.solvedCount}/${userStats.totalProblems} Problems (${userStats.accuracy}% Accuracy)\n\n#Coding #BCECodeArena #Programmer #SDE`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${battle.title} SDE Battle Achievement`,
+          text: statusCaption,
+          url: window.location.origin + '/code-arena',
+        });
+      } catch (err) {
+        copyToClipboard(statusCaption);
+      }
+    } else {
+      copyToClipboard(statusCaption);
+    }
   };
 
   const shareAchievement = async () => {
@@ -394,7 +451,7 @@ export default function BattleEndScreen({
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', width: '100%', justifyContent: 'center' }}>
               <Button
                 variant="primary"
-                onClick={downloadSVG}
+                onClick={downloadPNG}
                 style={{
                   background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))',
                   fontWeight: 800,
@@ -403,20 +460,23 @@ export default function BattleEndScreen({
                   gap: '8px'
                 }}
               >
-                <Download size={16} /> Download Shareable Certificate (SVG)
+                <Download size={16} /> Download PNG Certificate
               </Button>
 
               <Button
                 variant="secondary"
-                onClick={shareAchievement}
+                onClick={shareToStatus}
                 style={{
+                  background: 'linear-gradient(135deg, rgba(37,99,235,0.2), rgba(168,85,247,0.2))',
+                  border: '1px solid #3b82f6',
+                  color: '#60a5fa',
                   fontWeight: 800,
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '8px'
                 }}
               >
-                <Share2 size={16} /> Share Achievement
+                <Share2 size={16} /> 📲 Add to Status / Story
               </Button>
             </div>
           </div>
