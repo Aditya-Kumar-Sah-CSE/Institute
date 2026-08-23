@@ -10,11 +10,14 @@ import {
 import CreateBattleWizard from './CreateBattleWizard';
 import MobileCodeArenaToggle from './MobileCodeArenaToggle';
 import UpcomingContestsAlert from './contests/UpcomingContestsAlert';
+import { resolveBattleStatus } from '../utils/battleUtils';
 import './CodeArena.css';
 
 export default function CodeArenaClientHome({
+  user,
   isInstructor,
   initialBattles,
+  userJoinedBattleIds = [],
   initialProblems,
   batches = [],
   profile,
@@ -24,6 +27,7 @@ export default function CodeArenaClientHome({
   user?: any;
   isInstructor: boolean;
   initialBattles: any[];
+  userJoinedBattleIds?: string[];
   initialProblems: any[];
   batches?: any[];
   profile?: any;
@@ -97,15 +101,20 @@ export default function CodeArenaClientHome({
   const lcAccount = externalAccounts?.find(a => a.platform === 'LEETCODE');
   const ccAccount = externalAccounts?.find(a => a.platform === 'CODECHEF');
   
-  const liveBattles = battles.filter((b) => b.status === 'LIVE');
+  const liveBattles = battles.filter((b) => resolveBattleStatus(b) === 'LIVE');
   const liveBattlesCount = liveBattles.length;
+  const joinedSet = new Set(userJoinedBattleIds);
 
   const filteredBattles = battles.filter(b => {
+    const resolvedStatus = resolveBattleStatus(b);
     if (activeTab === 'ALL') return true;
-    if (activeTab === 'LIVE') return b.status === 'LIVE';
-    if (activeTab === 'UPCOMING') return b.status === 'LOBBY' || b.status === 'SCHEDULED';
-    if (activeTab === 'COMPLETED') return b.status === 'COMPLETED';
-    if (activeTab === 'MY_BATTLES') return Boolean(profile?.id && b.created_by === profile.id);
+    if (activeTab === 'LIVE') return resolvedStatus === 'LIVE';
+    if (activeTab === 'UPCOMING') return resolvedStatus === 'UPCOMING';
+    if (activeTab === 'COMPLETED') return resolvedStatus === 'COMPLETED';
+    if (activeTab === 'MY_BATTLES') {
+      const currentUserId = user?.id || profile?.id;
+      return Boolean(currentUserId && (b.created_by === currentUserId || joinedSet.has(b.id)));
+    }
     return true;
   });
 
@@ -298,16 +307,17 @@ export default function CodeArenaClientHome({
         ) : (
           <div className="arena-battles-grid">
             {filteredBattles.map((b) => {
-              const isLive = b.status === 'LIVE';
-              const isCompleted = b.status === 'COMPLETED';
+              const resolvedStatus = resolveBattleStatus(b);
+              const isLive = resolvedStatus === 'LIVE';
+              const isCompleted = resolvedStatus === 'COMPLETED';
               const borderGlowClass = isLive ? 'card-glow-live' : isCompleted ? 'card-glow-completed' : 'card-glow-upcoming';
 
               return (
                 <div key={b.id} className={`arena-battle-card ${borderGlowClass}`}>
                   <div className="battle-card-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span suppressHydrationWarning className={`status-badge-styled ${b.status.toLowerCase()}`}>
+                    <span suppressHydrationWarning className={`status-badge-styled ${resolvedStatus.toLowerCase()}`}>
                       <span className="status-dot"></span>
-                      {b.status === 'LOBBY' ? 'UPCOMING' : b.status}
+                      {resolvedStatus}
                     </span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span className="join-code-disp">{b.join_code}</span>

@@ -18,9 +18,10 @@ export default async function CodeArenaPage() {
     return <LockedFeatureScreen featureName="Coding Arena" />;
   }
 
-  // 1. Fetch Battles, Problems, Profiles, Submissions, and Accounts in parallel
+  // 1. Fetch Battles, Participations, Problems, Profiles, Submissions, and Accounts in parallel
   const [
     { data: battles },
+    { data: userParticipations },
     { data: problems },
     { data: profile },
     { count: bceSolved },
@@ -32,7 +33,11 @@ export default async function CodeArenaPage() {
       .from('coding_battles')
       .select('id, title, description, status, start_time, end_time, duration_minutes, creator_role, join_code, visibility, created_by, created_at')
       .order('created_at', { ascending: false })
-      .limit(20),
+      .limit(50),
+    supabase
+      .from('coding_battle_participants')
+      .select('battle_id')
+      .eq('student_id', user.id),
     supabase
       .from('coding_problems')
       .select('id, title, slug, difficulty, tags, source_type, external_platform, created_at')
@@ -64,6 +69,7 @@ export default async function CodeArenaPage() {
   ]);
 
   const solvedProblemIds = new Set(solvedSubmissions?.map(s => s.problem_id) || []);
+  const userJoinedBattleIds = (userParticipations || []).map(p => p.battle_id);
   const problemsWithSolved = (problems || []).map(p => ({
     ...p,
     solved: solvedProblemIds.has(p.id)
@@ -77,6 +83,7 @@ export default async function CodeArenaPage() {
       user={user}
       isInstructor={isInstructor}
       initialBattles={battlesList}
+      userJoinedBattleIds={userJoinedBattleIds}
       initialProblems={problemsWithSolved}
       batches={batches}
       profile={profile}

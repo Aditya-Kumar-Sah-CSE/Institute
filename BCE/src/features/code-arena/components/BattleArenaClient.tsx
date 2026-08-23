@@ -43,6 +43,7 @@ import BattleAnalyticsView from './BattleAnalyticsView';
 import ProblemStatementRenderer from './ProblemStatementRenderer';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import { saveDraft, getDraft } from '../storage/problemStorage';
+import { downloadSvgAsImage } from '@/lib/utils/certificateExporter';
 import './CodeArena.css';
 
 const Editor = dynamic(() => import('@monaco-editor/react'), {
@@ -198,41 +199,14 @@ export default function BattleArenaClient({
 
 
 
-  const downloadPNG = () => {
-    const svgEl = document.getElementById('battle-certificate-svg') as SVGSVGElement | null;
-    if (!svgEl) return;
-    try {
-      const svgString = new XMLSerializer().serializeToString(svgEl);
-      const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-      const URLObj = window.URL || window.webkitURL || window;
-      const blobURL = URLObj.createObjectURL(svgBlob);
-
-      const image = new Image();
-      image.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = 1600;
-        canvas.height = 900;
-        const context = canvas.getContext('2d');
-        if (context) {
-          context.fillStyle = '#0b0f19';
-          context.fillRect(0, 0, canvas.width, canvas.height);
-          context.drawImage(image, 0, 0, canvas.width, canvas.height);
-          
-          const pngUrl = canvas.toDataURL('image/png');
-          const downloadLink = document.createElement('a');
-          downloadLink.href = pngUrl;
-          downloadLink.download = `${battle.title.replace(/\s+/g, '_')}_SDE_Certificate.png`;
-          document.body.appendChild(downloadLink);
-          downloadLink.click();
-          document.body.removeChild(downloadLink);
-        }
-        URLObj.revokeObjectURL(blobURL);
-      };
-      image.src = blobURL;
-    } catch (e) {
-      console.error('PNG conversion failed:', e);
-      downloadCertificate();
-    }
+  const downloadPNG = async () => {
+    const cleanTitle = (battle.title || 'Battle').replace(/\s+/g, '_');
+    await downloadSvgAsImage('battle-certificate-svg', {
+      filename: `${cleanTitle}_SDE_Certificate`,
+      format: 'png',
+      width: 1920,
+      height: 1080,
+    });
   };
 
   const downloadCertificate = () => {

@@ -23,6 +23,7 @@ import {
 import CreateBattleWizard from './CreateBattleWizard';
 import ProblemForm from './ProblemForm';
 import { deleteCodingProblem, duplicateCodingProblem } from '../actions';
+import { resolveBattleStatus } from '../utils/battleUtils';
 import './CodeArena.css';
 
 export default function InstructorCodeArenaClient({
@@ -51,9 +52,10 @@ export default function InstructorCodeArenaClient({
 
   // Filtered Battles
   const filteredBattles = battles.filter((b) => {
-    if (battleFilter === 'ACTIVE') return b.status === 'LIVE';
-    if (battleFilter === 'LOBBY') return b.status === 'LOBBY' || b.status === 'SCHEDULED' || b.status === 'DRAFT';
-    if (battleFilter === 'COMPLETED') return b.status === 'COMPLETED';
+    const resolvedStatus = resolveBattleStatus(b);
+    if (battleFilter === 'ACTIVE') return resolvedStatus === 'LIVE';
+    if (battleFilter === 'LOBBY') return resolvedStatus === 'UPCOMING';
+    if (battleFilter === 'COMPLETED') return resolvedStatus === 'COMPLETED';
     if (battleFilter === 'MY_BATTLES') return b.created_by === user?.id;
     return true;
   });

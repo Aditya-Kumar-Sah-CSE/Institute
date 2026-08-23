@@ -160,8 +160,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       }
     }
 
-    // 5. Update problem linkages if problems array provided
+    // 5. Update problem linkages if problems array provided (prevent modification if battle is COMPLETED)
     if (Array.isArray(problems)) {
+      if (existing.status === 'COMPLETED') {
+        return NextResponse.json(
+          { success: false, error: { code: 'BATTLE_COMPLETED', message: 'Cannot modify problem set of a completed battle.' } },
+          { status: 400 }
+        );
+      }
+
       await supabase.from('coding_battle_problems').delete().eq('battle_id', id);
 
       if (problems.length > 0) {

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Download, Share2, Award, Calendar, Trophy, Trash2, Edit3, Image as ImageIcon, Save, Check } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { useRouter } from 'next/navigation';
+import { downloadSvgAsImage } from '@/lib/utils/certificateExporter';
 
 interface CertificateRendererProps {
   cert: any;
@@ -216,47 +217,14 @@ export default function CertificateRenderer({
   };
 
   // SVG Export helper to generate high-resolution PNG / JPG
-  const exportCertificate = (format: 'png' | 'jpeg') => {
-    const svgEl = document.getElementById('battle-certificate-svg') as SVGSVGElement | null;
-    if (!svgEl) return;
-
-    try {
-      const svgString = new XMLSerializer().serializeToString(svgEl);
-      const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-      const URLObj = window.URL || window.webkitURL || window;
-      const blobURL = URLObj.createObjectURL(svgBlob);
-
-      const image = new Image();
-      image.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = 1920;  // 16:9 landscape high resolution
-        canvas.height = 1080;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          if (format === 'jpeg') {
-            ctx.fillStyle = '#0b0f19'; // solid dark background for JPEG
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-          }
-          ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-          
-          const dataUrl = canvas.toDataURL(format === 'jpeg' ? 'image/jpeg' : 'image/png', 0.95);
-          const downloadLink = document.createElement('a');
-          downloadLink.href = dataUrl;
-          
-          const cleanName = (cert.profiles?.name || 'User').replace(/[^a-zA-Z0-9]/g, '-');
-          downloadLink.download = `Coding-Battle-Certificate-${cleanName}.${format === 'jpeg' ? 'jpg' : 'png'}`;
-          
-          document.body.appendChild(downloadLink);
-          downloadLink.click();
-          document.body.removeChild(downloadLink);
-        }
-        URLObj.revokeObjectURL(blobURL);
-      };
-      image.src = blobURL;
-    } catch (e) {
-      console.error('Image export failed:', e);
-      alert('Export failed. Try printing the page instead.');
-    }
+  const exportCertificate = async (format: 'png' | 'jpeg') => {
+    const cleanName = (cert.profiles?.name || 'User').replace(/[^a-zA-Z0-9]/g, '-');
+    await downloadSvgAsImage('battle-certificate-svg', {
+      filename: `Coding-Battle-Certificate-${cleanName}`,
+      format,
+      width: 1920,
+      height: 1080,
+    });
   };
 
   const cleanRecipientName = cert.profiles?.name || 'John Doe';
