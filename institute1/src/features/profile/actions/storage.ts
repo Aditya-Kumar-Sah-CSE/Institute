@@ -4,17 +4,88 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 
 export interface StorageUsageResult {
   success: boolean;
-  bytes: number;
-  formattedUsed: string;
+  databaseBytes: number;
+  storageBytes: number;
+  totalBytes: number;
+  formattedTotal: string;
+  formattedDatabaseBytes: string;
+  formattedStorageBytes: string;
   formattedQuota: string;
-  percentage: number;
-  unit: 'MB' | 'GB';
+  percentageUsed: number;
+  unit: 'B' | 'KB' | 'MB' | 'GB';
   error?: string;
 }
 
 /**
- * Calculates total storage used by a specific user across Supabase Storage buckets.
- * Defaults to current logged-in user. Non-admin users can only view their own usage.
+ * Standardized byte size formatter according to system specifications:
+ * - < 1024 B   -> X B
+ * - < 1024 KB  -> X.X KB
+ * - < 1024 MB  -> X.X MB
+ * - Otherwise  -> X.XX GB
+ */
+export async function formatBytes(bytes: number): Promise<string> {
+  if (!bytes || bytes <= 0) return '0 B';
+  const ONE_KB = 1024;
+  const ONE_MB = 1024 * ONE_KB;
+  const ONE_GB = 1024 * ONE_MB;
+
+  if (bytes < ONE_KB) {
+    return `${bytes} B`;
+  } else if (bytes < ONE_MB) {
+    return `${(bytes / ONE_KB).toFixed(1)} KB`;
+  } else if (bytes < ONE_GB) {
+    return `${(bytes / ONE_MB).toFixed(1)} MB`;
+  } else {
+    return `${(bytes / ONE_GB).toFixed(2)} GB`;
+  }
+}
+
+// Internal sync helper for server-side formatting
+function formatBytesSync(bytes: number): string {
+  if (!bytes || bytes <= 0) return '0 B';
+  const ONE_KB = 1024;
+  const ONE_MB = 1024 * ONE_KB;
+  const ONE_GB = 1024 * ONE_MB;
+
+  if (bytes < ONE_KB) {
+    return `${bytes} B`;
+  } else if (bytes < ONE_MB) {
+    return `${(bytes / ONE_KB).toFixed(1)} KB`;
+  } else if (bytes < ONE_GB) {
+    return `${(bytes / ONE_MB).toFixed(1)} MB`;
+  } else {
+    return `${(bytes / ONE_GB).toFixed(2)} GB`;
+  }
+}
+
+/**
+ * Safely parses string values or serialized JSON string arrays of URLs.
+ */
+function extractUrlsFromString(val: any): string[] {
+  if (!val) return [];
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(item => typeof item === 'string');
+        }
+        if (typeof parsed === 'string') return [parsed];
+      } catch (e) {}
+    }
+    return [val];
+  }
+  if (Array.isArray(val)) {
+    return val.filter(item => typeof item === 'string');
+  }
+  return [];
+}
+
+/**
+ * Production-ready server action to calculate actual per-user Database table row bytes
+ * and Supabase Storage object bytes across all 15+ data sources without double-counting.
+ * Enforces strict authentication & user ownership.
  */
 export async function getUserStorageUsage(targetUserId?: string): Promise<StorageUsageResult> {
   try {
@@ -24,20 +95,23 @@ export async function getUserStorageUsage(targetUserId?: string): Promise<Storag
     if (!user) {
       return {
         success: false,
-        bytes: 0,
-        formattedUsed: '0 MB',
+        databaseBytes: 0,
+        storageBytes: 0,
+        totalBytes: 0,
+        formattedTotal: '0 B',
+        formattedDatabaseBytes: '0 B',
+        formattedStorageBytes: '0 B',
         formattedQuota: '100 MB',
-        percentage: 0,
-        unit: 'MB',
+        percentageUsed: 0,
+        unit: 'B',
         error: 'Not authenticated',
       };
     }
 
-    // Determine target user ID & enforce security
+    // Security check: non-admins can only request their own storage usage
     const userIdToQuery = targetUserId || user.id;
 
     if (userIdToQuery !== user.id) {
-      // Check if logged in user is admin before allowing query for another user
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
@@ -47,11 +121,15 @@ export async function getUserStorageUsage(targetUserId?: string): Promise<Storag
       if (profile?.role !== 'admin') {
         return {
           success: false,
-          bytes: 0,
-          formattedUsed: '0 MB',
+          databaseBytes: 0,
+          storageBytes: 0,
+          totalBytes: 0,
+          formattedTotal: '0 B',
+          formattedDatabaseBytes: '0 B',
+          formattedStorageBytes: '0 B',
           formattedQuota: '100 MB',
-          percentage: 0,
-          unit: 'MB',
+          percentageUsed: 0,
+          unit: 'B',
           error: 'Unauthorized access to user storage data',
         };
       }
@@ -59,52 +137,27 @@ export async function getUserStorageUsage(targetUserId?: string): Promise<Storag
 
     const adminSb = await createAdminClient();
 
-    let totalBytes = 0;
+    let storageBytes = 0;
+    let databaseBytes = 0;
     const trackedObjectNames = new Set<string>();
+    const trackedMediaUrls = new Set<string>();
 
-    // 1. Query storage.objects where owner equals user ID OR object name contains user ID
-    try {
-      const { data: storageObjects, error } = await adminSb
-        .schema('storage')
-        .from('objects')
-        .select('metadata, name, owner')
-        .or(`owner.eq.${userIdToQuery},name.ilike.%${userIdToQuery}%`);
+    // Helper to resolve public Supabase storage URLs to storage object sizes
+    const trackStorageUrl = async (rawUrl: string | null | undefined) => {
+      if (!rawUrl || typeof rawUrl !== 'string') return;
+      const url = rawUrl.trim();
+      if (!url || trackedMediaUrls.has(url)) return;
+      trackedMediaUrls.add(url);
 
-      if (!error && storageObjects && storageObjects.length > 0) {
-        for (const obj of storageObjects) {
-          if (obj.name) trackedObjectNames.add(obj.name);
-          if (!obj.metadata) continue;
+      const match = url.match(/\/object\/public\/([^/]+)\/(.+)$/);
+      if (match) {
+        const bucket = decodeURIComponent(match[1]);
+        const objectPath = decodeURIComponent(match[2]);
+        const uniqueKey = `${bucket}/${objectPath}`;
 
-          const rawSize = (obj.metadata as any).size;
-          if (typeof rawSize === 'number') {
-            totalBytes += rawSize;
-          } else if (typeof rawSize === 'string') {
-            const parsed = parseInt(rawSize, 10);
-            if (!isNaN(parsed)) {
-              totalBytes += parsed;
-            }
-          }
-        }
-      }
-    } catch (err) {
-      console.error('[getUserStorageUsage storage.objects query error]:', err);
-    }
-
-    // 2. Check profile avatar_url if not already tracked
-    try {
-      const { data: profile } = await adminSb
-        .from('profiles')
-        .select('avatar_url')
-        .eq('id', userIdToQuery)
-        .single();
-
-      if (profile?.avatar_url) {
-        const match = profile.avatar_url.match(/\/object\/public\/([^/]+)\/(.+)$/);
-        if (match) {
-          const bucket = match[1];
-          const objectPath = match[2];
-          if (!trackedObjectNames.has(objectPath)) {
-            const { data: avatarObj } = await adminSb
+        if (!trackedObjectNames.has(uniqueKey)) {
+          try {
+            const { data: obj } = await adminSb
               .schema('storage')
               .from('objects')
               .select('metadata')
@@ -112,91 +165,217 @@ export async function getUserStorageUsage(targetUserId?: string): Promise<Storag
               .eq('name', objectPath)
               .maybeSingle();
 
-            if (avatarObj?.metadata) {
-              const rawSize = (avatarObj.metadata as any).size;
+            if (obj?.metadata) {
+              const rawSize = (obj.metadata as any).size;
               const sizeNum = typeof rawSize === 'number' ? rawSize : parseInt(rawSize, 10);
               if (!isNaN(sizeNum) && sizeNum > 0) {
-                totalBytes += sizeNum;
-                trackedObjectNames.add(objectPath);
+                storageBytes += sizeNum;
+                trackedObjectNames.add(uniqueKey);
               }
+            }
+          } catch (e) {}
+        }
+      }
+    };
+
+    // -------------------------------------------------------------
+    // PART 1: Query storage.objects directly (Objects owned by user)
+    // -------------------------------------------------------------
+    try {
+      const { data: storageObjects, error } = await adminSb
+        .schema('storage')
+        .from('objects')
+        .select('metadata, name, owner, bucket_id')
+        .or(`owner.eq.${userIdToQuery},name.ilike.%${userIdToQuery}%`);
+
+      if (!error && storageObjects && storageObjects.length > 0) {
+        for (const obj of storageObjects) {
+          if (obj.name && obj.bucket_id) {
+            const key = `${obj.bucket_id}/${obj.name}`;
+            if (trackedObjectNames.has(key)) continue;
+            trackedObjectNames.add(key);
+          }
+          if (!obj.metadata) continue;
+
+          const rawSize = (obj.metadata as any).size;
+          if (typeof rawSize === 'number') {
+            storageBytes += rawSize;
+          } else if (typeof rawSize === 'string') {
+            const parsed = parseInt(rawSize, 10);
+            if (!isNaN(parsed)) {
+              storageBytes += parsed;
             }
           }
         }
       }
     } catch (err) {
-      console.error('[getUserStorageUsage profile avatar check error]:', err);
+      console.error('[getUserStorageUsage storage.objects error]:', err);
     }
 
-    // Calculate MB and GB values
-    const ONE_MB = 1024 * 1024;
+    // -------------------------------------------------------------
+    // PART 2: Calculate Database Table Row Bytes & Linked File Storage
+    // -------------------------------------------------------------
+    const encoder = new TextEncoder();
+
+    const processTableData = async (
+      tableName: string,
+      filterFn: (query: any) => any,
+      urlColumns: string[] = []
+    ) => {
+      try {
+        let q = adminSb.from(tableName).select('*');
+        q = filterFn(q);
+        const { data: rows } = await q;
+
+        if (rows && rows.length > 0) {
+          // Compute JSON UTF-8 byte size for user rows
+          const jsonStr = JSON.stringify(rows);
+          databaseBytes += encoder.encode(jsonStr).length;
+
+          // Process file/media URL columns without double counting
+          if (urlColumns.length > 0) {
+            for (const row of rows) {
+              for (const col of urlColumns) {
+                const val = row[col];
+                const extractedUrls = extractUrlsFromString(val);
+                for (const u of extractedUrls) {
+                  await trackStorageUrl(u);
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // Gracefully ignore tables that don't exist in current environment schema
+      }
+    };
+
+    // Find course IDs created or instructed by the user
+    let userCourseIds: string[] = [];
+    try {
+      const { data: ownedCourses } = await adminSb
+        .from('courses')
+        .select('id')
+        .or(`created_by.eq.${userIdToQuery},instructor_id.eq.${userIdToQuery}`);
+
+      if (ownedCourses && ownedCourses.length > 0) {
+        userCourseIds = ownedCourses.map(c => c.id);
+      }
+    } catch (e) {}
+
+    // Process all 15+ database tables
+    await Promise.all([
+      // 1. Profiles & Avatars
+      processTableData('profiles', q => q.eq('id', userIdToQuery), ['avatar_url']),
+
+      // 2. Courses
+      processTableData('courses', q => q.or(`created_by.eq.${userIdToQuery},instructor_id.eq.${userIdToQuery}`), ['thumbnail_url']),
+
+      // 3. Lessons (including PDF notes in lesson_notes bucket)
+      processTableData(
+        'lessons',
+        q => userCourseIds.length > 0
+          ? q.or(`created_by.eq.${userIdToQuery},course_id.in.(${userCourseIds.join(',')})`)
+          : q.eq('created_by', userIdToQuery),
+        ['pdf_url', 'pdf_notes_url', 'attachment_url', 'youtube_url']
+      ),
+
+      // 4. Assignments & Expected Output files
+      processTableData(
+        'assignments',
+        q => userCourseIds.length > 0
+          ? q.or(`created_by.eq.${userIdToQuery},course_id.in.(${userCourseIds.join(',')})`)
+          : q.eq('created_by', userIdToQuery),
+        ['expected_output', 'attachment_url', 'solution_url']
+      ),
+
+      // 5. Submissions
+      processTableData('submissions', q => q.eq('user_id', userIdToQuery), ['file_url', 'attachment_url']),
+
+      // 6. Doubts, Replies & Polls
+      processTableData('doubts', q => q.eq('user_id', userIdToQuery), ['media_url', 'audio_url']),
+      processTableData('doubt_replies', q => q.eq('user_id', userIdToQuery), ['media_url']),
+      processTableData('doubt_likes', q => q.eq('user_id', userIdToQuery)),
+      processTableData('course_polls', q => q.eq('created_by', userIdToQuery)),
+      processTableData('poll_votes', q => q.eq('user_id', userIdToQuery)),
+
+      // 7. Stories & Statuses
+      processTableData('stories', q => q.eq('user_id', userIdToQuery), ['media_url', 'image_url']),
+
+      // 8. Chat Messages & Notes
+      processTableData('messages', q => q.eq('sender_id', userIdToQuery), ['attachment_url', 'media_url']),
+      processTableData('chat_messages', q => q.eq('user_id', userIdToQuery), ['attachment_url']),
+      processTableData('notes', q => q.eq('user_id', userIdToQuery)),
+
+      // 9. Notices
+      processTableData('notices', q => q.eq('created_by', userIdToQuery), ['image_url', 'attachment_url']),
+
+      // 10. Certificates
+      processTableData('certificates', q => q.eq('user_id', userIdToQuery), ['image_url']),
+      processTableData('battle_certificates', q => q.eq('user_id', userIdToQuery), ['certificate_url']),
+
+      // 11. Forum & Feedback
+      processTableData('forum_posts', q => q.eq('user_id', userIdToQuery), ['attachment_url']),
+      processTableData('forum_comments', q => q.eq('user_id', userIdToQuery)),
+      processTableData('feedbacks', q => q.eq('user_id', userIdToQuery), ['screenshot_url']),
+    ]);
+
+    // Sum Total Bytes
+    const totalBytes = databaseBytes + storageBytes;
+
+    // Formatting & Quota Scaling
+    const ONE_KB = 1024;
+    const ONE_MB = 1024 * ONE_KB;
     const ONE_GB = 1024 * ONE_MB;
 
-    const usedMB = totalBytes / ONE_MB;
-    const usedGB = totalBytes / ONE_GB;
+    let unit: 'B' | 'KB' | 'MB' | 'GB' = 'B';
+    if (totalBytes >= ONE_GB) unit = 'GB';
+    else if (totalBytes >= ONE_MB) unit = 'MB';
+    else if (totalBytes >= ONE_KB) unit = 'KB';
+    else unit = 'B';
 
-    let unit: 'MB' | 'GB' = 'MB';
-    let formattedUsed = '0 MB';
+    let quotaBytes = 100 * ONE_MB; // 100 MB default base quota
     let formattedQuota = '100 MB';
-    let quotaBytes = 100 * ONE_MB; // 100 MB default quota
 
-    if (usedMB >= 1024) {
-      unit = 'GB';
-      formattedUsed = `${usedGB.toFixed(1)} GB`;
-      
-      // Dynamic quota scaling for > 1GB
-      if (usedGB > 10) {
-        const scaledQuotaGB = Math.ceil(usedGB / 10) * 10;
-        quotaBytes = scaledQuotaGB * ONE_GB;
-        formattedQuota = `${scaledQuotaGB} GB`;
-      } else {
-        quotaBytes = 10 * ONE_GB;
-        formattedQuota = '10 GB';
-      }
-    } else {
-      unit = 'MB';
-      // Format MB (1 decimal place if > 0, e.g. 24.6 MB or 0 MB)
-      if (totalBytes === 0) {
-        formattedUsed = '0 MB';
-      } else if (usedMB < 0.1) {
-        formattedUsed = `${usedMB.toFixed(2)} MB`;
-      } else {
-        formattedUsed = `${usedMB.toFixed(1)} MB`;
-      }
-
-      // Dynamic quota scaling for > 100MB up to 1024MB
-      if (usedMB > 100) {
-        const scaledQuotaMB = Math.ceil(usedMB / 100) * 100;
-        quotaBytes = scaledQuotaMB * ONE_MB;
-        formattedQuota = `${scaledQuotaMB} MB`;
-      } else {
-        quotaBytes = 100 * ONE_MB;
-        formattedQuota = '100 MB';
-      }
+    if (totalBytes > 10 * ONE_GB) {
+      const scaledQuotaGB = Math.ceil(totalBytes / (10 * ONE_GB)) * 10;
+      quotaBytes = scaledQuotaGB * ONE_GB;
+      formattedQuota = `${scaledQuotaGB} GB`;
+    } else if (totalBytes > 100 * ONE_MB) {
+      const scaledQuotaMB = Math.ceil(totalBytes / (100 * ONE_MB)) * 100;
+      quotaBytes = scaledQuotaMB * ONE_MB;
+      formattedQuota = `${scaledQuotaMB} MB`;
     }
 
-    let percentage = (totalBytes / quotaBytes) * 100;
-    if (percentage > 100) percentage = 100;
-    
-    // Round percentage to 1 decimal place (e.g. 24.6%)
-    percentage = Math.round(percentage * 10) / 10;
+    let percentageUsed = (totalBytes / quotaBytes) * 100;
+    if (percentageUsed > 100) percentageUsed = 100;
+    percentageUsed = Math.round(percentageUsed * 10) / 10;
 
     return {
       success: true,
-      bytes: totalBytes,
-      formattedUsed,
+      databaseBytes,
+      storageBytes,
+      totalBytes,
+      formattedTotal: formatBytesSync(totalBytes),
+      formattedDatabaseBytes: formatBytesSync(databaseBytes),
+      formattedStorageBytes: formatBytesSync(storageBytes),
       formattedQuota,
-      percentage,
+      percentageUsed,
       unit,
     };
   } catch (err: any) {
     console.error('[getUserStorageUsage Exception]:', err);
     return {
       success: false,
-      bytes: 0,
-      formattedUsed: '0 MB',
+      databaseBytes: 0,
+      storageBytes: 0,
+      totalBytes: 0,
+      formattedTotal: '0 B',
+      formattedDatabaseBytes: '0 B',
+      formattedStorageBytes: '0 B',
       formattedQuota: '100 MB',
-      percentage: 0,
-      unit: 'MB',
+      percentageUsed: 0,
+      unit: 'B',
       error: err.message || 'Failed to calculate storage usage',
     };
   }

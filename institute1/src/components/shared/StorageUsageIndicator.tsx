@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { Database, HardDrive, RefreshCw } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Database, HardDrive, RefreshCw, ExternalLink, Cloud, CheckCircle, LogOut, ArrowRight } from 'lucide-react';
 import { getUserStorageUsage, StorageUsageResult } from '@/features/profile/actions/storage';
+import { getGoogleDriveStatus, disconnectGoogleDrive, migrateExistingFilesToDrive, GoogleDriveStatusResult } from '@/features/profile/actions/google-drive';
 
 interface StorageUsageIndicatorProps {
   userId?: string;
@@ -17,48 +18,71 @@ export default function StorageUsageIndicator({
   className = '',
   style = {},
 }: StorageUsageIndicatorProps) {
-  const [data, setData] = useState<StorageUsageResult | null>(null);
+  const [dbData, setDbData] = useState<StorageUsageResult | null>(null);
+  const [driveStatus, setDriveStatus] = useState<GoogleDriveStatusResult | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [hasMounted, setHasMounted] = useState<boolean>(false);
+  const [migrating, setMigrating] = useState<boolean>(false);
+  const [migrationResult, setMigrationResult] = useState<string | null>(null);
+  const [showMigrateModal, setShowMigrateModal] = useState<boolean>(false);
+
+  const loadData = async () => {
+    try {
+      setIsRefreshing(true);
+      const [dbRes, driveRes] = await Promise.all([
+        getUserStorageUsage(userId),
+        getGoogleDriveStatus(userId),
+      ]);
+      setDbData(dbRes);
+      setDriveStatus(driveRes);
+    } catch (err) {
+      console.error('Failed to load storage status:', err);
+    } finally {
+      setLoading(false);
+      setIsRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     setHasMounted(true);
-    let isMounted = true;
-
-    const loadData = async () => {
-      try {
-        const result = await getUserStorageUsage(userId);
-        if (isMounted) {
-          setData(result);
-          setLoading(false);
-          setIsRefreshing(false);
-        }
-      } catch (err) {
-        console.error('Failed to load storage usage:', err);
-        if (isMounted) {
-          setLoading(false);
-          setIsRefreshing(false);
-        }
-      }
-    };
-
     loadData();
 
-    // Listen for global storage-updated event (triggered after file uploads/deletions)
-    const handleStorageUpdate = () => {
-      if (isMounted) {
-        setIsRefreshing(true);
-        loadData();
+    // Check query params for drive_connected
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('drive_connected') === 'true') {
+        setShowMigrateModal(true);
       }
-    };
+    }
 
+    const handleStorageUpdate = () => loadData();
     window.addEventListener('storage-updated', handleStorageUpdate);
-    return () => {
-      isMounted = false;
-      window.removeEventListener('storage-updated', handleStorageUpdate);
-    };
+    return () => window.removeEventListener('storage-updated', handleStorageUpdate);
   }, [userId]);
+
+  const handleDisconnect = async () => {
+    if (!confirm('Are you sure you want to disconnect Google Drive? Files stored in your Drive will remain safe.')) return;
+    setIsRefreshing(true);
+    await disconnectGoogleDrive();
+    await loadData();
+  };
+
+  const handleMigrateFiles = async () => {
+    setMigrating(true);
+    setMigrationResult(null);
+    const res = await migrateExistingFilesToDrive();
+    setMigrating(false);
+    if (res.success) {
+      setMigrationResult(`Successfully moved ${res.migratedCount} file(s) to Google Drive!`);
+      setTimeout(() => {
+        setShowMigrateModal(false);
+        loadData();
+      }, 2500);
+    } else {
+      setMigrationResult(`Migration error: ${res.error}`);
+    }
+  };
 
   if (!hasMounted) {
     return (
@@ -71,30 +95,305 @@ export default function StorageUsageIndicator({
           padding: compact ? '12px 16px' : '16px 20px',
           width: '100%',
           boxSizing: 'border-box',
-          minHeight: compact ? '68px' : '82px',
+          minHeight: '120px',
           ...style,
         }}
       />
     );
   }
 
-  const percentage = data?.percentage || 0;
-  const formattedUsed = data?.formattedUsed || '0 MB';
-  const formattedQuota = data?.formattedQuota || '100 MB';
-  const bytes = data?.bytes || 0;
+  // 1. CONNECTED STATE (Google Drive Connected ✓)
+  if (driveStatus?.connected) {
+    const percentage = driveStatus.percentageUsed || 0;
+    const driveUsed = driveStatus.formattedDriveUsed || '0 B';
+    const driveLimit = driveStatus.formattedDriveLimit || '15 GB';
+    const email = driveStatus.email || 'connected@gmail.com';
+    const fileCount = driveStatus.appFileCount || 0;
+    const appBytes = driveStatus.formattedAppFileBytes || '0 B';
 
-  // Determine indicator color theme based on usage
-  const getProgressColor = () => {
-    if (percentage > 90) return 'linear-gradient(90deg, #ff007f, #ff2a85)'; // Neon Pink / Red alert
-    if (percentage > 70) return 'linear-gradient(90deg, #ff9900, #ff5500)'; // Neon Orange warning
-    return 'linear-gradient(90deg, #00f2fe, #4facfe)'; // Neon Cyan standard
-  };
+    const getProgressColor = () => {
+      if (percentage > 90) return 'linear-gradient(90deg, #ff007f, #ff2a85)';
+      if (percentage > 70) return 'linear-gradient(90deg, #ff9900, #ff5500)';
+      return 'linear-gradient(90deg, #00f2fe, #4facfe)';
+    };
 
-  const getGlowColor = () => {
-    if (percentage > 90) return 'rgba(255, 0, 127, 0.4)';
-    if (percentage > 70) return 'rgba(255, 153, 0, 0.4)';
-    return 'rgba(0, 242, 254, 0.3)';
-  };
+    return (
+      <div
+        className={`storage-usage-indicator ${className}`}
+        style={{
+          background: 'var(--bg-elevated, rgba(15, 23, 42, 0.65))',
+          border: '1px solid rgba(0, 242, 254, 0.25)',
+          borderRadius: 'var(--radius-lg, 12px)',
+          padding: compact ? '14px 16px' : '18px 22px',
+          width: '100%',
+          boxSizing: 'border-box',
+          backdropFilter: 'blur(12px)',
+          transition: 'all 0.3s ease',
+          textAlign: 'left',
+          boxShadow: '0 4px 20px rgba(0, 242, 254, 0.08)',
+          ...style,
+        }}
+      >
+        {/* Header Row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                background: 'rgba(0, 242, 254, 0.15)',
+                color: '#00f2fe',
+                border: '1px solid rgba(0, 242, 254, 0.3)',
+              }}
+            >
+              <Cloud size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: '15px', fontWeight: '700', color: '#ffffff', letterSpacing: '0.2px' }}>
+                Google Drive Storage
+              </div>
+              <div style={{ fontSize: '12px', color: '#94a3b8' }}>{email}</div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '11px',
+                fontWeight: '700',
+                color: '#10b981',
+                background: 'rgba(16, 185, 129, 0.12)',
+                padding: '3px 10px',
+                borderRadius: '12px',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+              }}
+            >
+              <CheckCircle size={12} /> Connected ✓
+            </span>
+          </div>
+        </div>
+
+        {/* Usage Numbers */}
+        <div style={{ fontSize: '20px', fontWeight: '800', color: '#ffffff', marginBottom: '4px', letterSpacing: '-0.4px' }}>
+          {driveUsed} <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>/ {driveLimit}</span>
+        </div>
+
+        {/* Subtext */}
+        <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '10px' }}>
+          Code Arena Files: <strong style={{ color: '#ffffff' }}>{fileCount} files</strong> ({appBytes})
+        </div>
+
+        {/* Progress Bar Container */}
+        <div
+          style={{
+            position: 'relative',
+            width: '100%',
+            height: '8px',
+            background: 'rgba(255, 255, 255, 0.08)',
+            borderRadius: '4px',
+            overflow: 'hidden',
+            marginBottom: '14px',
+          }}
+        >
+          <div
+            style={{
+              height: '100%',
+              width: `${Math.max(percentage, 2)}%`,
+              background: getProgressColor(),
+              borderRadius: '4px',
+              transition: 'width 0.6s ease',
+            }}
+          />
+        </div>
+
+        {/* Action Buttons Row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <a
+            href={driveStatus.rootFolderId ? `https://drive.google.com/drive/folders/${driveStatus.rootFolderId}` : 'https://drive.google.com'}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '12px',
+              fontWeight: '600',
+              color: '#00f2fe',
+              background: 'rgba(0, 242, 254, 0.1)',
+              border: '1px solid rgba(0, 242, 254, 0.25)',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              textDecoration: 'none',
+            }}
+          >
+            <ExternalLink size={13} /> Open Drive
+          </a>
+
+          <button
+            onClick={loadData}
+            disabled={isRefreshing}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '12px',
+              fontWeight: '600',
+              color: '#cbd5e1',
+              background: 'rgba(255, 255, 255, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+            }}
+          >
+            <RefreshCw size={13} style={{ animation: isRefreshing ? 'spin 1s linear infinite' : 'none' }} /> Refresh
+          </button>
+
+          <button
+            onClick={handleDisconnect}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '12px',
+              fontWeight: '600',
+              color: '#f43f5e',
+              background: 'rgba(244, 63, 94, 0.08)',
+              border: '1px solid rgba(244, 63, 94, 0.2)',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+            }}
+          >
+            <LogOut size={13} /> Disconnect
+          </button>
+        </div>
+
+        {/* Move Existing Files Modal Banner */}
+        {showMigrateModal && (
+          <div
+            style={{
+              marginTop: '14px',
+              padding: '12px 14px',
+              background: 'rgba(16, 185, 129, 0.08)',
+              border: '1px solid rgba(16, 185, 129, 0.25)',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '10px',
+            }}
+          >
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: '#ffffff' }}>Move existing files to Google Drive?</div>
+              <div style={{ fontSize: '11px', color: '#94a3b8' }}>Safe migration directly to your Code Arena Drive folder.</div>
+            </div>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <button
+                onClick={handleMigrateFiles}
+                disabled={migrating}
+                style={{
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  color: '#ffffff',
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  border: 'none',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                }}
+              >
+                {migrating ? 'Moving...' : 'Move Files'}
+              </button>
+              <button
+                onClick={() => setShowMigrateModal(false)}
+                style={{
+                  fontSize: '12px',
+                  color: '#64748b',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                Not Now
+              </button>
+            </div>
+          </div>
+        )}
+
+        {migrationResult && (
+          <div style={{ marginTop: '8px', fontSize: '12px', color: '#10b981', fontWeight: '600' }}>
+            {migrationResult}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 2. DISCONNECTED STATE (Google OAuth Configured, Available for 1-Click Connect)
+  if (driveStatus?.configured) {
+    return (
+      <div
+        className={`storage-usage-indicator ${className}`}
+        style={{
+          background: 'var(--bg-elevated, rgba(15, 23, 42, 0.6))',
+          border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+          borderRadius: 'var(--radius-lg, 12px)',
+          padding: compact ? '14px 16px' : '18px 22px',
+          width: '100%',
+          boxSizing: 'border-box',
+          backdropFilter: 'blur(10px)',
+          textAlign: 'left',
+          ...style,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+          <Database size={18} style={{ color: '#00f2fe' }} />
+          <span style={{ fontSize: '14px', fontWeight: '700', color: '#ffffff' }}>Database Usage</span>
+        </div>
+
+        <div style={{ fontSize: '18px', fontWeight: '800', color: '#ffffff', marginBottom: '6px' }}>
+          {dbData?.formattedTotal || '0 B'}
+        </div>
+
+        <p style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '14px', lineHeight: '1.4' }}>
+          Connect your Google Drive to store files securely in your own Drive.
+        </p>
+
+        <a
+          href="/api/auth/google-drive/connect"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '13px',
+            fontWeight: '700',
+            color: '#ffffff',
+            background: 'linear-gradient(135deg, #00f2fe, #4facfe)',
+            padding: '8px 16px',
+            borderRadius: '8px',
+            textDecoration: 'none',
+            boxShadow: '0 4px 14px rgba(0, 242, 254, 0.3)',
+          }}
+        >
+          <Cloud size={16} /> Connect Google Drive <ArrowRight size={14} />
+        </a>
+      </div>
+    );
+  }
+
+  // 3. FALLBACK STATE (Google OAuth Credentials Not Configured on Server)
+  const percentageUsed = dbData?.percentageUsed || 0;
+  const formattedTotal = dbData?.formattedTotal || '0 B';
+  const formattedDatabaseBytes = dbData?.formattedDatabaseBytes || '0 B';
+  const formattedStorageBytes = dbData?.formattedStorageBytes || '0 B';
 
   return (
     <div
@@ -107,117 +406,30 @@ export default function StorageUsageIndicator({
         width: '100%',
         boxSizing: 'border-box',
         backdropFilter: 'blur(10px)',
-        transition: 'all 0.3s ease',
         textAlign: 'left',
         ...style,
       }}
     >
-      {/* Header Row */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '8px',
-        }}
-      >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: compact ? '26px' : '30px',
-              height: compact ? '26px' : '30px',
-              borderRadius: '8px',
-              background: 'rgba(0, 242, 254, 0.12)',
-              color: 'var(--neon-cyan, #00f2fe)',
-              border: '1px solid rgba(0, 242, 254, 0.25)',
-            }}
-          >
-            <Database size={compact ? 14 : 16} />
-          </div>
-          <div>
-            <span
-              style={{
-                fontSize: compact ? '13px' : '14px',
-                fontWeight: '600',
-                color: 'var(--text-primary, #ffffff)',
-                letterSpacing: '0.2px',
-              }}
-            >
-              Database Usage
-            </span>
-          </div>
+          <Database size={16} style={{ color: '#00f2fe' }} />
+          <span style={{ fontSize: '14px', fontWeight: '600', color: '#ffffff' }}>Database Usage</span>
         </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          {isRefreshing && (
-            <RefreshCw
-              size={12}
-              style={{
-                animation: 'spin 1s linear infinite',
-                color: 'var(--text-secondary, #94a3b8)',
-              }}
-            />
-          )}
-          <span
-            style={{
-              fontSize: compact ? '11px' : '12px',
-              fontWeight: '700',
-              color: percentage > 90 ? '#ff2a85' : percentage > 70 ? '#ff9900' : 'var(--neon-cyan, #00f2fe)',
-              background: percentage > 90 ? 'rgba(255, 42, 133, 0.1)' : percentage > 70 ? 'rgba(255, 153, 0, 0.1)' : 'rgba(0, 242, 254, 0.1)',
-              padding: '2px 8px',
-              borderRadius: '10px',
-              border: '1px solid currentColor',
-            }}
-          >
-            {bytes === 0 ? '0% Used' : `${percentage}% Used`}
-          </span>
-        </div>
+        <span style={{ fontSize: '12px', fontWeight: '700', color: '#00f2fe' }}>{percentageUsed}% Used</span>
       </div>
 
-      {/* Usage Numbers */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'baseline',
-          marginBottom: '8px',
-          fontSize: compact ? '12px' : '13px',
-        }}
-      >
-        <span style={{ color: 'var(--text-secondary, #94a3b8)', fontWeight: '500' }}>
-          {bytes === 0 ? '0 MB Used' : formattedUsed}
-        </span>
-        <span style={{ color: 'var(--text-muted, #64748b)', fontSize: compact ? '11px' : '12px' }}>
-          {formattedUsed} / {formattedQuota}
-        </span>
+      <div style={{ fontSize: '18px', fontWeight: '700', color: '#ffffff', marginBottom: '4px' }}>{formattedTotal}</div>
+
+      <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '10px' }}>
+        DB Rows: {formattedDatabaseBytes} • Storage Files: {formattedStorageBytes}
       </div>
 
-      {/* Progress Bar Container */}
-      <div
-        style={{
-          position: 'relative',
-          width: '100%',
-          height: compact ? '6px' : '8px',
-          background: 'rgba(255, 255, 255, 0.08)',
-          borderRadius: '4px',
-          overflow: 'hidden',
-          boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.3)',
-        }}
-      >
-        {/* Progress Bar Fill */}
-        <div
-          style={{
-            height: '100%',
-            width: loading ? '0%' : `${bytes === 0 ? 0 : Math.max(percentage, 2)}%`,
-            background: getProgressColor(),
-            borderRadius: '4px',
-            boxShadow: `0 0 8px ${getGlowColor()}`,
-            transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-          }}
-        />
+      <div style={{ width: '100%', height: '8px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '4px', overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${Math.max(percentageUsed, 2)}%`, background: 'linear-gradient(90deg, #00f2fe, #4facfe)', borderRadius: '4px' }} />
+      </div>
+
+      <div style={{ marginTop: '8px', fontSize: '10px', color: '#64748b' }}>
+        Google Drive is not configured by server admin. Supabase Storage is active.
       </div>
     </div>
   );
