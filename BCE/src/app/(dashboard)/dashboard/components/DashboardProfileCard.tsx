@@ -8,6 +8,7 @@ import LevelBadge from '@/components/shared/LevelBadge';
 import UserAvatar from '@/components/shared/UserAvatar';
 import Button from '@/components/ui/Button';
 import { User, Share2 } from 'lucide-react';
+import StorageUsageIndicator from '@/components/shared/StorageUsageIndicator';
 
 interface DashboardProfileCardProps {
   profile: any;
@@ -208,6 +209,17 @@ export default function DashboardProfileCard({ profile, appData }: DashboardProf
             )}
           </div>
         )}
+      </div>
+
+      {/* PART 4: Database / Storage Usage Indicator */}
+      <div style={{ 
+        padding: '0 var(--space-xl) var(--space-xl)',
+        width: '100%',
+        boxSizing: 'border-box'
+      }}>
+        <React.Suspense fallback={<div style={{ height: '60px', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.05)' }} />}>
+          <StorageUsageIndicator userId={profile.id} compact />
+        </React.Suspense>
       </div>
 
     </Card>
