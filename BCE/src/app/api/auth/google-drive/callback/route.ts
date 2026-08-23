@@ -1,0 +1,183 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
+
+const REQUIRED_SUBFOLDERS = [
+  'Courses',
+  'Assignments',
+  'Submissions',
+  'Certificates',
+  'Battle Certificates',
+  'Doubts',
+  'Stories',
+  'Chat',
+  'Notes',
+  'Notices',
+  'Forum',
+  'Avatars',
+  'Other',
+];
+
+/**
+ * Creates or reuses a Google Drive folder by name and parent ID.
+ */
+async function getOrCreateDriveFolder(accessToken: string, folderName: string, parentId?: string): Promise<string> {
+  let query = `name = '${folderName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+  if (parentId) {
+    query += ` and '${parentId}' in parents`;
+  }
+
+  // 1. Search for existing folder
+  const searchRes = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name)`,
+    {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }
+  );
+
+  if (searchRes.ok) {
+    const searchData = await searchRes.json();
+    if (searchData.files && searchData.files.length > 0) {
+      return searchData.files[0].id;
+    }
+  }
+
+  // 2. Create folder if not found
+  const metadata: any = {
+    name: folderName,
+    mimeType: 'application/vnd.google-apps.folder',
+  };
+  if (parentId) {
+    metadata.parents = [parentId];
+  }
+
+  const createRes = await fetch('https://www.googleapis.com/drive/v3/files?fields=id', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(metadata),
+  });
+
+  if (!createRes.ok) {
+    const errText = await createRes.text();
+    throw new Error(`Failed to create Drive folder ${folderName}: ${errText}`);
+  }
+
+  const createData = await createRes.json();
+  return createData.id;
+}
+
+export async function GET(request: NextRequest) {
+  const url = new URL(request.url);
+  const code = url.searchParams.get('code');
+  const state = url.searchParams.get('state');
+  const oauthError = url.searchParams.get('error');
+
+  const cookieState = request.cookies.get('gdrive_oauth_state')?.value;
+
+  if (oauthError || !code || !state || state !== cookieState) {
+    console.error('Google Drive OAuth callback error or state mismatch');
+    return NextResponse.redirect(new URL('/profile?drive_error=invalid_state', request.url));
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
+
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    return NextResponse.redirect(new URL('/profile?drive_error=not_configured', request.url));
+  }
+
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${url.origin}/api/auth/google-drive/callback`;
+
+  try {
+    // 1. Exchange authorization code for tokens
+    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code',
+      }),
+    });
+
+    if (!tokenRes.ok) {
+      const errText = await tokenRes.text();
+      console.error('Google OAuth token exchange failed:', errText);
+      return NextResponse.redirect(new URL('/profile?drive_error=token_exchange_failed', request.url));
+    }
+
+    const tokenData = await tokenRes.json();
+    const accessToken = tokenData.access_token;
+    const refreshToken = tokenData.refresh_token;
+    const expiresIn = tokenData.expires_in || 3600;
+
+    const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
+
+    // 2. Fetch user Google account email
+    const userinfoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    let googleEmail = user.email || 'connected@gmail.com';
+    if (userinfoRes.ok) {
+      const userinfo = await userinfoRes.json();
+      if (userinfo.email) googleEmail = userinfo.email;
+    }
+
+    // 3. Automatically create/reuse root folder "Code Arena/"
+    const rootFolderId = await getOrCreateDriveFolder(accessToken, 'Code Arena');
+
+    // 4. Automatically create/reuse required subfolders
+    const subfolders: Record<string, string> = {};
+    for (const subName of REQUIRED_SUBFOLDERS) {
+      const subId = await getOrCreateDriveFolder(accessToken, subName, rootFolderId);
+      subfolders[subName] = subId;
+    }
+
+    // 5. Store tokens securely in database via admin client
+    const adminSb = await createAdminClient();
+
+    // Check if refresh_token was provided (Google provides it on first consent)
+    const updatePayload: any = {
+      user_id: user.id,
+      access_token: accessToken,
+      expires_at: expiresAt,
+      email: googleEmail,
+      root_folder_id: rootFolderId,
+      subfolders,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (refreshToken) {
+      updatePayload.refresh_token = refreshToken;
+    }
+
+    const { error: upsertErr } = await adminSb
+      .from('user_google_drive_tokens')
+      .upsert(updatePayload, { onConflict: 'user_id' });
+
+    if (upsertErr) {
+      console.error('Failed to store Google Drive tokens in DB:', upsertErr);
+      return NextResponse.redirect(new URL('/profile?drive_error=db_save_failed', request.url));
+    }
+
+    // Redirect to profile page with success message
+    const response = NextResponse.redirect(new URL('/profile?drive_connected=true', request.url));
+    response.cookies.delete('gdrive_oauth_state');
+    return response;
+  } catch (err: any) {
+    console.error('Google Drive OAuth Callback Exception:', err);
+    return NextResponse.redirect(new URL('/profile?drive_error=callback_exception', request.url));
+  }
+}
