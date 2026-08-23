@@ -150,7 +150,7 @@ export default function CodeArenaClientHome({
 
           <div className="hero-action-buttons">
             {isInstructor && (
-              <button className="btn-hero-primary" onClick={() => setShowWizard(true)}>
+              <button suppressHydrationWarning className="btn-hero-primary" onClick={() => setShowWizard(true)}>
                 <Plus size={14} /> Create Battle
               </button>
             )}
@@ -204,6 +204,7 @@ export default function CodeArenaClientHome({
 
           <div className="invitation-input-row">
             <input
+              suppressHydrationWarning
               type="text"
               className="invitation-input"
               placeholder="BCE-XXXXX"
@@ -214,6 +215,7 @@ export default function CodeArenaClientHome({
               maxLength={12}
             />
             <button 
+              suppressHydrationWarning
               className="invitation-btn" 
               onClick={handleJoinBattle} 
               disabled={joining || !joinCodeInput.trim()}
@@ -261,30 +263,35 @@ export default function CodeArenaClientHome({
           
           <div className="arena-tabs">
             <button 
+              suppressHydrationWarning
               className={`arena-tab-btn ${activeTab === 'ALL' ? 'active' : ''}`}
               onClick={() => setActiveTab('ALL')}
             >
               All
             </button>
             <button 
+              suppressHydrationWarning
               className={`arena-tab-btn ${activeTab === 'LIVE' ? 'active' : ''}`}
               onClick={() => setActiveTab('LIVE')}
             >
               Live
             </button>
             <button 
+              suppressHydrationWarning
               className={`arena-tab-btn ${activeTab === 'UPCOMING' ? 'active' : ''}`}
               onClick={() => setActiveTab('UPCOMING')}
             >
               Upcoming
             </button>
             <button 
+              suppressHydrationWarning
               className={`arena-tab-btn ${activeTab === 'COMPLETED' ? 'active' : ''}`}
               onClick={() => setActiveTab('COMPLETED')}
             >
               Completed
             </button>
             <button 
+              suppressHydrationWarning
               className={`arena-tab-btn ${activeTab === 'MY_BATTLES' ? 'active' : ''}`}
               onClick={() => setActiveTab('MY_BATTLES')}
             >

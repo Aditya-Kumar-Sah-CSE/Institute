@@ -240,6 +240,7 @@ export default function UpcomingContestsAlert({ initialExpand = false }: Upcomin
 
         {/* 3-Dots / Close Toggle Button */}
         <button
+          suppressHydrationWarning
           onClick={(e) => {
             e.stopPropagation();
             handleToggle();
@@ -287,6 +288,7 @@ export default function UpcomingContestsAlert({ initialExpand = false }: Upcomin
                 <span>{errorMessage}</span>
               </div>
               <button 
+                suppressHydrationWarning
                 onClick={() => setErrorMessage(null)} 
                 style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}
               >
@@ -308,6 +310,7 @@ export default function UpcomingContestsAlert({ initialExpand = false }: Upcomin
           }}>
             {(['ALL', 'CODECHEF', 'CODEFORCES', 'LEETCODE'] as const).map((plt) => (
               <button
+                suppressHydrationWarning
                 key={plt}
                 onClick={() => setSelectedPlatform(plt)}
                 style={{
