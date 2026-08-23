@@ -17,6 +17,8 @@ import ShareProfileButton from '@/components/shared/ShareProfileButton';
 import EnrolledCoursesList from '@/components/shared/EnrolledCoursesList';
 import { getPastMonthlyRewards } from '@/features/gamification/actions/monthly-rewards';
 import RecentActivity from './components/RecentActivity';
+import StorageUsageIndicator from '@/components/shared/StorageUsageIndicator';
+import { Suspense } from 'react';
 import './Profile.css';
 
 export const dynamic = 'force-dynamic';
@@ -270,6 +272,12 @@ export default async function ProfilePage() {
               <RecentActivity logs={xpLogs || []} userId={user.id} />
             </Card>
           )}
+
+          <Card variant="glass" className="profile-section">
+            <Suspense fallback={<div style={{ height: '60px', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.05)' }} />}>
+              <StorageUsageIndicator userId={user.id} />
+            </Suspense>
+          </Card>
         </div>
       </div>
     </div>
