@@ -44,6 +44,7 @@ export async function updateSession(request: NextRequest) {
     'share-doubt', 'users', 'batch', 'certificates', 'code-arena',
     // Misc root pages
     'admission', 'pwa-start', 'contact', 'institution-not-found', 'institution-disabled',
+    'privacy', 'terms',
   ];
   if (!tenantSlug && firstPathSegment && !reservedPaths.includes(firstPathSegment)) {
     tenantSlug = firstPathSegment;
@@ -97,7 +98,7 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Public routes that don't require auth
-  const publicRoutes = ['/', '/login', '/signup', '/apply-instructor', '/forgot-password', '/reset-password'];
+  const publicRoutes = ['/', '/login', '/signup', '/apply-instructor', '/forgot-password', '/reset-password', '/privacy', '/terms'];
   const isPublicRoute = 
     publicRoutes.includes(pathname) || 
     (tenantSlug && pathname === `/${tenantSlug}`) ||

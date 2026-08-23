@@ -272,8 +272,8 @@ export default async function LandingPage() {
             </div>
             <div className="link-group">
               <h4>Legal</h4>
-              <Link href="#">Terms of Service</Link>
-              <Link href="#">Privacy Policy</Link>
+              <Link href="/terms">Terms of Service</Link>
+              <Link href="/privacy">Privacy Policy</Link>
             </div>
           </div>
         </div>
