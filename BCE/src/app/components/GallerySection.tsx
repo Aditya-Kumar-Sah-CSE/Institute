@@ -12,36 +12,8 @@ interface GalleryItem {
   sort_order: number;
 }
 
-// Manual fallback items using existing public images
-const manualItems: GalleryItem[] = [
-  {
-    id: 'manual-1',
-    image_url: '/student%20benifit.png',
-    title: 'Student Benefits',
-    description: 'Gamified learning, real-time analytics, and engagement tools for students.',
-    sort_order: 1,
-  },
-  {
-    id: 'manual-2',
-    image_url: '/faculty%20and%20hod.png',
-    title: 'Faculty & HOD Benefits',
-    description: 'Streamlined course management, attendance tracking, and performance dashboards.',
-    sort_order: 2,
-  },
-  {
-    id: 'manual-3',
-    image_url: '/images/why_this.png',
-    title: 'Institution Insights',
-    description: 'Compare features, manage departments flawlessly, and scale adoption.',
-    sort_order: 3,
-  },
-];
-
-const INITIAL_SHOW = 3;
-
 export default function GallerySection() {
-  const [items, setItems] = useState<GalleryItem[]>(manualItems);
-  const [expanded, setExpanded] = useState(false);
+  const [items, setItems] = useState<GalleryItem[]>([]);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
 
@@ -65,7 +37,7 @@ export default function GallerySection() {
         if (!error && data && data.length > 0) {
           setItems(data as GalleryItem[]);
         }
-        // If error (table doesn't exist) or empty, keep manual items
+        // Empty or unavailable CMS content intentionally renders no legacy fallback cards.
       } catch {
         // Silently fallback to manual items
       }
@@ -73,16 +45,10 @@ export default function GallerySection() {
     fetchGallery();
   }, []);
 
-  const visible = expanded ? items : items.slice(0, INITIAL_SHOW);
-  const hasMore = items.length > INITIAL_SHOW;
+  if (items.length === 0) return null;
 
   return (
     <section className="gallery-section">
-      <span className="section-tag">How It Works</span>
-      <h2 className="section-title">Transform Your Campus</h2>
-      <p className="section-desc">
-        See how our platform empowers students, faculty, and administrators with powerful tools.
-      </p>
 
       {/* Native horizontal slide row removing duplicate auto-scroll */}
       <div 

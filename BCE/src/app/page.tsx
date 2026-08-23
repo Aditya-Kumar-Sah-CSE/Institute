@@ -8,7 +8,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import InstallAppButton from '@/components/pwa/InstallAppButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { UserCheck, MessageSquare, BarChart2, Timer, Terminal, BellRing, CheckCircle2, GraduationCap, User, Building, Trophy, ArrowRight, Star } from 'lucide-react';
+import { ArrowRight, Star } from 'lucide-react';
 import AutoScrollMarquee from '@/components/ui/AutoScrollMarquee';
 import ExploreMoreWrapper from './components/ExploreMoreWrapper';
 import GallerySection from './components/GallerySection';
@@ -22,22 +22,15 @@ export default async function LandingPage() {
     supabase.from('landing_content').select('*').eq('id', 'default').maybeSingle(),
     supabase.from('landing_core_features').select('*').eq('is_active', true).order('sort_order'),
   ]);
-  const companyName = settings?.company_name || 'Smart Learning';
-  const tagline = settings?.tagline || 'Smart Hybrid Learning & Student Engagement Platform';
+  const companyName = settings?.company_name || hero?.hero_heading || '';
+  const tagline = settings?.tagline || '';
 
   return (
     <div className="landing-container">
       {/* Navigation */}
       <header className="landing-nav">
         <div className="landing-logo" style={{ display: 'flex', alignItems: 'center', padding: '0', margin: '0', background: 'transparent' }}>
-          <Image 
-            src={settings?.logo_url || "/images/smart_learning%20logo.png"} 
-            alt="Company Logo" 
-            width={40} 
-            height={40} 
-            style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '8px' }}
-            unoptimized
-          />
+          {settings?.logo_url && <Image src={settings.logo_url} alt={`${companyName} logo`} width={40} height={40} style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '8px' }} unoptimized />}
         </div>
         <div className="landing-nav-actions">
           <ThemeToggle />
@@ -64,87 +57,36 @@ export default async function LandingPage() {
             {/* Left — Text */}
             <div className="hero-text">
 
-              <div className="hero-badge animate-fade-up" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#e0e7ff', color: '#4f46e5', border: 'none', padding: '6px 12px', fontSize: '0.85rem' }}>
-                <Star size={14} fill="currentColor" /> {hero?.hero_badge || 'A Smarter Way to Learn, Teach & Grow'}
-              </div>
+              {hero?.hero_badge && <div className="hero-badge animate-fade-up" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#e0e7ff', color: '#4f46e5', border: 'none', padding: '6px 12px', fontSize: '0.85rem' }}><Star size={14} fill="currentColor" /> {hero.hero_badge}</div>}
 
               <h1 className="hero-title animate-fade-up delay-100" style={{ marginTop: '1rem' }}>
-                <span style={{ color: 'var(--text-primary)' }}>{hero?.hero_heading || companyName}</span><br />
-                <span className="text-gradient-human">{hero?.hero_highlight || 'Better Future'}</span>
+                <span style={{ color: 'var(--text-primary)' }}>{hero?.hero_heading || companyName}</span>{hero?.hero_highlight && <><br /><span className="text-gradient-human">{hero.hero_highlight}</span></>}
               </h1>
               <p className="hero-subtitle animate-fade-up delay-200">
-                {hero?.hero_description || 'Smart Learning is an all-in-one platform for students, instructors, and institutions to learn, collaborate, and achieve more together.'}
+                {hero?.hero_description || tagline}
               </p>
 
 
 
-              <div className="hero-cta animate-fade-up delay-300">
-                <Link href={hero?.hero_cta_link || '/signup'}>
-                  <button className="btn-human cta-btn-lg">
-                    {hero?.hero_cta_text || 'Get Started'}
-                    <ArrowRight size={20} style={{ marginLeft: '8px' }} />
-                  </button>
-                </Link>
-                <Link href="#features">
-                  <button className="btn-human-ghost cta-btn-lg" style={{ borderRadius: '9999px', border: '1px solid var(--border-strong)' }}>Explore</button>
-                </Link>
-              </div>
+              {hero?.hero_cta_text && <div className="hero-cta animate-fade-up delay-300"><Link href={hero.hero_cta_link || '/signup'}><button className="btn-human cta-btn-lg">{hero.hero_cta_text}<ArrowRight size={20} style={{ marginLeft: '8px' }} /></button></Link></div>}
             </div>
 
             {/* Right — Hero Image */}
-            <div className="hero-image animate-fade-up delay-200">
+            {hero?.hero_image_url && <div className="hero-image animate-fade-up delay-200">
               <div className="hero-image-glow"></div>
               <Image
                 src={hero?.hero_image_url || '/images/hero_img.png'}
-                alt="Smart Learning Hero Image"
+                alt={`${companyName} hero`}
                 width={800}
                 height={600}
                 priority
                 style={{ width: '135%', height: 'auto', objectFit: 'contain', pointerEvents: 'none' }}
                 unoptimized
               />
-            </div>
+            </div>}
           </div>
 
           {/* Hero Bottom Bar */}
-          <div className="hero-bottom-bar animate-fade-up delay-400" style={{ zIndex: 0, position: 'relative' }}>
-            <div className="h-feature">
-              <div className="h-feature-icon" style={{ background: '#e0e7ff', color: '#4f46e5' }}>
-                <GraduationCap size={24} />
-              </div>
-              <div className="h-feature-text">
-                <h4>For Students</h4>
-                <p>Access quality content, track progress and achieve goals.</p>
-              </div>
-            </div>
-            <div className="h-feature">
-              <div className="h-feature-icon" style={{ background: '#dcfce7', color: '#16a34a' }}>
-                <User size={24} />
-              </div>
-              <div className="h-feature-text">
-                <h4>For Instructors</h4>
-                <p>Create courses, manage students and stay organized.</p>
-              </div>
-            </div>
-            <div className="h-feature">
-              <div className="h-feature-icon" style={{ background: '#dbeafe', color: '#2563eb' }}>
-                <Building size={24} />
-              </div>
-              <div className="h-feature-text">
-                <h4>For Institutions</h4>
-                <p>Manage entire academy and operations flawlessly.</p>
-              </div>
-            </div>
-            <div className="h-feature">
-              <div className="h-feature-icon" style={{ background: '#fef3c7', color: '#d97706' }}>
-                <Trophy size={24} />
-              </div>
-              <div className="h-feature-text">
-                <h4>Gamified Learning</h4>
-                <p>Earn virtual badges and climb the leader board.</p>
-              </div>
-            </div>
-          </div>
         </section>
       </main>
 
@@ -154,14 +96,11 @@ export default async function LandingPage() {
           <GallerySection />
 
         {/* Features Grid */}
-        <section id="features" className="features-section">
-          <span className="section-tag">Core Features</span>
-          <h2 className="section-title">Everything You Need to Succeed</h2>
-
+        {coreFeatures && coreFeatures.length > 0 && <section id="features" className="features-section">
           <AutoScrollMarquee className="features-marquee-wrapper" innerClassName="features-keyword-grid">
                 {(coreFeatures?.length ? coreFeatures : [{ id: 'fallback', title: 'Approval System', description: '', icon: 'UserCheck' }]).map((feature: any) => <div className="feature-card" key={feature.id}><div className="feature-icon-wrapper">{feature.image_url ? <Image src={feature.image_url} alt="" width={32} height={32} style={{ objectFit: 'contain' }} unoptimized /> : <Star size={32} strokeWidth={1.5} />}</div><h3>{feature.title}</h3>{feature.description && <p>{feature.description}</p>}</div>)}
           </AutoScrollMarquee>
-        </section>
+        </section>}
 
 
       </main>
@@ -174,9 +113,7 @@ export default async function LandingPage() {
             <div className="landing-logo">
               <span className="logo-text">{companyName}</span>
             </div>
-            <p className="footer-desc">
-              Bridging the gap between online and offline education. Created by Aditya.
-            </p>
+            {tagline && <p className="footer-desc">{tagline}</p>}
           </div>
           <div className="footer-links">
             <div className="link-group">

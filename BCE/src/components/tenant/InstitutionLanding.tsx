@@ -1,15 +1,16 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Tenant } from '@/lib/tenant';
+import { Tenant, TenantLandingContent } from '@/lib/tenant';
 import { GraduationCap, User, Building, ArrowRight, CheckCircle, Mail, Phone, MapPin, Globe } from 'lucide-react';
 import '@/app/Landing.css';
 
 interface InstitutionLandingProps {
   tenant: Tenant;
+  landing: TenantLandingContent;
 }
 
-export default function InstitutionLanding({ tenant }: InstitutionLandingProps) {
+export default function InstitutionLanding({ tenant, landing }: InstitutionLandingProps) {
   return (
     <div className="landing-container" style={{
       '--neon-purple': tenant.primaryColor || '#4F46E5',
@@ -18,9 +19,9 @@ export default function InstitutionLanding({ tenant }: InstitutionLandingProps) 
       {/* Dynamic Header */}
       <header className="landing-nav" style={{ justifyContent: 'space-between', padding: '1rem 2rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {tenant.logo ? (
+          {landing.logoUrl ? (
             <Image 
-              src={tenant.logo} 
+              src={landing.logoUrl} 
               alt={tenant.name} 
               width={44} 
               height={44} 
@@ -56,20 +57,20 @@ export default function InstitutionLanding({ tenant }: InstitutionLandingProps) 
           <div className="hero-split">
             <div className="hero-text" style={{ flex: 1 }}>
               <div className="hero-badge" style={{ backgroundColor: 'rgba(79, 70, 229, 0.15)', color: tenant.primaryColor || '#4F46E5', padding: '6px 14px', borderRadius: '20px', display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '1rem' }}>
-                <Building size={16} /> Official Academy Portal
+                <Building size={16} /> {landing.heroBadge || 'Official Academy Portal'}
               </div>
               <h1 className="hero-title" style={{ fontSize: '2.8rem', lineHeight: 1.2 }}>
-                Welcome to <br />
-                <span style={{ color: tenant.primaryColor || '#4F46E5' }}>{tenant.name}</span>
+                {landing.heroHeading || `Welcome to`} <br />
+                <span style={{ color: tenant.primaryColor || '#4F46E5' }}>{landing.heroHighlight || tenant.name}</span>
               </h1>
               <p className="hero-subtitle" style={{ fontSize: '1.1rem', marginTop: '1rem', color: 'var(--text-secondary)' }}>
-                {tenant.description || `Explore digital learning, courses, assignments, and campus updates for ${tenant.name}.`}
+                {landing.heroDescription || `Explore digital learning, courses, assignments, and campus updates for ${tenant.name}.`}
               </p>
 
               <div className="hero-cta" style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
-                <Link href="/login">
+                <Link href={landing.heroCtaLink || '/login'}>
                   <button className="btn-human cta-btn-lg" style={{ background: tenant.primaryColor || '#4F46E5' }}>
-                    Access Student Dashboard <ArrowRight size={18} style={{ marginLeft: '8px' }} />
+                    {landing.heroCtaText || 'Access Student Dashboard'} <ArrowRight size={18} style={{ marginLeft: '8px' }} />
                   </button>
                 </Link>
                 <Link href="/signup">
@@ -78,10 +79,10 @@ export default function InstitutionLanding({ tenant }: InstitutionLandingProps) 
               </div>
             </div>
 
-            {tenant.coverImage && (
+            {landing.heroImageUrl && (
               <div className="hero-image" style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
                 <Image 
-                  src={tenant.coverImage} 
+                src={landing.heroImageUrl}
                   alt={tenant.name} 
                   width={600} 
                   height={400} 
@@ -124,13 +125,17 @@ export default function InstitutionLanding({ tenant }: InstitutionLandingProps) 
           </div>
         </section>
 
-        {/* Contact & Address Footer Section */}
+          {landing.cards.length > 0 && <section className="gallery-section" style={{ paddingTop: '3rem' }}><span className="section-tag">{landing.tagline || 'Explore'}</span><h2 className="section-title">Discover {tenant.name}</h2><div className="gallery-grid">{landing.cards.map(card => <article className="gallery-card" key={card.id}><div className="gallery-card-img"><Image src={card.image_url} alt={card.title} width={600} height={360} style={{ width: '100%', height: '210px', objectFit: 'cover' }} unoptimized /></div><div className="gallery-card-info"><h3>{card.title}</h3>{card.description && <p>{card.description}</p>}</div></article>)}</div></section>}
+
+          {landing.features.length > 0 && <section className="features-section" style={{ paddingTop: '2rem' }}><span className="section-tag">Core Features</span><div className="features-keyword-grid">{landing.features.map(feature => <article className="feature-card" key={feature.id}><div className="feature-icon-wrapper">{feature.image_url ? <Image src={feature.image_url} alt="" width={32} height={32} unoptimized /> : <CheckCircle size={28} />}</div><h3>{feature.title}</h3>{feature.description && <p>{feature.description}</p>}</article>)}</div></section>}
+
+          {/* Contact & Address Footer Section */}
         <footer className="landing-footer" style={{ borderTop: '1px solid var(--border-color)', marginTop: '4rem', padding: '3rem 2rem' }}>
           <div className="footer-content" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem' }}>
             <div>
               <h3>{tenant.name}</h3>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.5rem' }}>
-                Powered by Smart Learn AI Enterprise SaaS Platform.
+                {landing.tagline || tenant.description || ''}
               </p>
             </div>
             <div>

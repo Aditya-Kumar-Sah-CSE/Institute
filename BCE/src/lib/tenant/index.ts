@@ -23,6 +23,50 @@ export interface Tenant {
   updatedAt?: string;
 }
 
+export interface TenantLandingContent {
+  tagline?: string | null;
+  heroBadge?: string | null;
+  heroHeading?: string | null;
+  heroHighlight?: string | null;
+  heroDescription?: string | null;
+  heroImageUrl?: string | null;
+  heroCtaText?: string | null;
+  heroCtaLink?: string | null;
+  logoUrl?: string | null;
+  cards: Array<{ id: string; image_url: string; title: string; description?: string | null }>;
+  features: Array<{ id: string; title: string; description?: string | null; icon?: string | null; image_url?: string | null }>;
+}
+
+export async function getTenantLandingContent(tenant: Tenant): Promise<TenantLandingContent> {
+  const db = await createClient();
+  const [settings, content, cards, features, globalContent, globalCards, globalFeatures] = await Promise.all([
+    db.from('company_settings').select('logo_url').maybeSingle(),
+    db.from('tenant_landing_content').select('*').eq('institution_id', tenant.id).maybeSingle(),
+    db.from('tenant_landing_gallery').select('id,image_url,title,description').eq('institution_id', tenant.id).eq('is_active', true).order('sort_order'),
+    db.from('tenant_landing_features').select('id,title,description,icon,image_url').eq('institution_id', tenant.id).eq('is_active', true).order('sort_order'),
+    db.from('landing_content').select('*').eq('id', 'default').maybeSingle(),
+    db.from('landing_gallery').select('id,image_url,title,description').eq('is_active', true).order('sort_order'),
+    db.from('landing_core_features').select('id,title,description,icon,image_url').eq('is_active', true).order('sort_order'),
+  ]);
+  const local = content.data || {};
+  const global = globalContent.data || {};
+  return {
+    tagline: local.tagline || global.tagline || null,
+    heroBadge: local.hero_badge || global.hero_badge || null,
+    // Institution identity is never inherited from the global platform hero.
+    // The configured institution name remains the authoritative tenant heading.
+    heroHeading: local.hero_heading || null,
+    heroHighlight: local.hero_highlight || tenant.name,
+    heroDescription: local.hero_description || global.hero_description || tenant.description || null,
+    heroImageUrl: tenant.coverImage || local.hero_image_url || global.hero_image_url || null,
+    heroCtaText: local.hero_cta_text || global.hero_cta_text || null,
+    heroCtaLink: local.hero_cta_link || global.hero_cta_link || null,
+    logoUrl: tenant.logo || settings.data?.logo_url || null,
+    cards: cards.data?.length ? cards.data : (globalCards.data || []),
+    features: features.data?.length ? features.data : (globalFeatures.data || []),
+  };
+}
+
 // In-memory cache for fast server-side tenant lookup
 const tenantCache = new Map<string, { tenant: Tenant; expiresAt: number }>();
 const CACHE_TTL_MS = 60 * 1000; // 1 minute cache

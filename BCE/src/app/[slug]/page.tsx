@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getTenantBySlug } from '@/lib/tenant';
+import { getTenantBySlug, getTenantLandingContent } from '@/lib/tenant';
 import InstitutionLanding from '@/components/tenant/InstitutionLanding';
 
 interface DynamicTenantPageProps {
@@ -17,5 +17,6 @@ export default async function DynamicTenantPage({ params }: DynamicTenantPagePro
     notFound();
   }
 
-  return <InstitutionLanding tenant={tenant} />;
+  const landing = await getTenantLandingContent(tenant);
+  return <InstitutionLanding tenant={tenant} landing={landing} />;
 }
