@@ -20,8 +20,10 @@ export default function StorageUsageIndicator({
   const [data, setData] = useState<StorageUsageResult | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [hasMounted, setHasMounted] = useState<boolean>(false);
 
   useEffect(() => {
+    setHasMounted(true);
     let isMounted = true;
 
     const loadData = async () => {
@@ -57,6 +59,24 @@ export default function StorageUsageIndicator({
       window.removeEventListener('storage-updated', handleStorageUpdate);
     };
   }, [userId]);
+
+  if (!hasMounted) {
+    return (
+      <div
+        className={`storage-usage-indicator ${className}`}
+        style={{
+          background: 'var(--bg-elevated, rgba(15, 23, 42, 0.6))',
+          border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+          borderRadius: 'var(--radius-lg, 12px)',
+          padding: compact ? '12px 16px' : '16px 20px',
+          width: '100%',
+          boxSizing: 'border-box',
+          minHeight: compact ? '68px' : '82px',
+          ...style,
+        }}
+      />
+    );
+  }
 
   const percentage = data?.percentage || 0;
   const formattedUsed = data?.formattedUsed || '0 MB';
@@ -199,13 +219,6 @@ export default function StorageUsageIndicator({
           }}
         />
       </div>
-
-      <style jsx>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   );
 }

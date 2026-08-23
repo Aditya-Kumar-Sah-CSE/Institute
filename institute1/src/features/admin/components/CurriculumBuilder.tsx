@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import Input, { TextArea, Select } from '@/components/ui/Input';
 import { 
   addLesson, updateLesson, deleteLesson,
@@ -50,6 +51,14 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
   const [showAllLessons, setShowAllLessons] = useState(false);
   const [lessonFormData, setLessonFormData] = useState<Record<string, any>>({});
   const [assignmentFormData, setAssignmentFormData] = useState<Record<string, any>>({});
+  const [confirmState, setConfirmState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    onConfirm: () => Promise<void>;
+    isPending?: boolean;
+  } | null>(null);
 
   const handleLessonChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const target = e.target as HTMLInputElement;
@@ -259,8 +268,18 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                   {!course.is_completed && (
                     <div style={{ display: 'flex', gap: 'var(--space-xs)' }}>
                       <Button variant="ghost" size="sm" onClick={() => openLessonModal(lesson as any)}>Edit</Button>
-                      <Button variant="danger" size="sm" onClick={async () => {
-                        if (confirm('Delete this lesson?')) await deleteLesson(lesson.id, course.id);
+                      <Button variant="danger" size="sm" onClick={() => {
+                        setConfirmState({
+                          isOpen: true,
+                          title: 'Delete Lesson',
+                          message: `Are you sure you want to delete "${lesson.title}"? This will permanently remove the lesson and all attached assignments.`,
+                          confirmText: 'Delete Lesson',
+                          onConfirm: async () => {
+                            setConfirmState(prev => prev ? { ...prev, isPending: true } : null);
+                            await deleteLesson(lesson.id, course.id);
+                            setConfirmState(null);
+                          }
+                        });
                       }}>Delete</Button>
                     </div>
                   )}
@@ -302,8 +321,18 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                               {!course.is_completed && (
                                 <div style={{ display: 'flex', gap: 'var(--space-xs)' }}>
                                   <Button variant="ghost" size="sm" onClick={() => openAssignmentModal(lesson.id, assign)}>Edit</Button>
-                                  <Button variant="ghost" size="sm" onClick={async () => {
-                                    if (confirm('Delete this task?')) await deleteAssignment(assign.id, course.id);
+                                  <Button variant="ghost" size="sm" onClick={() => {
+                                    setConfirmState({
+                                      isOpen: true,
+                                      title: 'Delete Assignment',
+                                      message: `Are you sure you want to delete "${assign.title}"?`,
+                                      confirmText: 'Delete Task',
+                                      onConfirm: async () => {
+                                        setConfirmState(prev => prev ? { ...prev, isPending: true } : null);
+                                        await deleteAssignment(assign.id, course.id);
+                                        setConfirmState(null);
+                                      }
+                                    });
                                   }} style={{ color: 'var(--neon-red)' }}>Del</Button>
                                 </div>
                               )}
@@ -583,6 +612,19 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
             )}
           </Card>
         </div>
+      )}
+
+      {confirmState && (
+        <ConfirmModal
+          isOpen={confirmState.isOpen}
+          onClose={() => setConfirmState(null)}
+          onConfirm={confirmState.onConfirm}
+          title={confirmState.title}
+          message={confirmState.message}
+          confirmText={confirmState.confirmText || 'Delete'}
+          isDestructive={true}
+          isPending={confirmState.isPending}
+        />
       )}
     </div>
   );

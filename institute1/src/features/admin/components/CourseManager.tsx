@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import { usePathname } from 'next/navigation';
 import { BookOpen } from 'lucide-react';
 import Input, { TextArea, Select } from '@/components/ui/Input';
@@ -24,6 +25,15 @@ export default function CourseManager({ courses, currentUserId, userRole }: Cour
   const [courseFilter, setCourseFilter] = useState<'my_courses' | 'all_courses'>('my_courses');
   const [showAllCourses, setShowAllCourses] = useState(false);
   const [courseFormData, setCourseFormData] = useState<Record<string, any>>({});
+  const [confirmState, setConfirmState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    isDestructive?: boolean;
+    onConfirm: () => Promise<void>;
+    isPending?: boolean;
+  } | null>(null);
   const pathname = usePathname();
   const basePath = pathname?.startsWith('/instructor') ? '/instructor' : '/admin';
 
@@ -57,16 +67,34 @@ export default function CourseManager({ courses, currentUserId, userRole }: Cour
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this course? It will be hidden from students and instructors.')) {
-      await deleteCourse(id);
-    }
+  const handleDelete = (course: Course) => {
+    setConfirmState({
+      isOpen: true,
+      title: 'Delete Course',
+      message: `Are you sure you want to delete "${course.title}"? It will be hidden from students and instructors.`,
+      confirmText: 'Delete Course',
+      isDestructive: true,
+      onConfirm: async () => {
+        setConfirmState(prev => prev ? { ...prev, isPending: true } : null);
+        await deleteCourse(course.id);
+        setConfirmState(null);
+      }
+    });
   };
 
-  const handleRestore = async (id: string) => {
-    if (confirm('Restore this course?')) {
-      await restoreCourse(id);
-    }
+  const handleRestore = (course: Course) => {
+    setConfirmState({
+      isOpen: true,
+      title: 'Restore Course',
+      message: `Are you sure you want to restore "${course.title}"?`,
+      confirmText: 'Restore Course',
+      isDestructive: false,
+      onConfirm: async () => {
+        setConfirmState(prev => prev ? { ...prev, isPending: true } : null);
+        await restoreCourse(course.id);
+        setConfirmState(null);
+      }
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -154,7 +182,7 @@ export default function CourseManager({ courses, currentUserId, userRole }: Cour
             </div>
             <div className="course-card-actions">
               {course.is_deleted ? (
-                <Button variant="success" size="sm" onClick={() => handleRestore(course.id)} style={{ width: '100%' }}>Restore Course</Button>
+                <Button variant="success" size="sm" onClick={() => handleRestore(course)} style={{ width: '100%' }}>Restore Course</Button>
               ) : (
                 <>
                   <a href={`${basePath}/courses/${course.id}/builder`} className="btn btn-primary btn-build-curriculum" style={{ padding: '10px 16px', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', minHeight: '40px' }}>
@@ -162,7 +190,7 @@ export default function CourseManager({ courses, currentUserId, userRole }: Cour
                   </a>
                   <div style={{ display: 'flex', gap: 'var(--space-sm)', width: '100%' }}>
                     <Button variant="secondary" size="sm" onClick={() => openEdit(course)} className="btn-edit" fullWidth>Edit</Button>
-                    <Button variant="danger" size="sm" onClick={() => handleDelete(course.id)} className="btn-delete" fullWidth>Delete</Button>
+                    <Button variant="danger" size="sm" onClick={() => handleDelete(course)} className="btn-delete" fullWidth>Delete</Button>
                   </div>
                 </>
               )}
@@ -248,6 +276,19 @@ export default function CourseManager({ courses, currentUserId, userRole }: Cour
             </form>
           </Card>
         </div>
+      )}
+
+      {confirmState && (
+        <ConfirmModal
+          isOpen={confirmState.isOpen}
+          onClose={() => setConfirmState(null)}
+          onConfirm={confirmState.onConfirm}
+          title={confirmState.title}
+          message={confirmState.message}
+          confirmText={confirmState.confirmText || 'Confirm'}
+          isDestructive={confirmState.isDestructive}
+          isPending={confirmState.isPending}
+        />
       )}
     </div>
   );
