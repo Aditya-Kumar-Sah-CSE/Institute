@@ -251,6 +251,14 @@ export default function InstructorCodeArenaClient({
                 const isDone = b.status === 'COMPLETED';
                 const isCreator = b.created_by === user?.id || user?.role === 'admin' || user?.role === 'instructor';
 
+                const participantCount = typeof b.coding_battle_participants?.[0]?.count === 'number'
+                  ? b.coding_battle_participants[0].count
+                  : (Array.isArray(b.coding_battle_participants) ? b.coding_battle_participants.length : 0);
+                const problemCount = typeof b.coding_battle_problems?.[0]?.count === 'number'
+                  ? b.coding_battle_problems[0].count
+                  : (Array.isArray(b.coding_battle_problems) ? b.coding_battle_problems.length : 0);
+                const maxParticipants = b.max_participants || 25;
+
                 return (
                   <Card
                     key={b.id}
@@ -285,10 +293,10 @@ export default function InstructorCodeArenaClient({
                           <Clock size={12} /> {b.duration_minutes} mins
                         </span>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <Users size={12} /> {b.coding_battle_participants?.[0]?.count || 1} / 25
+                          <Users size={12} /> {participantCount} / {maxParticipants}
                         </span>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <Code2 size={12} /> {b.coding_battle_problems?.[0]?.count || 1} problems
+                          <Code2 size={12} /> {problemCount} {problemCount === 1 ? 'problem' : 'problems'}
                         </span>
                       </div>
                     </div>

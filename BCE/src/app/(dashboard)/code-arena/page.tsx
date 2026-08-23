@@ -31,7 +31,7 @@ export default async function CodeArenaPage() {
   ] = await Promise.all([
     supabase
       .from('coding_battles')
-      .select('id, title, description, status, start_time, end_time, duration_minutes, creator_role, join_code, visibility, created_by, created_at')
+      .select('id, title, description, status, start_time, end_time, duration_minutes, creator_role, join_code, visibility, created_by, created_at, max_participants, coding_battle_problems(count), coding_battle_participants(count)')
       .order('created_at', { ascending: false })
       .limit(50),
     supabase

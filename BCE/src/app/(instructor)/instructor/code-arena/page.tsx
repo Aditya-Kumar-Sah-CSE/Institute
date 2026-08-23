@@ -25,7 +25,7 @@ export default async function InstructorCodeArenaPage() {
   // 2. Fetch Battles
   const { data: battles } = await supabase
     .from('coding_battles')
-    .select('id, title, description, status, start_time, end_time, duration_minutes, batch_id, creator_role, join_code, visibility, created_by, created_at, coding_battle_problems(count, coding_problems(*)), coding_battle_participants(count)')
+    .select('id, title, description, status, start_time, end_time, duration_minutes, batch_id, creator_role, join_code, visibility, created_by, created_at, max_participants, coding_battle_problems(count, coding_problems(*)), coding_battle_participants(count)')
     .order('created_at', { ascending: false });
 
   // 3. Fetch Batches

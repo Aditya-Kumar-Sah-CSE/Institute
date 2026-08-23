@@ -319,6 +319,14 @@ export default function CodeArenaClientHome({
               const isCompleted = resolvedStatus === 'COMPLETED';
               const borderGlowClass = isLive ? 'card-glow-live' : isCompleted ? 'card-glow-completed' : 'card-glow-upcoming';
 
+              const participantCount = typeof b.coding_battle_participants?.[0]?.count === 'number'
+                ? b.coding_battle_participants[0].count
+                : (Array.isArray(b.coding_battle_participants) ? b.coding_battle_participants.length : 0);
+              const problemCount = typeof b.coding_battle_problems?.[0]?.count === 'number'
+                ? b.coding_battle_problems[0].count
+                : (Array.isArray(b.coding_battle_problems) ? b.coding_battle_problems.length : 0);
+              const maxParticipants = b.max_participants || 25;
+
               return (
                 <div key={b.id} className={`arena-battle-card ${borderGlowClass}`}>
                   <div className="battle-card-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -390,8 +398,10 @@ export default function CodeArenaClientHome({
 
                   <div className="battle-card-body">
                     <h3 className="card-battle-title" title={b.title}>{b.title}</h3>
-                    <div className="battle-details-row">
+                    <div className="battle-details-row" style={{ flexWrap: 'wrap', gap: '8px' }}>
                       <span>🕒 {b.duration_minutes} mins</span>
+                      <span>👥 {participantCount}/{maxParticipants}</span>
+                      <span>💻 {problemCount} {problemCount === 1 ? 'prob' : 'probs'}</span>
                       <span>👨‍🏫 {b.creator_role === 'FACULTY' ? 'Instructor' : 'Student'}</span>
                     </div>
                   </div>
