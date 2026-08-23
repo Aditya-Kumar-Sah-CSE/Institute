@@ -201,7 +201,7 @@ export default function BattleArenaClient({
 
   const downloadPNG = async () => {
     const cleanTitle = (battle.title || 'Battle').replace(/\s+/g, '_');
-    await downloadSvgAsImage('battle-certificate-svg', {
+    await downloadSvgAsImage('battle-certificate-svg-arena', {
       filename: `${cleanTitle}_SDE_Certificate`,
       format: 'png',
       width: 1920,

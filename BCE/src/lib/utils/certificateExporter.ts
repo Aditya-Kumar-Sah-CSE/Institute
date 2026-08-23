@@ -38,14 +38,14 @@ async function inlineSvgImages(svgClone: SVGElement): Promise<void> {
 }
 
 /**
- * Strips continuous CSS animations/keyframes that interfere with canvas snapshotting.
+ * Strips continuous CSS animations/keyframes that interfere with canvas snapshotting safely.
  */
 function sanitizeSvgStyles(svgClone: SVGElement): void {
   const styleTags = Array.from(svgClone.querySelectorAll('style'));
   for (const styleTag of styleTags) {
     let css = styleTag.textContent || '';
-    css = css.replace(/@keyframes[\s\S]*?\}\s*\}/gi, '');
-    css = css.replace(/animation\s*:[^;\}]+;?/gi, '');
+    // Safely disable active animations without corrupting CSS selector rules
+    css += '\n* { animation: none !important; transition: none !important; }\n';
     styleTag.textContent = css;
   }
 }
@@ -64,13 +64,18 @@ export async function downloadSvgAsImage(
 
   let svgElement: SVGSVGElement | null = null;
   if (typeof svgElementOrId === 'string') {
-    svgElement = document.getElementById(svgElementOrId) as SVGSVGElement | null;
+    svgElement =
+      (document.getElementById(svgElementOrId) as SVGSVGElement | null) ||
+      (document.getElementById('battle-certificate-svg-arena') as SVGSVGElement | null) ||
+      (document.getElementById('battle-certificate-svg') as SVGSVGElement | null) ||
+      (document.querySelector('svg[id*="battle-certificate"]') as SVGSVGElement | null);
   } else {
     svgElement = svgElementOrId;
   }
 
   if (!svgElement) {
     console.error('Certificate SVG element not found for export');
+    alert('Certificate canvas element not found. Please try again.');
     return false;
   }
 
@@ -78,7 +83,7 @@ export async function downloadSvgAsImage(
     // 1. Deep clone the SVG element so live DOM remains unchanged
     const clone = svgElement.cloneNode(true) as SVGSVGElement;
 
-    // 2. Set explicit width and height attributes matching 16:9 target resolution
+    // 2. Set explicit width and height attributes matching target resolution
     clone.setAttribute('width', String(width));
     clone.setAttribute('height', String(height));
     if (!clone.getAttribute('xmlns')) {
@@ -89,20 +94,18 @@ export async function downloadSvgAsImage(
     await inlineSvgImages(clone);
     sanitizeSvgStyles(clone);
 
-    // 4. Serialize to SVG XML string
+    // 4. Serialize to Data URI (more compatible with canvas cross-origin policies than Blob URLs)
     const svgString = new XMLSerializer().serializeToString(clone);
-    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-    const URLObj = window.URL || window.webkitURL || window;
-    const blobURL = URLObj.createObjectURL(svgBlob);
+    const dataUri = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
 
-    // 5. Load SVG blob into HTML Image
+    // 5. Load SVG Data URI into HTML Image
     const img = new Image();
     img.crossOrigin = 'anonymous';
 
     await new Promise<void>((resolve, reject) => {
       img.onload = () => resolve();
-      img.onerror = (err) => reject(new Error('SVG rasterization image load failed: ' + err));
-      img.src = blobURL;
+      img.onerror = (err) => reject(new Error('SVG image load failed for canvas draw: ' + err));
+      img.src = dataUri;
     });
 
     // 6. Draw to HTML5 Canvas
@@ -111,7 +114,6 @@ export async function downloadSvgAsImage(
     canvas.height = height;
     const ctx = canvas.getContext('2d');
     if (!ctx) {
-      URLObj.revokeObjectURL(blobURL);
       throw new Error('Canvas 2D context unavailable');
     }
 
@@ -124,16 +126,14 @@ export async function downloadSvgAsImage(
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(img, 0, 0, width, height);
 
-    URLObj.revokeObjectURL(blobURL);
-
     // 7. Export PNG / JPG Data URL and trigger browser file download
     const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/png';
     const extension = format === 'jpeg' ? 'jpg' : 'png';
     const cleanFilename = `${filename.replace(/[^a-zA-Z0-9_-]/g, '_')}_Certificate.${extension}`;
 
-    const dataUrl = canvas.toDataURL(mimeType, 0.95);
+    const exportDataUrl = canvas.toDataURL(mimeType, 0.95);
     const downloadLink = document.createElement('a');
-    downloadLink.href = dataUrl;
+    downloadLink.href = exportDataUrl;
     downloadLink.download = cleanFilename;
     document.body.appendChild(downloadLink);
     downloadLink.click();
@@ -141,7 +141,7 @@ export async function downloadSvgAsImage(
 
     return true;
   } catch (err) {
-    console.error('Certificate PNG/JPG Download Failed:', err);
+    console.error('Certificate PNG/JPG Download Failed, attempting SVG fallback:', err);
 
     // Fallback: SVG Download if rasterization fails
     try {
@@ -159,6 +159,7 @@ export async function downloadSvgAsImage(
       return true;
     } catch (fallbackErr) {
       console.error('SVG fallback download also failed:', fallbackErr);
+      alert('Unable to generate certificate download. Please try taking a screenshot or try again.');
       return false;
     }
   }
