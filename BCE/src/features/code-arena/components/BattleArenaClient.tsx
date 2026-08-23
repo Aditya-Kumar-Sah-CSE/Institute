@@ -133,6 +133,11 @@ export default function BattleArenaClient({
   const [virtualStartTime, setVirtualStartTime] = useState<string | null>(null);
 
   const [dismissCompletedBanner, setDismissCompletedBanner] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
   const myParticipant = participants.find(p => p.profiles?.id === currentUser?.id);
   const studentName = myParticipant?.profiles?.full_name || currentUser?.name || currentUser?.user_metadata?.name || 'BCE Star Programmer';
   const organizerName = battle.organizer_name || battle.profiles?.full_name || 'BCE Faculty';
@@ -962,8 +967,9 @@ export default function BattleArenaClient({
               </button>
 
               {/* The Hidden SVG Container for Certificate Download */}
-              <div style={{ display: 'none' }}>
-                <svg id="battle-certificate-svg-arena" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="100%" height="100%" style={{ borderRadius: '12px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+              {isMounted && (
+                <div style={{ display: 'none' }} suppressHydrationWarning>
+                  <svg id="battle-certificate-svg-arena" suppressHydrationWarning xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="100%" height="100%" style={{ borderRadius: '12px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
                   <defs>
                     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                       <stop offset="0%" stopColor="#050814" />
@@ -1187,6 +1193,7 @@ export default function BattleArenaClient({
                   </g>
                 </svg>
               </div>
+              )}
 
               <div
                 style={{
