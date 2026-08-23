@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import XPBar from '@/components/shared/XPBar';
@@ -283,7 +284,9 @@ export default async function ProfilePage() {
           )}
 
           <Card variant="glass" className="profile-section">
-            <StorageUsageIndicator userId={user.id} />
+            <Suspense fallback={<div style={{ height: '60px', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.05)' }} />}>
+              <StorageUsageIndicator userId={user.id} />
+            </Suspense>
           </Card>
         </div>
       </div>

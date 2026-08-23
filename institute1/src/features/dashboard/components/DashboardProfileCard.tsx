@@ -218,7 +218,9 @@ export default function DashboardProfileCard({ profile, appData }: DashboardProf
         width: '100%',
         boxSizing: 'border-box'
       }}>
-        <StorageUsageIndicator userId={profile.id} compact />
+        <React.Suspense fallback={<div style={{ height: '60px', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.05)' }} />}>
+          <StorageUsageIndicator userId={profile.id} compact />
+        </React.Suspense>
       </div>
 
     </Card>

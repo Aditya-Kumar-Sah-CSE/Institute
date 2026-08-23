@@ -21,32 +21,42 @@ export default function StorageUsageIndicator({
   const [loading, setLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
-  const fetchUsage = useCallback(async (showRefreshing = false) => {
-    if (showRefreshing) setIsRefreshing(true);
-    try {
-      const result = await getUserStorageUsage(userId);
-      setData(result);
-    } catch (err) {
-      console.error('Failed to load storage usage:', err);
-    } finally {
-      setLoading(false);
-      setIsRefreshing(false);
-    }
-  }, [userId]);
-
   useEffect(() => {
-    fetchUsage();
+    let isMounted = true;
+
+    const loadData = async () => {
+      try {
+        const result = await getUserStorageUsage(userId);
+        if (isMounted) {
+          setData(result);
+          setLoading(false);
+          setIsRefreshing(false);
+        }
+      } catch (err) {
+        console.error('Failed to load storage usage:', err);
+        if (isMounted) {
+          setLoading(false);
+          setIsRefreshing(false);
+        }
+      }
+    };
+
+    loadData();
 
     // Listen for global storage-updated event (triggered after file uploads/deletions)
     const handleStorageUpdate = () => {
-      fetchUsage(true);
+      if (isMounted) {
+        setIsRefreshing(true);
+        loadData();
+      }
     };
 
     window.addEventListener('storage-updated', handleStorageUpdate);
     return () => {
+      isMounted = false;
       window.removeEventListener('storage-updated', handleStorageUpdate);
     };
-  }, [fetchUsage]);
+  }, [userId]);
 
   const percentage = data?.percentage || 0;
   const formattedUsed = data?.formattedUsed || '0 MB';
