@@ -49,8 +49,8 @@ export default function BattleEndScreen({
       setClaiming(false);
     }
   };
-  const userName = currentUser?.name || currentUser?.user_metadata?.name || 'BCE Star Programmer';
-  const organizerName = battle.organizer_name || battle.profiles?.full_name || 'BCE CODE ARENA';
+  const userName = currentUser?.name || currentUser?.user_metadata?.name || 'Smart Learner';
+  const organizerName = battle.organizer_name || battle.profiles?.full_name || 'SL CODE ARENA';
   const organizerLogo = battle.organizer_logo || null;
   const [particles, setParticles] = useState<any[]>([]);
 
@@ -390,7 +390,7 @@ export default function BattleEndScreen({
 
                 {/* Top Center Branding Logo */}
                 <g transform="translate(480, 75)">
-                  <text x="0" y="0" textAnchor="middle" fill="#ffffff" fontSize="24" fontWeight="900" letterSpacing="4">{(organizerName || 'BCE CODE ARENA').toUpperCase()}</text>
+                  <text x="0" y="0" textAnchor="middle" fill="#ffffff" fontSize="24" fontWeight="900" letterSpacing="4">{(organizerName || 'SL CODE ARENA').toUpperCase()}</text>
                   <text x="0" y="16" textAnchor="middle" fill="#00f0ff" fontSize="9" fontWeight="700" letterSpacing="2">CODE. SOLVE. CONQUER.</text>
                 </g>
                 

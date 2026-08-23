@@ -27,7 +27,7 @@ export default function CertificateRenderer({
   
   // Organizer branding state
   const [organizerName, setOrganizerName] = useState<string>(
-    cert.coding_battles?.organizer_name || cert.company_name || 'BCE Code Arena'
+    cert.coding_battles?.organizer_name || cert.company_name || 'SL Code Arena'
   );
   const [organizerLogo, setOrganizerLogo] = useState<string | null>(
     cert.coding_battles?.organizer_logo || null

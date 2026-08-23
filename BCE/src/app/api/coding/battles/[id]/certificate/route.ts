@@ -111,7 +111,7 @@ export async function POST(
       .from('company_settings')
       .select('company_name')
       .maybeSingle();
-    const companyName = settings?.company_name || 'BCE Code Arena';
+    const companyName = settings?.company_name || 'SL Code Arena';
 
     // 6. Generate Certificate Code: CB-YYYY-MMDD-SCORE-RANDOM
     const issueDateObj = new Date();
