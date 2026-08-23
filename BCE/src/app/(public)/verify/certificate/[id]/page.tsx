@@ -29,9 +29,13 @@ export default async function VerifyCertificatePage({ params }: VerifyProps) {
       certificate_code,
       accuracy,
       duration_minutes,
+      signature_name,
+      signature_designation,
+      instructor_signature,
+      organizer_logo,
       profiles(name),
       courses(title),
-      coding_battles(title)
+      coding_battles(title, organizer_name, organizer_logo, instructor_name, instructor_designation, instructor_signature)
     `);
 
   // If id looks like a UUID, search by ID, else search by certificate_code
@@ -99,6 +103,12 @@ export default async function VerifyCertificatePage({ params }: VerifyProps) {
 
   const isBattle = Boolean(cert.coding_battles);
   const resourceTitle = isBattle ? (cert.coding_battles as any)?.title : (cert.courses as any)?.title;
+  const battleObj = cert.coding_battles as any;
+  const instructorName = cert.signature_name || battleObj?.instructor_name || 'Aditya Kumar Sah';
+  const instructorDesignation = cert.signature_designation || battleObj?.instructor_designation || 'The Developer & The Coder';
+  const instructorSig = cert.instructor_signature || battleObj?.instructor_signature;
+  const logoPath = cert.organizer_logo || battleObj?.organizer_logo;
+  const rankVal = cert.course_rank || 1;
 
   return (
     <main style={{
@@ -111,7 +121,7 @@ export default async function VerifyCertificatePage({ params }: VerifyProps) {
       color: '#f8fafc'
     }}>
       <div style={{
-        maxWidth: '540px',
+        maxWidth: '560px',
         width: '100%',
         background: 'rgba(15, 23, 42, 0.6)',
         border: '1px solid rgba(6, 182, 212, 0.3)',
@@ -136,6 +146,13 @@ export default async function VerifyCertificatePage({ params }: VerifyProps) {
           borderRadius: '50%', filter: 'blur(60px)'
         }} />
 
+        {/* Top Institution Logo if Present */}
+        {logoPath && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+            <img src={logoPath} alt="Organizer Logo" style={{ maxHeight: '48px', objectFit: 'contain' }} />
+          </div>
+        )}
+
         {/* Verification Status Header */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '32px' }}>
           <div style={{
@@ -157,18 +174,19 @@ export default async function VerifyCertificatePage({ params }: VerifyProps) {
             Official Verification Successful
           </div>
           <h1 style={{ fontSize: '26px', fontWeight: 800, margin: 0, color: '#ffffff' }}>Verified Certificate</h1>
+          <div style={{ fontSize: '12px', color: '#38bdf8', marginTop: '4px', fontWeight: 600 }}>SMART LEARN PLATFORM</div>
         </div>
 
         {/* Certificate Details */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', background: 'rgba(0,0,0,0.2)', padding: '24px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: '32px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', background: 'rgba(0,0,0,0.25)', padding: '24px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)', marginBottom: '32px' }}>
           <div>
             <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Recipient Name</div>
-            <div style={{ fontSize: '18px', fontWeight: 700, color: '#ffffff' }}>{(cert.profiles as any)?.name}</div>
+            <div style={{ fontSize: '20px', fontWeight: 800, color: '#ffffff' }}>{(cert.profiles as any)?.name || 'Participant'}</div>
           </div>
 
           <div>
             <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Credential Title</div>
-            <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--neon-cyan)', textShadow: '0 0 10px rgba(6, 182, 212, 0.2)' }}>{resourceTitle}</div>
+            <div style={{ fontSize: '16px', fontWeight: 700, color: '#38bdf8', textShadow: '0 0 10px rgba(6, 182, 212, 0.2)' }}>{resourceTitle}</div>
             <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
               Credential Type: {isBattle ? 'Coding Battle Achievement' : 'Course Completion Certificate'}
             </div>
@@ -185,31 +203,45 @@ export default async function VerifyCertificatePage({ params }: VerifyProps) {
             <div style={{ flex: '1 1 120px' }}>
               <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Certificate ID</div>
               <div style={{ fontSize: '14px', fontWeight: 700, color: '#fbbf24', fontFamily: 'monospace' }}>
-                {cert.certificate_code || cert.id.substring(0, 8).toUpperCase()}
+                {cert.certificate_code || cert.id.substring(0, 18).toUpperCase()}
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px', marginTop: '4px' }}>
+          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px', marginTop: '4px' }}>
             <div style={{ flex: '1 1 100px' }}>
-              <div style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase' }}>Score / Grade</div>
-              <div style={{ fontSize: '14px', fontWeight: 700, color: '#e2e8f0' }}>{cert.xp_earned} PTS</div>
+              <div style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase' }}>Score / Points</div>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: '#e2e8f0' }}>{cert.xp_earned || 0} PTS</div>
             </div>
             <div style={{ flex: '1 1 100px' }}>
-              <div style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase' }}>Rank</div>
-              <div style={{ fontSize: '14px', fontWeight: 700, color: '#e2e8f0' }}>#{cert.course_rank}</div>
+              <div style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase' }}>Rank &amp; Badge</div>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: rankVal === 1 ? '#fbbf24' : rankVal === 2 ? '#cbd5e1' : rankVal === 3 ? '#f97316' : '#38bdf8' }}>
+                {rankVal === 1 ? '🥇 Rank #1 (Gold)' : rankVal === 2 ? '🥈 Rank #2 (Silver)' : rankVal === 3 ? '🥉 Rank #3 (Bronze)' : `#${rankVal}`}
+              </div>
             </div>
             <div style={{ flex: '1 1 100px' }}>
-              <div style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase' }}>Solved Tasks</div>
-              <div style={{ fontSize: '14px', fontWeight: 700, color: '#e2e8f0' }}>{cert.tasks_completed} / {cert.total_tasks}</div>
+              <div style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase' }}>Status</div>
+              <div style={{ fontSize: '13px', fontWeight: 800, color: '#22c55e' }}>VALID / ACTIVE</div>
             </div>
+          </div>
+
+          {/* Instructor Signature info */}
+          <div style={{ borderTop: '1px dashed rgba(255,255,255,0.1)', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <div style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px' }}>Authorized Instructor</div>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff' }}>{instructorName}</div>
+              <div style={{ fontSize: '11px', color: '#94a3b8' }}>{instructorDesignation}</div>
+            </div>
+            {instructorSig && (
+              <img src={instructorSig} alt="Instructor Signature" style={{ maxHeight: '40px', objectFit: 'contain', background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: '6px' }} />
+            )}
           </div>
         </div>
 
         {/* Footer info */}
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '8px' }}>
-            Issued by <strong style={{ color: '#94a3b8' }}>{cert.company_name}</strong>
+            Issued by <strong style={{ color: '#94a3b8' }}>{cert.company_name || 'Smart Learn'}</strong>
           </div>
           <Link href="/" style={{
             fontSize: '13px', color: 'var(--neon-cyan)', textDecoration: 'none', fontWeight: 600,

@@ -329,32 +329,62 @@ export default function CertificateRenderer({
             <svg
               id="battle-certificate-svg"
               xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 960 540"
+              viewBox="0 0 1200 800"
               width="100%"
               height="100%"
               style={{
                 fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                borderRadius: '8px',
+                borderRadius: '12px',
               }}
             >
-              {/* Background gradient */}
               <defs>
                 <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#080c14" />
-                  <stop offset="50%" stopColor="#0b0f19" />
-                  <stop offset="100%" stopColor="#02060c" />
+                  <stop offset="0%" stopColor="#050814" />
+                  <stop offset="50%" stopColor="#0b1021" />
+                  <stop offset="100%" stopColor="#04060e" />
                 </linearGradient>
+
                 <linearGradient id="cyanPurpleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                   <stop offset="0%" stopColor="#00f0ff" />
-                  <stop offset="100%" stopColor="#7f00ff" />
+                  <stop offset="50%" stopColor="#38bdf8" />
+                  <stop offset="100%" stopColor="#a855f7" />
                 </linearGradient>
+
+                <linearGradient id="silverGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#ffffff" />
+                  <stop offset="50%" stopColor="#e2e8f0" />
+                  <stop offset="100%" stopColor="#94a3b8" />
+                </linearGradient>
+
                 <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#fbbf24" />
-                  <stop offset="50%" stopColor="#d97706" />
+                  <stop offset="0%" stopColor="#fef08a" />
+                  <stop offset="30%" stopColor="#fbbf24" />
+                  <stop offset="70%" stopColor="#d97706" />
                   <stop offset="100%" stopColor="#92400e" />
                 </linearGradient>
+
+                <linearGradient id="silverMedalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#ffffff" />
+                  <stop offset="30%" stopColor="#e2e8f0" />
+                  <stop offset="70%" stopColor="#94a3b8" />
+                  <stop offset="100%" stopColor="#475569" />
+                </linearGradient>
+
+                <linearGradient id="bronzeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#ffedd5" />
+                  <stop offset="30%" stopColor="#f97316" />
+                  <stop offset="70%" stopColor="#c2410c" />
+                  <stop offset="100%" stopColor="#7c2d12" />
+                </linearGradient>
+
+                <linearGradient id="sealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#38bdf8" />
+                  <stop offset="50%" stopColor="#0284c7" />
+                  <stop offset="100%" stopColor="#0369a1" />
+                </linearGradient>
+
                 <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feGaussianBlur stdDeviation="8" result="blur" />
+                  <feGaussianBlur stdDeviation="6" result="blur" />
                   <feMerge>
                     <feMergeNode in="blur" />
                     <feMergeNode in="SourceGraphic" />
@@ -362,134 +392,224 @@ export default function CertificateRenderer({
                 </filter>
               </defs>
 
-              {/* Certificate Base */}
-              <rect width="960" height="540" fill="url(#bgGrad)" />
-              
+              {/* Base Background */}
+              <rect width="1200" height="800" fill="url(#bgGrad)" rx="16" />
+
               {/* Circuit Grid pattern */}
-              <g opacity="0.04" stroke="#ffffff" strokeWidth="1">
-                <path d="M0,60 H960 M0,120 H960 M0,180 H960 M0,240 H960 M0,300 H960 M0,360 H960 M0,420 H960 M0,480 H960" />
-                <path d="M120,0 V540 M240,0 V540 M360,0 V540 M480,0 V540 M600,0 V540 M720,0 V540 M840,0 V540" />
+              <g opacity="0.05" stroke="#ffffff" strokeWidth="1">
+                <path d="M 0,100 H 1200 M 0,200 H 1200 M 0,300 H 1200 M 0,400 H 1200 M 0,500 H 1200 M 0,600 H 1200 M 0,700 H 1200" />
+                <path d="M 150,0 V 800 M 300,0 V 800 M 450,0 V 800 M 600,0 V 800 M 750,0 V 800 M 900,0 V 800 M 1050,0 V 800" />
               </g>
 
-              {/* Circuits Accent lines */}
-              <path d="M 50,50 L 150,50 L 200,100 M 910,490 L 810,490 L 760,440" stroke="#00f0ff" strokeWidth="1.5" fill="none" opacity="0.3" />
-              <path d="M 50,490 L 150,490 L 200,440 M 910,50 L 810,50 L 760,100" stroke="#7f00ff" strokeWidth="1.5" fill="none" opacity="0.3" />
+              {/* Glowing Corner Orbs */}
+              <circle cx="0" cy="0" r="300" fill="#00f0ff" opacity="0.1" filter="url(#glow)" />
+              <circle cx="1200" cy="800" r="350" fill="#7f00ff" opacity="0.1" filter="url(#glow)" />
 
-              {/* Premium Neon Border */}
-              <rect x="20" y="20" width="920" height="500" rx="12" fill="none" stroke="url(#cyanPurpleGrad)" strokeWidth="2.5" />
-              <rect x="25" y="25" width="910" height="490" rx="10" fill="none" stroke="rgba(255, 255, 255, 0.03)" strokeWidth="1" />
+              {/* Outer Neon Border */}
+              <rect x="24" y="24" width="1152" height="752" rx="14" fill="none" stroke="url(#cyanPurpleGrad)" strokeWidth="2.5" />
+              <rect x="32" y="32" width="1136" height="736" rx="10" fill="none" stroke="rgba(255, 255, 255, 0.04)" strokeWidth="1" />
 
-              {/* Left Shield Badge */}
-              <g transform="translate(60, 65)">
-                <circle cx="45" cy="45" r="40" fill="rgba(6, 182, 212, 0.1)" stroke="#00f0ff" strokeWidth="1.5" filter="url(#glow)" />
-                {organizerLogo ? (
-                  <image href={organizerLogo} x="15" y="15" width="60" height="60" preserveAspectRatio="xMidYMid meet" />
-                ) : (
-                  <>
-                    <path d="M45,23 L28,30 C28,42 35,53 45,57 C55,53 62,42 62,30 L45,23 Z" fill="none" stroke="#00f0ff" strokeWidth="2" />
-                    <text x="45" y="44" textAnchor="middle" fill="#00f0ff" fontSize="11" fontWeight="800" fontFamily="monospace">&lt;/&gt;</text>
-                  </>
-                )}
+              {/* Ornate Corner Tech Accents */}
+              <path d="M 20,60 L 20,20 L 60,20 M 24,70 L 70,24" stroke="#00f0ff" strokeWidth="2.5" fill="none" />
+              <path d="M 1180,60 L 1180,20 L 1140,20 M 1176,70 L 1130,24" stroke="#00f0ff" strokeWidth="2.5" fill="none" />
+              <path d="M 20,740 L 20,780 L 60,780 M 24,730 L 70,776" stroke="#7f00ff" strokeWidth="2.5" fill="none" />
+              <path d="M 1180,740 L 1180,780 L 1140,780 M 1176,730 L 1130,776" stroke="#7f00ff" strokeWidth="2.5" fill="none" />
+
+              {/* TOP LEFT: Instructor/Institution Logo or Shield Emblem */}
+              {(cert.organizer_logo || cert.coding_battles?.organizer_logo || organizerLogo) ? (
+                <g transform="translate(60, 50)">
+                  <rect x="-10" y="-10" width="180" height="70" rx="10" fill="rgba(11, 16, 33, 0.6)" stroke="rgba(56, 189, 248, 0.2)" strokeWidth="1" />
+                  <image href={cert.organizer_logo || cert.coding_battles?.organizer_logo || organizerLogo || ''} x="0" y="0" width="160" height="50" preserveAspectRatio="xMidYMid contain" />
+                </g>
+              ) : (
+                <g transform="translate(140, 150)">
+                  <path d="M -45,15 C -60,-5 -55,-30 -40,-45 C -45,-25 -40,-10 -35,5 M -55,35 C -70,15 -65,-10 -50,-25 C -55,-5 -50,10 -45,25" stroke="#38bdf8" strokeWidth="2" fill="none" />
+                  <path d="M -40,-40 C -35,-50 -20,-55 -10,-55 M -50,-20 C -45,-32 -30,-40 -15,-40" stroke="#38bdf8" strokeWidth="2" fill="none" />
+                  <path d="M 45,15 C 60,-5 55,-30 40,-45 C 45,-25 40,-10 35,5 M 55,35 C 70,15 65,-10 50,-25 C 55,-5 50,10 45,25" stroke="#38bdf8" strokeWidth="2" fill="none" />
+                  <path d="M 40,-40 C 35,-50 20,-55 10,-55 M 50,-20 C 45,-32 30,-40 15,-40" stroke="#38bdf8" strokeWidth="2" fill="none" />
+                  <path d="M 0,-50 L -35,-35 C -35,0 -20,35 0,55 C 20,35 35,0 35,-35 Z" fill="rgba(6, 182, 212, 0.12)" stroke="#00f0ff" strokeWidth="3" filter="url(#glow)" />
+                  <path d="M 0,-42 L -28,-29 C -28,0 -16,28 0,44 C 16,28 28,0 28,-29 Z" fill="none" stroke="rgba(255, 255, 255, 0.2)" strokeWidth="1.5" />
+                  <text x="0" y="8" textAnchor="middle" fill="#00f0ff" fontSize="20" fontWeight="900" fontFamily="monospace" filter="url(#glow)">&lt;/&gt;</text>
+                </g>
+              )}
+
+              {/* TOP CENTER: Smart Learn Branding */}
+              <g transform="translate(600, 95)">
+                <g transform="translate(0, -28)">
+                  <polygon points="0,-18 16,0 0,18 -16,0" fill="url(#cyanPurpleGrad)" opacity="0.9" />
+                  <polygon points="0,-12 11,0 0,12 -11,0" fill="#0b1021" />
+                  <text x="0" y="4" textAnchor="middle" fill="#00f0ff" fontSize="10" fontWeight="900" fontFamily="monospace">&lt;&gt;</text>
+                </g>
+
+                <text x="0" y="8" textAnchor="middle" fill="#ffffff" fontSize="22" fontWeight="900" letterSpacing="4">SMART LEARN</text>
+                <text x="0" y="28" textAnchor="middle" fill="#38bdf8" fontSize="12" fontWeight="800" letterSpacing="3">{(organizerName || 'OFFICIAL BATTLE CERTIFICATE').toUpperCase()}</text>
               </g>
 
-              {/* Top Center Branding Logo */}
-              <g transform="translate(480, 75)">
-                <text x="0" y="0" textAnchor="middle" fill="#ffffff" fontSize="24" fontWeight="900" letterSpacing="4">{(organizerName || 'CODING ARENA').toUpperCase()}</text>
-                <text x="0" y="16" textAnchor="middle" fill="#00f0ff" fontSize="9" fontWeight="700" letterSpacing="2">CODE. SOLVE. CONQUER.</text>
+              {/* TOP RIGHT: Dynamic Immutable Certificate ID */}
+              <g transform="translate(1110, 60)">
+                <rect x="-240" y="-12" width="240" height="26" rx="6" fill="rgba(6, 182, 212, 0.1)" stroke="rgba(6, 182, 212, 0.3)" strokeWidth="1" />
+                <text x="-120" y="5" textAnchor="middle" fill="#00f0ff" fontSize="11" fontWeight="700" fontFamily="monospace">
+                  ID: {cert.certificate_code || cert.id?.substring(0, 18).toUpperCase() || 'CB-2026-VERIFIED'}
+                </text>
               </g>
-              
-              <text x="900" y="55" textAnchor="end" fill="#64748b" fontSize="10" fontWeight="700" fontFamily="monospace">
-                Certificate ID: {cert.certificate_code || cert.id.substring(0, 18).toUpperCase()}
+
+              {/* MAIN HEADER TITLE */}
+              <g transform="translate(600, 200)">
+                <text x="0" y="0" textAnchor="middle" fill="url(#silverGrad)" fontSize="60" fontWeight="900" letterSpacing="8" filter="url(#glow)">CERTIFICATE</text>
+                
+                {/* Sub-Line with Cyan Diamonds */}
+                <g transform="translate(0, 35)">
+                  <line x1="-280" y1="0" x2="-140" y2="0" stroke="url(#cyanPurpleGrad)" strokeWidth="2" />
+                  <circle cx="-140" cy="0" r="3" fill="#00f0ff" />
+                  <polygon points="-120,0 -115,-5 -110,0 -115,5" fill="#00f0ff" />
+                  <circle cx="-105" cy="0" r="2" fill="#00f0ff" />
+
+                  <text x="0" y="6" textAnchor="middle" fill="url(#cyanPurpleGrad)" fontSize="18" fontWeight="800" letterSpacing="5">OF CODING BATTLE</text>
+
+                  <circle cx="105" cy="0" r="2" fill="#00f0ff" />
+                  <polygon points="110,0 115,-5 120,0 115,5" fill="#00f0ff" />
+                  <circle cx="140" cy="0" r="3" fill="#00f0ff" />
+                  <line x1="140" y1="0" x2="280" y2="0" stroke="url(#cyanPurpleGrad)" strokeWidth="2" />
+                </g>
+              </g>
+
+              {/* RECIPIENT SECTION */}
+              <text x="600" y="300" textAnchor="middle" fill="#94a3b8" fontSize="16" fontWeight="500">This is to certify that</text>
+
+              {/* Recipient Name in Cyan-Purple Gradient */}
+              <text x="600" y="365" textAnchor="middle" fill="url(#cyanPurpleGrad)" fontSize="54" fontWeight="900" letterSpacing="1" filter="url(#glow)">
+                {cleanRecipientName}
               </text>
+              <line x1="380" y1="385" x2="820" y2="385" stroke="rgba(255,255,255,0.12)" strokeWidth="1.5" />
 
-              {/* Header Text */}
-              <text x="480" y="160" textAnchor="middle" fill="url(#cyanPurpleGrad)" fontSize="32" fontWeight="800" letterSpacing="3">CERTIFICATE OF ACHIEVEMENT</text>
-              <text x="480" y="200" textAnchor="middle" fill="#94a3b8" fontSize="14" fontWeight="500">This is proudly presented to</text>
-
-              {/* Recipient Name */}
-              <text x="480" y="255" textAnchor="middle" fill="#ffffff" fontSize="38" fontWeight="800" letterSpacing="0.5">{cleanRecipientName}</text>
-              <line x1="320" y1="270" x2="640" y2="270" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
-
-              {/* Certification Statement */}
-              <text x="480" y="300" textAnchor="middle" fill="#94a3b8" fontSize="12" fontWeight="500">
+              {/* Description Text */}
+              <text x="600" y="420" textAnchor="middle" fill="#cbd5e1" fontSize="15" fontWeight="500">
                 {isBattle 
-                  ? `has successfully participated in the Coding Battle "${resourceTitle}"` 
+                  ? `has successfully participated in the Coding Battle "${resourceTitle || 'Code Arena Battle'}" and demonstrated` 
                   : isSheet
-                  ? `has successfully completed all problem challenges in Coding Sheet "${resourceTitle}"`
-                  : `has successfully completed the Course "${resourceTitle}"`}
+                  ? `has successfully completed all problem challenges in Coding Sheet "${resourceTitle}" and demonstrated`
+                  : `has successfully completed Course "${resourceTitle}" and demonstrated`}
               </text>
-              <text x="480" y="320" textAnchor="middle" fill="#94a3b8" fontSize="12" fontWeight="500">
-                and demonstrated exceptional problem-solving skills, logical thinking, and coding abilities.
+              <text x="600" y="445" textAnchor="middle" fill="#cbd5e1" fontSize="15" fontWeight="500">
+                exceptional problem-solving skills, algorithmic logic, and coding performance.
               </text>
 
-              {/* Certificate Stats badges */}
-              <g transform="translate(190, 355)">
-                {/* Date */}
+              {/* 3 KEY STATS CARDS (DATE, SCORE, RANK) */}
+              <g transform="translate(600, 520)">
+                <line x1="-350" y1="-30" x2="350" y2="-30" stroke="rgba(255, 255, 255, 0.08)" strokeWidth="1" />
+
+                {/* 1. DATE */}
+                <g transform="translate(-240, 0)">
+                  <rect x="-60" y="-18" width="36" height="36" rx="8" fill="rgba(56, 189, 248, 0.1)" stroke="rgba(56, 189, 248, 0.3)" strokeWidth="1" />
+                  <path d="M -48,-8 H -36 M -48,-2 H -36 M -48,4 H -40" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" />
+                  <rect x="-50" y="-12" width="16" height="18" rx="2" fill="none" stroke="#38bdf8" strokeWidth="1.5" />
+
+                  <text x="-10" y="-4" fill="#94a3b8" fontSize="11" fontWeight="700" letterSpacing="1">DATE</text>
+                  <text x="-10" y="16" fill="#ffffff" fontSize="16" fontWeight="700">{issueDateStr}</text>
+                </g>
+
+                <line x1="-60" y1="-15" x2="-60" y2="25" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+
+                {/* 2. SCORE */}
                 <g transform="translate(0, 0)">
-                  <rect width="130" height="42" rx="6" fill="rgba(168, 85, 247, 0.05)" stroke="rgba(168, 85, 247, 0.2)" strokeWidth="1" />
-                  <text x="65" y="16" textAnchor="middle" fill="#a855f7" fontSize="8" fontWeight="700" letterSpacing="0.5">DATE</text>
-                  <text x="65" y="30" textAnchor="middle" fill="#e2e8f0" fontSize="11" fontWeight="700">{issueDateStr}</text>
+                  <rect x="-60" y="-18" width="36" height="36" rx="8" fill="rgba(168, 85, 247, 0.1)" stroke="rgba(168, 85, 247, 0.3)" strokeWidth="1" />
+                  <path d="M -46,-10 H -38 V -2 C -38,3 -42,6 -46,6 Z M -38,-10 V 2 C -38,6 -42,8 -46,8 M -46,8 V 14 M -50,14 H -42" stroke="#a855f7" strokeWidth="1.5" fill="none" />
+
+                  <text x="-10" y="-4" fill="#a855f7" fontSize="11" fontWeight="700" letterSpacing="1">SCORE</text>
+                  <text x="-10" y="16" fill="#ffffff" fontSize="16" fontWeight="700">{cert.xp_earned || 0}</text>
                 </g>
-                {/* Score */}
-                <g transform="translate(150, 0)">
-                  <rect width="130" height="42" rx="6" fill="rgba(6, 182, 212, 0.05)" stroke="rgba(6, 182, 212, 0.2)" strokeWidth="1" />
-                  <text x="65" y="16" textAnchor="middle" fill="#00f0ff" fontSize="8" fontWeight="700" letterSpacing="0.5">SCORE</text>
-                  <text x="65" y="30" textAnchor="middle" fill="#e2e8f0" fontSize="11" fontWeight="700">{cert.xp_earned} PTS</text>
+
+                <line x1="120" y1="-15" x2="120" y2="25" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+
+                {/* 3. RANK */}
+                <g transform="translate(180, 0)">
+                  <rect x="-40" y="-18" width="36" height="36" rx="8" fill="rgba(168, 85, 247, 0.1)" stroke="rgba(168, 85, 247, 0.3)" strokeWidth="1" />
+                  <polygon points="-22,-12 -18,-2 -8,-2 -15,4 -12,14 -22,8 -32,14 -29,4 -36,-2 -26,-2" fill="#a855f7" opacity="0.9" />
+
+                  <text x="10" y="-4" fill="#38bdf8" fontSize="11" fontWeight="700" letterSpacing="1">RANK</text>
+                  <text x="10" y="16" fill="#ffffff" fontSize="16" fontWeight="700">{cert.course_rank ? `#${cert.course_rank}` : 'Top 10%'}</text>
                 </g>
-                {/* Rank */}
-                <g transform="translate(300, 0)">
-                  <rect width="130" height="42" rx="6" fill="rgba(251, 191, 36, 0.05)" stroke="rgba(251, 191, 36, 0.2)" strokeWidth="1" />
-                  <text x="65" y="16" textAnchor="middle" fill="#fbbf24" fontSize="8" fontWeight="700" letterSpacing="0.5">RANK</text>
-                  <text x="65" y="30" textAnchor="middle" fill="#e2e8f0" fontSize="11" fontWeight="700">#{cert.course_rank}</text>
+
+                <line x1="-350" y1="45" x2="350" y2="45" stroke="rgba(255, 255, 255, 0.08)" strokeWidth="1" />
+              </g>
+
+              {/* SIGNATURES & RANK MEDAL BADGE SECTION */}
+              <g transform="translate(600, 650)">
+                {/* CENTER RANK-DRIVEN MEDAL BADGE */}
+                <g transform="translate(0, 0)">
+                  {(cert.course_rank === 1 || cert.rank === 1) ? (
+                    <>
+                      <path d="M -25,25 L -45,75 L -20,65 L 0,75 L -5,25 Z" fill="#d97706" stroke="#92400e" strokeWidth="1" />
+                      <path d="M 25,25 L 5,75 L 20,65 L 45,75 L 25,25 Z" fill="#d97706" stroke="#92400e" strokeWidth="1" />
+                      <circle cx="0" cy="0" r="48" fill="url(#goldGrad)" stroke="#fef08a" strokeWidth="2.5" filter="url(#glow)" />
+                      <circle cx="0" cy="0" r="42" stroke="#fbbf24" strokeWidth="1.5" strokeDasharray="5,3" fill="none" />
+                      <circle cx="0" cy="0" r="36" fill="#0b0f19" stroke="url(#goldGrad)" strokeWidth="2" />
+                      <path d="M -16,8 L -20,-10 L -10,-2 L 0,-14 L 10,-2 L 20,-10 L 16,8 Z" fill="#fbbf24" />
+                      <text x="0" y="24" textAnchor="middle" fill="#fbbf24" fontSize="10" fontWeight="900" letterSpacing="1">RANK #1</text>
+                    </>
+                  ) : (cert.course_rank === 2 || cert.rank === 2) ? (
+                    <>
+                      <path d="M -25,25 L -45,75 L -20,65 L 0,75 L -5,25 Z" fill="#64748b" stroke="#334155" strokeWidth="1" />
+                      <path d="M 25,25 L 5,75 L 20,65 L 45,75 L 25,25 Z" fill="#64748b" stroke="#334155" strokeWidth="1" />
+                      <circle cx="0" cy="0" r="48" fill="url(#silverMedalGrad)" stroke="#ffffff" strokeWidth="2.5" filter="url(#glow)" />
+                      <circle cx="0" cy="0" r="42" stroke="#cbd5e1" strokeWidth="1.5" strokeDasharray="5,3" fill="none" />
+                      <circle cx="0" cy="0" r="36" fill="#0b0f19" stroke="url(#silverMedalGrad)" strokeWidth="2" />
+                      <polygon points="0,-14 4,-4 14,-4 6,2 9,12 0,6 -9,12 -6,2 -14,-4 -4,-4" fill="#e2e8f0" />
+                      <text x="0" y="24" textAnchor="middle" fill="#cbd5e1" fontSize="10" fontWeight="900" letterSpacing="1">RANK #2</text>
+                    </>
+                  ) : (cert.course_rank === 3 || cert.rank === 3) ? (
+                    <>
+                      <path d="M -25,25 L -45,75 L -20,65 L 0,75 L -5,25 Z" fill="#c2410c" stroke="#7c2d12" strokeWidth="1" />
+                      <path d="M 25,25 L 5,75 L 20,65 L 45,75 L 25,25 Z" fill="#c2410c" stroke="#7c2d12" strokeWidth="1" />
+                      <circle cx="0" cy="0" r="48" fill="url(#bronzeGrad)" stroke="#ffedd5" strokeWidth="2.5" filter="url(#glow)" />
+                      <circle cx="0" cy="0" r="42" stroke="#f97316" strokeWidth="1.5" strokeDasharray="5,3" fill="none" />
+                      <circle cx="0" cy="0" r="36" fill="#0b0f19" stroke="url(#bronzeGrad)" strokeWidth="2" />
+                      <polygon points="0,-14 4,-4 14,-4 6,2 9,12 0,6 -9,12 -6,2 -14,-4 -4,-4" fill="#f97316" />
+                      <text x="0" y="24" textAnchor="middle" fill="#f97316" fontSize="10" fontWeight="900" letterSpacing="1">RANK #3</text>
+                    </>
+                  ) : (
+                    <>
+                      <path d="M -25,25 L -45,75 L -20,65 L 0,75 L -5,25 Z" fill="#0284c7" stroke="#0369a1" strokeWidth="1" />
+                      <path d="M 25,25 L 5,75 L 20,65 L 45,75 L 25,25 Z" fill="#0284c7" stroke="#0369a1" strokeWidth="1" />
+                      <circle cx="0" cy="0" r="48" fill="url(#sealGrad)" stroke="#38bdf8" strokeWidth="2.5" filter="url(#glow)" />
+                      <circle cx="0" cy="0" r="42" stroke="#38bdf8" strokeWidth="1.5" strokeDasharray="5,3" fill="none" />
+                      <circle cx="0" cy="0" r="36" fill="#0b0f19" stroke="url(#sealGrad)" strokeWidth="2" />
+                      <text x="0" y="6" textAnchor="middle" fill="#00f0ff" fontSize="20" fontWeight="900" fontFamily="monospace">&lt;/&gt;</text>
+                      <text x="0" y="24" textAnchor="middle" fill="#38bdf8" fontSize="9" fontWeight="900" letterSpacing="1">VERIFIED</text>
+                    </>
+                  )}
                 </g>
-                {/* Solved */}
-                <g transform="translate(450, 0)">
-                  <rect width="130" height="42" rx="6" fill="rgba(34, 197, 94, 0.05)" stroke="rgba(34, 197, 94, 0.2)" strokeWidth="1" />
-                  <text x="65" y="16" textAnchor="middle" fill="#22c55e" fontSize="8" fontWeight="700" letterSpacing="0.5">SOLVED PROBLEMS</text>
-                  <text x="65" y="30" textAnchor="middle" fill="#e2e8f0" fontSize="11" fontWeight="700">{cert.tasks_completed} / {cert.total_tasks}</text>
+
+                {/* INSTRUCTOR / AUTHORIZED SIGNATURE */}
+                <g transform="translate(320, 0)">
+                  {(cert.instructor_signature || signatureImage) ? (
+                    <g transform="translate(-100, -45)">
+                      <image href={cert.instructor_signature || signatureImage || ''} x="0" y="0" width="200" height="45" preserveAspectRatio="xMidYMid contain" />
+                    </g>
+                  ) : (
+                    <text x="0" y="-20" textAnchor="middle" fill="#ffffff" fontSize="28" fontWeight="400" fontFamily="'Brush Script MT', 'Dancing Script', cursive, serif" fontStyle="italic">
+                      {signatureName || cert.signature_name || 'Aditya Kumar Sah'}
+                    </text>
+                  )}
+                  <line x1="-110" y1="-5" x2="110" y2="-5" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+                  <text x="0" y="16" textAnchor="middle" fill="#ffffff" fontSize="12" fontWeight="800" letterSpacing="1">
+                    {(signatureName || cert.signature_name || 'ADITYA KUMAR SAH').toUpperCase()}
+                  </text>
+                  <text x="0" y="32" textAnchor="middle" fill="#94a3b8" fontSize="11" fontWeight="600">
+                    {signatureDesignation || cert.signature_designation || 'The Developer & The Coder'}
+                  </text>
                 </g>
               </g>
 
-              {/* Signatures & Seal */}
-              <g transform="translate(80, 420)">
-                {/* Left signature: default BCE signature */}
-                <g transform="translate(40, 20)">
-                  {/* Styled cursive-like signature name */}
-                  <text x="0" y="-12" fill="#38bdf8" fontSize="20" fontWeight="400" fontFamily="cursive, serif" fontStyle="italic">BCE Authority</text>
-                  <line x1="0" y1="0" x2="160" y2="0" stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
-                  <text x="0" y="15" fill="#f8fafc" fontSize="9" fontWeight="700" letterSpacing="0.5">BCE COORDINATOR</text>
-                  <text x="0" y="26" fill="#64748b" fontSize="8" fontWeight="600">Smart Learning App</text>
-                </g>
+              {/* FOOTER VERIFICATION LINK */}
+              <g transform="translate(600, 762)">
+                <circle cx="-200" cy="-4" r="9" fill="rgba(56, 189, 248, 0.15)" stroke="#38bdf8" strokeWidth="1" />
+                <path d="M -204,-4 L -201,-1 L -195,-7" stroke="#38bdf8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
 
-                {/* Center Seal badge */}
-                <g transform="translate(365, -15)">
-                  <polygon points="40,0 48,15 65,15 52,26 57,43 40,33 23,43 28,26 15,15 32,15" fill="#d97706" stroke="#fbbf24" strokeWidth="1" />
-                  <circle cx="40" cy="20" r="18" fill="url(#goldGrad)" stroke="#fbbf24" strokeWidth="1.5" filter="url(#glow)" />
-                  <text x="40" y="24" textAnchor="middle" fill="#ffffff" fontSize="10" fontWeight="900" fontFamily="monospace">&lt;&gt;</text>
-                </g>
-
-                {/* Right signature: Custom/Drawn Signature */}
-                <g transform="translate(560, 20)">
-                  {signatureType === 'default' && (
-                    <text x="0" y="-12" fill="#e2e8f0" fontSize="18" fontWeight="400" fontFamily="cursive, serif" fontStyle="italic">{signatureName}</text>
-                  )}
-                  {signatureType !== 'default' && signatureImage && (
-                    <image href={signatureImage} x="0" y="-35" width="120" height="35" preserveAspectRatio="xMidYMid meet" />
-                  )}
-                  {!signatureImage && signatureType !== 'default' && (
-                    <text x="0" y="-12" fill="#64748b" fontSize="10" fontStyle="italic">[No signature saved]</text>
-                  )}
-                  
-                  <line x1="0" y1="0" x2="160" y2="0" stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
-                  <text x="0" y="15" fill="#f8fafc" fontSize="9" fontWeight="700" letterSpacing="0.5">{signatureName.toUpperCase()}</text>
-                  <text x="0" y="26" fill="#64748b" fontSize="8" fontWeight="600">{signatureDesignation}</text>
-                </g>
+                <text x="-185" y="0" textAnchor="start" fill="#64748b" fontSize="12" fontWeight="600">
+                  Verify certificate at: <tspan fill="#38bdf8" fontWeight="700">https://codingbattle.com/verify/certificate/{cert.certificate_code || cert.id}</tspan>
+                </text>
               </g>
-
-              {/* Real verification footer link */}
-              <text x="480" y="515" textAnchor="middle" fill="#64748b" fontSize="9" fontWeight="600">
-                Verify this credential authentically at: {typeof window !== 'undefined' ? window.location.origin : ''}/verify/certificate/{cert.id}
-              </text>
             </svg>
           </div>
 

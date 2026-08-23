@@ -74,6 +74,9 @@ export default function CreateBattleWizard({
   const [scheduledStartTime, setScheduledStartTime] = useState<string>(formatDateTimeLocal(initialBattle?.start_time));
   const [organizerName, setOrganizerName] = useState<string>(initialBattle?.organizer_name || '');
   const [organizerLogo, setOrganizerLogo] = useState<string>(initialBattle?.organizer_logo || '');
+  const [instructorName, setInstructorName] = useState<string>(initialBattle?.instructor_name || 'Aditya Kumar Sah');
+  const [instructorDesignation, setInstructorDesignation] = useState<string>(initialBattle?.instructor_designation || 'The Developer & The Coder');
+  const [instructorSignature, setInstructorSignature] = useState<string>(initialBattle?.instructor_signature || '');
 
   // File upload handler for organizer logo from computer system
   const handleUploadOrganizerLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -94,6 +97,30 @@ export default function CreateBattleWizard({
     reader.onload = (event) => {
       if (event.target?.result) {
         setOrganizerLogo(event.target.result as string);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // File upload handler for instructor signature from computer system
+  const handleUploadInstructorSignature = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!['image/png', 'image/jpeg', 'image/svg+xml'].includes(file.type)) {
+      alert('Only PNG, JPG, or SVG signature files are allowed.');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Signature file size must be less than 2MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setInstructorSignature(event.target.result as string);
       }
     };
     reader.readAsDataURL(file);
@@ -342,6 +369,9 @@ export default function CreateBattleWizard({
           scheduledStartTime: isScheduled ? scheduledStartTime : null,
           organizerName: organizerName.trim() || null,
           organizerLogo: organizerLogo.trim() || null,
+          instructorName: instructorName.trim() || null,
+          instructorDesignation: instructorDesignation.trim() || null,
+          instructorSignature: instructorSignature.trim() || null,
         }),
       });
 
@@ -772,6 +802,103 @@ export default function CreateBattleWizard({
                           </label>
                           <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
                             Select PNG, JPG, or SVG file from your computer system (Max 2MB)
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Instructor / Signatory Details */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600, marginBottom: '6px' }}>Instructor / Signatory Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Aditya Kumar Sah"
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--bg-card)',
+                          border: '1px solid var(--glass-border)',
+                          color: 'var(--text-main)',
+                          fontSize: 'var(--text-sm)',
+                          outline: 'none',
+                        }}
+                        value={instructorName}
+                        onChange={(e) => setInstructorName(e.target.value)}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600, marginBottom: '6px' }}>Instructor Designation</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Head of Department - Computer Science"
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--bg-card)',
+                          border: '1px solid var(--glass-border)',
+                          color: 'var(--text-main)',
+                          fontSize: 'var(--text-sm)',
+                          outline: 'none',
+                        }}
+                        value={instructorDesignation}
+                        onChange={(e) => setInstructorDesignation(e.target.value)}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600, marginBottom: '6px' }}>
+                        Instructor Signature (Upload PNG, JPG, SVG Image File)
+                      </label>
+                      
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        {instructorSignature && (
+                          <div style={{ position: 'relative', width: '90px', height: '40px', borderRadius: '6px', background: '#ffffff', border: '1px solid var(--glass-border)', display: 'grid', placeItems: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                            <img src={instructorSignature} alt="Uploaded Signature" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                            <button
+                              type="button"
+                              onClick={() => setInstructorSignature('')}
+                              style={{
+                                position: 'absolute', top: '2px', right: '2px',
+                                background: 'rgba(239,68,68,0.8)', border: 'none',
+                                borderRadius: '50%', width: '16px', height: '16px',
+                                color: 'white', cursor: 'pointer', display: 'grid', placeItems: 'center',
+                                fontSize: '10px'
+                              }}
+                              title="Remove signature"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        )}
+
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <label style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '8px 16px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'rgba(168, 85, 247, 0.1)',
+                            border: '1px solid rgba(168, 85, 247, 0.3)',
+                            color: '#c084fc',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            width: 'fit-content',
+                          }}>
+                            ✍️ Upload Signature File
+                            <input
+                              type="file"
+                              accept="image/png, image/jpeg, image/svg+xml"
+                              onChange={handleUploadInstructorSignature}
+                              style={{ display: 'none' }}
+                            />
+                          </label>
+                          <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                            Upload transparent signature image file (Max 2MB)
                           </span>
                         </div>
                       </div>

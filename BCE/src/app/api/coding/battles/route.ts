@@ -71,6 +71,9 @@ export async function POST(request: Request) {
       scheduledStartTime,
       organizerName,
       organizerLogo,
+      instructorName,
+      instructorDesignation,
+      instructorSignature,
     } = body;
     const duration = Number(durationMinutes || 30);
 
@@ -125,6 +128,9 @@ export async function POST(request: Request) {
         max_team_size: Number(maxTeamSize || 1),
         organizer_name: organizerName?.trim() || null,
         organizer_logo: organizerLogo?.trim() || null,
+        instructor_name: instructorName?.trim() || null,
+        instructor_designation: instructorDesignation?.trim() || null,
+        instructor_signature: instructorSignature?.trim() || null,
       })
       .select()
       .single();

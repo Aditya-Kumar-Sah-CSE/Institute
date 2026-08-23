@@ -47,7 +47,7 @@ export async function POST(
     // 1. Get battle info
     const { data: battle, error: battleError } = await supabase
       .from('coding_battles')
-      .select('title, status, created_at')
+      .select('title, status, created_at, organizer_name, organizer_logo, instructor_name, instructor_designation, instructor_signature')
       .eq('id', battleId)
       .single();
 
@@ -106,12 +106,14 @@ export async function POST(
       );
     }
 
-    // 5. Get default company settings
+    // 5. Get default company settings & organizer name
     const { data: settings } = await supabase
       .from('company_settings')
       .select('company_name')
       .maybeSingle();
-    const companyName = settings?.company_name || 'SL Code Arena';
+    const companyName = battle.organizer_name || settings?.company_name || 'SL Code Arena';
+    const instructorNameVal = battle.instructor_name || 'Aditya Kumar Sah';
+    const instructorDesignationVal = battle.instructor_designation || 'The Developer & The Coder';
 
     // 6. Generate Certificate Code: CB-YYYY-MMDD-SCORE-RANDOM
     const issueDateObj = new Date();
@@ -152,7 +154,7 @@ export async function POST(
       }
       certData = updatedCert;
     } else {
-      // Create new certificate
+      // Create new certificate with snapshot of instructor details
       const { data: newCert, error: insertError } = await supabase
         .from('certificates')
         .insert({
@@ -167,8 +169,10 @@ export async function POST(
           company_name: companyName,
           certificate_code: certCode,
           signature_type: 'default',
-          signature_name: 'Aditya Kumar Sah',
-          signature_designation: 'The Developer & The Coder',
+          signature_name: instructorNameVal,
+          signature_designation: instructorDesignationVal,
+          instructor_signature: battle.instructor_signature || null,
+          organizer_logo: battle.organizer_logo || null,
         })
         .select()
         .single();

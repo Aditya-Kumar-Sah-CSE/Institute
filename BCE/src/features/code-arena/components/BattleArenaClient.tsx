@@ -963,134 +963,227 @@ export default function BattleArenaClient({
 
               {/* The Hidden SVG Container for Certificate Download */}
               <div style={{ display: 'none' }}>
-                <svg id="battle-certificate-svg-arena" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="100%" height="100%" style={{ borderRadius: '8px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+                <svg id="battle-certificate-svg-arena" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="100%" height="100%" style={{ borderRadius: '12px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
                   <defs>
                     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#0b0f19" />
-                      <stop offset="50%" stopColor="#111827" />
-                      <stop offset="100%" stopColor="#0f172a" />
+                      <stop offset="0%" stopColor="#050814" />
+                      <stop offset="50%" stopColor="#0b1021" />
+                      <stop offset="100%" stopColor="#04060e" />
                     </linearGradient>
-                    
-                    <linearGradient id="neonCyan" x1="0%" y1="0%" x2="100%" y2="0%">
+
+                    <linearGradient id="cyanPurpleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                       <stop offset="0%" stopColor="#00f0ff" />
-                      <stop offset="100%" stopColor="#0072ff" />
+                      <stop offset="50%" stopColor="#38bdf8" />
+                      <stop offset="100%" stopColor="#a855f7" />
                     </linearGradient>
-                    
-                    <linearGradient id="neonPink" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor="#ff007f" />
-                      <stop offset="100%" stopColor="#7f00ff" />
+
+                    <linearGradient id="silverGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="#ffffff" />
+                      <stop offset="50%" stopColor="#e2e8f0" />
+                      <stop offset="100%" stopColor="#94a3b8" />
                     </linearGradient>
-                    
+
                     <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#fbbf24" />
-                      <stop offset="50%" stopColor="#d97706" />
-                      <stop offset="100%" stopColor="#b45309" />
+                      <stop offset="0%" stopColor="#fef08a" />
+                      <stop offset="30%" stopColor="#fbbf24" />
+                      <stop offset="70%" stopColor="#d97706" />
+                      <stop offset="100%" stopColor="#92400e" />
                     </linearGradient>
-                    
-                    <filter id="glowCyan" x="-20%" y="-20%" width="140%" height="140%">
-                      <feGaussianBlur stdDeviation="8" result="blur" />
+
+                    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                      <feGaussianBlur stdDeviation="6" result="blur" />
                       <feMerge>
                         <feMergeNode in="blur" />
                         <feMergeNode in="SourceGraphic" />
                       </feMerge>
                     </filter>
-                    
-                    <filter id="glowGold" x="-20%" y="-20%" width="140%" height="140%">
-                      <feGaussianBlur stdDeviation="10" result="blur" />
-                      <feMerge>
-                        <feMergeNode in="blur" />
-                        <feMergeNode in="SourceGraphic" />
-                      </feMerge>
-                    </filter>
-                    
-                    <style>{`
-                      @keyframes borderRotate {
-                        0% { stroke-dashoffset: 0; }
-                        100% { stroke-dashoffset: 2500; }
-                      }
-                      @keyframes pulseGlow {
-                        0%, 100% { opacity: 0.3; }
-                        50% { opacity: 0.8; }
-                      }
-                      @keyframes floatTrophy {
-                        0%, 100% { transform: translateY(0px) scale(1); }
-                        50% { transform: translateY(-8px) scale(1.02); }
-                      }
-                      .rotating-border {
-                        stroke: url(#neonCyan);
-                        stroke-dasharray: 250, 100;
-                        animation: borderRotate 20s linear infinite;
-                      }
-                      .trophy-group {
-                        transform-origin: 400px 95px;
-                        animation: floatTrophy 4s ease-in-out infinite;
-                      }
-                      .glow-light {
-                        animation: pulseGlow 3s ease-in-out infinite;
-                      }
-                    `}</style>
                   </defs>
 
-                  {/* Background */}
-                  <rect width="800" height="450" fill="url(#bgGrad)" rx="12" />
-                  
-                  {/* Mesh Grid Effect */}
-                  <g opacity="0.05">
-                    <path d="M 0,45 L 800,45 M 0,90 L 800,90 M 0,135 L 800,135 M 0,180 L 800,180 M 0,225 L 800,225 M 0,270 L 800,270 M 0,315 L 800,315 M 0,360 L 800,360 M 0,405 L 800,405" stroke="#ffffff" strokeWidth="1" />
-                    <path d="M 80,0 L 80,450 M 160,0 L 160,450 M 240,0 L 240,450 M 320,0 L 320,450 M 400,0 L 400,450 M 480,0 L 480,450 M 560,0 L 560,450 M 640,0 L 640,450 M 720,0 L 720,450" stroke="#ffffff" strokeWidth="1" />
+                  {/* Base Background */}
+                  <rect width="1200" height="800" fill="url(#bgGrad)" rx="16" />
+
+                  {/* Circuit Grid pattern */}
+                  <g opacity="0.05" stroke="#ffffff" strokeWidth="1">
+                    <path d="M 0,100 H 1200 M 0,200 H 1200 M 0,300 H 1200 M 0,400 H 1200 M 0,500 H 1200 M 0,600 H 1200 M 0,700 H 1200" />
+                    <path d="M 150,0 V 800 M 300,0 V 800 M 450,0 V 800 M 600,0 V 800 M 750,0 V 800 M 900,0 V 800 M 1050,0 V 800" />
                   </g>
 
-                  {/* Glowing Corners */}
-                  <circle cx="0" cy="0" r="150" fill="#00f0ff" opacity="0.15" filter="url(#glowCyan)" className="glow-light" />
-                  <circle cx="800" cy="450" r="180" fill="#7f00ff" opacity="0.15" filter="url(#glowCyan)" className="glow-light" />
+                  {/* Glowing Corner Orbs */}
+                  <circle cx="0" cy="0" r="300" fill="#00f0ff" opacity="0.1" filter="url(#glow)" />
+                  <circle cx="1200" cy="800" r="350" fill="#7f00ff" opacity="0.1" filter="url(#glow)" />
 
-                  {/* Animated Border */}
-                  <rect x="15" y="15" width="770" height="420" rx="10" fill="none" stroke="rgba(255, 255, 255, 0.05)" strokeWidth="2" />
-                  <rect x="15" y="15" width="770" height="420" rx="10" fill="none" strokeWidth="3" className="rotating-border" />
+                  {/* Outer Neon Border */}
+                  <rect x="24" y="24" width="1152" height="752" rx="14" fill="none" stroke="url(#cyanPurpleGrad)" strokeWidth="2.5" />
+                  <rect x="32" y="32" width="1136" height="736" rx="10" fill="none" stroke="rgba(255, 255, 255, 0.04)" strokeWidth="1" />
 
-                  {/* Trophy Icon */}
-                  <g className="trophy-group">
-                    <circle cx="400" cy="95" r="45" fill="rgba(251, 191, 36, 0.1)" filter="url(#glowGold)" />
-                    <path d="M400,68 C392,68 388,72 388,80 C388,86 394,92 400,95 C406,92 412,86 412,80 C412,72 408,68 400,68 Z M382,74 C378,74 376,77 376,81 C376,85 379,88 383,89 L384,81 Z M418,74 C422,74 424,77 424,81 C424,85 421,88 417,89 L416,81 Z M400,96 L400,105 M392,105 L408,105" stroke="url(#goldGrad)" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" fill="none" filter="url(#glowGold)" />
+                  {/* Ornate Corner Tech Accents */}
+                  <path d="M 20,60 L 20,20 L 60,20 M 24,70 L 70,24" stroke="#00f0ff" strokeWidth="2.5" fill="none" />
+                  <path d="M 1180,60 L 1180,20 L 1140,20 M 1176,70 L 1130,24" stroke="#00f0ff" strokeWidth="2.5" fill="none" />
+                  <path d="M 20,740 L 20,780 L 60,780 M 24,730 L 70,776" stroke="#7f00ff" strokeWidth="2.5" fill="none" />
+                  <path d="M 1180,740 L 1180,780 L 1140,780 M 1176,730 L 1130,776" stroke="#7f00ff" strokeWidth="2.5" fill="none" />
+
+                  {/* TOP LEFT: Shield Badge with Laurel Wreath */}
+                  <g transform="translate(140, 150)">
+                    <path d="M -45,15 C -60,-5 -55,-30 -40,-45 C -45,-25 -40,-10 -35,5 M -55,35 C -70,15 -65,-10 -50,-25 C -55,-5 -50,10 -45,25" stroke="#38bdf8" strokeWidth="2" fill="none" />
+                    <path d="M -40,-40 C -35,-50 -20,-55 -10,-55 M -50,-20 C -45,-32 -30,-40 -15,-40" stroke="#38bdf8" strokeWidth="2" fill="none" />
+
+                    <path d="M 45,15 C 60,-5 55,-30 40,-45 C 45,-25 40,-10 35,5 M 55,35 C 70,15 65,-10 50,-25 C 55,-5 50,10 45,25" stroke="#38bdf8" strokeWidth="2" fill="none" />
+                    <path d="M 40,-40 C 35,-50 20,-55 10,-55 M 50,-20 C 45,-32 30,-40 15,-40" stroke="#38bdf8" strokeWidth="2" fill="none" />
+
+                    <path d="M 0,-50 L -35,-35 C -35,0 -20,35 0,55 C 20,35 35,0 35,-35 Z" fill="rgba(6, 182, 212, 0.12)" stroke="#00f0ff" strokeWidth="3" filter="url(#glow)" />
+                    <path d="M 0,-42 L -28,-29 C -28,0 -16,28 0,44 C 16,28 28,0 28,-29 Z" fill="none" stroke="rgba(255, 255, 255, 0.2)" strokeWidth="1.5" />
+
+                    <text x="0" y="8" textAnchor="middle" fill="#00f0ff" fontSize="20" fontWeight="900" fontFamily="monospace" filter="url(#glow)">&lt;/&gt;</text>
                   </g>
 
-                  {/* Header Text */}
-                  <text x="400" y="175" textAnchor="middle" fill="#00f0ff" fontSize="14" fontWeight="700" letterSpacing="4" filter="url(#glowCyan)">BCE CODE ARENA CHAMPION</text>
-                  <text x="400" y="210" textAnchor="middle" fill="#ffffff" fontSize="28" fontWeight="800" letterSpacing="1">CERTIFICATE OF ACHIEVEMENT</text>
+                  {/* TOP CENTER: Branding Logo */}
+                  <g transform="translate(600, 95)">
+                    <g transform="translate(0, -25)">
+                      <polygon points="0,-18 16,0 0,18 -16,0" fill="url(#cyanPurpleGrad)" opacity="0.8" />
+                      <polygon points="0,-12 11,0 0,12 -11,0" fill="#0b1021" />
+                      <text x="0" y="4" textAnchor="middle" fill="#00f0ff" fontSize="10" fontWeight="900" fontFamily="monospace">&lt;&gt;</text>
+                    </g>
 
-                  {/* Divider Line */}
-                  <line x1="250" y1="230" x2="550" y2="230" stroke="rgba(255,255,255,0.1)" strokeWidth="1.5" />
+                    <text x="0" y="10" textAnchor="middle" fill="#ffffff" fontSize="26" fontWeight="900" letterSpacing="3">{(organizerName || 'CODING BATTLE').toUpperCase()}</text>
+                    <text x="0" y="28" textAnchor="middle" fill="#38bdf8" fontSize="11" fontWeight="700" letterSpacing="2.5">CODE. SOLVE. CONQUER.</text>
+                  </g>
 
-                  {/* Recipient Name */}
-                  <text x="400" y="265" textAnchor="middle" fill="#ffffff" fontSize="20" fontWeight="600">This is proudly awarded to</text>
-                  <text x="400" y="305" textAnchor="middle" fill="#fbbf24" fontSize="34" fontWeight="800" letterSpacing="0.5" filter="url(#glowGold)">{studentName}</text>
+                  {/* TOP RIGHT: Certificate ID */}
+                  <text x="1110" y="70" textAnchor="end" fill="#94a3b8" fontSize="12" fontWeight="700" fontFamily="monospace">
+                    Certificate ID: CB2025-0524-1420
+                  </text>
 
-                  {/* Achievement Description */}
-                  <text x="400" y="340" textAnchor="middle" fill="#94a3b8" fontSize="14" fontWeight="500">for exceptional coding performance in the live battle</text>
-                  <text x="400" y="365" textAnchor="middle" fill="#e2e8f0" fontSize="16" fontWeight="700">"{battle.title}"</text>
+                  {/* MAIN HEADER TITLE */}
+                  <g transform="translate(600, 200)">
+                    <text x="0" y="0" textAnchor="middle" fill="url(#silverGrad)" fontSize="60" fontWeight="900" letterSpacing="8" filter="url(#glow)">CERTIFICATE</text>
+                    
+                    {/* Sub-Line with Cyan Diamonds */}
+                    <g transform="translate(0, 35)">
+                      <line x1="-280" y1="0" x2="-140" y2="0" stroke="url(#cyanPurpleGrad)" strokeWidth="2" />
+                      <circle cx="-140" cy="0" r="3" fill="#00f0ff" />
+                      <polygon points="-120,0 -115,-5 -110,0 -115,5" fill="#00f0ff" />
+                      <circle cx="-105" cy="0" r="2" fill="#00f0ff" />
 
-                  {/* Stats Indicators footer */}
-                  <g transform="translate(140, 395)">
-                    {/* Score */}
+                      <text x="0" y="6" textAnchor="middle" fill="url(#cyanPurpleGrad)" fontSize="18" fontWeight="800" letterSpacing="5">OF CODING BATTLE</text>
+
+                      <circle cx="105" cy="0" r="2" fill="#00f0ff" />
+                      <polygon points="110,0 115,-5 120,0 115,5" fill="#00f0ff" />
+                      <circle cx="140" cy="0" r="3" fill="#00f0ff" />
+                      <line x1="140" y1="0" x2="280" y2="0" stroke="url(#cyanPurpleGrad)" strokeWidth="2" />
+                    </g>
+                  </g>
+
+                  {/* RECIPIENT SECTION */}
+                  <text x="600" y="300" textAnchor="middle" fill="#94a3b8" fontSize="16" fontWeight="500">This is to certify that</text>
+
+                  {/* Recipient Name in Cyan-Purple Gradient */}
+                  <text x="600" y="365" textAnchor="middle" fill="url(#cyanPurpleGrad)" fontSize="54" fontWeight="900" letterSpacing="1" filter="url(#glow)">
+                    {studentName}
+                  </text>
+                  <line x1="380" y1="385" x2="820" y2="385" stroke="rgba(255,255,255,0.12)" strokeWidth="1.5" />
+
+                  {/* Description Text */}
+                  <text x="600" y="420" textAnchor="middle" fill="#cbd5e1" fontSize="15" fontWeight="500">
+                    has successfully participated in the <tspan fill="#00f0ff" fontWeight="700">Coding Battle</tspan> and demonstrated
+                  </text>
+                  <text x="600" y="445" textAnchor="middle" fill="#cbd5e1" fontSize="15" fontWeight="500">
+                    exceptional problem-solving skills, logic, and coding abilities.
+                  </text>
+
+                  {/* 3 KEY STATS CARDS (DATE, SCORE, RANK) */}
+                  <g transform="translate(600, 520)">
+                    <line x1="-350" y1="-30" x2="350" y2="-30" stroke="rgba(255, 255, 255, 0.08)" strokeWidth="1" />
+
+                    {/* 1. DATE */}
+                    <g transform="translate(-240, 0)">
+                      <rect x="-60" y="-18" width="36" height="36" rx="8" fill="rgba(56, 189, 248, 0.1)" stroke="rgba(56, 189, 248, 0.3)" strokeWidth="1" />
+                      <path d="M -48,-8 H -36 M -48,-2 H -36 M -48,4 H -40" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" />
+                      <rect x="-50" y="-12" width="16" height="18" rx="2" fill="none" stroke="#38bdf8" strokeWidth="1.5" />
+
+                      <text x="-10" y="-4" fill="#94a3b8" fontSize="11" fontWeight="700" letterSpacing="1">DATE</text>
+                      <text x="-10" y="16" fill="#ffffff" fontSize="16" fontWeight="700">May 24, 2025</text>
+                    </g>
+
+                    <line x1="-60" y1="-15" x2="-60" y2="25" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+
+                    {/* 2. SCORE */}
                     <g transform="translate(0, 0)">
-                      <rect x="0" y="0" width="120" height="28" rx="6" fill="rgba(6, 182, 212, 0.08)" stroke="rgba(6, 182, 212, 0.2)" strokeWidth="1" />
-                      <text x="60" y="18" textAnchor="middle" fill="#00f0ff" fontSize="11" fontWeight="700">{userScore} PTS</text>
+                      <rect x="-60" y="-18" width="36" height="36" rx="8" fill="rgba(168, 85, 247, 0.1)" stroke="rgba(168, 85, 247, 0.3)" strokeWidth="1" />
+                      <path d="M -46,-10 H -38 V -2 C -38,3 -42,6 -46,6 Z M -38,-10 V 2 C -38,6 -42,8 -46,8 M -46,8 V 14 M -50,14 H -42" stroke="#a855f7" strokeWidth="1.5" fill="none" />
+
+                      <text x="-10" y="-4" fill="#a855f7" fontSize="11" fontWeight="700" letterSpacing="1">SCORE</text>
+                      <text x="-10" y="16" fill="#ffffff" fontSize="16" fontWeight="700">{userScore || 1420}</text>
                     </g>
-                    {/* Rank */}
-                    <g transform="translate(135, 0)">
-                      <rect x="0" y="0" width="120" height="28" rx="6" fill="rgba(251, 191, 36, 0.08)" stroke="rgba(251, 191, 36, 0.2)" strokeWidth="1" />
-                      <text x="60" y="18" textAnchor="middle" fill="#fbbf24" fontSize="11" fontWeight="700">RANK #{userRank}</text>
+
+                    <line x1="120" y1="-15" x2="120" y2="25" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+
+                    {/* 3. RANK */}
+                    <g transform="translate(180, 0)">
+                      <rect x="-40" y="-18" width="36" height="36" rx="8" fill="rgba(168, 85, 247, 0.1)" stroke="rgba(168, 85, 247, 0.3)" strokeWidth="1" />
+                      <polygon points="-22,-12 -18,-2 -8,-2 -15,4 -12,14 -22,8 -32,14 -29,4 -36,-2 -26,-2" fill="#a855f7" opacity="0.9" />
+
+                      <text x="10" y="-4" fill="#38bdf8" fontSize="11" fontWeight="700" letterSpacing="1">RANK</text>
+                      <text x="10" y="16" fill="#ffffff" fontSize="16" fontWeight="700">{userRank ? `#${userRank}` : 'Top 10%'}</text>
                     </g>
-                    {/* Solved */}
-                    <g transform="translate(270, 0)">
-                      <rect x="0" y="0" width="120" height="28" rx="6" fill="rgba(16, 185, 129, 0.08)" stroke="rgba(16, 185, 129, 0.2)" strokeWidth="1" />
-                      <text x="60" y="18" textAnchor="middle" fill="#10b981" fontSize="11" fontWeight="700">SOLVED {officialSolvedProblemIds.size}/{problems.length}</text>
+
+                    <line x1="-350" y1="45" x2="350" y2="45" stroke="rgba(255, 255, 255, 0.08)" strokeWidth="1" />
+                  </g>
+
+                  {/* SIGNATURES & GOLD SEAL SECTION */}
+                  <g transform="translate(600, 650)">
+                    {/* LEFT SIGNATURE */}
+                    <g transform="translate(-320, 0)">
+                      <text x="0" y="-20" fill="#ffffff" fontSize="28" fontWeight="400" fontFamily="'Brush Script MT', 'Dancing Script', cursive, serif" fontStyle="italic">
+                        Aditya Kumar Sah
+                      </text>
+                      <line x1="0" y1="-5" x2="220" y2="-5" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+                      <text x="0" y="16" fill="#ffffff" fontSize="12" fontWeight="800" letterSpacing="1">ADITYA KUMAR SAH</text>
+                      <text x="0" y="32" fill="#94a3b8" fontSize="11" fontWeight="600">The Developer &amp; The Coder</text>
                     </g>
-                    {/* Accuracy */}
-                    <g transform="translate(405, 0)">
-                      <rect x="0" y="0" width="120" height="28" rx="6" fill="rgba(168, 85, 247, 0.08)" stroke="rgba(168, 85, 247, 0.2)" strokeWidth="1" />
-                      <text x="60" y="18" textAnchor="middle" fill="#a855f7" fontSize="11" fontWeight="700">{userAccuracy}% ACC</text>
+
+                    {/* CENTER GOLD SEAL BADGE */}
+                    <g transform="translate(0, 0)">
+                      <path d="M -25,25 L -45,75 L -20,65 L 0,75 L -5,25 Z" fill="#0284c7" stroke="#0369a1" strokeWidth="1" />
+                      <path d="M 25,25 L 5,75 L 20,65 L 45,75 L 25,25 Z" fill="#0284c7" stroke="#0369a1" strokeWidth="1" />
+                      <path d="M -20,25 L -35,70 L -15,62 L 0,70 L -5,25 Z" fill="#0ea5e9" opacity="0.6" />
+                      <path d="M 20,25 L 0,70 L 15,62 L 35,70 L 20,25 Z" fill="#0ea5e9" opacity="0.6" />
+
+                      <circle cx="0" cy="0" r="48" fill="url(#goldGrad)" stroke="#fef08a" strokeWidth="2" filter="url(#glow)" />
+                      <circle cx="0" cy="0" r="44" stroke="#fbbf24" strokeWidth="1" strokeDasharray="6,3" fill="none" />
+                      <circle cx="0" cy="0" r="38" fill="#060a17" stroke="url(#goldGrad)" strokeWidth="2" />
+
+                      <g fill="#fbbf24" transform="translate(0, -20)">
+                        <polygon points="-16,-2 -14,2 -10,2 -13,5 -11,9 -16,6 -21,9 -19,5 -22,2 -18,2" transform="scale(0.6)" />
+                        <polygon points="-8,-5 -6,-1 -2,-1 -5,2 -3,6 -8,3 -13,6 -11,2 -14,-1 -10,-1" transform="scale(0.6)" />
+                        <polygon points="0,-7 2,-3 6,-3 3,0 5,4 0,1 -5,4 -3,0 -6,-3 -2,-3" transform="scale(0.7)" />
+                        <polygon points="8,-5 10,-1 14,-1 11,2 13,6 8,3 3,6 5,2 2,-1 6,-1" transform="scale(0.6)" />
+                        <polygon points="16,-2 18,2 22,2 19,5 21,9 16,6 11,9 13,5 10,2 14,2" transform="scale(0.6)" />
+                      </g>
+
+                      <text x="0" y="10" textAnchor="middle" fill="#ffffff" fontSize="20" fontWeight="900" fontFamily="monospace" filter="url(#glow)">&lt;/&gt;</text>
                     </g>
+
+                    {/* RIGHT SIGNATURE */}
+                    <g transform="translate(130, -30)">
+                      <rect x="0" y="0" width="230" height="75" rx="10" fill="rgba(15, 23, 42, 0.6)" stroke="#3b82f6" strokeWidth="1.5" strokeDasharray="5 4" />
+                      <g transform="translate(20, 22)">
+                        <rect x="0" y="0" width="24" height="24" rx="6" fill="rgba(59, 130, 246, 0.2)" stroke="#3b82f6" strokeWidth="1" />
+                        <path d="M 6,18 L 18,6 M 14,6 L 18,10" stroke="#60a5fa" strokeWidth="1.5" strokeLinecap="round" />
+
+                        <text x="36" y="12" fill="#38bdf8" fontSize="12" fontWeight="800" letterSpacing="0.5">AUTHORIZED SIGNATURE</text>
+                        <text x="36" y="28" fill="#64748b" fontSize="11" fontWeight="500">(Click to Sign)</text>
+                      </g>
+                    </g>
+                  </g>
+
+                  {/* FOOTER VERIFICATION LINK */}
+                  <g transform="translate(600, 762)">
+                    <circle cx="-160" cy="-4" r="9" fill="rgba(56, 189, 248, 0.15)" stroke="#38bdf8" strokeWidth="1" />
+                    <path d="M -164,-4 L -161,-1 L -155,-7" stroke="#38bdf8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+
+                    <text x="-145" y="0" textAnchor="start" fill="#64748b" fontSize="12" fontWeight="600">
+                      Verify this certificate at: <tspan fill="#38bdf8" fontWeight="700">https://codingbattle.com/verify</tspan>
+                    </text>
                   </g>
                 </svg>
               </div>
