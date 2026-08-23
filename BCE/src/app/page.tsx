@@ -59,16 +59,30 @@ export default async function LandingPage() {
 
               {hero?.hero_badge && <div className="hero-badge animate-fade-up" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#e0e7ff', color: '#4f46e5', border: 'none', padding: '6px 12px', fontSize: '0.85rem' }}><Star size={14} fill="currentColor" /> {hero.hero_badge}</div>}
 
-              <h1 className="hero-title animate-fade-up delay-100" style={{ marginTop: '1rem' }}>
-                <span style={{ color: 'var(--text-primary)' }}>{hero?.hero_heading || companyName}</span>{hero?.hero_highlight && <><br /><span className="text-gradient-human">{hero.hero_highlight}</span></>}
+              <h1 className="hero-title animate-fade-up delay-100" style={{ marginTop: '1rem', fontSize: '3rem' }}>
+                <span style={{ color: 'var(--text-primary)' }}>{hero?.hero_heading || companyName}</span>{hero?.hero_highlight && <><br /><span className="text-gradient-human" style={{ fontSize: '2rem' }}>{hero.hero_highlight}</span></>}
               </h1>
-              <p className="hero-subtitle animate-fade-up delay-200">
+              <p className="hero-subtitle animate-fade-up delay-200" style={{ fontSize: '1rem' }}>
                 {hero?.hero_description || tagline}
               </p>
 
-
-
-              {hero?.hero_cta_text && <div className="hero-cta animate-fade-up delay-300"><Link href={hero.hero_cta_link || '/signup'}><button className="btn-human cta-btn-lg">{hero.hero_cta_text}<ArrowRight size={20} style={{ marginLeft: '8px' }} /></button></Link></div>}
+              <div className="hero-cta animate-fade-up delay-300">
+                {hero?.hero_cta_text && (
+                  <Link href={hero.hero_cta_link || '/signup'}>
+                    <button className="btn-human cta-btn-lg">
+                      {hero.hero_cta_text}
+                      <ArrowRight size={20} style={{ marginLeft: '8px' }} />
+                    </button>
+                  </Link>
+                )}
+                {hero?.hero_cta_text_2 && (
+                  <Link href={hero.hero_cta_link_2 || '/courses'}>
+                    <button className="btn-human-ghost cta-btn-secondary">
+                      {hero.hero_cta_text_2}
+                    </button>
+                  </Link>
+                )}
+              </div>
             </div>
 
             {/* Right — Hero Image */}
