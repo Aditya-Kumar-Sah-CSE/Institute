@@ -2,12 +2,15 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import { 
   Swords, Plus, Code2, Trophy, ArrowRight, 
-  User, Flame, CheckCircle2, Circle, Activity, Trash2, BookOpen
+  User, Flame, CheckCircle2, Circle, Activity, Trash2, BookOpen, BarChart2
 } from 'lucide-react';
 import CreateBattleWizard from './CreateBattleWizard';
+import BattleRegistrationModal from './BattleRegistrationModal';
+import BattleAnalyticsModal from './BattleAnalyticsModal';
 import MobileCodeArenaToggle from './MobileCodeArenaToggle';
 import UpcomingContestsAlert from './contests/UpcomingContestsAlert';
 import { resolveBattleStatus } from '../utils/battleUtils';
@@ -34,6 +37,7 @@ export default function CodeArenaClientHome({
   bceSolved?: number;
   externalAccounts?: any[];
 }) {
+  const router = useRouter();
   const [showWizard, setShowWizard] = useState(false);
   const [joinCodeInput, setJoinCodeInput] = useState('');
   const [joining, setJoining] = useState(false);
@@ -43,6 +47,9 @@ export default function CodeArenaClientHome({
 
   const [battles, setBattles] = useState<any[]>(initialBattles);
   const [editingBattle, setEditingBattle] = useState<any | null>(null);
+  const [joinedBattleIds, setJoinedBattleIds] = useState<string[]>(userJoinedBattleIds);
+  const [registrationBattle, setRegistrationBattle] = useState<any | null>(null);
+  const [analyticsBattle, setAnalyticsBattle] = useState<any | null>(null);
   const [visibleProblemsCount, setVisibleProblemsCount] = useState(6);
 
   const handleDeleteBattle = async (battleId: string) => {
@@ -326,6 +333,7 @@ export default function CodeArenaClientHome({
                 ? b.coding_battle_problems[0].count
                 : (Array.isArray(b.coding_battle_problems) ? b.coding_battle_problems.length : 0);
               const maxParticipants = b.max_participants || 25;
+              const isCreator = b.created_by === profile?.id || b.created_by === user?.id;
 
               return (
                 <div key={b.id} className={`arena-battle-card ${borderGlowClass}`}>
@@ -393,6 +401,33 @@ export default function CodeArenaClientHome({
                           </button>
                         </>
                       )}
+                      
+                      {/* Analytics Button for Creator or Instructor */}
+                      {(isCreator || isInstructor) && (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setAnalyticsBattle(b);
+                          }}
+                          style={{
+                            background: 'rgba(168, 85, 247, 0.1)',
+                            border: '1px solid rgba(168, 85, 247, 0.3)',
+                            color: 'var(--neon-purple)',
+                            cursor: 'pointer',
+                            padding: '2px 6px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                            borderRadius: '4px',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                          }}
+                          title="View Battle Analytics & Roster"
+                        >
+                          <BarChart2 size={11} /> Analytics
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -400,19 +435,41 @@ export default function CodeArenaClientHome({
                     <h3 className="card-battle-title" title={b.title}>{b.title}</h3>
                     <div className="battle-details-row" style={{ flexWrap: 'wrap', gap: '8px' }}>
                       <span>🕒 {b.duration_minutes} mins</span>
-                      <span>👥 {participantCount}/{maxParticipants}</span>
+                      <span style={{ color: 'var(--neon-cyan)', fontWeight: 700 }}>
+                        👥 {participantCount}/{maxParticipants} Registered
+                      </span>
                       <span>💻 {problemCount} {problemCount === 1 ? 'prob' : 'probs'}</span>
                       <span>👨‍🏫 {b.creator_role === 'FACULTY' ? 'Instructor' : 'Student'}</span>
                     </div>
                   </div>
 
                   <div className="battle-card-footer">
-                    <Link 
-                      href={`/code-arena/battles/${b.id}`} 
-                      className={`btn-battle-action ${isLive ? 'action-live' : isCompleted ? 'action-completed' : 'action-upcoming'}`}
-                    >
-                      {isLive ? 'Enter Battle →' : isCompleted ? 'View Results →' : 'Enter Lobby →'}
-                    </Link>
+                    {(() => {
+                      const isRegistered = joinedBattleIds.includes(b.id) || isCreator || isInstructor;
+                      const actionText = isLive ? 'Enter Battle →' : isCompleted ? 'View Results →' : 'Enter Lobby →';
+
+                      if (!isRegistered && !isCompleted) {
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => setRegistrationBattle(b)}
+                            className={`btn-battle-action ${isLive ? 'action-live' : 'action-upcoming'}`}
+                            style={{ border: 'none', cursor: 'pointer', width: '100%', display: 'block', textAlign: 'center' }}
+                          >
+                            Register & Enter →
+                          </button>
+                        );
+                      }
+
+                      return (
+                        <Link 
+                          href={`/code-arena/battles/${b.id}`} 
+                          className={`btn-battle-action ${isLive ? 'action-live' : isCompleted ? 'action-completed' : 'action-upcoming'}`}
+                        >
+                          {actionText}
+                        </Link>
+                      );
+                    })()}
                   </div>
                 </div>
               );
@@ -549,6 +606,30 @@ export default function CodeArenaClientHome({
         </div>
 
       </div>
+
+      {/* Pre-Battle Registration Modal */}
+      {registrationBattle && (
+        <BattleRegistrationModal
+          battle={registrationBattle}
+          user={user}
+          onClose={() => setRegistrationBattle(null)}
+          onSuccess={(joinedBattle) => {
+            setJoinedBattleIds((prev) => [...prev, joinedBattle.id]);
+            setRegistrationBattle(null);
+            router.push(`/code-arena/battles/${joinedBattle.id}`);
+          }}
+        />
+      )}
+
+      {/* Battle Analytics & Roster Modal */}
+      {analyticsBattle && (
+        <BattleAnalyticsModal
+          battle={analyticsBattle}
+          currentUser={user}
+          isInstructor={isInstructor}
+          onClose={() => setAnalyticsBattle(null)}
+        />
+      )}
 
       {/* Create / Edit Battle Wizard Modal */}
       {showWizard && (

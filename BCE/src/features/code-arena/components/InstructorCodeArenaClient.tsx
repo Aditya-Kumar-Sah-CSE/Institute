@@ -21,6 +21,7 @@ import {
   Square,
 } from 'lucide-react';
 import CreateBattleWizard from './CreateBattleWizard';
+import BattleAnalyticsModal from './BattleAnalyticsModal';
 import ProblemForm from './ProblemForm';
 import { deleteCodingProblem, duplicateCodingProblem } from '../actions';
 import { resolveBattleStatus } from '../utils/battleUtils';
@@ -46,6 +47,7 @@ export default function InstructorCodeArenaClient({
   // Modals
   const [showBattleWizard, setShowBattleWizard] = useState(false);
   const [editingBattle, setEditingBattle] = useState<any | null>(null);
+  const [analyticsBattle, setAnalyticsBattle] = useState<any | null>(null);
   const [showCreateProblemModal, setShowCreateProblemModal] = useState(false);
 
   const [startingId, setStartingId] = useState<string | null>(null);
@@ -326,6 +328,15 @@ export default function InstructorCodeArenaClient({
                         </Button>
                       )}
 
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        title="View Battle Analytics & Roster"
+                        onClick={() => setAnalyticsBattle(b)}
+                      >
+                        <BarChart2 size={14} /> Analytics
+                      </Button>
+
                       {isLobby && (
                         <Button size="sm" onClick={() => handleStartBattle(b.id)} isLoading={startingId === b.id}>
                           <Play size={14} /> Start
@@ -496,6 +507,16 @@ export default function InstructorCodeArenaClient({
             />
           </Card>
         </div>
+      )}
+
+      {/* Battle Analytics & Roster Modal */}
+      {analyticsBattle && (
+        <BattleAnalyticsModal
+          battle={analyticsBattle}
+          currentUser={user}
+          isInstructor={true}
+          onClose={() => setAnalyticsBattle(null)}
+        />
       )}
     </div>
   );
