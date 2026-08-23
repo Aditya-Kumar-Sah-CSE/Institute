@@ -34,6 +34,10 @@ import {
   Download,
   Share2,
   Shield,
+  ChevronDown,
+  FileImage,
+  FileCode,
+  Image as ImageIcon,
 } from 'lucide-react';
 import type { CodeLanguage, NormalizedExecutionResult } from '../types';
 import BattleLobby from './BattleLobby';
@@ -105,6 +109,23 @@ export default function BattleArenaClient({
   const [mySubmissions, setMySubmissions] = useState<any[]>([]);
   const [showEndModal, setShowEndModal] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showDownloadDropdown, setShowDownloadDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDownloadDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, []);
 
   // Synchronized Clock & Virtual Practice States
   const [serverNow, setServerNow] = useState<string | null>(null);
@@ -204,6 +225,16 @@ export default function BattleArenaClient({
     await downloadSvgAsImage('battle-certificate-svg-arena', {
       filename: `${cleanTitle}_SDE_Certificate`,
       format: 'png',
+      width: 1920,
+      height: 1080,
+    });
+  };
+
+  const downloadJPG = async () => {
+    const cleanTitle = (battle.title || 'Battle').replace(/\s+/g, '_');
+    await downloadSvgAsImage('battle-certificate-svg-arena', {
+      filename: `${cleanTitle}_SDE_Certificate`,
+      format: 'jpeg',
       width: 1920,
       height: 1080,
     });
@@ -1121,19 +1152,99 @@ export default function BattleArenaClient({
               </div>
 
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
-                <Button
-                  variant="primary"
-                  onClick={downloadPNG}
-                  style={{
-                    background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))',
-                    fontWeight: 800,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}
-                >
-                  <Download size={16} /> Download PNG Certificate
-                </Button>
+                {/* 3-Option Download Dropdown Button */}
+                <div ref={dropdownRef} style={{ position: 'relative', display: 'inline-block' }}>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setShowDownloadDropdown(!showDownloadDropdown)}
+                    style={{
+                      background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))',
+                      fontWeight: 800,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      color: '#fff',
+                      boxShadow: '0 0 15px rgba(0, 240, 255, 0.25)',
+                    }}
+                  >
+                    <Download size={16} /> Download Certificate <ChevronDown size={14} />
+                  </Button>
+
+                  {showDownloadDropdown && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: 'calc(100% + 8px)',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        background: '#0b0f19',
+                        border: '1px solid var(--neon-cyan)',
+                        borderRadius: '12px',
+                        padding: '8px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '4px',
+                        minWidth: '230px',
+                        zIndex: 1000,
+                        boxShadow: '0 10px 30px rgba(0,0,0,0.9), 0 0 15px rgba(0,240,255,0.2)',
+                      }}
+                    >
+                      <button
+                        onClick={() => { setShowDownloadDropdown(false); downloadPNG(); }}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                          padding: '10px 12px', borderRadius: '8px', background: 'transparent',
+                          border: 'none', color: '#fff', fontSize: '13px', fontWeight: 600,
+                          cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s',
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0, 240, 255, 0.15)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <ImageIcon size={16} style={{ color: 'var(--neon-cyan)' }} />
+                        <div>
+                          <div>PNG Certificate</div>
+                          <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>High-res image (.png)</div>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => { setShowDownloadDropdown(false); downloadJPG(); }}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                          padding: '10px 12px', borderRadius: '8px', background: 'transparent',
+                          border: 'none', color: '#fff', fontSize: '13px', fontWeight: 600,
+                          cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s',
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(168, 85, 247, 0.15)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <FileImage size={16} style={{ color: '#a855f7' }} />
+                        <div>
+                          <div>JPG Certificate</div>
+                          <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Standard image (.jpg)</div>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => { setShowDownloadDropdown(false); downloadCertificate(); }}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                          padding: '10px 12px', borderRadius: '8px', background: 'transparent',
+                          border: 'none', color: '#fff', fontSize: '13px', fontWeight: 600,
+                          cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s',
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(251, 191, 36, 0.15)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <FileCode size={16} style={{ color: '#fbbf24' }} />
+                        <div>
+                          <div>SVG Certificate</div>
+                          <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Vector graphics file (.svg)</div>
+                        </div>
+                      </button>
+                    </div>
+                  )}
+                </div>
 
                 <Button
                   variant="secondary"
