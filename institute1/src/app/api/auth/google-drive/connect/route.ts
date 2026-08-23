@@ -11,11 +11,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const rawClientId = process.env.GOOGLE_CLIENT_ID || '';
+  const rawClientSecret = process.env.GOOGLE_CLIENT_SECRET || '';
 
-  if (!clientId || !clientSecret) {
-    console.error('Google Drive OAuth is not configured: missing GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET');
+  const clientId = rawClientId.trim().replace(/^["']|["']$/g, '');
+  const clientSecret = rawClientSecret.trim().replace(/^["']|["']$/g, '');
+
+  if (!clientId || !clientSecret || clientId.includes('YOUR_') || clientId.toLowerCase() === 'placeholder') {
+    console.error('Google Drive OAuth is not configured: missing or invalid GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET');
     return NextResponse.redirect(new URL('/profile?drive_error=unavailable', request.url));
   }
 

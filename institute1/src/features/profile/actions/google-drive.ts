@@ -58,10 +58,13 @@ export async function refreshGoogleDriveToken(userId: string): Promise<string | 
     return null;
   }
 
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const rawClientId = process.env.GOOGLE_CLIENT_ID || '';
+  const rawClientSecret = process.env.GOOGLE_CLIENT_SECRET || '';
 
-  if (!clientId || !clientSecret) return null;
+  const clientId = rawClientId.trim().replace(/^["']|["']$/g, '');
+  const clientSecret = rawClientSecret.trim().replace(/^["']|["']$/g, '');
+
+  if (!clientId || !clientSecret || clientId.includes('YOUR_') || clientId.toLowerCase() === 'placeholder') return null;
 
   try {
     const res = await fetch('https://oauth2.googleapis.com/token', {
@@ -132,10 +135,13 @@ async function getValidAccessToken(userId: string): Promise<{ accessToken: strin
  */
 export async function getGoogleDriveStatus(targetUserId?: string): Promise<GoogleDriveStatusResult> {
   try {
-    const clientId = process.env.GOOGLE_CLIENT_ID;
-    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const rawClientId = process.env.GOOGLE_CLIENT_ID || '';
+    const rawClientSecret = process.env.GOOGLE_CLIENT_SECRET || '';
 
-    if (!clientId || !clientSecret) {
+    const clientId = rawClientId.trim().replace(/^["']|["']$/g, '');
+    const clientSecret = rawClientSecret.trim().replace(/^["']|["']$/g, '');
+
+    if (!clientId || !clientSecret || clientId.includes('YOUR_') || clientId.toLowerCase() === 'placeholder') {
       return { configured: false, connected: false };
     }
 
@@ -582,4 +588,3 @@ export async function initializeUserDriveStorage(
     return { success: false, error: err.message };
   }
 }
-
