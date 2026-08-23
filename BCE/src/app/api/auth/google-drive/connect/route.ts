@@ -14,7 +14,8 @@ export async function GET(request: NextRequest) {
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
-    return NextResponse.redirect(new URL('/profile?drive_error=not_configured', request.url));
+    console.error('Google Drive OAuth is not configured: missing GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET');
+    return NextResponse.redirect(new URL('/profile?drive_error=unavailable', request.url));
   }
 
   const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${new URL(request.url).origin}/api/auth/google-drive/callback`;
