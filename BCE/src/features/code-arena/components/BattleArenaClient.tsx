@@ -895,7 +895,18 @@ export default function BattleArenaClient({
                 {organizerLogo ? (
                   organizerLogo.trim().startsWith('<svg') ? (
                     <div
-                      style={{ width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      style={{
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '50%',
+                        overflow: 'hidden',
+                        border: '2px solid var(--neon-cyan)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'rgba(255,255,255,0.05)',
+                        boxShadow: '0 0 12px rgba(0, 240, 255, 0.2)',
+                      }}
                       dangerouslySetInnerHTML={{ __html: organizerLogo }}
                     />
                   ) : (
@@ -903,31 +914,31 @@ export default function BattleArenaClient({
                       src={organizerLogo}
                       alt={organizerName}
                       style={{
-                        height: '36px',
-                        maxWidth: '120px',
-                        borderRadius: '6px',
-                        objectFit: 'contain',
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '50%',
+                        objectFit: 'cover',
                         background: 'rgba(255,255,255,0.05)',
-                        border: '1px solid var(--glass-border)',
-                        padding: '3px',
+                        border: '2px solid var(--neon-cyan)',
+                        padding: '2px',
+                        boxShadow: '0 0 12px rgba(0, 240, 255, 0.2)',
                       }}
                     />
                   )
                 ) : (
                   <div
                     style={{
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '8px',
+                      width: '44px',
+                      height: '44px',
+                      borderRadius: '50%',
                       background: 'linear-gradient(135deg, rgba(6,182,212,0.25), rgba(168,85,247,0.25))',
-                      border: '1.5px solid var(--neon-cyan)',
+                      border: '2px solid var(--neon-cyan)',
                       color: 'var(--neon-cyan)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
+                      display: 'grid',
+                      placeItems: 'center',
                       fontWeight: 900,
                       fontFamily: 'monospace',
-                      fontSize: '14px',
+                      fontSize: '16px',
                       boxShadow: '0 0 12px rgba(0, 240, 255, 0.25)',
                     }}
                     title="Smart Learn"
@@ -1258,16 +1269,13 @@ export default function BattleArenaClient({
                     background: 'linear-gradient(135deg, rgba(254, 240, 138, 0.25), rgba(217, 119, 6, 0.35))',
                     border: '2.5px solid #fbbf24',
                     color: '#fbbf24',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    display: 'grid',
+                    placeItems: 'center',
                     boxShadow: '0 0 25px rgba(251, 191, 36, 0.45)',
                   }}
                   title="Rank 1 - Gold Champion"
                 >
-                  <span style={{ fontSize: '24px', lineHeight: 1 }}>🥇</span>
-                  <span style={{ fontSize: '10px', fontWeight: 900, letterSpacing: '0.5px', marginTop: '2px' }}>TOP 1</span>
+                  <span style={{ fontSize: '42px', lineHeight: 1 }}>🥇</span>
                 </div>
               ) : userRank === 2 ? (
                 <div
@@ -1278,16 +1286,13 @@ export default function BattleArenaClient({
                     background: 'linear-gradient(135deg, rgba(241, 245, 249, 0.25), rgba(148, 163, 184, 0.35))',
                     border: '2.5px solid #e2e8f0',
                     color: '#e2e8f0',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    display: 'grid',
+                    placeItems: 'center',
                     boxShadow: '0 0 25px rgba(226, 232, 240, 0.35)',
                   }}
                   title="Rank 2 - Silver Runner Up"
                 >
-                  <span style={{ fontSize: '24px', lineHeight: 1 }}>🥈</span>
-                  <span style={{ fontSize: '10px', fontWeight: 900, letterSpacing: '0.5px', marginTop: '2px' }}>TOP 2</span>
+                  <span style={{ fontSize: '42px', lineHeight: 1 }}>🥈</span>
                 </div>
               ) : userRank === 3 ? (
                 <div
@@ -1298,16 +1303,13 @@ export default function BattleArenaClient({
                     background: 'linear-gradient(135deg, rgba(255, 237, 213, 0.25), rgba(249, 115, 22, 0.35))',
                     border: '2.5px solid #f97316',
                     color: '#f97316',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    display: 'grid',
+                    placeItems: 'center',
                     boxShadow: '0 0 25px rgba(249, 115, 22, 0.35)',
                   }}
                   title="Rank 3 - Bronze Achiever"
                 >
-                  <span style={{ fontSize: '24px', lineHeight: 1 }}>🥉</span>
-                  <span style={{ fontSize: '10px', fontWeight: 900, letterSpacing: '0.5px', marginTop: '2px' }}>TOP 3</span>
+                  <span style={{ fontSize: '42px', lineHeight: 1 }}>🥉</span>
                 </div>
               ) : (
                 <div
