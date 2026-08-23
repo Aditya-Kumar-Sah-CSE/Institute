@@ -21,6 +21,29 @@ export interface GoogleDriveStatusResult {
 }
 
 /**
+ * Helper to get the canonical Google Drive OAuth callback URL.
+ * Prefers process.env.GOOGLE_REDIRECT_URI, then derives from requestUrl origin,
+ * and defaults to http://localhost:3000/api/auth/google-drive/callback.
+ */
+export async function getGoogleDriveRedirectUri(requestUrl?: string): Promise<string> {
+  const envRedirectUri = process.env.GOOGLE_REDIRECT_URI;
+  if (envRedirectUri && envRedirectUri.trim().length > 0) {
+    return envRedirectUri.trim();
+  }
+
+  if (requestUrl) {
+    try {
+      const url = new URL(requestUrl);
+      return `${url.origin}/api/auth/google-drive/callback`;
+    } catch (e) {
+      // Ignore URL parsing errors
+    }
+  }
+
+  return 'http://localhost:3000/api/auth/google-drive/callback';
+}
+
+/**
  * Refreshes an expired Google Drive access token using the stored refresh_token.
  */
 export async function refreshGoogleDriveToken(userId: string): Promise<string | null> {

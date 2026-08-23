@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { getGoogleDriveRedirectUri } from '@/features/profile/actions/google-drive';
 import crypto from 'crypto';
 
 export async function GET(request: NextRequest) {
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/profile?drive_error=unavailable', request.url));
   }
 
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${new URL(request.url).origin}/api/auth/google-drive/callback`;
+  const redirectUri = await getGoogleDriveRedirectUri(request.url);
 
   // Generate cryptographically secure OAuth state parameter
   const state = crypto.randomBytes(32).toString('hex');
