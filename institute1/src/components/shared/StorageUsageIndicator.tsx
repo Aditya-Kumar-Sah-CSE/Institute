@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Database, RefreshCw, ExternalLink, Cloud, CheckCircle, LogOut, ArrowRight, AlertCircle } from 'lucide-react';
+import { RefreshCw, ExternalLink, Cloud, CheckCircle, LogOut, ArrowRight, AlertCircle } from 'lucide-react';
 import { getUserStorageUsage, StorageUsageResult } from '@/features/profile/actions/storage';
 import { getGoogleDriveStatus, disconnectGoogleDrive, migrateExistingFilesToDrive, GoogleDriveStatusResult } from '@/features/profile/actions/google-drive';
 
@@ -55,10 +55,8 @@ export default function StorageUsageIndicator({
         setShowMigrateModal(true);
       }
       const err = params.get('drive_error');
-      if (err === 'not_configured') {
-        setErrorMessage('Google Drive OAuth is not configured on the server. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env.local.');
-      } else if (err) {
-        setErrorMessage(`Google Drive connection error: ${err}`);
+      if (err) {
+        setErrorMessage('Google Drive is temporarily unavailable. Please try again later.');
       }
     }
 
@@ -343,9 +341,7 @@ export default function StorageUsageIndicator({
     );
   }
 
-  // 2. DISCONNECTED STATE (ALWAYS SHOWS "Connect Google Drive" BUTTON)
-  const isConfigured = driveStatus?.configured ?? false;
-
+  // 2. DISCONNECTED STATE (Clean, production-ready UI)
   return (
     <div
       className={`storage-usage-indicator ${className}`}
@@ -427,12 +423,6 @@ export default function StorageUsageIndicator({
       >
         <Cloud size={16} /> Connect Google Drive <ArrowRight size={14} />
       </a>
-
-      {!isConfigured && !errorMessage && (
-        <div style={{ marginTop: '8px', fontSize: '11px', color: '#64748b' }}>
-          Note: Server requires <code>GOOGLE_CLIENT_ID</code> & <code>GOOGLE_CLIENT_SECRET</code> in <code>.env.local</code>.
-        </div>
-      )}
     </div>
   );
 }
