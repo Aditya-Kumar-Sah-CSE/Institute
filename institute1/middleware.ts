@@ -12,7 +12,7 @@ const RESERVED_SEGMENTS = new Set([
   'login', 'signup', 'forgot-password', 'reset-password',
   'apply-institution', 'apply-instructor',
   'institution-not-found', 'institution-disabled',
-  'contact', 'pwa-start', 'admission',
+  'contact', 'pwa-start', 'admission', 'privacy', 'terms',
   // Platform routes that need __platform__ rewrite
   'admin', 'dashboard', 'instructor',
   'courses', 'doubts', 'notices', 'leaderboard',

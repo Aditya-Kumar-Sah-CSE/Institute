@@ -349,8 +349,8 @@ export default async function LandingPage({
             </div>
             <div className="footer-link-col">
               <h4>Legal</h4>
-              <a href="#">Terms of Service</a>
-              <a href="#">Privacy Policy</a>
+              <Link href="/terms">Terms of Service</Link>
+              <Link href="/privacy">Privacy Policy</Link>
             </div>
           </div>
         </div>

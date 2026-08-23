@@ -51,7 +51,7 @@ export async function updateSession(request: NextRequest) {
     '/', '/login', '/signup', '/forgot-password', '/reset-password',
     '/apply-instructor', '/apply-institution',
     '/institution-not-found', '/institution-disabled', '/contact', '/pwa-start',
-    '/admission'
+    '/admission', '/privacy', '/terms'
   ];
   const isPublicRoute = publicRoutes.includes(effectivePathname);
 
