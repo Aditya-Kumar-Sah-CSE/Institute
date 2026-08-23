@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Download, Share2, Award, Calendar, Trophy, Trash2, Edit3, Image as ImageIcon, Save, Check } from 'lucide-react';
+import { Download, Share2, Award, Calendar, Trophy, Trash2, Edit3, Image as ImageIcon, Save, Check, ChevronDown, FileImage, FileCode } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { useRouter } from 'next/navigation';
 import { downloadSvgAsImage } from '@/lib/utils/certificateExporter';
@@ -42,6 +42,24 @@ export default function CertificateRenderer({
   
   // Share countdown state
   const [timeRemaining, setTimeRemaining] = useState<string>('');
+
+  const [showDownloadDropdown, setShowDownloadDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDownloadDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, []);
 
   useEffect(() => {
     if (!shareExpiresAt) return;
@@ -216,12 +234,38 @@ export default function CertificateRenderer({
     }
   };
 
-  // SVG Export helper to generate high-resolution PNG / JPG
-  const exportCertificate = async (format: 'png' | 'jpeg') => {
+  const downloadSVG = () => {
+    const svgEl = document.getElementById('battle-certificate-svg');
+    if (!svgEl) return;
+    const svgString = new XMLSerializer().serializeToString(svgEl);
+    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const URLObj = window.URL || window.webkitURL || window;
+    const svgUrl = URLObj.createObjectURL(svgBlob);
+    const downloadLink = document.createElement('a');
+    downloadLink.href = svgUrl;
+    const cleanName = (cert.profiles?.name || 'User').replace(/[^a-zA-Z0-9]/g, '-');
+    downloadLink.download = `Coding-Battle-Certificate-${cleanName}.svg`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    URLObj.revokeObjectURL(svgUrl);
+  };
+
+  const downloadPNG = async () => {
     const cleanName = (cert.profiles?.name || 'User').replace(/[^a-zA-Z0-9]/g, '-');
     await downloadSvgAsImage('battle-certificate-svg', {
       filename: `Coding-Battle-Certificate-${cleanName}`,
-      format,
+      format: 'png',
+      width: 1920,
+      height: 1080,
+    });
+  };
+
+  const downloadJPG = async () => {
+    const cleanName = (cert.profiles?.name || 'User').replace(/[^a-zA-Z0-9]/g, '-');
+    await downloadSvgAsImage('battle-certificate-svg', {
+      filename: `Coding-Battle-Certificate-${cleanName}`,
+      format: 'jpeg',
       width: 1920,
       height: 1080,
     });
@@ -449,36 +493,100 @@ export default function CertificateRenderer({
             </svg>
           </div>
 
-          {/* Action buttons under certificate */}
+          {/* Interactive 3-Option Download Dropdown */}
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', width: '100%', justifyContent: 'center' }}>
-            <Button
-              variant="primary"
-              onClick={() => exportCertificate('png')}
-              style={{
-                background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))',
-                fontWeight: 700,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              <Download size={15} /> Download PNG Certificate
-            </Button>
+            <div ref={dropdownRef} style={{ position: 'relative', display: 'inline-block' }}>
+              <Button
+                variant="secondary"
+                onClick={() => setShowDownloadDropdown(!showDownloadDropdown)}
+                style={{
+                  background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))',
+                  fontWeight: 800,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  color: '#fff',
+                  boxShadow: '0 0 15px rgba(0, 240, 255, 0.25)',
+                }}
+              >
+                <Download size={16} /> Download Certificate <ChevronDown size={14} />
+              </Button>
 
-            <Button
-              variant="secondary"
-              onClick={() => exportCertificate('jpeg')}
-              style={{
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid var(--glass-border)',
-                fontWeight: 700,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              <Download size={15} /> Download JPG Certificate
-            </Button>
+              {showDownloadDropdown && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 8px)',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: '#0b0f19',
+                    border: '1px solid var(--neon-cyan)',
+                    borderRadius: '12px',
+                    padding: '8px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    minWidth: '230px',
+                    zIndex: 1000,
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.9), 0 0 15px rgba(0,240,255,0.2)',
+                  }}
+                >
+                  <button
+                    onClick={() => { setShowDownloadDropdown(false); downloadPNG(); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                      padding: '10px 12px', borderRadius: '8px', background: 'transparent',
+                      border: 'none', color: '#fff', fontSize: '13px', fontWeight: 600,
+                      cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0, 240, 255, 0.15)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <ImageIcon size={16} style={{ color: 'var(--neon-cyan)' }} />
+                    <div>
+                      <div>PNG Certificate</div>
+                      <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>High-res image (.png)</div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => { setShowDownloadDropdown(false); downloadJPG(); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                      padding: '10px 12px', borderRadius: '8px', background: 'transparent',
+                      border: 'none', color: '#fff', fontSize: '13px', fontWeight: 600,
+                      cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(168, 85, 247, 0.15)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <FileImage size={16} style={{ color: '#a855f7' }} />
+                    <div>
+                      <div>JPG Certificate</div>
+                      <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Standard image (.jpg)</div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => { setShowDownloadDropdown(false); downloadSVG(); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                      padding: '10px 12px', borderRadius: '8px', background: 'transparent',
+                      border: 'none', color: '#fff', fontSize: '13px', fontWeight: 600,
+                      cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(251, 191, 36, 0.15)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <FileCode size={16} style={{ color: '#fbbf24' }} />
+                    <div>
+                      <div>SVG Certificate</div>
+                      <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Vector graphics file (.svg)</div>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

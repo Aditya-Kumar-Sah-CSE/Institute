@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -34,6 +34,22 @@ export default function BattleEndScreen({
   const router = useRouter();
   const [claiming, setClaiming] = useState(false);
   const [showDownloadDropdown, setShowDownloadDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDownloadDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, []);
 
   const handleOpenCertificate = async () => {
     setClaiming(true);
@@ -496,7 +512,7 @@ export default function BattleEndScreen({
               </Button>
 
               {/* 3-Option Download Dropdown Button */}
-              <div style={{ position: 'relative', display: 'inline-block' }}>
+              <div ref={dropdownRef} style={{ position: 'relative', display: 'inline-block' }}>
                 <Button
                   variant="secondary"
                   onClick={() => setShowDownloadDropdown(!showDownloadDropdown)}
