@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Database, HardDrive, RefreshCw, ExternalLink, Cloud, CheckCircle, LogOut, ArrowRight } from 'lucide-react';
+import { Database, RefreshCw, ExternalLink, Cloud, CheckCircle, LogOut, ArrowRight, AlertCircle } from 'lucide-react';
 import { getUserStorageUsage, StorageUsageResult } from '@/features/profile/actions/storage';
 import { getGoogleDriveStatus, disconnectGoogleDrive, migrateExistingFilesToDrive, GoogleDriveStatusResult } from '@/features/profile/actions/google-drive';
 
@@ -26,6 +26,7 @@ export default function StorageUsageIndicator({
   const [migrating, setMigrating] = useState<boolean>(false);
   const [migrationResult, setMigrationResult] = useState<string | null>(null);
   const [showMigrateModal, setShowMigrateModal] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const loadData = async () => {
     try {
@@ -48,11 +49,16 @@ export default function StorageUsageIndicator({
     setHasMounted(true);
     loadData();
 
-    // Check query params for drive_connected
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       if (params.get('drive_connected') === 'true') {
         setShowMigrateModal(true);
+      }
+      const err = params.get('drive_error');
+      if (err === 'not_configured') {
+        setErrorMessage('Google Drive OAuth is not configured on the server. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env.local.');
+      } else if (err) {
+        setErrorMessage(`Google Drive connection error: ${err}`);
       }
     }
 
@@ -337,63 +343,8 @@ export default function StorageUsageIndicator({
     );
   }
 
-  // 2. DISCONNECTED STATE (Google OAuth Configured, Available for 1-Click Connect)
-  if (driveStatus?.configured) {
-    return (
-      <div
-        className={`storage-usage-indicator ${className}`}
-        style={{
-          background: 'var(--bg-elevated, rgba(15, 23, 42, 0.6))',
-          border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-          borderRadius: 'var(--radius-lg, 12px)',
-          padding: compact ? '14px 16px' : '18px 22px',
-          width: '100%',
-          boxSizing: 'border-box',
-          backdropFilter: 'blur(10px)',
-          textAlign: 'left',
-          ...style,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-          <Database size={18} style={{ color: '#00f2fe' }} />
-          <span style={{ fontSize: '14px', fontWeight: '700', color: '#ffffff' }}>Database Usage</span>
-        </div>
-
-        <div style={{ fontSize: '18px', fontWeight: '800', color: '#ffffff', marginBottom: '6px' }}>
-          {dbData?.formattedTotal || '0 B'}
-        </div>
-
-        <p style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '14px', lineHeight: '1.4' }}>
-          Connect your Google Drive to store files securely in your own Drive.
-        </p>
-
-        <a
-          href="/api/auth/google-drive/connect"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            fontSize: '13px',
-            fontWeight: '700',
-            color: '#ffffff',
-            background: 'linear-gradient(135deg, #00f2fe, #4facfe)',
-            padding: '8px 16px',
-            borderRadius: '8px',
-            textDecoration: 'none',
-            boxShadow: '0 4px 14px rgba(0, 242, 254, 0.3)',
-          }}
-        >
-          <Cloud size={16} /> Connect Google Drive <ArrowRight size={14} />
-        </a>
-      </div>
-    );
-  }
-
-  // 3. FALLBACK STATE (Google OAuth Credentials Not Configured on Server)
-  const percentageUsed = dbData?.percentageUsed || 0;
-  const formattedTotal = dbData?.formattedTotal || '0 B';
-  const formattedDatabaseBytes = dbData?.formattedDatabaseBytes || '0 B';
-  const formattedStorageBytes = dbData?.formattedStorageBytes || '0 B';
+  // 2. DISCONNECTED STATE (ALWAYS SHOWS "Connect Google Drive" BUTTON)
+  const isConfigured = driveStatus?.configured ?? false;
 
   return (
     <div
@@ -402,7 +353,7 @@ export default function StorageUsageIndicator({
         background: 'var(--bg-elevated, rgba(15, 23, 42, 0.6))',
         border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
         borderRadius: 'var(--radius-lg, 12px)',
-        padding: compact ? '12px 16px' : '16px 20px',
+        padding: compact ? '14px 16px' : '18px 22px',
         width: '100%',
         boxSizing: 'border-box',
         backdropFilter: 'blur(10px)',
@@ -412,25 +363,76 @@ export default function StorageUsageIndicator({
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Database size={16} style={{ color: '#00f2fe' }} />
-          <span style={{ fontSize: '14px', fontWeight: '600', color: '#ffffff' }}>Database Usage</span>
+          <Cloud size={18} style={{ color: '#00f2fe' }} />
+          <span style={{ fontSize: '14px', fontWeight: '700', color: '#ffffff' }}>Google Drive Storage</span>
         </div>
-        <span style={{ fontSize: '12px', fontWeight: '700', color: '#00f2fe' }}>{percentageUsed}% Used</span>
+        <span
+          style={{
+            fontSize: '11px',
+            fontWeight: '600',
+            color: '#94a3b8',
+            background: 'rgba(255, 255, 255, 0.06)',
+            padding: '2px 8px',
+            borderRadius: '10px',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+          }}
+        >
+          Disconnected
+        </span>
       </div>
 
-      <div style={{ fontSize: '18px', fontWeight: '700', color: '#ffffff', marginBottom: '4px' }}>{formattedTotal}</div>
-
-      <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '10px' }}>
-        DB Rows: {formattedDatabaseBytes} • Storage Files: {formattedStorageBytes}
+      <div style={{ fontSize: '20px', fontWeight: '800', color: '#ffffff', marginBottom: '4px' }}>
+        {loading ? '...' : dbData?.formattedTotal || '0 B'}
       </div>
 
-      <div style={{ width: '100%', height: '8px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '4px', overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${Math.max(percentageUsed, 2)}%`, background: 'linear-gradient(90deg, #00f2fe, #4facfe)', borderRadius: '4px' }} />
-      </div>
+      <p style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '14px', lineHeight: '1.4' }}>
+        Connect your Google Drive to store files securely in your own Drive.
+      </p>
 
-      <div style={{ marginTop: '8px', fontSize: '10px', color: '#64748b' }}>
-        Google Drive is not configured by server admin. Supabase Storage is active.
-      </div>
+      {errorMessage && (
+        <div
+          style={{
+            marginBottom: '12px',
+            padding: '8px 12px',
+            background: 'rgba(244, 63, 94, 0.1)',
+            border: '1px solid rgba(244, 63, 94, 0.3)',
+            borderRadius: '8px',
+            color: '#fb7185',
+            fontSize: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+          }}
+        >
+          <AlertCircle size={14} /> {errorMessage}
+        </div>
+      )}
+
+      <a
+        href="/api/auth/google-drive/connect"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '8px',
+          fontSize: '13px',
+          fontWeight: '700',
+          color: '#ffffff',
+          background: 'linear-gradient(135deg, #00f2fe, #4facfe)',
+          padding: '10px 18px',
+          borderRadius: '8px',
+          textDecoration: 'none',
+          boxShadow: '0 4px 14px rgba(0, 242, 254, 0.3)',
+          transition: 'all 0.2s ease',
+        }}
+      >
+        <Cloud size={16} /> Connect Google Drive <ArrowRight size={14} />
+      </a>
+
+      {!isConfigured && !errorMessage && (
+        <div style={{ marginTop: '8px', fontSize: '11px', color: '#64748b' }}>
+          Note: Server requires <code>GOOGLE_CLIENT_ID</code> & <code>GOOGLE_CLIENT_SECRET</code> in <code>.env.local</code>.
+        </div>
+      )}
     </div>
   );
 }
