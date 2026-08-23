@@ -1,0 +1,2 @@
+import { NextRequest, NextResponse } from 'next/server'; import { NPTELSyncService, NptelDeadlineAlertService } from '@/features/nptel/service';
+export async function GET(request: NextRequest) { if (!process.env.CRON_SECRET || request.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 }); const results = await new NPTELSyncService().syncActiveCourses(); const alerts = await new NptelDeadlineAlertService().generate(); return NextResponse.json({ results, alerts }); }

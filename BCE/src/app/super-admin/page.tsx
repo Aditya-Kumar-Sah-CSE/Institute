@@ -333,6 +333,7 @@ export default function SuperAdminDashboardPage() {
           </div>
 
           <SuperAdminBadge email={overviewData?.owner?.email} />
+          <a href="/super-admin/landing" style={{ color: '#06b6d4', fontWeight: 700, textDecoration: 'none' }}>Landing & Branding CMS →</a>
         </div>
 
         {/* Navigation Tabs */}

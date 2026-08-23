@@ -13,7 +13,7 @@ export default async function CodeArenaPage() {
 
   // Check Feature Flag / Emergency Kill Switch
   const { data: userProfile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-  const isAllowed = isFeatureAllowed('coding_arena', null, null, null, user.email, userProfile?.role);
+  const isAllowed = await isFeatureAllowed('coding_arena', null, null, null, user.email, userProfile?.role);
   if (!isAllowed) {
     return <LockedFeatureScreen featureName="Coding Arena" />;
   }

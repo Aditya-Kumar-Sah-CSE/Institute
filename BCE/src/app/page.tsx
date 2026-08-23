@@ -2,7 +2,7 @@ import React from 'react';
 
 // ISR: Serve from CDN cache, revalidate every hour.
 // The landing page Supabase call (company_name, tagline) runs at build/revalidation only — not per-request.
-export const revalidate = 3600;
+export const revalidate = 60;
 
 import Link from 'next/link';
 import Image from 'next/image';
@@ -17,7 +17,11 @@ import { createClient } from '@/lib/supabase/server';
 
 export default async function LandingPage() {
   const supabase = await createClient();
-  const { data: settings } = await supabase.from('company_settings').select('company_name, tagline').maybeSingle();
+  const [{ data: settings }, { data: hero }, { data: coreFeatures }] = await Promise.all([
+    supabase.from('company_settings').select('company_name, tagline, logo_url').maybeSingle(),
+    supabase.from('landing_content').select('*').eq('id', 'default').maybeSingle(),
+    supabase.from('landing_core_features').select('*').eq('is_active', true).order('sort_order'),
+  ]);
   const companyName = settings?.company_name || 'Smart Learning';
   const tagline = settings?.tagline || 'Smart Hybrid Learning & Student Engagement Platform';
 
@@ -27,7 +31,7 @@ export default async function LandingPage() {
       <header className="landing-nav">
         <div className="landing-logo" style={{ display: 'flex', alignItems: 'center', padding: '0', margin: '0', background: 'transparent' }}>
           <Image 
-            src="/images/smart_learning%20logo.png" 
+            src={settings?.logo_url || "/images/smart_learning%20logo.png"} 
             alt="Company Logo" 
             width={40} 
             height={40} 
@@ -61,23 +65,23 @@ export default async function LandingPage() {
             <div className="hero-text">
 
               <div className="hero-badge animate-fade-up" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#e0e7ff', color: '#4f46e5', border: 'none', padding: '6px 12px', fontSize: '0.85rem' }}>
-                <Star size={14} fill="currentColor" /> A Smarter Way to Learn, Teach & Grow
+                <Star size={14} fill="currentColor" /> {hero?.hero_badge || 'A Smarter Way to Learn, Teach & Grow'}
               </div>
 
               <h1 className="hero-title animate-fade-up delay-100" style={{ marginTop: '1rem' }}>
-                <span style={{ color: 'var(--text-primary)' }}>Smart Learning</span><br />
-                <span className="text-gradient-human">Better Future</span>
+                <span style={{ color: 'var(--text-primary)' }}>{hero?.hero_heading || companyName}</span><br />
+                <span className="text-gradient-human">{hero?.hero_highlight || 'Better Future'}</span>
               </h1>
               <p className="hero-subtitle animate-fade-up delay-200">
-                Smart Learning is an all-in-one platform for students, instructors, and institutions to learn, collaborate, and achieve more together.
+                {hero?.hero_description || 'Smart Learning is an all-in-one platform for students, instructors, and institutions to learn, collaborate, and achieve more together.'}
               </p>
 
 
 
               <div className="hero-cta animate-fade-up delay-300">
-                <Link href="/signup">
+                <Link href={hero?.hero_cta_link || '/signup'}>
                   <button className="btn-human cta-btn-lg">
-                    Get Started
+                    {hero?.hero_cta_text || 'Get Started'}
                     <ArrowRight size={20} style={{ marginLeft: '8px' }} />
                   </button>
                 </Link>
@@ -91,7 +95,7 @@ export default async function LandingPage() {
             <div className="hero-image animate-fade-up delay-200">
               <div className="hero-image-glow"></div>
               <Image
-                src="/images/hero_img.png"
+                src={hero?.hero_image_url || '/images/hero_img.png'}
                 alt="Smart Learning Hero Image"
                 width={800}
                 height={600}
@@ -155,96 +159,13 @@ export default async function LandingPage() {
           <h2 className="section-title">Everything You Need to Succeed</h2>
 
           <AutoScrollMarquee className="features-marquee-wrapper" innerClassName="features-keyword-grid">
-                {/* 1. Approval System */}
-                <div className="feature-card">
-                  <div className="feature-icon-wrapper">
-                    <UserCheck size={32} strokeWidth={1.5} />
-                  </div>
-                  <h3>Approval System</h3>
-                </div>
-
-                {/* 2. Batch Specific Doubt System */}
-                <div className="feature-card">
-                  <div className="feature-icon-wrapper">
-                    <MessageSquare size={32} strokeWidth={1.5} />
-                  </div>
-                  <h3>Batch Doubts</h3>
-                </div>
-
-                {/* 3. Poll System */}
-                <div className="feature-card">
-                  <div className="feature-icon-wrapper">
-                    <BarChart2 size={32} strokeWidth={1.5} />
-                  </div>
-                  <h3>Live Poll System</h3>
-                </div>
-
-                {/* 4. One Click Assessment */}
-                <div className="feature-card">
-                  <div className="feature-icon-wrapper">
-                    <Timer size={32} strokeWidth={1.5} />
-                  </div>
-                  <h3>1-Click Assessment</h3>
-                </div>
-
-                {/* 5. Coding Profile */}
-                <div className="feature-card">
-                  <div className="feature-icon-wrapper">
-                    <Terminal size={32} strokeWidth={1.5} />
-                  </div>
-                  <h3>Coding Profile</h3>
-                </div>
-
-                {/* 6. Emergency Alert System */}
-                <div className="feature-card">
-                  <div className="feature-icon-wrapper">
-                    <BellRing size={32} strokeWidth={1.5} />
-                  </div>
-                  <h3>Emergency Alerts</h3>
-                </div>
-
-                {/* Duplicated for smooth infinite scroll on mobile */}
-                <div className="feature-card mobile-dup">
-                  <div className="feature-icon-wrapper">
-                    <UserCheck size={32} strokeWidth={1.5} />
-                  </div>
-                  <h3>Approval System</h3>
-                </div>
-                <div className="feature-card mobile-dup">
-                  <div className="feature-icon-wrapper">
-                    <MessageSquare size={32} strokeWidth={1.5} />
-                  </div>
-                  <h3>Batch Doubts</h3>
-                </div>
-                <div className="feature-card mobile-dup">
-                  <div className="feature-icon-wrapper">
-                    <BarChart2 size={32} strokeWidth={1.5} />
-                  </div>
-                  <h3>Live Poll System</h3>
-                </div>
-                <div className="feature-card mobile-dup">
-                  <div className="feature-icon-wrapper">
-                    <Timer size={32} strokeWidth={1.5} />
-                  </div>
-                  <h3>1-Click Assessment</h3>
-                </div>
-                <div className="feature-card mobile-dup">
-                  <div className="feature-icon-wrapper">
-                    <Terminal size={32} strokeWidth={1.5} />
-                  </div>
-                  <h3>Coding Profile</h3>
-                </div>
-                <div className="feature-card mobile-dup">
-                  <div className="feature-icon-wrapper">
-                    <BellRing size={32} strokeWidth={1.5} />
-                  </div>
-                  <h3>Emergency Alerts</h3>
-                </div>
+                {(coreFeatures?.length ? coreFeatures : [{ id: 'fallback', title: 'Approval System', description: '', icon: 'UserCheck' }]).map((feature: any) => <div className="feature-card" key={feature.id}><div className="feature-icon-wrapper">{feature.image_url ? <Image src={feature.image_url} alt="" width={32} height={32} style={{ objectFit: 'contain' }} unoptimized /> : <Star size={32} strokeWidth={1.5} />}</div><h3>{feature.title}</h3>{feature.description && <p>{feature.description}</p>}</div>)}
           </AutoScrollMarquee>
         </section>
 
 
       </main>
+      </ExploreMoreWrapper>
 
       {/* Footer */}
       <footer className="landing-footer">
@@ -286,7 +207,6 @@ export default async function LandingPage() {
           </div>
         </div>
       </footer>
-      </ExploreMoreWrapper>
     </div>
   );
 }

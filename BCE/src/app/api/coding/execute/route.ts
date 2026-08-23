@@ -16,7 +16,7 @@ const WANDBOX_COMPILERS: Record<string, string> = {
 export async function POST(request: Request) {
   try {
     const { isFeatureAllowed } = await import('@/lib/feature-flags');
-    if (!isFeatureAllowed('coding_arena') || !isFeatureAllowed('compiler')) {
+    if (!(await isFeatureAllowed('coding_arena')) || !(await isFeatureAllowed('compiler'))) {
       return NextResponse.json(
         {
           status: 'SYSTEM_ERROR',

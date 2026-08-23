@@ -37,8 +37,8 @@ export const GET = withSafeApiHandler(async () => {
       authenticatedAs: admin.email,
     },
     stats,
-    featureFlags: getGlobalFeatureFlags(),
-    emergencyKillSwitches: getEmergencyKillSwitches(),
+    featureFlags: await getGlobalFeatureFlags(),
+    emergencyKillSwitches: await getEmergencyKillSwitches(),
     recentAuditLogs: getAuditLogs().slice(0, 10),
   });
 });

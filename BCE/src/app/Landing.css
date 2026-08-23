@@ -142,12 +142,12 @@
 /* Hero Section */
 .hero-section {
   position: relative;
-  padding: 85px var(--space-lg) var(--space-xl);
+  padding: clamp(3rem, 7vw, 5rem) var(--space-lg) clamp(2.5rem, 6vw, 4.5rem);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 70vh;
+  min-height: 58vh;
   overflow: hidden;
 }
 
@@ -658,7 +658,7 @@
 
 /* Gallery Section */
 .gallery-section {
-  padding: 85px var(--space-lg) var(--space-xl);
+  padding: clamp(3rem, 6vw, 4.5rem) var(--space-lg) clamp(2.5rem, 5vw, 4rem);
   max-width: var(--max-content-width);
   margin: 0 auto;
 }
@@ -1044,8 +1044,8 @@
   padding: 1rem;
 }
 .why-huge-card {
-  width: 450px;
-  min-width: 450px;
+  width: 360px;
+  min-width: 360px;
   flex: 0 0 auto;
 }
 @media (max-width: 768px) {
@@ -1068,13 +1068,17 @@
 }
 .gallery-card-img {
   width: 100%;
+  height: 210px;
 }
 .gallery-card-img img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
   border-bottom: 1px solid #1e293b;
 }
 .gallery-card-info {
   background-color: #181b2f !important;
-  padding: 2rem !important;
+  padding: 1.1rem 1.25rem !important;
   flex: 1;
 }
 .gallery-card-info h3 {

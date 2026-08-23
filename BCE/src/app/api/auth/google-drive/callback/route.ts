@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { getGoogleDriveRedirectUri } from '@/features/profile/actions/google-drive';
+import crypto from 'crypto';
 
 const REQUIRED_SUBFOLDERS = [
   'Courses',
@@ -40,6 +41,8 @@ async function getOrCreateDriveFolder(accessToken: string, folderName: string, p
     if (searchData.files && searchData.files.length > 0) {
       return searchData.files[0].id;
     }
+  } else {
+    throw new Error(`Drive folder search failed (${searchRes.status}): ${(await searchRes.text()).slice(0, 500)}`);
   }
 
   // 2. Create folder if not found
@@ -70,6 +73,7 @@ async function getOrCreateDriveFolder(accessToken: string, folderName: string, p
 }
 
 export async function GET(request: NextRequest) {
+  const traceId = crypto.randomUUID();
   const url = new URL(request.url);
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
@@ -78,7 +82,7 @@ export async function GET(request: NextRequest) {
   const cookieState = request.cookies.get('gdrive_oauth_state')?.value;
 
   if (oauthError || !code || !state || state !== cookieState) {
-    console.error('Google Drive OAuth callback error or state mismatch');
+    console.error('[google-drive/callback] authorization rejected or state mismatch', { traceId, oauthError: oauthError || null, hasCode: Boolean(code), hasState: Boolean(state), hasCookieState: Boolean(cookieState) });
     return NextResponse.redirect(new URL('/profile?drive_error=invalid_state', request.url));
   }
 
@@ -100,9 +104,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/profile?drive_error=unavailable', request.url));
   }
 
-  const redirectUri = await getGoogleDriveRedirectUri(request.url);
+  let redirectUri: string;
+  try {
+    redirectUri = await getGoogleDriveRedirectUri(request.url);
+  } catch (error) {
+    console.error('[google-drive/callback] invalid redirect URI configuration', { traceId, error: error instanceof Error ? error.message : String(error) });
+    return NextResponse.redirect(new URL('/profile?drive_error=unavailable', request.url));
+  }
 
   try {
+    console.info('[google-drive/callback] starting token exchange', { traceId, userId: user.id, redirectUri });
     // 1. Exchange authorization code for tokens
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -118,7 +129,7 @@ export async function GET(request: NextRequest) {
 
     if (!tokenRes.ok) {
       const errText = await tokenRes.text();
-      console.error('Google OAuth token exchange failed:', errText);
+      console.error('[google-drive/callback] token exchange failed', { traceId, status: tokenRes.status, response: errText.slice(0, 1000), redirectUri });
       return NextResponse.redirect(new URL('/profile?drive_error=token_exchange_failed', request.url));
     }
 
@@ -128,6 +139,7 @@ export async function GET(request: NextRequest) {
     const expiresIn = tokenData.expires_in || 3600;
 
     const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
+    if (!accessToken || typeof accessToken !== 'string') throw new Error('Google token response did not include an access token');
 
     // 2. Fetch user Google account email
     const userinfoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
@@ -141,6 +153,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 3. Automatically create/reuse root folder "Code Arena/"
+    console.info('[google-drive/callback] provisioning Drive folders', { traceId, userId: user.id });
     const rootFolderId = await getOrCreateDriveFolder(accessToken, 'Code Arena');
 
     // 4. Automatically create/reuse required subfolders
@@ -173,16 +186,17 @@ export async function GET(request: NextRequest) {
       .upsert(updatePayload, { onConflict: 'user_id' });
 
     if (upsertErr) {
-      console.error('Failed to store Google Drive tokens in DB:', upsertErr);
+      console.error('[google-drive/callback] failed to store Drive connection', { traceId, code: upsertErr.code, message: upsertErr.message });
       return NextResponse.redirect(new URL('/profile?drive_error=db_save_failed', request.url));
     }
 
     // Redirect to profile page with success message
     const response = NextResponse.redirect(new URL('/profile?drive_connected=true', request.url));
     response.cookies.delete('gdrive_oauth_state');
+    console.info('[google-drive/callback] Drive connected', { traceId, userId: user.id, googleEmail });
     return response;
   } catch (err: any) {
-    console.error('Google Drive OAuth Callback Exception:', err);
+    console.error('[google-drive/callback] unexpected callback exception', { traceId, name: err?.name, message: err?.message, stack: err?.stack, userId: user.id, redirectUri });
     return NextResponse.redirect(new URL('/profile?drive_error=callback_exception', request.url));
   }
 }

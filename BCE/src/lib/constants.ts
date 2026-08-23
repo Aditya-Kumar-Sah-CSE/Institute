@@ -46,6 +46,7 @@ export const DEFAULT_BADGES = [
 export const NAV_ITEMS = [
   { label: 'Dashboard', href: '/dashboard', icon: 'Dashboard' },
   { label: 'Courses', href: '/courses', icon: 'Courses' },
+  { label: 'My NPTEL Courses', href: '/student/nptel', icon: 'Courses' },
   { label: 'Code Arena', href: '/code-arena', icon: 'Code' },
   { label: 'Coding Sheets', href: '/code-arena/sheets', icon: 'Submissions' },
   { label: 'Compiler', href: '/code-arena/compiler', icon: 'Code' },
@@ -61,6 +62,7 @@ export const NAV_ITEMS = [
 export const ADMIN_NAV_ITEMS = [
   { label: 'Overview', href: '/admin', icon: 'Dashboard' },
   { label: 'Courses', href: '/admin/courses', icon: 'Courses' },
+  { label: 'NPTEL Management', href: '/admin/nptel', icon: 'Courses' },
   { label: 'Enrollments', href: '/admin/enrollments', icon: 'Enrollments' },
   { label: 'Administration', href: '/admin/students', icon: 'Students' },
   { label: 'Submissions', href: '/admin/submissions', icon: 'Submissions' },

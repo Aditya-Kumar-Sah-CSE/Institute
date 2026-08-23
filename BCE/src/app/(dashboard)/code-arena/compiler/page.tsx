@@ -14,7 +14,7 @@ export default async function CompilerPage() {
 
   // Check Feature Flag / Emergency Kill Switch
   const { data: userProfile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-  const isAllowed = isFeatureAllowed('compiler', null, null, null, user.email, userProfile?.role);
+  const isAllowed = await isFeatureAllowed('compiler', null, null, null, user.email, userProfile?.role);
   if (!isAllowed) {
     return <LockedFeatureScreen featureName="Compiler" />;
   }

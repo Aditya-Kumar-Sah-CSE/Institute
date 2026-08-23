@@ -26,9 +26,20 @@ export interface GoogleDriveStatusResult {
  * and defaults to http://localhost:3000/api/auth/google-drive/callback.
  */
 export async function getGoogleDriveRedirectUri(requestUrl?: string): Promise<string> {
-  const envRedirectUri = process.env.GOOGLE_REDIRECT_URI;
+  const envRedirectUri = process.env.GOOGLE_REDIRECT_URI?.trim();
   if (envRedirectUri && envRedirectUri.trim().length > 0) {
-    return envRedirectUri.trim();
+    let configured: URL;
+    try {
+      configured = new URL(envRedirectUri);
+    } catch {
+      throw new Error('GOOGLE_REDIRECT_URI must be an absolute URL');
+    }
+    if (configured.pathname !== '/api/auth/google-drive/callback') {
+      throw new Error('GOOGLE_REDIRECT_URI must use /api/auth/google-drive/callback');
+    }
+    configured.hash = '';
+    configured.search = '';
+    return configured.toString().replace(/\/$/, '');
   }
 
   if (requestUrl) {
@@ -588,4 +599,3 @@ export async function initializeUserDriveStorage(
     return { success: false, error: err.message };
   }
 }
-

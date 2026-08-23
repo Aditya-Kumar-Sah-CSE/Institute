@@ -1,0 +1,2 @@
+import { NextRequest, NextResponse } from 'next/server'; import { getAuthorizedProfile, ADMIN_ROLES } from '@/lib/auth'; import { NPTELSyncService, NptelDeadlineAlertService } from '@/features/nptel/service';
+export async function POST(_: NextRequest) { await getAuthorizedProfile({ allowedRoles: ADMIN_ROLES }); const results = await new NPTELSyncService().syncActiveCourses(); const alerts = await new NptelDeadlineAlertService().generate(); return NextResponse.json({ results, alerts }); }

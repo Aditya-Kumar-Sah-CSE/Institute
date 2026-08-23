@@ -29,14 +29,14 @@ export const POST = withSafeApiHandler(async (request: Request) => {
 
   const { featureFlags, emergencyKillSwitches } = body;
 
-  const oldFlags = getGlobalFeatureFlags();
-  const oldEmergency = getEmergencyKillSwitches();
+  const oldFlags = await getGlobalFeatureFlags();
+  const oldEmergency = await getEmergencyKillSwitches();
 
   let updatedFlags = oldFlags;
   let updatedEmergency = oldEmergency;
 
   if (featureFlags && typeof featureFlags === 'object') {
-    updatedFlags = updateGlobalFeatureFlags(featureFlags);
+    updatedFlags = await updateGlobalFeatureFlags(featureFlags, admin.id);
     await logAuditAction({
       actorId: admin.id,
       actorEmail: admin.email,
@@ -48,7 +48,7 @@ export const POST = withSafeApiHandler(async (request: Request) => {
   }
 
   if (emergencyKillSwitches && typeof emergencyKillSwitches === 'object') {
-    updatedEmergency = updateEmergencyKillSwitches(emergencyKillSwitches);
+    updatedEmergency = await updateEmergencyKillSwitches(emergencyKillSwitches);
     await logAuditAction({
       actorId: admin.id,
       actorEmail: admin.email,

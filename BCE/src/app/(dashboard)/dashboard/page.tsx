@@ -18,6 +18,7 @@ const ContinueLearning = dynamic(() => import('./components/ContinueLearning'), 
 const UpcomingContestsAlert = dynamic(() => import('@/features/code-arena/components/contests/UpcomingContestsAlert'), { loading: () => <div className="skeleton-dash" style={{ height: '140px', borderRadius: '12px' }}></div> });
 const DashboardAlerts = dynamic(() => import('./components/DashboardAlerts'));
 const DashboardBattleBanners = dynamic(() => import('./components/DashboardBattleBanners'));
+const NptelAssignmentsWidget = dynamic(() => import('@/features/nptel/components/NptelAssignmentsWidget'));
 const ActivityFeed = dynamic(() => import('@/features/activity/components/ActivityFeed'), { 
   loading: () => <div className="skeleton-dash" style={{ height: '300px', borderRadius: '12px' }}></div> 
 });
@@ -76,6 +77,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
     .maybeSingle();
 
   const settingsPromise = supabase.from('company_settings').select('is_admission_pinned').single();
+  const nptelMappingsPromise = supabase.from('student_nptel_courses').select('nptel_courses(course_name,nptel_assignments(title,deadline))').eq('student_id', user.id).eq('active', true);
 
   // Fetch unread poll alerts
   const pollAlertsPromise = supabase
@@ -113,7 +115,8 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
     { data: dashboardPolls, error: pollsError },
     { data: certificatesData },
     { data: settings },
-    { data: activeBattles }
+    { data: activeBattles },
+    { data: nptelMappings }
   ] = await Promise.all([
     profilePromise,
     enrollmentsPromise,
@@ -125,7 +128,8 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
     dashboardPollsPromise,
     certificatesPromise,
     settingsPromise,
-    battlesPromise
+    battlesPromise,
+    nptelMappingsPromise
   ]);
 
   const enrolledCourses = enrollments?.filter(e => e.courses).map(e => e.courses as unknown as Course) || [];
@@ -259,6 +263,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
         )}
 
         <DashboardAlerts courseIds={enrollments?.filter(e => e.status === 'approved').map(e => e.course_id) || []} />
+        <NptelAssignmentsWidget assignments={(nptelMappings || []).flatMap((mapping: any) => (mapping.nptel_courses?.nptel_assignments || []).map((assignment: any) => ({ ...assignment, courseName: mapping.nptel_courses.course_name, status: new Date(assignment.deadline) < new Date() ? 'OVERDUE' : new Date(assignment.deadline).getTime() - Date.now() <= 86400000 ? 'URGENT' : 'UPCOMING' }))).sort((a: any, b: any) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime())} />
 
         {dashboardPolls && dashboardPolls.length > 0 && (
           <DashboardPolls polls={dashboardPolls} currentUserId={user.id} />

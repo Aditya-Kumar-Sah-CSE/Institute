@@ -22,7 +22,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/profile?drive_error=unavailable', request.url));
   }
 
-  const redirectUri = await getGoogleDriveRedirectUri(request.url);
+  let redirectUri: string;
+  try {
+    redirectUri = await getGoogleDriveRedirectUri(request.url);
+  } catch (error) {
+    console.error('[google-drive/connect] invalid redirect URI configuration', { error: error instanceof Error ? error.message : String(error) });
+    return NextResponse.redirect(new URL('/profile?drive_error=unavailable', request.url));
+  }
 
   // Generate cryptographically secure OAuth state parameter
   const state = crypto.randomBytes(32).toString('hex');
