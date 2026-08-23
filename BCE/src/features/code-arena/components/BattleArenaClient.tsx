@@ -996,6 +996,26 @@ export default function BattleArenaClient({
                       <stop offset="100%" stopColor="#92400e" />
                     </linearGradient>
 
+                    <linearGradient id="silverMedalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#ffffff" />
+                      <stop offset="30%" stopColor="#e2e8f0" />
+                      <stop offset="70%" stopColor="#94a3b8" />
+                      <stop offset="100%" stopColor="#475569" />
+                    </linearGradient>
+
+                    <linearGradient id="bronzeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#ffedd5" />
+                      <stop offset="30%" stopColor="#f97316" />
+                      <stop offset="70%" stopColor="#c2410c" />
+                      <stop offset="100%" stopColor="#7c2d12" />
+                    </linearGradient>
+
+                    <linearGradient id="sealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#38bdf8" />
+                      <stop offset="50%" stopColor="#0284c7" />
+                      <stop offset="100%" stopColor="#0369a1" />
+                    </linearGradient>
+
                     <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
                       <feGaussianBlur stdDeviation="6" result="blur" />
                       <feMerge>
@@ -1028,36 +1048,43 @@ export default function BattleArenaClient({
                   <path d="M 20,740 L 20,780 L 60,780 M 24,730 L 70,776" stroke="#7f00ff" strokeWidth="2.5" fill="none" />
                   <path d="M 1180,740 L 1180,780 L 1140,780 M 1176,730 L 1130,776" stroke="#7f00ff" strokeWidth="2.5" fill="none" />
 
-                  {/* TOP LEFT: Shield Badge with Laurel Wreath */}
-                  <g transform="translate(140, 150)">
-                    <path d="M -45,15 C -60,-5 -55,-30 -40,-45 C -45,-25 -40,-10 -35,5 M -55,35 C -70,15 -65,-10 -50,-25 C -55,-5 -50,10 -45,25" stroke="#38bdf8" strokeWidth="2" fill="none" />
-                    <path d="M -40,-40 C -35,-50 -20,-55 -10,-55 M -50,-20 C -45,-32 -30,-40 -15,-40" stroke="#38bdf8" strokeWidth="2" fill="none" />
+                  {/* TOP LEFT: Instructor/Organizer Logo */}
+                  {organizerLogo ? (
+                    <g transform="translate(60, 50)">
+                      <rect x="-10" y="-10" width="180" height="70" rx="10" fill="rgba(11, 16, 33, 0.6)" stroke="rgba(56, 189, 248, 0.2)" strokeWidth="1" />
+                      <image href={organizerLogo} x="0" y="0" width="160" height="50" preserveAspectRatio="xMidYMid contain" />
+                    </g>
+                  ) : (
+                    <g transform="translate(140, 150)">
+                      <path d="M -45,15 C -60,-5 -55,-30 -40,-45 C -45,-25 -40,-10 -35,5 M -55,35 C -70,15 -65,-10 -50,-25 C -55,-5 -50,10 -45,25" stroke="#38bdf8" strokeWidth="2" fill="none" />
+                      <path d="M -40,-40 C -35,-50 -20,-55 -10,-55 M -50,-20 C -45,-32 -30,-40 -15,-40" stroke="#38bdf8" strokeWidth="2" fill="none" />
+                      <path d="M 45,15 C 60,-5 55,-30 40,-45 C 45,-25 40,-10 35,5 M 55,35 C 70,15 65,-10 50,-25 C 55,-5 50,10 45,25" stroke="#38bdf8" strokeWidth="2" fill="none" />
+                      <path d="M 40,-40 C 35,-50 20,-55 10,-55 M 50,-20 C 45,-32 30,-40 15,-40" stroke="#38bdf8" strokeWidth="2" fill="none" />
+                      <path d="M 0,-50 L -35,-35 C -35,0 -20,35 0,55 C 20,35 35,0 35,-35 Z" fill="rgba(6, 182, 212, 0.12)" stroke="#00f0ff" strokeWidth="3" filter="url(#glow)" />
+                      <path d="M 0,-42 L -28,-29 C -28,0 -16,28 0,44 C 16,28 28,0 28,-29 Z" fill="none" stroke="rgba(255, 255, 255, 0.2)" strokeWidth="1.5" />
+                      <text x="0" y="8" textAnchor="middle" fill="#00f0ff" fontSize="20" fontWeight="900" fontFamily="monospace" filter="url(#glow)">&lt;/&gt;</text>
+                    </g>
+                  )}
 
-                    <path d="M 45,15 C 60,-5 55,-30 40,-45 C 45,-25 40,-10 35,5 M 55,35 C 70,15 65,-10 50,-25 C 55,-5 50,10 45,25" stroke="#38bdf8" strokeWidth="2" fill="none" />
-                    <path d="M 40,-40 C 35,-50 20,-55 10,-55 M 50,-20 C 45,-32 30,-40 15,-40" stroke="#38bdf8" strokeWidth="2" fill="none" />
-
-                    <path d="M 0,-50 L -35,-35 C -35,0 -20,35 0,55 C 20,35 35,0 35,-35 Z" fill="rgba(6, 182, 212, 0.12)" stroke="#00f0ff" strokeWidth="3" filter="url(#glow)" />
-                    <path d="M 0,-42 L -28,-29 C -28,0 -16,28 0,44 C 16,28 28,0 28,-29 Z" fill="none" stroke="rgba(255, 255, 255, 0.2)" strokeWidth="1.5" />
-
-                    <text x="0" y="8" textAnchor="middle" fill="#00f0ff" fontSize="20" fontWeight="900" fontFamily="monospace" filter="url(#glow)">&lt;/&gt;</text>
-                  </g>
-
-                  {/* TOP CENTER: Branding Logo */}
+                  {/* TOP CENTER: Smart Learn Branding */}
                   <g transform="translate(600, 95)">
-                    <g transform="translate(0, -25)">
-                      <polygon points="0,-18 16,0 0,18 -16,0" fill="url(#cyanPurpleGrad)" opacity="0.8" />
+                    <g transform="translate(0, -28)">
+                      <polygon points="0,-18 16,0 0,18 -16,0" fill="url(#cyanPurpleGrad)" opacity="0.9" />
                       <polygon points="0,-12 11,0 0,12 -11,0" fill="#0b1021" />
                       <text x="0" y="4" textAnchor="middle" fill="#00f0ff" fontSize="10" fontWeight="900" fontFamily="monospace">&lt;&gt;</text>
                     </g>
 
-                    <text x="0" y="10" textAnchor="middle" fill="#ffffff" fontSize="26" fontWeight="900" letterSpacing="3">{(organizerName || 'CODING BATTLE').toUpperCase()}</text>
-                    <text x="0" y="28" textAnchor="middle" fill="#38bdf8" fontSize="11" fontWeight="700" letterSpacing="2.5">CODE. SOLVE. CONQUER.</text>
+                    <text x="0" y="8" textAnchor="middle" fill="#ffffff" fontSize="22" fontWeight="900" letterSpacing="4">SMART LEARN</text>
+                    <text x="0" y="28" textAnchor="middle" fill="#38bdf8" fontSize="12" fontWeight="800" letterSpacing="3">{(organizerName || 'OFFICIAL BATTLE CERTIFICATE').toUpperCase()}</text>
                   </g>
 
                   {/* TOP RIGHT: Certificate ID */}
-                  <text x="1110" y="70" textAnchor="end" fill="#94a3b8" fontSize="12" fontWeight="700" fontFamily="monospace">
-                    Certificate ID: CB2025-0524-1420
-                  </text>
+                  <g transform="translate(1110, 60)">
+                    <rect x="-240" y="-12" width="240" height="26" rx="6" fill="rgba(6, 182, 212, 0.1)" stroke="rgba(6, 182, 212, 0.3)" strokeWidth="1" />
+                    <text x="-120" y="5" textAnchor="middle" fill="#00f0ff" fontSize="11" fontWeight="700" fontFamily="monospace">
+                      ID: {myParticipant?.certificate_code || myParticipant?.id?.substring(0, 18)?.toUpperCase() || 'CB-2026-LIVE-BATTLE'}
+                    </text>
+                  </g>
 
                   {/* MAIN HEADER TITLE */}
                   <g transform="translate(600, 200)">
@@ -1090,10 +1117,10 @@ export default function BattleArenaClient({
 
                   {/* Description Text */}
                   <text x="600" y="420" textAnchor="middle" fill="#cbd5e1" fontSize="15" fontWeight="500">
-                    has successfully participated in the <tspan fill="#00f0ff" fontWeight="700">Coding Battle</tspan> and demonstrated
+                    has successfully participated in the Coding Battle "{battle.title || 'Code Arena Battle'}" and demonstrated
                   </text>
                   <text x="600" y="445" textAnchor="middle" fill="#cbd5e1" fontSize="15" fontWeight="500">
-                    exceptional problem-solving skills, logic, and coding abilities.
+                    exceptional problem-solving skills, algorithmic logic, and coding performance.
                   </text>
 
                   {/* 3 KEY STATS CARDS (DATE, SCORE, RANK) */}
@@ -1107,7 +1134,9 @@ export default function BattleArenaClient({
                       <rect x="-50" y="-12" width="16" height="18" rx="2" fill="none" stroke="#38bdf8" strokeWidth="1.5" />
 
                       <text x="-10" y="-4" fill="#94a3b8" fontSize="11" fontWeight="700" letterSpacing="1">DATE</text>
-                      <text x="-10" y="16" fill="#ffffff" fontSize="16" fontWeight="700">May 24, 2025</text>
+                      <text x="-10" y="16" fill="#ffffff" fontSize="16" fontWeight="700">
+                        {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                      </text>
                     </g>
 
                     <line x1="-60" y1="-15" x2="-60" y2="25" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
@@ -1118,7 +1147,7 @@ export default function BattleArenaClient({
                       <path d="M -46,-10 H -38 V -2 C -38,3 -42,6 -46,6 Z M -38,-10 V 2 C -38,6 -42,8 -46,8 M -46,8 V 14 M -50,14 H -42" stroke="#a855f7" strokeWidth="1.5" fill="none" />
 
                       <text x="-10" y="-4" fill="#a855f7" fontSize="11" fontWeight="700" letterSpacing="1">SCORE</text>
-                      <text x="-10" y="16" fill="#ffffff" fontSize="16" fontWeight="700">{userScore || 1420}</text>
+                      <text x="-10" y="16" fill="#ffffff" fontSize="16" fontWeight="700">{userScore || 0}</text>
                     </g>
 
                     <line x1="120" y1="-15" x2="120" y2="25" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
@@ -1135,60 +1164,81 @@ export default function BattleArenaClient({
                     <line x1="-350" y1="45" x2="350" y2="45" stroke="rgba(255, 255, 255, 0.08)" strokeWidth="1" />
                   </g>
 
-                  {/* SIGNATURES & GOLD SEAL SECTION */}
+                  {/* SIGNATURES & RANK MEDAL BADGE SECTION */}
                   <g transform="translate(600, 650)">
-                    {/* LEFT SIGNATURE */}
-                    <g transform="translate(-320, 0)">
-                      <text x="0" y="-20" fill="#ffffff" fontSize="28" fontWeight="400" fontFamily="'Brush Script MT', 'Dancing Script', cursive, serif" fontStyle="italic">
-                        Aditya Kumar Sah
-                      </text>
-                      <line x1="0" y1="-5" x2="220" y2="-5" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
-                      <text x="0" y="16" fill="#ffffff" fontSize="12" fontWeight="800" letterSpacing="1">ADITYA KUMAR SAH</text>
-                      <text x="0" y="32" fill="#94a3b8" fontSize="11" fontWeight="600">The Developer &amp; The Coder</text>
-                    </g>
-
-                    {/* CENTER GOLD SEAL BADGE */}
+                    {/* CENTER RANK-DRIVEN MEDAL BADGE */}
                     <g transform="translate(0, 0)">
-                      <path d="M -25,25 L -45,75 L -20,65 L 0,75 L -5,25 Z" fill="#0284c7" stroke="#0369a1" strokeWidth="1" />
-                      <path d="M 25,25 L 5,75 L 20,65 L 45,75 L 25,25 Z" fill="#0284c7" stroke="#0369a1" strokeWidth="1" />
-                      <path d="M -20,25 L -35,70 L -15,62 L 0,70 L -5,25 Z" fill="#0ea5e9" opacity="0.6" />
-                      <path d="M 20,25 L 0,70 L 15,62 L 35,70 L 20,25 Z" fill="#0ea5e9" opacity="0.6" />
-
-                      <circle cx="0" cy="0" r="48" fill="url(#goldGrad)" stroke="#fef08a" strokeWidth="2" filter="url(#glow)" />
-                      <circle cx="0" cy="0" r="44" stroke="#fbbf24" strokeWidth="1" strokeDasharray="6,3" fill="none" />
-                      <circle cx="0" cy="0" r="38" fill="#060a17" stroke="url(#goldGrad)" strokeWidth="2" />
-
-                      <g fill="#fbbf24" transform="translate(0, -20)">
-                        <polygon points="-16,-2 -14,2 -10,2 -13,5 -11,9 -16,6 -21,9 -19,5 -22,2 -18,2" transform="scale(0.6)" />
-                        <polygon points="-8,-5 -6,-1 -2,-1 -5,2 -3,6 -8,3 -13,6 -11,2 -14,-1 -10,-1" transform="scale(0.6)" />
-                        <polygon points="0,-7 2,-3 6,-3 3,0 5,4 0,1 -5,4 -3,0 -6,-3 -2,-3" transform="scale(0.7)" />
-                        <polygon points="8,-5 10,-1 14,-1 11,2 13,6 8,3 3,6 5,2 2,-1 6,-1" transform="scale(0.6)" />
-                        <polygon points="16,-2 18,2 22,2 19,5 21,9 16,6 11,9 13,5 10,2 14,2" transform="scale(0.6)" />
-                      </g>
-
-                      <text x="0" y="10" textAnchor="middle" fill="#ffffff" fontSize="20" fontWeight="900" fontFamily="monospace" filter="url(#glow)">&lt;/&gt;</text>
+                      {userRank === 1 ? (
+                        <>
+                          <path d="M -25,25 L -45,75 L -20,65 L 0,75 L -5,25 Z" fill="#d97706" stroke="#92400e" strokeWidth="1" />
+                          <path d="M 25,25 L 5,75 L 20,65 L 45,75 L 25,25 Z" fill="#d97706" stroke="#92400e" strokeWidth="1" />
+                          <circle cx="0" cy="0" r="48" fill="url(#goldGrad)" stroke="#fef08a" strokeWidth="2.5" filter="url(#glow)" />
+                          <circle cx="0" cy="0" r="42" stroke="#fbbf24" strokeWidth="1.5" strokeDasharray="5,3" fill="none" />
+                          <circle cx="0" cy="0" r="36" fill="#0b0f19" stroke="url(#goldGrad)" strokeWidth="2" />
+                          <path d="M -16,8 L -20,-10 L -10,-2 L 0,-14 L 10,-2 L 20,-10 L 16,8 Z" fill="#fbbf24" />
+                          <text x="0" y="24" textAnchor="middle" fill="#fbbf24" fontSize="10" fontWeight="900" letterSpacing="1">RANK #1</text>
+                        </>
+                      ) : userRank === 2 ? (
+                        <>
+                          <path d="M -25,25 L -45,75 L -20,65 L 0,75 L -5,25 Z" fill="#64748b" stroke="#334155" strokeWidth="1" />
+                          <path d="M 25,25 L 5,75 L 20,65 L 45,75 L 25,25 Z" fill="#64748b" stroke="#334155" strokeWidth="1" />
+                          <circle cx="0" cy="0" r="48" fill="url(#silverMedalGrad)" stroke="#ffffff" strokeWidth="2.5" filter="url(#glow)" />
+                          <circle cx="0" cy="0" r="42" stroke="#cbd5e1" strokeWidth="1.5" strokeDasharray="5,3" fill="none" />
+                          <circle cx="0" cy="0" r="36" fill="#0b0f19" stroke="url(#silverMedalGrad)" strokeWidth="2" />
+                          <polygon points="0,-14 4,-4 14,-4 6,2 9,12 0,6 -9,12 -6,2 -14,-4 -4,-4" fill="#e2e8f0" />
+                          <text x="0" y="24" textAnchor="middle" fill="#cbd5e1" fontSize="10" fontWeight="900" letterSpacing="1">RANK #2</text>
+                        </>
+                      ) : userRank === 3 ? (
+                        <>
+                          <path d="M -25,25 L -45,75 L -20,65 L 0,75 L -5,25 Z" fill="#c2410c" stroke="#7c2d12" strokeWidth="1" />
+                          <path d="M 25,25 L 5,75 L 20,65 L 45,75 L 25,25 Z" fill="#c2410c" stroke="#7c2d12" strokeWidth="1" />
+                          <circle cx="0" cy="0" r="48" fill="url(#bronzeGrad)" stroke="#ffedd5" strokeWidth="2.5" filter="url(#glow)" />
+                          <circle cx="0" cy="0" r="42" stroke="#f97316" strokeWidth="1.5" strokeDasharray="5,3" fill="none" />
+                          <circle cx="0" cy="0" r="36" fill="#0b0f19" stroke="url(#bronzeGrad)" strokeWidth="2" />
+                          <polygon points="0,-14 4,-4 14,-4 6,2 9,12 0,6 -9,12 -6,2 -14,-4 -4,-4" fill="#f97316" />
+                          <text x="0" y="24" textAnchor="middle" fill="#f97316" fontSize="10" fontWeight="900" letterSpacing="1">RANK #3</text>
+                        </>
+                      ) : (
+                        <>
+                          <path d="M -25,25 L -45,75 L -20,65 L 0,75 L -5,25 Z" fill="#0284c7" stroke="#0369a1" strokeWidth="1" />
+                          <path d="M 25,25 L 5,75 L 20,65 L 45,75 L 25,25 Z" fill="#0284c7" stroke="#0369a1" strokeWidth="1" />
+                          <circle cx="0" cy="0" r="48" fill="url(#sealGrad)" stroke="#38bdf8" strokeWidth="2.5" filter="url(#glow)" />
+                          <circle cx="0" cy="0" r="42" stroke="#38bdf8" strokeWidth="1.5" strokeDasharray="5,3" fill="none" />
+                          <circle cx="0" cy="0" r="36" fill="#0b0f19" stroke="url(#sealGrad)" strokeWidth="2" />
+                          <text x="0" y="6" textAnchor="middle" fill="#00f0ff" fontSize="20" fontWeight="900" fontFamily="monospace">&lt;/&gt;</text>
+                          <text x="0" y="24" textAnchor="middle" fill="#38bdf8" fontSize="9" fontWeight="900" letterSpacing="1">VERIFIED</text>
+                        </>
+                      )}
                     </g>
 
-                    {/* RIGHT SIGNATURE */}
-                    <g transform="translate(130, -30)">
-                      <rect x="0" y="0" width="230" height="75" rx="10" fill="rgba(15, 23, 42, 0.6)" stroke="#3b82f6" strokeWidth="1.5" strokeDasharray="5 4" />
-                      <g transform="translate(20, 22)">
-                        <rect x="0" y="0" width="24" height="24" rx="6" fill="rgba(59, 130, 246, 0.2)" stroke="#3b82f6" strokeWidth="1" />
-                        <path d="M 6,18 L 18,6 M 14,6 L 18,10" stroke="#60a5fa" strokeWidth="1.5" strokeLinecap="round" />
-
-                        <text x="36" y="12" fill="#38bdf8" fontSize="12" fontWeight="800" letterSpacing="0.5">AUTHORIZED SIGNATURE</text>
-                        <text x="36" y="28" fill="#64748b" fontSize="11" fontWeight="500">(Click to Sign)</text>
-                      </g>
+                    {/* AUTHORIZED INSTRUCTOR SIGNATURE */}
+                    <g transform="translate(320, 0)">
+                      {battle.instructor_signature ? (
+                        <g transform="translate(-100, -45)">
+                          <image href={battle.instructor_signature} x="0" y="0" width="200" height="45" preserveAspectRatio="xMidYMid contain" />
+                        </g>
+                      ) : (
+                        <text x="0" y="-20" textAnchor="middle" fill="#ffffff" fontSize="28" fontWeight="400" fontFamily="'Brush Script MT', 'Dancing Script', cursive, serif" fontStyle="italic">
+                          {battle.instructor_name || 'Aditya Kumar Sah'}
+                        </text>
+                      )}
+                      <line x1="-110" y1="-5" x2="110" y2="-5" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+                      <text x="0" y="16" textAnchor="middle" fill="#ffffff" fontSize="12" fontWeight="800" letterSpacing="1">
+                        {(battle.instructor_name || 'ADITYA KUMAR SAH').toUpperCase()}
+                      </text>
+                      <text x="0" y="32" textAnchor="middle" fill="#94a3b8" fontSize="11" fontWeight="600">
+                        {battle.instructor_designation || 'The Developer & The Coder'}
+                      </text>
                     </g>
                   </g>
 
                   {/* FOOTER VERIFICATION LINK */}
                   <g transform="translate(600, 762)">
-                    <circle cx="-160" cy="-4" r="9" fill="rgba(56, 189, 248, 0.15)" stroke="#38bdf8" strokeWidth="1" />
-                    <path d="M -164,-4 L -161,-1 L -155,-7" stroke="#38bdf8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                    <circle cx="-210" cy="-4" r="9" fill="rgba(56, 189, 248, 0.15)" stroke="#38bdf8" strokeWidth="1" />
+                    <path d="M -214,-4 L -211,-1 L -205,-7" stroke="#38bdf8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
 
-                    <text x="-145" y="0" textAnchor="start" fill="#64748b" fontSize="12" fontWeight="600">
-                      Verify this certificate at: <tspan fill="#38bdf8" fontWeight="700">https://codingbattle.com/verify</tspan>
+                    <text x="-195" y="0" textAnchor="start" fill="#64748b" fontSize="12" fontWeight="600">
+                      Verify this certificate at: <tspan fill="#38bdf8" fontWeight="700">{typeof window !== 'undefined' ? `${window.location.origin}/verify/certificate/${myParticipant?.id || battle.id}` : 'https://smartlearn.com/verify'}</tspan>
                     </text>
                   </g>
                 </svg>
