@@ -7,8 +7,7 @@ import { signUp } from '@/features/auth/actions/auth';
 import { createClient } from '@/lib/supabase/client';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import { Building, User, IdCard, GraduationCap, Mail, Lock } from 'lucide-react';
-import Image from 'next/image';
+import { User, IdCard, GraduationCap, Mail, Lock, Cloud } from 'lucide-react';
 import './AuthForms.css';
 
 const GoogleIcon = () => (
@@ -23,12 +22,42 @@ const GoogleIcon = () => (
 interface SignupFormProps {
   companyName?: string;
   logoUrl?: string;
+  tenantId?: string;
+  baseUrl?: string;
 }
 
-export default function SignupForm({ companyName, logoUrl }: SignupFormProps) {
+function LogoAvatar({ name, size = 48 }: { name: string; size?: number }) {
+  const initials = (name || 'S L')
+    .split(' ')
+    .map(w => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        borderRadius: '8px',
+        backgroundColor: 'var(--neon-cyan)',
+        color: '#000',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontWeight: 800,
+        fontSize: size * 0.42,
+      }}
+    >
+      {initials}
+    </div>
+  );
+}
+
+export default function SignupForm({ companyName, logoUrl, tenantId, baseUrl }: SignupFormProps) {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isDriveLoading, setIsDriveLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -44,11 +73,11 @@ export default function SignupForm({ companyName, logoUrl }: SignupFormProps) {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        router.push('/');
+        router.push(`${baseUrl || ''}/dashboard`);
         router.refresh();
       }
     });
-  }, [router, supabase.auth]);
+  }, [router, supabase.auth, baseUrl]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -69,6 +98,9 @@ export default function SignupForm({ companyName, logoUrl }: SignupFormProps) {
     Object.entries(formData).forEach(([key, value]) => {
       form.append(key, value);
     });
+    if (baseUrl) {
+      form.append('baseUrl', baseUrl);
+    }
 
     const result = await signUp(form);
     if (result?.error) {
@@ -77,20 +109,34 @@ export default function SignupForm({ companyName, logoUrl }: SignupFormProps) {
     }
   }
 
-  async function handleGoogleSignIn() {
-    setIsGoogleLoading(true);
+  async function handleGoogleSignIn(withDrive: boolean = false) {
+    if (withDrive) {
+      setIsDriveLoading(true);
+    } else {
+      setIsGoogleLoading(true);
+    }
     setError('');
     
+    const options: any = {
+      redirectTo: `${window.location.origin}/api/auth/callback${withDrive ? '?connect_drive=true' : ''}`,
+    };
+
+    if (withDrive) {
+      options.scopes = 'https://www.googleapis.com/auth/drive.file';
+      options.queryParams = {
+        access_type: 'offline',
+      };
+    }
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/api/auth/callback`,
-      },
+      options,
     });
 
     if (error) {
       setError(error.message);
       setIsGoogleLoading(false);
+      setIsDriveLoading(false);
     }
   }
 
@@ -104,7 +150,7 @@ export default function SignupForm({ companyName, logoUrl }: SignupFormProps) {
 
       <div className="auth-card" style={{ position: 'relative' }}>
         <Link 
-          href="/" 
+          href={baseUrl || "/"} 
           style={{ 
             position: 'absolute', 
             top: 'var(--space-md)', 
@@ -123,8 +169,12 @@ export default function SignupForm({ companyName, logoUrl }: SignupFormProps) {
           ← Home
         </Link>
         <div className="auth-header">
-          <span className="auth-logo" style={{ overflow: 'hidden', borderRadius: '8px' }}>
-            <Image src={logoUrl || '/icon-192x192.png'} alt="Logo" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain' }} unoptimized={true} priority />
+          <span className="auth-logo" style={{ overflow: 'hidden', borderRadius: '8px', display: 'inline-block' }}>
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" style={{ width: 'auto', height: '48px', objectFit: 'contain' }} />
+            ) : (
+              <LogoAvatar name={companyName || 'Smart Learning'} />
+            )}
           </span>
           <h1 className="auth-title">{companyName || 'Smart Hybrid Learning'}</h1>
           <p className="auth-subtitle">Start your journey</p>
@@ -132,6 +182,8 @@ export default function SignupForm({ companyName, logoUrl }: SignupFormProps) {
 
         <form onSubmit={handleSubmit} className="auth-form">
           {error && <div className="auth-error">{error}</div>}
+          
+          <input type="hidden" name="institution_id" value={tenantId || ''} />
 
           <Input
             name="name"
@@ -209,32 +261,56 @@ export default function SignupForm({ companyName, logoUrl }: SignupFormProps) {
             <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }} />
           </div>
 
-          <Button 
-            type="button" 
-            variant="ghost" 
-            fullWidth 
-            isLoading={isGoogleLoading} 
-            size="lg"
-            onClick={handleGoogleSignIn}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              gap: '8px',
-              backgroundColor: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid var(--border-color)',
-              color: 'var(--text-primary)'
-            }}
-          >
-            <GoogleIcon />
-            Sign up with Google
-          </Button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <Button 
+              type="button" 
+              variant="ghost" 
+              fullWidth 
+              isLoading={isDriveLoading} 
+              size="lg"
+              onClick={() => handleGoogleSignIn(true)}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                gap: '8px',
+                backgroundColor: 'rgba(0, 242, 254, 0.1)',
+                border: '1px solid rgba(0, 242, 254, 0.35)',
+                color: '#00f2fe',
+                fontWeight: 700,
+              }}
+            >
+              <Cloud size={18} />
+              Sign up with Google + Drive
+            </Button>
+
+            <Button 
+              type="button" 
+              variant="ghost" 
+              fullWidth 
+              isLoading={isGoogleLoading} 
+              size="lg"
+              onClick={() => handleGoogleSignIn(false)}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                gap: '8px',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)'
+              }}
+            >
+              <GoogleIcon />
+              Sign up with Google
+            </Button>
+          </div>
         </form>
 
         <div className="auth-footer">
           <p>
             Already have an account?{' '}
-            <Link href="/login" className="auth-link">Sign In</Link>
+            <Link href={`${baseUrl || ''}/login`} className="auth-link">Sign In</Link>
           </p>
         </div>
       </div>
