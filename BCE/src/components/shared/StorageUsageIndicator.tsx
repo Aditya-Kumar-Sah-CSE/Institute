@@ -78,21 +78,22 @@ export default function StorageUsageIndicator({
     );
   }
 
-  const percentage = data?.percentage || 0;
-  const formattedUsed = data?.formattedUsed || '0 MB';
-  const formattedQuota = data?.formattedQuota || '100 MB';
-  const bytes = data?.bytes || 0;
+  const percentageUsed = data?.percentageUsed || 0;
+  const formattedTotal = data?.formattedTotal || '0 B';
+  const formattedDatabaseBytes = data?.formattedDatabaseBytes || '0 B';
+  const formattedStorageBytes = data?.formattedStorageBytes || '0 B';
+  const totalBytes = data?.totalBytes || 0;
 
-  // Determine indicator color theme based on usage
+  // Progress bar theme
   const getProgressColor = () => {
-    if (percentage > 90) return 'linear-gradient(90deg, #ff007f, #ff2a85)'; // Neon Pink / Red alert
-    if (percentage > 70) return 'linear-gradient(90deg, #ff9900, #ff5500)'; // Neon Orange warning
-    return 'linear-gradient(90deg, #00f2fe, #4facfe)'; // Neon Cyan standard
+    if (percentageUsed > 90) return 'linear-gradient(90deg, #ff007f, #ff2a85)'; // Danger
+    if (percentageUsed > 70) return 'linear-gradient(90deg, #ff9900, #ff5500)'; // Warning
+    return 'linear-gradient(90deg, #00f2fe, #4facfe)'; // Standard Cyan
   };
 
   const getGlowColor = () => {
-    if (percentage > 90) return 'rgba(255, 0, 127, 0.4)';
-    if (percentage > 70) return 'rgba(255, 153, 0, 0.4)';
+    if (percentageUsed > 90) return 'rgba(255, 0, 127, 0.4)';
+    if (percentageUsed > 70) return 'rgba(255, 153, 0, 0.4)';
     return 'rgba(0, 242, 254, 0.3)';
   };
 
@@ -165,51 +166,46 @@ export default function StorageUsageIndicator({
             style={{
               fontSize: compact ? '11px' : '12px',
               fontWeight: '700',
-              color: percentage > 90 ? '#ff2a85' : percentage > 70 ? '#ff9900' : 'var(--neon-cyan, #00f2fe)',
-              background: percentage > 90 ? 'rgba(255, 42, 133, 0.1)' : percentage > 70 ? 'rgba(255, 153, 0, 0.1)' : 'rgba(0, 242, 254, 0.1)',
+              color: percentageUsed > 90 ? '#ff2a85' : percentageUsed > 70 ? '#ff9900' : 'var(--neon-cyan, #00f2fe)',
+              background: percentageUsed > 90 ? 'rgba(255, 42, 133, 0.1)' : percentageUsed > 70 ? 'rgba(255, 153, 0, 0.1)' : 'rgba(0, 242, 254, 0.1)',
               padding: '2px 8px',
               borderRadius: '10px',
               border: '1px solid currentColor',
             }}
           >
-            {bytes === 0 ? '0% Used' : `${percentage}% Used`}
+            {totalBytes === 0 ? '0%' : `${percentageUsed}%`}
           </span>
         </div>
       </div>
 
-      {/* Usage Numbers */}
+      {/* Formatted Total Usage */}
       <div
         style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'baseline',
-          marginBottom: '6px',
-          fontSize: compact ? '12px' : '13px',
+          fontSize: compact ? '16px' : '18px',
+          fontWeight: '700',
+          color: 'var(--text-primary, #ffffff)',
+          marginBottom: '4px',
+          letterSpacing: '-0.3px',
         }}
       >
-        <span style={{ color: 'var(--text-secondary, #94a3b8)', fontWeight: '500' }}>
-          {bytes === 0 ? '0 MB Used' : formattedUsed}
-        </span>
-        <span style={{ color: 'var(--text-muted, #64748b)', fontSize: compact ? '11px' : '12px' }}>
-          {formattedUsed} / {formattedQuota}
-        </span>
+        {loading ? '...' : formattedTotal}
       </div>
 
-      {data && (data.dbBytes > 0 || data.storageBytes > 0) && (
-        <div
-          style={{
-            fontSize: '10px',
-            color: 'var(--text-muted, #64748b)',
-            marginBottom: '8px',
-            display: 'flex',
-            gap: '8px',
-          }}
-        >
-          <span>DB Rows: {(data.dbBytes / 1024).toFixed(1)} KB</span>
-          <span>•</span>
-          <span>Storage Files: {(data.storageBytes / (1024 * 1024)).toFixed(2)} MB</span>
-        </div>
-      )}
+      {/* DB Rows vs Storage Files Subtext */}
+      <div
+        style={{
+          fontSize: compact ? '11px' : '12px',
+          color: 'var(--text-secondary, #94a3b8)',
+          marginBottom: '10px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+        }}
+      >
+        <span>DB Rows: {formattedDatabaseBytes}</span>
+        <span style={{ color: 'var(--text-muted, #64748b)' }}>•</span>
+        <span>Storage Files: {formattedStorageBytes}</span>
+      </div>
 
       {/* Progress Bar Container */}
       <div
@@ -223,11 +219,10 @@ export default function StorageUsageIndicator({
           boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.3)',
         }}
       >
-        {/* Progress Bar Fill */}
         <div
           style={{
             height: '100%',
-            width: loading ? '0%' : `${bytes === 0 ? 0 : Math.max(percentage, 2)}%`,
+            width: loading ? '0%' : `${totalBytes === 0 ? 0 : Math.max(percentageUsed, 2)}%`,
             background: getProgressColor(),
             borderRadius: '4px',
             boxShadow: `0 0 8px ${getGlowColor()}`,
