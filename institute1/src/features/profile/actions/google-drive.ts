@@ -421,3 +421,142 @@ export async function migrateExistingFilesToDrive(): Promise<{
     return { success: false, migratedCount: 0, failedCount: 0, error: err.message };
   }
 }
+
+/**
+ * Server action / helper to initialize Google Drive connection for a given user.
+ * Idempotently searches or creates the `Code Arena/` root folder and 12 category subfolders.
+ * Persists OAuth tokens and folder IDs in `user_google_drive_tokens`.
+ */
+export async function initializeUserDriveStorage(
+  userId: string,
+  accessToken: string,
+  refreshToken?: string | null,
+  email?: string | null
+): Promise<{ success: boolean; rootFolderId?: string; error?: string }> {
+  try {
+    const adminSb = await createAdminClient();
+
+    // 1. Get existing record if present
+    const { data: existingRecord } = await adminSb
+      .from('user_google_drive_tokens')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    // If refreshToken is missing, retain existing refresh_token from DB
+    const finalRefreshToken = refreshToken || existingRecord?.refresh_token;
+
+    // Helper: search or create folder on Google Drive
+    const getOrCreateDriveFolder = async (folderName: string, parentId?: string): Promise<string> => {
+      let query = `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+      if (parentId) {
+        query += ` and '${parentId}' in parents`;
+      } else {
+        query += ` and 'root' in parents`;
+      }
+
+      const searchRes = await fetch(
+        `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name)`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+
+      if (searchRes.ok) {
+        const searchData = await searchRes.json();
+        if (searchData.files && searchData.files.length > 0) {
+          return searchData.files[0].id;
+        }
+      }
+
+      // Folder not found -> Create it
+      const metadata: Record<string, any> = {
+        name: folderName,
+        mimeType: 'application/vnd.google-apps.folder',
+      };
+      if (parentId) {
+        metadata.parents = [parentId];
+      }
+
+      const createRes = await fetch('https://www.googleapis.com/drive/v3/files?fields=id', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(metadata),
+      });
+
+      if (!createRes.ok) {
+        const errText = await createRes.text();
+        throw new Error(`Failed to create folder ${folderName}: ${errText}`);
+      }
+
+      const createData = await createRes.json();
+      return createData.id;
+    };
+
+    // 2. Search/Create `Code Arena/` root folder
+    const rootFolderId = existingRecord?.root_folder_id || (await getOrCreateDriveFolder('Code Arena'));
+
+    // 3. Search/Create subfolders
+    const categories = [
+      'Courses',
+      'Assignments',
+      'Submissions',
+      'Certificates',
+      'Battle Certificates',
+      'Doubts',
+      'Stories',
+      'Chat',
+      'Notes',
+      'Notices',
+      'Forum',
+      'Avatars',
+      'Other',
+    ];
+
+    const subfolders: Record<string, string> = existingRecord?.subfolders || {};
+
+    for (const cat of categories) {
+      if (!subfolders[cat]) {
+        try {
+          const subId = await getOrCreateDriveFolder(cat, rootFolderId);
+          subfolders[cat] = subId;
+        } catch (subErr) {
+          console.error(`Failed to create subfolder ${cat}:`, subErr);
+        }
+      }
+    }
+
+    // 4. Save/Update record in DB
+    const expiresAt = new Date(Date.now() + 3600 * 1000).toISOString();
+
+    const upsertPayload: any = {
+      user_id: userId,
+      access_token: accessToken,
+      expires_at: expiresAt,
+      email: email || existingRecord?.email || 'connected@gmail.com',
+      root_folder_id: rootFolderId,
+      subfolders,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (finalRefreshToken) {
+      upsertPayload.refresh_token = finalRefreshToken;
+    }
+
+    const { error: upsertErr } = await adminSb
+      .from('user_google_drive_tokens')
+      .upsert(upsertPayload, { onConflict: 'user_id' });
+
+    if (upsertErr) {
+      console.error('Failed to save user_google_drive_tokens:', upsertErr);
+      return { success: false, error: upsertErr.message };
+    }
+
+    return { success: true, rootFolderId };
+  } catch (err: any) {
+    console.error('initializeUserDriveStorage Exception:', err);
+    return { success: false, error: err.message };
+  }
+}
+

@@ -33,8 +33,27 @@ export async function GET(request: Request) {
     }
   } else if (code) {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error && data.session && data.user) {
+      const connectDrive = searchParams.get('connect_drive') === 'true';
+      const providerToken = data.session.provider_token;
+      const providerRefreshToken = data.session.provider_refresh_token;
+
+      if ((connectDrive || providerToken) && providerToken) {
+        try {
+          const { initializeUserDriveStorage } = await import('@/features/profile/actions/google-drive');
+          await initializeUserDriveStorage(
+            data.user.id,
+            providerToken,
+            providerRefreshToken,
+            (data.user.email ?? undefined) as string | undefined
+          );
+        } catch (e) {
+          console.error('Failed to initialize Google Drive storage on callback:', e);
+          // Never block login if Drive setup has a non-fatal error
+        }
+      }
+
       return NextResponse.redirect(`${origin}${safeRedirect}`);
     }
   }

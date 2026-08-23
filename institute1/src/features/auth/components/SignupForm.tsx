@@ -7,7 +7,7 @@ import { signUp } from '@/features/auth/actions/auth';
 import { createClient } from '@/lib/supabase/client';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import { Building, User, IdCard, GraduationCap, Mail, Lock } from 'lucide-react';
+import { User, IdCard, GraduationCap, Mail, Lock, Cloud } from 'lucide-react';
 import './AuthForms.css';
 
 const GoogleIcon = () => (
@@ -57,6 +57,7 @@ export default function SignupForm({ companyName, logoUrl, tenantId, baseUrl }: 
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isDriveLoading, setIsDriveLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -108,20 +109,34 @@ export default function SignupForm({ companyName, logoUrl, tenantId, baseUrl }: 
     }
   }
 
-  async function handleGoogleSignIn() {
-    setIsGoogleLoading(true);
+  async function handleGoogleSignIn(withDrive: boolean = false) {
+    if (withDrive) {
+      setIsDriveLoading(true);
+    } else {
+      setIsGoogleLoading(true);
+    }
     setError('');
     
+    const options: any = {
+      redirectTo: `${window.location.origin}/api/auth/callback${withDrive ? '?connect_drive=true' : ''}`,
+    };
+
+    if (withDrive) {
+      options.scopes = 'https://www.googleapis.com/auth/drive.file';
+      options.queryParams = {
+        access_type: 'offline',
+      };
+    }
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/api/auth/callback`,
-      },
+      options,
     });
 
     if (error) {
       setError(error.message);
       setIsGoogleLoading(false);
+      setIsDriveLoading(false);
     }
   }
 
@@ -168,8 +183,6 @@ export default function SignupForm({ companyName, logoUrl, tenantId, baseUrl }: 
         <form onSubmit={handleSubmit} className="auth-form">
           {error && <div className="auth-error">{error}</div>}
           
-          {/* institution_id is always sent: platform routes pass platform institution ID,
-              tenant routes pass the tenant institution ID. Never omitted post-migration. */}
           <input type="hidden" name="institution_id" value={tenantId || ''} />
 
           <Input
@@ -248,26 +261,50 @@ export default function SignupForm({ companyName, logoUrl, tenantId, baseUrl }: 
             <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }} />
           </div>
 
-          <Button 
-            type="button" 
-            variant="ghost" 
-            fullWidth 
-            isLoading={isGoogleLoading} 
-            size="lg"
-            onClick={handleGoogleSignIn}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              gap: '8px',
-              backgroundColor: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid var(--border-color)',
-              color: 'var(--text-primary)'
-            }}
-          >
-            <GoogleIcon />
-            Sign up with Google
-          </Button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <Button 
+              type="button" 
+              variant="ghost" 
+              fullWidth 
+              isLoading={isDriveLoading} 
+              size="lg"
+              onClick={() => handleGoogleSignIn(true)}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                gap: '8px',
+                backgroundColor: 'rgba(0, 242, 254, 0.1)',
+                border: '1px solid rgba(0, 242, 254, 0.35)',
+                color: '#00f2fe',
+                fontWeight: 700,
+              }}
+            >
+              <Cloud size={18} />
+              Sign up with Google + Drive
+            </Button>
+
+            <Button 
+              type="button" 
+              variant="ghost" 
+              fullWidth 
+              isLoading={isGoogleLoading} 
+              size="lg"
+              onClick={() => handleGoogleSignIn(false)}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                gap: '8px',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)'
+              }}
+            >
+              <GoogleIcon />
+              Sign up with Google
+            </Button>
+          </div>
         </form>
 
         <div className="auth-footer">

@@ -1,6 +1,4 @@
 'use client';
-// Fix: use server-validated getUser() NOT locally-cached getSession()
-// getSession() can return a stale session even after logout, causing redirect loops.
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
@@ -9,7 +7,7 @@ import { signIn } from '@/features/auth/actions/auth';
 import { createClient } from '@/lib/supabase/client';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import { Building, Mail, Lock } from 'lucide-react';
+import { Mail, Lock, Cloud } from 'lucide-react';
 import './AuthForms.css';
 
 const GoogleIcon = () => (
@@ -60,44 +58,35 @@ export default function LoginForm({ companyName, logoUrl, baseUrl }: LoginFormPr
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isDriveLoading, setIsDriveLoading] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const supabase = createClient();
 
   const [formData, setFormData] = useState({ email: '', password: '' });
-
-  // Guard: track if we've already triggered a redirect to avoid loops
   const redirectingRef = useRef(false);
 
   useEffect(() => {
-    // Use getUser() — this hits the Supabase server to validate the token.
-    // getSession() only reads from localStorage/cookies and can be stale,
-    // which causes the login page to redirect to /dashboard even after logout.
     let cancelled = false;
 
     supabase.auth.getUser().then(({ data: { user }, error: userError }) => {
       if (cancelled) return;
-      if (userError || !user) return; // Not logged in — stay on login page
+      if (userError || !user) return;
 
-      // Already redirecting or already NOT on a login-like page → skip
       if (redirectingRef.current) return;
 
       const destination = `${baseUrl || ''}/dashboard`;
 
-      // Prevent self-redirect: if we'd be pushing to the current path, skip
       if (pathname === destination || pathname?.startsWith(`${baseUrl || ''}/dashboard`)) return;
 
       redirectingRef.current = true;
-      router.replace(destination); // replace keeps the browser history clean
-    }).catch(() => {
-      // Ignore errors — just stay on the login page
-    });
+      router.replace(destination);
+    }).catch(() => {});
 
     return () => {
       cancelled = true;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseUrl]);
+  }, [baseUrl, pathname, router, supabase.auth]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -120,23 +109,36 @@ export default function LoginForm({ companyName, logoUrl, baseUrl }: LoginFormPr
       setError(result.error);
       setIsLoading(false);
     }
-    // On success signIn() does a server redirect — setIsLoading(false) not needed
   }
 
-  async function handleGoogleSignIn() {
-    setIsGoogleLoading(true);
+  async function handleGoogleSignIn(withDrive: boolean = false) {
+    if (withDrive) {
+      setIsDriveLoading(true);
+    } else {
+      setIsGoogleLoading(true);
+    }
     setError('');
     
+    const options: any = {
+      redirectTo: `${window.location.origin}/api/auth/callback${withDrive ? '?connect_drive=true' : ''}`,
+    };
+
+    if (withDrive) {
+      options.scopes = 'https://www.googleapis.com/auth/drive.file';
+      options.queryParams = {
+        access_type: 'offline',
+      };
+    }
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/api/auth/callback`,
-      },
+      options,
     });
 
     if (error) {
       setError(error.message);
       setIsGoogleLoading(false);
+      setIsDriveLoading(false);
     }
   }
 
@@ -221,26 +223,50 @@ export default function LoginForm({ companyName, logoUrl, baseUrl }: LoginFormPr
             <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }} />
           </div>
 
-          <Button 
-            type="button" 
-            variant="ghost" 
-            fullWidth 
-            isLoading={isGoogleLoading} 
-            size="lg"
-            onClick={handleGoogleSignIn}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              gap: '8px',
-              backgroundColor: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid var(--border-color)',
-              color: 'var(--text-primary)'
-            }}
-          >
-            <GoogleIcon />
-            Continue with Google
-          </Button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <Button 
+              type="button" 
+              variant="ghost" 
+              fullWidth 
+              isLoading={isDriveLoading} 
+              size="lg"
+              onClick={() => handleGoogleSignIn(true)}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                gap: '8px',
+                backgroundColor: 'rgba(0, 242, 254, 0.1)',
+                border: '1px solid rgba(0, 242, 254, 0.35)',
+                color: '#00f2fe',
+                fontWeight: 700,
+              }}
+            >
+              <Cloud size={18} />
+              Continue with Google + Drive
+            </Button>
+
+            <Button 
+              type="button" 
+              variant="ghost" 
+              fullWidth 
+              isLoading={isGoogleLoading} 
+              size="lg"
+              onClick={() => handleGoogleSignIn(false)}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                gap: '8px',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)'
+              }}
+            >
+              <GoogleIcon />
+              Continue with Google
+            </Button>
+          </div>
         </div>
 
         <div className="auth-footer">
