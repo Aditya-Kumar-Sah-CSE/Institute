@@ -59,8 +59,8 @@ export default async function LandingPage() {
 
               {hero?.hero_badge && <div className="hero-badge animate-fade-up" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#e0e7ff', color: '#4f46e5', border: 'none', padding: '6px 12px', fontSize: '0.85rem' }}><Star size={14} fill="currentColor" /> {hero.hero_badge}</div>}
 
-              <h1 className="hero-title animate-fade-up delay-100" style={{ marginTop: '1rem', fontSize: '3rem' }}>
-                <span style={{ color: 'var(--text-primary)' }}>{hero?.hero_heading || companyName}</span>{hero?.hero_highlight && <><br /><span className="text-gradient-human" style={{ fontSize: '2rem' }}>{hero.hero_highlight}</span></>}
+              <h1 className="hero-title animate-fade-up delay-100" style={{ marginTop: '1rem', fontSize: '4rem' }}>
+                <span style={{ color: 'var(--text-primary)' }}>{hero?.hero_heading || companyName}</span>{hero?.hero_highlight && <><br /><span className="text-gradient-human" style={{ fontSize: '2.5rem' }}>{hero.hero_highlight}</span></>}
               </h1>
               <p className="hero-subtitle animate-fade-up delay-200" style={{ fontSize: '1rem' }}>
                 {hero?.hero_description || tagline}
