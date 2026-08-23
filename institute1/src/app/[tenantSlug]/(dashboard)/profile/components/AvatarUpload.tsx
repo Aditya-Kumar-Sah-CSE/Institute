@@ -52,7 +52,10 @@ export default function AvatarUpload({ userId, currentAvatarUrl, name }: AvatarU
         throw new Error(result.error);
       }
 
-      // Refresh to show new avatar
+      // Refresh to show new avatar & update storage usage
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('storage-updated'));
+      }
       router.refresh();
     } catch (err) {
       console.error(err);
@@ -80,6 +83,9 @@ export default function AvatarUpload({ userId, currentAvatarUrl, name }: AvatarU
       }
       
       setIsPreviewOpen(false);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('storage-updated'));
+      }
       router.refresh();
     } catch (err) {
       console.error(err);
