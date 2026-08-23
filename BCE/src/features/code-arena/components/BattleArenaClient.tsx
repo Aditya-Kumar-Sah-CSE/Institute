@@ -1741,112 +1741,120 @@ export default function BattleArenaClient({
             📜 My Submissions History
           </h2>
 
-          {mySubmissions.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>No submissions made yet in this battle.</p>
-          ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--glass-border)', textAlign: 'left', color: 'var(--text-muted)' }}>
-                  <th style={{ padding: '8px 12px' }}>Submitted At</th>
-                  <th style={{ padding: '8px 12px' }}>Problem</th>
-                  <th style={{ padding: '8px 12px' }}>Language</th>
-                  <th style={{ padding: '8px 12px' }}>Status</th>
-                  <th style={{ padding: '8px 12px' }}>Tests Passed</th>
-                  <th style={{ padding: '8px 12px' }}>Exec Runtime</th>
-                </tr>
-              </thead>
-              <tbody>
-                {mySubmissions.map((sub) => {
-                  const subProblem = problems.find((p) => p.id === sub.problem_id);
-                  const problemTitle = subProblem ? subProblem.title : 'Unknown Problem';
-                  const problemIdx = problems.findIndex((p) => p.id === sub.problem_id);
-                  
-                  const execTimeDisplay = sub.execution_time_ms
-                    ? `${sub.execution_time_ms} ms`
-                    : (sub.created_at && battle?.start_time && new Date(sub.created_at) >= new Date(battle.start_time))
-                    ? `+${Math.floor((new Date(sub.created_at).getTime() - new Date(battle.start_time).getTime()) / 60000)}m ${Math.floor(((new Date(sub.created_at).getTime() - new Date(battle.start_time).getTime()) % 60000) / 1000)}s`
-                    : (sub.status === 'ACCEPTED' ? '< 50 ms' : 'N/A');
+          {(() => {
+            const battleSubmissions = mySubmissions.filter(
+              (sub) => sub.battle_id === battle.id || (isVirtualPractice && problems.some((p) => p.id === sub.problem_id))
+            );
 
-                  return (
-                    <tr key={sub.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      <td style={{ padding: '10px 12px', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                        {new Date(sub.created_at).toLocaleString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          hour: 'numeric',
-                          minute: '2-digit',
-                          second: '2-digit',
-                          hour12: true
-                        })}
-                      </td>
-                      <td style={{ padding: '10px 12px' }}>
-                        <button
-                          onClick={() => {
-                            if (problemIdx !== -1) {
-                              handleSelectProblem(problemIdx);
-                              setActiveTab('arena');
-                            }
-                          }}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: 'var(--neon-cyan)',
-                            textDecoration: 'underline',
-                            cursor: 'pointer',
-                            padding: 0,
-                            fontWeight: 700,
-                            fontSize: 'var(--text-sm)',
-                            textAlign: 'left'
-                          }}
-                          onMouseOver={(e) => e.currentTarget.style.color = 'var(--neon-pink)'}
-                          onMouseOut={(e) => e.currentTarget.style.color = 'var(--neon-cyan)'}
-                        >
-                          {problemTitle}
-                        </button>
-                      </td>
-                      <td style={{ padding: '10px 12px', fontWeight: 700 }}>{sub.language}</td>
-                      <td style={{ padding: '10px 12px' }}>
-                        <span
-                          style={{
-                            padding: '2px 8px',
-                            borderRadius: '8px',
-                            fontSize: 'var(--text-xs)',
-                            fontWeight: 700,
-                            background: sub.status === 'ACCEPTED' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
-                            color: sub.status === 'ACCEPTED' ? 'var(--neon-emerald)' : '#f87171',
-                          }}
-                        >
-                          {sub.status}
-                        </span>
-                        {!sub.battle_id && (
+            if (battleSubmissions.length === 0) {
+              return <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>No submissions made yet in this battle.</p>;
+            }
+
+            return (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--glass-border)', textAlign: 'left', color: 'var(--text-muted)' }}>
+                    <th style={{ padding: '8px 12px' }}>Submitted At</th>
+                    <th style={{ padding: '8px 12px' }}>Problem</th>
+                    <th style={{ padding: '8px 12px' }}>Language</th>
+                    <th style={{ padding: '8px 12px' }}>Status</th>
+                    <th style={{ padding: '8px 12px' }}>Tests Passed</th>
+                    <th style={{ padding: '8px 12px' }}>Exec Runtime</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {battleSubmissions.map((sub) => {
+                    const subProblem = problems.find((p) => p.id === sub.problem_id);
+                    const problemTitle = subProblem ? subProblem.title : 'Unknown Problem';
+                    const problemIdx = problems.findIndex((p) => p.id === sub.problem_id);
+                    
+                    const execTimeDisplay = sub.execution_time_ms
+                      ? `${sub.execution_time_ms} ms`
+                      : (sub.created_at && battle?.start_time && new Date(sub.created_at) >= new Date(battle.start_time))
+                      ? `+${Math.floor((new Date(sub.created_at).getTime() - new Date(battle.start_time).getTime()) / 60000)}m ${Math.floor(((new Date(sub.created_at).getTime() - new Date(battle.start_time).getTime()) % 60000) / 1000)}s`
+                      : (sub.status === 'ACCEPTED' ? '< 50 ms' : 'N/A');
+
+                    return (
+                      <tr key={sub.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                        <td style={{ padding: '10px 12px', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                          {new Date(sub.created_at).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: true
+                          })}
+                        </td>
+                        <td style={{ padding: '10px 12px' }}>
+                          <button
+                            onClick={() => {
+                              if (problemIdx !== -1) {
+                                handleSelectProblem(problemIdx);
+                                setActiveTab('arena');
+                              }
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--neon-cyan)',
+                              textDecoration: 'underline',
+                              cursor: 'pointer',
+                              padding: 0,
+                              fontWeight: 700,
+                              fontSize: 'var(--text-sm)',
+                              textAlign: 'left'
+                            }}
+                            onMouseOver={(e) => e.currentTarget.style.color = 'var(--neon-pink)'}
+                            onMouseOut={(e) => e.currentTarget.style.color = 'var(--neon-cyan)'}
+                          >
+                            {problemTitle}
+                          </button>
+                        </td>
+                        <td style={{ padding: '10px 12px', fontWeight: 700 }}>{sub.language}</td>
+                        <td style={{ padding: '10px 12px' }}>
                           <span
                             style={{
-                              marginLeft: '8px',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              fontSize: '9px',
+                              padding: '2px 8px',
+                              borderRadius: '8px',
+                              fontSize: 'var(--text-xs)',
                               fontWeight: 700,
-                              background: 'rgba(168,85,247,0.15)',
-                              color: '#c084fc',
-                              border: '1px solid rgba(168,85,247,0.3)',
+                              background: sub.status === 'ACCEPTED' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
+                              color: sub.status === 'ACCEPTED' ? 'var(--neon-emerald)' : '#f87171',
                             }}
                           >
-                            PRACTICE
+                            {sub.status}
                           </span>
-                        )}
-                      </td>
-                      <td style={{ padding: '10px 12px', fontWeight: 700 }}>
-                        {sub.passed_tests || 0} / {sub.total_tests || 0}
-                      </td>
-                      <td style={{ padding: '10px 12px', color: 'var(--neon-cyan)', fontWeight: 600, fontSize: 'var(--text-xs)' }}>
-                        {execTimeDisplay}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
+                          {!sub.battle_id && (
+                            <span
+                              style={{
+                                marginLeft: '8px',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                fontSize: '9px',
+                                fontWeight: 700,
+                                background: 'rgba(168,85,247,0.15)',
+                                color: '#c084fc',
+                                border: '1px solid rgba(168,85,247,0.3)',
+                              }}
+                            >
+                              PRACTICE
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ padding: '10px 12px', fontWeight: 700 }}>
+                          {sub.passed_tests || 0} / {sub.total_tests || 0}
+                        </td>
+                        <td style={{ padding: '10px 12px', color: 'var(--neon-cyan)', fontWeight: 600, fontSize: 'var(--text-xs)' }}>
+                          {execTimeDisplay}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            );
+          })()}
         </Card>
       )}
 
@@ -1856,7 +1864,7 @@ export default function BattleArenaClient({
           battle={battle}
           problems={problems}
           participants={participants}
-          submissions={mySubmissions}
+          submissions={isVirtualPractice ? mySubmissions.filter((s) => problems.some((p) => p.id === s.problem_id)) : officialSubmissions}
           currentUser={currentUser}
           isInstructor={isInstructor}
           onBack={() => setActiveTab('arena')}

@@ -231,8 +231,8 @@ export async function GET(request: Request) {
   }
 
   if (battleId) {
-    // Return submissions that belong to the battle, OR virtual practice submissions (battle_id is null)
-    query = query.or(`battle_id.eq.${battleId},battle_id.is.null`);
+    // Strictly return submissions that belong to this specific battle
+    query = query.eq('battle_id', battleId);
   }
 
   query = query.order('created_at', { ascending: false }).limit(100);
