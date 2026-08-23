@@ -122,8 +122,14 @@ export default function CreateBattleWizard({
 
   // Populate initial battle problems if editing
   useEffect(() => {
-    if (initialBattle?.coding_battle_problems) {
-      const formatted = initialBattle.coding_battle_problems.map((bp: any) => {
+    if (!initialBattle?.id) return;
+
+    let isMounted = true;
+
+    // Helper to format problems from battle response
+    const formatProblems = (rawProblems: any[]) => {
+      const sorted = [...rawProblems].sort((a: any, b: any) => (a.order_index ?? 0) - (b.order_index ?? 0));
+      return sorted.map((bp: any) => {
         const p = bp.coding_problems || {};
         return {
           id: p.id || bp.problem_id,
@@ -137,8 +143,30 @@ export default function CreateBattleWizard({
           hasConstraints: true,
         };
       });
-      setAddedProblems(formatted);
+    };
+
+    // If initialBattle already has full joined coding_problems array
+    if (
+      Array.isArray(initialBattle.coding_battle_problems) &&
+      initialBattle.coding_battle_problems.length > 0 &&
+      initialBattle.coding_battle_problems[0]?.coding_problems?.id
+    ) {
+      setAddedProblems(formatProblems(initialBattle.coding_battle_problems));
+    } else {
+      // Otherwise fetch full details from API endpoint
+      fetch(`/api/coding/battles/${initialBattle.id}`)
+        .then((res) => res.json())
+        .then((json) => {
+          if (json.success && json.data?.coding_battle_problems && isMounted) {
+            setAddedProblems(formatProblems(json.data.coding_battle_problems));
+          }
+        })
+        .catch((err) => console.error('Failed to load battle problems:', err));
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [initialBattle]);
 
   // Fetch internal BCE problems when tab changes
