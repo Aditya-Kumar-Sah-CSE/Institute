@@ -59,42 +59,72 @@ export async function getUserStorageUsage(targetUserId?: string): Promise<Storag
 
     const adminSb = await createAdminClient();
 
-    // Query storage.objects where owner is user ID OR object path/name starts with user ID
-    const { data: storageObjects, error } = await adminSb
-      .schema('storage')
-      .from('objects')
-      .select('metadata, name, owner')
-      .or(`owner.eq.${userIdToQuery},name.ilike.${userIdToQuery}/%`);
-
-    if (error) {
-      console.error('[getUserStorageUsage Error]:', error);
-      // Fallback: If querying storage.objects directly throws (e.g. permission/schema configuration), return clean 0 MB state
-      return {
-        success: true,
-        bytes: 0,
-        formattedUsed: '0 MB',
-        formattedQuota: '100 MB',
-        percentage: 0,
-        unit: 'MB',
-      };
-    }
-
     let totalBytes = 0;
+    const trackedObjectNames = new Set<string>();
 
-    if (storageObjects && storageObjects.length > 0) {
-      for (const obj of storageObjects) {
-        if (!obj.metadata) continue;
-        
-        const rawSize = obj.metadata.size;
-        if (typeof rawSize === 'number') {
-          totalBytes += rawSize;
-        } else if (typeof rawSize === 'string') {
-          const parsed = parseInt(rawSize, 10);
-          if (!isNaN(parsed)) {
-            totalBytes += parsed;
+    // 1. Query storage.objects where owner equals user ID OR object name contains user ID
+    try {
+      const { data: storageObjects, error } = await adminSb
+        .schema('storage')
+        .from('objects')
+        .select('metadata, name, owner')
+        .or(`owner.eq.${userIdToQuery},name.ilike.%${userIdToQuery}%`);
+
+      if (!error && storageObjects && storageObjects.length > 0) {
+        for (const obj of storageObjects) {
+          if (obj.name) trackedObjectNames.add(obj.name);
+          if (!obj.metadata) continue;
+
+          const rawSize = (obj.metadata as any).size;
+          if (typeof rawSize === 'number') {
+            totalBytes += rawSize;
+          } else if (typeof rawSize === 'string') {
+            const parsed = parseInt(rawSize, 10);
+            if (!isNaN(parsed)) {
+              totalBytes += parsed;
+            }
           }
         }
       }
+    } catch (err) {
+      console.error('[getUserStorageUsage storage.objects query error]:', err);
+    }
+
+    // 2. Check profile avatar_url if not already tracked
+    try {
+      const { data: profile } = await adminSb
+        .from('profiles')
+        .select('avatar_url')
+        .eq('id', userIdToQuery)
+        .single();
+
+      if (profile?.avatar_url) {
+        const match = profile.avatar_url.match(/\/object\/public\/([^/]+)\/(.+)$/);
+        if (match) {
+          const bucket = match[1];
+          const objectPath = match[2];
+          if (!trackedObjectNames.has(objectPath)) {
+            const { data: avatarObj } = await adminSb
+              .schema('storage')
+              .from('objects')
+              .select('metadata')
+              .eq('bucket_id', bucket)
+              .eq('name', objectPath)
+              .maybeSingle();
+
+            if (avatarObj?.metadata) {
+              const rawSize = (avatarObj.metadata as any).size;
+              const sizeNum = typeof rawSize === 'number' ? rawSize : parseInt(rawSize, 10);
+              if (!isNaN(sizeNum) && sizeNum > 0) {
+                totalBytes += sizeNum;
+                trackedObjectNames.add(objectPath);
+              }
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[getUserStorageUsage profile avatar check error]:', err);
     }
 
     // Calculate MB and GB values
