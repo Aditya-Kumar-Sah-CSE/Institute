@@ -248,20 +248,23 @@ export default function BattleEndScreen({
           ) : (
             <div
               style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '6px',
-                background: 'linear-gradient(135deg, rgba(6,182,212,0.2), rgba(168,85,247,0.2))',
-                border: '1px solid var(--neon-cyan)',
+                width: '36px',
+                height: '36px',
+                borderRadius: '8px',
+                background: 'linear-gradient(135deg, rgba(6,182,212,0.25), rgba(168,85,247,0.25))',
+                border: '1.5px solid var(--neon-cyan)',
                 color: 'var(--neon-cyan)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontWeight: 'bold',
-                fontSize: '13px',
+                fontWeight: 900,
+                fontFamily: 'monospace',
+                fontSize: '14px',
+                boxShadow: '0 0 12px rgba(0, 240, 255, 0.25)',
               }}
+              title="Smart Learn"
             >
-              <Shield size={16} />
+              &lt;&gt;
             </div>
           )}
         </div>
@@ -297,20 +300,85 @@ export default function BattleEndScreen({
             <X size={20} />
           </button>
         )}
-        <div
-          style={{
-            width: '72px',
-            height: '72px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.2), rgba(245, 158, 11, 0.3))',
-            border: '2px solid #eab308',
-            color: '#eab308',
-            display: 'grid',
-            placeItems: 'center',
-          }}
-        >
-          <Trophy size={36} />
-        </div>
+        {/* Center Rank Badge or Trophy Cup */}
+        {userStats.rank === 1 ? (
+          <div
+            style={{
+              width: '72px',
+              height: '72px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, rgba(254, 240, 138, 0.25), rgba(217, 119, 6, 0.35))',
+              border: '2.5px solid #fbbf24',
+              color: '#fbbf24',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 0 25px rgba(251, 191, 36, 0.45)',
+            }}
+            title="Rank 1 - Gold Champion"
+          >
+            <span style={{ fontSize: '22px', lineHeight: 1 }}>🥇</span>
+            <span style={{ fontSize: '9px', fontWeight: 900, letterSpacing: '0.5px', marginTop: '2px' }}>TOP 1</span>
+          </div>
+        ) : userStats.rank === 2 ? (
+          <div
+            style={{
+              width: '72px',
+              height: '72px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, rgba(241, 245, 249, 0.25), rgba(148, 163, 184, 0.35))',
+              border: '2.5px solid #e2e8f0',
+              color: '#e2e8f0',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 0 25px rgba(226, 232, 240, 0.35)',
+            }}
+            title="Rank 2 - Silver Runner Up"
+          >
+            <span style={{ fontSize: '22px', lineHeight: 1 }}>🥈</span>
+            <span style={{ fontSize: '9px', fontWeight: 900, letterSpacing: '0.5px', marginTop: '2px' }}>TOP 2</span>
+          </div>
+        ) : userStats.rank === 3 ? (
+          <div
+            style={{
+              width: '72px',
+              height: '72px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, rgba(255, 237, 213, 0.25), rgba(249, 115, 22, 0.35))',
+              border: '2.5px solid #f97316',
+              color: '#f97316',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 0 25px rgba(249, 115, 22, 0.35)',
+            }}
+            title="Rank 3 - Bronze Achiever"
+          >
+            <span style={{ fontSize: '22px', lineHeight: 1 }}>🥉</span>
+            <span style={{ fontSize: '9px', fontWeight: 900, letterSpacing: '0.5px', marginTop: '2px' }}>TOP 3</span>
+          </div>
+        ) : (
+          <div
+            style={{
+              width: '72px',
+              height: '72px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, rgba(6,182,212,0.2), rgba(124,58,237,0.2))',
+              border: '2px solid var(--neon-cyan)',
+              color: 'var(--neon-cyan)',
+              display: 'grid',
+              placeItems: 'center',
+              boxShadow: '0 0 20px rgba(0, 240, 255, 0.2)',
+            }}
+            title="Battle Finisher"
+          >
+            <Trophy size={36} style={{ animation: 'pulse 2s infinite' }} />
+          </div>
+        )}
 
         <div style={{ textAlign: 'center', margin: '12px 0 var(--space-lg) 0' }}>
           <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 800, margin: '4px 0' }}>
