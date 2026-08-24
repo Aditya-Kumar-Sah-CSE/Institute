@@ -136,7 +136,7 @@ export default function CodingProfileHero({ profile, codeforcesConnected, leetCo
           </p>
           <p className="profile-hero-college" suppressHydrationWarning>
             <span className="college-dot" />
-            Smart Learn App
+            {profile?.college_name || 'Smart Learn App'}
           </p>
           
           <div className="profile-hero-badges">

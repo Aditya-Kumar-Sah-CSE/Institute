@@ -22,6 +22,7 @@ export interface Profile {
   created_at: string;
   social_links?: Record<string, string>;
   graduation_period?: string | null;
+  college_name?: string | null;
   cgpa?: number | null;
   sgpa?: Record<string, number> | null;
   admission_filled?: boolean;

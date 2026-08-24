@@ -30,7 +30,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
     // Fetch the public profile
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, name, email, avatar_url, xp, level, role, streak_days, social_links, linkedin_url, institute_id, instructor_id, graduation_period, cgpa, sgpa, created_at, professional_details')
+      .select('id, name, email, avatar_url, xp, level, role, streak_days, social_links, linkedin_url, institute_id, instructor_id, graduation_period, cgpa, sgpa, created_at, professional_details, college_name')
       .eq('id', id)
       .maybeSingle();
       
@@ -137,6 +137,11 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
             </div>
           </div>
           
+          {profile.college_name && (
+            <p className="profile-email" style={{ marginTop: 'var(--space-xs)', fontSize: 'var(--text-sm)' }}>
+              College: <span style={{ color: 'var(--neon-cyan)', fontWeight: 'var(--weight-semibold)' }}>{profile.college_name}</span>
+            </p>
+          )}
           {profile.institute_id && (
             <p className="profile-email" style={{ marginTop: 'var(--space-xs)', fontSize: 'var(--text-sm)' }}>
               Roll No / Reg. No: <span style={{ color: 'var(--neon-cyan)', fontWeight: 'var(--weight-semibold)' }}>{profile.institute_id}</span>

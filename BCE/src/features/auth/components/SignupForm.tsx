@@ -7,7 +7,7 @@ import { signUp } from '@/features/auth/actions/auth';
 import { createClient } from '@/lib/supabase/client';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import { User, IdCard, GraduationCap, Mail, Lock, Cloud } from 'lucide-react';
+import { User, Mail, Lock, Cloud } from 'lucide-react';
 import './AuthForms.css';
 
 const GoogleIcon = () => (
@@ -63,8 +63,6 @@ export default function SignupForm({ companyName, logoUrl, tenantId, baseUrl }: 
 
   const [formData, setFormData] = useState({
     name: '',
-    institute_id: '',
-    graduation_period: '',
     email: '',
     password: '',
     confirmPassword: ''
@@ -196,26 +194,6 @@ export default function SignupForm({ companyName, logoUrl, tenantId, baseUrl }: 
             required
           />
 
-          <Input
-            name="institute_id"
-            type="text"
-            label="Roll No / Reg. No (Optional)"
-            placeholder="Your Roll No (e.g., 2023CS01)"
-            icon={<IdCard size={18} />}
-            value={formData.institute_id}
-            onChange={handleChange}
-          />
-
-          <Input
-            name="graduation_period"
-            type="text"
-            label="Graduation Year"
-            placeholder="Graduation Year (e.g., 2024-2028)"
-            icon={<GraduationCap size={18} />}
-            value={formData.graduation_period}
-            onChange={handleChange}
-            required
-          />
 
           <Input
             name="email"

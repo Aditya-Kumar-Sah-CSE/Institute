@@ -96,7 +96,11 @@ export default async function ProfilePage() {
               Institute ID: <span style={{ color: 'var(--text-primary)', fontWeight: 'var(--weight-semibold)' }}>{profile.institute_id}</span>
             </p>
           )}
-          
+          {profile.college_name && (
+            <p className="profile-email" style={{ marginTop: 'var(--space-xs)', fontSize: 'var(--text-sm)', color: 'var(--neon-cyan)' }}>
+              🏫 <span style={{ fontWeight: 'var(--weight-semibold)' }}>{profile.college_name}</span>
+            </p>
+          )}
         </div>
 
         {/* Center Column: Avatar */}
@@ -152,6 +156,7 @@ export default async function ProfilePage() {
                 initialName={profile.name} 
                 initialRollNo={profile.institute_id} 
                 initialBatch={profile.graduation_period} 
+                initialCollegeName={profile.college_name || null}
               />
             </div>
           </div>

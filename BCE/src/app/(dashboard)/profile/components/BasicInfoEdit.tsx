@@ -10,9 +10,10 @@ interface BasicInfoEditProps {
   initialName: string;
   initialRollNo: string | null;
   initialBatch: string | null;
+  initialCollegeName: string | null;
 }
 
-export default function BasicInfoEdit({ initialName, initialRollNo, initialBatch }: BasicInfoEditProps) {
+export default function BasicInfoEdit({ initialName, initialRollNo, initialBatch, initialCollegeName }: BasicInfoEditProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,9 +65,16 @@ export default function BasicInfoEdit({ initialName, initialRollNo, initialBatch
             placeholder="e.g. 2025"
           />
 
+          <Input 
+            name="college_name" 
+            label="College Name" 
+            defaultValue={initialCollegeName || ''}
+            placeholder="e.g. Bhagalpur College of Engineering"
+          />
+
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
             <Button variant="secondary" onClick={() => setIsOpen(false)} type="button">
-              Cancel
+               Cancel
             </Button>
             <Button variant="primary" type="submit" disabled={loading}>
               {loading ? 'Saving...' : 'Save Changes'}

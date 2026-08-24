@@ -14,11 +14,11 @@ export async function signUp(formData: FormData) {
   const name = formData.get('name') as string;
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
-  const institute_id = formData.get('institute_id') as string;
-  const graduation_period = formData.get('graduation_period') as string;
+  const institute_id = (formData.get('institute_id') as string) || '';
+  const graduation_period = (formData.get('graduation_period') as string) || '';
 
-  if (!name || !email || !password || !graduation_period) {
-    return { error: 'All fields are required except Roll No' };
+  if (!name || !email || !password) {
+    return { error: 'Name, email and password are required' };
   }
 
   // Rate limit: 5 signups per email per 10 minutes

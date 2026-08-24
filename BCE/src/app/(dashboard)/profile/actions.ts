@@ -12,6 +12,7 @@ export async function updateBasicProfile(formData: FormData) {
   const name = formData.get('name') as string;
   const institute_id = formData.get('institute_id') as string;
   const batch = formData.get('batch') as string;
+  const college_name = formData.get('college_name') as string;
 
   if (!name || name.trim() === '') {
     return { error: 'Name is required' };
@@ -20,6 +21,7 @@ export async function updateBasicProfile(formData: FormData) {
   const updates: Record<string, string> = { name: name.trim() };
   if (institute_id !== null) updates.institute_id = institute_id.trim();
   if (batch !== null) updates.graduation_period = batch.trim();
+  if (college_name !== null) updates.college_name = college_name.trim();
 
   const { error } = await supabase
     .from('profiles')
