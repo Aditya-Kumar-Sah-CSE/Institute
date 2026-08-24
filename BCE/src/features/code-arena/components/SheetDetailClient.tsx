@@ -5,12 +5,14 @@ import Link from 'next/link';
 import { 
   Trophy, ArrowLeft, BookOpen, CheckCircle2, Circle, 
   ExternalLink, Code2, ArrowRight, Award, Play, Pencil, Users,
-  Lock, Shield, Globe, KeyRound, AlertCircle
+  Lock, Shield, Globe, KeyRound, AlertCircle, Video, FileText
 } from 'lucide-react';
 import MobileCodeArenaToggle from './MobileCodeArenaToggle';
 import Card from '@/components/ui/Card';
 import { useRouter } from 'next/navigation';
 import CreateSheetWizard from './CreateSheetWizard';
+import Modal from '@/components/ui/Modal';
+import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import './CodeArena.css';
 
 type Problem = {
@@ -23,6 +25,8 @@ type Problem = {
   external_url?: string;
   tags?: string[];
   order_index: number;
+  youtube_url?: string | null;
+  text_solution?: string | null;
 };
 
 type Sheet = {
@@ -58,6 +62,16 @@ export default function SheetDetailClient({
   const [enrolling, setEnrolling] = useState(false);
   const [enrollError, setEnrollError] = useState('');
   const [passcodeInput, setPasscodeInput] = useState('');
+
+  // Modals for YT Video and Text Solution
+  const [activeVideoProblem, setActiveVideoProblem] = useState<Problem | null>(null);
+  const [activeSolutionProblem, setActiveSolutionProblem] = useState<Problem | null>(null);
+  const [editProblem, setEditProblem] = useState<Problem | null>(null);
+
+  // Edit fields
+  const [editYoutubeUrl, setEditYoutubeUrl] = useState('');
+  const [editSolutionText, setEditSolutionText] = useState('');
+  const [savingSolution, setSavingSolution] = useState(false);
   
   const problems = sheet.problems || [];
   const totalProblems = problems.length;
@@ -69,6 +83,58 @@ export default function SheetDetailClient({
   const canEdit = isInstructor || isCreator;
   // Instructors/admins and creators bypass enrollment gate
   const hasAccess = canEdit || isEnrolled || enrollmentAccess === 'public';
+
+  const getYoutubeEmbedUrl = (url: string) => {
+    if (!url) return '';
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    const videoId = (match && match[2].length === 11) ? match[2] : null;
+    if (videoId) {
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
+    return '';
+  };
+
+  const handleWatchVideo = (problem: Problem) => {
+    setActiveVideoProblem(problem);
+  };
+
+  const handleReadSolution = (problem: Problem) => {
+    setActiveSolutionProblem(problem);
+  };
+
+  const handleEditSolution = (problem: Problem) => {
+    setEditProblem(problem);
+    setEditYoutubeUrl(problem.youtube_url || '');
+    setEditSolutionText(problem.text_solution || '');
+  };
+
+  const handleSaveProblemSolution = async () => {
+    if (!editProblem) return;
+    setSavingSolution(true);
+    try {
+      const res = await fetch(`/api/coding/sheets/${sheet.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          problem_id: editProblem.id,
+          youtube_url: editYoutubeUrl.trim(),
+          text_solution: editSolutionText.trim(),
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        alert(json.error?.message || 'Failed to save solution.');
+      } else {
+        setEditProblem(null);
+        router.refresh();
+      }
+    } catch {
+      alert('Network error. Failed to save solution.');
+    } finally {
+      setSavingSolution(false);
+    }
+  };
 
   const [claimingCert, setClaimingCert] = useState(false);
   const [certError, setCertError] = useState('');
@@ -453,6 +519,45 @@ export default function SheetDetailClient({
                     </span>
 
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      {/* Video Solution button if present */}
+                      {problem.youtube_url && (
+                        <button
+                          type="button"
+                          onClick={() => handleWatchVideo(problem)}
+                          className="oj-icon-btn"
+                          title="Watch Video Solution"
+                          style={{ display: 'grid', placeItems: 'center', width: '32px', height: '32px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '6px', color: '#ef4444', cursor: 'pointer' }}
+                        >
+                          <Video size={13} />
+                        </button>
+                      )}
+
+                      {/* Text Solution button if present */}
+                      {problem.text_solution && (
+                        <button
+                          type="button"
+                          onClick={() => handleReadSolution(problem)}
+                          className="oj-icon-btn"
+                          title="Read Text Solution"
+                          style={{ display: 'grid', placeItems: 'center', width: '32px', height: '32px', background: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.3)', borderRadius: '6px', color: '#a855f7', cursor: 'pointer' }}
+                        >
+                          <FileText size={13} />
+                        </button>
+                      )}
+
+                      {/* Instructor Edit Solution button */}
+                      {canEdit && (
+                        <button
+                          type="button"
+                          onClick={() => handleEditSolution(problem)}
+                          className="oj-icon-btn"
+                          title="Manage Solution & Video"
+                          style={{ display: 'grid', placeItems: 'center', width: '32px', height: '32px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', borderRadius: '6px', color: 'var(--text-muted)', cursor: 'pointer' }}
+                        >
+                          <Pencil size={12} />
+                        </button>
+                      )}
+
                       {/* Official External Link if present */}
                       {problem.external_url && (
                         <a 
@@ -504,6 +609,176 @@ export default function SheetDetailClient({
           }}
         />
       )}
+
+      {/* Video Modal */}
+      <Modal
+        isOpen={activeVideoProblem !== null}
+        onClose={() => setActiveVideoProblem(null)}
+        title={`Video Solution: ${activeVideoProblem?.title}`}
+        size="lg"
+      >
+        {activeVideoProblem?.youtube_url && getYoutubeEmbedUrl(activeVideoProblem.youtube_url) ? (
+          <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: '8px', border: '1px solid var(--glass-border)', background: '#000' }}>
+            <iframe
+              src={getYoutubeEmbedUrl(activeVideoProblem.youtube_url)}
+              title="Video Solution"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+            />
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
+              This video cannot be embedded. Click the link below to watch:
+            </p>
+            <a
+              href={activeVideoProblem?.youtube_url || '#'}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 20px',
+                background: '#ef4444',
+                color: 'white',
+                borderRadius: '6px',
+                textDecoration: 'none',
+                fontWeight: 'bold',
+              }}
+            >
+              <ExternalLink size={16} /> Open Video Solution
+            </a>
+          </div>
+        )}
+      </Modal>
+
+      {/* Read Solution Modal */}
+      <Modal
+        isOpen={activeSolutionProblem !== null}
+        onClose={() => setActiveSolutionProblem(null)}
+        title={`Text Solution: ${activeSolutionProblem?.title}`}
+        size="lg"
+      >
+        <div style={{ maxHeight: 'calc(80vh - 120px)', overflowY: 'auto', paddingRight: '8px' }}>
+          {activeSolutionProblem?.text_solution ? (
+            <MarkdownRenderer content={activeSolutionProblem.text_solution} />
+          ) : (
+            <p style={{ color: 'var(--text-muted)', fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>
+              No text solution available.
+            </p>
+          )}
+        </div>
+      </Modal>
+
+      {/* Edit Solution Modal */}
+      <Modal
+        isOpen={editProblem !== null}
+        onClose={() => setEditProblem(null)}
+        title={`Manage Solution & Video: ${editProblem?.title}`}
+        size="lg"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px', textTransform: 'uppercase' }}>
+              YouTube Video URL
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+              value={editYoutubeUrl}
+              onChange={(e) => setEditYoutubeUrl(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 14px',
+                borderRadius: 'var(--radius-sm)',
+                background: 'var(--bg-card)',
+                border: '1px solid var(--glass-border)',
+                color: 'var(--text-main)',
+                fontSize: 'var(--text-sm)',
+                outline: 'none',
+              }}
+            />
+            <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+              Supports standard YouTube video URLs and share links.
+            </span>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px', textTransform: 'uppercase' }}>
+              Text Solution (Markdown Supported)
+            </label>
+            <textarea
+              placeholder="Write your solution explanation here. You can use markdown and write code blocks using ```cpp or ```python."
+              value={editSolutionText}
+              onChange={(e) => setEditSolutionText(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 14px',
+                borderRadius: 'var(--radius-sm)',
+                background: 'var(--bg-card)',
+                border: '1px solid var(--glass-border)',
+                color: 'var(--text-main)',
+                fontSize: 'var(--text-sm)',
+                outline: 'none',
+                minHeight: '220px',
+                fontFamily: 'inherit',
+                resize: 'vertical',
+              }}
+            />
+          </div>
+
+          {editSolutionText.trim() && (
+            <div style={{ border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '16px', background: 'rgba(0,0,0,0.2)' }}>
+              <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--neon-cyan)', textTransform: 'uppercase', marginBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '4px' }}>
+                Live Markdown Preview
+              </div>
+              <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
+                <MarkdownRenderer content={editSolutionText} />
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '8px', borderTop: '1px solid var(--glass-border)', paddingTop: '16px' }}>
+            <button
+              type="button"
+              onClick={() => setEditProblem(null)}
+              disabled={savingSolution}
+              style={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid var(--glass-border)',
+                color: 'var(--text-main)',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveProblemSolution}
+              disabled={savingSolution}
+              style={{
+                background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))',
+                border: 'none',
+                color: 'white',
+                padding: '8px 20px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: savingSolution ? 'wait' : 'pointer',
+              }}
+            >
+              {savingSolution ? 'Saving Solution...' : 'Save Solution'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
