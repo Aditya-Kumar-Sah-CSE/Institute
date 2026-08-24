@@ -1,0 +1,11 @@
+{
+  "name": "institute-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix BCE run dev",
+    "build": "npm --prefix BCE run build",
+    "start": "npm --prefix BCE run start",
+    "lint": "npm --prefix BCE run lint"
+  }
+}

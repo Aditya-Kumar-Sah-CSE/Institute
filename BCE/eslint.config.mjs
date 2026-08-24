@@ -14,6 +14,7 @@ const eslintConfig = defineConfig([
       "react-hooks/set-state-in-effect": "off",
       "react-hooks/purity": "off",
       "react-hooks/immutability": "off",
+      "react-hooks/error-boundaries": "off",
       "react/no-children-prop": "off",
       "@next/next/no-html-link-for-pages": "off",
       "prefer-const": "off"

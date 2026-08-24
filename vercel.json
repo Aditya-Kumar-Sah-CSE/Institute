@@ -1,0 +1,11 @@
+{
+  "buildCommand": "npm --prefix BCE run build",
+  "installCommand": "npm --prefix BCE install",
+  "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/cron/nptel/sync",
+      "schedule": "0 */6 * * *"
+    }
+  ]
+}
