@@ -1,7 +1,14 @@
-const CACHE_VERSION = 'smartlearn-v9';
+const CACHE_VERSION = 'smartlearn-v10';
 const CACHE_STATIC = `smartlearn-static-${CACHE_VERSION}`;
 const CACHE_COURSE = `smartlearn-course-${CACHE_VERSION}`;
 const CACHE_MEDIA = `smartlearn-media-${CACHE_VERSION}`;
+
+// Listen for message from client to skip waiting immediately on update
+self.addEventListener('message', (event) => {
+  if (event.data && (event.data.type === 'SKIP_WAITING' || event.data === 'SKIP_WAITING')) {
+    self.skipWaiting();
+  }
+});
 
 // Pre-cache core shell resources on install
 const SHELL_ASSETS = [

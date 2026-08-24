@@ -5,6 +5,7 @@ import '@/components/landing/InstitutionLanding.css';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { 
   DynamicPwaRegister as PwaRegister, 
+  DynamicPwaUpdateToast as PwaUpdateToast,
   DynamicPWAInstallPrompt as PWAInstallPrompt, 
   DynamicFeedbackWidget as FeedbackWidget, 
   DynamicXpCelebrator as XpCelebrator 
@@ -25,7 +26,7 @@ const jetbrainsMono = JetBrains_Mono({
 import { Analytics } from '@vercel/analytics/react';
 
 export const viewport: Viewport = {
-  themeColor: '#000000',
+  themeColor: '#0b0f19',
   colorScheme: 'dark',
 };
 
@@ -46,20 +47,20 @@ export async function generateMetadata(): Promise<Metadata> {
     title: `${companyName} | Student Engagement Platform`,
     description: "To transform traditional classrooms into intelligent, data-driven learning environments.",
     keywords: ['full stack', 'web development', 'Student Engagement platform', 'gamified', 'coding', 'institute'],
-    manifest: '/manifest.json?v=3',
+    manifest: '/manifest.json?v=4',
     icons: {
       icon: [
         { url: '/favicon.ico', sizes: '32x32', type: 'image/png' },
         { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
         { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
-        { url: settings?.logo_url ?? '/icon-192x192.png?v=3', sizes: '192x192', type: 'image/png' },
+        { url: settings?.logo_url ?? '/icon-192x192.png?v=4', sizes: '192x192', type: 'image/png' },
       ],
-      apple: settings?.logo_url ? settings.logo_url : '/icon-192x192.png?v=3',
+      apple: settings?.logo_url ? settings.logo_url : '/icon-192x192.png?v=4',
       shortcut: '/favicon.ico',
     },
     appleWebApp: {
       capable: true,
-      statusBarStyle: 'default',
+      statusBarStyle: 'black-translucent',
       title: companyName,
     },
     formatDetection: {
@@ -90,6 +91,7 @@ export default async function RootLayout({
       </head>
       <body suppressHydrationWarning className={`${outfit.variable} ${jetbrainsMono.variable}`}>
         <PwaRegister />
+        <PwaUpdateToast />
         <PWAInstallPrompt />
         <ThemeProvider attribute="data-theme" defaultTheme="dark" enableSystem={false} disableTransitionOnChange={false}>
           {children}

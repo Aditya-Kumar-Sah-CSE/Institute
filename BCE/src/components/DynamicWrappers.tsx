@@ -50,6 +50,7 @@ const MonthlyCelebratorComponent = safeDynamicImport(() => import('@/components/
 export const DynamicXpCelebrator = safeDynamicImport(() => import('@/components/shared/XpCelebrator'));
 export const DynamicFeedbackWidget = safeDynamicImport(() => import('@/components/shared/FeedbackWidget'));
 export const DynamicPwaRegister = safeDynamicImport(() => import('@/components/PwaRegister'));
+export const DynamicPwaUpdateToast = safeDynamicImport(() => import('@/components/pwa/PwaUpdateToast'));
 export const DynamicPWAInstallPrompt = safeDynamicImport(() => import('@/components/pwa/PWAInstallPrompt'));
 export const DynamicCrownBanner = safeDynamicImport(() => import('@/app/(dashboard)/profile/components/CrownBanner'));
 

@@ -9,6 +9,7 @@ import {
   DynamicBadgeCelebrator as BadgeCelebrator, 
   DynamicMonthlyCelebrator as MonthlyCelebrator,
   DynamicPwaRegister as PwaRegister,
+  DynamicPwaUpdateToast as PwaUpdateToast,
   DynamicPWAInstallPrompt as PWAInstallPrompt,
   DynamicFeedbackWidget as FeedbackWidget,
   DynamicXpCelebrator as XpCelebrator
@@ -83,6 +84,7 @@ export default async function DashboardLayout({
       <BadgeCelebrator />
       <MonthlyCelebrator />
       <PwaRegister />
+      <PwaUpdateToast />
       <PWAInstallPrompt />
       <XpCelebrator />
       <FeedbackWidget />

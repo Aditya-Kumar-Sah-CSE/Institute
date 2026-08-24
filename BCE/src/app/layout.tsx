@@ -18,7 +18,7 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 import AuthChangeHandler from '@/components/AuthChangeHandler';
 
 export const viewport: Viewport = {
-  themeColor: '#000000',
+  themeColor: '#0b0f19',
   colorScheme: 'dark',
 };
 
@@ -27,20 +27,20 @@ export const metadata: Metadata = {
   description: "To transform traditional classrooms into intelligent, data-driven learning environments where every student receives continuous guidance, every teacher gains actionable insights, and every institute can deliver a more engaging and effective educational experience.",
 
   keywords: ['full stack', 'web development', 'Student Engagement platform', 'gamified', 'coding', 'institute'],
-  manifest: '/manifest.json?v=3',
+  manifest: '/manifest.json?v=4',
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: '32x32', type: 'image/png' },
       { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
       { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
-      { url: '/icon-192x192.png?v=3', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-192x192.png?v=4', sizes: '192x192', type: 'image/png' },
     ],
-    apple: '/icon-192x192.png?v=3',
+    apple: '/icon-192x192.png?v=4',
     shortcut: '/favicon.ico',
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
+    statusBarStyle: 'black-translucent',
     title: 'Smart Hybrid Learning',
   },
   formatDetection: {

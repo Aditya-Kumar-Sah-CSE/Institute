@@ -42,12 +42,37 @@ export default function PwaRegister() {
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
 
+    const notifyUpdateAvailable = (reg: ServiceWorkerRegistration) => {
+      window.dispatchEvent(
+        new CustomEvent('pwa-update-available', { detail: { registration: reg } })
+      );
+    };
+
     const registerSw = () => {
-      navigator.serviceWorker.register('/sw.js').then((reg) => {
-        reg.update();
-      }).catch((err) => {
-        console.error('[PwaRegister] ServiceWorker registration failed:', err);
-      });
+      navigator.serviceWorker
+        .register('/sw.js')
+        .then((reg) => {
+          // Check if worker is already waiting
+          if (reg.waiting) {
+            notifyUpdateAvailable(reg);
+          }
+
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  notifyUpdateAvailable(reg);
+                }
+              });
+            }
+          });
+
+          reg.update().catch(() => {});
+        })
+        .catch((err) => {
+          console.error('[PwaRegister] ServiceWorker registration failed:', err);
+        });
     };
 
     if (document.readyState === 'complete') {
@@ -56,13 +81,6 @@ export default function PwaRegister() {
       window.addEventListener('load', registerSw);
     }
 
-    // A newly activated worker may correspond to a deployment with a different
-    // React navigation tree. Reload ONCE to prevent old cached client chunks
-    // hydrating fresh server HTML.
-    //
-    // Guard: sessionStorage timestamp persists across the reload itself, so
-    // a second controllerchange event from the newly installed SW will not
-    // trigger another reload within the cooldown window.
     const onControllerChange = () => {
       if (isSafeToReloadForSwChange()) {
         console.log('[PwaRegister] New SW controller detected — reloading once to flush stale chunks.');

@@ -39,12 +39,24 @@ const NEVER_CACHE_PATHS = [
   '/auth/',
 ];
 
-// ─── Safe static pre-cache (no HTML, no auth) ───────────────────────────────
-// REMOVED /pwa-start — it must always be served fresh from the network.
-const APP_SHELL_STATIC = [
+const CACHE_VERSION = 'smartlearn-v10';
+const CACHE_STATIC = `smartlearn-static-${CACHE_VERSION}`;
+const CACHE_COURSE = `smartlearn-course-${CACHE_VERSION}`;
+const CACHE_MEDIA = `smartlearn-media-${CACHE_VERSION}`;
+
+// Listen for message from client to skip waiting immediately on update
+self.addEventListener('message', (event) => {
+  if (event.data && (event.data.type === 'SKIP_WAITING' || event.data === 'SKIP_WAITING')) {
+    self.skipWaiting();
+  }
+});
+
+// Pre-cache core shell resources on install
+const SHELL_ASSETS = [
   '/manifest.json',
   '/icon-192x192.png',
   '/icon-512x512.png',
+  '/pwa-start',
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
