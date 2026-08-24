@@ -163,6 +163,9 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
                  <Link href="/latex-editor" onClick={() => setIsMenuOpen(false)}>
                    {getIcon('LaTeX', { size: 16, className: 'mobile-nav-icon' })} LaTeX Editor
                  </Link>
+                 <Link href="/student/nptel" onClick={() => setIsMenuOpen(false)}>
+                   {getIcon('Courses', { size: 16, className: 'mobile-nav-icon' })} My NPTEL Courses
+                 </Link>
                  <Link href="/profile" onClick={() => setIsMenuOpen(false)}>
                    {getIcon('Profile', { size: 16, className: 'mobile-nav-icon' })} Profile
                  </Link>
