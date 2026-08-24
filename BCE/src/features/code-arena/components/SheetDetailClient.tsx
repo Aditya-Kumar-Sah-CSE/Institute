@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import CreateSheetWizard from './CreateSheetWizard';
 import Modal from '@/components/ui/Modal';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
+import SolutionEditor from './SolutionEditor';
 import './CodeArena.css';
 
 type Problem = {
@@ -706,77 +707,14 @@ export default function SheetDetailClient({
             </span>
           </div>
 
-          <div>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px', textTransform: 'uppercase' }}>
-              Text Solution (Markdown Supported)
-            </label>
-            <textarea
-              placeholder="Write your solution explanation here. You can use markdown and write code blocks using ```cpp or ```python."
-              value={editSolutionText}
-              onChange={(e) => setEditSolutionText(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px 14px',
-                borderRadius: 'var(--radius-sm)',
-                background: 'var(--bg-card)',
-                border: '1px solid var(--glass-border)',
-                color: 'var(--text-main)',
-                fontSize: 'var(--text-sm)',
-                outline: 'none',
-                minHeight: '220px',
-                fontFamily: 'inherit',
-                resize: 'vertical',
-              }}
-            />
-          </div>
-
-          {editSolutionText.trim() && (
-            <div style={{ border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '16px', background: 'rgba(0,0,0,0.2)' }}>
-              <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--neon-cyan)', textTransform: 'uppercase', marginBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '4px' }}>
-                Live Markdown Preview
-              </div>
-              <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
-                <MarkdownRenderer content={editSolutionText} />
-              </div>
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '8px', borderTop: '1px solid var(--glass-border)', paddingTop: '16px' }}>
-            <button
-              type="button"
-              onClick={() => setEditProblem(null)}
-              disabled={savingSolution}
-              style={{
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid var(--glass-border)',
-                color: 'var(--text-main)',
-                padding: '8px 16px',
-                borderRadius: '6px',
-                fontSize: '12px',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSaveProblemSolution}
-              disabled={savingSolution}
-              style={{
-                background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))',
-                border: 'none',
-                color: 'white',
-                padding: '8px 20px',
-                borderRadius: '6px',
-                fontSize: '12px',
-                fontWeight: 700,
-                cursor: savingSolution ? 'wait' : 'pointer',
-              }}
-            >
-              {savingSolution ? 'Saving Solution...' : 'Save Solution'}
-            </button>
-          </div>
+          <SolutionEditor
+            value={editSolutionText}
+            onChange={setEditSolutionText}
+            onSave={handleSaveProblemSolution}
+            saving={savingSolution}
+            onCancel={() => setEditProblem(null)}
+            title="Text Solution (Markdown Supported)"
+          />
         </div>
       </Modal>
     </div>
