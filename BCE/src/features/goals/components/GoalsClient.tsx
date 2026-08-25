@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, Clock, Target, Calendar, Edit3, Save, Plus, Trash2, Bell, BellRing, Play, Pause, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Modal from '@/components/ui/Modal';
+import { usePremiumAlert } from '../hooks/usePremiumAlert';
 
 const DEFAULT_ROUTINE = [
   { time_slot: '04:00', task_name: 'Running / Exercise', sort_order: 0 },
@@ -47,6 +48,7 @@ function getCurrentSlotIndex(routines: any[]) {
 }
 
 export default function GoalsClient() {
+  const { alert: premiumAlert, confirm: premiumConfirm, AlertComponent } = usePremiumAlert();
   const [goals, setGoals] = useState<any[]>([]);
   const [routines, setRoutines] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -136,14 +138,14 @@ export default function GoalsClient() {
         loadData();
       }
     } catch (e) {
-      alert('Failed to save');
+      premiumAlert('Failed to save edited goal details.', 'Save Error', 'error');
     } finally {
       setEditSaving(false);
     }
   };
 
   const handleDeleteGoal = async (goalId: string) => {
-    if (!confirm('Are you sure you want to delete this goal?')) return;
+    if (!(await premiumConfirm('Are you sure you want to delete this goal?', 'Confirm Deletion', 'Delete', 'Cancel', 'confirm'))) return;
     setDeletingId(goalId);
     try {
       const res = await fetch(`/api/goals?goal_id=${goalId}`, {
@@ -152,10 +154,10 @@ export default function GoalsClient() {
       if (res.ok) {
         loadData();
       } else {
-        alert('Failed to delete goal');
+        premiumAlert('Failed to delete goal.', 'Error', 'error');
       }
     } catch (e) {
-      alert('Error deleting goal');
+      premiumAlert('Error deleting goal.', 'Error', 'error');
     } finally {
       setDeletingId(null);
     }
@@ -196,7 +198,7 @@ export default function GoalsClient() {
       if (data.routines) setRoutines(data.routines);
       setEditingRoutine(false);
     } catch (e) {
-      alert('Failed to save routine');
+      premiumAlert('Failed to save routine.', 'Save Error', 'error');
     } finally {
       setSavingRoutine(false);
     }
@@ -643,6 +645,8 @@ export default function GoalsClient() {
           </div>
         </div>
       </Modal>
+
+      <AlertComponent />
 
       <style>{`
         @keyframes pulse {

@@ -7,8 +7,10 @@ import FocusModeWindow from './FocusModeWindow';
 import Modal from '@/components/ui/Modal';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { usePremiumAlert } from '../hooks/usePremiumAlert';
 
 export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any }) {
+  const { alert: premiumAlert, AlertComponent } = usePremiumAlert();
   const router = useRouter();
   const [goal, setGoal] = useState<any>(initialGoal);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -159,7 +161,7 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
          }
       }
     } catch(e) {
-      alert('Failed to save error');
+      premiumAlert('Failed to save new goal configuration.', 'Error', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -355,6 +357,7 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
             onExit={() => { setActiveSession(null); router.refresh(); }}
          />
       )}
+       <AlertComponent />
     </>
   );
 }
