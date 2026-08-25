@@ -10,13 +10,13 @@ import { getDashboardPolls } from '@/features/courses/actions/polls';
 import { Zap, Flame, CheckCircle, Award, User, BookOpen, Download } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import AddGoalDashboardCard from '@/features/goals/components/AddGoalDashboardCard';
+import PinnedGoalAlert from '@/features/goals/components/PinnedGoalAlert';
 
 const NoticeBoard = dynamic(() => import('@/features/notices/components/NoticeBoard'), { loading: () => <div className="skeleton-dash" style={{ height: '300px', borderRadius: '12px' }}></div> });
 const DashboardProfileCard = dynamic(() => import('./components/DashboardProfileCard'), { loading: () => <div className="skeleton-dash" style={{ height: '300px', borderRadius: '12px' }}></div> });
 const PollAlerts = dynamic(() => import('./components/PollAlerts'));
 const DashboardPolls = dynamic(() => import('./components/DashboardPolls'), { loading: () => <div className="skeleton-dash" style={{ height: '200px', borderRadius: '12px' }}></div> });
 const ContinueLearning = dynamic(() => import('./components/ContinueLearning'), { loading: () => <div className="skeleton-dash" style={{ height: '250px', borderRadius: '12px' }}></div> });
-const PinnedGoalAlert = dynamic(() => import('@/features/goals/components/PinnedGoalAlert'), { ssr: false });
 const UpcomingContestsAlert = dynamic(() => import('@/features/code-arena/components/contests/UpcomingContestsAlert'), { loading: () => <div className="skeleton-dash" style={{ height: '140px', borderRadius: '12px' }}></div> });
 const DashboardAlerts = dynamic(() => import('./components/DashboardAlerts'));
 const DashboardBattleBanners = dynamic(() => import('./components/DashboardBattleBanners'));

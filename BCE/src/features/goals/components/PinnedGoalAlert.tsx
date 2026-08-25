@@ -14,6 +14,7 @@ export default function PinnedGoalAlert() {
   const [totalRoutinesCount, setTotalRoutinesCount] = useState(0);
   const [completedRoutinesCount, setCompletedRoutinesCount] = useState(0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [mounted, setMounted] = useState(false);
 
   const loadData = async () => {
     try {
@@ -63,6 +64,7 @@ export default function PinnedGoalAlert() {
   };
 
   useEffect(() => {
+    setMounted(true);
     loadData();
     
     // Wire custom updates
@@ -199,6 +201,8 @@ export default function PinnedGoalAlert() {
     if (hrs > 0) return `${hrs}h ${mins.toString().padStart(2, '0')}m ${secs.toString().padStart(2, '0')}s`;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
+
+  if (!mounted) return null;
 
   // If no goals/routines exist, do not clutter dashboard
   if (!activeSession && !activeGoal && !dueTask && totalRoutinesCount === 0) {
