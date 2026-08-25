@@ -366,9 +366,12 @@ export default function PinnedGoalAlert() {
   }
 
   // If no running session, but daily routines are completed:
+  const elements: React.ReactNode[] = [];
+
   if (totalRoutinesCount > 0 && !dueTask) {
-    return (
+    elements.push(
       <div 
+        key="routine-completed"
         style={{
           marginBottom: '20px',
           background: 'linear-gradient(135deg, rgba(34,197,94,0.1), rgba(20,83,45,0.05))',
@@ -406,14 +409,12 @@ export default function PinnedGoalAlert() {
         </div>
       </div>
     );
-  }
-
-  // If a specific routine task is due, prompt user to focus
-  if (dueTask) {
+  } else if (dueTask) {
     const overdue = isRoutineOverdue(dueTask, routinesRef.current);
 
-    return (
+    elements.push(
       <div 
+        key="routine-due"
         style={{
           marginBottom: '20px',
           background: 'linear-gradient(135deg, rgba(168,85,247,0.15), rgba(6,182,212,0.05))',
@@ -482,8 +483,9 @@ export default function PinnedGoalAlert() {
     const goalFocusedMins = stats.per_goal_stats?.find((g: any) => g.goal_id === activeGoal.id)?.focused_mins || 0;
     const progressText = `${goalFocusedMins} mins of ${activeGoal.duration_mins} mins completed today`;
 
-    return (
+    elements.push(
       <div 
+        key="active-goal"
         style={{
           marginBottom: '20px',
           background: 'linear-gradient(135deg, rgba(6,182,212,0.15), rgba(20,20,30,0.5))',
@@ -546,5 +548,7 @@ export default function PinnedGoalAlert() {
     );
   }
 
-  return null;
+  if (elements.length === 0) return null;
+
+  return <>{elements}</>;
 }
