@@ -8,6 +8,16 @@ import Modal from '@/components/ui/Modal';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { usePremiumAlert } from '../hooks/usePremiumAlert';
+import {
+  getActiveRoutine,
+  getDueRoutineTask,
+  isRoutineOverdue,
+  sortRoutinesByTime,
+  formatTime12h,
+  formatMinsToHm,
+  type RoutineSlot,
+  type CompletionRecord,
+} from '../utils/routineSelection';
 
 export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any }) {
   const { alert: premiumAlert, AlertComponent } = usePremiumAlert();
@@ -104,7 +114,7 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
     return () => window.removeEventListener('goal-update', handleUpdate);
   }, []);
 
-  // Update active routine task based on clock time
+  // Update active routine task based on clock time (shared logic)
   useEffect(() => {
     if (!routines.length) {
       setCurrentRoutineTask(null);
@@ -112,23 +122,7 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
     }
 
     const updateActiveTask = () => {
-      const now = new Date();
-      const nowMins = now.getHours() * 60 + now.getMinutes();
-      let active = null;
-      
-      const sorted = [...routines].sort((a, b) => a.time_slot.localeCompare(b.time_slot));
-
-      for (let i = 0; i < sorted.length; i++) {
-        const [h, m] = sorted[i].time_slot.split(':').map(Number);
-        if (nowMins >= h * 60 + m) {
-          active = sorted[i];
-        }
-      }
-      
-      if (!active && sorted.length > 0) {
-        active = sorted[sorted.length - 1]; // fallback to last task of day
-      }
-
+      const active = getActiveRoutine(routines as RoutineSlot[]);
       setCurrentRoutineTask(active);
     };
 
@@ -261,20 +255,17 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
      setDurationInput(val.toString());
   };
 
-  const sortedRoutines = [...routines].sort((a, b) => a.time_slot.localeCompare(b.time_slot));
-  const dueTask = sortedRoutines.find(r => {
-    const comp = completions.find(c => c.task_id === (r.id || r.time_slot));
-    return !(comp?.status === 'completed' || comp?.status === 'skipped');
-  });
+  const sortedRoutines = sortRoutinesByTime(routines as RoutineSlot[]);
+  const dueTask = getDueRoutineTask(
+    routines as RoutineSlot[],
+    completions as CompletionRecord[]
+  );
   const allRoutinesDone = routines.length > 0 && !dueTask;
 
   let isOverdue = false;
   let statusText = 'Pending';
   if (dueTask) {
-    const [h, m] = dueTask.time_slot.split(':').map(Number);
-    const now = new Date();
-    const nowMins = now.getHours() * 60 + now.getMinutes();
-    isOverdue = nowMins > (h * 60 + m);
+    isOverdue = isRoutineOverdue(dueTask, routines as RoutineSlot[]);
     statusText = isOverdue ? 'Overdue' : 'Scheduled';
   }
 
@@ -485,19 +476,4 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
   );
 }
 
-function formatTime12h(t: string) {
-  if (!t) return '';
-  const [h, m] = t.split(':').map(Number);
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  const hr = h % 12 || 12;
-  return `${hr}:${m.toString().padStart(2, '0')} ${ampm}`;
-}
-
-function formatMinsToHm(mins: number) {
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  if (h > 0) {
-    return m > 0 ? `${h}h ${m}m` : `${h}h`;
-  }
-  return `${m}m`;
-}
+// formatTime12h and formatMinsToHm are now imported from '../utils/routineSelection'

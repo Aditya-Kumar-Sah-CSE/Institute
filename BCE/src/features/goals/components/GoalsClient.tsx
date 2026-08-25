@@ -2,10 +2,15 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Clock, Target, Calendar, Edit3, Save, Plus, Trash2, Bell, BellRing, Play, Pause, RotateCcw, Volume2, VolumeX, SkipForward, Check, Square } from 'lucide-react';
+import { ArrowLeft, Clock, Target, Calendar, Edit3, Save, Plus, Trash2, Bell, BellRing, Play, Pause, RotateCcw, Volume2, VolumeX, SkipForward, Check, Square, CheckCircle2 } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Modal from '@/components/ui/Modal';
 import { usePremiumAlert } from '../hooks/usePremiumAlert';
+import {
+  getActiveRoutineIndex,
+  formatTime12h,
+  formatMinsToHm,
+} from '../utils/routineSelection';
 
 const DEFAULT_ROUTINE = [
   { time_slot: '04:00', task_name: 'Running / Exercise', sort_order: 0 },
@@ -19,33 +24,7 @@ const DEFAULT_ROUTINE = [
   { time_slot: '22:00', task_name: 'Sleep', sort_order: 8 },
 ];
 
-function formatTime12h(t: string) {
-  const [h, m] = t.split(':').map(Number);
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  const hr = h % 12 || 12;
-  return `${hr}:${m.toString().padStart(2, '0')} ${ampm}`;
-}
 
-function formatMinsToHm(mins: number) {
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  if (h > 0) {
-    return m > 0 ? `${h}h ${m}m` : `${h}h`;
-  }
-  return `${m}m`;
-}
-
-function getCurrentSlotIndex(routines: any[]) {
-  if (!routines.length) return -1;
-  const now = new Date();
-  const nowMins = now.getHours() * 60 + now.getMinutes();
-  let activeIdx = 0;
-  for (let i = 0; i < routines.length; i++) {
-    const [h, m] = routines[i].time_slot.split(':').map(Number);
-    if (nowMins >= h * 60 + m) activeIdx = i;
-  }
-  return activeIdx;
-}
 
 export default function GoalsClient() {
   const { alert: premiumAlert, confirm: premiumConfirm, AlertComponent } = usePremiumAlert();
@@ -516,7 +495,7 @@ export default function GoalsClient() {
     return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const activeSlotIdx = getCurrentSlotIndex(routines);
+  const activeSlotIdx = getActiveRoutineIndex(routines);
   const nowStr = currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
   return (
@@ -543,7 +522,7 @@ export default function GoalsClient() {
 
       {/* ── STOPWATCH / STUDY TIMER BLOCK ── */}
       <Card variant="glass" padding="lg" style={{ marginBottom: '24px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', alignItems: 'center' }}>
+        <div className="goals-stopwatch-grid">
           {/* Left Side: Stopwatch */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -626,7 +605,7 @@ export default function GoalsClient() {
           </div>
 
           {/* Right Side: stats */}
-          <div style={{ borderLeft: '1px solid var(--glass-border)', paddingLeft: '32px', display: 'flex', flexDirection: 'column', gap: '12px', minHeight: '130px', justifyContent: 'center' }}>
+          <div className="stopwatch-stats-column" style={{ borderLeft: '1px solid var(--glass-border)', paddingLeft: '32px', display: 'flex', flexDirection: 'column', gap: '12px', minHeight: '130px', justifyContent: 'center' }}>
             <h3 style={{ margin: 0, fontSize: '15px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Today's Accomplishments</h3>
             
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
@@ -689,7 +668,7 @@ export default function GoalsClient() {
       )}
 
       {/* ── TWO COLUMN LAYOUT ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'start' }}>
+      <div className="goals-bottom-grid">
 
         {/* ── LEFT: DAILY ROUTINE ── */}
         <Card variant="glass" padding="lg" style={{ overflow: 'hidden' }}>
@@ -800,48 +779,24 @@ export default function GoalsClient() {
                         style={{
                           background: 'transparent',
                           border: 'none',
-                          color: isCompleted ? 'var(--neon-lime)' : 'var(--text-muted)',
                           cursor: 'pointer',
                           display: 'grid',
                           placeItems: 'center',
-                          padding: '4px',
+                          color: isCompleted ? 'var(--neon-lime)' : 'var(--text-muted)'
                         }}
                       >
-                        {isCompleted ? (
-                          <div style={{ display: 'grid', placeItems: 'center', width: '18px', height: '18px', borderRadius: '4px', background: 'rgba(57,255,20,0.1)', border: '1px solid var(--neon-lime)' }}>
-                            <Check size={12} style={{ color: 'var(--neon-lime)' }} />
-                          </div>
-                        ) : (
-                          <div style={{ width: '18px', height: '18px', borderRadius: '4px', border: '1px solid var(--glass-border)' }} />
-                        )}
+                        {isCompleted ? <CheckCircle2 size={16} /> : <div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid var(--text-muted)' }} />}
                       </button>
 
-                      <span style={{
-                        fontSize: '13px',
-                        fontWeight: 700,
-                        fontFamily: 'monospace',
-                        color: isActive && !isDone ? 'var(--neon-cyan)' : 'var(--text-secondary)',
-                        textDecoration: isDone ? 'line-through' : 'none',
-                      }}>
+                      <div style={{ fontSize: '13px', fontWeight: isActive ? 800 : 500, color: isActive ? 'var(--text-main)' : 'var(--text-secondary)' }}>
                         {formatTime12h(slot.time_slot)}
-                      </span>
-                      
-                      <span style={{
-                        fontSize: '14px',
-                        fontWeight: isActive && !isDone ? 700 : 500,
-                        color: isActive && !isDone ? 'var(--text-main)' : 'var(--text-secondary)',
-                        textDecoration: isDone ? 'line-through' : 'none',
-                      }}>
+                      </div>
+
+                      <div style={{ fontSize: '13px', color: isActive ? 'var(--neon-cyan)' : 'var(--text-main)', textDecoration: isCompleted ? 'line-through' : 'none' }}>
                         {slot.task_name}
-                      </span>
+                      </div>
                       
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        {isCompleted && (
-                          <span style={{ fontSize: '10px', color: 'var(--neon-lime)', border: '1px solid rgba(57,255,20,0.2)', padding: '2px 6px', borderRadius: '4px', background: 'rgba(57,255,20,0.05)' }}>Completed</span>
-                        )}
-                        {isSkipped && (
-                          <span style={{ fontSize: '10px', color: 'var(--text-muted)', border: '1px solid var(--glass-border)', padding: '2px 6px', borderRadius: '4px', background: 'rgba(255,255,255,0.02)' }}>Skipped</span>
-                        )}
+                      <div style={{ display: 'flex', gap: '6px' }}>
                         {!isDone && (
                           <>
                             <button
@@ -949,16 +904,10 @@ export default function GoalsClient() {
                           borderRadius: '6px',
                           padding: '4px 8px',
                           cursor: 'pointer',
-                          color: 'var(--text-muted)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          transition: 'all 0.15s',
+                          color: 'var(--text-muted)'
                         }}
                       >
-                        <Edit3 size={12} /> Edit
+                        Edit
                       </button>
                       <button
                         onClick={() => handleDeleteGoal(goal.id)}
@@ -970,34 +919,31 @@ export default function GoalsClient() {
                           borderRadius: '6px',
                           padding: '4px 8px',
                           cursor: 'pointer',
-                          color: '#ef4444',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          transition: 'all 0.15s',
+                          color: '#f87171',
+                          opacity: deletingId === goal.id ? 0.5 : 1
                         }}
                       >
-                        <Trash2 size={12} /> {deletingId === goal.id ? 'Deleting...' : 'Delete'}
+                        {deletingId === goal.id ? 'Deleting...' : 'Delete'}
                       </button>
                     </div>
                   </div>
 
-                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, lineHeight: '1.4' }}>{goal.goal_text}</h3>
-
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '12px', color: 'var(--text-secondary)', borderTop: '1px solid var(--glass-border)', paddingTop: '10px' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Clock size={14} style={{ color: 'var(--neon-cyan)' }} /> {formatMinsToHm(goal.duration_mins)}/day
-                    </span>
+                  <p style={{ margin: 0, fontSize: '15px', color: 'var(--text-main)', fontWeight: 600 }}>{goal.goal_text}</p>
+                  
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Clock size={12} />
+                      Target: {formatMinsToHm(goal.duration_mins || 30)} / day
+                    </div>
                     {goal.reminder_time && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         🔔 {goal.reminder_time.slice(0, 5)}
                       </span>
                     )}
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: 'auto', fontSize: '11px', color: 'var(--text-muted)' }}>
-                      <Calendar size={12} /> {formattedDate}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Calendar size={12} />
+                      Created: {formattedDate}
+                    </div>
                   </div>
                 </Card>
               );
@@ -1069,8 +1015,31 @@ export default function GoalsClient() {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.85; }
         }
-        @media (max-width: 768px) {
-          .code-arena-page > div:last-of-type {
+        .goals-stopwatch-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 32px;
+          align-items: center;
+        }
+        .goals-bottom-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 24px;
+          align-items: start;
+        }
+        @media (max-width: 991px) {
+          .goals-stopwatch-grid {
+            grid-template-columns: 1fr !important;
+            gap: 24px;
+          }
+          .stopwatch-stats-column {
+            border-left: none !important;
+            padding-left: 0 !important;
+            border-top: 1px solid var(--glass-border) !important;
+            padding-top: 24px !important;
+            margin-top: 8px;
+          }
+          .goals-bottom-grid {
             grid-template-columns: 1fr !important;
           }
         }

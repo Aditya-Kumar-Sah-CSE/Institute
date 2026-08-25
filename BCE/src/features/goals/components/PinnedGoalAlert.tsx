@@ -1,9 +1,16 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Target, Play, Pause, Square, Clock, Check, CheckCircle2 } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import { useRouter } from 'next/navigation';
+import {
+  getDueRoutineTask,
+  isRoutineOverdue,
+  formatTime12h,
+  type RoutineSlot,
+  type CompletionRecord,
+} from '../utils/routineSelection';
 
 export default function PinnedGoalAlert() {
   const router = useRouter();
@@ -15,6 +22,18 @@ export default function PinnedGoalAlert() {
   const [completedRoutinesCount, setCompletedRoutinesCount] = useState(0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [mounted, setMounted] = useState(false);
+  // Store raw routines and completions for time-based re-evaluation
+  const routinesRef = useRef<RoutineSlot[]>([]);
+  const completionsRef = useRef<CompletionRecord[]>([]);
+
+  const recomputeDueTask = useCallback(() => {
+    const r = routinesRef.current;
+    const c = completionsRef.current;
+    if (r.length > 0) {
+      const next = getDueRoutineTask(r, c);
+      setDueTask(next || null);
+    }
+  }, []);
 
   const loadData = async () => {
     try {
@@ -42,23 +61,24 @@ export default function PinnedGoalAlert() {
       }
 
       if (routinesRes.routines) {
-        setTotalRoutinesCount(routinesRes.routines.length);
-        const sorted = [...routinesRes.routines].sort((a: any, b: any) => a.time_slot.localeCompare(b.time_slot));
+        const routineSlots: RoutineSlot[] = routinesRes.routines;
+        routinesRef.current = routineSlots;
+        setTotalRoutinesCount(routineSlots.length);
+
+        const completionRecords: CompletionRecord[] = completionsRes.completions || [];
+        completionsRef.current = completionRecords;
 
         if (completionsRes.completions) {
           setCompletedRoutinesCount(
-            completionsRes.completions.filter((c: any) => c.status === 'completed' || c.status === 'skipped').length
+            completionRecords.filter((c) => c.status === 'completed' || c.status === 'skipped').length
           );
-          
-          const next = sorted.find((r: any) => {
-            const comp = completionsRes.completions.find((c: any) => c.task_id === (r.id || r.time_slot));
-            return !(comp?.status === 'completed' || comp?.status === 'skipped');
-          });
-          setDueTask(next || null);
         } else {
-          setDueTask(sorted[0] || null);
           setCompletedRoutinesCount(0);
         }
+
+        // Use shared time-aware routine selection
+        const next = getDueRoutineTask(routineSlots, completionRecords);
+        setDueTask(next || null);
       }
     } catch (e) {}
   };
@@ -73,8 +93,17 @@ export default function PinnedGoalAlert() {
     };
 
     window.addEventListener('goal-update', handleUpdate);
-    return () => window.removeEventListener('goal-update', handleUpdate);
-  }, []);
+
+    // Re-evaluate active routine every 15 seconds as time passes
+    const routineInterval = setInterval(() => {
+      recomputeDueTask();
+    }, 15000);
+
+    return () => {
+      window.removeEventListener('goal-update', handleUpdate);
+      clearInterval(routineInterval);
+    };
+  }, [recomputeDueTask]);
 
   // Timer Tick Loop
   useEffect(() => {
@@ -186,13 +215,7 @@ export default function PinnedGoalAlert() {
     } catch (e) {}
   };
 
-  function formatTime12h(t: string) {
-    if (!t) return '';
-    const [h, m] = t.split(':').map(Number);
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    const hr = h % 12 || 12;
-    return `${hr}:${m.toString().padStart(2, '0')} ${ampm}`;
-  }
+  // formatTime12h is now imported from '../utils/routineSelection'
 
   const fmtDuration = (s: number) => {
     const hrs = Math.floor(s / 3600);
@@ -387,11 +410,7 @@ export default function PinnedGoalAlert() {
 
   // If a specific routine task is due, prompt user to focus
   if (dueTask) {
-    const isOverdue = (() => {
-      const [h, m] = dueTask.time_slot.split(':').map(Number);
-      const now = new Date();
-      return (now.getHours() * 60 + now.getMinutes()) > (h * 60 + m);
-    })();
+    const overdue = isRoutineOverdue(dueTask, routinesRef.current);
 
     return (
       <div 
@@ -429,7 +448,7 @@ export default function PinnedGoalAlert() {
               Next due task: <span style={{ color: '#c084fc', fontWeight: 700 }}>{dueTask.task_name}</span>
             </p>
             <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>
-              Scheduled for <span style={{ color: 'var(--neon-cyan)', fontWeight: 600 }}>{formatTime12h(dueTask.time_slot)}</span> &bull; {isOverdue ? <span style={{ color: 'var(--neon-magenta)', fontWeight: 700 }}>Overdue</span> : 'Upcoming'}
+              Scheduled for <span style={{ color: 'var(--neon-cyan)', fontWeight: 600 }}>{formatTime12h(dueTask.time_slot)}</span> &bull; {overdue ? <span style={{ color: 'var(--neon-magenta)', fontWeight: 700 }}>Overdue</span> : 'Upcoming'}
             </p>
           </div>
         </div>
