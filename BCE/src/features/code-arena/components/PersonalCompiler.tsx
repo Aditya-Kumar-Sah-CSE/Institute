@@ -225,6 +225,21 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('Saved locally');
   const [resetModalOpen, setResetModalOpen] = useState(false);
   const [clearModalOpen, setClearModalOpen] = useState(false);
+  const [promptDialog, setPromptDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    defaultValue: string;
+    placeholder: string;
+    onConfirm: (val: string) => void;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    defaultValue: '',
+    placeholder: '',
+    onConfirm: () => {},
+  });
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isInitialMountRef = useRef(true);
 
@@ -660,112 +675,134 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
   };
 
   // Node creations / operations
-  const triggerCreateFile = async (parentPath: string) => {
-    const filename = prompt('Enter new filename (e.g. hello.cpp):');
-    if (!filename) return;
+  const triggerCreateFile = (parentPath: string) => {
+    setPromptDialog({
+      isOpen: true,
+      title: 'Create New File',
+      description: 'Enter new filename (e.g. hello.cpp):',
+      defaultValue: '',
+      placeholder: 'hello.cpp',
+      onConfirm: async (filename) => {
+        if (!filename) return;
 
-    const fullPath = parentPath ? `${parentPath}/${filename}` : filename;
-    const newNode: FileItem = {
-      name: filename,
-      path: fullPath,
-      kind: 'file',
-      content: starters[getFileLanguage(filename)] || '',
-    };
+        const fullPath = parentPath ? `${parentPath}/${filename}` : filename;
+        const newNode: FileItem = {
+          name: filename,
+          path: fullPath,
+          kind: 'file',
+          content: starters[getFileLanguage(filename)] || '',
+        };
 
-    try {
-      if (rootDirectoryHandle) {
-        const parentHandle = await findDirectoryHandle(rootDirectoryHandle, parentPath);
-        if (parentHandle) {
-          const fileHandle = await parentHandle.getFileHandle(filename, { create: true });
-          const writable = await fileHandle.createWritable();
-          await writable.write(starters[getFileLanguage(filename)] || '');
-          await writable.close();
-          const tree = await buildFileTree(rootDirectoryHandle);
-          setFiles(tree);
-          return;
-        }
-      }
-    } catch (e: any) {
-      // FileSystemDirectoryHandle may fail if user activation is consumed by prompt()
-      // Fall through to virtual file creation
-      console.warn('FileSystem API unavailable, using virtual file:', e.message);
-    }
-
-    // Virtual file creation (always works)
-    setFiles(prev => addNodeToTree(prev, parentPath, newNode));
-  };
-
-  const triggerCreateFolder = async (parentPath: string) => {
-    const foldername = prompt('Enter new folder name:');
-    if (!foldername) return;
-
-    const fullPath = parentPath ? `${parentPath}/${foldername}` : foldername;
-    const newNode: FileItem = {
-      name: foldername,
-      path: fullPath,
-      kind: 'directory',
-      children: [],
-    };
-
-    try {
-      if (rootDirectoryHandle) {
-        const parentHandle = await findDirectoryHandle(rootDirectoryHandle, parentPath);
-        if (parentHandle) {
-          await parentHandle.getDirectoryHandle(foldername, { create: true });
-          const tree = await buildFileTree(rootDirectoryHandle);
-          setFiles(tree);
-          return;
-        }
-      }
-    } catch (e: any) {
-      console.warn('FileSystem API unavailable, using virtual folder:', e.message);
-    }
-
-    // Virtual folder creation (always works)
-    setFiles(prev => addNodeToTree(prev, parentPath, newNode));
-  };
-
-  const triggerRename = async (item: FileItem) => {
-    const newName = prompt(`Enter new name for "${item.name}":`, item.name);
-    if (!newName || newName === item.name) return;
-
-    try {
-      if (rootDirectoryHandle) {
-        if (item.handle) {
-          if (typeof (item.handle as any).move === 'function') {
-            await (item.handle as any).move(newName);
-          } else {
-            // Manual fallback if handle.move is not supported
-            if (item.kind === 'file') {
-              const file = await (item.handle as FileSystemFileHandle).getFile();
-              const text = await file.text();
-              const parentPath = item.path.split('/').slice(0, -1).join('/');
-              const parentHandle = await findDirectoryHandle(rootDirectoryHandle, parentPath);
-              if (parentHandle) {
-                const newHandle = await parentHandle.getFileHandle(newName, { create: true });
-                const wr = await newHandle.createWritable();
-                await wr.write(text);
-                await wr.close();
-                await parentHandle.removeEntry(item.name);
-              }
-            } else {
-              throw new Error('Folder renaming not supported natively on this browser.');
+        try {
+          if (rootDirectoryHandle) {
+            const parentHandle = await findDirectoryHandle(rootDirectoryHandle, parentPath);
+            if (parentHandle) {
+              const fileHandle = await parentHandle.getFileHandle(filename, { create: true });
+              const writable = await fileHandle.createWritable();
+              await writable.write(starters[getFileLanguage(filename)] || '');
+              await writable.close();
+              const tree = await buildFileTree(rootDirectoryHandle);
+              setFiles(tree);
+              return;
             }
           }
-          const tree = await buildFileTree(rootDirectoryHandle);
-          setFiles(tree);
+        } catch (e: any) {
+          console.warn('FileSystem API unavailable, using virtual file:', e.message);
         }
-      } else {
-        setFiles(prev => renameNodeInTree(prev, item.path, newName));
-        if (activeFile?.path === item.path) {
-          const parts = item.path.split('/');
-          parts[parts.length - 1] = newName;
-          setActiveFile(prev => prev ? { ...prev, name: newName, path: parts.join('/') } : null);
+
+        // Virtual file creation (always works)
+        setFiles(prev => addNodeToTree(prev, parentPath, newNode));
+      }
+    });
+  };
+
+  const triggerCreateFolder = (parentPath: string) => {
+    setPromptDialog({
+      isOpen: true,
+      title: 'Create New Folder',
+      description: 'Enter new folder name:',
+      defaultValue: '',
+      placeholder: 'New Folder',
+      onConfirm: async (foldername) => {
+        if (!foldername) return;
+
+        const fullPath = parentPath ? `${parentPath}/${foldername}` : foldername;
+        const newNode: FileItem = {
+          name: foldername,
+          path: fullPath,
+          kind: 'directory',
+          children: [],
+        };
+
+        try {
+          if (rootDirectoryHandle) {
+            const parentHandle = await findDirectoryHandle(rootDirectoryHandle, parentPath);
+            if (parentHandle) {
+              await parentHandle.getDirectoryHandle(foldername, { create: true });
+              const tree = await buildFileTree(rootDirectoryHandle);
+              setFiles(tree);
+              return;
+            }
+          }
+        } catch (e: any) {
+          console.warn('FileSystem API unavailable, using virtual folder:', e.message);
+        }
+
+        // Virtual folder creation (always works)
+        setFiles(prev => addNodeToTree(prev, parentPath, newNode));
+      }
+    });
+  };
+
+  const triggerRename = (item: FileItem) => {
+    setPromptDialog({
+      isOpen: true,
+      title: 'Rename File/Folder',
+      description: `Enter new name for "${item.name}":`,
+      defaultValue: item.name,
+      placeholder: item.name,
+      onConfirm: async (newName) => {
+        if (!newName || newName === item.name) return;
+
+        try {
+          if (rootDirectoryHandle) {
+            if (item.handle) {
+              if (typeof (item.handle as any).move === 'function') {
+                await (item.handle as any).move(newName);
+              } else {
+                // Manual fallback if handle.move is not supported
+                if (item.kind === 'file') {
+                  const file = await (item.handle as FileSystemFileHandle).getFile();
+                  const text = await file.text();
+                  const parentPath = item.path.split('/').slice(0, -1).join('/');
+                  const parentHandle = await findDirectoryHandle(rootDirectoryHandle, parentPath);
+                  if (parentHandle) {
+                    const newHandle = await parentHandle.getFileHandle(newName, { create: true });
+                    const wr = await newHandle.createWritable();
+                    await wr.write(text);
+                    await wr.close();
+                    await parentHandle.removeEntry(item.name);
+                  }
+                } else {
+                  throw new Error('Folder renaming not supported natively on this browser.');
+                }
+              }
+              const tree = await buildFileTree(rootDirectoryHandle);
+              setFiles(tree);
+            }
+          } else {
+            setFiles(prev => renameNodeInTree(prev, item.path, newName));
+            if (activeFile?.path === item.path) {
+              const parts = item.path.split('/');
+              parts[parts.length - 1] = newName;
+              setActiveFile(prev => prev ? { ...prev, name: newName, path: parts.join('/') } : null);
+            }
+          }
+        } catch (e: any) {
+          alert('Rename failed: ' + e.message);
         }
       }
-    } catch (e: any) {
-      alert('Rename failed: ' + e.message);
-    }
+    });
   };
 
   const triggerDelete = async (item: FileItem) => {
@@ -1850,6 +1887,20 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
           </div>
         </div>
       </Modal>
+
+      {promptDialog.isOpen && (
+        <PromptModal
+          title={promptDialog.title}
+          description={promptDialog.description}
+          defaultValue={promptDialog.defaultValue}
+          placeholder={promptDialog.placeholder}
+          onClose={() => setPromptDialog(prev => ({ ...prev, isOpen: false }))}
+          onConfirm={(val) => {
+            promptDialog.onConfirm(val);
+            setPromptDialog(prev => ({ ...prev, isOpen: false }));
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -2174,6 +2225,79 @@ function ShareSnippetModal({
           </div>
         </div>
       </div>
+    </Modal>
+  );
+}
+
+function PromptModal({
+  title,
+  description,
+  defaultValue,
+  placeholder,
+  onClose,
+  onConfirm,
+}: {
+  title: string;
+  description: string;
+  defaultValue: string;
+  placeholder: string;
+  onClose: () => void;
+  onConfirm: (val: string) => void;
+}) {
+  const [value, setValue] = useState(defaultValue);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Auto-focus input when mount
+    setTimeout(() => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }, 100);
+  }, []);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onConfirm(value.trim());
+  };
+
+  return (
+    <Modal isOpen={true} onClose={onClose} title={title} size="sm">
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)', padding: 'var(--space-xs)' }}>
+        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', margin: 0 }}>
+          {description}
+        </p>
+
+        <input
+          ref={inputRef}
+          type="text"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder={placeholder}
+          style={{
+            width: '100%',
+            padding: '10px 14px',
+            background: 'rgba(15, 23, 42, 0.6)',
+            border: '1px solid var(--glass-border)',
+            borderRadius: '6px',
+            color: 'var(--text-primary)',
+            fontSize: 'var(--text-sm)',
+            outline: 'none',
+            transition: 'border-color 0.2s',
+            boxSizing: 'border-box'
+          }}
+          onFocus={(e) => e.target.style.borderColor = 'var(--neon-cyan)'}
+          onBlur={(e) => e.target.style.borderColor = 'var(--glass-border)'}
+        />
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-sm)', marginTop: 'var(--space-xs)' }}>
+          <Button type="button" variant="secondary" size="sm" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" variant="primary" size="sm" disabled={!value.trim()}>
+            OK
+          </Button>
+        </div>
+      </form>
     </Modal>
   );
 }

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Card from '@/components/ui/Card';
-import { Target, Play, Plus, X } from 'lucide-react';
+import { Target, Play, Plus, X, Check, Clock } from 'lucide-react';
 import FocusModeWindow from './FocusModeWindow';
 import Modal from '@/components/ui/Modal';
 import { useRouter } from 'next/navigation';
@@ -27,6 +27,7 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
   const [timeLeftStr, setTimeLeftStr] = useState('');
   const [routines, setRoutines] = useState<any[]>([]);
   const [currentRoutineTask, setCurrentRoutineTask] = useState<any>(null);
+  const [completions, setCompletions] = useState<any[]>([]);
 
   // Sync / Prefill form fields when modal opens or goal updates
   useEffect(() => {
@@ -63,6 +64,44 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
          }
       })
       .catch(() => {});
+
+    // Fetch daily completions
+    fetch('/api/goals/routines/completions')
+      .then(r => r.json())
+      .then(data => {
+         if (data.completions) {
+           setCompletions(data.completions);
+         }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Sync state dynamically on goal-update event
+  useEffect(() => {
+    const handleUpdate = () => {
+      fetch('/api/goals/sessions?active=true')
+        .then(r => r.json())
+        .then(data => {
+           if (data.sessions && data.sessions.length > 0) {
+              setActiveSession(data.sessions[0]);
+           } else {
+              setActiveSession(null);
+           }
+        })
+        .catch(() => {});
+
+      fetch('/api/goals/routines/completions')
+        .then(r => r.json())
+        .then(data => {
+           if (data.completions) {
+             setCompletions(data.completions);
+           }
+        })
+        .catch(() => {});
+    };
+
+    window.addEventListener('goal-update', handleUpdate);
+    return () => window.removeEventListener('goal-update', handleUpdate);
   }, []);
 
   // Update active routine task based on clock time
@@ -177,6 +216,31 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
       const data = await res.json();
       if (res.ok) {
          setActiveSession({ ...data.session, student_goals: { goal_text: targetGoal.goal_text }});
+         window.dispatchEvent(new CustomEvent('goal-update'));
+      }
+    } catch(e) {}
+  };
+
+  const handleStartRoutineFocus = async (task: any) => {
+    try {
+      const res = await fetch('/api/goals/sessions', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({
+           goal_id: goal?.id || null,
+           task_id: task.id || task.time_slot,
+           task_name: task.task_name,
+           duration_mins: 30
+         })
+      });
+      const data = await res.json();
+      if (res.ok) {
+         setActiveSession({
+           ...data.session,
+           task_name: task.task_name,
+           student_goals: goal ? { goal_text: goal.goal_text } : null
+         });
+         window.dispatchEvent(new CustomEvent('goal-update'));
       }
     } catch(e) {}
   };
@@ -197,18 +261,41 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
      setDurationInput(val.toString());
   };
 
+  const sortedRoutines = [...routines].sort((a, b) => a.time_slot.localeCompare(b.time_slot));
+  const dueTask = sortedRoutines.find(r => {
+    const comp = completions.find(c => c.task_id === (r.id || r.time_slot));
+    return !(comp?.status === 'completed' || comp?.status === 'skipped');
+  });
+  const allRoutinesDone = routines.length > 0 && !dueTask;
+
+  let isOverdue = false;
+  let statusText = 'Pending';
+  if (dueTask) {
+    const [h, m] = dueTask.time_slot.split(':').map(Number);
+    const now = new Date();
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    isOverdue = nowMins > (h * 60 + m);
+    statusText = isOverdue ? 'Overdue' : 'Scheduled';
+  }
+
+  const taskIdx = dueTask ? sortedRoutines.indexOf(dueTask) : -1;
+
+  const handleCardClick = () => {
+    if (activeSession) {
+      // Resume focus session, open FocusModeWindow
+    } else if (routines.length > 0) {
+      router.push('/code-arena/goals');
+    } else {
+      setIsModalOpen(true);
+    }
+  };
+
   return (
     <>
       <div 
-        onClick={() => {
-          if (activeSession) {
-             setActiveSession(activeSession);
-          } else {
-             setIsModalOpen(true);
-          }
-        }} 
+        onClick={handleCardClick}
         style={{ textDecoration: 'none', cursor: 'pointer' }} 
-        title={activeSession ? "Resume Focus Session" : goal ? "Update Goal" : "Create Goal"}
+        title={activeSession ? "Resume Focus Session" : routines.length > 0 ? "View Routine Checklist" : goal ? "Update Goal" : "Create Goal"}
       >
         <Card variant="glass" padding="lg" className="stat-card hover-lift">
           <div className="stat-card-icon" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
@@ -218,26 +305,60 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
             <div className="stat-card-value" style={{ color: '#ef4444', fontSize: goal ? '1rem' : '1.2rem', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center' }}>
               {activeSession ? (
                 <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
-                   <span style={{ fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text-main)' }}>{activeSession.student_goals?.goal_text || goal?.goal_text}</span>
+                   <span style={{ fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text-main)' }}>{activeSession.task_name || activeSession.student_goals?.goal_text || 'Active Focus'}</span>
                    <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--neon-cyan)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '3px' }}>
                       ⏱️ {timeLeftStr || '00:00'} remaining
                    </span>
-                   {currentRoutineTask && (
-                     <span style={{ fontSize: '9px', fontWeight: 600, opacity: 0.6, marginTop: '2.5px' }}>
-                        Current task: {currentRoutineTask.task_name}
-                     </span>
-                   )}
                 </div>
+              ) : routines.length > 0 ? (
+                dueTask ? (
+                  <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                      <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>
+                        {dueTask.task_name}
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStartRoutineFocus(dueTask);
+                        }}
+                        style={{
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          background: 'rgba(57,255,20,0.15)',
+                          border: '1px solid rgba(57,255,20,0.3)',
+                          color: 'var(--neon-lime)',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '2px',
+                          pointerEvents: 'auto'
+                        }}
+                      >
+                        <Play size={8} style={{ fill: 'currentColor' }} /> Focus
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9.5px', color: 'var(--text-muted)' }}>
+                      <span>Task {taskIdx + 1} of {sortedRoutines.length}</span>
+                      <span style={{ color: isOverdue ? 'var(--neon-magenta)' : 'var(--neon-cyan)', fontWeight: 'bold' }}>
+                        {formatTime12h(dueTask.time_slot)} &bull; {statusText}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--neon-lime)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Check size={14} /> Routine Completed
+                    </span>
+                    <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>All routines completed today!</span>
+                  </div>
+                )
               ) : goal ? (
                 <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
                    <span style={{ fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{goal.goal_text}</span>
-                   {currentRoutineTask ? (
-                     <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--neon-cyan)', marginTop: '2.5px' }}>
-                        ⏰ Now: {currentRoutineTask.task_name} ({formatTime12h(currentRoutineTask.time_slot)})
-                     </span>
-                   ) : (
-                     <span style={{ fontSize: '10px', fontWeight: 600, opacity: 0.8 }}>{formatMinsToHm(goal.duration_mins)} {goal.routine ? 'routine' : 'goal'}</span>
-                   )}
+                   <span style={{ fontSize: '10px', fontWeight: 600, opacity: 0.8 }}>{formatMinsToHm(goal.duration_mins)} goal</span>
                 </div>
               ) : (
                 <>
@@ -245,7 +366,9 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
                 </>
               )}
             </div>
-            <div className="text-secondary stat-card-label">{activeSession ? "Active Session" : goal ? "Active Goal" : "Target Tracker"}</div>
+            <div className="text-secondary stat-card-label">
+              {activeSession ? "Active Session" : routines.length > 0 ? (dueTask ? "Daily Routine Task" : "Daily Routine") : goal ? "Active Goal" : "Target Tracker"}
+            </div>
           </div>
         </Card>
       </div>

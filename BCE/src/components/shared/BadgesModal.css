@@ -1,0 +1,243 @@
+/* Coder Badges Modal Glassmorphic Design System */
+
+.badges-modal-content {
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: var(--space-xs);
+}
+
+/* Hide scrollbar scrollbar */
+.badges-modal-content::-webkit-scrollbar {
+  width: 6px;
+}
+.badges-modal-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+.badges-modal-content::-webkit-scrollbar-thumb {
+  background: var(--glass-border);
+  border-radius: var(--radius-full);
+}
+
+/* Loader and Error States */
+.badges-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  padding: var(--space-3xl) 0;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.badges-error {
+  text-align: center;
+  color: var(--neon-red);
+  padding: var(--space-3xl) 0;
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+/* Header Summary Stats */
+.badges-header-summary {
+  display: flex;
+  gap: var(--space-md);
+  justify-content: center;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--glass-border);
+  padding-bottom: var(--space-lg);
+}
+
+.summary-pill {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-sm) var(--space-xl);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.summary-value {
+  font-size: var(--text-lg);
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.summary-label {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Badges Grid View */
+.badges-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-md);
+}
+
+/* Badge Card Layout */
+.badge-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(255, 255, 255, 0.01);
+  border: 1px solid var(--glass-border);
+}
+
+.badge-card.unlocked {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.badge-card.unlocked:hover {
+  transform: translateY(-2px);
+  border-color: rgba(6, 182, 212, 0.3);
+  box-shadow: 0 4px 20px rgba(6, 182, 212, 0.15);
+}
+
+.badge-card.locked {
+  opacity: 0.6;
+}
+
+/* Vector Icon Circle Container */
+.badge-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: rgba(15, 23, 42, 0.6);
+  color: var(--text-muted);
+  box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.05);
+}
+
+.unlocked .badge-icon-wrapper {
+  color: var(--neon-cyan);
+  border-color: rgba(6, 182, 212, 0.4);
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.2);
+}
+
+/* Unlocked items color theme matching */
+.unlocked:nth-child(4n+1) .badge-icon-wrapper { /* Cyan */
+  color: var(--neon-cyan);
+  border-color: rgba(6, 182, 212, 0.4);
+}
+.unlocked:nth-child(4n+2) .badge-icon-wrapper { /* Yellow/Gold */
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.4);
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.15);
+}
+.unlocked:nth-child(4n+3) .badge-icon-wrapper { /* Orange/Streak */
+  color: #f97316;
+  border-color: rgba(249, 115, 22, 0.4);
+  box-shadow: 0 0 12px rgba(249, 115, 22, 0.15);
+}
+.unlocked:nth-child(4n+4) .badge-icon-wrapper { /* Emerald */
+  color: var(--neon-emerald);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.badge-vector-icon {
+  width: 22px;
+  height: 22px;
+  z-index: 2;
+  stroke-width: 2px;
+}
+
+/* Badge Glow Backdrop Effect */
+.badge-glow-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 50%;
+  opacity: 0.1;
+  background: radial-gradient(circle, currentColor 0%, transparent 70%);
+  z-index: 1;
+}
+
+/* Badge Meta Details */
+.badge-info-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.badge-name {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-main);
+  letter-spacing: 0.3px;
+}
+
+.unlocked .badge-name {
+  color: var(--text-primary);
+}
+
+.badge-desc {
+  font-size: 11px;
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.badge-earned-date {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--neon-emerald);
+  margin-top: 4px;
+}
+
+/* Locked Badges Progress Tracker */
+.badge-progress-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+  width: 100%;
+}
+
+.badge-progress-text {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+.badge-progress-bar-bg {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.badge-progress-bar-fg {
+  height: 100%;
+  background: linear-gradient(90deg, var(--neon-cyan) 0%, rgba(6, 182, 212, 0.6) 100%);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}

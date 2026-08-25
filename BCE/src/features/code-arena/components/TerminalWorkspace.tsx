@@ -11,6 +11,7 @@ let webcontainerInstance: WebContainer | null = null;
 export default function TerminalWorkspace({ files }: { files: any }) {
   const terminalRef = useRef<HTMLDivElement>(null);
   const [booting, setBooting] = useState(true);
+  const [isolationError, setIsolationError] = useState<string | null>(null);
   const shellProcessRef = useRef<any>(null);
 
   useEffect(() => {
@@ -18,6 +19,13 @@ export default function TerminalWorkspace({ files }: { files: any }) {
     let fitAddon: FitAddon;
 
     async function init() {
+      // Gracefully verify cross-origin isolation before trying to boot WebContainer
+      if (typeof window !== 'undefined' && !window.crossOriginIsolated) {
+        setIsolationError('Security isolation (COOP/COEP headers) is missing. The terminal WebContainer environment requires a cross-origin isolated context to run safely.');
+        setBooting(false);
+        return;
+      }
+
       if (!terminalRef.current) return;
 
       term = new Terminal({
@@ -109,6 +117,48 @@ export default function TerminalWorkspace({ files }: { files: any }) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  if (isolationError) {
+    return (
+      <div style={{
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px',
+        background: '#0a0a0a',
+        border: '1px solid var(--glass-border)',
+        borderRadius: '8px',
+        textAlign: 'center',
+        color: 'var(--text-secondary)'
+      }}>
+        <div style={{ color: '#ef4444', fontSize: '24px', marginBottom: '12px' }}>🔒 Terminal Locked</div>
+        <p style={{ fontSize: '13px', maxWidth: '400px', margin: '0 0 16px 0', lineHeight: '1.5' }}>
+          {isolationError}
+        </p>
+        <button 
+          onClick={() => window.location.reload()}
+          style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid var(--glass-border)',
+            color: 'white',
+            padding: '8px 16px',
+            borderRadius: '6px',
+            fontSize: '11px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            transition: 'background 0.2s'
+          }}
+          onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+          onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+        >
+          Retry Loading Route
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative', background: '#0a0a0a', padding: '8px' }}>

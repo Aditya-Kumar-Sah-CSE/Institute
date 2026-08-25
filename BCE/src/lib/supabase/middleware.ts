@@ -265,5 +265,11 @@ export async function updateSession(request: NextRequest) {
   supabaseResponse.headers.set('X-XSS-Protection', '1; mode=block');
   supabaseResponse.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
+  // Scoped Cross-Origin Isolation headers for Terminal/WebContainer
+  if (pathname === '/code-arena/compiler' || pathname.startsWith('/code-arena/compiler/')) {
+    supabaseResponse.headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+    supabaseResponse.headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
+  }
+
   return supabaseResponse;
 }

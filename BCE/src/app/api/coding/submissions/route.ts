@@ -163,6 +163,24 @@ export async function POST(request: Request) {
              .insert({ user_id: user.id, institution_id: profile?.institution_id || null, date: today, problems_solved: 1 });
         }
 
+        // Insert into student_completed_problems to track unique solves securely
+        await adminClient
+          .from('student_completed_problems')
+          .upsert({
+            student_id: user.id,
+            platform: 'SMART_LEARN',
+            problem_id: problemId,
+            solved_at: new Date().toISOString(),
+          }, { onConflict: 'student_id,platform,problem_id' });
+
+        // Calculate coder badges
+        try {
+          const { checkBadges } = await import('@/features/gamification/actions/gamification');
+          await checkBadges(user.id);
+        } catch (badgeErr) {
+          console.error('[BADGES] Failed to trigger checkBadges:', badgeErr);
+        }
+
         // 2. Handle battle score if applicable
         if (finalBattleId) {
           const { data: prevSolved } = await adminClient

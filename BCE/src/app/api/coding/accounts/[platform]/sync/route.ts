@@ -16,7 +16,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
     // 1. Get connected account
     const { data: account } = await supabase
       .from('student_external_accounts')
-      .select('id, username, metadata')
+      .select('id, username, metadata, problems_solved')
       .eq('student_id', user.id)
       .eq('platform', platformUpper)
       .maybeSingle();
@@ -30,6 +30,25 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
     // ==================== CODECHEF SYNC ====================
     if (platformUpper === 'CODECHEF') {
       const ccProfile = await fetchCodeChefUserProfile(handle);
+
+      const prevSolved = account.problems_solved || 0;
+      const currentSolved = ccProfile.totalSolved;
+      const delta = currentSolved - prevSolved;
+
+      if (delta > 0) {
+        const completedRows = [];
+        for (let i = 0; i < delta; i++) {
+          completedRows.push({
+            student_id: user.id,
+            platform: 'CODECHEF',
+            problem_id: `codechef_${prevSolved + i + 1}`,
+            solved_at: prevSolved === 0 ? new Date(0).toISOString() : new Date().toISOString(),
+          });
+        }
+        await supabase
+          .from('student_completed_problems')
+          .upsert(completedRows, { onConflict: 'student_id,platform,problem_id' });
+      }
 
       const existingMetadata = account.metadata || {};
       const { error: updateError } = await supabase
@@ -55,6 +74,14 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
 
       if (updateError) {
         return NextResponse.json({ error: 'Sync completed but failed to save. Try again.' }, { status: 500 });
+      }
+
+      // Trigger badge evaluation
+      try {
+        const { checkBadges } = await import('@/features/gamification/actions/gamification');
+        await checkBadges(user.id);
+      } catch (badgeErr) {
+        console.error('[CODECHEF BADGES] Failed to calculate badges:', badgeErr);
       }
 
       return NextResponse.json({
@@ -83,6 +110,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
       let contestRating: number | null = null;
       let contestCount = 0;
       const recentSubmissions: any[] = [];
+      let recentAcs: any[] = [];
 
       // 1. Fetch user profile + submit stats using public GraphQL (Main Profile Query)
       try {
@@ -108,7 +136,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
                     }
                   }
                 }
-                recentAcSubmissionList(username: $username, limit: 10) {
+                recentAcSubmissionList(username: $username, limit: 50) {
                   title
                   titleSlug
                   timestamp
@@ -130,7 +158,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
         }
 
         const lcUser = json?.data?.matchedUser;
-        const recentAcs = json?.data?.recentAcSubmissionList;
+        recentAcs = json?.data?.recentAcSubmissionList || [];
 
         if (!lcUser) {
           throw new Error(`LeetCode user account "${handle}" not found.`);
@@ -288,6 +316,27 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
           return NextResponse.json({ error: 'Sync completed but failed to save. Try again.' }, { status: 500 });
         }
 
+        // Upsert matching recent submissions into student_completed_problems
+        if (Array.isArray(recentAcs) && recentAcs.length > 0) {
+          const completedRows = recentAcs.map((sub: any) => ({
+            student_id: user.id,
+            platform: 'LEETCODE',
+            problem_id: sub.titleSlug || sub.title,
+            solved_at: new Date(Number(sub.timestamp) * 1000).toISOString(),
+          }));
+          await supabase
+            .from('student_completed_problems')
+            .upsert(completedRows, { onConflict: 'student_id,platform,problem_id' });
+        }
+
+        // Trigger badge evaluation
+        try {
+          const { checkBadges } = await import('@/features/gamification/actions/gamification');
+          await checkBadges(user.id);
+        } catch (badgeErr) {
+          console.error('[LEETCODE BADGES] Failed to calculate badges:', badgeErr);
+        }
+
         return NextResponse.json({
           success: true,
           data: {
@@ -435,6 +484,14 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
     if (updateError) {
       console.error('[CF SYNC] DB update failed:', updateError.message);
       return NextResponse.json({ error: 'Sync completed but failed to save. Try again.' }, { status: 500 });
+    }
+
+    // Trigger badge evaluation
+    try {
+      const { checkBadges } = await import('@/features/gamification/actions/gamification');
+      await checkBadges(user.id);
+    } catch (badgeErr) {
+      console.error('[CODEFORCES BADGES] Failed to calculate badges:', badgeErr);
     }
 
     return NextResponse.json({

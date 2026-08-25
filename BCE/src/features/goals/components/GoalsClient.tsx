@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Clock, Target, Calendar, Edit3, Save, Plus, Trash2, Bell, BellRing, Play, Pause, RotateCcw, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, Clock, Target, Calendar, Edit3, Save, Plus, Trash2, Bell, BellRing, Play, Pause, RotateCcw, Volume2, VolumeX, SkipForward, Check, Square } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Modal from '@/components/ui/Modal';
 import { usePremiumAlert } from '../hooks/usePremiumAlert';
@@ -54,6 +54,14 @@ export default function GoalsClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Stopwatch / Study Timer states
+  const [activeSession, setActiveSession] = useState<any>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [todayStats, setTodayStats] = useState<any>({ total_focus_mins: 0, per_goal_stats: [] });
+  const [completions, setCompletions] = useState<any[]>([]);
+  const [selectedGoalId, setSelectedGoalId] = useState('');
+  const [selectedTaskId, setSelectedTaskId] = useState('');
+
   // Edit goal modal
   const [editGoal, setEditGoal] = useState<any>(null);
   const [editText, setEditText] = useState('');
@@ -76,6 +84,7 @@ export default function GoalsClient() {
   const [alarmMuted, setAlarmMuted] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const stopwatchIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Current time for live clock
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -89,6 +98,36 @@ export default function GoalsClient() {
     loadData();
   }, []);
 
+  // Fetch active session and timing details from DB
+  const fetchActiveSession = async () => {
+    try {
+      const res = await fetch('/api/goals/sessions?active=true');
+      const data = await res.json();
+      if (data.sessions && data.sessions.length > 0) {
+        const sess = data.sessions[0];
+        setActiveSession(sess);
+        // Pre-select goal & task
+        if (sess.goal_id) setSelectedGoalId(sess.goal_id);
+        if (sess.task_id) setSelectedTaskId(sess.task_id);
+      } else {
+        setActiveSession(null);
+      }
+    } catch (e) {}
+  };
+
+  const fetchStatsAndCompletions = async () => {
+    try {
+      const [statsRes, completionsRes] = await Promise.all([
+        fetch('/api/goals/stats'),
+        fetch('/api/goals/routines/completions')
+      ]);
+      const statsData = await statsRes.json();
+      const completionsData = await completionsRes.json();
+      if (statsData.total_focus_mins !== undefined) setTodayStats(statsData);
+      if (completionsData.completions) setCompletions(completionsData.completions);
+    } catch (e) {}
+  };
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -99,15 +138,212 @@ export default function GoalsClient() {
       const goalsData = await goalsRes.json();
       const routinesData = await routinesRes.json();
 
-      if (goalsData.goals) setGoals(goalsData.goals);
-      if (routinesData.routines) setRoutines(routinesData.routines);
+      if (goalsData.goals) {
+        setGoals(goalsData.goals);
+        if (goalsData.goals.length > 0 && !selectedGoalId) {
+          setSelectedGoalId(goalsData.goals[0].id);
+        }
+      }
+      if (routinesData.routines) {
+        setRoutines(routinesData.routines);
+      }
       if (goalsData.error) setError(goalsData.error);
+
+      await Promise.all([
+        fetchActiveSession(),
+        fetchStatsAndCompletions()
+      ]);
     } catch (e: any) {
       setError(e.message || 'Failed to load data');
     } finally {
       setLoading(false);
     }
   };
+
+  // Stopwatch ticking client interval using exact timestamp calculation to avoid background throttle drift
+  useEffect(() => {
+    if (activeSession) {
+      const startedTime = new Date(activeSession.started_at).getTime();
+      const cumPause = Number(activeSession.cumulative_pause_seconds || 0);
+
+      const updateTicker = () => {
+        if (activeSession.is_paused) {
+          setElapsedSeconds(cumPause);
+        } else {
+          const delta = Math.floor((Date.now() - startedTime) / 1000);
+          setElapsedSeconds(Math.max(0, delta - cumPause));
+        }
+      };
+
+      updateTicker();
+      stopwatchIntervalRef.current = setInterval(updateTicker, 1000);
+    } else {
+      setElapsedSeconds(0);
+      if (stopwatchIntervalRef.current) {
+        clearInterval(stopwatchIntervalRef.current);
+        stopwatchIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (stopwatchIntervalRef.current) {
+        clearInterval(stopwatchIntervalRef.current);
+        stopwatchIntervalRef.current = null;
+      }
+    };
+  }, [activeSession]);
+
+  const handleStartStopwatch = async () => {
+    try {
+      const matchingRoutineTask = routines.find(r => r.id === selectedTaskId);
+      const res = await fetch('/api/goals/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          goal_id: selectedGoalId || null,
+          task_id: selectedTaskId || null,
+          task_name: matchingRoutineTask ? matchingRoutineTask.task_name : null,
+          duration_mins: 30
+        })
+      });
+      const data = await res.json();
+      if (data.error) {
+        premiumAlert(data.error, 'Stopwatch error', 'error');
+        return;
+      }
+      if (data.session) {
+        setActiveSession(data.session);
+        // Dispatch local event for dashboard sync
+        window.dispatchEvent(new CustomEvent('goal-update'));
+      }
+    } catch (e) {
+      premiumAlert('Failed to start stopwatch.', 'Error', 'error');
+    }
+  };
+
+  const handlePauseStopwatch = async () => {
+    if (!activeSession) return;
+    try {
+      const res = await fetch('/api/goals/sessions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: activeSession.id,
+          action: 'pause'
+        })
+      });
+      const data = await res.json();
+      if (data.session) {
+        setActiveSession(data.session);
+        window.dispatchEvent(new CustomEvent('goal-update'));
+      }
+    } catch (e) {}
+  };
+
+  const handleResumeStopwatch = async () => {
+    if (!activeSession) return;
+    try {
+      const res = await fetch('/api/goals/sessions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: activeSession.id,
+          action: 'resume'
+        })
+      });
+      const data = await res.json();
+      if (data.session) {
+        setActiveSession(data.session);
+        window.dispatchEvent(new CustomEvent('goal-update'));
+      }
+    } catch (e) {}
+  };
+
+  const handleCompleteStopwatch = async () => {
+    if (!activeSession) return;
+    try {
+      const res = await fetch('/api/goals/sessions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: activeSession.id,
+          action: 'complete'
+        })
+      });
+      const data = await res.json();
+      if (data.session) {
+        setActiveSession(null);
+        await Promise.all([
+          loadData(),
+          fetchStatsAndCompletions()
+        ]);
+        window.dispatchEvent(new CustomEvent('goal-update'));
+      }
+    } catch (e) {}
+  };
+
+  const handleAbandonStopwatch = async () => {
+    if (!activeSession) return;
+    if (!confirm('Are you sure you want to abandon this stopwatch focus session?')) return;
+    try {
+      const res = await fetch('/api/goals/sessions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: activeSession.id,
+          action: 'abandon'
+        })
+      });
+      const data = await res.json();
+      if (data.session) {
+        setActiveSession(null);
+        await Promise.all([
+          loadData(),
+          fetchStatsAndCompletions()
+        ]);
+        window.dispatchEvent(new CustomEvent('goal-update'));
+      }
+    } catch (e) {}
+  };
+
+  const handleToggleRoutineCompletion = async (slot: any, isCurrentlyDone: boolean) => {
+    try {
+      const res = await fetch('/api/goals/routines/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          task_id: slot.id || slot.time_slot,
+          task_name: slot.task_name,
+          action: isCurrentlyDone ? 'delete' : 'create',
+          status: 'completed'
+        })
+      });
+      if (res.ok) {
+        await fetchStatsAndCompletions();
+        window.dispatchEvent(new CustomEvent('goal-update'));
+      }
+    } catch (e) {}
+  };
+
+  const handleSkipRoutineTask = async (slot: any) => {
+    try {
+      const res = await fetch('/api/goals/routines/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          task_id: slot.id || slot.time_slot,
+          task_name: slot.task_name,
+          action: 'create',
+          status: 'skipped'
+        })
+      });
+      if (res.ok) {
+        await fetchStatsAndCompletions();
+        window.dispatchEvent(new CustomEvent('goal-update'));
+      }
+    } catch (e) {}
+  };
+
 
   // --- Goal Edit ---
   const openEditModal = (goal: any) => {
@@ -273,6 +509,13 @@ export default function GoalsClient() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const formatHHMMSS = (s: number) => {
+    const hrs = Math.floor(s / 3600);
+    const mins = Math.floor((s % 3600) / 60);
+    const secs = s % 60;
+    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const activeSlotIdx = getCurrentSlotIndex(routines);
   const nowStr = currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
@@ -297,6 +540,115 @@ export default function GoalsClient() {
           {error}
         </div>
       )}
+
+      {/* ── STOPWATCH / STUDY TIMER BLOCK ── */}
+      <Card variant="glass" padding="lg" style={{ marginBottom: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', alignItems: 'center' }}>
+          {/* Left Side: Stopwatch */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Clock size={20} style={{ color: 'var(--neon-cyan)' }} />
+              Study Stopwatch
+            </h2>
+            
+            {/* Goal & Task Dropdowns */}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>Link to Goal</label>
+                <select
+                  disabled={!!activeSession}
+                  value={selectedGoalId}
+                  onChange={e => setSelectedGoalId(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'var(--bg-card)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', fontSize: '13px', outline: 'none' }}
+                >
+                  {goals.map(g => (
+                    <option key={g.id} value={g.id}>{g.goal_text}</option>
+                  ))}
+                  {goals.length === 0 && (
+                    <option value="">No active goals</option>
+                  )}
+                </select>
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>Link to Task</label>
+                <select
+                  disabled={!!activeSession}
+                  value={selectedTaskId}
+                  onChange={e => setSelectedTaskId(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'var(--bg-card)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', fontSize: '13px', outline: 'none' }}
+                >
+                  <option value="">Select Routine Task...</option>
+                  {routines.map(r => (
+                    <option key={r.id} value={r.id}>{r.task_name} ({formatTime12h(r.time_slot)})</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Stopwatch Time Representation */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ fontSize: '48px', fontWeight: 900, fontFamily: 'monospace', letterSpacing: '2px', color: activeSession?.is_paused ? 'var(--text-muted)' : 'var(--neon-cyan)' }}>
+                {formatHHMMSS(elapsedSeconds)}
+              </div>
+              
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {!activeSession ? (
+                  <button onClick={handleStartStopwatch} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', borderRadius: '8px', background: 'rgba(57, 255, 20, 0.15)', border: '1px solid rgba(57, 255, 20, 0.4)', color: 'var(--neon-lime)', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
+                    <Play size={16} /> Start Focus
+                  </button>
+                ) : (
+                  <>
+                    {activeSession.is_paused ? (
+                      <button onClick={handleResumeStopwatch} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', borderRadius: '8px', background: 'rgba(6, 182, 212, 0.15)', border: '1px solid rgba(6, 182, 212, 0.4)', color: 'var(--neon-cyan)', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
+                        <Play size={16} /> Resume
+                      </button>
+                    ) : (
+                      <button onClick={handlePauseStopwatch} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', borderRadius: '8px', background: 'rgba(255, 0, 255, 0.15)', border: '1px solid rgba(255, 0, 255, 0.4)', color: 'var(--neon-magenta)', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
+                        <Pause size={16} /> Pause
+                      </button>
+                    )}
+                    <button onClick={handleCompleteStopwatch} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', borderRadius: '8px', background: 'rgba(57, 255, 20, 0.15)', border: '1px solid rgba(57, 255, 20, 0.4)', color: 'var(--neon-lime)', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
+                      <Check size={16} /> Complete
+                    </button>
+                    <button onClick={handleAbandonStopwatch} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 14px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
+                      <RotateCcw size={16} /> Reset
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+            {activeSession && (
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                Active: <span style={{ color: 'var(--neon-purple)', fontWeight: 'bold' }}>{activeSession.student_goals?.goal_text || 'Daily Routine Focus'}</span>
+                {activeSession.task_name && <> &bull; Task: <span style={{ color: 'var(--neon-purple)', fontWeight: 'bold' }}>{activeSession.task_name}</span></>}
+              </div>
+            )}
+          </div>
+
+          {/* Right Side: stats */}
+          <div style={{ borderLeft: '1px solid var(--glass-border)', paddingLeft: '32px', display: 'flex', flexDirection: 'column', gap: '12px', minHeight: '130px', justifyContent: 'center' }}>
+            <h3 style={{ margin: 0, fontSize: '15px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Today's Accomplishments</h3>
+            
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+              <span style={{ fontSize: '32px', fontWeight: 800, color: 'var(--neon-cyan)' }}>{todayStats.total_focus_mins}</span>
+              <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>minutes total focus time today</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '100px', overflowY: 'auto' }}>
+              {todayStats.per_goal_stats && todayStats.per_goal_stats.length > 0 ? (
+                todayStats.per_goal_stats.map((g: any, idx: number) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', borderBottom: '1px dashed rgba(255,255,255,0.03)', paddingBottom: '4px' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>{g.goal_text}</span>
+                    <span style={{ fontWeight: 'bold', color: 'var(--neon-purple)' }}>{g.focus_mins} mins</span>
+                  </div>
+                ))
+              ) : (
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>No focus sessions completed today yet.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      </Card>
 
       {/* ── ACTIVE ALARM/TIMER BANNER ── */}
       {(alarmTarget || alarmFired) && (
@@ -419,53 +771,114 @@ export default function GoalsClient() {
                 {routines.map((slot, i) => {
                   const isActive = i === activeSlotIdx;
                   const isPast = i < activeSlotIdx;
+                  const slotId = slot.id || slot.time_slot;
+                  
+                  const compTask = completions.find(c => c.task_id === slotId);
+                  const isCompleted = compTask?.status === 'completed';
+                  const isSkipped = compTask?.status === 'skipped';
+                  const isDone = isCompleted || isSkipped;
+
                   return (
                     <div
                       key={slot.id || i}
                       style={{
                         display: 'grid',
-                        gridTemplateColumns: '90px 1fr auto',
+                        gridTemplateColumns: '40px 90px 1fr auto',
                         gap: '12px',
                         alignItems: 'center',
                         padding: '10px 12px',
                         borderRadius: '8px',
                         background: isActive ? 'rgba(6,182,212,0.08)' : 'transparent',
                         borderLeft: isActive ? '3px solid var(--neon-cyan)' : '3px solid transparent',
-                        opacity: isPast ? 0.5 : 1,
+                        opacity: isDone ? 0.4 : isPast ? 0.7 : 1,
                         transition: 'all 0.2s',
                       }}
                     >
+                      <button
+                        onClick={() => handleToggleRoutineCompletion(slot, isCompleted)}
+                        title={isCompleted ? "Mark as Incomplete" : "Mark as Completed"}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: isCompleted ? 'var(--neon-lime)' : 'var(--text-muted)',
+                          cursor: 'pointer',
+                          display: 'grid',
+                          placeItems: 'center',
+                          padding: '4px',
+                        }}
+                      >
+                        {isCompleted ? (
+                          <div style={{ display: 'grid', placeItems: 'center', width: '18px', height: '18px', borderRadius: '4px', background: 'rgba(57,255,20,0.1)', border: '1px solid var(--neon-lime)' }}>
+                            <Check size={12} style={{ color: 'var(--neon-lime)' }} />
+                          </div>
+                        ) : (
+                          <div style={{ width: '18px', height: '18px', borderRadius: '4px', border: '1px solid var(--glass-border)' }} />
+                        )}
+                      </button>
+
                       <span style={{
                         fontSize: '13px',
                         fontWeight: 700,
                         fontFamily: 'monospace',
-                        color: isActive ? 'var(--neon-cyan)' : 'var(--text-secondary)',
+                        color: isActive && !isDone ? 'var(--neon-cyan)' : 'var(--text-secondary)',
+                        textDecoration: isDone ? 'line-through' : 'none',
                       }}>
                         {formatTime12h(slot.time_slot)}
                       </span>
+                      
                       <span style={{
                         fontSize: '14px',
-                        fontWeight: isActive ? 700 : 500,
-                        color: isActive ? 'var(--text-main)' : 'var(--text-secondary)',
+                        fontWeight: isActive && !isDone ? 700 : 500,
+                        color: isActive && !isDone ? 'var(--text-main)' : 'var(--text-secondary)',
+                        textDecoration: isDone ? 'line-through' : 'none',
                       }}>
                         {slot.task_name}
                       </span>
-                      <button
-                        onClick={() => startAlarmFor(slot)}
-                        title={`Set alarm for ${slot.task_name}`}
-                        style={{
-                          background: alarmTarget?.time_slot === slot.time_slot ? 'rgba(234,179,8,0.15)' : 'rgba(255,255,255,0.03)',
-                          border: alarmTarget?.time_slot === slot.time_slot ? '1px solid rgba(234,179,8,0.3)' : '1px solid var(--glass-border)',
-                          borderRadius: '6px',
-                          padding: '5px 8px',
-                          cursor: 'pointer',
-                          color: alarmTarget?.time_slot === slot.time_slot ? '#eab308' : 'var(--text-muted)',
-                          display: 'grid',
-                          placeItems: 'center',
-                        }}
-                      >
-                        <Bell size={14} />
-                      </button>
+                      
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {isCompleted && (
+                          <span style={{ fontSize: '10px', color: 'var(--neon-lime)', border: '1px solid rgba(57,255,20,0.2)', padding: '2px 6px', borderRadius: '4px', background: 'rgba(57,255,20,0.05)' }}>Completed</span>
+                        )}
+                        {isSkipped && (
+                          <span style={{ fontSize: '10px', color: 'var(--text-muted)', border: '1px solid var(--glass-border)', padding: '2px 6px', borderRadius: '4px', background: 'rgba(255,255,255,0.02)' }}>Skipped</span>
+                        )}
+                        {!isDone && (
+                          <>
+                            <button
+                              onClick={() => handleSkipRoutineTask(slot)}
+                              title="Skip Task"
+                              style={{
+                                background: 'rgba(255,255,255,0.03)',
+                                border: '1px solid var(--glass-border)',
+                                borderRadius: '6px',
+                                padding: '5px 8px',
+                                cursor: 'pointer',
+                                color: 'var(--text-muted)',
+                                display: 'grid',
+                                placeItems: 'center',
+                              }}
+                            >
+                              <SkipForward size={13} style={{ color: 'var(--text-secondary)' }} />
+                            </button>
+                            <button
+                              onClick={() => startAlarmFor(slot)}
+                              title={`Set alarm for ${slot.task_name}`}
+                              style={{
+                                background: alarmTarget?.time_slot === slot.time_slot ? 'rgba(234,179,8,0.15)' : 'rgba(255,255,255,0.03)',
+                                border: alarmTarget?.time_slot === slot.time_slot ? '1px solid rgba(234,179,8,0.3)' : '1px solid var(--glass-border)',
+                                borderRadius: '6px',
+                                padding: '5px 8px',
+                                cursor: 'pointer',
+                                color: alarmTarget?.time_slot === slot.time_slot ? '#eab308' : 'var(--text-muted)',
+                                display: 'grid',
+                                placeItems: 'center',
+                              }}
+                            >
+                              <Bell size={13} />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -473,6 +886,9 @@ export default function GoalsClient() {
             )
           )}
         </Card>
+
+
+
 
         {/* ── RIGHT: GOALS LIST ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>

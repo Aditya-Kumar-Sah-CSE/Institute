@@ -16,46 +16,206 @@
 
 .monthly-popup {
   position: relative;
-  background: linear-gradient(145deg, #1a1a2e, #16213e);
-  border: 2px solid var(--neon-gold);
-  border-radius: var(--radius-xl);
-  padding: var(--space-3xl);
+  background: linear-gradient(145deg, #121224, #0a0e1c);
+  border: 2px solid var(--neon-gold, #eab308);
+  border-radius: var(--radius-xl, 16px);
+  padding: var(--space-xl, 24px) var(--space-2xl, 36px);
   text-align: center;
-  max-width: 500px;
-  width: 90%;
-  box-shadow: 0 0 50px rgba(255, 215, 0, 0.3), inset 0 0 20px rgba(255, 215, 0, 0.1);
+  max-width: 600px;
+  width: 95%;
+  box-shadow: 0 0 50px rgba(234, 179, 8, 0.25), inset 0 0 20px rgba(234, 179, 8, 0.1);
   animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .crown-icon {
-  font-size: 6rem;
+  font-size: 4rem;
   line-height: 1;
-  margin-bottom: var(--space-md);
+  margin-bottom: 4px;
   animation: floatCrown 3s ease-in-out infinite, pulseGlow 2s infinite;
-  filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.8));
+  filter: drop-shadow(0 0 15px rgba(234, 179, 8, 0.7));
 }
 
 .monthly-celebration-title {
-  color: var(--neon-gold);
-  font-size: var(--text-4xl);
-  margin-bottom: var(--space-sm);
-  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+  color: var(--neon-gold, #eab308);
+  font-size: var(--text-3xl, 28px);
+  margin-bottom: 2px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
   background: linear-gradient(to right, #ffd700, #ff8c00);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
+.monthly-subtitle {
+  color: var(--text-secondary, #94a3b8);
+  font-size: var(--text-md, 14px);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: var(--space-lg, 16px);
+  font-weight: 600;
+}
+
+/* Podium Layout */
+.podium-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: var(--space-md, 16px);
+  margin: var(--space-lg, 16px) 0 var(--space-xl, 24px) 0;
+  width: 100%;
+  max-width: 440px;
+}
+
+.podium-pedestal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  flex: 1;
+}
+
+.podium-avatar-wrapper {
+  position: relative;
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: center;
+}
+
+.podium-avatar {
+  border-radius: 50%;
+  object-fit: cover;
+  background: #1e293b;
+}
+
+.rank-1 .podium-avatar {
+  width: 70px;
+  height: 70px;
+  border: 3px solid #ffbe1a;
+  box-shadow: 0 0 15px rgba(254, 240, 138, 0.4);
+}
+
+.rank-2 .podium-avatar {
+  width: 58px;
+  height: 58px;
+  border: 2.5px solid #94a3b8;
+  box-shadow: 0 0 10px rgba(148, 163, 184, 0.3);
+}
+
+.rank-3 .podium-avatar {
+  width: 54px;
+  height: 54px;
+  border: 2.5px solid #d97706;
+  box-shadow: 0 0 10px rgba(217, 119, 6, 0.3);
+}
+
+.podium-medal {
+  position: absolute;
+  bottom: -4px;
+  right: -2px;
+  font-size: 1.25rem;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+}
+
+.rank-1 .podium-medal {
+  font-size: 1.5rem;
+  bottom: -6px;
+  right: -4px;
+}
+
+.podium-name {
+  color: var(--text-primary, #f8fafc);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rank-1 .podium-name {
+  font-size: 0.95rem;
+}
+
+.podium-count {
+  color: var(--text-secondary, #94a3b8);
+  font-size: 0.72rem;
+  font-weight: 500;
+  margin-top: 1px;
+}
+
+.podium-pillar {
+  width: 100%;
+  margin-top: 6px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 8px;
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.gold-pillar {
+  height: 90px;
+  background: linear-gradient(180deg, rgba(234, 179, 8, 0.12) 0%, rgba(234, 179, 8, 0.02) 100%);
+  border-color: rgba(234, 179, 8, 0.15);
+}
+
+.silver-pillar {
+  height: 65px;
+  background: linear-gradient(180deg, rgba(148, 163, 184, 0.1) 0%, rgba(148, 163, 184, 0.02) 100%);
+  border-color: rgba(148, 163, 184, 0.12);
+}
+
+.bronze-pillar {
+  height: 48px;
+  background: linear-gradient(180deg, rgba(217, 119, 6, 0.08) 0%, rgba(217, 119, 6, 0.02) 100%);
+  border-color: rgba(217, 119, 6, 0.1);
+}
+
+.pillar-label {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.gold-pillar .pillar-label {
+  color: #ffbe1a;
+  text-shadow: 0 0 8px rgba(254, 240, 138, 0.3);
+}
+
+.silver-pillar .pillar-label {
+  color: #cad4e2;
+}
+
+.bronze-pillar .pillar-label {
+  color: #e2a86b;
+}
+
+.empty-pedestal {
+  flex: 1;
+  visibility: hidden;
+}
+
 .monthly-desc {
-  color: var(--text-primary);
-  font-size: var(--text-xl);
-  line-height: 1.5;
+  color: var(--text-primary, #f8fafc);
+  font-size: 0.95rem;
+  line-height: var(--line-height-relaxed, 1.6);
+  max-width: 480px;
+  margin-bottom: var(--space-xl, 24px);
 }
 
 .monthly-desc strong {
-  color: var(--neon-cyan);
-  font-size: var(--text-2xl);
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+  color: var(--neon-cyan, #06b6d4);
+  text-shadow: 0 0 8px rgba(6, 182, 212, 0.3);
 }
 
 .monthly-close-btn {
@@ -64,7 +224,7 @@
   right: 15px;
   background: transparent;
   border: none;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #94a3b8);
   font-size: 2rem;
   cursor: pointer;
   transition: color 0.2s;
@@ -72,7 +232,46 @@
 }
 
 .monthly-close-btn:hover {
-  color: var(--neon-red);
+  color: var(--neon-red, #ef4444);
+}
+
+.button-container-row {
+  display: flex;
+  gap: var(--space-sm, 12px);
+  justify-content: center;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 10;
+}
+
+.action-btn {
+  border: none;
+  border-radius: var(--radius-full, 9999px);
+  padding: var(--space-sm, 8px) var(--space-lg, 20px);
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: transform 0.2s, opacity 0.2s;
+}
+
+.action-btn:hover {
+  transform: translateY(-2px);
+}
+
+.action-btn:disabled {
+  cursor: wait;
+}
+
+.story-btn {
+  background: linear-gradient(135deg, #d946ef, #8b5cf6);
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+}
+
+.share-btn {
+  background: linear-gradient(135deg, #06b6d4, #3b82f6);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
 }
 
 .glow-effect {
@@ -81,7 +280,7 @@
   left: -50%;
   width: 200%;
   height: 200%;
-  background: conic-gradient(from 0deg, transparent 0deg, rgba(255, 215, 0, 0.2) 90deg, transparent 180deg);
+  background: conic-gradient(from 0deg, transparent 0deg, rgba(234, 179, 8, 0.15) 90deg, transparent 180deg);
   animation: spin 10s linear infinite;
   pointer-events: none;
   z-index: -1;
@@ -98,8 +297,8 @@
 
 .confetti {
   position: absolute;
-  width: 10px;
-  height: 20px;
+  width: 8px;
+  height: 16px;
   top: -20px;
   animation-name: fallAndSpin;
   animation-timing-function: linear;
@@ -107,18 +306,18 @@
 }
 
 .confetti-gold {
-  background: var(--neon-gold);
-  box-shadow: 0 0 5px var(--neon-gold);
+  background: var(--neon-gold, #eab308);
+  box-shadow: 0 0 5px var(--neon-gold, #eab308);
 }
 
 .confetti-silver {
-  background: #e0e0e0;
-  box-shadow: 0 0 5px #e0e0e0;
+  background: #cbd5e1;
+  box-shadow: 0 0 5px #cbd5e1;
 }
 
 @keyframes popIn {
   0% { transform: scale(0.5); opacity: 0; }
-  70% { transform: scale(1.05); opacity: 1; }
+  70% { transform: scale(1.03); opacity: 1; }
   100% { transform: scale(1); opacity: 1; }
 }
 
@@ -129,7 +328,7 @@
 
 @keyframes floatCrown {
   0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-15px) scale(1.1); }
+  50% { transform: translateY(-8px) scale(1.05); }
 }
 
 @keyframes spin {
@@ -138,8 +337,8 @@
 }
 
 @keyframes pulseGlow {
-  0%, 100% { filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.5)); }
-  50% { filter: drop-shadow(0 0 40px rgba(255, 215, 0, 1)); }
+  0%, 100% { filter: drop-shadow(0 0 15px rgba(234, 179, 8, 0.4)); }
+  50% { filter: drop-shadow(0 0 30px rgba(234, 179, 8, 0.8)); }
 }
 
 @keyframes fallAndSpin {
@@ -147,11 +346,10 @@
   100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
 }
 
-
-/* Fixes for html2canvas export */
+/* Sharing Mode Styles (html2canvas export overrides) */
 .exporting-image {
-  background: #1a1a2e !important;
-  border: 2px solid #ffd700 !important;
+  background: linear-gradient(135deg, #121224, #0a0e1c) !important;
+  border: 2px solid #eab308 !important;
   box-shadow: none !important;
 }
 
@@ -159,16 +357,16 @@
   background: none !important;
   -webkit-background-clip: border-box !important;
   -webkit-text-fill-color: currentcolor !important;
-  color: #ffd700 !important;
+  color: #eab308 !important;
   text-shadow: none !important;
 }
 
 .exporting-image .monthly-desc {
-  color: #ffffff !important;
+  color: #f8fafc !important;
 }
 
 .exporting-image .monthly-desc strong {
-  color: #00ffff !important;
+  color: #06b6d4 !important;
   text-shadow: none !important;
 }
 
@@ -179,4 +377,24 @@
 .exporting-image .crown-icon {
   animation: none !important;
   filter: none !important;
+}
+
+.exporting-image .podium-pillar {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.exporting-image .gold-pillar {
+  background: rgba(234, 179, 8, 0.12) !important;
+  border-color: rgba(234, 179, 8, 0.15) !important;
+}
+
+.exporting-image .silver-pillar {
+  background: rgba(148, 163, 184, 0.1) !important;
+  border-color: rgba(148, 163, 184, 0.12) !important;
+}
+
+.exporting-image .bronze-pillar {
+  background: rgba(217, 119, 6, 0.08) !important;
+  border-color: rgba(217, 119, 6, 0.1) !important;
 }

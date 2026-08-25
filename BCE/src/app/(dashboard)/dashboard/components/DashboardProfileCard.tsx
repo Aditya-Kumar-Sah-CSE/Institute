@@ -7,8 +7,9 @@ import Card from '@/components/ui/Card';
 import LevelBadge from '@/components/shared/LevelBadge';
 import UserAvatar from '@/components/shared/UserAvatar';
 import Button from '@/components/ui/Button';
-import { User, Share2 } from 'lucide-react';
+import { User, Share2, Trophy, Flame } from 'lucide-react';
 import StorageUsageIndicator from '@/components/shared/StorageUsageIndicator';
+import BadgesModal from '@/components/shared/BadgesModal';
 
 interface DashboardProfileCardProps {
   profile: any;
@@ -17,6 +18,19 @@ interface DashboardProfileCardProps {
 
 export default function DashboardProfileCard({ profile, appData }: DashboardProfileCardProps) {
   const router = useRouter();
+  const [badgeCount, setBadgeCount] = React.useState<number | null>(null);
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    fetch('/api/gamification/badges/list')
+      .then(res => res.json())
+      .then(json => {
+        if (json.success && json.data?.earned) {
+          setBadgeCount(json.data.earned.length);
+        }
+      })
+      .catch(err => console.error('Error fetching badges count:', err));
+  }, []);
 
   if (!profile) return null;
 
@@ -166,23 +180,49 @@ export default function DashboardProfileCard({ profile, appData }: DashboardProf
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
           <LevelBadge level={profile.level} size="md" />
-          {profile.streak_days > 0 && (
-            <div style={{
+          
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsModalOpen(true);
+            }}
+            style={{
               background: 'var(--bg-elevated)',
               border: '1px solid var(--glass-border)',
               color: 'var(--text-primary)',
-              padding: '4px 12px',
+              padding: '6px 14px',
               borderRadius: 'var(--radius-full)',
               fontWeight: '600',
               fontSize: 'var(--text-sm)',
               display: 'flex',
               alignItems: 'center',
-              gap: '4px'
-            }}>
-              <span className="text-neon-orange">🔥</span> {profile.streak_days} Day Streak
-            </div>
-          )}
+              gap: '6px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: 'var(--shadow-sm)'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.borderColor = 'rgba(6, 182, 212, 0.4)';
+              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.03)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.borderColor = 'var(--glass-border)';
+              e.currentTarget.style.backgroundColor = 'var(--bg-elevated)';
+            }}
+          >
+            <Trophy size={14} className="text-neon-gold" />
+            <span>{badgeCount !== null ? `${badgeCount} Badges` : 'Badges'}</span>
+            {profile.streak_days > 0 && (
+              <>
+                <span style={{ color: 'var(--text-muted)', margin: '0 2px' }}>•</span>
+                <Flame size={14} className="text-neon-orange" />
+                <span>{profile.streak_days} Day Streak</span>
+              </>
+            )}
+          </button>
         </div>
+
+        <BadgesModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
 
         {profile.role !== 'admin' && (
           <div style={{ width: '100%' }}>
