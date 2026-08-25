@@ -23,6 +23,8 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
   const [isSaving, setIsSaving] = useState(false);
   const [autoStartFocus, setAutoStartFocus] = useState(false);
   const [timeLeftStr, setTimeLeftStr] = useState('');
+  const [routines, setRoutines] = useState<any[]>([]);
+  const [currentRoutineTask, setCurrentRoutineTask] = useState<any>(null);
 
   // Sync / Prefill form fields when modal opens or goal updates
   useEffect(() => {
@@ -49,7 +51,51 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
          }
       })
       .catch(() => {});
+
+    // Fetch routines to show current scheduled task
+    fetch('/api/goals/routines')
+      .then(r => r.json())
+      .then(data => {
+         if (data.routines) {
+           setRoutines(data.routines);
+         }
+      })
+      .catch(() => {});
   }, []);
+
+  // Update active routine task based on clock time
+  useEffect(() => {
+    if (!routines.length) {
+      setCurrentRoutineTask(null);
+      return;
+    }
+
+    const updateActiveTask = () => {
+      const now = new Date();
+      const nowMins = now.getHours() * 60 + now.getMinutes();
+      let active = null;
+      
+      const sorted = [...routines].sort((a, b) => a.time_slot.localeCompare(b.time_slot));
+
+      for (let i = 0; i < sorted.length; i++) {
+        const [h, m] = sorted[i].time_slot.split(':').map(Number);
+        if (nowMins >= h * 60 + m) {
+          active = sorted[i];
+        }
+      }
+      
+      if (!active && sorted.length > 0) {
+        active = sorted[sorted.length - 1]; // fallback to last task of day
+      }
+
+      setCurrentRoutineTask(active);
+    };
+
+    updateActiveTask();
+    const interval = setInterval(updateActiveTask, 15000); // check every 15 seconds
+    return () => clearInterval(interval);
+  }, [routines]);
+
 
   // Update countdown timer inline on dashboard card
   useEffect(() => {
@@ -174,11 +220,22 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
                    <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--neon-cyan)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '3px' }}>
                       ⏱️ {timeLeftStr || '00:00'} remaining
                    </span>
+                   {currentRoutineTask && (
+                     <span style={{ fontSize: '9px', fontWeight: 600, opacity: 0.6, marginTop: '2.5px' }}>
+                        Current task: {currentRoutineTask.task_name}
+                     </span>
+                   )}
                 </div>
               ) : goal ? (
                 <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
                    <span style={{ fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{goal.goal_text}</span>
-                   <span style={{ fontSize: '10px', fontWeight: 600, opacity: 0.8 }}>{goal.duration_mins} min {goal.routine ? 'routine' : 'goal'}</span>
+                   {currentRoutineTask ? (
+                     <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--neon-cyan)', marginTop: '2.5px' }}>
+                        ⏰ Now: {currentRoutineTask.task_name} ({formatTime12h(currentRoutineTask.time_slot)})
+                     </span>
+                   ) : (
+                     <span style={{ fontSize: '10px', fontWeight: 600, opacity: 0.8 }}>{goal.duration_mins} min {goal.routine ? 'routine' : 'goal'}</span>
+                   )}
                 </div>
               ) : (
                 <>
@@ -300,4 +357,12 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
       )}
     </>
   );
+}
+
+function formatTime12h(t: string) {
+  if (!t) return '';
+  const [h, m] = t.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const hr = h % 12 || 12;
+  return `${hr}:${m.toString().padStart(2, '0')} ${ampm}`;
 }
