@@ -2,10 +2,24 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getUser } from '@/lib/supabase/server';
 
-export async function GET() {
+export async function GET(request: Request) {
   const supabase = await createClient();
   const user = await getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { searchParams } = new URL(request.url);
+  const all = searchParams.get('all') === 'true';
+
+  if (all) {
+    const { data, error } = await supabase
+      .from('student_goals')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ goals: data || [] });
+  }
 
   const { data, error } = await supabase
     .from('student_goals')
@@ -74,11 +88,19 @@ export async function PATCH(request: Request) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
-    const { goal_id, status } = await request.json();
+    const body = await request.json();
+    const { goal_id, goal_text, duration_mins, routine, reminder_time, status } = body;
+
+    const updateFields: any = { updated_at: new Date().toISOString() };
+    if (goal_text !== undefined) updateFields.goal_text = goal_text;
+    if (duration_mins !== undefined) updateFields.duration_mins = duration_mins;
+    if (routine !== undefined) updateFields.routine = routine;
+    if (reminder_time !== undefined) updateFields.reminder_time = reminder_time || null;
+    if (status !== undefined) updateFields.status = status;
 
     const { data, error } = await supabase
       .from('student_goals')
-      .update({ status, updated_at: new Date().toISOString() })
+      .update(updateFields)
       .eq('id', goal_id)
       .eq('user_id', user.id)
       .select()
@@ -91,3 +113,4 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+
