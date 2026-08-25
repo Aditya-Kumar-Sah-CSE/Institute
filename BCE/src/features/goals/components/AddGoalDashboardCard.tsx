@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Card from '@/components/ui/Card';
 import { Target, Play, Plus, X } from 'lucide-react';
-import FocusModeScreen from './FocusModeScreen';
+import FocusModeWindow from './FocusModeWindow';
 import Modal from '@/components/ui/Modal';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -292,9 +292,8 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
       </Modal>
 
       {activeSession && (
-         <FocusModeScreen 
+         <FocusModeWindow 
             activeSession={activeSession}
-            activeGoalText={activeSession.student_goals?.goal_text || goalText || 'Focus Session'}
             onComplete={() => setActiveSession(null)}
             onExit={() => { setActiveSession(null); router.refresh(); }}
          />
