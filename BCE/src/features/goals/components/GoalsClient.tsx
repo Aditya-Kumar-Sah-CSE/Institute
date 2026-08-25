@@ -25,6 +25,15 @@ function formatTime12h(t: string) {
   return `${hr}:${m.toString().padStart(2, '0')} ${ampm}`;
 }
 
+function formatMinsToHm(mins: number) {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h > 0) {
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  }
+  return `${m}m`;
+}
+
 function getCurrentSlotIndex(routines: any[]) {
   if (!routines.length) return -1;
   const now = new Date();
@@ -561,7 +570,7 @@ export default function GoalsClient() {
 
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '12px', color: 'var(--text-secondary)', borderTop: '1px solid var(--glass-border)', paddingTop: '10px' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Clock size={14} style={{ color: 'var(--neon-cyan)' }} /> {goal.duration_mins} mins/day
+                      <Clock size={14} style={{ color: 'var(--neon-cyan)' }} /> {formatMinsToHm(goal.duration_mins)}/day
                     </span>
                     {goal.reminder_time && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>

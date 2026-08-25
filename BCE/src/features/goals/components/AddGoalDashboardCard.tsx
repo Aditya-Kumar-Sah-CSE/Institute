@@ -234,7 +234,7 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
                         ⏰ Now: {currentRoutineTask.task_name} ({formatTime12h(currentRoutineTask.time_slot)})
                      </span>
                    ) : (
-                     <span style={{ fontSize: '10px', fontWeight: 600, opacity: 0.8 }}>{goal.duration_mins} min {goal.routine ? 'routine' : 'goal'}</span>
+                     <span style={{ fontSize: '10px', fontWeight: 600, opacity: 0.8 }}>{formatMinsToHm(goal.duration_mins)} {goal.routine ? 'routine' : 'goal'}</span>
                    )}
                 </div>
               ) : (
@@ -365,4 +365,13 @@ function formatTime12h(t: string) {
   const ampm = h >= 12 ? 'PM' : 'AM';
   const hr = h % 12 || 12;
   return `${hr}:${m.toString().padStart(2, '0')} ${ampm}`;
+}
+
+function formatMinsToHm(mins: number) {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h > 0) {
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  }
+  return `${m}m`;
 }
