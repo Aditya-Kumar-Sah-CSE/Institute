@@ -192,6 +192,9 @@ export default function PinnedGoalAlert() {
       if (res.ok) {
         loadData();
         window.dispatchEvent(new CustomEvent('goal-update'));
+      } else {
+        loadData();
+        window.dispatchEvent(new CustomEvent('goal-update'));
       }
     } catch (e) {}
   };
@@ -209,6 +212,9 @@ export default function PinnedGoalAlert() {
         })
       });
       if (res.ok) {
+        loadData();
+        window.dispatchEvent(new CustomEvent('goal-update'));
+      } else {
         loadData();
         window.dispatchEvent(new CustomEvent('goal-update'));
       }

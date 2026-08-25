@@ -188,6 +188,8 @@ export default function GoalsClient() {
       const data = await res.json();
       if (data.error) {
         premiumAlert(data.error, 'Stopwatch error', 'error');
+        await loadData();
+        window.dispatchEvent(new CustomEvent('goal-update'));
         return;
       }
       if (data.session) {

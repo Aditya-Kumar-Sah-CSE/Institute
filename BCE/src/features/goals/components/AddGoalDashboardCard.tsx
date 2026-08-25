@@ -211,6 +211,8 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
       if (res.ok) {
          setActiveSession({ ...data.session, student_goals: { goal_text: targetGoal.goal_text }});
          window.dispatchEvent(new CustomEvent('goal-update'));
+      } else {
+         window.dispatchEvent(new CustomEvent('goal-update'));
       }
     } catch(e) {}
   };
@@ -234,6 +236,8 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
            task_name: task.task_name,
            student_goals: goal ? { goal_text: goal.goal_text } : null
          });
+         window.dispatchEvent(new CustomEvent('goal-update'));
+      } else {
          window.dispatchEvent(new CustomEvent('goal-update'));
       }
     } catch(e) {}
