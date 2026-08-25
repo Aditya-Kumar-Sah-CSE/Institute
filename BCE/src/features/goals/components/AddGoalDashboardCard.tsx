@@ -118,16 +118,36 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
             <div style={{ display: 'flex', gap: '16px' }}>
                <div style={{ flex: 1 }}>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '8px' }}>Duration (mins/day)</label>
-                  <select 
-                     value={durationMins} onChange={e => setDurationMins(parseInt(e.target.value))}
+                  <input
+                     type="number"
+                     min={5}
+                     max={480}
+                     value={durationMins}
+                     onChange={e => setDurationMins(Math.max(5, parseInt(e.target.value) || 5))}
                      style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--bg-card)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', fontSize: '14px', outline: 'none' }}
-                  >
-                     <option value={15}>15 minutes</option>
-                     <option value={30}>30 minutes</option>
-                     <option value={45}>45 minutes</option>
-                     <option value={60}>1 hour</option>
-                     <option value={120}>2 hours</option>
-                  </select>
+                  />
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
+                     {[15, 25, 30, 45, 60, 90, 120].map(v => (
+                        <button
+                           key={v}
+                           type="button"
+                           onClick={() => setDurationMins(v)}
+                           style={{
+                              padding: '4px 10px',
+                              borderRadius: '12px',
+                              border: durationMins === v ? '1px solid var(--neon-cyan)' : '1px solid var(--glass-border)',
+                              background: durationMins === v ? 'rgba(6, 182, 212, 0.15)' : 'transparent',
+                              color: durationMins === v ? 'var(--neon-cyan)' : 'var(--text-muted)',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              transition: 'all 0.15s',
+                           }}
+                        >
+                           {v >= 60 ? `${v/60}h` : `${v}m`}
+                        </button>
+                     ))}
+                  </div>
                </div>
                <div style={{ flex: 1 }}>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '8px' }}>Reminder Time (Optional)</label>

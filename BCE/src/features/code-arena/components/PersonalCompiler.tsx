@@ -664,6 +664,14 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
     const filename = prompt('Enter new filename (e.g. hello.cpp):');
     if (!filename) return;
 
+    const fullPath = parentPath ? `${parentPath}/${filename}` : filename;
+    const newNode: FileItem = {
+      name: filename,
+      path: fullPath,
+      kind: 'file',
+      content: starters[getFileLanguage(filename)] || '',
+    };
+
     try {
       if (rootDirectoryHandle) {
         const parentHandle = await findDirectoryHandle(rootDirectoryHandle, parentPath);
@@ -674,25 +682,30 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
           await writable.close();
           const tree = await buildFileTree(rootDirectoryHandle);
           setFiles(tree);
+          return;
         }
-      } else {
-        const fullPath = parentPath ? `${parentPath}/${filename}` : filename;
-        const newNode: FileItem = {
-          name: filename,
-          path: fullPath,
-          kind: 'file',
-          content: starters[getFileLanguage(filename)] || '',
-        };
-        setFiles(prev => addNodeToTree(prev, parentPath, newNode));
       }
     } catch (e: any) {
-      alert('Error creating file: ' + e.message);
+      // FileSystemDirectoryHandle may fail if user activation is consumed by prompt()
+      // Fall through to virtual file creation
+      console.warn('FileSystem API unavailable, using virtual file:', e.message);
     }
+
+    // Virtual file creation (always works)
+    setFiles(prev => addNodeToTree(prev, parentPath, newNode));
   };
 
   const triggerCreateFolder = async (parentPath: string) => {
     const foldername = prompt('Enter new folder name:');
     if (!foldername) return;
+
+    const fullPath = parentPath ? `${parentPath}/${foldername}` : foldername;
+    const newNode: FileItem = {
+      name: foldername,
+      path: fullPath,
+      kind: 'directory',
+      children: [],
+    };
 
     try {
       if (rootDirectoryHandle) {
@@ -701,20 +714,15 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
           await parentHandle.getDirectoryHandle(foldername, { create: true });
           const tree = await buildFileTree(rootDirectoryHandle);
           setFiles(tree);
+          return;
         }
-      } else {
-        const fullPath = parentPath ? `${parentPath}/${foldername}` : foldername;
-        const newNode: FileItem = {
-          name: foldername,
-          path: fullPath,
-          kind: 'directory',
-          children: [],
-        };
-        setFiles(prev => addNodeToTree(prev, parentPath, newNode));
       }
     } catch (e: any) {
-      alert('Error creating folder: ' + e.message);
+      console.warn('FileSystem API unavailable, using virtual folder:', e.message);
     }
+
+    // Virtual folder creation (always works)
+    setFiles(prev => addNodeToTree(prev, parentPath, newNode));
   };
 
   const triggerRename = async (item: FileItem) => {

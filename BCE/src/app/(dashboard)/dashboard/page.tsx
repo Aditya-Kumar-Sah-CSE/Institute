@@ -215,7 +215,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
             </Card>
           </Link>
 
-          <Link href="/code-arena/problems/import" style={{ textDecoration: 'none' }} title="Import Problem">
+          <Link href="/code-arena/problems" style={{ textDecoration: 'none' }} title="Import Problem">
             <Card variant="glass" padding="lg" className="stat-card hover-lift">
               <div className="stat-card-icon" style={{ background: 'rgba(255, 0, 255, 0.1)', color: 'var(--neon-magenta)' }}>
                 <Download size={24} />
