@@ -1,0 +1,1 @@
+src/features/goals/components/FocusModeScreen.tsx(45,30): error TS7006: Parameter 'prev' implicitly has an 'any' type.

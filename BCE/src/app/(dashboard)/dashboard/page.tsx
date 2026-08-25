@@ -7,8 +7,9 @@ import type { Notice } from '@/features/notices/components/NoticeBoard';
 import type { Course } from '@/types';
 import { createAdminClient } from '@/lib/supabase/server';
 import { getDashboardPolls } from '@/features/courses/actions/polls';
-import { Zap, Flame, CheckCircle, Award } from 'lucide-react';
+import { Zap, Flame, CheckCircle, Award, User, BookOpen, Download } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import AddGoalDashboardCard from '@/features/goals/components/AddGoalDashboardCard';
 
 const NoticeBoard = dynamic(() => import('@/features/notices/components/NoticeBoard'), { loading: () => <div className="skeleton-dash" style={{ height: '300px', borderRadius: '12px' }}></div> });
 const DashboardProfileCard = dynamic(() => import('./components/DashboardProfileCard'), { loading: () => <div className="skeleton-dash" style={{ height: '300px', borderRadius: '12px' }}></div> });
@@ -96,9 +97,15 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
     .order('created_at', { ascending: false })
     .limit(5);
 
-  // We can fetch polls in parallel by just letting it run, though it needs course_ids.
-  // Wait, if it needs course_ids, it depends on enrollments.
-  // Let's use the enrollmentsPromise instead of making a duplicate query.
+  const activeGoalPromise = supabase
+    .from('student_goals')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   const dashboardPollsPromise = enrollmentsPromise.then(res => {
     const ids = res.data?.filter(e => e.status === 'approved').map(e => e.course_id) || [];
     return getDashboardPolls(ids);
@@ -116,7 +123,8 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
     { data: certificatesData },
     { data: settings },
     { data: activeBattles },
-    { data: nptelMappings }
+    { data: nptelMappings },
+    { data: activeGoal }
   ] = await Promise.all([
     profilePromise,
     enrollmentsPromise,
@@ -129,7 +137,8 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
     certificatesPromise,
     settingsPromise,
     battlesPromise,
-    nptelMappingsPromise
+    nptelMappingsPromise,
+    activeGoalPromise
   ]);
 
   const enrolledCourses = enrollments?.filter(e => e.courses).map(e => e.courses as unknown as Course) || [];
@@ -148,7 +157,6 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
       gridTemplateColumns: 'minmax(0, 1fr)', 
       gap: 'var(--space-2xl)' 
     }}>
-      {/* Use media queries from global.css or inline for 2 cols on desktop if desired, but we can just use flex for safety */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2xl)' }}>
         {(enrollmentsError || pollsError) && (
            <div style={{ padding: '1rem', background: 'rgba(255, 0, 0, 0.2)', border: '1px solid red', borderRadius: '8px', color: '#ffcccc' }}>
@@ -179,64 +187,51 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
         </div>
 
         <div className="dashboard-stats-grid">
-          <Link href="/leaderboard" style={{ textDecoration: 'none' }} title="View Leaderboard Rankings">
+          <Link href="/code-arena/profile" style={{ textDecoration: 'none' }} title="View Coding Profile">
             <Card variant="glass" padding="lg" className="stat-card hover-lift">
               <div className="stat-card-icon" style={{ background: 'rgba(0, 242, 254, 0.1)', color: 'var(--neon-cyan)' }}>
-                <Zap size={24} />
+                <User size={24} />
               </div>
               <div className="stat-card-content">
                 <div suppressHydrationWarning className="stat-card-value" style={{ color: 'var(--neon-cyan)', fontSize: '1.4rem', fontWeight: 800 }}>
-                  {(profile?.xp ?? 0).toLocaleString('en-US')} <span style={{ fontSize: '0.8rem', fontWeight: 600, opacity: 0.85 }}>XP</span>
+                  Profile <span style={{ fontSize: '0.8rem', fontWeight: 600, opacity: 0.85 }}>View</span>
                 </div>
-                <div className="text-secondary stat-card-label">Total XP</div>
+                <div className="text-secondary stat-card-label">Coding Profile</div>
               </div>
             </Card>
           </Link>
           
-          <Link href="/profile" style={{ textDecoration: 'none' }} title="View Streak Activity">
-            <Card variant="glass" padding="lg" className="stat-card hover-lift">
-              <div className="stat-card-icon" style={{ background: 'rgba(255, 0, 255, 0.1)', color: 'var(--neon-magenta)' }}>
-                <Flame size={24} />
-              </div>
-              <div className="stat-card-content">
-                <div className="stat-card-value" style={{ color: 'var(--neon-magenta)', fontSize: '1.4rem', fontWeight: 800 }}>
-                  {profile?.streak_days ?? 0} <span style={{ fontSize: '0.8rem', fontWeight: 600, opacity: 0.85 }}>Days</span>
-                </div>
-                <div className="text-secondary stat-card-label">Day Streak</div>
-              </div>
-            </Card>
-          </Link>
-
-          <Link href="/courses" style={{ textDecoration: 'none' }} title="View Assignments & Courses">
+          <Link href="/code-arena/sheets" style={{ textDecoration: 'none' }} title="View Coding Sheets">
             <Card variant="glass" padding="lg" className="stat-card hover-lift">
               <div className="stat-card-icon" style={{ background: 'rgba(57, 255, 20, 0.1)', color: 'var(--neon-lime)' }}>
-                <CheckCircle size={24} />
+                <BookOpen size={24} />
               </div>
               <div className="stat-card-content">
                 <div className="stat-card-value" style={{ color: 'var(--neon-lime)', fontSize: '1.4rem', fontWeight: 800 }}>
-                  {completedAssignments || 0} <span style={{ fontSize: '0.8rem', fontWeight: 600, opacity: 0.85 }}>Tasks</span>
+                  Sheets <span style={{ fontSize: '0.8rem', fontWeight: 600, opacity: 0.85 }}>Solve</span>
                 </div>
-                <div className="text-secondary stat-card-label">Tasks Completed</div>
+                <div className="text-secondary stat-card-label">Curated Sheets</div>
               </div>
             </Card>
           </Link>
 
-          <Link href="/profile" style={{ textDecoration: 'none' }} title="View Badges Collection">
+          <Link href="/code-arena/problems/import" style={{ textDecoration: 'none' }} title="Import Problem">
             <Card variant="glass" padding="lg" className="stat-card hover-lift">
-              <div className="stat-card-icon" style={{ background: 'rgba(255, 215, 0, 0.1)', color: 'var(--neon-gold)' }}>
-                <Award size={24} />
+              <div className="stat-card-icon" style={{ background: 'rgba(255, 0, 255, 0.1)', color: 'var(--neon-magenta)' }}>
+                <Download size={24} />
               </div>
               <div className="stat-card-content">
-                <div className="stat-card-value" style={{ color: 'var(--neon-gold)', fontSize: '1.4rem', fontWeight: 800 }}>
-                  {earnedBadges || 0} <span style={{ fontSize: '0.8rem', fontWeight: 600, opacity: 0.85 }}>Badges</span>
+                <div className="stat-card-value" style={{ color: 'var(--neon-magenta)', fontSize: '1.4rem', fontWeight: 800 }}>
+                  Import <span style={{ fontSize: '0.8rem', fontWeight: 600, opacity: 0.85 }}>New</span>
                 </div>
-                <div className="text-secondary stat-card-label">Badges Earned</div>
+                <div className="text-secondary stat-card-label">Add a Problem</div>
               </div>
             </Card>
           </Link>
+
+          <AddGoalDashboardCard initialGoal={activeGoal} />
         </div>
 
-        {/* Live & Upcoming Coding Contests Alert Banner */}
         <UpcomingContestsAlert />
 
         {pollAlerts && pollAlerts.length > 0 && (

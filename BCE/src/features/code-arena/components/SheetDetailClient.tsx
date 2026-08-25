@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Trophy, ArrowLeft, BookOpen, CheckCircle2, Circle, 
@@ -14,6 +14,7 @@ import CreateSheetWizard from './CreateSheetWizard';
 import Modal from '@/components/ui/Modal';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import SolutionEditor from './SolutionEditor';
+import { calculateMotivationalAnalytics } from '../lib/motivational-engine';
 import './CodeArena.css';
 
 type Problem = {
@@ -74,11 +75,29 @@ export default function SheetDetailClient({
   const [editSolutionText, setEditSolutionText] = useState('');
   const [savingSolution, setSavingSolution] = useState(false);
   
+  // Motivational Engine State
+  const [activityLog, setActivityLog] = useState<{date: string, problems_solved: number}[]>([]);
+  const [analytics, setAnalytics] = useState<any>(null);
+
   const problems = sheet.problems || [];
   const totalProblems = problems.length;
   const solvedProblems = problems.filter(p => solvedProblemIds.includes(p.id)).length;
   const progressPct = totalProblems > 0 ? Math.round((solvedProblems / totalProblems) * 100) : 0;
   const isCompleted = progressPct === 100 && totalProblems > 0;
+
+  useEffect(() => {
+    if (currentUser?.id) {
+      fetch('/api/coding/activity')
+        .then(res => res.json())
+        .then(data => {
+          if (data.activity) {
+            setActivityLog(data.activity);
+            setAnalytics(calculateMotivationalAnalytics(data.activity, totalProblems, solvedProblems));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [currentUser?.id, totalProblems, solvedProblems]);
 
   const isCreator = currentUser?.id === sheet.created_by;
   const canEdit = isInstructor || isCreator;
@@ -321,26 +340,61 @@ export default function SheetDetailClient({
         </div>
 
         {hasAccess && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px' }}>
-            <div style={{ width: '220px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 'bold' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>TOTAL PROGRESS</span>
-                <span style={{ color: isCompleted ? '#22c55e' : 'var(--neon-cyan)' }}>
-                  {progressPct}% ({solvedProblems}/{totalProblems})
-                </span>
-              </div>
-              <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
-                <div 
-                  style={{ 
-                    width: `${progressPct}%`, 
-                    height: '100%', 
-                    background: isCompleted ? 'linear-gradient(90deg, #22c55e, #4ade80)' : 'linear-gradient(90deg, var(--neon-cyan), var(--neon-purple))',
-                    borderRadius: '4px',
-                    transition: 'width 0.4s ease'
-                  }} 
-                />
-              </div>
-            </div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px', minWidth: '320px' }}>
+            {analytics ? (
+               <div style={{ width: '100%', padding: '16px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', borderRadius: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                     <div>
+                        <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>TGT TODAY</div>
+                        <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--neon-cyan)' }}>{analytics.targetToday} Problems</div>
+                     </div>
+                     <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>EXP. FINISH</div>
+                        <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-main)' }}>{analytics.expectedFinishDate}</div>
+                     </div>
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontStyle: 'italic', marginBottom: '12px', borderLeft: '2px solid var(--neon-purple)', paddingLeft: '8px' }}>
+                     "{analytics.quote}"
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 'bold', marginBottom: '6px' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>PROGRESS {progressPct}%</span>
+                    <span style={{ color: isCompleted ? '#22c55e' : 'var(--neon-cyan)' }}>
+                      {solvedProblems}/{totalProblems}
+                    </span>
+                  </div>
+                  <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div 
+                      style={{ 
+                        width: `${progressPct}%`, 
+                        height: '100%', 
+                        background: isCompleted ? 'linear-gradient(90deg, #22c55e, #4ade80)' : 'linear-gradient(90deg, var(--neon-cyan), var(--neon-purple))',
+                        borderRadius: '4px',
+                        transition: 'width 0.4s ease'
+                      }} 
+                    />
+                  </div>
+               </div>
+            ) : (
+               <div style={{ width: '220px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 'bold' }}>
+                   <span style={{ color: 'var(--text-secondary)' }}>TOTAL PROGRESS</span>
+                   <span style={{ color: isCompleted ? '#22c55e' : 'var(--neon-cyan)' }}>
+                     {progressPct}% ({solvedProblems}/{totalProblems})
+                   </span>
+                 </div>
+                 <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
+                   <div 
+                     style={{ 
+                       width: `${progressPct}%`, 
+                       height: '100%', 
+                       background: isCompleted ? 'linear-gradient(90deg, #22c55e, #4ade80)' : 'linear-gradient(90deg, var(--neon-cyan), var(--neon-purple))',
+                       borderRadius: '4px',
+                       transition: 'width 0.4s ease'
+                     }} 
+                   />
+                 </div>
+               </div>
+            )}
 
             {isCompleted && (
               <button
@@ -361,6 +415,7 @@ export default function SheetDetailClient({
                   gap: '6px',
                   boxShadow: '0 0 12px rgba(251, 191, 36, 0.3)',
                   transition: 'all 0.2s ease',
+                  marginTop: '8px'
                 }}
               >
                 <Award size={14} /> {claimingCert ? 'Generating...' : '🏆 View Certificate'}

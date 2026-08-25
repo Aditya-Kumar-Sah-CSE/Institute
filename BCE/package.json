@@ -13,6 +13,7 @@
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.2",
     "@vercel/analytics": "^2.0.1",
+    "@webcontainer/api": "^1.6.4",
     "date-fns": "^4.4.0",
     "dexie": "^4.4.5",
     "dompurify": "^3.4.11",
@@ -28,7 +29,9 @@
     "react-pdf": "^10.4.1",
     "react-syntax-highlighter": "^16.1.1",
     "react-virtuoso": "^4.18.11",
-    "remark-gfm": "^4.0.1"
+    "remark-gfm": "^4.0.1",
+    "xterm": "^5.3.0",
+    "xterm-addon-fit": "^0.8.0"
   },
   "devDependencies": {
     "@types/dompurify": "^3.0.5",

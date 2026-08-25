@@ -43,6 +43,11 @@ const Editor = dynamic(() => import('@monaco-editor/react'), {
   loading: () => <div className="code-editor-loading">Loading personal workspace…</div>,
 });
 
+const TerminalWorkspace = dynamic(() => import('./TerminalWorkspace'), {
+  ssr: false,
+  loading: () => <div className="code-editor-loading">Loading Terminal Engine…</div>,
+});
+
 const starters: Record<CodeLanguage, string> = {
   cpp17: '#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello, BCE Code Arena!" << endl;\n    return 0;\n}',
   c: '#include <stdio.h>\n\nint main(void) {\n    printf("Hello, BCE Code Arena!\\n");\n    return 0;\n}',
@@ -144,7 +149,7 @@ type Snippet = {
   updated_at: string;
 };
 
-type TabType = 'output' | 'error' | 'input' | 'details' | 'preview';
+type TabType = 'output' | 'error' | 'input' | 'details' | 'preview' | 'terminal';
 
 const EXCLUDED_FOLDERS = ['.git', 'node_modules', '.next', 'dist', 'build', 'out'];
 
@@ -1211,6 +1216,33 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
             >
               <AlertTriangle size={13} /> Error {errorCount > 0 && <span className="oj-err-badge" style={{ padding: '1px 5px', fontSize: '9px', marginLeft: '4px' }}>{errorCount}</span>}
             </button>
+            <button
+              type="button"
+              className={`oj-tab ${activeTab === 'terminal' && !isConsoleCollapsed ? 'active' : ''}`}
+              onClick={() => {
+                if (activeTab === 'terminal' && !isConsoleCollapsed) {
+                  setIsConsoleCollapsed(true);
+                } else {
+                  setActiveTab('terminal');
+                  setIsConsoleCollapsed(false);
+                }
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '4px 10px',
+                fontSize: '11px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                borderRadius: '4px',
+                border: '1px solid var(--glass-border)',
+                background: activeTab === 'terminal' && !isConsoleCollapsed ? 'rgba(0, 240, 255, 0.15)' : 'transparent',
+                color: activeTab === 'terminal' && !isConsoleCollapsed ? 'var(--neon-cyan)' : 'var(--text-secondary)'
+              }}
+            >
+              <Terminal size={13} /> Browser Shell
+            </button>
             {language === 'html' && (
               <button
                 type="button"
@@ -1421,6 +1453,12 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
                     style={{ width: '100%', height: '100%', border: 'none' }}
                     title="UI Preview"
                   />
+                </div>
+              )}
+
+              {activeTab === 'terminal' && (
+                <div style={{ width: '100%', height: '100%', minHeight: '220px', borderRadius: '4px', overflow: 'hidden' }}>
+                    <TerminalWorkspace files={files} />
                 </div>
               )}
 

@@ -3,6 +3,17 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
+  async headers() {
+    return [
+      {
+        source: '/code-arena/:path*',
+        headers: [
+          { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' }
+        ]
+      }
+    ];
+  },
 
   allowedDevOrigins: ['172.17.41.247', 'localhost', '127.0.0.1'],
   images: {

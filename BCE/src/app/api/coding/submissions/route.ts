@@ -139,44 +139,65 @@ export async function POST(request: Request) {
       .select('id, status, passed_tests, total_tests, compiler_output, runtime_output, created_at')
       .single();
 
-    if (!error && data && finalBattleId && data.status === 'ACCEPTED') {
+    if (!error && data && data.status === 'ACCEPTED') {
       try {
         const { createAdminClient } = await import('@/lib/supabase/server');
         const adminClient = await createAdminClient();
 
-        // 1. Fetch other accepted submissions by this student for this battle
-        const { data: prevSolved } = await adminClient
-          .from('coding_submissions')
-          .select('problem_id')
-          .eq('student_id', user.id)
-          .eq('battle_id', finalBattleId)
-          .eq('status', 'ACCEPTED');
+        // 1. Update Daily Coding Activity
+        const { data: profile } = await adminClient.from('profiles').select('institution_id').eq('id', user.id).single();
+        if (profile?.institution_id) {
+          const today = new Date().toISOString().split('T')[0];
+          const { data: currentActivity } = await adminClient
+            .from('daily_coding_activity')
+            .select('problems_solved')
+            .eq('user_id', user.id)
+            .eq('date', today)
+            .maybeSingle();
 
-        const solvedIds = Array.from(new Set([
-          problemId,
-          ...(prevSolved || []).map((s: any) => s.problem_id)
-        ]));
+          if (currentActivity) {
+            await adminClient.from('daily_coding_activity')
+               .update({ problems_solved: currentActivity.problems_solved + 1, updated_at: new Date().toISOString() })
+               .eq('user_id', user.id).eq('date', today);
+          } else {
+            await adminClient.from('daily_coding_activity')
+               .insert({ user_id: user.id, institution_id: profile.institution_id, date: today, problems_solved: 1 });
+          }
+        }
 
-        // 2. Fetch points per solved problem from coding_battle_problems
-        const { data: battleProblems } = await adminClient
-          .from('coding_battle_problems')
-          .select('problem_id, points')
-          .eq('battle_id', finalBattleId)
-          .in('problem_id', solvedIds);
+        // 2. Handle battle score if applicable
+        if (finalBattleId) {
+          const { data: prevSolved } = await adminClient
+            .from('coding_submissions')
+            .select('problem_id')
+            .eq('student_id', user.id)
+            .eq('battle_id', finalBattleId)
+            .eq('status', 'ACCEPTED');
 
-        const totalScore = (battleProblems || []).reduce((sum: number, bp: any) => sum + (bp.points || 0), 0);
+          const solvedIds = Array.from(new Set([
+            problemId,
+            ...(prevSolved || []).map((s: any) => s.problem_id)
+          ]));
 
-        // 3. Update participant score/finished_at
-        await adminClient
-          .from('coding_battle_participants')
-          .update({
-            score: totalScore,
-            finished_at: new Date(data.created_at).toISOString()
-          })
-          .eq('battle_id', finalBattleId)
-          .eq('student_id', user.id);
-      } catch (scoreErr) {
-        console.error('Failed to update participant score:', scoreErr);
+          const { data: battleProblems } = await adminClient
+            .from('coding_battle_problems')
+            .select('problem_id, points')
+            .eq('battle_id', finalBattleId)
+            .in('problem_id', solvedIds);
+
+          const totalScore = (battleProblems || []).reduce((sum: number, bp: any) => sum + (bp.points || 0), 0);
+
+          await adminClient
+            .from('coding_battle_participants')
+            .update({
+              score: totalScore,
+              finished_at: new Date(data.created_at).toISOString()
+            })
+            .eq('battle_id', finalBattleId)
+            .eq('student_id', user.id);
+        }
+      } catch (postErr) {
+        console.error('Failed to update activity/score:', postErr);
       }
     }
 
