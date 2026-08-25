@@ -50,6 +50,7 @@ export default function GoalsClient() {
   const [editRoutine, setEditRoutine] = useState(false);
   const [editReminder, setEditReminder] = useState('');
   const [editSaving, setEditSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Routine editing
   const [editingRoutine, setEditingRoutine] = useState(false);
@@ -129,6 +130,25 @@ export default function GoalsClient() {
       alert('Failed to save');
     } finally {
       setEditSaving(false);
+    }
+  };
+
+  const handleDeleteGoal = async (goalId: string) => {
+    if (!confirm('Are you sure you want to delete this goal?')) return;
+    setDeletingId(goalId);
+    try {
+      const res = await fetch(`/api/goals?goal_id=${goalId}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        loadData();
+      } else {
+        alert('Failed to delete goal');
+      }
+    } catch (e) {
+      alert('Error deleting goal');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -492,26 +512,49 @@ export default function GoalsClient() {
                         </span>
                       )}
                     </div>
-                    <button
-                      onClick={() => openEditModal(goal)}
-                      title="Edit Goal"
-                      style={{
-                        background: 'rgba(255,255,255,0.05)',
-                        border: '1px solid var(--glass-border)',
-                        borderRadius: '6px',
-                        padding: '4px 8px',
-                        cursor: 'pointer',
-                        color: 'var(--text-muted)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        fontSize: '11px',
-                        fontWeight: 600,
-                        transition: 'all 0.15s',
-                      }}
-                    >
-                      <Edit3 size={12} /> Edit
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={() => openEditModal(goal)}
+                        title="Edit Goal"
+                        style={{
+                          background: 'rgba(255,255,255,0.05)',
+                          border: '1px solid var(--glass-border)',
+                          borderRadius: '6px',
+                          padding: '4px 8px',
+                          cursor: 'pointer',
+                          color: 'var(--text-muted)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        <Edit3 size={12} /> Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteGoal(goal.id)}
+                        disabled={deletingId === goal.id}
+                        title="Delete Goal"
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.1)',
+                          border: '1px solid rgba(239, 68, 68, 0.2)',
+                          borderRadius: '6px',
+                          padding: '4px 8px',
+                          cursor: 'pointer',
+                          color: '#ef4444',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        <Trash2 size={12} /> {deletingId === goal.id ? 'Deleting...' : 'Delete'}
+                      </button>
+                    </div>
                   </div>
 
                   <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, lineHeight: '1.4' }}>{goal.goal_text}</h3>

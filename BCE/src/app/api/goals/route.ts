@@ -114,3 +114,31 @@ export async function PATCH(request: Request) {
   }
 }
 
+export async function DELETE(request: Request) {
+  const supabase = await createClient();
+  const user = await getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const goal_id = searchParams.get('goal_id');
+
+    if (!goal_id) {
+      return NextResponse.json({ error: 'goal_id is required' }, { status: 400 });
+    }
+
+    const { error } = await supabase
+      .from('student_goals')
+      .delete()
+      .eq('id', goal_id)
+      .eq('user_id', user.id);
+
+    if (error) throw error;
+    
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+
