@@ -146,23 +146,21 @@ export async function POST(request: Request) {
 
         // 1. Update Daily Coding Activity
         const { data: profile } = await adminClient.from('profiles').select('institution_id').eq('id', user.id).single();
-        if (profile?.institution_id) {
-          const today = new Date().toISOString().split('T')[0];
-          const { data: currentActivity } = await adminClient
-            .from('daily_coding_activity')
-            .select('problems_solved')
-            .eq('user_id', user.id)
-            .eq('date', today)
-            .maybeSingle();
+        const today = new Date().toISOString().split('T')[0];
+        const { data: currentActivity } = await adminClient
+          .from('daily_coding_activity')
+          .select('problems_solved')
+          .eq('user_id', user.id)
+          .eq('date', today)
+          .maybeSingle();
 
-          if (currentActivity) {
-            await adminClient.from('daily_coding_activity')
-               .update({ problems_solved: currentActivity.problems_solved + 1, updated_at: new Date().toISOString() })
-               .eq('user_id', user.id).eq('date', today);
-          } else {
-            await adminClient.from('daily_coding_activity')
-               .insert({ user_id: user.id, institution_id: profile.institution_id, date: today, problems_solved: 1 });
-          }
+        if (currentActivity) {
+          await adminClient.from('daily_coding_activity')
+             .update({ problems_solved: currentActivity.problems_solved + 1, updated_at: new Date().toISOString() })
+             .eq('user_id', user.id).eq('date', today);
+        } else {
+          await adminClient.from('daily_coding_activity')
+             .insert({ user_id: user.id, institution_id: profile?.institution_id || null, date: today, problems_solved: 1 });
         }
 
         // 2. Handle battle score if applicable

@@ -31,16 +31,12 @@ export async function POST(request: Request) {
   try {
     const { goal_text, duration_mins, routine, reminder_time } = await request.json();
 
-    // Get user's institution
+    // Get user's institution (optional)
     const { data: profile } = await supabase
       .from('profiles')
       .select('institution_id')
       .eq('id', user.id)
       .single();
-    
-    if (!profile?.institution_id) {
-       return NextResponse.json({ error: 'No institution found' }, { status: 400 });
-    }
 
     // Archive existing active goals
     await supabase
@@ -54,7 +50,7 @@ export async function POST(request: Request) {
       .from('student_goals')
       .insert({
         user_id: user.id,
-        institution_id: profile.institution_id,
+        institution_id: profile?.institution_id || null,
         goal_text,
         duration_mins,
         routine,

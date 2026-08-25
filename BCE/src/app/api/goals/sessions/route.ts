@@ -15,17 +15,13 @@ export async function POST(request: Request) {
       .select('institution_id')
       .eq('id', user.id)
       .single();
-    
-    if (!profile?.institution_id) {
-       return NextResponse.json({ error: 'No institution found' }, { status: 400 });
-    }
 
     const { data, error } = await supabase
       .from('goal_sessions')
       .insert({
         goal_id,
         user_id: user.id,
-        institution_id: profile.institution_id,
+        institution_id: profile?.institution_id || null,
         duration_mins,
         status: 'in_progress',
         progress_mins: 0
