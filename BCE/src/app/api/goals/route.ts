@@ -1,144 +1,147 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { getUser } from '@/lib/supabase/server';
+import { z } from 'zod';
+import { withApiHandler } from '@/lib/api/api-utils';
+import { parseBody } from '@/lib/api/validation';
+import { NotFoundError, ValidationError } from '@/lib/api/errors';
 
-export async function GET(request: Request) {
-  const supabase = await createClient();
-  const user = await getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+// ─── Validation Schemas ───
 
-  const { searchParams } = new URL(request.url);
-  const all = searchParams.get('all') === 'true';
+const createGoalSchema = z.object({
+  goal_text: z.string().min(1, 'Goal text is required').max(500, 'Goal text too long'),
+  duration_mins: z.number().int().min(5, 'Minimum 5 minutes').max(1440, 'Maximum 1440 minutes').default(30),
+  routine: z.boolean().default(false),
+  reminder_time: z.string().nullable().optional(),
+});
 
-  if (all) {
-    const { data, error } = await supabase
+const updateGoalSchema = z.object({
+  goal_id: z.string().uuid('Invalid goal ID'),
+  goal_text: z.string().min(1).max(500).optional(),
+  duration_mins: z.number().int().min(5).max(1440).optional(),
+  routine: z.boolean().optional(),
+  reminder_time: z.string().nullable().optional(),
+  status: z.enum(['active', 'archived', 'completed']).optional(),
+});
+
+// ─── GET /api/goals ───
+
+export const GET = withApiHandler(
+  { auth: 'required', rateLimit: 'standard' },
+  async (request, ctx) => {
+    const { searchParams } = new URL(request.url);
+    const all = searchParams.get('all') === 'true';
+
+    if (all) {
+      const { data, error } = await ctx.supabase
+        .from('student_goals')
+        .select('*')
+        .eq('user_id', ctx.user!.id)
+        .order('created_at', { ascending: false });
+
+      if (error) return ctx.error(error.message, 'DATABASE_ERROR', 400);
+      return ctx.success({ goals: data || [] });
+    }
+
+    const { data, error } = await ctx.supabase
       .from('student_goals')
       .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+      .eq('user_id', ctx.user!.id)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-    return NextResponse.json({ goals: data || [] });
+    if (error) return ctx.error(error.message, 'DATABASE_ERROR', 400);
+    return ctx.success({ goal: data || null });
   }
+);
 
-  const { data, error } = await supabase
-    .from('student_goals')
-    .select('*')
-    .eq('user_id', user.id)
-    .eq('status', 'active')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+// ─── POST /api/goals ───
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
-  }
-
-  return NextResponse.json({ goal: data || null });
-}
-
-export async function POST(request: Request) {
-  const supabase = await createClient();
-  const user = await getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  try {
-    const { goal_text, duration_mins, routine, reminder_time } = await request.json();
+export const POST = withApiHandler(
+  { auth: 'required', rateLimit: 'standard' },
+  async (request, ctx) => {
+    const body = await parseBody(request, createGoalSchema);
 
     // Get user's institution (optional)
-    const { data: profile } = await supabase
+    const { data: profile } = await ctx.supabase
       .from('profiles')
       .select('institution_id')
-      .eq('id', user.id)
+      .eq('id', ctx.user!.id)
       .single();
 
     // Archive existing active goals
-    await supabase
+    await ctx.supabase
       .from('student_goals')
       .update({ status: 'archived' })
-      .eq('user_id', user.id)
+      .eq('user_id', ctx.user!.id)
       .eq('status', 'active');
 
     // Insert new goal
-    const { data, error } = await supabase
+    const { data, error } = await ctx.supabase
       .from('student_goals')
       .insert({
-        user_id: user.id,
+        user_id: ctx.user!.id,
         institution_id: profile?.institution_id || null,
-        goal_text,
-        duration_mins,
-        routine,
-        reminder_time: reminder_time || null,
-        status: 'active'
+        goal_text: body.goal_text,
+        duration_mins: body.duration_mins,
+        routine: body.routine,
+        reminder_time: body.reminder_time || null,
+        status: 'active',
       })
       .select()
       .single();
 
-    if (error) throw error;
-    
-    return NextResponse.json({ goal: data });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    if (error) return ctx.error(error.message, 'DATABASE_ERROR', 400);
+    return ctx.success({ goal: data }, undefined, 201);
   }
-}
+);
 
-export async function PATCH(request: Request) {
-  const supabase = await createClient();
-  const user = await getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+// ─── PATCH /api/goals ───
 
-  try {
-    const body = await request.json();
-    const { goal_id, goal_text, duration_mins, routine, reminder_time, status } = body;
+export const PATCH = withApiHandler(
+  { auth: 'required', rateLimit: 'standard' },
+  async (request, ctx) => {
+    const body = await parseBody(request, updateGoalSchema);
 
-    const updateFields: any = { updated_at: new Date().toISOString() };
-    if (goal_text !== undefined) updateFields.goal_text = goal_text;
-    if (duration_mins !== undefined) updateFields.duration_mins = duration_mins;
-    if (routine !== undefined) updateFields.routine = routine;
-    if (reminder_time !== undefined) updateFields.reminder_time = reminder_time || null;
-    if (status !== undefined) updateFields.status = status;
+    const updateFields: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (body.goal_text !== undefined) updateFields.goal_text = body.goal_text;
+    if (body.duration_mins !== undefined) updateFields.duration_mins = body.duration_mins;
+    if (body.routine !== undefined) updateFields.routine = body.routine;
+    if (body.reminder_time !== undefined) updateFields.reminder_time = body.reminder_time || null;
+    if (body.status !== undefined) updateFields.status = body.status;
 
-    const { data, error } = await supabase
+    const { data, error } = await ctx.supabase
       .from('student_goals')
       .update(updateFields)
-      .eq('id', goal_id)
-      .eq('user_id', user.id)
+      .eq('id', body.goal_id)
+      .eq('user_id', ctx.user!.id)  // Tenant isolation: only own goals
       .select()
       .single();
 
-    if (error) throw error;
-    
-    return NextResponse.json({ goal: data });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    if (error) return ctx.error(error.message, 'DATABASE_ERROR', 400);
+    if (!data) throw new NotFoundError('Goal');
+    return ctx.success({ goal: data });
   }
-}
+);
 
-export async function DELETE(request: Request) {
-  const supabase = await createClient();
-  const user = await getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+// ─── DELETE /api/goals ───
 
-  try {
+export const DELETE = withApiHandler(
+  { auth: 'required', rateLimit: 'sensitive' },
+  async (request, ctx) => {
     const { searchParams } = new URL(request.url);
-    const goal_id = searchParams.get('goal_id');
+    const goalId = searchParams.get('goal_id');
 
-    if (!goal_id) {
-      return NextResponse.json({ error: 'goal_id is required' }, { status: 400 });
+    if (!goalId) {
+      throw new ValidationError('goal_id query parameter is required');
     }
 
-    const { error } = await supabase
+    const { error } = await ctx.supabase
       .from('student_goals')
       .delete()
-      .eq('id', goal_id)
-      .eq('user_id', user.id);
+      .eq('id', goalId)
+      .eq('user_id', ctx.user!.id);  // Tenant isolation: only own goals
 
-    if (error) throw error;
-    
-    return NextResponse.json({ success: true });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    if (error) return ctx.error(error.message, 'DATABASE_ERROR', 400);
+    return ctx.success({ deleted: true });
   }
-}
-
-
+);

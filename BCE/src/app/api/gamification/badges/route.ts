@@ -1,39 +1,32 @@
-import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { withApiHandler } from '@/lib/api/api-utils';
+import { parseBody } from '@/lib/api/validation';
 import { getUnseenBadges, markBadgesSeen } from '@/features/gamification/actions/gamification';
-import { createClient } from '@/lib/supabase/server';
 
-export async function GET() {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
+export const GET = withApiHandler(
+  { auth: 'required', rateLimit: 'standard' },
+  async (_request, ctx) => {
     const data = await getUnseenBadges();
-    
-    // Immediately mark them as seen in the database so they don't pop up again on reload/navigation!
+
+    // Immediately mark them as seen so they don't pop up again on reload/navigation
     if (data && data.length > 0) {
       const ids = data.map((d: any) => d.id);
       await markBadgesSeen(ids);
     }
 
-    return NextResponse.json({ data });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return ctx.success({ badges: data || [] });
   }
-}
+);
 
-export async function POST(request: Request) {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+const markSeenSchema = z.object({
+  badgeIds: z.array(z.string()).min(1, 'At least one badge ID is required'),
+});
 
-    const body = await request.json();
-    if (body.badgeIds && Array.isArray(body.badgeIds)) {
-      await markBadgesSeen(body.badgeIds);
-    }
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+export const POST = withApiHandler(
+  { auth: 'required', rateLimit: 'standard' },
+  async (request, ctx) => {
+    const body = await parseBody(request, markSeenSchema);
+    await markBadgesSeen(body.badgeIds);
+    return ctx.success({ marked: true });
   }
-}
+);

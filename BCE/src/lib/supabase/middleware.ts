@@ -256,5 +256,14 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
+  // ── Security Headers ──
+  const requestId = request.headers.get('x-request-id') || crypto.randomUUID();
+  supabaseResponse.headers.set('X-Request-Id', requestId);
+  supabaseResponse.headers.set('X-Content-Type-Options', 'nosniff');
+  supabaseResponse.headers.set('X-Frame-Options', 'DENY');
+  supabaseResponse.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  supabaseResponse.headers.set('X-XSS-Protection', '1; mode=block');
+  supabaseResponse.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+
   return supabaseResponse;
 }
