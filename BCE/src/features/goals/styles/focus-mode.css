@@ -4,7 +4,7 @@
 
 .focus-window-container {
   position: fixed;
-  background: rgba(15, 23, 42, 0.7);
+  background: rgba(15, 23, 42, 0.35);
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.1);

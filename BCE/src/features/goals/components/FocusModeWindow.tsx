@@ -170,7 +170,7 @@ export default function FocusModeWindow({ activeSession, onComplete, onExit }: F
         body {
           margin: 0;
           padding: 0;
-          background: #090d16 !important;
+          background: transparent !important;
           overflow: hidden;
           display: flex;
           align-items: center;
