@@ -79,26 +79,29 @@ export default async function CodeProblemPage({ params, searchParams }: { params
   let youtube_url = null;
 
   if (sheetId) {
-    const { data: sheet } = await supabase
-      .from('coding_sheets')
-      .select('id, title, slug')
-      .eq('id', sheetId)
-      .maybeSingle();
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sheetId);
+    let sheetQuery = supabase.from('coding_sheets').select('id, title, slug');
+    if (isUUID) {
+      sheetQuery = sheetQuery.eq('id', sheetId);
+    } else {
+      sheetQuery = sheetQuery.eq('slug', sheetId);
+    }
+
+    const { data: sheet } = await sheetQuery.maybeSingle();
 
     if (sheet) {
       sheetData = sheet;
-    }
+      const { data: sheetProblem } = await supabase
+        .from('coding_sheet_problems')
+        .select('text_solution, youtube_url')
+        .eq('sheet_id', sheet.id)
+        .eq('problem_id', id)
+        .maybeSingle();
 
-    const { data: sheetProblem } = await supabase
-      .from('coding_sheet_problems')
-      .select('text_solution, youtube_url')
-      .eq('sheet_id', sheetId)
-      .eq('problem_id', id)
-      .maybeSingle();
-      
-    if (sheetProblem) {
-      text_solution = sheetProblem.text_solution;
-      youtube_url = sheetProblem.youtube_url;
+      if (sheetProblem) {
+        text_solution = sheetProblem.text_solution;
+        youtube_url = sheetProblem.youtube_url;
+      }
     }
   }
 

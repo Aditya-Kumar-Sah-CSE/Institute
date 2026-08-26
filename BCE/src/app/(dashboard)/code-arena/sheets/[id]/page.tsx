@@ -11,22 +11,30 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
   const { supabase, user, isInstructor } = await getCodeArenaActor();
   if (!user) return null;
 
-  // 1. Fetch sheet details including enrollment settings
-  const { data: sheet, error: sheetError } = await supabase
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+  // 1. Fetch sheet details supporting both UUID id and slug parameter
+  let query = supabase
     .from('coding_sheets')
-    .select('id, title, description, created_by, created_at, enrollment_access')
-    .eq('id', id)
-    .maybeSingle();
+    .select('id, slug, title, description, created_by, created_at, enrollment_access');
+
+  if (isUUID) {
+    query = query.eq('id', id);
+  } else {
+    query = query.eq('slug', id);
+  }
+
+  const { data: sheet, error: sheetError } = await query.maybeSingle();
 
   if (sheetError || !sheet) {
     notFound();
   }
 
-  // 2. Fetch linked problems with metadata
+  // 2. Fetch linked problems with metadata using sheet.id (UUID)
   const { data: problemsData, error: problemsError } = await supabase
     .from('coding_sheet_problems')
     .select('order_index, text_solution, youtube_url, coding_problems(id, title, difficulty, source_type, external_platform, external_problem_id, external_url, tags)')
-    .eq('sheet_id', id)
+    .eq('sheet_id', sheet.id)
     .order('order_index', { ascending: true });
 
   if (problemsError) {
@@ -53,7 +61,7 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
   const { data: enrollment } = await supabase
     .from('coding_sheet_enrollments')
     .select('id')
-    .eq('sheet_id', id)
+    .eq('sheet_id', sheet.id)
     .eq('user_id', user.id)
     .maybeSingle();
 
