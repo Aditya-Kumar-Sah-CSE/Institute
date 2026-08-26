@@ -60,12 +60,17 @@ export default function SheetDetailClient({
   isEnrolled?: boolean;
 }) {
   const router = useRouter();
+  const [isMounted, setIsMounted] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isEnrolled, setIsEnrolled] = useState(initialIsEnrolled);
   const [enrolling, setEnrolling] = useState(false);
   const [enrollError, setEnrollError] = useState('');
   const [passcodeInput, setPasscodeInput] = useState('');
   const [copiedShare, setCopiedShare] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleCopyShareLink = async () => {
     const shareUrl = `${window.location.origin}/share/sheet/${sheet.slug || sheet.id}`;
@@ -235,7 +240,7 @@ export default function SheetDetailClient({
   };
 
   return (
-    <div className="code-arena-page" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)', paddingBottom: '2rem' }}>
+    <div className="code-arena-page" suppressHydrationWarning style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)', paddingBottom: '2rem' }}>
       <MobileCodeArenaToggle />
 
       {/* Header Bar */}
@@ -268,7 +273,7 @@ export default function SheetDetailClient({
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }} suppressHydrationWarning>
           <button
             type="button"
             onClick={handleCopyShareLink}
