@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import {
   Play,
   Send,
@@ -459,24 +459,26 @@ export default function CodeEditor({
           </div>
         </div>
 
-        {/* Monaco Editor wrapped in flex wrapper */}
+        {/* Monaco Editor wrapped in flex wrapper & Suspense boundary */}
         <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
-          <Editor
-            height="100%"
-            language={languageMap[language]}
-            theme="vs-dark"
-            value={code}
-            onChange={(v) => handleCodeChange(v || '')}
-            options={{
-              minimap: { enabled: false },
-              fontSize: 14,
-              automaticLayout: true,
-              scrollBeyondLastLine: false,
-              lineNumbers: 'on',
-              renderLineHighlight: 'all',
-              padding: { top: 10, bottom: 10 },
-            }}
-          />
+          <Suspense fallback={<div className="code-editor-loading">Loading IDE workspace editor…</div>}>
+            <Editor
+              height="100%"
+              language={languageMap[language]}
+              theme="vs-dark"
+              value={code}
+              onChange={(v) => handleCodeChange(v || '')}
+              options={{
+                minimap: { enabled: false },
+                fontSize: 14,
+                automaticLayout: true,
+                scrollBeyondLastLine: false,
+                lineNumbers: 'on',
+                renderLineHighlight: 'all',
+                padding: { top: 10, bottom: 10 },
+              }}
+            />
+          </Suspense>
         </div>
       </div>
 

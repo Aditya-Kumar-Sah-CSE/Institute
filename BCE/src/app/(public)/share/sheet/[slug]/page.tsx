@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
@@ -131,5 +132,9 @@ export default async function PublicSheetPage({
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'https://smartlearn.in');
   const shareUrl = `${baseUrl}/share/sheet/${sheet.slug || sheet.id}`;
 
-  return <PublicSheetViewer sheet={sheet} shareUrl={shareUrl} />;
+  return (
+    <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading Public Sheet…</div>}>
+      <PublicSheetViewer sheet={sheet} shareUrl={shareUrl} />
+    </Suspense>
+  );
 }

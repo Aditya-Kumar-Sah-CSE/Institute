@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { getCodeArenaActor } from '@/features/code-arena/server';
 import SheetDetailClient from '@/features/code-arena/components/SheetDetailClient';
@@ -72,14 +73,16 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
   }
 
   return (
-    <SheetDetailClient
-      sheet={{ ...sheet, problems }}
-      solvedProblemIds={solvedProblemIds}
-      isInstructor={isInstructor}
-      currentUser={user}
-      totalStudentsSolving={totalStudentsSolving}
-      enrollmentAccess={sheet.enrollment_access || 'public'}
-      isEnrolled={isEnrolled}
-    />
+    <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading Sheet Details…</div>}>
+      <SheetDetailClient
+        sheet={{ ...sheet, problems }}
+        solvedProblemIds={solvedProblemIds}
+        isInstructor={isInstructor}
+        currentUser={user}
+        totalStudentsSolving={totalStudentsSolving}
+        enrollmentAccess={sheet.enrollment_access || 'public'}
+        isEnrolled={isEnrolled}
+      />
+    </Suspense>
   );
 }

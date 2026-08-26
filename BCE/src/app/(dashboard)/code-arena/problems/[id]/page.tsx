@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, Bell, UserCircle, Trophy } from 'lucide-react';
 import Link from 'next/link';
@@ -378,7 +379,9 @@ export default async function CodeProblemPage({ params, searchParams }: { params
 
       {/* Resizable Desktop IDE Layout */}
       <div className="code-arena-workspace-container">
-        <ResizableIdeLayout problemData={problemData} />
+        <Suspense fallback={<div className="code-editor-loading" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading IDE Workspace…</div>}>
+          <ResizableIdeLayout problemData={problemData} />
+        </Suspense>
       </div>
     </div>
   );
