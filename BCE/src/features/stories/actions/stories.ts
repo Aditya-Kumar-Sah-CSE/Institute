@@ -205,13 +205,37 @@ export async function deleteStory(storyId: string) {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData?.user) throw new Error('Not authenticated');
 
+  // Delete all items under this story container first
+  const { data: items } = await supabase
+    .from('story_items')
+    .select('id')
+    .eq('story_id', storyId);
+
+  if (items && items.length > 0) {
+    for (const item of items) {
+      try {
+        await deleteStoryItem(item.id);
+      } catch (e) {
+        console.warn(`Failed to delete item ${item.id} during story container delete:`, e);
+      }
+    }
+  }
+
   const { error } = await supabase
     .from('stories')
-    .update({ deleted_at: new Date().toISOString() })
+    .delete()
     .eq('id', storyId)
     .eq('user_id', userData.user.id);
 
-  if (error) throw error;
+  if (error) {
+    await supabase
+      .from('stories')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', storyId)
+      .eq('user_id', userData.user.id);
+  }
+
+  revalidatePath('/dashboard');
   return true;
 }
 
@@ -224,7 +248,7 @@ export async function deleteStoryItem(itemId: string) {
   // Prevents enumeration attacks where a user deletes others' story items by ID
   const { data: item } = await supabase
     .from('story_items')
-    .select('id, story:stories(user_id)')
+    .select('id, media_url, story:stories(user_id)')
     .eq('id', itemId)
     .single();
 
@@ -233,12 +257,38 @@ export async function deleteStoryItem(itemId: string) {
   const ownerId = (item.story as any)?.user_id;
   if (ownerId !== userData.user.id) throw new Error('Forbidden: you do not own this item');
 
+  // 1. Delete dependent child records to prevent foreign key constraint failures
+  await supabase.from('story_views').delete().eq('story_item_id', itemId);
+  await supabase.from('story_reactions').delete().eq('story_item_id', itemId);
+  await supabase.from('story_replies').delete().eq('story_item_id', itemId);
+
+  // 2. Remove media file from Supabase storage if present
+  if (item.media_url) {
+    try {
+      const match = item.media_url.match(/\/storage\/v1\/object\/public\/story_media\/(.+)$/);
+      if (match && match[1]) {
+        await supabase.storage.from(STORY_BUCKET).remove([decodeURIComponent(match[1])]);
+      }
+    } catch (e) {
+      console.warn('Notice cleaning up storage during story delete:', e);
+    }
+  }
+
+  // 3. Delete story item row directly
   const { error } = await supabase
     .from('story_items')
-    .update({ deleted_at: new Date().toISOString() })
+    .delete()
     .eq('id', itemId);
 
-  if (error) throw error;
+  if (error) {
+    // Fallback: soft delete if column exists
+    const { error: updateErr } = await supabase
+      .from('story_items')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', itemId);
+
+    if (updateErr) throw error;
+  }
   
   // Revalidate to ensure UI refreshes immediately
   revalidatePath('/dashboard');
