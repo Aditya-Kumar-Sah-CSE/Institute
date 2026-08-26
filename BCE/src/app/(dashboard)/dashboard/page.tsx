@@ -10,7 +10,7 @@ import { getDashboardPolls } from '@/features/courses/actions/polls';
 import { Zap, Flame, CheckCircle, Award, User, BookOpen, Download } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import AddGoalDashboardCard from '@/features/goals/components/AddGoalDashboardCard';
-import PinnedGoalAlert from '@/features/goals/components/PinnedGoalAlert';
+
 
 const NoticeBoard = dynamic(() => import('@/features/notices/components/NoticeBoard'), { loading: () => <div className="skeleton-dash" style={{ height: '300px', borderRadius: '12px' }}></div> });
 const DashboardProfileCard = dynamic(() => import('./components/DashboardProfileCard'), { loading: () => <div className="skeleton-dash" style={{ height: '300px', borderRadius: '12px' }}></div> });
@@ -170,22 +170,14 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
            </div>
         )}
 
-        <div className="dashboard-welcome">
-          {searchParams?.error === 'FileTooLarge' && (
-            <div style={{ background: 'rgba(255, 0, 0, 0.1)', border: '1px solid var(--neon-red)', padding: 'var(--space-md)', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--space-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-              <strong style={{ color: 'var(--neon-red)', fontSize: 'var(--text-lg)' }}>
-                Upload Failed: File Too Large
-              </strong>
-              <p style={{ color: 'var(--text-primary)', margin: 0 }}>The file you tried to share exceeds the 15MB server limit. Please share a smaller file.</p>
-            </div>
-          )}
-          <h1 className="text-gradient" style={{ fontSize: 'var(--text-4xl)', marginBottom: 'var(--space-xs)' }}>
-            Welcome back, {profile?.name?.split(' ')[0] || 'Student'}!
-          </h1>
-          <p className="text-secondary" style={{ fontSize: 'var(--text-lg)' }}>
-            Ready to continue your learning journey?
-          </p>
-        </div>
+        {searchParams?.error === 'FileTooLarge' && (
+          <div style={{ background: 'rgba(255, 0, 0, 0.1)', border: '1px solid var(--neon-red)', padding: 'var(--space-md)', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--space-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+            <strong style={{ color: 'var(--neon-red)', fontSize: 'var(--text-lg)' }}>
+              Upload Failed: File Too Large
+            </strong>
+            <p style={{ color: 'var(--text-primary)', margin: 0 }}>The file you tried to share exceeds the 15MB server limit. Please share a smaller file.</p>
+          </div>
+        )}
 
         <div className="dashboard-stats-grid">
           <Link href="/code-arena/profile" style={{ textDecoration: 'none' }} title="View Coding Profile">
@@ -233,7 +225,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
           <AddGoalDashboardCard initialGoal={activeGoal} />
         </div>
 
-        <PinnedGoalAlert />
+
         <UpcomingContestsAlert />
 
         {pollAlerts && pollAlerts.length > 0 && (

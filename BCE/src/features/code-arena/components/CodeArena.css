@@ -30,6 +30,19 @@
     min-height: 0 !important;
     overflow: hidden;
   }
+
+  /* Goals page needs scrolling unlike the IDE layout */
+  .code-arena-page.goals-page-scroll {
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow: visible !important;
+    overflow-y: auto !important;
+  }
+
+  .dashboard-layout:has(.goals-page-scroll) .dashboard-content {
+    height: auto !important;
+    overflow-y: auto !important;
+  }
 }
 
 .code-arena-workspace-container {

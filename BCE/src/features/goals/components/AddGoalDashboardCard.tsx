@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Card from '@/components/ui/Card';
-import { Target, Play, Plus, X, Check, Clock } from 'lucide-react';
+import { Play, Plus, X, Check, Clock } from 'lucide-react';
 import FocusModeWindow from './FocusModeWindow';
 import Modal from '@/components/ui/Modal';
 import { useRouter } from 'next/navigation';
@@ -293,8 +293,8 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
         title={activeSession ? "Resume Focus Session" : routines.length > 0 ? "View Routine Checklist" : goal ? "Update Goal" : "Create Goal"}
       >
         <Card variant="glass" padding="lg" className="stat-card hover-lift">
-          <div className="stat-card-icon" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
-            <Target size={24} />
+          <div className="stat-card-icon" style={{ background: 'rgba(6, 182, 212, 0.1)', color: 'var(--neon-cyan)' }}>
+            <Plus size={24} />
           </div>
           <div className="stat-card-content">
             <div className="stat-card-value" style={{ color: '#ef4444', fontSize: goal ? '1rem' : '1.2rem', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center' }}>
@@ -309,31 +309,9 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
                 dueTask ? (
                   <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '3px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                      <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>
+                      <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }}>
                         {dueTask.task_name}
                       </span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleStartRoutineFocus(dueTask);
-                        }}
-                        style={{
-                          padding: '3px 8px',
-                          borderRadius: '4px',
-                          background: 'rgba(57,255,20,0.15)',
-                          border: '1px solid rgba(57,255,20,0.3)',
-                          color: 'var(--neon-lime)',
-                          fontSize: '10px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '2px',
-                          pointerEvents: 'auto'
-                        }}
-                      >
-                        <Play size={8} style={{ fill: 'currentColor' }} /> Focus
-                      </button>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9.5px', color: 'var(--text-muted)' }}>
                       <span>Task {taskIdx + 1} of {sortedRoutines.length}</span>
@@ -454,17 +432,7 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
                </div>
             </div>
             
-            {goal && (
-               <div style={{ marginTop: '20px', borderTop: '1px solid var(--glass-border)', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                     <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Current Goal</div>
-                     <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{goal.goal_text}</div>
-                  </div>
-                  <button onClick={() => handleStartFocus(goal)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '6px', background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))', color: 'white', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>
-                     <Play size={14} /> Start Focus Session
-                  </button>
-               </div>
-            )}
+
          </div>
       </Modal>
 

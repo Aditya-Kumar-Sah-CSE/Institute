@@ -501,7 +501,7 @@ export default function GoalsClient() {
   const nowStr = currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
   return (
-    <div className="code-arena-page" style={{ padding: '24px', minHeight: '100vh', color: 'var(--text-main)' }}>
+    <div className="code-arena-page goals-page-scroll" style={{ padding: '24px', minHeight: '100vh', color: 'var(--text-main)' }}>
       {/* Header */}
       <header style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
         <Link href="/dashboard" style={{ display: 'grid', placeItems: 'center', width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', color: 'var(--text-muted)', textDecoration: 'none' }} title="Back to Dashboard">
