@@ -22,8 +22,11 @@ import {
   Eye,
   Columns,
   Edit3,
+  Image as ImageIcon,
+  Loader2,
 } from 'lucide-react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
+import { createClient } from '@/lib/supabase/client';
 
 export type EditorMode = 'edit' | 'split' | 'preview';
 
@@ -69,7 +72,10 @@ export default function SolutionEditor({
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const initialValueRef = useRef<string>(value);
+
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Restore mode from sessionStorage on mount safely without SSR issues
   useEffect(() => {
@@ -186,6 +192,87 @@ export default function SolutionEditor({
     } else if (isCtrl && e.key.toLowerCase() === 'e') {
       e.preventDefault();
       insertMarkdown('`', '`', 'code');
+    }
+  };
+
+  // --- Image Upload Handlers ---
+  const handleImageUpload = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file (PNG, JPEG, WEBP, GIF).');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Image size exceeds the 10MB limit.');
+      return;
+    }
+
+    setIsUploadingImage(true);
+    try {
+      const supabase = createClient();
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      if (!userId) throw new Error('Not authenticated');
+
+      const ext = file.name.split('.').pop() || 'png';
+      const uniqueName = `${crypto.randomUUID()}-${Date.now()}.${ext}`;
+      const filePath = `solution-images/${userId}/${uniqueName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('lesson_notes')
+        .upload(filePath, file, {
+          contentType: file.type,
+          upsert: false,
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage
+        .from('lesson_notes')
+        .getPublicUrl(filePath);
+
+      const url = publicUrlData.publicUrl;
+      const altText = file.name.split('.')[0] || 'Image';
+      insertMarkdown(`![${altText}](`, `${url})`);
+    } catch (err: any) {
+      alert(err?.message || 'Failed to upload image. Please try again.');
+    } finally {
+      setIsUploadingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleImageUpload(file);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLTextAreaElement>) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      handleImageUpload(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLTextAreaElement>) => {
+    e.preventDefault();
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        const file = items[i].getAsFile();
+        if (file) {
+          e.preventDefault();
+          handleImageUpload(file);
+          break;
+        }
+      }
     }
   };
 
@@ -527,6 +614,16 @@ export default function SolutionEditor({
 
           <button
             type="button"
+            onClick={() => fileInputRef.current?.click()}
+            style={toolbarBtnStyle}
+            title="Insert Image"
+            aria-label="Insert Image"
+            disabled={isUploadingImage}
+          >
+            {isUploadingImage ? <Loader2 size={13} className="animate-spin" /> : <ImageIcon size={13} />}
+          </button>
+          <button
+            type="button"
             onClick={() => insertMarkdown('[', '](https://)', 'Link text')}
             style={toolbarBtnStyle}
             title="Link (Ctrl+K)"
@@ -543,6 +640,14 @@ export default function SolutionEditor({
           >
             <Minus size={13} />
           </button>
+
+          <input
+            type="file"
+            accept="image/png, image/jpeg, image/jpg, image/webp, image/gif"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            style={{ display: 'none' }}
+          />
         </div>
       )}
 
@@ -564,7 +669,10 @@ export default function SolutionEditor({
               value={value}
               onChange={(e) => onChange(e.target.value)}
               onKeyDown={handleTextareaKeyDown}
-              placeholder="Write your editorial explanation in Markdown... Use ```cpp, ```java, or ```python for code blocks."
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onPaste={handlePaste}
+              placeholder="Write your editorial explanation in Markdown... Use ```cpp, ```java, or ```python for code blocks. Drag & drop images!"
               style={{
                 width: '100%',
                 height: '100%',
