@@ -31,16 +31,35 @@ export const LEVEL_THRESHOLDS = [
 
 // Default badge definitions
 export const DEFAULT_BADGES = [
-  { name: 'Git Starter', icon: '🧑‍💻', description: 'Made your first GitHub submission', condition_type: 'github_count', condition_value: 1 },
-  { name: 'First Deploy', icon: '🚀', description: 'Deployed your first project', condition_type: 'deploy_count', condition_value: 1 },
-  { name: 'JS Master', icon: '⚡', description: 'Earned 500+ XP in JavaScript', condition_type: 'xp_threshold', condition_value: 500 },
-  { name: 'React Builder', icon: '⚛️', description: 'Completed the React course', condition_type: 'course_complete', condition_value: 1 },
-  { name: 'Full Stack Warrior', icon: '🏆', description: 'Reached Pro level', condition_type: 'xp_threshold', condition_value: 3000 },
-  { name: 'Streak Master', icon: '🔥', description: '7-day learning streak', condition_type: 'streak_days', condition_value: 7 },
-  { name: 'Quiz Ace', icon: '🎯', description: 'Scored 100% on 5 quizzes', condition_type: 'perfect_score', condition_value: 5 },
-  { name: 'Code Ninja', icon: '🥷', description: 'Completed 20 coding tasks', condition_type: 'code_complete', condition_value: 20 },
-  { name: 'Daily Helpful Contributor', icon: '🤝', description: 'Replied to 5 doubts in one day', condition_type: 'daily_replies', condition_value: 5 },
-  { name: 'Top Doubt Solver', icon: '💡', description: 'Got 10 accepted answers', condition_type: 'accepted_answers', condition_value: 10 },
+  // Course Enrolled
+  { name: 'Beginner Scholar', icon: '📚', description: '1 course enrolled successfully', condition_type: 'course_enrolled', condition_value: 1 },
+  { name: 'Dedicated Learner', icon: '🎓', description: '5 courses enrolled successfully', condition_type: 'course_enrolled', condition_value: 5 },
+  { name: 'Knowledge Seeker', icon: '🧠', description: '10 courses enrolled successfully', condition_type: 'course_enrolled', condition_value: 10 },
+  { name: 'Academic Legend', icon: '👑', description: '50+ courses enrolled successfully', condition_type: 'course_enrolled', condition_value: 50 },
+
+  // Active Days
+  { name: 'First Day', icon: '🌱', description: 'Day 1 of learning', condition_type: 'active_days', condition_value: 1 },
+  { name: '1-Week Streak', icon: '🔥', description: 'Active for 7 days', condition_type: 'active_days', condition_value: 7 },
+  { name: '1-Month Explorer', icon: '🗺️', description: 'Active for 30 days', condition_type: 'active_days', condition_value: 30 },
+  { name: '3-Month Veteran', icon: '🏅', description: 'Active for 90 days', condition_type: 'active_days', condition_value: 90 },
+
+  // XP Badges
+  { name: 'XP Rookie', icon: '⭐', description: 'Earned 20 XP', condition_type: 'xp_threshold', condition_value: 20 },
+  { name: 'XP Elite', icon: '🔥', description: 'Earned 500 XP', condition_type: 'xp_threshold', condition_value: 500 },
+  { name: 'XP Legend', icon: '👑', description: 'Earned 5000 XP', condition_type: 'xp_threshold', condition_value: 5000 },
+
+  // Coding Badges
+  { name: '7-Day Coder', icon: '🔥', description: 'Solve coding problems for 7 consecutive days', condition_type: '7_day_streak', condition_value: 7 },
+  { name: '30-Day Coder', icon: '☄️', description: 'Solve coding problems for 30 consecutive days', condition_type: '30_day_streak', condition_value: 30 },
+  { name: 'Problem Starter', icon: '🧑‍💻', description: 'First 10 coding problems solved', condition_type: 'problem_starter', condition_value: 10 },
+  { name: '100 Club', icon: '🥉', description: '100 total coding problems solved', condition_type: '100_club', condition_value: 100 },
+  { name: '500 Club', icon: '🥇', description: '500 total coding problems solved', condition_type: '500_club', condition_value: 500 },
+  { name: '1000 Club', icon: '🏆', description: '1000 total coding problems solved', condition_type: '1000_club', condition_value: 1000 },
+  { name: 'DSA Master', icon: '🧠', description: 'Complete a major DSA Sheet', condition_type: 'dsa_master', condition_value: 1 },
+  { name: 'Multi-Platform Coder', icon: '🌐', description: 'Solve problems on Smart Learn, LeetCode, and CodeChef', condition_type: 'multi_platform', condition_value: 3 },
+  { name: 'Monthly Champion', icon: '👑', description: 'Achieve Rank #1 overall in the Monthly Coding Champions', condition_type: 'monthly_champion', condition_value: 1 },
+  { name: 'Contest Warrior', icon: '⚔️', description: 'Participate in 3 or more Coding Battles', condition_type: 'contest_warrior', condition_value: 3 },
+  { name: 'Problem Hunter', icon: '🕵️', description: 'Solve at least 5 Easy, 5 Medium, and 5 Hard problems', condition_type: 'problem_hunter', condition_value: 5 },
 ];
 
 export const NAV_ITEMS = [
