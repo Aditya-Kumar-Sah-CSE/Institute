@@ -339,11 +339,12 @@ export default function GoalsClient() {
     if (!editGoal) return;
     setEditSaving(true);
     try {
+      const isNew = !editGoal.id;
       const res = await fetch('/api/goals', {
-        method: 'PATCH',
+        method: isNew ? 'POST' : 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          goal_id: editGoal.id,
+          ...(isNew ? {} : { goal_id: editGoal.id }),
           goal_text: editText,
           duration_mins: parseInt(editDuration) || 30,
           routine: editRoutine,
@@ -355,7 +356,7 @@ export default function GoalsClient() {
         loadData();
       }
     } catch (e) {
-      premiumAlert('Failed to save edited goal details.', 'Save Error', 'error');
+      premiumAlert('Failed to save goal.', 'Save Error', 'error');
     } finally {
       setEditSaving(false);
     }
@@ -511,7 +512,7 @@ export default function GoalsClient() {
           <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 800 }} className="text-gradient">My Learning Goals</h1>
           <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-secondary)' }}>Track goals, manage your daily routine, and set alarms</p>
         </div>
-        <div style={{ fontSize: '22px', fontWeight: 800, fontFamily: 'monospace', color: 'var(--neon-cyan)', letterSpacing: '1px' }}>
+        <div suppressHydrationWarning style={{ fontSize: '22px', fontWeight: 800, fontFamily: 'monospace', color: 'var(--neon-cyan)', letterSpacing: '1px' }}>
           {nowStr}
         </div>
       </header>
@@ -854,9 +855,9 @@ export default function GoalsClient() {
               <Target size={18} style={{ color: '#ef4444' }} />
               Goals
             </h2>
-            <Link href="/dashboard" style={{ padding: '6px 12px', borderRadius: '6px', background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.3)', color: 'var(--neon-cyan)', textDecoration: 'none', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <button onClick={() => { setEditGoal({ id: null }); setEditText(''); setEditDuration('30'); setEditRoutine(false); setEditReminder(''); }} style={{ padding: '6px 12px', borderRadius: '6px', background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.3)', color: 'var(--neon-cyan)', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
               <Plus size={12} /> New Goal
-            </Link>
+            </button>
           </div>
 
           {loading ? (
@@ -865,9 +866,9 @@ export default function GoalsClient() {
             <Card variant="glass" padding="lg" style={{ textAlign: 'center' }}>
               <Target size={40} style={{ color: 'var(--text-muted)', marginBottom: '12px' }} />
               <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>No goals set yet.</p>
-              <Link href="/dashboard" style={{ display: 'inline-block', marginTop: '8px', padding: '10px 20px', background: 'var(--neon-cyan)', color: '#000', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold', fontSize: '13px' }}>
-                Go Set Goal
-              </Link>
+              <button onClick={() => { setEditGoal({ id: null }); setEditText(''); setEditDuration('30'); setEditRoutine(false); setEditReminder(''); }} style={{ display: 'inline-block', marginTop: '8px', padding: '10px 20px', background: 'var(--neon-cyan)', color: '#000', borderRadius: '6px', border: 'none', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
+                Create New Goal
+              </button>
             </Card>
           ) : (
             goals.map((goal) => {
@@ -955,7 +956,7 @@ export default function GoalsClient() {
       </div>
 
       {/* ── EDIT GOAL MODAL ── */}
-      <Modal isOpen={!!editGoal} onClose={() => setEditGoal(null)} title="Edit Goal" size="md">
+      <Modal isOpen={!!editGoal} onClose={() => setEditGoal(null)} title={editGoal?.id ? "Edit Goal" : "Create Goal"} size="md">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '8px' }}>Goal</label>
