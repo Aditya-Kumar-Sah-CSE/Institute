@@ -73,10 +73,21 @@ export default async function CodeProblemPage({ params, searchParams }: { params
 
   if (!problem) notFound();
 
+  let sheetData: { id: string; title: string; slug?: string } | null = null;
   let text_solution = null;
   let youtube_url = null;
 
   if (sheetId) {
+    const { data: sheet } = await supabase
+      .from('coding_sheets')
+      .select('id, title, slug')
+      .eq('id', sheetId)
+      .maybeSingle();
+
+    if (sheet) {
+      sheetData = sheet;
+    }
+
     const { data: sheetProblem } = await supabase
       .from('coding_sheet_problems')
       .select('text_solution, youtube_url')
@@ -90,18 +101,23 @@ export default async function CodeProblemPage({ params, searchParams }: { params
     }
   }
 
-  // Fallback: If no sheetId or no solution found in the specified sheet, try to find ANY solution for this problem
-  if (!text_solution && !youtube_url) {
-    const { data: anySolutionList } = await supabase
+  // Fallback: If no sheetId in query params, find if this problem is in ANY sheet
+  if (!sheetData) {
+    const { data: anySheetProblem } = await supabase
       .from('coding_sheet_problems')
-      .select('text_solution, youtube_url')
-      .eq('problem_id', id);
+      .select('sheet_id, text_solution, youtube_url, coding_sheets(id, title, slug)')
+      .eq('problem_id', id)
+      .limit(1)
+      .maybeSingle();
 
-    if (anySolutionList && anySolutionList.length > 0) {
-      const validSolution = anySolutionList.find(s => s.text_solution || s.youtube_url);
-      if (validSolution) {
-        text_solution = validSolution.text_solution;
-        youtube_url = validSolution.youtube_url;
+    if (anySheetProblem) {
+      if (!text_solution && !youtube_url) {
+        text_solution = anySheetProblem.text_solution;
+        youtube_url = anySheetProblem.youtube_url;
+      }
+      if (anySheetProblem.coding_sheets) {
+        const s = anySheetProblem.coding_sheets as any;
+        sheetData = { id: s.id, title: s.title, slug: s.slug };
       }
     }
   }
@@ -258,7 +274,7 @@ export default async function CodeProblemPage({ params, searchParams }: { params
     <div className="code-arena-page ide-mode">
       {/* Compact IDE Header Bar */}
       <header className="code-arena-header-compact">
-        <div className="code-arena-header-left">
+        <div className="code-arena-header-left" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <Link
             href="/code-arena/problems"
             style={{
@@ -273,12 +289,60 @@ export default async function CodeProblemPage({ params, searchParams }: { params
               textDecoration: 'none',
               transition: 'all 0.15s ease',
             }}
-            title="Back to Problems"
+            title="Back to All Problems"
             aria-label="Back to Problems List"
             className="oj-icon-btn"
           >
             <ArrowLeft size={16} />
           </Link>
+
+          {sheetData ? (
+            <Link
+              href={`/code-arena/sheets/${sheetData.slug || sheetData.id}`}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                height: '34px',
+                padding: '0 12px',
+                borderRadius: '8px',
+                background: 'rgba(6, 182, 212, 0.12)',
+                border: '1px solid rgba(6, 182, 212, 0.3)',
+                color: 'var(--neon-cyan)',
+                fontSize: '12px',
+                fontWeight: 700,
+                textDecoration: 'none',
+                transition: 'all 0.15s ease',
+                boxShadow: '0 0 12px rgba(6, 182, 212, 0.15)',
+              }}
+              title={`Back to ${sheetData.title}`}
+            >
+              <ArrowLeft size={14} /> Back to Sheet
+            </Link>
+          ) : (
+            <Link
+              href="/code-arena/sheets"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                height: '34px',
+                padding: '0 12px',
+                borderRadius: '8px',
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid var(--glass-border)',
+                color: 'var(--text-secondary)',
+                fontSize: '12px',
+                fontWeight: 600,
+                textDecoration: 'none',
+                transition: 'all 0.15s ease',
+              }}
+              title="Back to Sheets"
+            >
+              <ArrowLeft size={14} /> Back to Sheet
+            </Link>
+          )}
+
           <div>
             <h1 className="code-arena-header-title">
               Code Arena
