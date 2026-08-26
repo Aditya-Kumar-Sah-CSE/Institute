@@ -9,6 +9,8 @@ import { downloadSvgAsImage } from '@/lib/utils/certificateExporter';
 interface CertificateRendererProps {
   cert: any;
   isPublicShare?: boolean;
+  canEditSettings?: boolean;
+  isPreview?: boolean;
   shareToken?: string;
   shareExpiresAt?: string;
 }
@@ -16,6 +18,8 @@ interface CertificateRendererProps {
 export default function CertificateRenderer({
   cert,
   isPublicShare = false,
+  canEditSettings = false,
+  isPreview = false,
   shareToken = '',
   shareExpiresAt = '',
 }: CertificateRendererProps) {
@@ -234,7 +238,18 @@ export default function CertificateRenderer({
     }
   };
 
+  const isPreviewCert = isPreview || cert.id === 'dummy';
+
+  const checkDownloadAllowed = () => {
+    if (isPreviewCert && !canEditSettings) {
+      alert('This is a certificate template preview. Enroll and complete the course to unlock your official downloadable certificate!');
+      return false;
+    }
+    return true;
+  };
+
   const downloadSVG = () => {
+    if (!checkDownloadAllowed()) return;
     const svgEl = document.getElementById('battle-certificate-svg');
     if (!svgEl) return;
     const svgString = new XMLSerializer().serializeToString(svgEl);
@@ -244,7 +259,7 @@ export default function CertificateRenderer({
     const downloadLink = document.createElement('a');
     downloadLink.href = svgUrl;
     const cleanName = (cert.profiles?.name || 'User').replace(/[^a-zA-Z0-9]/g, '-');
-    downloadLink.download = `Coding-Battle-Certificate-${cleanName}.svg`;
+    downloadLink.download = `Certificate-${cleanName}.svg`;
     document.body.appendChild(downloadLink);
     downloadLink.click();
     document.body.removeChild(downloadLink);
@@ -252,9 +267,10 @@ export default function CertificateRenderer({
   };
 
   const downloadPNG = async () => {
+    if (!checkDownloadAllowed()) return;
     const cleanName = (cert.profiles?.name || 'User').replace(/[^a-zA-Z0-9]/g, '-');
     await downloadSvgAsImage('battle-certificate-svg', {
-      filename: `Coding-Battle-Certificate-${cleanName}`,
+      filename: `Certificate-${cleanName}`,
       format: 'png',
       width: 1920,
       height: 1080,
@@ -262,9 +278,10 @@ export default function CertificateRenderer({
   };
 
   const downloadJPG = async () => {
+    if (!checkDownloadAllowed()) return;
     const cleanName = (cert.profiles?.name || 'User').replace(/[^a-zA-Z0-9]/g, '-');
     await downloadSvgAsImage('battle-certificate-svg', {
-      filename: `Coding-Battle-Certificate-${cleanName}`,
+      filename: `Certificate-${cleanName}`,
       format: 'jpeg',
       width: 1920,
       height: 1080,
@@ -284,7 +301,7 @@ export default function CertificateRenderer({
     ? (cert.coding_battles as any)?.title 
     : isSheet 
     ? (cert.coding_sheets as any)?.title 
-    : (cert.courses as any)?.title;
+    : (cert.courses as any)?.title || 'Course Completion';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%', maxWidth: '1080px', margin: '0 auto', paddingBottom: '32px' }}>
@@ -311,8 +328,30 @@ export default function CertificateRenderer({
         </div>
       )}
 
-      {/* Main Grid: Certificate on top/left, signature customizer on right/bottom */}
-      <div style={{ display: 'grid', gridTemplateColumns: isPublicShare ? '1fr' : '1fr 340px', gap: '24px', alignItems: 'start', flexWrap: 'wrap' }} className="cert-renderer-grid">
+      {/* Template Preview Banner */}
+      {isPreviewCert && (
+        <div style={{
+          background: 'rgba(255, 215, 0, 0.08)',
+          border: '1px solid rgba(255, 215, 0, 0.3)',
+          borderRadius: '12px',
+          padding: '12px 20px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600, color: '#facc15' }}>
+            <Award className="animate-pulse" size={16} /> Certificate Template Preview
+          </div>
+          <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+            Enroll and complete this course to earn your official downloadable certificate.
+          </div>
+        </div>
+      )}
+
+      {/* Main Grid: Certificate on top/left, signature customizer on right/bottom (ONLY if canEditSettings) */}
+      <div style={{ display: 'grid', gridTemplateColumns: (!isPublicShare && canEditSettings) ? '1fr 340px' : '1fr', gap: '24px', alignItems: 'start', flexWrap: 'wrap' }} className="cert-renderer-grid">
         
         {/* Left Side: The SVG Certificate view */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
@@ -401,6 +440,13 @@ export default function CertificateRenderer({
                 <path d="M 150,0 V 800 M 300,0 V 800 M 450,0 V 800 M 600,0 V 800 M 750,0 V 800 M 900,0 V 800 M 1050,0 V 800" />
               </g>
 
+              {/* Watermark for Template Previews */}
+              {isPreviewCert && (
+                <g opacity="0.08" transform="translate(600, 400) rotate(-22)">
+                  <text x="0" y="0" textAnchor="middle" fill="#ffffff" fontSize="76" fontWeight="900" letterSpacing="12">PREVIEW TEMPLATE</text>
+                </g>
+              )}
+
               {/* Glowing Corner Orbs */}
               <circle cx="0" cy="0" r="300" fill="#00f0ff" opacity="0.1" filter="url(#glow)" />
               <circle cx="1200" cy="800" r="350" fill="#7f00ff" opacity="0.1" filter="url(#glow)" />
@@ -442,7 +488,7 @@ export default function CertificateRenderer({
                 </g>
 
                 <text x="0" y="8" textAnchor="middle" fill="#ffffff" fontSize="22" fontWeight="900" letterSpacing="4">SMART LEARN</text>
-                <text x="0" y="28" textAnchor="middle" fill="#38bdf8" fontSize="12" fontWeight="800" letterSpacing="3">{(organizerName || 'OFFICIAL BATTLE CERTIFICATE').toUpperCase()}</text>
+                <text x="0" y="28" textAnchor="middle" fill="#38bdf8" fontSize="12" fontWeight="800" letterSpacing="3">{(organizerName || (isBattle ? 'OFFICIAL BATTLE CERTIFICATE' : isSheet ? 'OFFICIAL SHEET CERTIFICATE' : 'SMART LEARN ACADEMY')).toUpperCase()}</text>
               </g>
 
               {/* TOP RIGHT: Dynamic Immutable Certificate ID */}
@@ -464,7 +510,9 @@ export default function CertificateRenderer({
                   <polygon points="-120,0 -115,-5 -110,0 -115,5" fill="#00f0ff" />
                   <circle cx="-105" cy="0" r="2" fill="#00f0ff" />
 
-                  <text x="0" y="6" textAnchor="middle" fill="url(#cyanPurpleGrad)" fontSize="18" fontWeight="800" letterSpacing="5">OF CODING BATTLE</text>
+                  <text x="0" y="6" textAnchor="middle" fill="url(#cyanPurpleGrad)" fontSize="18" fontWeight="800" letterSpacing="5">
+                    {isBattle ? 'OF CODING BATTLE' : isSheet ? 'OF CODING SHEET' : 'OF COURSE COMPLETION'}
+                  </text>
 
                   <circle cx="105" cy="0" r="2" fill="#00f0ff" />
                   <polygon points="110,0 115,-5 120,0 115,5" fill="#00f0ff" />
@@ -710,8 +758,8 @@ export default function CertificateRenderer({
           </div>
         </div>
 
-        {/* Right Side: The Signature & Branding controls panel (only shown if not in public share mode) */}
-        {!isPublicShare && (
+        {/* Right Side: The Signature & Branding controls panel (only shown for authorized staff/admins) */}
+        {!isPublicShare && canEditSettings && (
           <div style={{
             background: 'rgba(15,23,42,0.4)',
             border: '1px solid var(--glass-border)',
