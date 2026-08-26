@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCodeArenaActor } from '@/features/code-arena/server';
+import { generateUniqueSheetSlug } from '@/lib/slug-utils';
 
 export async function GET() {
   const { supabase, user } = await getCodeArenaActor();
@@ -7,7 +8,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from('coding_sheets')
-    .select('id, title, description, created_by, created_at, enrollment_access, coding_sheet_problems(problem_id)')
+    .select('id, slug, title, description, created_by, created_at, enrollment_access, coding_sheet_problems(problem_id)')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -49,14 +50,15 @@ export async function POST(request: Request) {
     }
 
     // 1. Insert coding sheet
-    // Validate enrollment_access
     const validAccess = ['public', 'restricted', 'private'];
     const accessValue = validAccess.includes(enrollment_access) ? enrollment_access : 'public';
+    const slug = await generateUniqueSheetSlug(supabase, title.trim());
 
     const { data: sheet, error: createError } = await supabase
       .from('coding_sheets')
       .insert({
         title: title.trim(),
+        slug,
         description: description || null,
         created_by: user.id,
         enrollment_access: accessValue,

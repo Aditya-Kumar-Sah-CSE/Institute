@@ -1,17 +1,27 @@
 import { NextResponse } from 'next/server';
 import { getCodeArenaActor } from '@/features/code-arena/server';
+import { generateUniqueSheetSlug } from '@/lib/slug-utils';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { supabase, user } = await getCodeArenaActor();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // Fetch sheet details
-  const { data: sheet, error: sheetError } = await supabase
+  // UUID regex check
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+  // Fetch sheet details by ID or slug
+  let sheetQuery = supabase
     .from('coding_sheets')
-    .select('id, title, description, created_by, created_at, enrollment_access')
-    .eq('id', id)
-    .maybeSingle();
+    .select('id, slug, title, description, created_by, created_at, enrollment_access');
+
+  if (isUUID) {
+    sheetQuery = sheetQuery.eq('id', id);
+  } else {
+    sheetQuery = sheetQuery.eq('slug', id);
+  }
+
+  const { data: sheet, error: sheetError } = await sheetQuery.maybeSingle();
 
   if (sheetError || !sheet) {
     return NextResponse.json({ success: false, error: { message: sheetError?.message || 'Coding sheet not found.' } }, { status: 404 });
@@ -21,7 +31,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const { data: problemsData, error: problemsError } = await supabase
     .from('coding_sheet_problems')
     .select('order_index, youtube_url, text_solution, coding_problems(id, title, difficulty, source_type, external_platform, external_problem_id, external_url, tags)')
-    .eq('sheet_id', id)
+    .eq('sheet_id', sheet.id)
     .order('order_index', { ascending: true });
 
   if (problemsError) {
@@ -50,7 +60,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
-    const { data: sheet } = await supabase.from('coding_sheets').select('created_by').eq('id', id).single();
+    const { data: sheet } = await supabase.from('coding_sheets').select('id, created_by, title, slug').eq('id', id).single();
     if (!sheet) {
       return NextResponse.json({ success: false, error: { message: 'Sheet not found' } }, { status: 404 });
     }
@@ -80,7 +90,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     const updates: any = {};
-    if (title !== undefined) updates.title = title.trim();
+    if (title !== undefined && title.trim() !== sheet.title) {
+      updates.title = title.trim();
+      updates.slug = await generateUniqueSheetSlug(supabase, title.trim(), id);
+    }
     if (description !== undefined) updates.description = description || null;
     if (enrollment_access !== undefined) {
       const validAccess = ['public', 'restricted', 'private'];

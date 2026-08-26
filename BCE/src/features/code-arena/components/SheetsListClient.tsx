@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { 
   Trophy, ArrowLeft, BookOpen, Plus, Search, 
   ChevronRight, Trash2, CheckCircle2, Award, X,
-  Globe, Shield, Lock
+  Globe, Shield, Lock, Share2, Check
 } from 'lucide-react';
 import CreateSheetWizard from './CreateSheetWizard';
 import MobileCodeArenaToggle from './MobileCodeArenaToggle';
@@ -15,6 +15,7 @@ import './CodeArena.css';
 
 type CodingSheet = {
   id: string;
+  slug?: string;
   title: string;
   description: string;
   created_by: string;
@@ -35,6 +36,35 @@ export default function SheetsListClient({
   const [sheets, setSheets] = useState<CodingSheet[]>(initialSheets);
   const [searchQuery, setSearchQuery] = useState('');
   const [showWizard, setShowWizard] = useState(false);
+  const [copiedSheetId, setCopiedSheetId] = useState<string | null>(null);
+
+  const handleShareSheet = async (sheet: CodingSheet, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const shareUrl = `${window.location.origin}/share/sheet/${sheet.slug || sheet.id}`;
+
+    try {
+      if (navigator.share && /Android|iPhone|iPad/i.test(navigator.userAgent)) {
+        await navigator.share({
+          title: sheet.title,
+          text: `Check out this coding practice sheet: ${sheet.title}`,
+          url: shareUrl,
+        });
+        return;
+      }
+    } catch {
+      // Fallback
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopiedSheetId(sheet.id);
+      setTimeout(() => setCopiedSheetId(null), 2500);
+    } catch {
+      prompt('Copy public share link:', shareUrl);
+    }
+  };
 
   const handleDeleteSheet = async (sheetId: string) => {
     if (!window.confirm('Are you sure you want to delete this coding sheet?')) return;
@@ -218,6 +248,26 @@ export default function SheetsListClient({
                   >
                     View Sheet <ChevronRight size={14} />
                   </Link>
+
+                  <button
+                    type="button"
+                    onClick={(e) => handleShareSheet(sheet, e)}
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: copiedSheetId === sheet.id ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                      border: copiedSheetId === sheet.id ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid var(--glass-border)',
+                      color: copiedSheetId === sheet.id ? '#4ade80' : 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      display: 'grid',
+                      placeItems: 'center',
+                      transition: 'all 0.2s',
+                    }}
+                    title={copiedSheetId === sheet.id ? 'Link Copied!' : 'Share Public Link'}
+                  >
+                    {copiedSheetId === sheet.id ? <Check size={15} /> : <Share2 size={15} />}
+                  </button>
 
                   {isInstructor && (
                     <button

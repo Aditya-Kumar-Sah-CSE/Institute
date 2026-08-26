@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { 
   Trophy, ArrowLeft, BookOpen, CheckCircle2, Circle, 
   ExternalLink, Code2, ArrowRight, Award, Play, Pencil, Users,
-  Lock, Shield, Globe, KeyRound, AlertCircle, Video, FileText
+  Lock, Shield, Globe, KeyRound, AlertCircle, Video, FileText, Share2, Check
 } from 'lucide-react';
 import MobileCodeArenaToggle from './MobileCodeArenaToggle';
 import Card from '@/components/ui/Card';
@@ -33,6 +33,7 @@ type Problem = {
 
 type Sheet = {
   id: string;
+  slug?: string;
   title: string;
   description: string;
   created_by: string;
@@ -64,6 +65,31 @@ export default function SheetDetailClient({
   const [enrolling, setEnrolling] = useState(false);
   const [enrollError, setEnrollError] = useState('');
   const [passcodeInput, setPasscodeInput] = useState('');
+  const [copiedShare, setCopiedShare] = useState(false);
+
+  const handleCopyShareLink = async () => {
+    const shareUrl = `${window.location.origin}/share/sheet/${sheet.slug || sheet.id}`;
+    try {
+      if (navigator.share && /Android|iPhone|iPad/i.test(navigator.userAgent)) {
+        await navigator.share({
+          title: sheet.title,
+          text: `Check out this coding practice sheet: ${sheet.title}`,
+          url: shareUrl,
+        });
+        return;
+      }
+    } catch {
+      // Fallback
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopiedShare(true);
+      setTimeout(() => setCopiedShare(false), 2500);
+    } catch {
+      prompt('Copy public share link:', shareUrl);
+    }
+  };
 
   // Modals for YT Video and Text Solution
   const [activeVideoProblem, setActiveVideoProblem] = useState<Problem | null>(null);
@@ -243,6 +269,28 @@ export default function SheetDetailClient({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button
+            type="button"
+            onClick={handleCopyShareLink}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: copiedShare ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255,255,255,0.05)',
+              border: copiedShare ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid var(--glass-border)',
+              color: copiedShare ? '#4ade80' : 'var(--text-main)',
+              padding: '4px 12px',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            {copiedShare ? <Check size={12} /> : <Share2 size={12} />}
+            {copiedShare ? 'Copied Link!' : 'Share Link'}
+          </button>
+
           {canEdit && (
             <button
               type="button"

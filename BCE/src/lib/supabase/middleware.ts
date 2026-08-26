@@ -41,7 +41,7 @@ export async function updateSession(request: NextRequest) {
     'apply-instructor', 'apply-institution', 'forgot-password', 'reset-password',
     // Root-level app routes (route groups (dashboard), (admin), (instructor), (public))
     'courses', 'leaderboard', 'doubts', 'notices', 'profile', 'feedbacks',
-    'share-doubt', 'users', 'batch', 'certificates', 'code-arena',
+    'share-doubt', 'users', 'batch', 'certificates', 'code-arena', 'sheets', 'share',
     // Misc root pages
     'admission', 'pwa-start', 'contact', 'institution-not-found', 'institution-disabled',
     'privacy', 'terms',
@@ -103,6 +103,7 @@ export async function updateSession(request: NextRequest) {
     publicRoutes.includes(pathname) || 
     (tenantSlug && pathname === `/${tenantSlug}`) ||
     pathname.startsWith('/share/') ||
+    pathname.startsWith('/sheets/') ||
     pathname.startsWith('/verify/');
 
   // Helper function to redirect while preserving cookies

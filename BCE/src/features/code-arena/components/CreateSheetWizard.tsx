@@ -19,6 +19,8 @@ import {
   Globe,
   Lock,
   Shield,
+  Share2,
+  Check,
 } from 'lucide-react';
 
 type ImportedProblem = {
@@ -622,7 +624,7 @@ export default function CreateSheetWizard({
                   display: 'grid',
                   placeItems: 'center',
                   color: '#22c55e',
-                  marginBottom: '8px',
+                  marginBottom: '4px',
                 }}
               >
                 <CheckCircle2 size={36} />
@@ -632,9 +634,58 @@ export default function CreateSheetWizard({
                 <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, margin: '0 0 6px 0' }}>
                   Sheet "{createdSheet?.title}" Saved!
                 </h3>
-                <p className="text-secondary" style={{ fontSize: 'var(--text-xs)', maxWidth: '360px', margin: 0 }}>
+                <p className="text-secondary" style={{ fontSize: 'var(--text-xs)', maxWidth: '380px', margin: 0 }}>
                   The coding sheet has been published successfully and is now active for practice.
                 </p>
+              </div>
+
+              {/* Public shareable link display */}
+              <div
+                style={{
+                  width: '100%',
+                  maxWidth: '440px',
+                  background: 'rgba(0,0,0,0.3)',
+                  border: '1px solid var(--glass-border)',
+                  borderRadius: '8px',
+                  padding: '12px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  textAlign: 'left',
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '10px', color: 'var(--neon-cyan)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '2px' }}>
+                    🔗 Public Shareable URL
+                  </div>
+                  <div style={{ fontSize: '11px', fontFamily: 'monospace', color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {typeof window !== 'undefined' ? `${window.location.origin}/share/sheet/${createdSheet?.slug || createdSheet?.id}` : `/share/sheet/${createdSheet?.slug || createdSheet?.id}`}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const url = typeof window !== 'undefined' ? `${window.location.origin}/share/sheet/${createdSheet?.slug || createdSheet?.id}` : `/share/sheet/${createdSheet?.slug || createdSheet?.id}`;
+                    navigator.clipboard.writeText(url);
+                    alert('Public share link copied to clipboard!');
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    background: 'var(--neon-cyan)',
+                    color: '#000',
+                    fontWeight: 700,
+                    fontSize: '11px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Copy size={13} /> Copy Link
+                </button>
               </div>
 
               <div style={{ display: 'flex', gap: 'var(--space-sm)', marginTop: '8px', width: '100%', justifyContent: 'center' }}>

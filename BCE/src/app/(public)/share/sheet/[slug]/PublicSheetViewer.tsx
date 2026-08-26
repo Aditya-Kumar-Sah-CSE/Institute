@@ -1,0 +1,652 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { 
+  Trophy, BookOpen, Share2, Search, ExternalLink, Play, Video, 
+  FileText, Check, Shield, Globe, Lock, ArrowRight, Code2, Sparkles, ChevronRight
+} from 'lucide-react';
+import Modal from '@/components/ui/Modal';
+import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
+import Card from '@/components/ui/Card';
+
+type PublicProblem = {
+  id: string;
+  title: string;
+  difficulty: string;
+  source_type: string;
+  external_platform?: string;
+  external_problem_id?: string;
+  external_url?: string;
+  tags?: string[];
+  order_index: number;
+  youtube_url?: string | null;
+  text_solution?: string | null;
+};
+
+type PublicSheet = {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  created_at: string;
+  enrollment_access?: string;
+  creator?: {
+    name: string;
+    avatar_url?: string | null;
+    role?: string;
+  } | null;
+  problems: PublicProblem[];
+};
+
+export default function PublicSheetViewer({
+  sheet,
+  shareUrl,
+}: {
+  sheet: PublicSheet;
+  shareUrl: string;
+}) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>('ALL');
+  const [copied, setCopied] = useState(false);
+
+  // Modals for YT Video and Text Solution
+  const [activeVideoProblem, setActiveVideoProblem] = useState<PublicProblem | null>(null);
+  const [activeSolutionProblem, setActiveSolutionProblem] = useState<PublicProblem | null>(null);
+
+  const problems = sheet.problems || [];
+
+  const handleCopyLink = async () => {
+    try {
+      if (navigator.share && /Android|iPhone|iPad/i.test(navigator.userAgent)) {
+        await navigator.share({
+          title: sheet.title,
+          text: `Check out this coding practice sheet: ${sheet.title}`,
+          url: shareUrl,
+        });
+        return;
+      }
+    } catch {
+      // Fallback to clipboard copy
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      prompt('Copy share link:', shareUrl);
+    }
+  };
+
+  const getYoutubeEmbedUrl = (url: string) => {
+    if (!url) return '';
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    const videoId = (match && match[2].length === 11) ? match[2] : null;
+    if (videoId) {
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
+    return '';
+  };
+
+  const filteredProblems = problems.filter((p) => {
+    const matchesSearch =
+      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.tags || []).some((t) => t.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (p.source_type || '').toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesDiff =
+      selectedDifficulty === 'ALL' ||
+      p.difficulty?.toUpperCase() === selectedDifficulty.toUpperCase();
+
+    return matchesSearch && matchesDiff;
+  });
+
+  const easyCount = problems.filter((p) => p.difficulty?.toUpperCase() === 'EASY').length;
+  const mediumCount = problems.filter((p) => p.difficulty?.toUpperCase() === 'MEDIUM').length;
+  const hardCount = problems.filter((p) => p.difficulty?.toUpperCase() === 'HARD').length;
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#0b0f19', color: '#f8fafc', paddingBottom: '4rem' }}>
+      {/* Top Banner Nav */}
+      <nav
+        style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 50,
+          background: 'rgba(11, 15, 25, 0.85)',
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          padding: '14px 24px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '10px',
+              background: 'linear-gradient(135deg, #06b6d4, #a855f7)',
+              display: 'grid',
+              placeItems: 'center',
+              boxShadow: '0 0 16px rgba(6, 182, 212, 0.4)',
+            }}
+          >
+            <BookOpen size={20} color="white" />
+          </div>
+          <div>
+            <div style={{ fontSize: '15px', fontWeight: 800, letterSpacing: '-0.3px', background: 'linear-gradient(90deg, #fff, #94a3b8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              Code Arena
+            </div>
+            <div style={{ fontSize: '10px', color: '#06b6d4', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+              Public Practice Sheet
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button
+            type="button"
+            onClick={handleCopyLink}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              background: copied ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255, 255, 255, 0.06)',
+              border: copied ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid rgba(255, 255, 255, 0.12)',
+              color: copied ? '#4ade80' : '#f8fafc',
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            {copied ? <Check size={14} /> : <Share2 size={14} />}
+            {copied ? 'Link Copied!' : 'Share Sheet'}
+          </button>
+
+          <Link
+            href="/code-arena/sheets"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              background: 'linear-gradient(135deg, #06b6d4, #3b82f6)',
+              color: 'white',
+              fontSize: '12px',
+              fontWeight: 700,
+              textDecoration: 'none',
+              boxShadow: '0 0 14px rgba(6, 182, 212, 0.3)',
+            }}
+          >
+            Solve in Arena <ChevronRight size={14} />
+          </Link>
+        </div>
+      </nav>
+
+      {/* Main Container */}
+      <main style={{ maxWidth: '1080px', margin: '0 auto', padding: '32px 16px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        {/* Sheet Hero Card */}
+        <div
+          style={{
+            position: 'relative',
+            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.6))',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '16px',
+            padding: '32px',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Subtle background glow */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '-60px',
+              right: '-60px',
+              width: '240px',
+              height: '240px',
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(6, 182, 212, 0.15), transparent 70%)',
+              pointerEvents: 'none',
+            }}
+          />
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px' }}>
+            <div style={{ flex: 1, minWidth: '280px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    color: '#06b6d4',
+                    background: 'rgba(6, 182, 212, 0.1)',
+                    padding: '3px 10px',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(6, 182, 212, 0.2)',
+                  }}
+                >
+                  <Sparkles size={11} style={{ display: 'inline', marginRight: '4px' }} />
+                  Curated Practice Sheet
+                </span>
+
+                {sheet.enrollment_access === 'restricted' && (
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#facc15', background: 'rgba(250, 204, 21, 0.1)', padding: '3px 10px', borderRadius: '12px' }}>
+                    Passcode Required for Arena
+                  </span>
+                )}
+              </div>
+
+              <h1 style={{ fontSize: '28px', fontWeight: 900, margin: '0 0 10px 0', letterSpacing: '-0.5px', color: '#ffffff' }}>
+                {sheet.title}
+              </h1>
+
+              <p style={{ fontSize: '14px', color: '#94a3b8', margin: '0 0 20px 0', lineHeight: 1.6, maxWidth: '640px' }}>
+                {sheet.description || 'Master key algorithm patterns with this curated practice sheet.'}
+              </p>
+
+              {/* Creator Info */}
+              {sheet.creator && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #a855f7, #ec4899)',
+                      display: 'grid',
+                      placeItems: 'center',
+                      fontWeight: 700,
+                      fontSize: '13px',
+                      color: 'white',
+                    }}
+                  >
+                    {sheet.creator.name ? sheet.creator.name.charAt(0).toUpperCase() : 'I'}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '12px', fontWeight: 700, color: '#f8fafc' }}>
+                      {sheet.creator.name || 'Instructor'}
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#64748b' }}>Curator</div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Metrics Badge Box */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '12px',
+                background: 'rgba(15, 23, 42, 0.6)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '12px',
+                padding: '16px',
+                minWidth: '220px',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Total Problems</div>
+                <div style={{ fontSize: '22px', fontWeight: 900, color: '#06b6d4' }}>{problems.length}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Difficulty Mix</div>
+                <div style={{ fontSize: '12px', fontWeight: 700, marginTop: '4px', display: 'flex', gap: '6px' }}>
+                  <span style={{ color: '#4ade80' }}>{easyCount}E</span>
+                  <span style={{ color: '#facc15' }}>{mediumCount}M</span>
+                  <span style={{ color: '#f87171' }}>{hardCount}H</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Filter and Search Bar */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '16px',
+            flexWrap: 'wrap',
+          }}
+        >
+          {/* Search box */}
+          <div
+            style={{
+              flex: 1,
+              minWidth: '260px',
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            <Search size={16} style={{ position: 'absolute', left: '14px', color: '#64748b' }} />
+            <input
+              type="text"
+              placeholder="Search problems by title or tags..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 14px 10px 40px',
+                borderRadius: '10px',
+                background: 'rgba(30, 41, 59, 0.5)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                color: '#f8fafc',
+                fontSize: '13px',
+                outline: 'none',
+              }}
+            />
+          </div>
+
+          {/* Difficulty pills */}
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {['ALL', 'EASY', 'MEDIUM', 'HARD'].map((diff) => (
+              <button
+                key={diff}
+                type="button"
+                onClick={() => setSelectedDifficulty(diff)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '8px',
+                  border: selectedDifficulty === diff ? '1px solid #06b6d4' : '1px solid rgba(255, 255, 255, 0.08)',
+                  background: selectedDifficulty === diff ? 'rgba(6, 182, 212, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                  color: selectedDifficulty === diff ? '#06b6d4' : '#94a3b8',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {diff}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Problems List */}
+        <section style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {filteredProblems.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '48px 24px', background: 'rgba(30, 41, 59, 0.3)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+              <BookOpen size={32} style={{ color: '#64748b', marginBottom: '12px' }} />
+              <div style={{ fontSize: '14px', fontWeight: 700 }}>No matching problems found</div>
+              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>Try adjusting your search query or filter settings.</div>
+            </div>
+          ) : (
+            filteredProblems.map((problem, idx) => {
+              const diffClass = (problem.difficulty || 'EASY').toUpperCase();
+              const diffColor = diffClass === 'EASY' ? '#4ade80' : diffClass === 'MEDIUM' ? '#facc15' : '#f87171';
+
+              return (
+                <div
+                  key={problem.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '14px 18px',
+                    borderRadius: '12px',
+                    background: 'rgba(30, 41, 59, 0.4)',
+                    border: '1px solid rgba(255, 255, 255, 0.07)',
+                    transition: 'all 0.15s ease',
+                    gap: '16px',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(30, 41, 59, 0.7)';
+                    e.currentTarget.style.borderColor = 'rgba(6, 182, 212, 0.3)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(30, 41, 59, 0.4)';
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.07)';
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: '#64748b', width: '24px' }}>
+                      {idx + 1}.
+                    </span>
+
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {problem.title}
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
+                        <span
+                          style={{
+                            fontSize: '9px',
+                            fontWeight: 800,
+                            color: '#06b6d4',
+                            background: 'rgba(6, 182, 212, 0.1)',
+                            padding: '1px 6px',
+                            borderRadius: '4px',
+                          }}
+                        >
+                          {problem.source_type || 'CODEFORCES'}
+                        </span>
+
+                        {(problem.tags || []).slice(0, 3).map((tag) => (
+                          <span key={tag} style={{ fontSize: '9px', color: '#94a3b8' }}>
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        fontWeight: 800,
+                        color: diffColor,
+                        background: `${diffColor}15`,
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      {problem.difficulty}
+                    </span>
+
+                    {/* Solution Video button if available */}
+                    {problem.youtube_url && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveVideoProblem(problem)}
+                        title="Watch Video Solution"
+                        style={{
+                          display: 'grid',
+                          placeItems: 'center',
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '6px',
+                          background: 'rgba(239, 68, 68, 0.1)',
+                          border: '1px solid rgba(239, 68, 68, 0.3)',
+                          color: '#ef4444',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Video size={14} />
+                      </button>
+                    )}
+
+                    {/* Text Solution button if available */}
+                    {problem.text_solution && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveSolutionProblem(problem)}
+                        title="Read Text Solution"
+                        style={{
+                          display: 'grid',
+                          placeItems: 'center',
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '6px',
+                          background: 'rgba(168, 85, 247, 0.1)',
+                          border: '1px solid rgba(168, 85, 247, 0.3)',
+                          color: '#a855f7',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <FileText size={14} />
+                      </button>
+                    )}
+
+                    {/* External statement link if present */}
+                    {problem.external_url && (
+                      <a
+                        href={problem.external_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Official Statement"
+                        style={{
+                          display: 'grid',
+                          placeItems: 'center',
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '6px',
+                          background: 'rgba(255, 255, 255, 0.04)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          color: '#94a3b8',
+                        }}
+                      >
+                        <ExternalLink size={14} />
+                      </a>
+                    )}
+
+                    {/* Action button */}
+                    <Link
+                      href={`/code-arena/problems/${problem.id}?sheet=${sheet.id}`}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        background: 'linear-gradient(135deg, #06b6d4, #3b82f6)',
+                        color: 'white',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                      }}
+                    >
+                      <Play size={11} fill="currentColor" /> Solve
+                    </Link>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </section>
+
+        {/* Footer Callout */}
+        <div
+          style={{
+            marginTop: '20px',
+            padding: '24px',
+            borderRadius: '12px',
+            background: 'rgba(6, 182, 212, 0.05)',
+            border: '1px solid rgba(6, 182, 212, 0.2)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '16px',
+          }}
+        >
+          <div>
+            <div style={{ fontSize: '15px', fontWeight: 800, color: '#ffffff' }}>Want to track your progress & earn badges?</div>
+            <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>Sign in to Code Arena to submit code, earn daily streaks, and get certified!</div>
+          </div>
+          <Link
+            href="/login"
+            style={{
+              padding: '10px 20px',
+              borderRadius: '8px',
+              background: '#06b6d4',
+              color: '#000',
+              fontWeight: 800,
+              fontSize: '12px',
+              textDecoration: 'none',
+            }}
+          >
+            Log In / Sign Up
+          </Link>
+        </div>
+      </main>
+
+      {/* Video Solution Modal */}
+      <Modal
+        isOpen={activeVideoProblem !== null}
+        onClose={() => setActiveVideoProblem(null)}
+        title={`Video Solution: ${activeVideoProblem?.title}`}
+        size="lg"
+      >
+        {activeVideoProblem?.youtube_url && getYoutubeEmbedUrl(activeVideoProblem.youtube_url) ? (
+          <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.1)', background: '#000' }}>
+            <iframe
+              src={getYoutubeEmbedUrl(activeVideoProblem.youtube_url)}
+              title="Video Solution"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+            />
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <p style={{ color: '#94a3b8', marginBottom: '16px' }}>
+              This video cannot be embedded directly. Click below to watch:
+            </p>
+            <a
+              href={activeVideoProblem?.youtube_url || '#'}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 20px',
+                background: '#ef4444',
+                color: 'white',
+                borderRadius: '6px',
+                textDecoration: 'none',
+                fontWeight: 'bold',
+              }}
+            >
+              <ExternalLink size={16} /> Open Video Solution
+            </a>
+          </div>
+        )}
+      </Modal>
+
+      {/* Text Solution Modal */}
+      <Modal
+        isOpen={activeSolutionProblem !== null}
+        onClose={() => setActiveSolutionProblem(null)}
+        title={`Text Solution: ${activeSolutionProblem?.title}`}
+        size="lg"
+      >
+        <div style={{ maxHeight: 'calc(80vh - 120px)', overflowY: 'auto', paddingRight: '8px' }}>
+          {activeSolutionProblem?.text_solution ? (
+            <MarkdownRenderer content={activeSolutionProblem.text_solution} />
+          ) : (
+            <p style={{ color: '#64748b', fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>
+              No text solution available yet.
+            </p>
+          )}
+        </div>
+      </Modal>
+    </div>
+  );
+}
