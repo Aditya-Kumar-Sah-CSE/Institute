@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   Trophy, BookOpen, Share2, Search, ExternalLink, Play, Video, 
-  FileText, Check, Shield, Globe, Lock, ArrowRight, Code2, Sparkles, ChevronRight
+  FileText, Check, Shield, Globe, Lock, ArrowRight, Code2, Sparkles, ChevronRight,
+  UserPlus, CheckCircle2, Loader2
 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
@@ -46,10 +48,17 @@ export default function PublicSheetViewer({
   sheet: PublicSheet;
   shareUrl: string;
 }) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('ALL');
   const [copied, setCopied] = useState(false);
   const [currentUser, setCurrentUser] = useState<any | null>(null);
+
+  // Enroll state
+  const [showEnrollConfirm, setShowEnrollConfirm] = useState(false);
+  const [enrolling, setEnrolling] = useState(false);
+  const [enrolled, setEnrolled] = useState(false);
+  const [enrollError, setEnrollError] = useState<string | null>(null);
 
   // Modals for YT Video and Text Solution
   const [activeVideoProblem, setActiveVideoProblem] = useState<PublicProblem | null>(null);
@@ -61,14 +70,64 @@ export default function PublicSheetViewer({
       supabase.auth.getUser().then(({ data }) => {
         if (data?.user) {
           setCurrentUser(data.user);
+          // Check if already enrolled
+          supabase
+            .from('coding_sheet_enrollments')
+            .select('id')
+            .eq('sheet_id', sheet.id)
+            .eq('user_id', data.user.id)
+            .maybeSingle()
+            .then(({ data: enrollment }) => {
+              if (enrollment) {
+                setEnrolled(true);
+              }
+            });
         }
       }).catch(() => {});
     } catch (e) {
       // Ignore auth check error on static pages
     }
-  }, []);
+  }, [sheet.id]);
 
   const problems = sheet.problems || [];
+
+  const handleEnrollClick = () => {
+    if (!currentUser) {
+      // Redirect to login, then come back
+      const returnPath = `/share/sheet/${sheet.slug || sheet.id}`;
+      router.push(`/login?next=${encodeURIComponent(returnPath)}`);
+      return;
+    }
+    if (enrolled) {
+      // Already enrolled, go to arena
+      router.push(`/code-arena/sheets/${sheet.id}`);
+      return;
+    }
+    setEnrollError(null);
+    setShowEnrollConfirm(true);
+  };
+
+  const handleEnrollConfirm = async () => {
+    setEnrolling(true);
+    setEnrollError(null);
+    try {
+      const res = await fetch(`/api/coding/sheets/${sheet.id}/enroll`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setEnrolled(true);
+        setShowEnrollConfirm(false);
+      } else {
+        setEnrollError(json.error?.message || 'Failed to enroll. Please try again.');
+      }
+    } catch (err: any) {
+      setEnrollError(err.message || 'Network error. Please try again.');
+    } finally {
+      setEnrolling(false);
+    }
+  };
 
   const handleCopyLink = async () => {
     try {
@@ -201,24 +260,39 @@ export default function PublicSheetViewer({
             {copied ? 'Link Copied!' : 'Share Sheet'}
           </button>
 
-          <Link
-            href={getSolveArenaUrl()}
+          <button
+            type="button"
+            onClick={handleEnrollClick}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
               padding: '8px 16px',
               borderRadius: '8px',
-              background: 'linear-gradient(135deg, #06b6d4, #3b82f6)',
+              background: enrolled
+                ? 'linear-gradient(135deg, #22c55e, #16a34a)'
+                : 'linear-gradient(135deg, #06b6d4, #3b82f6)',
               color: 'white',
               fontSize: '12px',
               fontWeight: 700,
-              textDecoration: 'none',
-              boxShadow: '0 0 14px rgba(6, 182, 212, 0.3)',
+              border: 'none',
+              cursor: 'pointer',
+              boxShadow: enrolled
+                ? '0 0 14px rgba(34, 197, 94, 0.3)'
+                : '0 0 14px rgba(6, 182, 212, 0.3)',
+              transition: 'all 0.2s ease',
             }}
           >
-            Solve in Arena <ChevronRight size={14} />
-          </Link>
+            {enrolled ? (
+              <>
+                <CheckCircle2 size={14} /> Enrolled — Open Sheet
+              </>
+            ) : (
+              <>
+                <UserPlus size={14} /> Enroll Now
+              </>
+            )}
+          </button>
         </div>
       </nav>
 
@@ -671,6 +745,126 @@ export default function PublicSheetViewer({
               No text solution available yet.
             </p>
           )}
+        </div>
+      </Modal>
+
+      {/* Enrollment Confirmation Modal */}
+      <Modal
+        isOpen={showEnrollConfirm}
+        onClose={() => { setShowEnrollConfirm(false); setEnrollError(null); }}
+        title="Enroll in this Sheet"
+        size="sm"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '8px 0' }}>
+          {/* Sheet info summary */}
+          <div
+            style={{
+              background: 'rgba(6, 182, 212, 0.06)',
+              border: '1px solid rgba(6, 182, 212, 0.15)',
+              borderRadius: '12px',
+              padding: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '14px',
+            }}
+          >
+            <div
+              style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, #06b6d4, #a855f7)',
+                display: 'grid',
+                placeItems: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <BookOpen size={22} color="white" />
+            </div>
+            <div>
+              <div style={{ fontSize: '15px', fontWeight: 800, color: '#f8fafc' }}>
+                {sheet.title}
+              </div>
+              <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>
+                {problems.length} problems · {sheet.creator?.name ? `by ${sheet.creator.name}` : 'Curated Sheet'}
+              </div>
+            </div>
+          </div>
+
+          <p style={{ fontSize: '13px', color: '#cbd5e1', lineHeight: 1.6, margin: 0 }}>
+            You&apos;ll be enrolled in this practice sheet. You can track your progress, submit solutions, and earn badges.
+          </p>
+
+          {/* Error message */}
+          {enrollError && (
+            <div
+              style={{
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '8px',
+                padding: '10px 14px',
+                fontSize: '12px',
+                color: '#f87171',
+                fontWeight: 600,
+              }}
+            >
+              {enrollError}
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              onClick={() => { setShowEnrollConfirm(false); setEnrollError(null); }}
+              disabled={enrolling}
+              style={{
+                padding: '10px 20px',
+                borderRadius: '8px',
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                color: '#94a3b8',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: enrolling ? 'not-allowed' : 'pointer',
+                opacity: enrolling ? 0.5 : 1,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleEnrollConfirm}
+              disabled={enrolling}
+              style={{
+                padding: '10px 24px',
+                borderRadius: '8px',
+                background: 'linear-gradient(135deg, #06b6d4, #3b82f6)',
+                border: 'none',
+                color: 'white',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: enrolling ? 'not-allowed' : 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 0 20px rgba(6, 182, 212, 0.3)',
+                opacity: enrolling ? 0.8 : 1,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {enrolling ? (
+                <>
+                  <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Enrolling...
+                </>
+              ) : (
+                <>
+                  <UserPlus size={14} /> Confirm Enrollment
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </Modal>
     </div>
