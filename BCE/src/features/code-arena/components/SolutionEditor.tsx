@@ -74,8 +74,49 @@ export default function SolutionEditor({
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const initialValueRef = useRef<string>(value);
+  const urlMapRef = useRef<Record<string, string>>({});
 
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  // --- Image URL Hiding Logic ---
+  const hideUrls = (text: string) => {
+    return text.replace(/!\[(.*?)\]\((https:\/\/[^\s)]+)\)/g, (match, alt, url) => {
+      if (url.length > 50) {
+        let id = '';
+        const existingKey = Object.keys(urlMapRef.current).find(key => urlMapRef.current[key] === url);
+        if (existingKey) {
+          id = existingKey;
+        } else {
+          id = Math.random().toString(36).substring(2, 9);
+          urlMapRef.current[id] = url;
+        }
+        const cleanAlt = alt.startsWith('🖼️ Image: ') ? alt : `🖼️ Image: ${alt}`;
+        return `![${cleanAlt}](imgref-${id})`;
+      }
+      return match;
+    });
+  };
+
+  const restoreUrls = (text: string) => {
+    return text.replace(/!\[(.*?)\]\(imgref-([a-zA-Z0-9]+)\)/g, (match, alt, id) => {
+      const realUrl = urlMapRef.current[id];
+      if (realUrl) {
+        const cleanAlt = alt.startsWith('🖼️ Image: ') ? alt.replace('🖼️ Image: ', '') : alt;
+        return `![${cleanAlt}](${realUrl})`;
+      }
+      return match;
+    });
+  };
+
+  const displayValue = hideUrls(value);
+
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const rawVal = e.target.value;
+    const realVal = restoreUrls(rawVal);
+    onChange(realVal);
+  };
+  // -----------------------------
+
 
   // Restore mode from sessionStorage on mount safely without SSR issues
   useEffect(() => {
@@ -131,12 +172,12 @@ export default function SolutionEditor({
 
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    const selection = value.substring(start, end) || defaultText;
+    const selection = displayValue.substring(start, end) || defaultText;
 
     const replacement = `${before}${selection}${after}`;
-    const newValue = value.substring(0, start) + replacement + value.substring(end);
+    const newDisplayValue = displayValue.substring(0, start) + replacement + displayValue.substring(end);
 
-    onChange(newValue);
+    onChange(restoreUrls(newDisplayValue));
 
     // Set cursor position after insertion
     setTimeout(() => {
@@ -152,20 +193,21 @@ export default function SolutionEditor({
     const langObj = SUPPORTED_LANGUAGES.find((l) => l.value === langValue) || SUPPORTED_LANGUAGES[0];
 
     if (!textarea) {
-      onChange(`${value}\n\n\`\`\`${langObj.value}\n${langObj.snippet}\n\`\`\`\n`);
+      const newDisplayValue = `${displayValue}\n\n\`\`\`${langObj.value}\n${langObj.snippet}\n\`\`\`\n`;
+      onChange(restoreUrls(newDisplayValue));
       setShowLangDropdown(false);
       return;
     }
 
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    const selectedText = value.substring(start, end).trim();
+    const selectedText = displayValue.substring(start, end).trim();
     const codeContent = selectedText || langObj.snippet;
 
     const fence = `\n\`\`\`${langObj.value}\n${codeContent}\n\`\`\`\n`;
-    const newValue = value.substring(0, start) + fence + value.substring(end);
+    const newDisplayValue = displayValue.substring(0, start) + fence + displayValue.substring(end);
 
-    onChange(newValue);
+    onChange(restoreUrls(newDisplayValue));
     setSelectedLanguage(langObj.value);
     setShowLangDropdown(false);
 
@@ -666,8 +708,8 @@ export default function SolutionEditor({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <textarea
               ref={textareaRef}
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
+              value={displayValue}
+              onChange={handleTextareaChange}
               onKeyDown={handleTextareaKeyDown}
               onDrop={handleDrop}
               onDragOver={handleDragOver}
