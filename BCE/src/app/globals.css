@@ -278,3 +278,21 @@ small, .caption {
     font-size: 9px;
   }
 }
+
+/* === Global Mobile Safety Utilities === */
+@media (max-width: 768px) {
+  .modal-content, .modal-body {
+    max-width: 95vw !important;
+    padding: 14px !important;
+  }
+
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  img, video, iframe {
+    max-width: 100% !important;
+  }
+}

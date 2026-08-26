@@ -363,24 +363,24 @@ export default function SheetDetailClient({
 
       {/* Creator Analytics Panel */}
       {isCreator && (
-        <div style={{ background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.2)', padding: '16px 20px', borderRadius: 'var(--radius-md)', display: 'flex', gap: '24px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.2)', padding: '16px 20px', borderRadius: 'var(--radius-md)', display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
           <div>
             <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>Creator Analytics</div>
             <div style={{ fontSize: '14px', fontWeight: 700, color: '#22c55e' }}>{sheet.title}</div>
           </div>
-          <div style={{ height: '30px', width: '1px', background: 'var(--glass-border)' }} />
+          <div style={{ height: '30px', width: '1px', background: 'rgba(255,255,255,0.1)' }} />
           <div>
             <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>Total Problems</div>
             <div style={{ fontSize: '14px', fontWeight: 700 }}>{totalProblems}</div>
           </div>
-          <div style={{ height: '30px', width: '1px', background: 'var(--glass-border)' }} />
+          <div style={{ height: '30px', width: '1px', background: 'rgba(255,255,255,0.1)' }} />
           <div>
             <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>Students Solving</div>
             <div style={{ fontSize: '14px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Users size={14} className="text-neon-cyan" /> {totalStudentsSolving}
             </div>
           </div>
-          <div style={{ height: '30px', width: '1px', background: 'var(--glass-border)' }} />
+          <div style={{ height: '30px', width: '1px', background: 'rgba(255,255,255,0.1)' }} />
           <div>
             <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>Access</div>
             <div style={{ fontSize: '14px', fontWeight: 700, textTransform: 'capitalize' }}>{enrollmentAccess}</div>
@@ -402,7 +402,7 @@ export default function SheetDetailClient({
           gap: '20px'
         }}
       >
-        <div style={{ flex: 1, minWidth: '280px' }}>
+        <div style={{ flex: '1 1 260px', minWidth: 0 }}>
           <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 800, margin: '0 0 6px 0' }} className="text-gradient">
             {sheet.title}
           </h2>
@@ -486,10 +486,10 @@ export default function SheetDetailClient({
         </div>
 
         {hasAccess && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px', minWidth: '320px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '10px', flex: '1 1 260px', minWidth: 0 }}>
             {analytics ? (
                <div style={{ width: '100%', padding: '16px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', borderRadius: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
                      <div>
                         <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>TGT TODAY</div>
                         <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--neon-cyan)' }}>{analytics.targetToday} Problems</div>
@@ -521,7 +521,7 @@ export default function SheetDetailClient({
                   </div>
                </div>
             ) : (
-               <div style={{ width: '220px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+               <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 'bold' }}>
                    <span style={{ color: 'var(--text-secondary)' }}>TOTAL PROGRESS</span>
                    <span style={{ color: isCompleted ? '#22c55e' : 'var(--neon-cyan)' }}>

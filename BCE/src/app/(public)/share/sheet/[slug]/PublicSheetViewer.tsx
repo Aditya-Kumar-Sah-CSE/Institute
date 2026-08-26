@@ -420,16 +420,12 @@ export default function PublicSheetViewer({
               return (
                 <div
                   key={problem.id}
+                  className="practice-row-item"
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '14px 18px',
                     borderRadius: '12px',
                     background: 'rgba(30, 41, 59, 0.4)',
                     border: '1px solid rgba(255, 255, 255, 0.07)',
                     transition: 'all 0.15s ease',
-                    gap: '16px',
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.background = 'rgba(30, 41, 59, 0.7)';
@@ -440,17 +436,17 @@ export default function PublicSheetViewer({
                     e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.07)';
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
+                  <div className="row-item-left" style={{ gap: '14px' }}>
                     <span style={{ fontSize: '13px', fontWeight: 800, color: '#64748b', width: '24px' }}>
                       {idx + 1}.
                     </span>
 
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div className="row-problem-meta">
+                      <div className="row-problem-title" style={{ fontSize: '14px', fontWeight: 700, color: '#f8fafc' }}>
                         {problem.title}
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
+                      <div className="row-tags-group" style={{ marginTop: '4px' }}>
                         <span
                           style={{
                             fontSize: '9px',
@@ -473,7 +469,7 @@ export default function PublicSheetViewer({
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                  <div className="row-item-right" style={{ gap: '10px' }}>
                     <span
                       style={{
                         fontSize: '10px',
