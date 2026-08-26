@@ -52,6 +52,7 @@ public:
   assert(wrappedCpp.includes('HarnessParser::parseInteger(cin)'), 'C++ harness uses HarnessParser::parseInteger scoping');
   assert(wrappedCpp.includes('skipParamLabel(in)'), 'C++ harness includes label cleaning');
   assert(!wrappedCpp.includes('auto arg0 = parseIntegerArray(cin);'), 'C++ harness has NO unqualified parseIntegerArray');
+  assert(!wrappedCpp.includes("'''"), 'C++ harness has NO invalid triple single-quote syntax');
 
   // 4. String + String Test
   const strSig = {

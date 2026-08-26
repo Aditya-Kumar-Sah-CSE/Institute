@@ -224,7 +224,7 @@ namespace HarnessParser {
         skipParamLabel(in);
         char c;
         while (in >> c) {
-            if (c == '\'') {
+            if (c == '\\'') {
                 char ch;
                 in.get(ch);
                 char endQuote;
@@ -248,7 +248,7 @@ namespace HarnessParser {
         string s;
         char c;
         while (in.get(c) && isspace(c));
-        if (c == '"' || c == '\'') {
+        if (c == '"' || c == '\\'') {
             char quote = c;
             while (in.get(c)) {
                 if (c == '\\\\') {
