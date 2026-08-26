@@ -509,16 +509,18 @@ export default function GoalsClient() {
   return (
     <div className="code-arena-page goals-page-scroll" style={{ padding: '24px', minHeight: '100vh', color: 'var(--text-main)' }}>
       {/* Header */}
-      <header style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
-        <Link href="/dashboard" style={{ display: 'grid', placeItems: 'center', width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', color: 'var(--text-muted)', textDecoration: 'none' }} title="Back to Dashboard">
-          <ArrowLeft size={18} />
-        </Link>
-        <div style={{ flex: 1 }}>
-          <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 800 }} className="text-gradient">My Learning Goals</h1>
-          <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-secondary)' }}>Track goals, manage your daily routine, and set alarms</p>
+      <header style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', width: '100%' }}>
+          <Link href="/dashboard" style={{ display: 'grid', placeItems: 'center', width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', color: 'var(--text-muted)', textDecoration: 'none', flexShrink: 0 }} title="Back to Dashboard">
+            <ArrowLeft size={18} />
+          </Link>
+          <div style={{ flex: 1, minWidth: 0, width: '100%' }}>
+            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 800 }} className="text-gradient">My Learning Goals</h1>
+            <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-secondary)' }}>Track goals, manage your daily routine, and set alarms</p>
+          </div>
         </div>
-        <div suppressHydrationWarning style={{ fontSize: '22px', fontWeight: 800, fontFamily: 'monospace', color: 'var(--neon-cyan)', letterSpacing: '1px' }}>
-          {nowStr}
+        <div suppressHydrationWarning style={{ fontSize: '18px', fontWeight: 800, fontFamily: 'monospace', color: 'var(--neon-cyan)', letterSpacing: '1px', width: 'fit-content', background: 'rgba(6, 182, 212, 0.08)', padding: '6px 14px', borderRadius: '8px', border: '1px solid rgba(6, 182, 212, 0.2)', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+          ⏱️ {nowStr}
         </div>
       </header>
 
