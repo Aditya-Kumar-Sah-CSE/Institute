@@ -90,6 +90,22 @@ export default async function CodeProblemPage({ params, searchParams }: { params
     }
   }
 
+  // Fallback: If no sheetId or no solution found in the specified sheet, try to find ANY solution for this problem
+  if (!text_solution && !youtube_url) {
+    const { data: anySolutionList } = await supabase
+      .from('coding_sheet_problems')
+      .select('text_solution, youtube_url')
+      .eq('problem_id', id);
+
+    if (anySolutionList && anySolutionList.length > 0) {
+      const validSolution = anySolutionList.find(s => s.text_solution || s.youtube_url);
+      if (validSolution) {
+        text_solution = validSolution.text_solution;
+        youtube_url = validSolution.youtube_url;
+      }
+    }
+  }
+
   const { data: samples } = await supabase
     .from('coding_problem_test_cases')
     .select('input,expected_output,sample_name,order_index')
