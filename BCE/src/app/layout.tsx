@@ -6,12 +6,14 @@ const outfit = Outfit({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-display',
+  preload: false,
 });
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-mono',
+  preload: false,
 });
 
 import { ThemeProvider } from '@/components/ThemeProvider';
