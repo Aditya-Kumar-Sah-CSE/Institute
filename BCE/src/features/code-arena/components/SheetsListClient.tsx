@@ -5,12 +5,13 @@ import Link from 'next/link';
 import { 
   Trophy, ArrowLeft, BookOpen, Plus, Search, 
   ChevronRight, Trash2, CheckCircle2, Award, X,
-  Globe, Shield, Lock, Share2, Check
+  Globe, Shield, Lock, Share2, Check, UserPlus, Loader2
 } from 'lucide-react';
 import CreateSheetWizard from './CreateSheetWizard';
 import MobileCodeArenaToggle from './MobileCodeArenaToggle';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import Modal from '@/components/ui/Modal';
 import './CodeArena.css';
 
 type CodingSheet = {
@@ -28,15 +29,23 @@ export default function SheetsListClient({
   initialSheets,
   isInstructor,
   solvedProblemIds,
+  enrolledSheetIds: initialEnrolledIds,
 }: {
   initialSheets: CodingSheet[];
   isInstructor: boolean;
   solvedProblemIds: string[];
+  enrolledSheetIds: string[];
 }) {
   const [sheets, setSheets] = useState<CodingSheet[]>(initialSheets);
   const [searchQuery, setSearchQuery] = useState('');
   const [showWizard, setShowWizard] = useState(false);
   const [copiedSheetId, setCopiedSheetId] = useState<string | null>(null);
+
+  // Enrollment state
+  const [enrolledIds, setEnrolledIds] = useState<string[]>(initialEnrolledIds);
+  const [enrollSheet, setEnrollSheet] = useState<CodingSheet | null>(null);
+  const [enrolling, setEnrolling] = useState(false);
+  const [enrollError, setEnrollError] = useState<string | null>(null);
 
   const handleShareSheet = async (sheet: CodingSheet, e: React.MouseEvent) => {
     e.preventDefault();
@@ -80,6 +89,34 @@ export default function SheetsListClient({
       setSheets(prev => prev.filter(s => s.id !== sheetId));
     } catch (err: any) {
       alert(err.message || 'An error occurred while deleting.');
+    }
+  };
+
+  const handleEnrollClick = (sheet: CodingSheet) => {
+    setEnrollError(null);
+    setEnrollSheet(sheet);
+  };
+
+  const handleEnrollConfirm = async () => {
+    if (!enrollSheet) return;
+    setEnrolling(true);
+    setEnrollError(null);
+    try {
+      const res = await fetch(`/api/coding/sheets/${enrollSheet.id}/enroll`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setEnrolledIds(prev => [...prev, enrollSheet.id]);
+        setEnrollSheet(null);
+      } else {
+        setEnrollError(json.error?.message || 'Failed to enroll. Please try again.');
+      }
+    } catch (err: any) {
+      setEnrollError(err.message || 'Network error. Please try again.');
+    } finally {
+      setEnrolling(false);
     }
   };
 
@@ -174,6 +211,9 @@ export default function SheetsListClient({
             const solvedProblems = problemsList.filter(p => solvedProblemIds.includes(p.problem_id)).length;
             const progressPct = totalProblems > 0 ? Math.round((solvedProblems / totalProblems) * 100) : 0;
             const isCompleted = progressPct === 100 && totalProblems > 0;
+            const isEnrolled = enrolledIds.includes(sheet.id);
+            // Instructors always get direct access (no enroll needed)
+            const showEnroll = !isInstructor && !isEnrolled;
 
             return (
               <Card
@@ -218,8 +258,8 @@ export default function SheetsListClient({
                     {sheet.description || 'Practice curated coding questions.'}
                   </p>
 
-                  {/* Progress tracker bar */}
-                  {totalProblems > 0 && (
+                  {/* Progress tracker bar — only show when enrolled */}
+                  {isEnrolled && totalProblems > 0 && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '8px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontWeight: 'bold' }}>
                         <span style={{ color: 'var(--text-secondary)' }}>PROGRESS</span>
@@ -238,16 +278,51 @@ export default function SheetsListClient({
                       </div>
                     </div>
                   )}
+
+                  {/* Problem count for unenrolled */}
+                  {showEnroll && totalProblems > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#06b6d4', background: 'rgba(6,182,212,0.1)', padding: '2px 8px', borderRadius: '8px' }}>
+                        {totalProblems} problems
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <Link
-                    href={`/code-arena/sheets/${sheet.id}`}
-                    className="btn btn-secondary btn-sm"
-                    style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px', height: '36px' }}
-                  >
-                    View Sheet <ChevronRight size={14} />
-                  </Link>
+                  {showEnroll ? (
+                    <button
+                      type="button"
+                      onClick={() => handleEnrollClick(sheet)}
+                      className="btn btn-sm"
+                      style={{
+                        flex: 1,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        height: '36px',
+                        background: 'linear-gradient(135deg, #06b6d4, #3b82f6)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        boxShadow: '0 0 12px rgba(6, 182, 212, 0.2)',
+                      }}
+                    >
+                      <UserPlus size={14} /> Enroll
+                    </button>
+                  ) : (
+                    <Link
+                      href={`/code-arena/sheets/${sheet.id}`}
+                      className="btn btn-secondary btn-sm"
+                      style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px', height: '36px' }}
+                    >
+                      View Sheet <ChevronRight size={14} />
+                    </Link>
+                  )}
 
                   <button
                     type="button"
@@ -255,10 +330,10 @@ export default function SheetsListClient({
                     style={{
                       width: '36px',
                       height: '36px',
-                      borderRadius: 'var(--radius-sm)',
+                      borderRadius: '6px',
                       background: copiedSheetId === sheet.id ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                      border: copiedSheetId === sheet.id ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid var(--glass-border)',
-                      color: copiedSheetId === sheet.id ? '#4ade80' : 'var(--text-secondary)',
+                      border: copiedSheetId === sheet.id ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid rgba(255, 255, 255, 0.08)',
+                      color: copiedSheetId === sheet.id ? '#4ade80' : '#94a3b8',
                       cursor: 'pointer',
                       display: 'grid',
                       placeItems: 'center',
@@ -275,7 +350,7 @@ export default function SheetsListClient({
                       style={{
                         width: '36px',
                         height: '36px',
-                        borderRadius: 'var(--radius-sm)',
+                        borderRadius: '6px',
                         background: 'rgba(239, 68, 68, 0.08)',
                         border: '1px solid rgba(239, 68, 68, 0.2)',
                         color: 'rgba(239, 68, 68, 0.8)',
@@ -303,6 +378,125 @@ export default function SheetsListClient({
           })}
         </div>
       )}
+
+      {/* Enrollment Confirmation Modal */}
+      <Modal
+        isOpen={enrollSheet !== null}
+        onClose={() => { setEnrollSheet(null); setEnrollError(null); }}
+        title="Enroll in this Sheet"
+        size="sm"
+      >
+        {enrollSheet && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '8px 0' }}>
+            <div
+              style={{
+                background: 'rgba(6, 182, 212, 0.06)',
+                border: '1px solid rgba(6, 182, 212, 0.15)',
+                borderRadius: '12px',
+                padding: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '14px',
+              }}
+            >
+              <div
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #06b6d4, #a855f7)',
+                  display: 'grid',
+                  placeItems: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <BookOpen size={22} color="white" />
+              </div>
+              <div>
+                <div style={{ fontSize: '15px', fontWeight: 800 }}>
+                  {enrollSheet.title}
+                </div>
+                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>
+                  {(enrollSheet.coding_sheet_problems || []).length} problems
+                </div>
+              </div>
+            </div>
+
+            <p style={{ fontSize: '13px', color: '#cbd5e1', lineHeight: 1.6, margin: 0 }}>
+              You&apos;ll be enrolled in this practice sheet. You can track your progress, submit solutions, and earn badges.
+            </p>
+
+            {enrollError && (
+              <div
+                style={{
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  borderRadius: '8px',
+                  padding: '10px 14px',
+                  fontSize: '12px',
+                  color: '#f87171',
+                  fontWeight: 600,
+                }}
+              >
+                {enrollError}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => { setEnrollSheet(null); setEnrollError(null); }}
+                disabled={enrolling}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  color: '#94a3b8',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  cursor: enrolling ? 'not-allowed' : 'pointer',
+                  opacity: enrolling ? 0.5 : 1,
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleEnrollConfirm}
+                disabled={enrolling}
+                style={{
+                  padding: '10px 24px',
+                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #06b6d4, #3b82f6)',
+                  border: 'none',
+                  color: 'white',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  cursor: enrolling ? 'not-allowed' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 0 20px rgba(6, 182, 212, 0.3)',
+                  opacity: enrolling ? 0.8 : 1,
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {enrolling ? (
+                  <>
+                    <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Enrolling...
+                  </>
+                ) : (
+                  <>
+                    <UserPlus size={14} /> Confirm Enrollment
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Sheets wizard setup modal */}
       {showWizard && (
