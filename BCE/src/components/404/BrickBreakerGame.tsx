@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Pause, Volume2, VolumeX, Heart, ArrowLeft, ArrowRight, RotateCcw, LayoutDashboard, Trophy } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Heart, Music, Music2, RotateCcw, LayoutDashboard, Trophy, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import './BrickBreakerGame.css';
 
@@ -41,12 +41,24 @@ interface Particle {
   color: string;
   alpha: number;
   decay: number;
+  gravity?: number;
 }
 
 interface BallTrail {
   x: number;
   y: number;
   alpha: number;
+  radius: number;
+}
+
+interface FloatingText {
+  id: number;
+  text: string;
+  x: number;
+  y: number;
+  alpha: number;
+  color: string;
+  scale: number;
 }
 
 export default function BrickBreakerGame() {
@@ -55,120 +67,220 @@ export default function BrickBreakerGame() {
   const [highScore, setHighScore] = useState<number>(0);
   const [lives, setLives] = useState<number>(3);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+  const [musicEnabled, setMusicEnabled] = useState<boolean>(true);
   const [isClient, setIsClient] = useState<boolean>(false);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const bgmTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const bgmStepRef = useRef<number>(0);
 
-  // Game Engine State (Refs for zero-latency 60fps physics loop)
-  const paddleRef = useRef({ x: (CANVAS_WIDTH - PADDLE_WIDTH) / 2, width: PADDLE_WIDTH });
+  // Game Engine State (Refs for 120fps smooth physics loop)
+  const paddleRef = useRef({
+    x: (CANVAS_WIDTH - PADDLE_WIDTH) / 2,
+    targetX: (CANVAS_WIDTH - PADDLE_WIDTH) / 2,
+    width: PADDLE_WIDTH,
+    tilt: 0,
+  });
   const ballRef = useRef({
     x: CANVAS_WIDTH / 2,
     y: CANVAS_HEIGHT - 35,
-    vx: 4.5,
-    vy: -4.5,
-    baseSpeed: 6.2,
+    vx: 4.8,
+    vy: -4.8,
+    baseSpeed: 6.5,
     speedMultiplier: 1.0,
   });
   const bricksRef = useRef<Brick[]>([]);
   const particlesRef = useRef<Particle[]>([]);
   const trailRef = useRef<BallTrail[]>([]);
+  const floatTextsRef = useRef<FloatingText[]>([]);
+  const shakeTimeRef = useRef<number>(0);
   const keysRef = useRef<{ left: boolean; right: boolean }>({ left: false, right: false });
 
-  // ── Web Audio API Synthesizer ──────────────────────────────────────────
-  const playSound = useCallback((type: 'bounce' | 'brick' | 'special' | 'life' | 'gameover' | 'victory') => {
-    if (!soundEnabled || typeof window === 'undefined') return;
+  // ── Web Audio API Synthesizer (Loud & Punchy SFX + Arcade BGM) ───────
+  const initAudio = useCallback(() => {
+    if (typeof window === 'undefined') return null;
+    if (!audioCtxRef.current) {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) audioCtxRef.current = new AudioCtx();
+    }
+    const ctx = audioCtxRef.current;
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+    return ctx;
+  }, []);
 
-    try {
-      if (!audioCtxRef.current) {
-        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-        if (AudioCtx) audioCtxRef.current = new AudioCtx();
-      }
-
-      const ctx = audioCtxRef.current;
+  const playSound = useCallback(
+    (type: 'bounce' | 'brick' | 'special' | 'life' | 'gameover' | 'victory', panX: number = 0.5) => {
+      if (!soundEnabled) return;
+      const ctx = initAudio();
       if (!ctx) return;
-      if (ctx.state === 'suspended') {
-        ctx.resume().catch(() => {});
-      }
 
       const now = ctx.currentTime;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
 
-      osc.connect(gain);
-      gain.connect(ctx.destination);
+      // Master Gain for Loud Punchy Sound
+      const masterGain = ctx.createGain();
+      masterGain.gain.setValueAtTime(0.45, now);
+
+      // Stereo Panner (Left/Right position effect)
+      let panner: StereoPannerNode | null = null;
+      if (ctx.createStereoPanner) {
+        panner = ctx.createStereoPanner();
+        const panValue = Math.max(-0.8, Math.min(0.8, (panX - 0.5) * 1.6));
+        panner.pan.setValueAtTime(panValue, now);
+        masterGain.connect(panner);
+        panner.connect(ctx.destination);
+      } else {
+        masterGain.connect(ctx.destination);
+      }
 
       if (type === 'bounce') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(320, now);
-        osc.frequency.exponentialRampToValueAtTime(160, now + 0.08);
-        gain.gain.setValueAtTime(0.25, now);
-        gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
-        osc.start(now);
-        osc.stop(now + 0.08);
-      } else if (type === 'brick') {
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(520, now);
-        osc.frequency.exponentialRampToValueAtTime(880, now + 0.09);
-        gain.gain.setValueAtTime(0.18, now);
-        gain.gain.linearRampToValueAtTime(0.01, now + 0.09);
+        // Deep sub-bass thud + punchy impact click
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.exponentialRampToValueAtTime(60, now + 0.09);
+        gain.gain.setValueAtTime(0.6, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.09);
+        osc.connect(gain);
+        gain.connect(masterGain);
         osc.start(now);
         osc.stop(now + 0.09);
+
+        // Click transient
+        const clickOsc = ctx.createOscillator();
+        const clickGain = ctx.createGain();
+        clickOsc.type = 'sine';
+        clickOsc.frequency.setValueAtTime(800, now);
+        clickOsc.frequency.linearRampToValueAtTime(200, now + 0.02);
+        clickGain.gain.setValueAtTime(0.4, now);
+        clickGain.gain.linearRampToValueAtTime(0.01, now + 0.02);
+        clickOsc.connect(clickGain);
+        clickGain.connect(masterGain);
+        clickOsc.start(now);
+        clickOsc.stop(now + 0.02);
+      } else if (type === 'brick') {
+        // Glass shatter + punchy synth burst
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = 'square';
+        osc1.frequency.setValueAtTime(440, now);
+        osc1.frequency.exponentialRampToValueAtTime(1100, now + 0.1);
+        gain1.gain.setValueAtTime(0.35, now);
+        gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc1.connect(gain1);
+        gain1.connect(masterGain);
+        osc1.start(now);
+        osc1.stop(now + 0.1);
       } else if (type === 'special') {
-        // Multi-frequency 404 special brick explosion chord
-        [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
-          const subOsc = ctx.createOscillator();
-          const subGain = ctx.createGain();
-          subOsc.type = 'triangle';
-          subOsc.frequency.setValueAtTime(freq, now + idx * 0.04);
-          subGain.gain.setValueAtTime(0.2, now + idx * 0.04);
-          subGain.gain.linearRampToValueAtTime(0.01, now + idx * 0.04 + 0.15);
-          subOsc.connect(subGain);
-          subGain.connect(ctx.destination);
-          subOsc.start(now + idx * 0.04);
-          subOsc.stop(now + idx * 0.04 + 0.15);
+        // 404 Special Brick Explosion Chord + Sub Drop
+        const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5];
+        notes.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.03);
+          osc.frequency.exponentialRampToValueAtTime(freq * 1.5, now + idx * 0.03 + 0.25);
+          gain.gain.setValueAtTime(0.4, now + idx * 0.03);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.03 + 0.25);
+          osc.connect(gain);
+          gain.connect(masterGain);
+          osc.start(now + idx * 0.03);
+          osc.stop(now + idx * 0.03 + 0.25);
         });
       } else if (type === 'life') {
+        // Warning sound
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(280, now);
-        osc.frequency.linearRampToValueAtTime(110, now + 0.25);
-        gain.gain.setValueAtTime(0.3, now);
-        gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+        osc.frequency.setValueAtTime(350, now);
+        osc.frequency.exponentialRampToValueAtTime(80, now + 0.3);
+        gain.gain.setValueAtTime(0.5, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+        osc.connect(gain);
+        gain.connect(masterGain);
         osc.start(now);
-        osc.stop(now + 0.25);
+        osc.stop(now + 0.3);
       } else if (type === 'gameover') {
-        [220, 196, 174, 130].forEach((freq, idx) => {
-          const subOsc = ctx.createOscillator();
-          const subGain = ctx.createGain();
-          subOsc.type = 'sawtooth';
-          subOsc.frequency.setValueAtTime(freq, now + idx * 0.12);
-          subGain.gain.setValueAtTime(0.25, now + idx * 0.12);
-          subGain.gain.linearRampToValueAtTime(0.01, now + idx * 0.12 + 0.2);
-          subOsc.connect(subGain);
-          subGain.connect(ctx.destination);
-          subOsc.start(now + idx * 0.12);
-          subOsc.stop(now + idx * 0.12 + 0.2);
+        // Minor chord descent
+        [220, 196, 174, 130, 98].forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.12);
+          gain.gain.setValueAtTime(0.4, now + idx * 0.12);
+          gain.gain.linearRampToValueAtTime(0.01, now + idx * 0.12 + 0.25);
+          osc.connect(gain);
+          gain.connect(masterGain);
+          osc.start(now + idx * 0.12);
+          osc.stop(now + idx * 0.12 + 0.25);
         });
       } else if (type === 'victory') {
-        [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
-          const subOsc = ctx.createOscillator();
-          const subGain = ctx.createGain();
-          subOsc.type = 'sine';
-          subOsc.frequency.setValueAtTime(freq, now + idx * 0.1);
-          subGain.gain.setValueAtTime(0.25, now + idx * 0.1);
-          subGain.gain.linearRampToValueAtTime(0.01, now + idx * 0.1 + 0.3);
-          subOsc.connect(subGain);
-          subGain.connect(ctx.destination);
-          subOsc.start(now + idx * 0.1);
-          subOsc.stop(now + idx * 0.1 + 0.3);
+        // Major fanfare chord ascent
+        [523.25, 659.25, 783.99, 1046.5, 1318.5, 1567.98].forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+          gain.gain.setValueAtTime(0.45, now + idx * 0.08);
+          gain.gain.linearRampToValueAtTime(0.01, now + idx * 0.08 + 0.35);
+          osc.connect(gain);
+          gain.connect(masterGain);
+          osc.start(now + idx * 0.08);
+          osc.stop(now + idx * 0.08 + 0.35);
         });
       }
-    } catch {
-      // Ignore Web Audio API initialization blocks
+    },
+    [soundEnabled, initAudio]
+  );
+
+  // ── Procedural Synthwave BGM Loop ───────────────────────────────────
+  useEffect(() => {
+    if (!musicEnabled || gameState !== 'PLAYING') {
+      if (bgmTimerRef.current) clearInterval(bgmTimerRef.current);
+      return;
     }
-  }, [soundEnabled]);
+
+    const bassNotes = [110, 110, 130.81, 146.83, 110, 110, 98, 87.31]; // A, C, D, A, G, F
+    bgmStepRef.current = 0;
+
+    bgmTimerRef.current = setInterval(() => {
+      const ctx = initAudio();
+      if (!ctx || ctx.state !== 'running') return;
+
+      const now = ctx.currentTime;
+      const freq = bassNotes[bgmStepRef.current % bassNotes.length];
+      bgmStepRef.current++;
+
+      const osc = ctx.createOscillator();
+      const filter = ctx.createBiquadFilter();
+      const gain = ctx.createGain();
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, now);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(450, now);
+      filter.frequency.exponentialRampToValueAtTime(150, now + 0.16);
+
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.16);
+    }, 180);
+
+    return () => {
+      if (bgmTimerRef.current) clearInterval(bgmTimerRef.current);
+    };
+  }, [musicEnabled, gameState, initAudio]);
 
   // Read High Score on client mount
   useEffect(() => {
@@ -212,11 +324,8 @@ export default function BrickBreakerGame() {
 
     for (let r = 0; r < BRICK_ROWS; r++) {
       for (let c = 0; c < BRICK_COLS; c++) {
-        // Row 2, columns 3 & 4 (center) marked as special 404 brick
         const isSpecial = r === 2 && (c === 3 || c === 4);
-
-        // If special, span 2 columns seamlessly for column 3
-        if (r === 2 && c === 4) continue; // Skip column 4 to merge into column 3
+        if (r === 2 && c === 4) continue; // Merge column 4 into 3 for 404 brick
 
         const currentWidth = isSpecial ? brickWidth * 2 + BRICK_PADDING : brickWidth;
 
@@ -237,13 +346,18 @@ export default function BrickBreakerGame() {
 
   // Reset ball & paddle positions
   const resetPositions = useCallback(() => {
-    paddleRef.current = { x: (CANVAS_WIDTH - PADDLE_WIDTH) / 2, width: PADDLE_WIDTH };
+    paddleRef.current = {
+      x: (CANVAS_WIDTH - PADDLE_WIDTH) / 2,
+      targetX: (CANVAS_WIDTH - PADDLE_WIDTH) / 2,
+      width: PADDLE_WIDTH,
+      tilt: 0,
+    };
     ballRef.current = {
       x: CANVAS_WIDTH / 2,
       y: CANVAS_HEIGHT - 35,
-      vx: (Math.random() > 0.5 ? 1 : -1) * 4.5,
-      vy: -4.5,
-      baseSpeed: 6.2,
+      vx: (Math.random() > 0.5 ? 1 : -1) * 4.8,
+      vy: -4.8,
+      baseSpeed: 6.5,
       speedMultiplier: 1.0,
     };
     trailRef.current = [];
@@ -260,51 +374,65 @@ export default function BrickBreakerGame() {
 
   // Particle Burst Creator
   const createParticleBurst = (x: number, y: number, color: string, isSpecial: boolean = false) => {
-    const count = isSpecial ? 36 : 14;
+    const count = isSpecial ? 42 : 16;
     const newParticles: Particle[] = [];
 
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = Math.random() * (isSpecial ? 6.5 : 4.0) + 1.2;
+      const speed = Math.random() * (isSpecial ? 7.5 : 4.5) + 1.5;
       newParticles.push({
         x,
         y,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
-        size: Math.random() * (isSpecial ? 5 : 3.5) + 2,
+        size: Math.random() * (isSpecial ? 5.5 : 3.8) + 2,
         color: isSpecial ? (i % 2 === 0 ? '#00f0ff' : '#ef4444') : color,
         alpha: 1.0,
-        decay: Math.random() * 0.025 + 0.015,
+        decay: Math.random() * 0.02 + 0.015,
+        gravity: 0.12,
       });
     }
     particlesRef.current.push(...newParticles);
   };
 
+  // Spawn Floating Score Text
+  const spawnFloatingText = (text: string, x: number, y: number, color: string) => {
+    floatTextsRef.current.push({
+      id: Math.random(),
+      text,
+      x,
+      y,
+      alpha: 1.0,
+      color,
+      scale: 1.0,
+    });
+  };
+
   // Launch Ball Action
   const handleLaunchBall = useCallback(() => {
+    initAudio();
     if (gameState === 'READY') {
       setGameState('PLAYING');
     } else if (gameState === 'GAME_OVER' || gameState === 'VICTORY') {
       handleFullReset();
       setGameState('PLAYING');
     }
-  }, [gameState, handleFullReset]);
+  }, [gameState, handleFullReset, initAudio]);
 
   // Pause / Resume Toggle
   const handleTogglePause = useCallback(() => {
+    initAudio();
     if (gameState === 'PLAYING') {
       setGameState('PAUSED');
     } else if (gameState === 'PAUSED') {
       setGameState('PLAYING');
     }
-  }, [gameState]);
+  }, [gameState, initAudio]);
 
   // ── Keyboard Controls & Page Scroll Prevention ───────────────────────
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const code = e.code;
-
-      // Prevent scrolling for Space and Arrow keys
       if (['Space', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(code)) {
         e.preventDefault();
       }
@@ -337,7 +465,7 @@ export default function BrickBreakerGame() {
     };
   }, [handleLaunchBall, handleTogglePause]);
 
-  // ── Mouse & Touch Pointer Position Mapper ────────────────────────────
+  // ── Mouse & Touch Pointer Position Mapper (Smooth Lerp) ──────────────
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
@@ -345,28 +473,24 @@ export default function BrickBreakerGame() {
     const scaleX = CANVAS_WIDTH / rect.width;
     const canvasX = relativeX * scaleX;
 
-    // Center paddle on pointer
-    const newPaddleX = Math.max(0, Math.min(CANVAS_WIDTH - PADDLE_WIDTH, canvasX - PADDLE_WIDTH / 2));
-    paddleRef.current.x = newPaddleX;
-
-    if (gameState === 'READY') {
-      ballRef.current.x = newPaddleX + PADDLE_WIDTH / 2;
-    }
+    const newTargetX = Math.max(0, Math.min(CANVAS_WIDTH - PADDLE_WIDTH, canvasX - PADDLE_WIDTH / 2));
+    paddleRef.current.targetX = newTargetX;
   };
 
   const handlePointerDown = () => {
+    initAudio();
     if (gameState === 'READY' || gameState === 'GAME_OVER' || gameState === 'VICTORY') {
       handleLaunchBall();
     }
   };
 
-  // Initial bricks setup on mount
+  // Initial setup
   useEffect(() => {
     initBricks();
     resetPositions();
   }, [initBricks, resetPositions]);
 
-  // ── MAIN CANVAS RENDER & PHYSICS LOOP (60 FPS) ───────────────────────
+  // ── MAIN CANVAS RENDER & PHYSICS LOOP ───────────────────────────────
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -376,6 +500,16 @@ export default function BrickBreakerGame() {
     let animationId: number;
 
     const render = () => {
+      ctx.save();
+
+      // Screen Shake translation
+      if (shakeTimeRef.current > 0) {
+        shakeTimeRef.current--;
+        const shakeX = (Math.random() - 0.5) * 8;
+        const shakeY = (Math.random() - 0.5) * 8;
+        ctx.translate(shakeX, shakeY);
+      }
+
       // 1. Clear Canvas Background
       ctx.fillStyle = '#070a12';
       ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -400,14 +534,19 @@ export default function BrickBreakerGame() {
       const ball = ballRef.current;
       const bricks = bricksRef.current;
 
-      // 2. Keyboard Paddle Movement Update
-      const paddleSpeed = 8.5;
+      // 2. Keyboard & Lerp Smooth Paddle Movement
+      const keyboardSpeed = 9.5;
       if (keysRef.current.left) {
-        paddle.x = Math.max(0, paddle.x - paddleSpeed);
+        paddle.targetX = Math.max(0, paddle.targetX - keyboardSpeed);
       }
       if (keysRef.current.right) {
-        paddle.x = Math.min(CANVAS_WIDTH - PADDLE_WIDTH, paddle.x + paddleSpeed);
+        paddle.targetX = Math.min(CANVAS_WIDTH - PADDLE_WIDTH, paddle.targetX + keyboardSpeed);
       }
+
+      // Smooth Interpolation (Lerp) for silky paddle movement
+      const prevX = paddle.x;
+      paddle.x += (paddle.targetX - paddle.x) * 0.32;
+      paddle.tilt = Math.max(-0.1, Math.min(0.1, (paddle.x - prevX) * 0.03));
 
       // Ball follows paddle when READY
       if (gameState === 'READY') {
@@ -418,39 +557,41 @@ export default function BrickBreakerGame() {
       // 3. Game Physics Updates when PLAYING
       if (gameState === 'PLAYING') {
         // Record motion trail
-        trailRef.current.unshift({ x: ball.x, y: ball.y, alpha: 0.6 });
-        if (trailRef.current.length > 7) trailRef.current.pop();
+        trailRef.current.unshift({ x: ball.x, y: ball.y, alpha: 0.7, radius: BALL_RADIUS });
+        if (trailRef.current.length > 9) trailRef.current.pop();
 
         // Move Ball
         ball.x += ball.vx;
         ball.y += ball.vy;
 
+        const panRatio = ball.x / CANVAS_WIDTH;
+
         // Wall Collisions (Left / Right)
         if (ball.x - BALL_RADIUS <= 0) {
           ball.x = BALL_RADIUS;
           ball.vx = Math.abs(ball.vx);
-          playSound('bounce');
+          playSound('bounce', 0);
         } else if (ball.x + BALL_RADIUS >= CANVAS_WIDTH) {
           ball.x = CANVAS_WIDTH - BALL_RADIUS;
           ball.vx = -Math.abs(ball.vx);
-          playSound('bounce');
+          playSound('bounce', 1);
         }
 
         // Top Wall Collision
         if (ball.y - BALL_RADIUS <= 0) {
           ball.y = BALL_RADIUS;
           ball.vy = Math.abs(ball.vy);
-          playSound('bounce');
+          playSound('bounce', panRatio);
         }
 
         // Bottom Wall (Life Loss)
         if (ball.y + BALL_RADIUS >= CANVAS_HEIGHT) {
-          playSound('life');
+          playSound('life', panRatio);
           setLives((prevLives) => {
             const nextLives = prevLives - 1;
             if (nextLives <= 0) {
               setGameState('GAME_OVER');
-              playSound('gameover');
+              playSound('gameover', panRatio);
             } else {
               setGameState('READY');
               resetPositions();
@@ -459,7 +600,7 @@ export default function BrickBreakerGame() {
           });
         }
 
-        // Paddle Collision with Angle Reflection
+        // Paddle Collision with Variable Reflection Angle
         const paddleY = CANVAS_HEIGHT - PADDLE_HEIGHT - 6;
         if (
           ball.y + BALL_RADIUS >= paddleY &&
@@ -468,16 +609,15 @@ export default function BrickBreakerGame() {
           ball.x <= paddle.x + PADDLE_WIDTH + 4 &&
           ball.vy > 0
         ) {
-          // Calculate hit position relative to paddle center (-1.0 to 1.0)
           const hitPos = (ball.x - (paddle.x + PADDLE_WIDTH / 2)) / (PADDLE_WIDTH / 2);
-          const maxBounceAngle = Math.PI / 3; // 60 degrees max
+          const maxBounceAngle = Math.PI / 3;
           const bounceAngle = hitPos * maxBounceAngle;
 
           const currentSpeed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
           ball.vx = currentSpeed * Math.sin(bounceAngle);
           ball.vy = -currentSpeed * Math.cos(bounceAngle);
 
-          playSound('bounce');
+          playSound('bounce', panRatio);
         }
 
         // Brick Collisions
@@ -487,7 +627,6 @@ export default function BrickBreakerGame() {
           if (b.destroyed) return;
           activeBricksCount++;
 
-          // AABB Collision check
           const closestX = Math.max(b.x, Math.min(ball.x, b.x + b.width));
           const closestY = Math.max(b.y, Math.min(ball.y, b.y + b.height));
           const distX = ball.x - closestX;
@@ -497,35 +636,35 @@ export default function BrickBreakerGame() {
           if (distance < BALL_RADIUS) {
             b.destroyed = true;
 
-            // Progressive difficulty: increase ball speed multiplier by +1.5%
-            ball.speedMultiplier = Math.min(1.75, ball.speedMultiplier + 0.015);
+            // Progressive difficulty increase
+            ball.speedMultiplier = Math.min(1.8, ball.speedMultiplier + 0.015);
             const speed = ball.baseSpeed * ball.speedMultiplier;
-            const currentDir = Math.atan2(ball.vy, ball.vx);
 
-            // Rebound ball velocity
             if (Math.abs(distX) > Math.abs(distY)) {
               ball.vx = -ball.vx;
             } else {
               ball.vy = -ball.vy;
             }
 
-            // Normalise speed
             const newAngle = Math.atan2(ball.vy, ball.vx);
             ball.vx = speed * Math.cos(newAngle);
             ball.vy = speed * Math.sin(newAngle);
 
-            // Particles & Score
+            const brickPan = (b.x + b.width / 2) / CANVAS_WIDTH;
             createParticleBurst(b.x + b.width / 2, b.y + b.height / 2, b.color, b.isSpecial);
 
             if (b.isSpecial) {
-              playSound('special');
+              playSound('special', brickPan);
+              shakeTimeRef.current = 14; // Trigger screen shake
+              spawnFloatingText('+500 404!', b.x + b.width / 2, b.y, '#ef4444');
               setScore((prev) => {
                 const ns = prev + 500;
                 checkAndSaveHighScore(ns);
                 return ns;
               });
             } else {
-              playSound('brick');
+              playSound('brick', brickPan);
+              spawnFloatingText('+100', b.x + b.width / 2, b.y, b.color);
               setScore((prev) => {
                 const ns = prev + 100;
                 checkAndSaveHighScore(ns);
@@ -535,10 +674,10 @@ export default function BrickBreakerGame() {
           }
         });
 
-        // Check Victory Condition
         if (activeBricksCount === 0) {
           setGameState('VICTORY');
           playSound('victory');
+          spawnFloatingText('PERFECT CLEAR! +1000', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, '#4ade80');
           setScore((prev) => {
             const ns = prev + 1000;
             checkAndSaveHighScore(ns);
@@ -549,9 +688,10 @@ export default function BrickBreakerGame() {
 
       // 4. Draw Ball Motion Trail
       trailRef.current.forEach((t, i) => {
-        ctx.fillStyle = `rgba(6, 182, 212, ${t.alpha * (1 - i / trailRef.current.length)})`;
+        const factor = 1 - i / trailRef.current.length;
+        ctx.fillStyle = `rgba(6, 182, 212, ${t.alpha * factor})`;
         ctx.beginPath();
-        ctx.arc(t.x, t.y, BALL_RADIUS * (1 - i * 0.08), 0, Math.PI * 2);
+        ctx.arc(t.x, t.y, t.radius * factor, 0, Math.PI * 2);
         ctx.fill();
       });
 
@@ -561,26 +701,23 @@ export default function BrickBreakerGame() {
 
         ctx.save();
         if (b.isSpecial) {
-          // Special 404 Brick with glowing red/pink outline
-          ctx.fillStyle = 'rgba(239, 68, 68, 0.2)';
+          ctx.fillStyle = 'rgba(239, 68, 68, 0.25)';
           ctx.strokeStyle = '#ef4444';
           ctx.lineWidth = 2;
           ctx.shadowColor = '#ef4444';
-          ctx.shadowBlur = 12;
+          ctx.shadowBlur = 14;
 
           ctx.beginPath();
           ctx.roundRect(b.x, b.y, b.width, b.height, 6);
           ctx.fill();
           ctx.stroke();
 
-          // Render "404" glowing text inside special brick
           ctx.fillStyle = '#ffffff';
           ctx.font = '900 13px Consolas, Monaco, monospace';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillText('404', b.x + b.width / 2, b.y + b.height / 2 + 1);
         } else {
-          // Regular Brick
           ctx.fillStyle = b.color;
           ctx.shadowColor = b.color;
           ctx.shadowBlur = 6;
@@ -589,8 +726,7 @@ export default function BrickBreakerGame() {
           ctx.roundRect(b.x, b.y, b.width, b.height, 5);
           ctx.fill();
 
-          // Subtle diagonal line pattern for texture
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
           ctx.lineWidth = 1;
           ctx.beginPath();
           ctx.moveTo(b.x + 4, b.y + b.height - 4);
@@ -600,10 +736,11 @@ export default function BrickBreakerGame() {
         ctx.restore();
       });
 
-      // 6. Draw Particles
+      // 6. Draw Particles with Gravity
       particlesRef.current.forEach((p, idx) => {
         p.x += p.vx;
         p.y += p.vy;
+        if (p.gravity) p.vy += p.gravity;
         p.alpha -= p.decay;
 
         if (p.alpha <= 0) {
@@ -622,13 +759,37 @@ export default function BrickBreakerGame() {
         ctx.restore();
       });
 
-      // 7. Draw Paddle
+      // 7. Draw Floating Score Text Popups
+      floatTextsRef.current.forEach((ft, idx) => {
+        ft.y -= 1.2;
+        ft.alpha -= 0.02;
+
+        if (ft.alpha <= 0) {
+          floatTextsRef.current.splice(idx, 1);
+          return;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = ft.alpha;
+        ctx.fillStyle = ft.color;
+        ctx.font = '900 14px Consolas, Monaco, monospace';
+        ctx.shadowColor = ft.color;
+        ctx.shadowBlur = 10;
+        ctx.textAlign = 'center';
+        ctx.fillText(ft.text, ft.x, ft.y);
+        ctx.restore();
+      });
+
+      // 8. Draw Smooth Tilted Paddle
       ctx.save();
-      ctx.fillStyle = 'linear-gradient(90deg, #00f0ff, #3b82f6)';
+      const paddleY = CANVAS_HEIGHT - PADDLE_HEIGHT - 6;
+      ctx.translate(paddle.x + PADDLE_WIDTH / 2, paddleY + PADDLE_HEIGHT / 2);
+      ctx.rotate(paddle.tilt);
+
       ctx.shadowColor = '#06b6d4';
-      ctx.shadowBlur = 14;
+      ctx.shadowBlur = 16;
       ctx.beginPath();
-      ctx.roundRect(paddle.x, CANVAS_HEIGHT - PADDLE_HEIGHT - 6, PADDLE_WIDTH, PADDLE_HEIGHT, 7);
+      ctx.roundRect(-PADDLE_WIDTH / 2, -PADDLE_HEIGHT / 2, PADDLE_WIDTH, PADDLE_HEIGHT, 7);
       ctx.fillStyle = '#06b6d4';
       ctx.fill();
       ctx.strokeStyle = '#ffffff';
@@ -636,17 +797,17 @@ export default function BrickBreakerGame() {
       ctx.stroke();
       ctx.restore();
 
-      // 8. Draw Ball
+      // 9. Draw Ball with Glowing Halo
       ctx.save();
       ctx.fillStyle = '#ffffff';
       ctx.shadowColor = '#00f0ff';
-      ctx.shadowBlur = 16;
+      ctx.shadowBlur = 20;
       ctx.beginPath();
       ctx.arc(ball.x, ball.y, BALL_RADIUS, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
 
-      // Loop frame
+      ctx.restore(); // Restore Screen Shake Canvas State
       animationId = requestAnimationFrame(render);
     };
 
@@ -723,13 +884,22 @@ export default function BrickBreakerGame() {
               ))}
             </div>
 
-            {/* Sound & Pause Buttons */}
+            {/* Sound, Music & Pause Controls */}
             <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setMusicEnabled(!musicEnabled)}
+                className={`icon-btn-game ${musicEnabled ? 'active' : ''}`}
+                title={musicEnabled ? 'Mute BGM Music' : 'Enable BGM Music'}
+              >
+                {musicEnabled ? <Music size={16} /> : <Music2 size={16} style={{ opacity: 0.5 }} />}
+              </button>
+
               <button
                 type="button"
                 onClick={() => setSoundEnabled(!soundEnabled)}
                 className={`icon-btn-game ${soundEnabled ? 'active' : ''}`}
-                title={soundEnabled ? 'Mute Sound' : 'Enable Sound'}
+                title={soundEnabled ? 'Mute SFX Sound' : 'Enable SFX Sound'}
               >
                 {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
               </button>
@@ -763,7 +933,9 @@ export default function BrickBreakerGame() {
           {/* Game Overlays */}
           {gameState === 'READY' && (
             <div className="game-overlay">
-              <span className="overlay-badge">404 MINI-GAME</span>
+              <span className="overlay-badge">
+                <Sparkles size={12} style={{ display: 'inline', marginRight: '4px' }} /> 404 ARCADE MINI-GAME
+              </span>
               <h3 className="overlay-title">Ready to Play?</h3>
               <p className="overlay-sub">Use Arrow keys or Mouse to move paddle. Press Space or Click to launch ball!</p>
               <button type="button" onClick={handleLaunchBall} className="overlay-btn">
@@ -815,7 +987,7 @@ export default function BrickBreakerGame() {
           <div className="control-item">
             <span className="key-cap">←</span>
             <span className="key-cap">→</span>
-            <span>MOVE</span>
+            <span>MOVE PADDLE</span>
           </div>
           <div className="control-item">
             <span className="key-cap">SPACE</span>
