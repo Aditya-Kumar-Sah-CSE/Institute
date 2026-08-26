@@ -478,9 +478,6 @@ export default function PinnedGoalAlert() {
             <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>
               🎯 Set Your Learning Goal
             </h3>
-            <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-secondary)' }}>
-              Create a goal to track your daily progress and stay focused
-            </p>
           </div>
         </div>
         
@@ -498,7 +495,7 @@ export default function PinnedGoalAlert() {
             transition: 'all 0.2s',
           }}
         >
-          Create New Goal
+          + New Goal
         </button>
       </div>
     );

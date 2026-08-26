@@ -15,7 +15,11 @@ import {
   Award,
   Tag,
   AlertCircle,
+  PlayCircle,
+  BookOpen
 } from 'lucide-react';
+import Modal from '@/components/ui/Modal';
+import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 
 export interface ProblemSample {
   input: string;
@@ -59,6 +63,8 @@ export interface ProblemData {
   hints?: string[];
   follow_up?: string | null;
   supported_languages?: CodeLanguage[];
+  text_solution?: string | null;
+  youtube_url?: string | null;
 }
 
 export function ExampleCopyBlock({ label, content }: { label: string; content: string }) {
@@ -373,7 +379,11 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
   );
 }
 
-export default function ProblemStatementRenderer({ problem }: { problem: ProblemData }) {
+export default function ProblemStatementRenderer({ problem, onScrollToBottom }: { problem: ProblemData; onScrollToBottom?: () => void }) {
+  const [showVideoSolution, setShowVideoSolution] = useState(false);
+  const [showTextSolution, setShowTextSolution] = useState(false);
+
+  if (!problem) return null;
   const platformName = problem.source_type || problem.external_platform || 'INTERNAL';
 
   const externalId = problem.external_id || problem.externalProblemId;
@@ -472,8 +482,10 @@ export default function ProblemStatementRenderer({ problem }: { problem: Problem
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
       {/* Polished Problem Header */}
       <div style={{ borderBottom: '1px solid var(--glass-border)', paddingBottom: 'var(--space-md)' }}>
-        {/* Badges Bar */}
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '8px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            {/* Badges Bar */}
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '8px' }}>
           <span style={{ fontWeight: 750, fontSize: '11px', padding: '4px 10px', borderRadius: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', ...diffStyle }}>
             ⚡ {problem.difficulty || 'EASY'}
           </span>
@@ -528,30 +540,79 @@ export default function ProblemStatementRenderer({ problem }: { problem: Problem
           </div>
         )}
 
-        {/* Secondary External Link */}
-        {officialUrl && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-            <a
-              href={officialUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                fontSize: '12px',
-                color: 'var(--neon-cyan)',
-                textDecoration: 'none',
-                transition: 'opacity 0.15s ease',
-              }}
-              aria-label={`View original problem on ${platformName}`}
-            >
-              View original problem on {platformName} <ExternalLink size={13} />
-            </a>
-
-            
+            {/* Secondary External Link */}
+            {officialUrl && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                <a
+                  href={officialUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '12px',
+                    color: 'var(--neon-cyan)',
+                    textDecoration: 'none',
+                    transition: 'opacity 0.15s ease',
+                  }}
+                  aria-label={`View original problem on ${platformName}`}
+                >
+                  View original problem on {platformName} <ExternalLink size={13} />
+                </a>
+              </div>
+            )}
           </div>
-        )}
+          
+          <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+            {problem.text_solution && (
+              <button
+                onClick={() => setShowTextSolution(true)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'rgba(6, 182, 212, 0.1)',
+                  border: '1px solid rgba(6, 182, 212, 0.3)',
+                  color: 'var(--neon-cyan)',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(6, 182, 212, 0.2)'}
+                onMouseOut={(e) => e.currentTarget.style.background = 'rgba(6, 182, 212, 0.1)'}
+              >
+                <BookOpen size={14} /> Text Solution
+              </button>
+            )}
+            {problem.youtube_url && (
+              <button
+                onClick={() => setShowVideoSolution(true)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  color: '#ef4444',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'}
+                onMouseOut={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+              >
+                <PlayCircle size={14} /> Video Solution
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Fallback Warning if Content Missing */}
@@ -752,8 +813,56 @@ export default function ProblemStatementRenderer({ problem }: { problem: Problem
               <CollapsibleHint key={idx} index={idx + 1} content={hint} />
             ))}
           </div>
+          {/* Problem Bottom Spacer */}
+          <div style={{ height: '30px' }} />
         </section>
       )}
+
+      {/* Text Solution Modal */}
+      <Modal
+        isOpen={showTextSolution}
+        onClose={() => setShowTextSolution(false)}
+        title={`Text Solution: ${problem.title}`}
+        size="lg"
+      >
+        <div style={{ maxHeight: 'calc(80vh - 120px)', overflowY: 'auto', paddingRight: '8px' }}>
+          {problem.text_solution ? (
+            <MarkdownRenderer content={problem.text_solution} />
+          ) : (
+            <p style={{ color: 'var(--text-muted)', fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>
+              No text solution available.
+            </p>
+          )}
+        </div>
+      </Modal>
+
+      {/* Video Solution Modal */}
+      <Modal
+        isOpen={showVideoSolution}
+        onClose={() => setShowVideoSolution(false)}
+        title={`Video Solution: ${problem.title}`}
+        size="lg"
+      >
+        {problem.youtube_url && (
+          <div style={{ width: '100%', aspectRatio: '16/9', background: '#000', borderRadius: '8px', overflow: 'hidden' }}>
+            <iframe
+              width="100%"
+              height="100%"
+              src={problem.youtube_url.replace('watch?v=', 'embed/').replace('youtu.be/', 'www.youtube.com/embed/')}
+              title="YouTube video player"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              style={{ border: 'none' }}
+            />
+          </div>
+        )}
+        {!problem.youtube_url && (
+          <p style={{ color: 'var(--text-muted)', fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>
+            No video solution available.
+          </p>
+        )}
+      </Modal>
     </div>
   );
 }

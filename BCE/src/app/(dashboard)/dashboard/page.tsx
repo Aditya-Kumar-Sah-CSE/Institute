@@ -204,7 +204,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
                 <div className="stat-card-value" style={{ color: 'var(--neon-lime)', fontSize: '1.4rem', fontWeight: 800 }}>
                   Sheets <span style={{ fontSize: '0.8rem', fontWeight: 600, opacity: 0.85 }}>Solve</span>
                 </div>
-                <div className="text-secondary stat-card-label">Curated Sheets</div>
+                <div className="text-secondary stat-card-label">DSA Sheets</div>
               </div>
             </Card>
           </Link>

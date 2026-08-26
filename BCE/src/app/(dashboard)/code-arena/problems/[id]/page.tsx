@@ -57,8 +57,10 @@ async function getCodeforcesProblemSafe(contestId: string, problemIndex: string)
   }
 }
 
-export default async function CodeProblemPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CodeProblemPage({ params, searchParams }: { params: Promise<{ id: string }>, searchParams?: Promise<{ sheet?: string }> }) {
   const { id } = await params;
+  const search = await searchParams;
+  const sheetId = search?.sheet;
   const { supabase, user } = await getCodeArenaActor();
   if (!user) return null;
 
@@ -70,6 +72,23 @@ export default async function CodeProblemPage({ params }: { params: Promise<{ id
     .single();
 
   if (!problem) notFound();
+
+  let text_solution = null;
+  let youtube_url = null;
+
+  if (sheetId) {
+    const { data: sheetProblem } = await supabase
+      .from('coding_sheet_problems')
+      .select('text_solution, youtube_url')
+      .eq('sheet_id', sheetId)
+      .eq('problem_id', id)
+      .maybeSingle();
+      
+    if (sheetProblem) {
+      text_solution = sheetProblem.text_solution;
+      youtube_url = sheetProblem.youtube_url;
+    }
+  }
 
   const { data: samples } = await supabase
     .from('coding_problem_test_cases')
@@ -98,6 +117,8 @@ export default async function CodeProblemPage({ params }: { params: Promise<{ id
     follow_up: pAny.follow_up || null,
     is_premium: !!pAny.is_premium,
     examples: pAny.examples || [],
+    text_solution,
+    youtube_url,
   };
 
   const isLc = problem.source_type === 'LEETCODE' || problem.external_platform === 'LEETCODE';

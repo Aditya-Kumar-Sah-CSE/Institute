@@ -321,7 +321,7 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
                         {dueTask.task_name}
                       </span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9.5px', color: 'var(--text-muted)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '9.5px', color: 'var(--text-muted)' }}>
                       <span>Task {taskIdx + 1} of {sortedRoutines.length}</span>
                       <span style={{ color: isOverdue ? 'var(--neon-magenta)' : 'var(--neon-cyan)', fontWeight: 'bold' }}>
                         {formatTime12h(dueTask.time_slot)} &bull; {statusText}
@@ -348,7 +348,7 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
               )}
             </div>
             <div className="text-secondary stat-card-label">
-              {activeSession ? "Active Session" : routines.length > 0 ? (dueTask ? "Daily Routine Task" : "Daily Routine") : goal ? "Active Goal" : "Target Tracker"}
+              {activeSession ? "Active Session" : routines.length > 0 ? (dueTask ? "" : "Daily Routine") : goal ? "Active Goal" : "Target Tracker"}
             </div>
           </div>
         </Card>

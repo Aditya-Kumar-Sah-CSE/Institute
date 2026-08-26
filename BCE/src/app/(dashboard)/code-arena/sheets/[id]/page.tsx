@@ -24,7 +24,7 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
   // 2. Fetch linked problems with metadata
   const { data: problemsData, error: problemsError } = await supabase
     .from('coding_sheet_problems')
-    .select('order_index, coding_problems(id, title, difficulty, source_type, external_platform, external_problem_id, external_url, tags)')
+    .select('order_index, text_solution, youtube_url, coding_problems(id, title, difficulty, source_type, external_platform, external_problem_id, external_url, tags)')
     .eq('sheet_id', id)
     .order('order_index', { ascending: true });
 
@@ -35,6 +35,8 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
   const problems = (problemsData || []).map((p: any) => ({
     ...p.coding_problems,
     order_index: p.order_index,
+    text_solution: p.text_solution,
+    youtube_url: p.youtube_url,
   }));
 
   // 3. Fetch user solved status

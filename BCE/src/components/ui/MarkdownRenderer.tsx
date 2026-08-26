@@ -376,10 +376,10 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
             ),
             a: ({ node, ...props }) => {
               const href = props.href as string;
-              if (href && isImageUrl(href)) {
+              if (href && (href.match(/\.(jpeg|jpg|gif|png|svg|webp)$/i) || href.includes('supabase.co'))) {
                 return (
-                  <div style={{ margin: '0.75rem 0', display: 'block', maxWidth: '100%' }}>
-                    <div
+                  <span style={{ margin: '0.75rem 0', display: 'block', maxWidth: '100%' }}>
+                    <span
                       onClick={() => setPreviewImage(href)}
                       style={{
                         position: 'relative',
@@ -406,7 +406,7 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
                           borderRadius: '12px',
                         }}
                       />
-                      <div
+                      <span
                         style={{
                           position: 'absolute',
                           bottom: '8px',
@@ -425,9 +425,9 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
                         }}
                       >
                         <Maximize2 size={12} /> Click to Expand
-                      </div>
-                    </div>
-                  </div>
+                      </span>
+                    </span>
+                  </span>
                 );
               }
               return (
@@ -442,8 +442,8 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
             img: ({ node, ...props }) => {
               const src = props.src as string;
               return (
-                <div style={{ margin: '0.75rem 0', display: 'block', maxWidth: '100%' }}>
-                  <div
+                <span style={{ margin: '0.75rem 0', display: 'block', maxWidth: '100%' }}>
+                  <span
                     onClick={() => setPreviewImage(src)}
                     style={{
                       position: 'relative',
@@ -469,7 +469,7 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
                       }}
                       title="Click to view full image"
                     />
-                    <div
+                    <span
                       style={{
                         position: 'absolute',
                         bottom: '8px',
@@ -488,9 +488,9 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
                       }}
                     >
                       <Maximize2 size={12} /> Click to Expand
-                    </div>
-                  </div>
-                </div>
+                    </span>
+                  </span>
+                </span>
               );
             },
           }}

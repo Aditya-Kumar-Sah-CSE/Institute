@@ -630,7 +630,7 @@ export default function SheetDetailClient({
 
                       {/* Solve inside Arena button */}
                       <Link
-                        href={`/code-arena/problems/${problem.id}`}
+                        href={`/code-arena/problems/${problem.id}?sheet=${sheet.id}`}
                         className="btn-battle-action action-live"
                         style={{ 
                           display: 'inline-flex', 

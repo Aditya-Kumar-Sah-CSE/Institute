@@ -872,7 +872,7 @@ export default function GoalsClient() {
               <Target size={40} style={{ color: 'var(--text-muted)', marginBottom: '12px' }} />
               <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>No goals set yet.</p>
               <button onClick={() => { setEditGoal({ id: null }); setEditText(''); setEditDuration('30'); setEditRoutine(false); setEditReminder(''); }} style={{ display: 'inline-block', marginTop: '8px', padding: '10px 20px', background: 'var(--neon-cyan)', color: '#000', borderRadius: '6px', border: 'none', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
-                Create New Goal
+                + New Goal
               </button>
             </Card>
           ) : (
