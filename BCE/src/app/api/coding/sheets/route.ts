@@ -8,7 +8,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from('coding_sheets')
-    .select('id, slug, title, description, created_by, created_at, enrollment_access, coding_sheet_problems(problem_id)')
+    .select('id, slug, is_public, published_at, title, description, created_by, created_at, enrollment_access, coding_sheet_problems(problem_id)')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { title, description, problems = [], enrollment_access = 'public', enrollment_passcode = null } = body;
+    const { title, description, problems = [], enrollment_access = 'public', enrollment_passcode = null, is_public = true } = body;
 
     if (!title?.trim()) {
       return NextResponse.json(
@@ -54,11 +54,16 @@ export async function POST(request: Request) {
     const accessValue = validAccess.includes(enrollment_access) ? enrollment_access : 'public';
     const slug = await generateUniqueSheetSlug(supabase, title.trim());
 
+    const isPublicBool = Boolean(is_public);
+    const nowIso = new Date().toISOString();
+
     const { data: sheet, error: createError } = await supabase
       .from('coding_sheets')
       .insert({
         title: title.trim(),
         slug,
+        is_public: isPublicBool,
+        published_at: isPublicBool ? nowIso : null,
         description: description || null,
         created_by: user.id,
         enrollment_access: accessValue,

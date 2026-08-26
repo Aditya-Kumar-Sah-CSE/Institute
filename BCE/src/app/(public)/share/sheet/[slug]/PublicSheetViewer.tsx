@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Trophy, BookOpen, Share2, Search, ExternalLink, Play, Video, 
@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
-import Card from '@/components/ui/Card';
+import { createClient } from '@/lib/supabase/client';
 
 type PublicProblem = {
   id: string;
@@ -49,10 +49,24 @@ export default function PublicSheetViewer({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('ALL');
   const [copied, setCopied] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any | null>(null);
 
   // Modals for YT Video and Text Solution
   const [activeVideoProblem, setActiveVideoProblem] = useState<PublicProblem | null>(null);
   const [activeSolutionProblem, setActiveSolutionProblem] = useState<PublicProblem | null>(null);
+
+  useEffect(() => {
+    try {
+      const supabase = createClient();
+      supabase.auth.getUser().then(({ data }) => {
+        if (data?.user) {
+          setCurrentUser(data.user);
+        }
+      }).catch(() => {});
+    } catch (e) {
+      // Ignore auth check error on static pages
+    }
+  }, []);
 
   const problems = sheet.problems || [];
 
@@ -107,6 +121,22 @@ export default function PublicSheetViewer({
   const mediumCount = problems.filter((p) => p.difficulty?.toUpperCase() === 'MEDIUM').length;
   const hardCount = problems.filter((p) => p.difficulty?.toUpperCase() === 'HARD').length;
 
+  const getSolveProblemUrl = (problemId: string) => {
+    const targetPath = `/code-arena/problems/${problemId}?sheet=${sheet.id}`;
+    if (!currentUser) {
+      return `/login?next=${encodeURIComponent(targetPath)}`;
+    }
+    return targetPath;
+  };
+
+  const getSolveArenaUrl = () => {
+    const targetPath = `/code-arena/sheets/${sheet.id}`;
+    if (!currentUser) {
+      return `/login?next=${encodeURIComponent(targetPath)}`;
+    }
+    return targetPath;
+  };
+
   return (
     <div style={{ minHeight: '100vh', background: '#0b0f19', color: '#f8fafc', paddingBottom: '4rem' }}>
       {/* Top Banner Nav */}
@@ -140,7 +170,7 @@ export default function PublicSheetViewer({
           </div>
           <div>
             <div style={{ fontSize: '15px', fontWeight: 800, letterSpacing: '-0.3px', background: 'linear-gradient(90deg, #fff, #94a3b8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              Code Arena
+              Smart Learn Code Arena
             </div>
             <div style={{ fontSize: '10px', color: '#06b6d4', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
               Public Practice Sheet
@@ -172,7 +202,7 @@ export default function PublicSheetViewer({
           </button>
 
           <Link
-            href="/code-arena/sheets"
+            href={getSolveArenaUrl()}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -526,7 +556,7 @@ export default function PublicSheetViewer({
 
                     {/* Action button */}
                     <Link
-                      href={`/code-arena/problems/${problem.id}?sheet=${sheet.id}`}
+                      href={getSolveProblemUrl(problem.id)}
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -566,10 +596,10 @@ export default function PublicSheetViewer({
         >
           <div>
             <div style={{ fontSize: '15px', fontWeight: 800, color: '#ffffff' }}>Want to track your progress & earn badges?</div>
-            <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>Sign in to Code Arena to submit code, earn daily streaks, and get certified!</div>
+            <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>Sign in to Smart Learn Code Arena to submit code, earn daily streaks, and get certified!</div>
           </div>
           <Link
-            href="/login"
+            href={`/login?next=${encodeURIComponent(`/share/sheet/${sheet.slug}`)}`}
             style={{
               padding: '10px 20px',
               borderRadius: '8px',

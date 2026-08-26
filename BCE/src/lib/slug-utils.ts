@@ -5,10 +5,12 @@ import { SupabaseClient } from '@supabase/supabase-js';
  * E.g., "Recursion & Backtracking (Master Sheet!)" -> "recursion-and-backtracking-master-sheet"
  */
 export function slugifyTitle(title: string): string {
-  if (!title) return 'coding-sheet';
+  if (!title || typeof title !== 'string') return 'coding-sheet';
 
   let slug = title
     .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // remove accent marks
     .toLowerCase()
     .trim()
     .replace(/&/g, 'and')

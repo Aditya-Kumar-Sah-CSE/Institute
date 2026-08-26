@@ -91,14 +91,28 @@ small, .caption {
   color: var(--text-muted);
 }
 
-/* === Scrollbar — hidden globally === */
+/* === Scrollbar — Modern, Clean & Always Usable === */
 * {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
 }
 
-*::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
 }
 
 /* === Selection === */

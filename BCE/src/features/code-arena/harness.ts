@@ -3,9 +3,36 @@
  * Appends or prepends driver code based on signature metadata and language.
  */
 
+/**
+ * Checks whether the student code contains a custom main() entry point.
+ */
+export function hasMainFunction(studentCode: string, language: string): boolean {
+  if (!studentCode || typeof studentCode !== 'string') return false;
+  const lang = (language || '').toLowerCase();
+
+  if (lang.includes('cpp') || lang.includes('c') || lang.includes('gcc')) {
+    return /\b(int|void)\s+main\s*\(/i.test(studentCode);
+  }
+  if (lang.includes('java')) {
+    return /\bpublic\s+static\s+void\s+main\s*\(/i.test(studentCode);
+  }
+  if (lang.includes('python')) {
+    return /if\s+__name__\s*==\s*['"]__main__['"]\s*:/i.test(studentCode) || /\bdef\s+main\s*\(/i.test(studentCode);
+  }
+  if (lang.includes('javascript') || lang.includes('js')) {
+    return /\bfunction\s+main\s*\(/i.test(studentCode);
+  }
+  return false;
+}
+
 export function wrapCodeWithHarness(studentCode: string, signature: any, language: string): string {
   if (!signature || typeof signature !== 'object') {
     return studentCode; // Safety fallback
+  }
+
+  // If student provided a complete program containing main(), do not wrap
+  if (hasMainFunction(studentCode, language)) {
+    return studentCode;
   }
 
   const funcName = signature.name;
@@ -31,20 +58,34 @@ export function wrapCodeWithHarness(studentCode: string, signature: any, languag
 
 function getCppParseFunc(type: string): string {
   const norm = type.toLowerCase().replace(/\s+/g, '');
-  if (norm === 'integer') return 'parseInteger(cin)';
-  if (norm === 'double') return 'parseDouble(cin)';
-  if (norm === 'string') return 'parseString(cin)';
-  if (norm === 'character') return 'parseChar(cin)';
-  if (norm === 'boolean') return 'parseBool(cin)';
-  if (norm === 'integer[]' || norm === 'list<integer>') return 'parseIntegerArray(cin)';
-  if (norm === 'double[]' || norm === 'list<double>') return 'parseDoubleArray(cin)';
-  if (norm === 'string[]' || norm === 'list<string>') return 'parseStringArray(cin)';
-  if (norm === 'character[]' || norm === 'list<character>') return 'parseCharArray(cin)';
-  if (norm === 'integer[][]' || norm === 'list<list<integer>>') return 'parseIntegerMatrix(cin)';
-  if (norm === 'character[][]' || norm === 'list<list<character>>') return 'parseCharMatrix(cin)';
-  if (norm === 'listnode') return 'parseListNode(cin)';
-  if (norm === 'treenode') return 'parseTreeNode(cin)';
-  return 'parseString(cin)'; // fallback
+  if (norm === 'integer' || norm === 'int' || norm === 'int32_t') return 'HarnessParser::parseInteger(cin)';
+  if (norm === 'long' || norm === 'longlong' || norm === 'int64_t' || norm === 'long long') return 'HarnessParser::parseLong(cin)';
+  if (norm === 'float') return 'HarnessParser::parseFloat(cin)';
+  if (norm === 'double') return 'HarnessParser::parseDouble(cin)';
+  if (norm === 'string') return 'HarnessParser::parseString(cin)';
+  if (norm === 'character' || norm === 'char') return 'HarnessParser::parseChar(cin)';
+  if (norm === 'boolean' || norm === 'bool') return 'HarnessParser::parseBool(cin)';
+
+  if (norm === 'integer[]' || norm === 'int[]' || norm === 'vector<int>' || norm === 'list<integer>') return 'HarnessParser::parseIntegerArray(cin)';
+  if (norm === 'long[]' || norm === 'longlong[]' || norm === 'vector<longlong>' || norm === 'vector<long>' || norm === 'vector<long long>' || norm === 'list<long>') return 'HarnessParser::parseLongArray(cin)';
+  if (norm === 'float[]' || norm === 'vector<float>' || norm === 'list<float>') return 'HarnessParser::parseFloatArray(cin)';
+  if (norm === 'double[]' || norm === 'vector<double>' || norm === 'list<double>') return 'HarnessParser::parseDoubleArray(cin)';
+  if (norm === 'string[]' || norm === 'vector<string>' || norm === 'list<string>') return 'HarnessParser::parseStringArray(cin)';
+  if (norm === 'character[]' || norm === 'char[]' || norm === 'vector<char>' || norm === 'list<character>') return 'HarnessParser::parseCharArray(cin)';
+  if (norm === 'boolean[]' || norm === 'bool[]' || norm === 'vector<bool>' || norm === 'list<boolean>') return 'HarnessParser::parseBoolArray(cin)';
+
+  if (norm === 'integer[][]' || norm === 'int[][]' || norm === 'vector<vector<int>>' || norm === 'list<list<integer>>') return 'HarnessParser::parseIntegerMatrix(cin)';
+  if (norm === 'long[][]' || norm === 'vector<vector<longlong>>' || norm === 'vector<vector<long>>' || norm === 'vector<vector<long long>>') return 'HarnessParser::parseLongMatrix(cin)';
+  if (norm === 'float[][]' || norm === 'vector<vector<float>>') return 'HarnessParser::parseFloatMatrix(cin)';
+  if (norm === 'double[][]' || norm === 'vector<vector<double>>') return 'HarnessParser::parseDoubleMatrix(cin)';
+  if (norm === 'string[][]' || norm === 'vector<vector<string>>') return 'HarnessParser::parseStringMatrix(cin)';
+  if (norm === 'character[][]' || norm === 'char[][]' || norm === 'vector<vector<char>>') return 'HarnessParser::parseCharMatrix(cin)';
+  if (norm === 'boolean[][]' || norm === 'bool[][]' || norm === 'vector<vector<bool>>') return 'HarnessParser::parseBoolMatrix(cin)';
+
+  if (norm === 'listnode') return 'HarnessParser::parseListNode(cin)';
+  if (norm === 'treenode') return 'HarnessParser::parseTreeNode(cin)';
+
+  return 'HarnessParser::parseString(cin)'; // fallback
 }
 
 function generateCppHarness(studentCode: string, funcName: string, params: any[], retType: string): string {
@@ -86,7 +127,41 @@ struct TreeNode {
 #endif
 
 namespace HarnessParser {
+    void skipParamLabel(istream& in) {
+        while (in) {
+            char c;
+            if (!(in >> c)) break;
+            if (c == ',' || isspace(c)) continue;
+            if (isalpha(c) || c == '_') {
+                string token;
+                token.push_back(c);
+                while (in.get(c)) {
+                    if (isalnum(c) || c == '_') {
+                        token.push_back(c);
+                    } else {
+                        in.putback(c);
+                        break;
+                    }
+                }
+                while (in.get(c) && isspace(c));
+                if (c == '=') {
+                    continue;
+                } else {
+                    in.putback(c);
+                    for (int i = (int)token.size() - 1; i >= 0; --i) {
+                        in.putback(token[i]);
+                    }
+                    break;
+                }
+            } else {
+                in.putback(c);
+                break;
+            }
+        }
+    }
+
     void skipWhitespaceAndChar(istream& in, char expected) {
+        skipParamLabel(in);
         char c;
         while (in >> c) {
             if (c == expected) return;
@@ -94,8 +169,9 @@ namespace HarnessParser {
     }
 
     char peekNextChar(istream& in) {
+        skipParamLabel(in);
         char c;
-        while (in >> c) {
+        if (in >> c) {
             in.putback(c);
             return c;
         }
@@ -103,90 +179,194 @@ namespace HarnessParser {
     }
 
     int parseInteger(istream& in) {
-        int x;
+        skipParamLabel(in);
+        int x = 0;
+        in >> x;
+        return x;
+    }
+
+    long long parseLong(istream& in) {
+        skipParamLabel(in);
+        long long x = 0;
+        in >> x;
+        return x;
+    }
+
+    float parseFloat(istream& in) {
+        skipParamLabel(in);
+        float x = 0.0f;
         in >> x;
         return x;
     }
 
     double parseDouble(istream& in) {
-        double x;
+        skipParamLabel(in);
+        double x = 0.0;
         in >> x;
         return x;
     }
 
     bool parseBool(istream& in) {
+        skipParamLabel(in);
         char c = peekNextChar(in);
-        if (c == 't' || c == 'f') {
+        if (c == 't' || c == 'T' || c == 'f' || c == 'F') {
             string s;
             in >> s;
+            transform(s.begin(), s.end(), s.begin(), ::tolower);
             return s.find("true") != string::npos;
         }
-        int x;
+        int x = 0;
         in >> x;
         return x != 0;
     }
 
+    char parseChar(istream& in) {
+        skipParamLabel(in);
+        char c;
+        while (in >> c) {
+            if (c == '\'') {
+                char ch;
+                in.get(ch);
+                char endQuote;
+                in >> endQuote;
+                return ch;
+            } else if (c == '"') {
+                char ch;
+                in.get(ch);
+                char endQuote;
+                in >> endQuote;
+                return ch;
+            } else {
+                return c;
+            }
+        }
+        return '\\0';
+    }
+
     string parseString(istream& in) {
+        skipParamLabel(in);
         string s;
         char c;
-        while (in >> c && c != '"');
-        while (in.get(c) && c != '"') {
+        while (in.get(c) && isspace(c));
+        if (c == '"' || c == '\'') {
+            char quote = c;
+            while (in.get(c)) {
+                if (c == '\\\\') {
+                    char next;
+                    if (in.get(next)) {
+                        if (next == 'n') s.push_back('\\n');
+                        else if (next == 't') s.push_back('\\t');
+                        else s.push_back(next);
+                    }
+                } else if (c == quote) {
+                    break;
+                } else {
+                    s.push_back(c);
+                }
+            }
+        } else {
             s.push_back(c);
+            while (in.get(c) && !isspace(c) && c != ',') {
+                s.push_back(c);
+            }
+            if (c == ',') in.putback(c);
         }
         return s;
     }
 
     vector<int> parseIntegerArray(istream& in) {
+        skipParamLabel(in);
         vector<int> res;
         skipWhitespaceAndChar(in, '[');
-        char next = peekNextChar(in);
-        if (next == ']') {
+        if (peekNextChar(in) == ']') {
             skipWhitespaceAndChar(in, ']');
             return res;
         }
-        while (true) {
+        while (in) {
+            skipParamLabel(in);
             int x;
             in >> x;
             res.push_back(x);
             char sep;
-            in >> sep;
+            if (!(in >> sep)) break;
+            if (sep == ']') break;
+        }
+        return res;
+    }
+
+    vector<long long> parseLongArray(istream& in) {
+        skipParamLabel(in);
+        vector<long long> res;
+        skipWhitespaceAndChar(in, '[');
+        if (peekNextChar(in) == ']') {
+            skipWhitespaceAndChar(in, ']');
+            return res;
+        }
+        while (in) {
+            skipParamLabel(in);
+            long long x;
+            in >> x;
+            res.push_back(x);
+            char sep;
+            if (!(in >> sep)) break;
+            if (sep == ']') break;
+        }
+        return res;
+    }
+
+    vector<float> parseFloatArray(istream& in) {
+        skipParamLabel(in);
+        vector<float> res;
+        skipWhitespaceAndChar(in, '[');
+        if (peekNextChar(in) == ']') {
+            skipWhitespaceAndChar(in, ']');
+            return res;
+        }
+        while (in) {
+            skipParamLabel(in);
+            float x;
+            in >> x;
+            res.push_back(x);
+            char sep;
+            if (!(in >> sep)) break;
             if (sep == ']') break;
         }
         return res;
     }
 
     vector<double> parseDoubleArray(istream& in) {
+        skipParamLabel(in);
         vector<double> res;
         skipWhitespaceAndChar(in, '[');
-        char next = peekNextChar(in);
-        if (next == ']') {
+        if (peekNextChar(in) == ']') {
             skipWhitespaceAndChar(in, ']');
             return res;
         }
-        while (true) {
+        while (in) {
+            skipParamLabel(in);
             double x;
             in >> x;
             res.push_back(x);
             char sep;
-            in >> sep;
+            if (!(in >> sep)) break;
             if (sep == ']') break;
         }
         return res;
     }
 
     vector<string> parseStringArray(istream& in) {
+        skipParamLabel(in);
         vector<string> res;
         skipWhitespaceAndChar(in, '[');
-        char next = peekNextChar(in);
-        if (next == ']') {
+        if (peekNextChar(in) == ']') {
             skipWhitespaceAndChar(in, ']');
             return res;
         }
-        while (true) {
+        while (in) {
             string s = parseString(in);
             res.push_back(s);
             char sep;
-            in >> sep;
+            if (!(in >> sep)) break;
             if (sep == ']') break;
         }
         return res;
@@ -201,37 +381,145 @@ namespace HarnessParser {
         return res;
     }
 
-    vector<vector<int>> parseIntegerMatrix(istream& in) {
-        vector<vector<int>> res;
+    vector<bool> parseBoolArray(istream& in) {
+        skipParamLabel(in);
+        vector<bool> res;
         skipWhitespaceAndChar(in, '[');
-        char next = peekNextChar(in);
-        if (next == ']') {
+        if (peekNextChar(in) == ']') {
             skipWhitespaceAndChar(in, ']');
             return res;
         }
-        while (true) {
+        while (in) {
+            bool b = parseBool(in);
+            res.push_back(b);
+            char sep;
+            if (!(in >> sep)) break;
+            if (sep == ']') break;
+        }
+        return res;
+    }
+
+    vector<vector<int>> parseIntegerMatrix(istream& in) {
+        skipParamLabel(in);
+        vector<vector<int>> res;
+        skipWhitespaceAndChar(in, '[');
+        if (peekNextChar(in) == ']') {
+            skipWhitespaceAndChar(in, ']');
+            return res;
+        }
+        while (in) {
             vector<int> row = parseIntegerArray(in);
             res.push_back(row);
             char sep;
-            in >> sep;
+            if (!(in >> sep)) break;
+            if (sep == ']') break;
+        }
+        return res;
+    }
+
+    vector<vector<long long>> parseLongMatrix(istream& in) {
+        skipParamLabel(in);
+        vector<vector<long long>> res;
+        skipWhitespaceAndChar(in, '[');
+        if (peekNextChar(in) == ']') {
+            skipWhitespaceAndChar(in, ']');
+            return res;
+        }
+        while (in) {
+            vector<long long> row = parseLongArray(in);
+            res.push_back(row);
+            char sep;
+            if (!(in >> sep)) break;
+            if (sep == ']') break;
+        }
+        return res;
+    }
+
+    vector<vector<float>> parseFloatMatrix(istream& in) {
+        skipParamLabel(in);
+        vector<vector<float>> res;
+        skipWhitespaceAndChar(in, '[');
+        if (peekNextChar(in) == ']') {
+            skipWhitespaceAndChar(in, ']');
+            return res;
+        }
+        while (in) {
+            vector<float> row = parseFloatArray(in);
+            res.push_back(row);
+            char sep;
+            if (!(in >> sep)) break;
+            if (sep == ']') break;
+        }
+        return res;
+    }
+
+    vector<vector<double>> parseDoubleMatrix(istream& in) {
+        skipParamLabel(in);
+        vector<vector<double>> res;
+        skipWhitespaceAndChar(in, '[');
+        if (peekNextChar(in) == ']') {
+            skipWhitespaceAndChar(in, ']');
+            return res;
+        }
+        while (in) {
+            vector<double> row = parseDoubleArray(in);
+            res.push_back(row);
+            char sep;
+            if (!(in >> sep)) break;
+            if (sep == ']') break;
+        }
+        return res;
+    }
+
+    vector<vector<string>> parseStringMatrix(istream& in) {
+        skipParamLabel(in);
+        vector<vector<string>> res;
+        skipWhitespaceAndChar(in, '[');
+        if (peekNextChar(in) == ']') {
+            skipWhitespaceAndChar(in, ']');
+            return res;
+        }
+        while (in) {
+            vector<string> row = parseStringArray(in);
+            res.push_back(row);
+            char sep;
+            if (!(in >> sep)) break;
             if (sep == ']') break;
         }
         return res;
     }
 
     vector<vector<char>> parseCharMatrix(istream& in) {
+        skipParamLabel(in);
         vector<vector<char>> res;
         skipWhitespaceAndChar(in, '[');
-        char next = peekNextChar(in);
-        if (next == ']') {
+        if (peekNextChar(in) == ']') {
             skipWhitespaceAndChar(in, ']');
             return res;
         }
-        while (true) {
+        while (in) {
             vector<char> row = parseCharArray(in);
             res.push_back(row);
             char sep;
-            in >> sep;
+            if (!(in >> sep)) break;
+            if (sep == ']') break;
+        }
+        return res;
+    }
+
+    vector<vector<bool>> parseBoolMatrix(istream& in) {
+        skipParamLabel(in);
+        vector<vector<bool>> res;
+        skipWhitespaceAndChar(in, '[');
+        if (peekNextChar(in) == ']') {
+            skipWhitespaceAndChar(in, ']');
+            return res;
+        }
+        while (in) {
+            vector<bool> row = parseBoolArray(in);
+            res.push_back(row);
+            char sep;
+            if (!(in >> sep)) break;
             if (sep == ']') break;
         }
         return res;
@@ -305,24 +593,24 @@ namespace HarnessParser {
     }
 
     void printValue(int x) { cout << x << endl; }
+    void printValue(long long x) { cout << x << endl; }
+    void printValue(float x) { cout << x << endl; }
     void printValue(double x) { cout << x << endl; }
     void printValue(bool x) { cout << (x ? "true" : "false") << endl; }
+    void printValue(char c) { cout << "'" << c << "'" << endl; }
     void printValue(const string& s) { cout << "\\"" << s << "\\"" << endl; }
-    void printValue(const vector<int>& v) {
+    
+    template<typename T>
+    void printValue(const vector<T>& v) {
         cout << "[";
         for (size_t i = 0; i < v.size(); ++i) {
             cout << v[i] << (i + 1 < v.size() ? "," : "");
         }
         cout << "]" << endl;
     }
-    void printValue(const vector<string>& v) {
-        cout << "[";
-        for (size_t i = 0; i < v.size(); ++i) {
-            cout << "\\"" << v[i] << "\\"" << (i + 1 < v.size() ? "," : "");
-        }
-        cout << "]" << endl;
-    }
-    void printValue(const vector<vector<int>>& m) {
+
+    template<typename T>
+    void printValue(const vector<vector<T>>& m) {
         cout << "[";
         for (size_t i = 0; i < m.size(); ++i) {
             cout << "[";
@@ -333,6 +621,7 @@ namespace HarnessParser {
         }
         cout << "]" << endl;
     }
+
     void printValue(ListNode* head) {
         cout << "[";
         ListNode* curr = head;
@@ -342,6 +631,7 @@ namespace HarnessParser {
         }
         cout << "]" << endl;
     }
+
     void printValue(TreeNode* root) {
         if (!root) {
             cout << "[]" << endl;
@@ -475,6 +765,8 @@ def treeToList(root):
 def parse_input_val(line, expected_type):
     line = line.strip()
     if not line: return None
+    if '=' in line:
+        line = line.split('=', 1)[1].strip()
     try:
         return json.loads(line)
     except:
@@ -515,7 +807,7 @@ function generateJsHarness(studentCode: string, funcName: string, params: any[],
 
   const parseLines = params.map((p, idx) => {
     const norm = p.type.toLowerCase().replace(/\s+/g, '');
-    let parseExpr = `JSON.parse(lines[idx++])`;
+    let parseExpr = `parseInputVal(lines[idx++])`;
     if (norm === 'listnode') parseExpr = `listToLinkedList(${parseExpr})`;
     if (norm === 'treenode') parseExpr = `listToTree(${parseExpr})`;
     return `            let arg${idx} = ${parseExpr};`;
@@ -538,6 +830,19 @@ function TreeNode(val, left, right) {
     this.val = (val===undefined ? 0 : val)
     this.left = (left===undefined ? null : left)
     this.right = (right===undefined ? null : right)
+}
+
+function parseInputVal(raw) {
+    if (!raw) return null;
+    let line = raw.trim();
+    if (line.includes('=')) {
+        line = line.split('=')[1].trim();
+    }
+    try {
+        return JSON.parse(line);
+    } catch {
+        return line;
+    }
 }
 
 function listToLinkedList(arr) {
@@ -633,17 +938,19 @@ runHarness();
 
 function getJavaType(type: string): string {
   const norm = type.toLowerCase().replace(/\s+/g, '');
-  if (norm === 'integer') return 'int';
+  if (norm === 'integer' || norm === 'int') return 'int';
+  if (norm === 'long' || norm === 'longlong' || norm === 'long long') return 'long';
+  if (norm === 'float') return 'float';
   if (norm === 'double') return 'double';
   if (norm === 'string') return 'String';
-  if (norm === 'character') return 'char';
-  if (norm === 'boolean') return 'boolean';
-  if (norm === 'integer[]') return 'int[]';
+  if (norm === 'character' || norm === 'char') return 'char';
+  if (norm === 'boolean' || norm === 'bool') return 'boolean';
+  if (norm === 'integer[]' || norm === 'int[]') return 'int[]';
   if (norm === 'double[]') return 'double[]';
   if (norm === 'string[]') return 'String[]';
-  if (norm === 'character[]') return 'char[]';
-  if (norm === 'boolean[]') return 'boolean[]';
-  if (norm === 'integer[][]') return 'int[][]';
+  if (norm === 'character[]' || norm === 'char[]') return 'char[]';
+  if (norm === 'boolean[]' || norm === 'bool[]') return 'boolean[]';
+  if (norm === 'integer[][]' || norm === 'int[][]') return 'int[][]';
   if (norm === 'listnode') return 'ListNode';
   if (norm === 'treenode') return 'TreeNode';
   if (norm === 'list<integer>') return 'List<Integer>';
@@ -653,34 +960,29 @@ function getJavaType(type: string): string {
 
 function getJavaParseFunc(type: string, argName: string): string {
   const norm = type.toLowerCase().replace(/\s+/g, '');
-  if (norm === 'integer') return `Integer.parseInt(${argName})`;
-  if (norm === 'double') return `Double.parseDouble(${argName})`;
-  if (norm === 'string') return `parseString(${argName})`;
-  if (norm === 'character') return `parseChar(${argName})`;
-  if (norm === 'boolean') return `Boolean.parseBoolean(${argName})`;
-  if (norm === 'integer[]') return `parseIntArray(${argName})`;
-  if (norm === 'double[]') return `parseDoubleArray(${argName})`;
-  if (norm === 'string[]') return `parseStringArray(${argName})`;
-  if (norm === 'character[]') return `parseCharArray(${argName})`;
-  if (norm === 'boolean[]') return `parseBoolArray(${argName})`;
-  if (norm === 'integer[][]') return `parseIntMatrix(${argName})`;
-  if (norm === 'listnode') return `parseListNode(${argName})`;
-  if (norm === 'treenode') return `parseTreeNode(${argName})`;
-  if (norm === 'list<integer>') return `parseIntList(${argName})`;
-  if (norm === 'list<string>') return `parseStringList(${argName})`;
-  return `parseString(${argName})`;
+  if (norm === 'integer' || norm === 'int') return `Integer.parseInt(cleanLabel(${argName}))`;
+  if (norm === 'long' || norm === 'longlong' || norm === 'long long') return `Long.parseLong(cleanLabel(${argName}))`;
+  if (norm === 'float') return `Float.parseFloat(cleanLabel(${argName}))`;
+  if (norm === 'double') return `Double.parseDouble(cleanLabel(${argName}))`;
+  if (norm === 'string') return `parseString(cleanLabel(${argName}))`;
+  if (norm === 'character' || norm === 'char') return `parseChar(cleanLabel(${argName}))`;
+  if (norm === 'boolean' || norm === 'bool') return `Boolean.parseBoolean(cleanLabel(${argName}))`;
+  if (norm === 'integer[]' || norm === 'int[]') return `parseIntArray(cleanLabel(${argName}))`;
+  if (norm === 'double[]') return `parseDoubleArray(cleanLabel(${argName}))`;
+  if (norm === 'string[]') return `parseStringArray(cleanLabel(${argName}))`;
+  if (norm === 'character[]' || norm === 'char[]') return `parseCharArray(cleanLabel(${argName}))`;
+  if (norm === 'boolean[]' || norm === 'bool[]') return `parseBoolArray(cleanLabel(${argName}))`;
+  if (norm === 'integer[][]' || norm === 'int[][]') return `parseIntMatrix(cleanLabel(${argName}))`;
+  if (norm === 'listnode') return `parseListNode(cleanLabel(${argName}))`;
+  if (norm === 'treenode') return `parseTreeNode(cleanLabel(${argName}))`;
+  if (norm === 'list<integer>') return `parseIntList(cleanLabel(${argName}))`;
+  if (norm === 'list<string>') return `parseStringList(cleanLabel(${argName}))`;
+  return `parseString(cleanLabel(${argName}))`;
 }
 
 function generateJavaHarness(studentCode: string, funcName: string, params: any[], retType: string): string {
-  // Java compiles prog.java, so we declare Main containing main function.
-  // Replace public class Solution with class Solution to prevent compilation issue
   const cleanedCode = studentCode.replace(/\bpublic\s+class\s+Solution\b/g, 'class Solution');
 
-  const parseLines = params.map((p, idx) => {
-    const javaType = getJavaType(p.type);
-    const parseCall = getJavaParseFunc(p.type, `line${idx}`);
-    return `            String line${idx} = parser.nextLine();\n            if (line${idx} == null) break;\n            ${javaType} arg${idx} = ${parseCall};`;
-  });
   const argsList = params.map((_, idx) => `arg${idx}`).join(', ');
 
   const javaLibrary = `
@@ -715,9 +1017,18 @@ public class Main {
             try { return reader.readLine(); } catch (IOException e) { return null; }
         }
     }
-    
-    static int[] parseIntArray(String s) {
+
+    static String cleanLabel(String s) {
+        if (s == null) return "";
         s = s.trim();
+        if (s.contains("=")) {
+            s = s.substring(s.indexOf("=") + 1).trim();
+        }
+        return s;
+    }
+
+    static int[] parseIntArray(String s) {
+        s = cleanLabel(s);
         if (s.equals("[]")) return new int[0];
         s = s.substring(1, s.length() - 1);
         String[] parts = s.split(",");
@@ -736,7 +1047,7 @@ public class Main {
     }
 
     static double[] parseDoubleArray(String s) {
-        s = s.trim();
+        s = cleanLabel(s);
         if (s.equals("[]")) return new double[0];
         s = s.substring(1, s.length() - 1);
         String[] parts = s.split(",");
@@ -748,7 +1059,7 @@ public class Main {
     }
 
     static String parseString(String s) {
-        s = s.trim();
+        s = cleanLabel(s);
         if (s.startsWith("\"") && s.endsWith("\"")) {
             s = s.substring(1, s.length() - 1);
         }
@@ -761,7 +1072,7 @@ public class Main {
     }
 
     static String[] parseStringArray(String s) {
-        s = s.trim();
+        s = cleanLabel(s);
         if (s.equals("[]")) return new String[0];
         s = s.substring(1, s.length() - 1);
         String[] parts = s.split(",");
@@ -782,7 +1093,7 @@ public class Main {
     }
 
     static boolean[] parseBoolArray(String s) {
-        s = s.trim();
+        s = cleanLabel(s);
         if (s.equals("[]")) return new boolean[0];
         s = s.substring(1, s.length() - 1);
         String[] parts = s.split(",");
@@ -794,7 +1105,7 @@ public class Main {
     }
 
     static int[][] parseIntMatrix(String s) {
-        s = s.trim();
+        s = cleanLabel(s);
         if (s.equals("[]") || s.equals("[[]]")) return new int[0][0];
         s = s.substring(1, s.length() - 1);
         List<int[]> rows = new ArrayList<>();
@@ -827,7 +1138,7 @@ public class Main {
     }
 
     static TreeNode parseTreeNode(String s) {
-        s = s.trim();
+        s = cleanLabel(s);
         if (s.equals("[]") || s.equals("[null]")) return null;
         s = s.substring(1, s.length() - 1);
         String[] parts = s.split(",");
@@ -920,13 +1231,8 @@ public class Main {
             if (initialLine.trim().isEmpty()) continue;
             
             try {
-                // Java arguments parsed sequentially starting from initialLine
-                // We mock line0 as initialLine and read remaining lines
-                // Since parseLines needs lines, we do:
-                // arg0 is parsed from initialLine
 `;
 
-  // Insert the parser execution block
   let javaBody = ``;
   params.forEach((p, idx) => {
     const javaType = getJavaType(p.type);

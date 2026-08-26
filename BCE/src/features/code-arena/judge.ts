@@ -1,4 +1,5 @@
 import type { CodeExecutionRequest, CodeExecutionResult, SubmissionStatus } from './types';
+import { wrapCodeWithHarness, hasMainFunction } from './harness';
 
 const WANDBOX_COMPILERS: Record<string, string> = {
   cpp17: 'gcc-head',
@@ -158,8 +159,6 @@ export interface JudgeService {
   execute(request: CodeExecutionRequest): Promise<CodeExecutionResult>;
 }
 
-import { wrapCodeWithHarness } from './harness';
-
 export const judgeService: JudgeService = {
   async execute(request) {
     let { language, sourceCode, testCases, problemId } = request;
@@ -172,6 +171,8 @@ export const judgeService: JudgeService = {
       };
     }
 
+    let mode: 'leetcode_function' | 'custom_program' = 'custom_program';
+
     if (problemId) {
       try {
         const { createAdminClient } = await import('@/lib/supabase/server');
@@ -182,12 +183,26 @@ export const judgeService: JudgeService = {
           .eq('id', problemId)
           .single();
 
-        if (problem && (problem.source_type === 'LEETCODE' || problem.external_platform === 'LEETCODE') && problem.signature) {
-          sourceCode = wrapCodeWithHarness(sourceCode, problem.signature, language);
+        if (problem && problem.signature) {
+          const userHasMain = hasMainFunction(sourceCode, language);
+          if (!userHasMain) {
+            mode = 'leetcode_function';
+            sourceCode = wrapCodeWithHarness(sourceCode, problem.signature, language);
+          }
         }
       } catch (err) {
         console.error('Error loading problem signature in judge service:', err);
       }
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[JUDGE DEBUG]', {
+        mode,
+        language,
+        problemId,
+        testCasesCount: testCases.length,
+        sourceCodeSnippet: sourceCode.slice(0, 150) + '...',
+      });
     }
 
     const compiler = WANDBOX_COMPILERS[language] || 'gcc-head';

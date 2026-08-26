@@ -255,7 +255,7 @@ export default async function CodeProblemPage({ params, searchParams }: { params
   }
 
   return (
-    <div className="code-arena-page">
+    <div className="code-arena-page ide-mode">
       {/* Compact IDE Header Bar */}
       <header className="code-arena-header-compact">
         <div className="code-arena-header-left">

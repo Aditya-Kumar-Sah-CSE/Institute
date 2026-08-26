@@ -13,7 +13,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   // Fetch sheet details by ID or slug
   let sheetQuery = supabase
     .from('coding_sheets')
-    .select('id, slug, title, description, created_by, created_at, enrollment_access');
+    .select('id, slug, is_public, published_at, title, description, created_by, created_at, enrollment_access');
 
   if (isUUID) {
     sheetQuery = sheetQuery.eq('id', id);
@@ -60,7 +60,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
-    const { data: sheet } = await supabase.from('coding_sheets').select('id, created_by, title, slug').eq('id', id).single();
+    const { data: sheet } = await supabase
+      .from('coding_sheets')
+      .select('id, created_by, title, slug, is_public, published_at')
+      .eq('id', id)
+      .single();
+
     if (!sheet) {
       return NextResponse.json({ success: false, error: { message: 'Sheet not found' } }, { status: 404 });
     }
@@ -70,7 +75,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     const body = await request.json();
-    const { title, description, problems, enrollment_access, enrollment_passcode, problem_id, youtube_url, text_solution } = body;
+    const { title, description, problems, enrollment_access, enrollment_passcode, is_public, regenerate_slug, problem_id, youtube_url, text_solution } = body;
 
     // Handle single problem's YT video and text solution update
     if (problem_id !== undefined) {
@@ -92,9 +97,24 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const updates: any = {};
     if (title !== undefined && title.trim() !== sheet.title) {
       updates.title = title.trim();
-      updates.slug = await generateUniqueSheetSlug(supabase, title.trim(), id);
+      // Important SDE Rule: Only regenerate slug if slug is currently missing or explicitly requested via regenerate_slug
+      if (!sheet.slug || regenerate_slug) {
+        updates.slug = await generateUniqueSheetSlug(supabase, title.trim(), id);
+      }
+    } else if (regenerate_slug && sheet.title) {
+      updates.slug = await generateUniqueSheetSlug(supabase, sheet.title, id);
     }
+
     if (description !== undefined) updates.description = description || null;
+    
+    if (is_public !== undefined) {
+      const isPublicBool = Boolean(is_public);
+      updates.is_public = isPublicBool;
+      if (isPublicBool && !sheet.published_at) {
+        updates.published_at = new Date().toISOString();
+      }
+    }
+
     if (enrollment_access !== undefined) {
       const validAccess = ['public', 'restricted', 'private'];
       if (validAccess.includes(enrollment_access)) {

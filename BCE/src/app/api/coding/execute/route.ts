@@ -134,9 +134,32 @@ export async function POST(request: Request) {
     const compiler = WANDBOX_COMPILERS[language] || 'gcc-head';
 
     let codeToSend = code;
+
+    // Single-run execution: check if harness wrapping is needed
+    if (problemId) {
+      try {
+        const { createAdminClient } = await import('@/lib/supabase/server');
+        const adminClient = await createAdminClient();
+        const { data: problem } = await adminClient
+          .from('coding_problems')
+          .select('signature')
+          .eq('id', problemId)
+          .single();
+
+        if (problem && problem.signature) {
+          const { wrapCodeWithHarness, hasMainFunction } = await import('@/features/code-arena/harness');
+          if (!hasMainFunction(codeToSend, language)) {
+            codeToSend = wrapCodeWithHarness(codeToSend, problem.signature, language);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching problem signature in execute route:', err);
+      }
+    }
+
     if (language === 'java') {
       // Strip "public class" to "class" so that file compiled by Wandbox as prog.java doesn't fail compilation
-      codeToSend = code.replace(/\bpublic\s+class\b/g, 'class');
+      codeToSend = codeToSend.replace(/\bpublic\s+class\b/g, 'class');
     }
 
     try {
@@ -201,7 +224,6 @@ export async function POST(request: Request) {
     } catch (wandboxErr: any) {
       console.warn('Wandbox execution error:', wandboxErr);
     }
-
 
     return NextResponse.json({
       status: 'SYSTEM_ERROR',

@@ -11,8 +11,8 @@
 }
 
 @media (min-width: 901px) {
-  /* Override dashboard container outer padding when code arena is active */
-  .dashboard-layout:has(.code-arena-page) .dashboard-content {
+  /* Override dashboard container outer padding when code arena IDE mode is active */
+  .dashboard-layout:has(.code-arena-page.ide-mode) .dashboard-content {
     padding-top: var(--space-md) !important;
     padding-bottom: 0 !important;
     padding-left: 0 !important;
@@ -25,10 +25,23 @@
     flex-direction: column;
   }
 
-  .code-arena-page {
+  .code-arena-page.ide-mode {
     height: 100% !important;
     min-height: 0 !important;
     overflow: hidden;
+  }
+
+  /* Non-IDE code arena pages (sheets, hub, details, etc.) must be fully scrollable */
+  .code-arena-page:not(.ide-mode) {
+    height: auto !important;
+    min-height: 100% !important;
+    overflow-y: auto !important;
+  }
+
+  .dashboard-layout:has(.code-arena-page:not(.ide-mode)) .dashboard-content {
+    height: auto !important;
+    min-height: 100% !important;
+    overflow-y: visible !important;
   }
 
   /* Goals page needs scrolling unlike the IDE layout */
