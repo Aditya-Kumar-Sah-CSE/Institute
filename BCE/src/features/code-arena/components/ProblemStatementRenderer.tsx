@@ -60,6 +60,7 @@ export interface ProblemData {
   external_problem_id?: string | null;
   externalId?: string | null;
   starterCode?: Record<string, string> | null;
+  signature?: any;
   hints?: string[];
   follow_up?: string | null;
   supported_languages?: CodeLanguage[];

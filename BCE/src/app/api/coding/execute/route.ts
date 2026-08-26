@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { ExecutionStatus, NormalizedExecutionResult } from '@/features/code-arena/types';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { getCachedProblemSignature, setCachedProblemSignature } from '@/features/code-arena/judge';
 
 const WANDBOX_COMPILERS: Record<string, string> = {
   cpp17: 'gcc-head',
@@ -14,6 +15,7 @@ const WANDBOX_COMPILERS: Record<string, string> = {
 };
 
 export async function POST(request: Request) {
+  const reqStart = Date.now();
   try {
     const { isFeatureAllowed } = await import('@/lib/feature-flags');
     if (!(await isFeatureAllowed('coding_arena')) || !(await isFeatureAllowed('compiler'))) {
@@ -75,7 +77,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { code, language, stdin = '', problemId, testCases } = await request.json();
+    const { code, language, stdin = '', problemId, testCases, signature: providedSignature } = await request.json();
 
     if (language === 'html') {
       return NextResponse.json({
@@ -132,33 +134,39 @@ export async function POST(request: Request) {
     }
 
     const compiler = WANDBOX_COMPILERS[language] || 'gcc-head';
-
     let codeToSend = code;
 
     // Single-run execution: check if harness wrapping is needed
     if (problemId) {
-      try {
-        const { createAdminClient } = await import('@/lib/supabase/server');
-        const adminClient = await createAdminClient();
-        const { data: problem } = await adminClient
-          .from('coding_problems')
-          .select('signature')
-          .eq('id', problemId)
-          .single();
+      let sig = providedSignature || getCachedProblemSignature(problemId);
+      if (!sig) {
+        try {
+          const { createAdminClient } = await import('@/lib/supabase/server');
+          const adminClient = await createAdminClient();
+          const { data: problem } = await adminClient
+            .from('coding_problems')
+            .select('signature')
+            .eq('id', problemId)
+            .single();
 
-        if (problem && problem.signature) {
-          const { wrapCodeWithHarness, hasMainFunction } = await import('@/features/code-arena/harness');
-          if (!hasMainFunction(codeToSend, language)) {
-            codeToSend = wrapCodeWithHarness(codeToSend, problem.signature, language);
+          if (problem && problem.signature) {
+            sig = problem.signature;
+            setCachedProblemSignature(problemId, sig);
           }
+        } catch (err) {
+          console.error('Error fetching problem signature in execute route:', err);
         }
-      } catch (err) {
-        console.error('Error fetching problem signature in execute route:', err);
+      }
+
+      if (sig) {
+        const { wrapCodeWithHarness, hasMainFunction } = await import('@/features/code-arena/harness');
+        if (!hasMainFunction(codeToSend, language)) {
+          codeToSend = wrapCodeWithHarness(codeToSend, sig, language);
+        }
       }
     }
 
     if (language === 'java') {
-      // Strip "public class" to "class" so that file compiled by Wandbox as prog.java doesn't fail compilation
       codeToSend = codeToSend.replace(/\bpublic\s+class\b/g, 'class');
     }
 
@@ -175,7 +183,6 @@ export async function POST(request: Request) {
 
       if (res.ok) {
         const data = await res.json();
-
         const rawStatus = String(data.status ?? '0');
         const signal = data.signal || null;
         const stdout = data.program_output || '';
@@ -187,25 +194,23 @@ export async function POST(request: Request) {
         let status: ExecutionStatus = 'SUCCESS';
         let message: string | null = null;
 
-        // 1. Compilation Error
         if (compileStderr && exitCode !== 0 && !stdout) {
           status = 'COMPILATION_ERROR';
           message = 'Compilation failed. Check compiler diagnostics.';
-        }
-        // 2. Time Limit Exceeded
-        else if (signal === 'SIGKILL' || (stderr && stderr.toLowerCase().includes('time limit exceeded'))) {
+        } else if (signal === 'SIGKILL' || (stderr && stderr.toLowerCase().includes('time limit exceeded'))) {
           status = 'TIME_LIMIT_EXCEEDED';
           message = 'Execution exceeded time limit.';
-        }
-        // 3. Runtime Error
-        else if (signal || (!isNaN(exitCode) && exitCode !== 0)) {
+        } else if (signal || (!isNaN(exitCode) && exitCode !== 0)) {
           status = 'RUNTIME_ERROR';
           message = signal ? `Process terminated by signal: ${signal}` : `Process exited with code ${exitCode}`;
-        }
-        // 4. Success
-        else {
+        } else {
           status = 'SUCCESS';
           message = 'Execution finished successfully.';
+        }
+
+        const totalMs = Date.now() - reqStart;
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[CodeArena Perf] Single-run execution completed in ${totalMs}ms`);
         }
 
         return NextResponse.json({
@@ -216,7 +221,7 @@ export async function POST(request: Request) {
           compileStderr,
           exitCode: isNaN(exitCode) ? null : exitCode,
           signal,
-          executionTimeMs: null,
+          executionTimeMs: totalMs,
           memoryUsedMb: null,
           message,
         } as NormalizedExecutionResult);

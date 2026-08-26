@@ -193,8 +193,17 @@ export default function CodeEditor({
   const [activeTestCaseIdx, setActiveTestCaseIdx] = useState(0);
   const [batchResult, setBatchResult] = useState<any | null>(null);
   const [activeResultCaseIdx, setActiveResultCaseIdx] = useState(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const runCode = async () => {
+    if (running || submitting) return;
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setRunning(true);
     setExecResult(null);
     setBatchResult(null);
@@ -206,6 +215,7 @@ export default function CodeEditor({
         code,
         language,
         problemId,
+        signature: problem.signature || null,
       };
 
       if (isLeetCodeType) {
@@ -221,6 +231,7 @@ export default function CodeEditor({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
+        signal: controller.signal,
       });
 
       const data = await res.json();
@@ -239,7 +250,8 @@ export default function CodeEditor({
           setActiveTab('output');
         }
       }
-    } catch {
+    } catch (err: any) {
+      if (err?.name === 'AbortError') return;
       const errRes = {
         status: 'SYSTEM_ERROR',
         stdout: '',
@@ -277,6 +289,8 @@ export default function CodeEditor({
   };
 
   const submitCode = async () => {
+    if (running || submitting) return;
+
     setSubmitting(true);
     setSubmissionResult(null);
     setExecResult(null);
@@ -295,12 +309,11 @@ export default function CodeEditor({
 
       const payload = await res.json();
       if (!res.ok) {
-        setSubmissionResult({ error: payload.error || 'Submission failed' });
+        setSubmissionResult({ error: payload.error?.message || payload.error || 'Submission failed' });
         setActiveTab('error');
       } else {
         setSubmissionResult(payload.data);
         setActiveTab('tests');
-        router.refresh();
       }
     } catch {
       setSubmissionResult({ error: 'Unable to submit solution. Please check network connection.' });
@@ -309,6 +322,25 @@ export default function CodeEditor({
       setSubmitting(false);
     }
   };
+
+  // Keyboard Shortcuts: Ctrl+Enter (Run Code), Ctrl+Shift+Enter (Submit Solution)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const isMod = e.ctrlKey || e.metaKey;
+      if (isMod && e.key === 'Enter') {
+        e.preventDefault();
+        if (!running && !submitting) {
+          if (e.shiftKey) {
+            submitCode();
+          } else {
+            runCode();
+          }
+        }
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [code, language, problemId, running, submitting, testCases, customInput]);
 
   const errorCount =
     (execResult && (execResult.compileStderr || execResult.stderr || execResult.status !== 'SUCCESS')) ||

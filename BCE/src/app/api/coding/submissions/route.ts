@@ -1,7 +1,30 @@
 import { NextResponse } from 'next/server';
 import { getCodeArenaActor } from '@/features/code-arena/server';
-import { judgeService } from '@/features/code-arena/judge';
+import { judgeService, getCachedHiddenTests, setCachedHiddenTests } from '@/features/code-arena/judge';
 import type { CodeLanguage } from '@/features/code-arena/types';
+import { createHash } from 'crypto';
+
+// Short 5-second submission deduplication cache (userId + problemId + language + codeHash)
+const submissionDedupeMap = new Map<string, number>();
+
+function isDuplicateSubmission(userId: string, problemId: string, language: string, sourceCode: string): boolean {
+  const hash = createHash('md5').update(sourceCode.trim()).digest('hex');
+  const key = `${userId}:${problemId}:${language}:${hash}`;
+  const now = Date.now();
+  const lastTime = submissionDedupeMap.get(key);
+
+  if (lastTime && now - lastTime < 5000) {
+    return true;
+  }
+  submissionDedupeMap.set(key, now);
+  // Cleanup old dedupe entries periodically
+  if (submissionDedupeMap.size > 500) {
+    for (const [k, time] of submissionDedupeMap.entries()) {
+      if (now - time > 10000) submissionDedupeMap.delete(k);
+    }
+  }
+  return false;
+}
 
 export async function POST(request: Request) {
   const { supabase, user } = await getCodeArenaActor();
@@ -29,6 +52,14 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { success: false, error: { code: 'INVALID_INPUT', message: 'Problem, language and source code are required.' } },
         { status: 400 }
+      );
+    }
+
+    // Submission Deduplication Check
+    if (isDuplicateSubmission(user.id, problemId, language, sourceCode)) {
+      return NextResponse.json(
+        { success: false, error: { code: 'DUPLICATE_SUBMISSION', message: 'Identical solution was submitted seconds ago. Please wait before re-submitting.' } },
+        { status: 429 }
       );
     }
 
@@ -87,7 +118,6 @@ export async function POST(request: Request) {
 
         const now = new Date();
         if (!battle.end_time || now >= new Date(battle.end_time)) {
-          // Automatically transition battle status to COMPLETED (lazy expiration)
           const { createAdminClient } = await import('@/lib/supabase/server');
           const adminClient = await createAdminClient();
           await adminClient
@@ -103,12 +133,18 @@ export async function POST(request: Request) {
       }
     }
 
-    // Execute Judge Test Cases
-    const { data: tests } = await supabase
-      .from('coding_problem_test_cases')
-      .select('input, expected_output')
-      .eq('problem_id', problemId)
-      .eq('is_hidden', false);
+    // Execute Judge Test Cases (using server testcases cache)
+    let tests = getCachedHiddenTests(problemId);
+    if (!tests) {
+      const { data: dbTests } = await supabase
+        .from('coding_problem_test_cases')
+        .select('input, expected_output')
+        .eq('problem_id', problemId)
+        .eq('is_hidden', false);
+
+      tests = dbTests || [];
+      setCachedHiddenTests(problemId, tests);
+    }
 
     const result = await judgeService.execute({
       problemId,
@@ -144,27 +180,29 @@ export async function POST(request: Request) {
         const { createAdminClient } = await import('@/lib/supabase/server');
         const adminClient = await createAdminClient();
 
-        // 1. Update Daily Coding Activity
-        const { data: profile } = await adminClient.from('profiles').select('institution_id').eq('id', user.id).single();
+        // Perform parallelized activity & completion updates
         const today = new Date().toISOString().split('T')[0];
-        const { data: currentActivity } = await adminClient
-          .from('daily_coding_activity')
-          .select('problems_solved')
-          .eq('user_id', user.id)
-          .eq('date', today)
-          .maybeSingle();
 
-        if (currentActivity) {
-          await adminClient.from('daily_coding_activity')
-             .update({ problems_solved: currentActivity.problems_solved + 1, updated_at: new Date().toISOString() })
-             .eq('user_id', user.id).eq('date', today);
-        } else {
-          await adminClient.from('daily_coding_activity')
-             .insert({ user_id: user.id, institution_id: profile?.institution_id || null, date: today, problems_solved: 1 });
-        }
+        const updateActivityTask = (async () => {
+          const { data: profile } = await adminClient.from('profiles').select('institution_id').eq('id', user.id).single();
+          const { data: currentActivity } = await adminClient
+            .from('daily_coding_activity')
+            .select('problems_solved')
+            .eq('user_id', user.id)
+            .eq('date', today)
+            .maybeSingle();
 
-        // Insert into student_completed_problems to track unique solves securely
-        await adminClient
+          if (currentActivity) {
+            await adminClient.from('daily_coding_activity')
+              .update({ problems_solved: currentActivity.problems_solved + 1, updated_at: new Date().toISOString() })
+              .eq('user_id', user.id).eq('date', today);
+          } else {
+            await adminClient.from('daily_coding_activity')
+              .insert({ user_id: user.id, institution_id: profile?.institution_id || null, date: today, problems_solved: 1 });
+          }
+        })();
+
+        const updateSolvedTask = adminClient
           .from('student_completed_problems')
           .upsert({
             student_id: user.id,
@@ -173,15 +211,18 @@ export async function POST(request: Request) {
             solved_at: new Date().toISOString(),
           }, { onConflict: 'student_id,platform,problem_id' });
 
-        // Calculate coder badges
-        try {
-          const { checkBadges } = await import('@/features/gamification/actions/gamification');
-          await checkBadges(user.id);
-        } catch (badgeErr) {
-          console.error('[BADGES] Failed to trigger checkBadges:', badgeErr);
-        }
+        const triggerBadgesTask = (async () => {
+          try {
+            const { checkBadges } = await import('@/features/gamification/actions/gamification');
+            await checkBadges(user.id);
+          } catch (badgeErr) {
+            console.error('[BADGES] Failed to trigger checkBadges:', badgeErr);
+          }
+        })();
 
-        // 2. Handle battle score if applicable
+        await Promise.allSettled([updateActivityTask, updateSolvedTask, triggerBadgesTask]);
+
+        // Handle battle score if applicable
         if (finalBattleId) {
           const { data: prevSolved } = await adminClient
             .from('coding_submissions')
@@ -268,7 +309,6 @@ export async function GET(request: Request) {
   }
 
   if (battleId) {
-    // Strictly return submissions that belong to this specific battle
     query = query.eq('battle_id', battleId);
   }
 

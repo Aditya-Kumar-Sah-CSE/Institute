@@ -12,6 +12,39 @@ const WANDBOX_COMPILERS: Record<string, string> = {
   js: 'nodejs-20.17.0',
 };
 
+// 5-minute TTL Server Metadata Cache for Problem Signatures & Testcases
+interface CacheItem<T> {
+  data: T;
+  timestamp: number;
+}
+const CACHE_TTL_MS = 5 * 60 * 1000;
+const signatureCache = new Map<string, CacheItem<any>>();
+const hiddenTestsCache = new Map<string, CacheItem<any[]>>();
+
+export function getCachedProblemSignature(problemId: string): any | null {
+  const cached = signatureCache.get(problemId);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    return cached.data;
+  }
+  return null;
+}
+
+export function setCachedProblemSignature(problemId: string, signature: any) {
+  signatureCache.set(problemId, { data: signature, timestamp: Date.now() });
+}
+
+export function getCachedHiddenTests(problemId: string): any[] | null {
+  const cached = hiddenTestsCache.get(problemId);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    return cached.data;
+  }
+  return null;
+}
+
+export function setCachedHiddenTests(problemId: string, tests: any[]) {
+  hiddenTestsCache.set(problemId, { data: tests, timestamp: Date.now() });
+}
+
 function normalizeOutput(str: string): string {
   if (!str) return '';
   return str
@@ -44,7 +77,7 @@ function getMismatchInfo(expected: string, actual: string): string | null {
   return 'Wrong Answer';
 }
 
-interface SingleTestResult {
+export interface SingleTestResult {
   status: 'PASSED' | 'WRONG_ANSWER' | 'RUNTIME_ERROR' | 'COMPILATION_ERROR' | 'TIME_LIMIT_EXCEEDED';
   input: string;
   expectedOutput: string;
@@ -161,7 +194,9 @@ export interface JudgeService {
 
 export const judgeService: JudgeService = {
   async execute(request) {
+    const startTime = Date.now();
     let { language, sourceCode, testCases, problemId } = request;
+
     if (!testCases || testCases.length === 0) {
       return {
         status: 'ACCEPTED',
@@ -172,42 +207,105 @@ export const judgeService: JudgeService = {
     }
 
     let mode: 'leetcode_function' | 'custom_program' = 'custom_program';
+    let signatureLookupTime = 0;
 
     if (problemId) {
-      try {
-        const { createAdminClient } = await import('@/lib/supabase/server');
-        const adminClient = await createAdminClient();
-        const { data: problem } = await adminClient
-          .from('coding_problems')
-          .select('source_type, external_platform, signature')
-          .eq('id', problemId)
-          .single();
+      const sigStart = Date.now();
+      let signature = getCachedProblemSignature(problemId);
+      if (!signature) {
+        try {
+          const { createAdminClient } = await import('@/lib/supabase/server');
+          const adminClient = await createAdminClient();
+          const { data: problem } = await adminClient
+            .from('coding_problems')
+            .select('signature')
+            .eq('id', problemId)
+            .single();
 
-        if (problem && problem.signature) {
-          const userHasMain = hasMainFunction(sourceCode, language);
-          if (!userHasMain) {
-            mode = 'leetcode_function';
-            sourceCode = wrapCodeWithHarness(sourceCode, problem.signature, language);
+          if (problem && problem.signature) {
+            signature = problem.signature;
+            setCachedProblemSignature(problemId, signature);
           }
+        } catch (err) {
+          console.error('Error loading problem signature in judge service:', err);
         }
-      } catch (err) {
-        console.error('Error loading problem signature in judge service:', err);
       }
-    }
+      signatureLookupTime = Date.now() - sigStart;
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[JUDGE DEBUG]', {
-        mode,
-        language,
-        problemId,
-        testCasesCount: testCases.length,
-        sourceCodeSnippet: sourceCode.slice(0, 150) + '...',
-      });
+      if (signature) {
+        const userHasMain = hasMainFunction(sourceCode, language);
+        if (!userHasMain) {
+          mode = 'leetcode_function';
+          sourceCode = wrapCodeWithHarness(sourceCode, signature, language);
+        }
+      }
     }
 
     const compiler = WANDBOX_COMPILERS[language] || 'gcc-head';
 
-    // Step 1: Run the first test case to fail fast on Compilation Errors.
+    // OPTIMIZATION: Compile Once, Execute Many (Single-Compilation Stream Batching)
+    // For function mode or multiple test cases, batch inputs into a single stdin stream
+    if (mode === 'leetcode_function' && testCases.length > 1) {
+      const batchedInput = testCases.map(tc => tc.input.trim()).join('\n');
+      const batchResult = await runSingleTestCase(compiler, sourceCode, batchedInput, '', language);
+
+      if (batchResult.status === 'COMPILATION_ERROR') {
+        const allResults: SingleTestResult[] = testCases.map(tc => ({
+          status: 'COMPILATION_ERROR',
+          input: tc.input,
+          expectedOutput: tc.expectedOutput,
+          actualOutput: '',
+          passed: false,
+          stderr: batchResult.stderr,
+        }));
+        return {
+          status: 'COMPILATION_ERROR',
+          passedTests: 0,
+          totalTests: testCases.length,
+          compilerOutput: batchResult.stderr,
+          runtimeOutput: JSON.stringify(allResults),
+        };
+      }
+
+      // If batch execution ran cleanly, split output by non-empty lines
+      if (batchResult.status === 'PASSED' || batchResult.status === 'WRONG_ANSWER') {
+        const rawOutputLines = batchResult.actualOutput.split('\n').map(l => l.trim()).filter(Boolean);
+
+        if (rawOutputLines.length === testCases.length) {
+          const allResults: SingleTestResult[] = testCases.map((tc, idx) => {
+            const actual = rawOutputLines[idx];
+            const mismatch = getMismatchInfo(tc.expectedOutput, actual);
+            const passed = mismatch === null;
+            return {
+              status: passed ? 'PASSED' : 'WRONG_ANSWER',
+              input: tc.input,
+              expectedOutput: tc.expectedOutput,
+              actualOutput: actual,
+              passed,
+              mismatchInfo: mismatch || undefined,
+            };
+          });
+
+          const passedCount = allResults.filter(r => r.passed).length;
+          const overallStatus: SubmissionStatus = passedCount === testCases.length ? 'ACCEPTED' : 'WRONG_ANSWER';
+
+          const totalTime = Date.now() - startTime;
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`[CodeArena Perf] Mode: ${mode} (Batched Single-Compile), SigLookup: ${signatureLookupTime}ms, Total: ${totalTime}ms`);
+          }
+
+          return {
+            status: overallStatus,
+            passedTests: passedCount,
+            totalTests: testCases.length,
+            runtimeOutput: JSON.stringify(allResults),
+          };
+        }
+      }
+      // If output lines count mismatch or runtime error occurs, fall back to individual testcase execution
+    }
+
+    // Fallback: Run testcases individually with fast concurrency limit
     const tc1 = testCases[0];
     const res1 = await runSingleTestCase(compiler, sourceCode, tc1.input, tc1.expectedOutput, language);
 
@@ -231,7 +329,6 @@ export const judgeService: JudgeService = {
       };
     }
 
-    // Step 2: Run all remaining test cases concurrently.
     const restPromises = testCases.slice(1).map(tc =>
       runSingleTestCase(compiler, sourceCode, tc.input, tc.expectedOutput, language)
     );
@@ -240,7 +337,6 @@ export const judgeService: JudgeService = {
     const allResults = [res1, ...restResults];
     const passedCount = allResults.filter(r => r.status === 'PASSED').length;
 
-    // Determine the overall status based on checklist precedence.
     let overallStatus: SubmissionStatus = 'ACCEPTED';
     const statuses = allResults.map(r => r.status);
     
@@ -252,6 +348,11 @@ export const judgeService: JudgeService = {
       overallStatus = 'RUNTIME_ERROR';
     } else if (statuses.includes('WRONG_ANSWER')) {
       overallStatus = 'WRONG_ANSWER';
+    }
+
+    const totalTime = Date.now() - startTime;
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[CodeArena Perf] Mode: ${mode} (Parallel Fallback), SigLookup: ${signatureLookupTime}ms, Total: ${totalTime}ms`);
     }
 
     return {
