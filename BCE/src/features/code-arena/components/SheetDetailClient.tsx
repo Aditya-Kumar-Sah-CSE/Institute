@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { 
   Trophy, ArrowLeft, BookOpen, CheckCircle2, Circle, 
   ExternalLink, Code2, ArrowRight, Award, Play, Pencil, Users,
-  Lock, Shield, Globe, KeyRound, AlertCircle, Video, FileText, Share2, Check
+  Lock, Shield, Globe, KeyRound, AlertCircle, Video, FileText, Share2, Check, BarChart2, Search
 } from 'lucide-react';
 import MobileCodeArenaToggle from './MobileCodeArenaToggle';
 import Card from '@/components/ui/Card';
@@ -42,12 +42,22 @@ type Sheet = {
   problems: Problem[];
 };
 
+type Solver = {
+  id: string;
+  name: string;
+  avatar_url?: string;
+  solvedCount: number;
+};
+
 export default function SheetDetailClient({
   sheet,
   solvedProblemIds,
   isInstructor,
   currentUser,
   totalStudentsSolving = 0,
+  totalEnrolledSolvers = 0,
+  avgQuestionsSolved = '0',
+  solversLeaderboard = [],
   enrollmentAccess = 'public',
   isEnrolled: initialIsEnrolled = false,
 }: {
@@ -56,6 +66,9 @@ export default function SheetDetailClient({
   isInstructor?: boolean;
   currentUser?: any;
   totalStudentsSolving?: number;
+  totalEnrolledSolvers?: number;
+  avgQuestionsSolved?: string;
+  solversLeaderboard?: Solver[];
   enrollmentAccess?: string;
   isEnrolled?: boolean;
 }) {
@@ -67,6 +80,12 @@ export default function SheetDetailClient({
   const [enrollError, setEnrollError] = useState('');
   const [passcodeInput, setPasscodeInput] = useState('');
   const [copiedShare, setCopiedShare] = useState(false);
+  const [showSolversModal, setShowSolversModal] = useState(false);
+  const [solverSearch, setSolverSearch] = useState('');
+
+  const filteredSolvers = solversLeaderboard.filter(s =>
+    s.name.toLowerCase().includes(solverSearch.toLowerCase())
+  );
 
   useEffect(() => {
     setIsMounted(true);
@@ -383,13 +402,87 @@ export default function SheetDetailClient({
           gap: '20px'
         }}
       >
-        <div>
+        <div style={{ flex: 1, minWidth: '280px' }}>
           <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 800, margin: '0 0 6px 0' }} className="text-gradient">
             {sheet.title}
           </h2>
-          <p className="text-secondary" style={{ fontSize: 'var(--text-xs)', margin: 0, maxWidth: '480px' }}>
+          <p className="text-secondary" style={{ fontSize: 'var(--text-xs)', margin: '0 0 16px 0', maxWidth: '520px' }}>
             {sheet.description || 'Practice curated coding questions.'}
           </p>
+
+          {/* Community Solver Stats Bar — Visible to Everyone */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            {/* Total Enrolled Solvers */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255, 255, 255, 0.04)', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
+              <Users size={15} style={{ color: 'var(--neon-cyan)' }} />
+              <div>
+                <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.5px' }}>SOLVERS ENROLLED</div>
+                <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)' }}>{totalEnrolledSolvers || totalStudentsSolving} Students</div>
+              </div>
+            </div>
+
+            {/* Avg Questions Solved */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255, 255, 255, 0.04)', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
+              <BarChart2 size={15} style={{ color: 'var(--neon-purple)' }} />
+              <div>
+                <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.5px' }}>AVG QUESTIONS SOLVED</div>
+                <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)' }}>{avgQuestionsSolved} / {totalProblems}</div>
+              </div>
+            </div>
+
+            {/* Top Performers Preview & View All Solvers Button */}
+            {solversLeaderboard.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  {solversLeaderboard.slice(0, 3).map((solver, idx) => (
+                    <div
+                      key={solver.id}
+                      style={{
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '50%',
+                        border: '2px solid #18181b',
+                        marginLeft: idx > 0 ? '-6px' : '0',
+                        overflow: 'hidden',
+                        background: '#1e293b',
+                        position: 'relative',
+                      }}
+                      title={`#${idx + 1} ${solver.name} (${solver.solvedCount}/${totalProblems} solved)`}
+                    >
+                      <img
+                        src={solver.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(solver.name)}&background=06b6d4&color=fff`}
+                        alt={solver.name}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowSolversModal(true)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    height: '32px',
+                    padding: '0 12px',
+                    borderRadius: '8px',
+                    background: 'rgba(6, 182, 212, 0.12)',
+                    border: '1px solid rgba(6, 182, 212, 0.3)',
+                    color: 'var(--neon-cyan)',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 0 10px rgba(6, 182, 212, 0.15)',
+                  }}
+                >
+                  <Trophy size={13} /> View All Solvers ({solversLeaderboard.length})
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {hasAccess && (
@@ -823,6 +916,162 @@ export default function SheetDetailClient({
             onCancel={() => setEditProblem(null)}
             title="Text Solution (Markdown Supported)"
           />
+        </div>
+      </Modal>
+
+      {/* View All Solvers & Top Performers Modal */}
+      <Modal
+        isOpen={showSolversModal}
+        onClose={() => setShowSolversModal(false)}
+        title="🏆 Sheet Leaderboard & Top Performers"
+        size="lg"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '72vh', overflowY: 'auto', paddingRight: '4px' }}>
+          {/* Summary Banner */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--glass-border)', padding: '12px', borderRadius: '8px', textAlign: 'center' }}>
+            <div>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>TOTAL SOLVERS</div>
+              <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--neon-cyan)' }}>{solversLeaderboard.length} Students</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>TOTAL PROBLEMS</div>
+              <div style={{ fontSize: '16px', fontWeight: 800, color: '#facc15' }}>{totalProblems} Questions</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>AVG QUESTIONS SOLVED</div>
+              <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--neon-purple)' }}>{avgQuestionsSolved}</div>
+            </div>
+          </div>
+
+          {/* Search bar */}
+          <div style={{ position: 'relative' }}>
+            <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <input
+              type="text"
+              placeholder="Search solver by name..."
+              value={solverSearch}
+              onChange={(e) => setSolverSearch(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 14px 10px 36px',
+                borderRadius: '8px',
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid var(--glass-border)',
+                color: 'var(--text-main)',
+                fontSize: '13px',
+                outline: 'none',
+              }}
+            />
+          </div>
+
+          {/* Top 3 Podium Highlights if search is empty */}
+          {!solverSearch && solversLeaderboard.length >= 3 && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', margin: '4px 0 8px 0' }}>
+              {/* 2nd Place */}
+              <div style={{ background: 'rgba(148, 163, 184, 0.08)', border: '1px solid rgba(148, 163, 184, 0.3)', borderRadius: '10px', padding: '12px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#cbd5e1', marginBottom: '4px' }}>🥈 2nd Place</div>
+                <img
+                  src={solversLeaderboard[1].avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(solversLeaderboard[1].name)}&background=94a3b8&color=fff`}
+                  alt={solversLeaderboard[1].name}
+                  style={{ width: '38px', height: '38px', borderRadius: '50%', marginBottom: '6px', objectFit: 'cover' }}
+                />
+                <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{solversLeaderboard[1].name}</div>
+                <div style={{ fontSize: '11px', color: 'var(--neon-cyan)', fontWeight: 800 }}>{solversLeaderboard[1].solvedCount} / {totalProblems}</div>
+              </div>
+
+              {/* 1st Place */}
+              <div style={{ background: 'rgba(250, 204, 21, 0.1)', border: '1px solid rgba(250, 204, 21, 0.4)', borderRadius: '10px', padding: '12px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', transform: 'scale(1.03)', boxShadow: '0 0 15px rgba(250, 204, 21, 0.15)' }}>
+                <div style={{ fontSize: '11px', fontWeight: 900, color: '#facc15', marginBottom: '4px' }}>🏆 1st Place</div>
+                <img
+                  src={solversLeaderboard[0].avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(solversLeaderboard[0].name)}&background=facc15&color=000`}
+                  alt={solversLeaderboard[0].name}
+                  style={{ width: '42px', height: '42px', borderRadius: '50%', marginBottom: '6px', objectFit: 'cover', border: '2px solid #facc15' }}
+                />
+                <div style={{ fontSize: '12px', fontWeight: 800, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{solversLeaderboard[0].name}</div>
+                <div style={{ fontSize: '11px', color: '#facc15', fontWeight: 800 }}>{solversLeaderboard[0].solvedCount} / {totalProblems} Solved</div>
+              </div>
+
+              {/* 3rd Place */}
+              <div style={{ background: 'rgba(217, 119, 6, 0.08)', border: '1px solid rgba(217, 119, 6, 0.3)', borderRadius: '10px', padding: '12px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#fbbf24', marginBottom: '4px' }}>🥉 3rd Place</div>
+                <img
+                  src={solversLeaderboard[2].avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(solversLeaderboard[2].name)}&background=d97706&color=fff`}
+                  alt={solversLeaderboard[2].name}
+                  style={{ width: '38px', height: '38px', borderRadius: '50%', marginBottom: '6px', objectFit: 'cover' }}
+                />
+                <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{solversLeaderboard[2].name}</div>
+                <div style={{ fontSize: '11px', color: 'var(--neon-cyan)', fontWeight: 800 }}>{solversLeaderboard[2].solvedCount} / {totalProblems}</div>
+              </div>
+            </div>
+          )}
+
+          {/* Full Solvers Table */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {filteredSolvers.map((solver) => {
+              const rank = solversLeaderboard.findIndex(s => s.id === solver.id) + 1;
+              const pct = totalProblems > 0 ? Math.round((solver.solvedCount / totalProblems) * 100) : 0;
+              const isPerfect = pct === 100 && totalProblems > 0;
+
+              return (
+                <div
+                  key={solver.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    background: isPerfect ? 'rgba(34, 197, 94, 0.05)' : 'rgba(255, 255, 255, 0.02)',
+                    border: isPerfect ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid var(--glass-border)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 800, width: '28px', color: rank === 1 ? '#facc15' : rank === 2 ? '#cbd5e1' : rank === 3 ? '#fbbf24' : 'var(--text-muted)' }}>
+                      #{rank}
+                    </span>
+
+                    <img
+                      src={solver.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(solver.name)}&background=06b6d4&color=fff`}
+                      alt={solver.name}
+                      style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }}
+                    />
+
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {solver.name}
+                        {isPerfect && <span style={{ fontSize: '10px', background: 'rgba(34, 197, 94, 0.2)', color: '#22c55e', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>🏆 Master</span>}
+                      </div>
+                      <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                        {pct}% Completed ({solver.solvedCount}/{totalProblems})
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '120px' }}>
+                    <div style={{ flex: 1, height: '6px', background: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          width: `${pct}%`,
+                          height: '100%',
+                          background: isPerfect ? 'linear-gradient(90deg, #22c55e, #4ade80)' : 'linear-gradient(90deg, var(--neon-cyan), var(--neon-purple))',
+                          borderRadius: '3px',
+                        }}
+                      />
+                    </div>
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: isPerfect ? '#22c55e' : 'var(--neon-cyan)' }}>
+                      {solver.solvedCount}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+
+            {filteredSolvers.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)', fontSize: '13px' }}>
+                No solvers found matching "{solverSearch}".
+              </div>
+            )}
+          </div>
         </div>
       </Modal>
     </div>

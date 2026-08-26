@@ -67,18 +67,59 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
 
   const isEnrolled = Boolean(enrollment);
 
-  // 5. Creator analytics: unique students solving
+  // 5. Community Solver Analytics for ALL users:
   const problemIds = problems.map((p: any) => p.id);
-  let totalStudentsSolving = 0;
-  if (problemIds.length > 0) {
-    const { data: submissionStudents } = await supabase
-      .from('coding_submissions')
-      .select('student_id')
-      .in('problem_id', problemIds);
 
-    const uniqueIds = new Set((submissionStudents || []).map((s: any) => s.student_id));
-    totalStudentsSolving = uniqueIds.size;
+  const { count: enrollmentsCount } = await supabase
+    .from('coding_sheet_enrollments')
+    .select('id', { count: 'exact', head: true })
+    .eq('sheet_id', sheet.id);
+
+  let solversLeaderboard: { id: string; name: string; avatar_url?: string; solvedCount: number }[] = [];
+  let totalSolvedSum = 0;
+  let uniqueSolversCount = 0;
+
+  if (problemIds.length > 0) {
+    const { data: acceptedSubmissions } = await supabase
+      .from('coding_submissions')
+      .select('student_id, problem_id, profiles!coding_submissions_student_id_fkey(name, avatar_url)')
+      .in('problem_id', problemIds)
+      .eq('status', 'ACCEPTED');
+
+    if (acceptedSubmissions && acceptedSubmissions.length > 0) {
+      const userSolvedMap = new Map<string, { name: string; avatar_url?: string; solvedProblems: Set<string> }>();
+
+      for (const sub of acceptedSubmissions) {
+        if (!sub.student_id) continue;
+        const profile = (sub as any).profiles;
+        const name = profile?.name || 'Anonymous Solver';
+        const avatar_url = profile?.avatar_url;
+
+        if (!userSolvedMap.has(sub.student_id)) {
+          userSolvedMap.set(sub.student_id, { name, avatar_url, solvedProblems: new Set() });
+        }
+        userSolvedMap.get(sub.student_id)!.solvedProblems.add(sub.problem_id);
+      }
+
+      uniqueSolversCount = userSolvedMap.size;
+
+      userSolvedMap.forEach((val, userId) => {
+        const solvedCount = val.solvedProblems.size;
+        totalSolvedSum += solvedCount;
+        solversLeaderboard.push({
+          id: userId,
+          name: val.name,
+          avatar_url: val.avatar_url,
+          solvedCount,
+        });
+      });
+
+      solversLeaderboard.sort((a, b) => b.solvedCount - a.solvedCount);
+    }
   }
+
+  const totalEnrolledSolvers = Math.max(enrollmentsCount || 0, uniqueSolversCount);
+  const avgQuestionsSolved = uniqueSolversCount > 0 ? (totalSolvedSum / uniqueSolversCount).toFixed(1) : '0';
 
   return (
     <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading Sheet Details…</div>}>
@@ -87,7 +128,10 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
         solvedProblemIds={solvedProblemIds}
         isInstructor={isInstructor}
         currentUser={user}
-        totalStudentsSolving={totalStudentsSolving}
+        totalStudentsSolving={uniqueSolversCount}
+        totalEnrolledSolvers={totalEnrolledSolvers}
+        avgQuestionsSolved={avgQuestionsSolved}
+        solversLeaderboard={solversLeaderboard}
         enrollmentAccess={sheet.enrollment_access || 'public'}
         isEnrolled={isEnrolled}
       />
