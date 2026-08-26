@@ -44,7 +44,7 @@ export async function updateSession(request: NextRequest) {
     'share-doubt', 'users', 'batch', 'certificates', 'code-arena', 'sheets', 'share',
     // Misc root pages
     'admission', 'pwa-start', 'contact', 'institution-not-found', 'institution-disabled',
-    'privacy', 'terms',
+    'privacy', 'terms', 'latex-editor', 'student',
   ];
   if (!tenantSlug && firstPathSegment && !reservedPaths.includes(firstPathSegment)) {
     tenantSlug = firstPathSegment;

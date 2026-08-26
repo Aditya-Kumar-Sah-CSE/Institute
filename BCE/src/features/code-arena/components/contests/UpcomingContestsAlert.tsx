@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Bell, ExternalLink, Timer, Radio, Calendar, RefreshCw, MoreVertical, X, ChefHat, BarChart3, Code2, Trophy, Globe, Zap, CheckCircle2, AlertCircle } from 'lucide-react';
 import type { UnifiedContest } from '@/app/api/coding/contests/route';
+import { loadContestsCache, saveContestsCache, fetchFreshContests } from '@/features/code-arena/lib/contestCache';
 
 export function formatTimeRemaining(targetTimeMs: number): string {
   const diff = Math.max(0, targetTimeMs - Date.now());
@@ -32,11 +33,14 @@ export default function UpcomingContestsAlert({ initialExpand = false }: Upcomin
   const [isExpanded, setIsExpanded] = useState(initialExpand);
   const [contests, setContests] = useState<UnifiedContest[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isBackgroundFetching, setIsBackgroundFetching] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
+  const [isCachedNotice, setIsCachedNotice] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<'ALL' | 'CODECHEF' | 'CODEFORCES' | 'LEETCODE'>('ALL');
   const [registrations, setRegistrations] = useState<Record<string, RegistrationState>>({});
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [, setNowTick] = useState(Date.now());
+  const initialLoadCompleted = useRef(false);
 
   // Fetch registrations from database
   const fetchRegistrations = async () => {
@@ -60,30 +64,82 @@ export default function UpcomingContestsAlert({ initialExpand = false }: Upcomin
     }
   };
 
-  const fetchContests = async () => {
+  /**
+   * Main contest loader with 10-minute client-side caching & background revalidation.
+   */
+  const loadContestsData = async (forceNetwork: boolean = false) => {
+    setErrorMessage(null);
+    setIsCachedNotice(false);
+
+    // 1. Try reading from client cache first (hydration-safe)
+    const cached = loadContestsCache();
+
+    if (cached && !forceNetwork) {
+      // Instantly render cached data without waiting for network
+      setContests(cached.data);
+      setHasFetched(true);
+
+      if (!cached.isStale) {
+        // Cache is fresh (<= 10 mins) -> No background fetch needed
+        setLoading(false);
+        setIsBackgroundFetching(false);
+        fetchRegistrations();
+        return;
+      }
+
+      // Cache is stale (> 10 mins) -> Render stale cards immediately and fetch fresh data in background
+      setIsBackgroundFetching(true);
+      try {
+        const [freshContests] = await Promise.all([
+          fetchFreshContests(),
+          fetchRegistrations()
+        ]);
+        setContests(freshContests);
+      } catch (err) {
+        console.warn('Background revalidation failed, retaining cached contests:', err);
+        setIsCachedNotice(true);
+      } finally {
+        setIsBackgroundFetching(false);
+      }
+      return;
+    }
+
+    // 2. No valid cache found or forceNetwork is true -> Show loading state and fetch
     try {
       setLoading(true);
-      setErrorMessage(null);
-      const [contestsRes] = await Promise.all([
-        fetch('/api/coding/contests'),
+      const [freshContests] = await Promise.all([
+        fetchFreshContests(),
         fetchRegistrations()
       ]);
-
-      if (contestsRes.ok) {
-        const json = await contestsRes.json();
-        setContests(json.contests || []);
-        setHasFetched(true);
-      }
-    } catch (e) {
+      setContests(freshContests);
+      setHasFetched(true);
+    } catch (e: any) {
       console.warn('Failed to fetch upcoming contests:', e);
+      if (contests.length > 0) {
+        setIsCachedNotice(true);
+      } else {
+        setErrorMessage('Failed to fetch live contest schedules. Please check your network connection.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  // Hydration-safe initial check on client mount
   useEffect(() => {
-    if (initialExpand && !hasFetched) {
-      fetchContests();
+    if (initialLoadCompleted.current) return;
+    initialLoadCompleted.current = true;
+
+    // Check if cache exists synchronously on client
+    const cached = loadContestsCache();
+    if (cached) {
+      setContests(cached.data);
+      setHasFetched(true);
+      if (cached.isStale || initialExpand) {
+        loadContestsData(false);
+      }
+    } else if (initialExpand) {
+      loadContestsData(false);
     }
   }, [initialExpand]);
 
@@ -158,8 +214,8 @@ export default function UpcomingContestsAlert({ initialExpand = false }: Upcomin
   const handleToggle = () => {
     const nextState = !isExpanded;
     setIsExpanded(nextState);
-    if (nextState && !hasFetched && !loading) {
-      fetchContests();
+    if (nextState && (!hasFetched || contests.length === 0) && !loading) {
+      loadContestsData(false);
     }
   };
 
@@ -230,7 +286,9 @@ export default function UpcomingContestsAlert({ initialExpand = false }: Upcomin
           <div style={{ minWidth: 0 }}>
             <h3 style={{ margin: 0, fontSize: 'var(--text-md)', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
               Upcoming & Live Contests Alert
-              {loading && <RefreshCw size={14} className="spin animate-spin" style={{ color: 'var(--neon-emerald)' }} />}
+              {(loading || isBackgroundFetching) && (
+                <RefreshCw size={14} className="spin animate-spin" style={{ color: 'var(--neon-emerald)' }} />
+              )}
             </h3>
             <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {isExpanded ? 'Live countdown timers & verified contest registration' : 'Tap 3-dots menu to view CodeChef, Codeforces & LeetCode contests'}
@@ -268,6 +326,32 @@ export default function UpcomingContestsAlert({ initialExpand = false }: Upcomin
       {/* Expanded Content Area */}
       {isExpanded && (
         <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid var(--glass-border)' }}>
+          {/* Subtle Cached Data Notice */}
+          {isCachedNotice && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '6px 12px',
+              borderRadius: '6px',
+              background: 'rgba(6, 182, 212, 0.1)',
+              border: '1px solid rgba(6, 182, 212, 0.3)',
+              color: '#06b6d4',
+              fontSize: '11px',
+              marginBottom: '12px',
+              fontWeight: 600
+            }}>
+              <span>Showing recently cached contests (offline fallback)</span>
+              <button
+                type="button"
+                onClick={() => loadContestsData(true)}
+                style={{ background: 'none', border: 'none', color: '#06b6d4', cursor: 'pointer', fontSize: '11px', textDecoration: 'underline', fontWeight: 'bold' }}
+              >
+                Retry Network
+              </button>
+            </div>
+          )}
+
           {/* Error / Verification Toast Banner */}
           {errorMessage && (
             <div style={{
@@ -349,8 +433,9 @@ export default function UpcomingContestsAlert({ initialExpand = false }: Upcomin
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '12px' }}>
               {filteredContests.map((c) => {
                 const badge = getPlatformBadge(c.platform);
-                const isLive = c.status === 'LIVE' || (Date.now() >= c.startTime && Date.now() <= c.endTime);
-                const isStartingSoon = c.status === 'STARTING_SOON' || (!isLive && c.startTime - Date.now() <= 3 * 3600 * 1000);
+                const now = Date.now();
+                const isLive = c.status === 'LIVE' || (now >= c.startTime && now <= c.endTime);
+                const isStartingSoon = c.status === 'STARTING_SOON' || (!isLive && c.startTime - now <= 3 * 3600 * 1000);
                 
                 const regState = registrations[c.id] || { status: 'unverified', registered: false };
                 const isVerifiedRegistered = regState.registered && regState.status === 'verified';
@@ -543,4 +628,3 @@ export default function UpcomingContestsAlert({ initialExpand = false }: Upcomin
     </div>
   );
 }
-

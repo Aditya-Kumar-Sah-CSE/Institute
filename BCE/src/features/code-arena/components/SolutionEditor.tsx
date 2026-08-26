@@ -73,8 +73,8 @@ export default function SolutionEditor({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const initialValueRef = useRef<string>(value);
-  const urlMapRef = useRef<Record<string, string>>({});
+  const [initialVal] = useState<string>(value);
+  const [urlMap, setUrlMap] = useState<Record<string, string>>({});
 
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
@@ -83,12 +83,12 @@ export default function SolutionEditor({
     return text.replace(/!\[(.*?)\]\((https:\/\/[^\s)]+)\)/g, (match, alt, url) => {
       if (url.length > 50) {
         let id = '';
-        const existingKey = Object.keys(urlMapRef.current).find(key => urlMapRef.current[key] === url);
+        const existingKey = Object.keys(urlMap).find(key => urlMap[key] === url);
         if (existingKey) {
           id = existingKey;
         } else {
           id = Math.random().toString(36).substring(2, 9);
-          urlMapRef.current[id] = url;
+          setUrlMap(prev => ({ ...prev, [id]: url }));
         }
         const cleanAlt = alt.startsWith('🖼️ Image: ') ? alt : `🖼️ Image: ${alt}`;
         return `![${cleanAlt}](imgref-${id})`;
@@ -99,7 +99,7 @@ export default function SolutionEditor({
 
   const restoreUrls = (text: string) => {
     return text.replace(/!\[(.*?)\]\(imgref-([a-zA-Z0-9]+)\)/g, (match, alt, id) => {
-      const realUrl = urlMapRef.current[id];
+      const realUrl = urlMap[id];
       if (realUrl) {
         const cleanAlt = alt.startsWith('🖼️ Image: ') ? alt.replace('🖼️ Image: ', '') : alt;
         return `![${cleanAlt}](${realUrl})`;
@@ -319,7 +319,7 @@ export default function SolutionEditor({
   };
 
   // Determine dirty state (unsaved changes)
-  const isDirty = value !== initialValueRef.current;
+  const isDirty = value !== initialVal;
   const saveStatusText = saving ? 'Saving...' : isDirty ? 'Unsaved changes' : 'Saved';
   const saveStatusColor = saving
     ? 'var(--neon-gold, #facc15)'
