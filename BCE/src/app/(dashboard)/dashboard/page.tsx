@@ -10,6 +10,7 @@ import { getDashboardPolls } from '@/features/courses/actions/polls';
 import { Zap, Flame, CheckCircle, Award, User, BookOpen, Download } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import AddGoalDashboardCard from '@/features/goals/components/AddGoalDashboardCard';
+import PinnedGoalAlert from '@/features/goals/components/PinnedGoalAlert';
 
 
 const NoticeBoard = dynamic(() => import('@/features/notices/components/NoticeBoard'), { loading: () => <div className="skeleton-dash" style={{ height: '300px', borderRadius: '12px' }}></div> });
@@ -226,6 +227,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
         </div>
 
 
+        <PinnedGoalAlert />
         <UpcomingContestsAlert />
 
         {pollAlerts && pollAlerts.length > 0 && (

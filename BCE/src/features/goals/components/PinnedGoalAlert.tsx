@@ -374,50 +374,6 @@ export default function PinnedGoalAlert() {
   // If no running session, but daily routines are completed:
   const elements: React.ReactNode[] = [];
 
-    elements.push(
-      <div 
-        key="add-goal"
-        onClick={() => window.location.href = '/code-arena/goals'}
-        style={{
-          marginBottom: '20px',
-          background: 'linear-gradient(135deg, rgba(6,182,212,0.15), rgba(168,85,247,0.1))',
-          border: '1px solid rgba(6,182,212,0.3)',
-          borderRadius: '16px',
-          padding: '16px 24px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          boxShadow: '0 8px 32px 0 rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
-          backdropFilter: 'blur(12px)',
-          cursor: 'pointer',
-          transition: 'all 0.2s',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{
-            display: 'grid',
-            placeItems: 'center',
-            width: '44px',
-            height: '44px',
-            borderRadius: '12px',
-            background: 'rgba(6,182,212,0.15)',
-            border: '1px solid rgba(6,182,212,0.3)',
-            color: 'var(--neon-cyan)',
-          }}>
-            <Target size={22} />
-          </div>
-          <div>
-            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>
-              🎯 Set Your Learning Goal
-            </h3>
-            <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-secondary)' }}>
-              Create a goal to track your daily progress and stay focused
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-
   // Fallback to Active Goal tracker details if no routine is active
   if (activeGoal) {
     const goalFocusedMins = stats.per_goal_stats?.find((g: any) => g.goal_id === activeGoal.id)?.focused_mins || 0;
@@ -461,6 +417,71 @@ export default function PinnedGoalAlert() {
             </p>
             <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>
               {progressText}
+            </p>
+          </div>
+        </div>
+
+        <button 
+          onClick={() => handleStartGoalFocus(activeGoal)}
+          style={{
+            background: 'rgba(6,182,212,0.15)',
+            border: '1px solid rgba(6,182,212,0.3)',
+            borderRadius: '8px',
+            padding: '10px 20px',
+            color: 'var(--neon-cyan)',
+            fontSize: '12px',
+            fontWeight: 800,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            transition: 'all 0.2s',
+          }}
+        >
+          <Play size={12} style={{ fill: 'currentColor' }} /> Start Focus Session
+        </button>
+      </div>
+    );
+  } else {
+    // No active goal — show "Add Goal" prompt
+    elements.push(
+      <div 
+        key="add-goal"
+        onClick={() => window.location.href = '/code-arena/goals'}
+        style={{
+          marginBottom: '20px',
+          background: 'linear-gradient(135deg, rgba(6,182,212,0.15), rgba(168,85,247,0.1))',
+          border: '1px solid rgba(6,182,212,0.3)',
+          borderRadius: '16px',
+          padding: '16px 24px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          boxShadow: '0 8px 32px 0 rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
+          backdropFilter: 'blur(12px)',
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{
+            display: 'grid',
+            placeItems: 'center',
+            width: '44px',
+            height: '44px',
+            borderRadius: '12px',
+            background: 'rgba(6,182,212,0.15)',
+            border: '1px solid rgba(6,182,212,0.3)',
+            color: 'var(--neon-cyan)',
+          }}>
+            <Target size={22} />
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>
+              🎯 Set Your Learning Goal
+            </h3>
+            <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-secondary)' }}>
+              Create a goal to track your daily progress and stay focused
             </p>
           </div>
         </div>
