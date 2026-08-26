@@ -293,7 +293,7 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
         title={activeSession ? "Resume Focus Session" : routines.length > 0 ? "View Routine Checklist" : goal ? "Update Goal" : "Create Goal"}
       >
         <Card variant="glass" padding="lg" className="stat-card hover-lift">
-          <div className="stat-card-icon" style={{ background: 'rgba(6, 182, 212, 0.1)', color: 'var(--neon-cyan)' }}>
+          <div suppressHydrationWarning className="stat-card-icon" style={{ background: 'rgba(6, 182, 212, 0.1)', color: 'var(--neon-cyan)' }}>
             <Plus size={24} />
           </div>
           <div className="stat-card-content">
