@@ -447,7 +447,6 @@ export default function PinnedGoalAlert() {
     elements.push(
       <div 
         key="add-goal"
-        onClick={() => window.location.href = '/code-arena/goals'}
         style={{
           marginBottom: '20px',
           background: 'linear-gradient(135deg, rgba(6,182,212,0.15), rgba(168,85,247,0.1))',
@@ -459,7 +458,6 @@ export default function PinnedGoalAlert() {
           alignItems: 'center',
           boxShadow: '0 8px 32px 0 rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
           backdropFilter: 'blur(12px)',
-          cursor: 'pointer',
           transition: 'all 0.2s',
         }}
       >
@@ -485,6 +483,23 @@ export default function PinnedGoalAlert() {
             </p>
           </div>
         </div>
+        
+        <button 
+          onClick={() => window.dispatchEvent(new CustomEvent('open-goal-modal'))}
+          style={{
+            background: 'var(--neon-cyan)',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '10px 20px',
+            color: '#000',
+            fontSize: '13px',
+            fontWeight: 800,
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+          }}
+        >
+          Create New Goal
+        </button>
       </div>
     );
   }

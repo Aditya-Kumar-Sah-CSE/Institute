@@ -86,6 +86,13 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
       .catch(() => {});
   }, []);
 
+  // Listen for custom event to open modal from outside (like PinnedGoalAlert)
+  useEffect(() => {
+    const handleOpenModal = () => setIsModalOpen(true);
+    window.addEventListener('open-goal-modal', handleOpenModal);
+    return () => window.removeEventListener('open-goal-modal', handleOpenModal);
+  }, []);
+
   // Sync state dynamically on goal-update event
   useEffect(() => {
     const handleUpdate = () => {
