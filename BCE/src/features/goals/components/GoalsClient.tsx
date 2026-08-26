@@ -539,8 +539,8 @@ export default function GoalsClient() {
             </h2>
             
             {/* Goal & Task Dropdowns */}
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <div style={{ flex: '1 1 180px', minWidth: 0 }}>
                 <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>Link to Goal</label>
                 <select
                   disabled={!!activeSession}
@@ -556,7 +556,7 @@ export default function GoalsClient() {
                   )}
                 </select>
               </div>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: '1 1 180px', minWidth: 0 }}>
                 <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>Link to Task</label>
                 <select
                   disabled={!!activeSession}
@@ -573,12 +573,12 @@ export default function GoalsClient() {
             </div>
 
             {/* Stopwatch Time Representation */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ fontSize: '48px', fontWeight: 900, fontFamily: 'monospace', letterSpacing: '2px', color: activeSession?.is_paused ? 'var(--text-muted)' : 'var(--neon-cyan)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+              <div style={{ fontSize: 'clamp(30px, 6vw, 48px)', fontWeight: 900, fontFamily: 'monospace', letterSpacing: '2px', color: activeSession?.is_paused ? 'var(--text-muted)' : 'var(--neon-cyan)' }}>
                 {formatHHMMSS(elapsedSeconds)}
               </div>
               
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 {!activeSession ? (
                   <button onClick={handleStartStopwatch} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', borderRadius: '8px', background: 'rgba(57, 255, 20, 0.15)', border: '1px solid rgba(57, 255, 20, 0.4)', color: 'var(--neon-lime)', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
                     <Play size={16} /> Start Focus
