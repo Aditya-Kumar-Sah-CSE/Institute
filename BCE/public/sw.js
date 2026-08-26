@@ -16,6 +16,8 @@ const SHELL_ASSETS = [
   '/icon-192x192.png',
   '/icon-512x512.png',
   '/pwa-start',
+  '/dashboard',
+  '/code-arena'
 ];
 
 self.addEventListener('install', (event) => {
@@ -95,22 +97,24 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3. Static Media, CDN, and Public Supabase Storage Assets → Cache First
+  // 3. Static Media, CDN, and Public Supabase Storage Assets → Stale-While-Revalidate
   const isImageOrFont =
     url.pathname.match(/\.(png|jpg|jpeg|svg|webp|gif|ico|woff|woff2|ttf|eot)$/i) ||
     url.pathname.includes('/storage/v1/object/public/');
 
   if (isImageOrFont) {
     event.respondWith(
-      caches.match(event.request).then((cached) => {
-        if (cached) return cached;
-        return fetch(event.request).then((res) => {
-          if (res && res.status === 200 && (res.type === 'basic' || res.type === 'cors')) {
-            const clone = res.clone();
-            caches.open(CACHE_MEDIA).then((cache) => cache.put(event.request, clone));
-          }
-          return res;
-        }).catch(() => new Response(null, { status: 503 }));
+      caches.open(CACHE_MEDIA).then((cache) => {
+        return cache.match(event.request).then((cachedResponse) => {
+          const fetchPromise = fetch(event.request).then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200 && (networkResponse.type === 'basic' || networkResponse.type === 'cors')) {
+              cache.put(event.request, networkResponse.clone());
+            }
+            return networkResponse;
+          }).catch(() => null);
+          
+          return cachedResponse || fetchPromise || new Response(null, { status: 503 });
+        });
       })
     );
     return;

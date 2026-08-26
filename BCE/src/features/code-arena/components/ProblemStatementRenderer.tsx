@@ -482,136 +482,136 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
       {/* Polished Problem Header */}
       <div style={{ borderBottom: '1px solid var(--glass-border)', paddingBottom: 'var(--space-md)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
-          <div>
-            {/* Badges Bar */}
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '8px' }}>
-          <span style={{ fontWeight: 750, fontSize: '11px', padding: '4px 10px', borderRadius: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', ...diffStyle }}>
-            ⚡ {problem.difficulty || 'EASY'}
-          </span>
-          <span style={{ fontWeight: 750, fontSize: '11px', padding: '4px 10px', borderRadius: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', ...platStyle }}>
-            ● {platformName}
-          </span>
-          {problem.rating && (
-            <span style={{ fontSize: '11px', color: 'var(--neon-gold)', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.25)', padding: '4px 10px', borderRadius: '12px', fontWeight: 600 }}>
-              <Award size={12} style={{ display: 'inline', marginRight: '3px', verticalAlign: 'middle' }} />
-              {problem.rating} Rating
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {/* Badges Bar */}
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '8px' }}>
+            <span style={{ fontWeight: 750, fontSize: '11px', padding: '4px 10px', borderRadius: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', ...diffStyle }}>
+              ⚡ {problem.difficulty || 'EASY'}
             </span>
-          )}
-
-          {problem.hasSolved && (
-            <span style={{ fontSize: '11px', color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', padding: '4px 10px', borderRadius: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              ✓ Solved
+            <span style={{ fontWeight: 750, fontSize: '11px', padding: '4px 10px', borderRadius: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', ...platStyle }}>
+              ● {platformName}
             </span>
-          )}
-          {!problem.hasSolved && problem.hasAttempted && (
-            <span style={{ fontSize: '11px', color: '#ee7700', background: 'rgba(238,119,0,0.08)', border: '1px solid rgba(238,119,0,0.25)', padding: '4px 10px', borderRadius: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              ● Attempted
-            </span>
-          )}
-        </div>
-
-        {/* Problem Title & ID */}
-        <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 800, margin: '4px 0 8px 0', color: 'var(--text-main)' }}>
-          {problem.title.startsWith(externalId || '___') ? problem.title : `${externalId ? `${externalId} — ` : ''}${problem.title}`}
-        </h1>
-
-        {/* Tags */}
-        {tags.length > 0 && (
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', margin: '6px 0 10px 0' }}>
-            {tags.map((tag, idx) => (
-              <span
-                key={idx}
-                style={{
-                  fontSize: '10px',
-                  color: 'var(--text-muted)',
-                  background: 'var(--bg-elevated)',
-                  border: '1px solid var(--glass-border)',
-                  padding: '1px 6px',
-                  borderRadius: '4px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '3px',
-                }}
-              >
-                <Tag size={10} /> {tag}
+            {problem.rating && (
+              <span style={{ fontSize: '11px', color: 'var(--neon-gold)', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.25)', padding: '4px 10px', borderRadius: '12px', fontWeight: 600 }}>
+                <Award size={12} style={{ display: 'inline', marginRight: '3px', verticalAlign: 'middle' }} />
+                {problem.rating} Rating
               </span>
-            ))}
-          </div>
-        )}
+            )}
 
-            {/* Secondary External Link */}
-            {officialUrl && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-                <a
-                  href={officialUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+            {problem.hasSolved && (
+              <span style={{ fontSize: '11px', color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', padding: '4px 10px', borderRadius: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                ✓ Solved
+              </span>
+            )}
+            {!problem.hasSolved && problem.hasAttempted && (
+              <span style={{ fontSize: '11px', color: '#ee7700', background: 'rgba(238,119,0,0.08)', border: '1px solid rgba(238,119,0,0.25)', padding: '4px 10px', borderRadius: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                ● Attempted
+              </span>
+            )}
+          </div>
+
+          {/* Problem Title & ID & Action Buttons */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', margin: '4px 0 8px 0' }}>
+            <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
+              {problem.title.startsWith(externalId || '___') ? problem.title : `${externalId ? `${externalId} — ` : ''}${problem.title}`}
+            </h1>
+            
+            <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+              {problem.text_solution && (
+                <button
+                  onClick={() => setShowTextSolution(true)}
                   style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: 'rgba(6, 182, 212, 0.1)',
+                    border: '1px solid rgba(6, 182, 212, 0.3)',
+                    color: 'var(--neon-cyan)',
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.background = 'rgba(6, 182, 212, 0.2)'}
+                  onMouseOut={(e) => e.currentTarget.style.background = 'rgba(6, 182, 212, 0.1)'}
+                >
+                  <BookOpen size={14} /> Text Solution
+                </button>
+              )}
+              {problem.youtube_url && (
+                <button
+                  onClick={() => setShowVideoSolution(true)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    color: '#ef4444',
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'}
+                  onMouseOut={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+                >
+                  <PlayCircle size={14} /> Video Solution
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Tags */}
+          {tags.length > 0 && (
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', margin: '6px 0 10px 0' }}>
+              {tags.map((tag, idx) => (
+                <span
+                  key={idx}
+                  style={{
+                    fontSize: '10px',
+                    color: 'var(--text-muted)',
+                    background: 'var(--bg-elevated)',
+                    border: '1px solid var(--glass-border)',
+                    padding: '1px 6px',
+                    borderRadius: '4px',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '4px',
-                    fontSize: '12px',
-                    color: 'var(--neon-cyan)',
-                    textDecoration: 'none',
-                    transition: 'opacity 0.15s ease',
+                    gap: '3px',
                   }}
-                  aria-label={`View original problem on ${platformName}`}
                 >
-                  View original problem on {platformName} <ExternalLink size={13} />
-                </a>
-              </div>
-            )}
-          </div>
-          
-          <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-            {problem.text_solution && (
-              <button
-                onClick={() => setShowTextSolution(true)}
+                  <Tag size={10} /> {tag}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Secondary External Link */}
+          {officialUrl && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+              <a
+                href={officialUrl}
+                target="_blank"
+                rel="noopener noreferrer"
                 style={{
-                  display: 'flex',
+                  display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  background: 'rgba(6, 182, 212, 0.1)',
-                  border: '1px solid rgba(6, 182, 212, 0.3)',
+                  gap: '4px',
+                  fontSize: '12px',
                   color: 'var(--neon-cyan)',
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
+                  textDecoration: 'none',
+                  transition: 'opacity 0.15s ease',
                 }}
-                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(6, 182, 212, 0.2)'}
-                onMouseOut={(e) => e.currentTarget.style.background = 'rgba(6, 182, 212, 0.1)'}
+                aria-label={`View original problem on ${platformName}`}
               >
-                <BookOpen size={14} /> Text Solution
-              </button>
-            )}
-            {problem.youtube_url && (
-              <button
-                onClick={() => setShowVideoSolution(true)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: 'rgba(239, 68, 68, 0.1)',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
-                  color: '#ef4444',
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'}
-                onMouseOut={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
-              >
-                <PlayCircle size={14} /> Video Solution
-              </button>
-            )}
-          </div>
+                View original problem on {platformName} <ExternalLink size={13} />
+              </a>
+            </div>
+          )}
         </div>
       </div>
 
