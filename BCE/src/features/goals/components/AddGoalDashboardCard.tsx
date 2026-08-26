@@ -198,6 +198,7 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
             handleStartFocus(data.goal);
          } else {
             router.refresh();
+            window.dispatchEvent(new CustomEvent('goal-update'));
          }
       }
     } catch(e) {
