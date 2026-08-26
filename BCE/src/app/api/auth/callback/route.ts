@@ -7,6 +7,8 @@ export async function GET(request: Request) {
   const code = searchParams.get('code');
   const token_hash = searchParams.get('token_hash');
   const type = searchParams.get('type') as any;
+  const errorParam = searchParams.get('error');
+  const errorDesc = searchParams.get('error_description');
 
   // if "next" is in param, use it as the redirect URL
   const next = searchParams.get('next') ?? '/';
@@ -14,6 +16,12 @@ export async function GET(request: Request) {
 
   const tenant = await getCurrentTenant();
   const baseUrl = generateTenantBaseUrl(tenant?.slug || '');
+
+  // If there's an OAuth error parameter, redirect to login with error
+  if (errorParam) {
+    const errorMsg = errorDesc || errorParam;
+    return NextResponse.redirect(`${origin}${baseUrl || ''}/login?error=${encodeURIComponent(errorMsg)}`);
+  }
 
   // Prevent open redirect: only allow relative paths starting with /
   let safeRedirect = (redirectTo.startsWith('/') && !redirectTo.startsWith('//'))
@@ -55,9 +63,11 @@ export async function GET(request: Request) {
       }
 
       return NextResponse.redirect(`${origin}${safeRedirect}`);
+    } else if (error) {
+      return NextResponse.redirect(`${origin}${baseUrl || ''}/login?error=${encodeURIComponent(error.message)}`);
     }
   }
 
   // return the user to an error page with some instructions
-  return NextResponse.redirect(`${origin}${baseUrl || ''}/login?message=Could not authenticate user. Please try requesting a new link.`);
+  return NextResponse.redirect(`${origin}${baseUrl || ''}/login?error=Could not authenticate user. Please try requesting a new link.`);
 }

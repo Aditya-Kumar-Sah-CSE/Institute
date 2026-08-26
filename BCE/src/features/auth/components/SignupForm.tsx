@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { signUp } from '@/features/auth/actions/auth';
 import { createClient } from '@/lib/supabase/client';
 import Button from '@/components/ui/Button';
@@ -54,6 +54,8 @@ function LogoAvatar({ name, size = 48 }: { name: string; size?: number }) {
 }
 
 export default function SignupForm({ companyName, logoUrl, tenantId, baseUrl }: SignupFormProps) {
+  const searchParams = useSearchParams();
+  const urlError = searchParams.get('error');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -67,6 +69,26 @@ export default function SignupForm({ companyName, logoUrl, tenantId, baseUrl }: 
     password: '',
     confirmPassword: ''
   });
+
+  useEffect(() => {
+    if (urlError) {
+      const lowerErr = urlError.toLowerCase();
+      if (
+        lowerErr.includes('oauth') ||
+        lowerErr.includes('access_denied') ||
+        lowerErr.includes('deleted_client') ||
+        lowerErr.includes('disabled') ||
+        lowerErr.includes('signin') ||
+        lowerErr.includes('authenticate') ||
+        lowerErr.includes('identity') ||
+        lowerErr.includes('credential')
+      ) {
+        setError('Google sign-in is temporarily unavailable. Please try again.');
+      } else {
+        setError(urlError);
+      }
+    }
+  }, [urlError]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -132,7 +154,21 @@ export default function SignupForm({ companyName, logoUrl, tenantId, baseUrl }: 
     });
 
     if (error) {
-      setError(error.message);
+      const lowerErr = error.message.toLowerCase();
+      if (
+        lowerErr.includes('oauth') ||
+        lowerErr.includes('access_denied') ||
+        lowerErr.includes('deleted_client') ||
+        lowerErr.includes('disabled') ||
+        lowerErr.includes('signin') ||
+        lowerErr.includes('authenticate') ||
+        lowerErr.includes('identity') ||
+        lowerErr.includes('credential')
+      ) {
+        setError('Google sign-in is temporarily unavailable. Please try again.');
+      } else {
+        setError(error.message);
+      }
       setIsGoogleLoading(false);
       setIsDriveLoading(false);
     }

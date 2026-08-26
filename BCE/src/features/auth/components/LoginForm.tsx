@@ -55,6 +55,7 @@ function LogoAvatar({ name, size = 48 }: { name: string; size?: number }) {
 export default function LoginForm({ companyName, logoUrl, baseUrl }: LoginFormProps) {
   const searchParams = useSearchParams();
   const message = searchParams.get('message');
+  const urlError = searchParams.get('error');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -65,6 +66,26 @@ export default function LoginForm({ companyName, logoUrl, baseUrl }: LoginFormPr
 
   const [formData, setFormData] = useState({ email: '', password: '' });
   const redirectingRef = useRef(false);
+
+  useEffect(() => {
+    if (urlError) {
+      const lowerErr = urlError.toLowerCase();
+      if (
+        lowerErr.includes('oauth') ||
+        lowerErr.includes('access_denied') ||
+        lowerErr.includes('deleted_client') ||
+        lowerErr.includes('disabled') ||
+        lowerErr.includes('signin') ||
+        lowerErr.includes('authenticate') ||
+        lowerErr.includes('identity') ||
+        lowerErr.includes('credential')
+      ) {
+        setError('Google sign-in is temporarily unavailable. Please try again.');
+      } else {
+        setError(urlError);
+      }
+    }
+  }, [urlError]);
 
   useEffect(() => {
     let cancelled = false;
@@ -136,7 +157,21 @@ export default function LoginForm({ companyName, logoUrl, baseUrl }: LoginFormPr
     });
 
     if (error) {
-      setError(error.message);
+      const lowerErr = error.message.toLowerCase();
+      if (
+        lowerErr.includes('oauth') ||
+        lowerErr.includes('access_denied') ||
+        lowerErr.includes('deleted_client') ||
+        lowerErr.includes('disabled') ||
+        lowerErr.includes('signin') ||
+        lowerErr.includes('authenticate') ||
+        lowerErr.includes('identity') ||
+        lowerErr.includes('credential')
+      ) {
+        setError('Google sign-in is temporarily unavailable. Please try again.');
+      } else {
+        setError(error.message);
+      }
       setIsGoogleLoading(false);
       setIsDriveLoading(false);
     }
