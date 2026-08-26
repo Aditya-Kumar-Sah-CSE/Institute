@@ -1,9 +1,66 @@
 import { createServerClient } from '@supabase/ssr';
+import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
+import { normalizeRole } from '@/lib/role-utils';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function updateSession(request: NextRequest) {
+  const requestHeaders = new Headers(request.headers);
+  const host = request.headers.get('host') || '';
+  const { pathname } = request.nextUrl;
+
+  // Extract path segment (e.g. /bce-bhagalpur/login)
+  const pathSegments = pathname.split('/').filter(Boolean);
+  const firstPathSegment = pathSegments[0]?.toLowerCase();
+
+  let tenantSlug: string | null = null;
+  let routingMode: 'path' | 'subdomain' | 'custom-domain' | 'default' = 'default';
+
+  // 1. Check custom domain or wildcard subdomain
+  // e.g. bce.smartlearn.in or portal.bce.edu (excluding localhost and app domains)
+  const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
+  const isVercelPreview = host.includes('.vercel.app');
+  
+  if (!isLocalhost && !isVercelPreview) {
+    const parts = host.split('.');
+    if (parts.length > 2 && parts[0] !== 'www' && parts[0] !== 'smartlearn') {
+      tenantSlug = parts[0];
+      routingMode = 'subdomain';
+    } else if (parts.length >= 2 && !host.includes('smartlearn.in')) {
+      tenantSlug = host;
+      routingMode = 'custom-domain';
+    }
+  }
+
+  // 2. Check path-based routing if tenant not resolved via domain
+  // CRITICAL: Every root-level app route MUST be reserved here. If any app route
+  // is missing, its first path segment gets mistaken for a tenant slug, which makes
+  // the middleware treat e.g. /leaderboard as a tenant landing page and redirect
+  // authenticated users back to /dashboard (production navigation bug).
+  const reservedPaths = [
+    'api', '_next', 'login', 'signup', 'dashboard', 'admin', 'super-admin', 'instructor',
+    'apply-instructor', 'apply-institution', 'forgot-password', 'reset-password',
+    // Root-level app routes (route groups (dashboard), (admin), (instructor), (public))
+    'courses', 'leaderboard', 'doubts', 'notices', 'profile', 'feedbacks',
+    'share-doubt', 'users', 'batch', 'certificates', 'code-arena', 'sheets', 'share',
+    // Misc root pages
+    'admission', 'pwa-start', 'contact', 'institution-not-found', 'institution-disabled',
+    'privacy', 'terms', 'latex-editor', 'student',
+  ];
+  if (!tenantSlug && firstPathSegment && !reservedPaths.includes(firstPathSegment)) {
+    tenantSlug = firstPathSegment;
+    routingMode = 'path';
+  }
+
+  // Inject tenant context headers
+  if (tenantSlug) {
+    requestHeaders.set('x-tenant-slug', tenantSlug);
+    requestHeaders.set('x-routing-mode', routingMode);
+  }
+
   let supabaseResponse = NextResponse.next({
-    request,
+    request: {
+      headers: requestHeaders,
+    },
   });
 
   const supabase = createServerClient(
@@ -19,11 +76,18 @@ export async function updateSession(request: NextRequest) {
             request.cookies.set(name, value)
           );
           supabaseResponse = NextResponse.next({
-            request,
+            request: {
+              headers: requestHeaders,
+            },
           });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           );
+        },
+      },
+      global: {
+        fetch: (url, options) => {
+          return fetch(url, { ...options, cache: 'no-store' });
         },
       },
     }
@@ -33,53 +97,17 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
-
-  // Tenant prefix resolution for redirects
-  const tenantSlug = request.headers.get('x-tenant-slug');
-  const routingMode = request.headers.get('x-routing-mode');
-
-  let effectivePathname = pathname;
-  if (routingMode === 'development' && tenantSlug && pathname.startsWith(`/${tenantSlug}`)) {
-    effectivePathname = pathname.replace(`/${tenantSlug}`, '') || '/';
-  }
-  // Phase 4: Platform routes arrive as bare paths (e.g. /dashboard), no stripping needed
-  // The middleware.ts rewrite adds __platform__ prefix internally, but supabase middleware sees the original URL
-
   // Public routes that don't require auth
-  const publicRoutes = [
-    '/', '/login', '/signup', '/forgot-password', '/reset-password',
-    '/apply-instructor', '/apply-institution',
-    '/institution-not-found', '/institution-disabled', '/contact', '/pwa-start',
-    '/admission', '/privacy', '/terms'
-  ];
-  const isPublicRoute = publicRoutes.includes(effectivePathname);
-
-  let resolvedTenantSlug = tenantSlug;
-
-  const getTenantUrl = (targetPath: string) => {
-    const newUrl = request.nextUrl.clone();
-    const activeSlug = resolvedTenantSlug || tenantSlug;
-    
-    // Phase 4: Platform mode — always use clean root paths, never expose __platform__
-    if (routingMode === 'platform' || activeSlug === '__platform__') {
-      newUrl.pathname = targetPath;
-    } else if (routingMode === 'development' && activeSlug) {
-      newUrl.pathname = `/${activeSlug}${targetPath}`;
-    } else {
-      newUrl.pathname = targetPath;
-    }
-    return newUrl;
-  };
+  const publicRoutes = ['/', '/login', '/signup', '/apply-instructor', '/forgot-password', '/reset-password', '/privacy', '/terms'];
+  const isPublicRoute = 
+    publicRoutes.includes(pathname) || 
+    (tenantSlug && pathname === `/${tenantSlug}`) ||
+    pathname.startsWith('/share/') ||
+    pathname.startsWith('/sheets/') ||
+    pathname.startsWith('/verify/');
 
   // Helper function to redirect while preserving cookies
-  // LOOP PREVENTION: if the computed redirect URL equals the current URL,
-  // return next() instead of a 302 to break any /login → /login cycle.
   const redirectWithCookies = (url: URL) => {
-    // Detect self-redirect: same pathname, same hostname
-    if (url.pathname === pathname && url.hostname === request.nextUrl.hostname) {
-      return supabaseResponse; // just pass through
-    }
     const redirectResponse = NextResponse.redirect(url);
     const setCookieHeaders = supabaseResponse.headers.getSetCookie();
     setCookieHeaders.forEach((header) => {
@@ -90,125 +118,158 @@ export async function updateSession(request: NextRequest) {
 
   // If not authenticated and trying to access protected route
   if (!user && !isPublicRoute) {
-    return redirectWithCookies(getTenantUrl('/login'));
+    const url = request.nextUrl.clone();
+    url.pathname = tenantSlug ? `/${tenantSlug}/login` : '/login';
+    return redirectWithCookies(url);
   }
 
   let userRole = 'student';
-  let userId = '';
-  let userPermissions: string[] = [];
-
   if (user) {
-    userId = user.id;
+    // let profile: { role: string; institute_id?: string | null } | null = null;
+    let profile: { role: string; institute_id?: string | null } | null = null;
 
-    // Check platform_users first to see if this is a platform administrator/support staff
-    const { data: platformUser } = await supabase
-      .from('platform_users')
-      .select('role, is_active, status')
-      .eq('id', user.id)
-      .maybeSingle();
+    // 1. Try service role client first if SUPABASE_SERVICE_ROLE_KEY is set
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const adminClient = createSupabaseAdmin(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY,
+          { auth: { autoRefreshToken: false, persistSession: false } }
+        );
+        const { data, error } = await adminClient
+          .from('profiles')
+          
+          .select('role, institute_id')
+          .eq('id', user.id)
+          .single();
 
-    if (platformUser) {
-      if (!platformUser.is_active || platformUser.status !== 'active') {
-        userRole = 'suspended';
-      } else {
-        userRole = platformUser.role;
-        userPermissions = [platformUser.role];
-      }
-    } else {
-      // Fallback to standard tenant profiles
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role, institution_id')
-        .eq('id', user.id)
-        .maybeSingle();
-      
-      if (profile) {
-        userRole = profile.role;
-        userPermissions = [profile.role];
-        
-        // If we don't have a tenant slug (logged in globally) and the user has an institution, fetch its slug
-        if (!resolvedTenantSlug && profile.institution_id) {
-           const { data: inst } = await supabase
-             .from('institutions')
-             .select('slug')
-             .eq('id', profile.institution_id)
-             .maybeSingle();
-           if (inst) {
-             resolvedTenantSlug = inst.slug;
-           }
+        if (!error && data) {
+          profile = data;
         }
-
-        if (profile.institution_id) {
-           // Load tenant features for permissions / access control
-           const { data: feats } = await supabase
-             .from('tenant_features')
-             .select('feature_key')
-             .eq('institution_id', profile.institution_id)
-             .eq('is_enabled', true);
-           if (feats) {
-             userPermissions.push(...feats.map(f => f.feature_key));
-           }
-        }
-      } else {
-        userRole = user?.user_metadata?.role || 'student';
-        userPermissions = [userRole];
-      }
-      
-      // Explicit escape hatch: if testing locally with the super admin email, upgrade role
-      if (user.email === process.env.SUPER_ADMIN_EMAIL) {
-          userRole = 'super_admin';
-          userPermissions = ['super_admin'];
-          // Phase 4: Super admins on platform mode use clean root routes, no need to resolve a slug
-          if (!resolvedTenantSlug || resolvedTenantSlug === '__platform__') {
-             resolvedTenantSlug = '__platform__';
-          }
+      } catch (err) {
+        console.error('[Middleware] Admin client fetch error:', err);
       }
     }
 
-    // Set immutable user context headers
-    request.headers.set('x-user-id', userId);
-    request.headers.set('x-user-role', userRole);
-    request.headers.set('x-user-permissions', userPermissions.join(','));
-  }
+    // 2. Fallback to standard client (works because profiles RLS allows SELECT for everyone)
+    if (!profile) {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('role, institute_id')
+          .eq('id', user.id)
+          .single();
 
-  // If authenticated but platform user account is suspended, redirect to login
-  if (user && userRole === 'suspended' && !isPublicRoute) {
-    return redirectWithCookies(getTenantUrl('/login?error=suspended'));
-  }
-
-  // If authenticated and trying to access login/signup/landing
-  if (user && (effectivePathname === '/login' || effectivePathname === '/signup' || effectivePathname === '/')) {
-    // Redirect based on role
-    if (userRole === 'instructor') {
-      return redirectWithCookies(getTenantUrl('/instructor'));
-    } else if (userRole === 'admin' || userRole === 'super_admin') {
-      return redirectWithCookies(getTenantUrl('/admin'));
+        if (!error && data) {
+          profile = data;
+        } else if (error) {
+          console.error('[Middleware] Anon client profile fetch error:', error);
+        }
+      } catch (err) {
+        console.error('[Middleware] Anon client fetch exception:', err);
+      }
+    }
+    
+    if (profile) {
+      userRole = normalizeRole(profile.role);
+      if (profile.institute_id) {
+        supabaseResponse.headers.set('x-tenant-id', profile.institute_id);
+      }
     } else {
-      return redirectWithCookies(getTenantUrl('/dashboard'));
+      userRole = normalizeRole(user?.user_metadata?.role) || 'student';
+      console.warn('[Middleware] Profile not found, fallback to metadata role:', userRole);
+    }
+  }
+
+  // If authenticated and trying to access login/signup/landing (or tenant landing/login)
+  const isAuthOrLandingPage = 
+    pathname === '/' || 
+    pathname === '/login' || 
+    pathname === '/signup' ||
+    (tenantSlug && (pathname === `/${tenantSlug}` || pathname === `/${tenantSlug}/login` || pathname === `/${tenantSlug}/signup`));
+
+  if (user && isAuthOrLandingPage) {
+    const url = request.nextUrl.clone();
+    if (userRole === 'instructor') {
+      url.pathname = '/instructor';
+    } else if (userRole === 'admin' || userRole === 'developer') {
+      url.pathname = '/admin';
+    } else {
+      url.pathname = '/dashboard';
+    }
+    return redirectWithCookies(url);
+  }
+
+  // Super Admin route protection (/super-admin)
+  if (pathname.startsWith('/super-admin')) {
+    const targetOwnerEmail = (process.env.SUPER_ADMIN_EMAIL || 'iambestadi@gmail.com').trim().toLowerCase();
+    const isOwnerEmail = user?.email?.trim().toLowerCase() === targetOwnerEmail;
+    const isOwnerRole = userRole === 'super_admin' || userRole === 'superadmin' || userRole === 'platform_owner';
+
+    if (!user || (!isOwnerEmail && !isOwnerRole)) {
+      return new NextResponse(
+        `<!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <title>403 Access Denied | Platform Owner Area</title>
+          <style>
+            body { font-family: system-ui, sans-serif; background: #0b0f19; color: #f8fafc; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+            .card { background: rgba(255,255,255,0.03); border: 1px solid rgba(239,68,68,0.3); padding: 40px; border-radius: 12px; max-width: 480px; text-align: center; }
+            h1 { color: #ef4444; font-size: 48px; margin: 0 0 10px 0; }
+            h2 { font-size: 20px; margin: 0 0 16px 0; }
+            p { color: #94a3b8; font-size: 14px; line-height: 1.6; }
+            a { display: inline-block; margin-top: 20px; background: #06b6d4; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <h1>403</h1>
+            <h2>Access Denied</h2>
+            <p>Only the Platform Owner (<code>${targetOwnerEmail}</code>) can access the Super Admin control area.</p>
+            <a href="/dashboard">Return to Dashboard</a>
+          </div>
+        </body>
+        </html>`,
+        {
+          status: 403,
+          headers: { 'content-type': 'text/html' },
+        }
+      );
     }
   }
 
   // Admin route protection
-  if (user && effectivePathname.startsWith('/admin')) {
-    if (userRole !== 'admin' && userRole !== 'super_admin') {
-      return redirectWithCookies(getTenantUrl('/dashboard'));
-    }
-    
-    // Strict isolation: Institute Admins cannot access Super Admin governance pages
-    if (userRole === 'admin') {
-      if (effectivePathname.startsWith('/admin/institutions') || 
-          effectivePathname.startsWith('/admin/domain-settings') || 
-          effectivePathname.startsWith('/admin/payment-model')) {
-        return redirectWithCookies(getTenantUrl('/admin'));
-      }
+  if (user && pathname.startsWith('/admin')) {
+    if (userRole !== 'admin' && userRole !== 'developer' && userRole !== 'super_admin' && userRole !== 'superadmin') {
+      const url = request.nextUrl.clone();
+      url.pathname = '/dashboard';
+      return redirectWithCookies(url);
     }
   }
 
   // Instructor route protection
-  if (user && effectivePathname.startsWith('/instructor') && effectivePathname !== '/apply-instructor') {
-    if (userRole !== 'instructor' && userRole !== 'admin' && userRole !== 'super_admin') {
-      return redirectWithCookies(getTenantUrl('/dashboard'));
+  if (user && pathname.startsWith('/instructor') && pathname !== '/apply-instructor') {
+    if (userRole !== 'instructor' && userRole !== 'admin' && userRole !== 'developer' && userRole !== 'super_admin' && userRole !== 'superadmin') {
+      const url = request.nextUrl.clone();
+      url.pathname = '/dashboard';
+      return redirectWithCookies(url);
     }
+  }
+
+  // ── Security Headers ──
+  const requestId = request.headers.get('x-request-id') || crypto.randomUUID();
+  supabaseResponse.headers.set('X-Request-Id', requestId);
+  supabaseResponse.headers.set('X-Content-Type-Options', 'nosniff');
+  supabaseResponse.headers.set('X-Frame-Options', 'DENY');
+  supabaseResponse.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  supabaseResponse.headers.set('X-XSS-Protection', '1; mode=block');
+  supabaseResponse.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+
+  // Scoped Cross-Origin Isolation headers for Terminal/WebContainer
+  if (pathname === '/code-arena/compiler' || pathname.startsWith('/code-arena/compiler/')) {
+    supabaseResponse.headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+    supabaseResponse.headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
   }
 
   return supabaseResponse;

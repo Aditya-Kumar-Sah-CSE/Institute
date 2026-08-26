@@ -1,20 +1,27 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Bell, ExternalLink, Timer, Radio, Calendar, RefreshCw, MoreVertical, X, ChefHat, BarChart3, Code2, Trophy, Globe, Zap, CheckCircle2, AlertCircle } from 'lucide-react';
 import type { UnifiedContest } from '@/app/api/coding/contests/route';
+import { loadContestsCache, saveContestsCache, fetchFreshContests } from '@/features/code-arena/lib/contestCache';
 
 export function formatTimeRemaining(targetTimeMs: number): string {
-  const diff = targetTimeMs - Date.now();
-  if (diff <= 0) return 'Ended / Live Now';
+  const diff = Math.max(0, targetTimeMs - Date.now());
+  if (diff <= 0) return '00h 00m 00s';
 
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-  if (days > 0) return `${days}d ${hours}h remaining`;
-  if (hours > 0) return `${hours}h ${mins}m remaining`;
-  return `${mins}m remaining`;
+  if (days > 0) {
+    return `${days}d ${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m`;
+  }
+  return `${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`;
+}
+
+interface UpcomingContestsAlertProps {
+  initialExpand?: boolean;
 }
 
 interface RegistrationState {
@@ -22,64 +29,125 @@ interface RegistrationState {
   registered: boolean;
 }
 
-export default function UpcomingContestsAlert({ initialExpand = false }: { initialExpand?: boolean }) {
+export default function UpcomingContestsAlert({ initialExpand = false }: UpcomingContestsAlertProps) {
+  const [isExpanded, setIsExpanded] = useState(initialExpand);
   const [contests, setContests] = useState<UnifiedContest[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [isBackgroundFetching, setIsBackgroundFetching] = useState(false);
+  const [hasFetched, setHasFetched] = useState(false);
+  const [isCachedNotice, setIsCachedNotice] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState<'ALL' | 'CODECHEF' | 'CODEFORCES' | 'LEETCODE'>('ALL');
   const [registrations, setRegistrations] = useState<Record<string, RegistrationState>>({});
-  const [loading, setLoading] = useState<boolean>(false);
-  const [hasFetched, setHasFetched] = useState<boolean>(false);
-  const [isExpanded, setIsExpanded] = useState<boolean>(initialExpand);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [, setNowTick] = useState(Date.now());
+  const initialLoadCompleted = useRef(false);
 
-  const fetchContests = async () => {
-    setLoading(true);
+  // Fetch registrations from database
+  const fetchRegistrations = async () => {
     try {
-      const [contestRes, regRes] = await Promise.all([
-        fetch('/api/coding/contests'),
-        fetch('/api/coding/contests/registrations')
-      ]);
-
-      if (contestRes.ok) {
-        const cJson = await contestRes.json();
-        setContests(cJson.contests || []);
-      }
-
-      if (regRes.ok) {
-        const rJson = await regRes.json();
+      const res = await fetch('/api/coding/contests/registrations');
+      if (res.ok) {
+        const json = await res.json();
         const map: Record<string, RegistrationState> = {};
-        if (Array.isArray(rJson.registrations)) {
-          rJson.registrations.forEach((r: any) => {
+        if (Array.isArray(json.registrations)) {
+          json.registrations.forEach((r: any) => {
             map[r.contest_id] = {
               status: r.status || (r.registered ? 'verified' : 'unverified'),
-              registered: !!r.registered
+              registered: Boolean(r.registered)
             };
           });
         }
         setRegistrations(map);
       }
+    } catch (e) {
+      console.warn('Failed to fetch contest registrations from DB:', e);
+    }
+  };
+
+  /**
+   * Main contest loader with 10-minute client-side caching & background revalidation.
+   */
+  const loadContestsData = async (forceNetwork: boolean = false) => {
+    setErrorMessage(null);
+    setIsCachedNotice(false);
+
+    // 1. Try reading from client cache first (hydration-safe)
+    const cached = loadContestsCache();
+
+    if (cached && !forceNetwork) {
+      // Instantly render cached data without waiting for network
+      setContests(cached.data);
       setHasFetched(true);
-    } catch (err) {
-      console.warn('Failed to fetch contests/registrations:', err);
+
+      if (!cached.isStale) {
+        // Cache is fresh (<= 10 mins) -> No background fetch needed
+        setLoading(false);
+        setIsBackgroundFetching(false);
+        fetchRegistrations();
+        return;
+      }
+
+      // Cache is stale (> 10 mins) -> Render stale cards immediately and fetch fresh data in background
+      setIsBackgroundFetching(true);
+      try {
+        const [freshContests] = await Promise.all([
+          fetchFreshContests(),
+          fetchRegistrations()
+        ]);
+        setContests(freshContests);
+      } catch (err) {
+        console.warn('Background revalidation failed, retaining cached contests:', err);
+        setIsCachedNotice(true);
+      } finally {
+        setIsBackgroundFetching(false);
+      }
+      return;
+    }
+
+    // 2. No valid cache found or forceNetwork is true -> Show loading state and fetch
+    try {
+      setLoading(true);
+      const [freshContests] = await Promise.all([
+        fetchFreshContests(),
+        fetchRegistrations()
+      ]);
+      setContests(freshContests);
+      setHasFetched(true);
+    } catch (e: any) {
+      console.warn('Failed to fetch upcoming contests:', e);
+      if (contests.length > 0) {
+        setIsCachedNotice(true);
+      } else {
+        setErrorMessage('Failed to fetch live contest schedules. Please check your network connection.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  // Hydration-safe initial check on client mount
   useEffect(() => {
-    if (initialExpand && !hasFetched) {
-      fetchContests();
+    if (initialLoadCompleted.current) return;
+    initialLoadCompleted.current = true;
+
+    // Check if cache exists synchronously on client
+    const cached = loadContestsCache();
+    if (cached) {
+      setContests(cached.data);
+      setHasFetched(true);
+      if (cached.isStale || initialExpand) {
+        loadContestsData(false);
+      }
+    } else if (initialExpand) {
+      loadContestsData(false);
     }
   }, [initialExpand]);
 
-  const handleToggle = () => {
-    if (!hasFetched && !isExpanded) {
-      fetchContests();
-    }
-    setIsExpanded(!isExpanded);
-  };
-
+  // Handle clicking "Register Now" - opens official registration page & records intent in DB
   const handleRegisterClick = async (c: UnifiedContest) => {
     window.open(c.registerUrl, '_blank', 'noopener,noreferrer');
     
+    // Update local state to pending_verification
     setRegistrations(prev => ({
       ...prev,
       [c.id]: { status: 'pending_verification', registered: false }
@@ -101,6 +169,7 @@ export default function UpcomingContestsAlert({ initialExpand = false }: { initi
     }
   };
 
+  // Handle registration verification
   const handleVerifyRegistration = async (c: UnifiedContest) => {
     setErrorMessage(null);
     setRegistrations(prev => ({
@@ -127,14 +196,14 @@ export default function UpcomingContestsAlert({ initialExpand = false }: { initi
           [c.id]: { status: 'verified', registered: true }
         }));
       } else {
-        setErrorMessage(json.error || `Could not verify registration for ${c.platform}.`);
+        setErrorMessage(json.error || `Could not verify registration for ${c.platform}. Please ensure registration is complete.`);
         setRegistrations(prev => ({
           ...prev,
           [c.id]: { status: 'failed', registered: false }
         }));
       }
     } catch (e: any) {
-      setErrorMessage(e.message || 'Verification network request failed.');
+      setErrorMessage(e.message || 'Verification service error. Please try again.');
       setRegistrations(prev => ({
         ...prev,
         [c.id]: { status: 'failed', registered: false }
@@ -142,25 +211,48 @@ export default function UpcomingContestsAlert({ initialExpand = false }: { initi
     }
   };
 
-  const getPlatformIcon = (platform: string) => {
+  const handleToggle = () => {
+    const nextState = !isExpanded;
+    setIsExpanded(nextState);
+    if (nextState && (!hasFetched || contests.length === 0) && !loading) {
+      loadContestsData(false);
+    }
+  };
+
+  // Update timer tick every second without drift
+  useEffect(() => {
+    if (!isExpanded) return;
+    const timer = setInterval(() => {
+      setNowTick(Date.now());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [isExpanded]);
+
+  const filteredContests = contests.filter((c) => {
+    if (selectedPlatform !== 'ALL' && c.platform !== selectedPlatform) return false;
+    return true;
+  });
+
+  const getPlatformBadge = (platform: string) => {
     switch (platform) {
       case 'CODECHEF':
-        return <ChefHat size={16} style={{ color: '#f59e0b' }} />;
+        return { name: 'CodeChef', icon: <ChefHat size={13} />, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.4)' };
       case 'CODEFORCES':
-        return <BarChart3 size={16} style={{ color: '#3b82f6' }} />;
+        return { name: 'Codeforces', icon: <BarChart3 size={13} />, color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.15)', border: 'rgba(56, 189, 248, 0.4)' };
       case 'LEETCODE':
-        return <Code2 size={16} style={{ color: '#eab308' }} />;
+        return { name: 'LeetCode', icon: <Code2 size={13} />, color: '#ffa116', bg: 'rgba(255, 161, 22, 0.15)', border: 'rgba(255, 161, 22, 0.4)' };
       default:
-        return <Trophy size={16} style={{ color: 'var(--neon-emerald)' }} />;
+        return { name: platform, icon: <Trophy size={13} />, color: 'var(--neon-cyan)', bg: 'rgba(6, 182, 212, 0.15)', border: 'rgba(6, 182, 212, 0.4)' };
     }
   };
 
   return (
-    <div className="upcoming-contests-card" style={{
-      background: 'var(--bg-card)',
+    <div className="upcoming-contests-alert-card" style={{
+      background: 'rgba(15, 23, 42, 0.75)',
+      backdropFilter: 'blur(12px)',
       border: '1px solid var(--glass-border)',
-      borderRadius: 'var(--radius-lg)',
-      padding: '16px 20px',
+      borderRadius: 'var(--radius-md)',
+      padding: '14px 18px',
       marginBottom: '20px',
       boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
       transition: 'all 0.3s ease',
@@ -194,7 +286,9 @@ export default function UpcomingContestsAlert({ initialExpand = false }: { initi
           <div style={{ minWidth: 0 }}>
             <h3 style={{ margin: 0, fontSize: 'var(--text-md)', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
               Upcoming & Live Contests Alert
-              {loading && <RefreshCw size={14} className="spin animate-spin" style={{ color: 'var(--neon-emerald)' }} />}
+              {(loading || isBackgroundFetching) && (
+                <RefreshCw size={14} className="spin animate-spin" style={{ color: 'var(--neon-emerald)' }} />
+              )}
             </h3>
             <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {isExpanded ? 'Live countdown timers & verified contest registration' : 'Tap 3-dots menu to view CodeChef, Codeforces & LeetCode contests'}
@@ -204,6 +298,7 @@ export default function UpcomingContestsAlert({ initialExpand = false }: { initi
 
         {/* 3-Dots / Close Toggle Button */}
         <button
+          suppressHydrationWarning
           onClick={(e) => {
             e.stopPropagation();
             handleToggle();
@@ -231,161 +326,298 @@ export default function UpcomingContestsAlert({ initialExpand = false }: { initi
       {/* Expanded Content Area */}
       {isExpanded && (
         <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid var(--glass-border)' }}>
+          {/* Subtle Cached Data Notice */}
+          {isCachedNotice && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '6px 12px',
+              borderRadius: '6px',
+              background: 'rgba(6, 182, 212, 0.1)',
+              border: '1px solid rgba(6, 182, 212, 0.3)',
+              color: '#06b6d4',
+              fontSize: '11px',
+              marginBottom: '12px',
+              fontWeight: 600
+            }}>
+              <span>Showing recently cached contests (offline fallback)</span>
+              <button
+                type="button"
+                onClick={() => loadContestsData(true)}
+                style={{ background: 'none', border: 'none', color: '#06b6d4', cursor: 'pointer', fontSize: '11px', textDecoration: 'underline', fontWeight: 'bold' }}
+              >
+                Retry Network
+              </button>
+            </div>
+          )}
+
+          {/* Error / Verification Toast Banner */}
           {errorMessage && (
             <div style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
+              gap: '8px',
               padding: '10px 14px',
-              borderRadius: 'var(--radius-sm)',
-              background: 'rgba(239, 68, 68, 0.1)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
+              borderRadius: '8px',
+              background: 'rgba(239, 68, 68, 0.15)',
+              border: '1px solid rgba(239, 68, 68, 0.4)',
               color: '#f87171',
-              fontSize: 'var(--text-xs)',
+              fontSize: '12px',
               marginBottom: '14px'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <AlertCircle size={15} />
+                <AlertCircle size={16} style={{ flexShrink: 0 }} />
                 <span>{errorMessage}</span>
               </div>
-              <button onClick={() => setErrorMessage(null)} style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer' }}>
-                <X size={14} />
+              <button 
+                suppressHydrationWarning
+                onClick={() => setErrorMessage(null)} 
+                style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}
+              >
+                ✕
               </button>
             </div>
           )}
 
-          {loading && !hasFetched ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', color: 'var(--text-muted)', gap: '8px', fontSize: '13px' }}>
-              <RefreshCw size={16} className="spin animate-spin" />
-              <span>Fetching live contests from CodeChef, Codeforces & LeetCode...</span>
-            </div>
-          ) : contests.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)', fontSize: '13px' }}>
-              No upcoming contests scheduled at the moment.
+          {/* Platform Filter Buttons */}
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '6px',
+            background: 'rgba(0, 0, 0, 0.3)',
+            padding: '6px',
+            borderRadius: '8px',
+            border: '1px solid var(--glass-border)',
+            marginBottom: '14px',
+          }}>
+            {(['ALL', 'CODECHEF', 'CODEFORCES', 'LEETCODE'] as const).map((plt) => (
+              <button
+                suppressHydrationWarning
+                key={plt}
+                onClick={() => setSelectedPlatform(plt)}
+                style={{
+                  padding: '5px 12px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: selectedPlatform === plt ? 'var(--neon-emerald)' : 'transparent',
+                  color: selectedPlatform === plt ? '#000' : 'var(--text-muted)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  flex: '1 1 auto',
+                  textAlign: 'center',
+                }}
+              >
+                {plt === 'ALL' ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Globe size={13} /> All</span>
+                ) : plt === 'CODECHEF' ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><ChefHat size={13} /> CodeChef</span>
+                ) : plt === 'CODEFORCES' ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><BarChart3 size={13} /> Codeforces</span>
+                ) : (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Code2 size={13} /> LeetCode</span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Contest Cards Grid */}
+          {filteredContests.length === 0 ? (
+            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-sm)', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+              {loading ? 'Fetching live contest schedules...' : 'No upcoming contests found for this platform filter.'}
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
-              {contests.map((c) => {
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '12px' }}>
+              {filteredContests.map((c) => {
+                const badge = getPlatformBadge(c.platform);
+                const now = Date.now();
+                const isLive = c.status === 'LIVE' || (now >= c.startTime && now <= c.endTime);
+                const isStartingSoon = c.status === 'STARTING_SOON' || (!isLive && c.startTime - now <= 3 * 3600 * 1000);
+                
                 const regState = registrations[c.id] || { status: 'unverified', registered: false };
+                const isVerifiedRegistered = regState.registered && regState.status === 'verified';
+                const isPendingVerification = regState.status === 'pending_verification';
+                const isVerifying = regState.status === 'verifying';
 
                 return (
-                  <div key={c.id} style={{
-                    background: 'var(--bg-dark-card, rgba(15, 23, 42, 0.6))',
-                    border: regState.status === 'verified' ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid var(--glass-border)',
-                    borderRadius: 'var(--radius-md)',
-                    padding: '14px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    gap: '12px',
-                  }}>
+                  <div
+                    key={c.id}
+                    style={{
+                      background: isLive ? 'rgba(239, 68, 68, 0.08)' : 'rgba(255, 255, 255, 0.03)',
+                      border: isLive ? '1px solid rgba(239, 68, 68, 0.4)' : isStartingSoon ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid var(--glass-border)',
+                      borderRadius: '10px',
+                      padding: '14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                      transition: 'transform 0.2s ease, border-color 0.2s ease',
+                    }}
+                  >
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700, color: 'var(--text-main)' }}>
-                          {getPlatformIcon(c.platform)}
-                          <span>{c.platform}</span>
-                        </div>
                         <span style={{
-                          fontSize: '10px',
-                          fontWeight: 800,
-                          padding: '2px 8px',
-                          borderRadius: '10px',
-                          background: c.status === 'LIVE' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(59, 130, 246, 0.2)',
-                          color: c.status === 'LIVE' ? '#ef4444' : '#60a5fa',
-                          border: c.status === 'LIVE' ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(59, 130, 246, 0.4)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          background: badge.bg,
+                          color: badge.color,
+                          border: `1px solid ${badge.border}`,
                         }}>
-                          {c.status === 'LIVE' ? '🔴 LIVE' : 'UPCOMING'}
+                          <span>{badge.icon}</span>
+                          <span>{badge.name}</span>
                         </span>
+
+                        {isLive ? (
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            color: '#ef4444',
+                            background: 'rgba(239, 68, 68, 0.15)',
+                            padding: '2px 8px',
+                            borderRadius: '12px',
+                            animation: 'pulse 1.5s infinite',
+                          }}>
+                            <Radio size={12} /> LIVE NOW
+                          </span>
+                        ) : isStartingSoon ? (
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            color: '#f59e0b',
+                            background: 'rgba(245, 158, 11, 0.15)',
+                            padding: '2px 8px',
+                            borderRadius: '12px',
+                          }}>
+                            <Zap size={12} /> STARTING SOON
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                            <Calendar size={12} /> {new Date(c.startTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        )}
                       </div>
 
-                      <h4 style={{ margin: '0 0 6px 0', fontSize: '13px', fontWeight: 700, color: '#f8fafc', lineHeight: '1.3' }}>
+                      <h4 style={{ margin: '0 0 6px 0', fontSize: '14px', fontWeight: 700, color: 'var(--text-main)', lineHeight: '1.3' }}>
                         {c.title}
                       </h4>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-muted)' }}>
-                        <Timer size={13} style={{ color: 'var(--neon-emerald)' }} />
-                        <span>{formatTimeRemaining(c.startTime)}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: isLive ? '#ef4444' : isStartingSoon ? '#f59e0b' : 'var(--neon-emerald)', fontWeight: 800 }}>
+                        <Timer size={14} />
+                        <span>
+                          {isLive ? `Ends in ${formatTimeRemaining(c.endTime)}` : `Starts in ${formatTimeRemaining(c.startTime)}`}
+                        </span>
                       </div>
                     </div>
 
                     {/* Registration Action Buttons */}
-                    <div style={{ marginTop: '4px' }}>
-                      {regState.status === 'verified' ? (
-                        <div style={{
-                          display: 'flex',
+                    {isVerifiedRegistered ? (
+                      <button
+                        disabled
+                        style={{
+                          display: 'inline-flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           gap: '6px',
-                          padding: '8px 12px',
-                          borderRadius: 'var(--radius-sm)',
-                          background: 'rgba(34, 197, 94, 0.15)',
+                          padding: '8px 14px',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          cursor: 'default',
+                          background: 'rgba(34, 197, 94, 0.18)',
+                          color: '#22c55e',
                           border: '1px solid rgba(34, 197, 94, 0.4)',
-                          color: '#4ade80',
-                          fontSize: '12px',
-                          fontWeight: 700
-                        }}>
-                          <CheckCircle2 size={14} />
-                          <span>✓ Registered</span>
-                        </div>
-                      ) : regState.status === 'verifying' ? (
-                        <button disabled style={{
-                          width: '100%',
-                          display: 'flex',
+                        }}
+                      >
+                        <CheckCircle2 size={14} /> ✓ Registered
+                      </button>
+                    ) : isVerifying ? (
+                      <button
+                        disabled
+                        style={{
+                          display: 'inline-flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           gap: '6px',
-                          padding: '8px 12px',
-                          borderRadius: 'var(--radius-sm)',
-                          background: 'rgba(234, 179, 8, 0.15)',
-                          border: '1px solid rgba(234, 179, 8, 0.4)',
-                          color: '#facc15',
+                          padding: '8px 14px',
+                          borderRadius: '6px',
                           fontSize: '12px',
                           fontWeight: 700,
+                          background: 'rgba(255, 255, 255, 0.1)',
+                          color: 'var(--neon-cyan)',
+                          border: '1px solid var(--glass-border)',
                           cursor: 'wait'
-                        }}>
-                          <RefreshCw size={13} className="spin animate-spin" />
-                          <span>Verifying...</span>
-                        </button>
-                      ) : regState.status === 'pending_verification' ? (
-                        <button onClick={() => handleVerifyRegistration(c)} style={{
-                          width: '100%',
-                          display: 'flex',
+                        }}
+                      >
+                        <RefreshCw size={13} className="animate-spin" /> Verifying...
+                      </button>
+                    ) : isPendingVerification ? (
+                      <button
+                        onClick={() => handleVerifyRegistration(c)}
+                        style={{
+                          display: 'inline-flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           gap: '6px',
-                          padding: '8px 12px',
-                          borderRadius: 'var(--radius-sm)',
-                          background: 'rgba(59, 130, 246, 0.15)',
-                          border: '1px solid rgba(59, 130, 246, 0.4)',
-                          color: '#60a5fa',
+                          padding: '8px 14px',
+                          borderRadius: '6px',
                           fontSize: '12px',
                           fontWeight: 700,
-                          cursor: 'pointer'
-                        }}>
-                          <span>I&apos;ve Registered</span>
-                          <CheckCircle2 size={13} />
-                        </button>
-                      ) : (
-                        <button onClick={() => handleRegisterClick(c)} style={{
-                          width: '100%',
-                          display: 'flex',
+                          cursor: 'pointer',
+                          background: 'rgba(245, 158, 11, 0.2)',
+                          color: '#f59e0b',
+                          border: '1px solid rgba(245, 158, 11, 0.5)',
+                          transition: 'all 0.2s ease',
+                        }}
+                        title="Click to confirm you completed registration on official site"
+                      >
+                        <Zap size={13} /> I&apos;ve Registered
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleRegisterClick(c)}
+                        style={{
+                          display: 'inline-flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           gap: '6px',
-                          padding: '8px 12px',
-                          borderRadius: 'var(--radius-sm)',
-                          background: 'var(--neon-emerald)',
-                          border: 'none',
-                          color: '#000',
+                          padding: '8px 14px',
+                          borderRadius: '6px',
                           fontSize: '12px',
-                          fontWeight: 800,
-                          cursor: 'pointer'
-                        }}>
-                          <span>Register Now</span>
-                          <ExternalLink size={13} />
-                        </button>
-                      )}
-                    </div>
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          background: isLive
+                            ? 'linear-gradient(90deg, #ef4444, #dc2626)'
+                            : 'var(--neon-emerald)',
+                          color: isLive ? '#fff' : '#000',
+                          border: 'none',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        {isLive ? (
+                          <>
+                            <Radio size={13} className="animate-pulse" /> Enter Live Contest
+                          </>
+                        ) : (
+                          <>
+                            Register Now <ExternalLink size={13} />
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
                 );
               })}
