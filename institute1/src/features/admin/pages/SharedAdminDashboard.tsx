@@ -43,12 +43,10 @@ export default async function SharedAdminDashboard({ context }: { context: Reque
   // Fetch Analytics — ALWAYS filter by institution_id, no super admin bypass
   const studentQuery = supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'student').eq('institution_id', instId || 'no-inst');
   const courseQuery = supabase.from('courses').select('*', { count: 'exact', head: true }).eq('institution_id', instId || 'no-inst');
-  const submissionQuery = supabase.from('submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending').eq('institution_id', instId || 'no-inst');
   const instructorRequestQuery = supabase.from('instructor_applications').select('*', { count: 'exact', head: true }).eq('status', 'pending').eq('institution_id', instId || 'no-inst');
 
   const { count: studentCount } = await studentQuery;
   const { count: instructorRequestCount } = await instructorRequestQuery;
-  const { count: submissionCount } = await submissionQuery;
   const { count: courseCount } = await courseQuery;
 
   // Fetch Settings
@@ -163,17 +161,6 @@ export default async function SharedAdminDashboard({ context }: { context: Reque
             <div className="stat-card-content">
               <div className="stat-card-value" style={{ color: 'var(--accent-secondary)' }}>{courseCount || 0}</div>
               <div className="text-secondary stat-card-label">Total Courses</div>
-            </div>
-          </Card>
-        </Link>
-        <Link href="/admin/submissions" style={{ textDecoration: 'none' }}>
-          <Card variant="glass" padding="lg" className="stat-card hover-lift" style={{ height: '100%' }}>
-            <div className="stat-card-icon" style={{ background: 'color-mix(in srgb, var(--accent-warning) 10%, transparent)', color: 'var(--accent-warning)' }}>
-              <FileText size={24} />
-            </div>
-            <div className="stat-card-content">
-              <div className="stat-card-value" style={{ color: 'var(--accent-warning)' }}>{submissionCount || 0}</div>
-              <div className="text-secondary stat-card-label">Pending Reviews</div>
             </div>
           </Card>
         </Link>
