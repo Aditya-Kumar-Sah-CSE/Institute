@@ -209,9 +209,14 @@ export const cleanMathNotationText = (text: string): string => {
 // Client-side HTML / Markdown content renderer
 function SafeContentRenderer({ rawContent, isMainStatement = false }: { rawContent: string; isMainStatement?: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted || !containerRef.current) return;
     
     // Style normal paragraphs, list items, and table cells with cycling colors
     const paragraphs = containerRef.current.querySelectorAll('p, li, td, dd, dt');
@@ -266,10 +271,27 @@ function SafeContentRenderer({ rawContent, isMainStatement = false }: { rawConte
         (title as HTMLElement).style.marginBottom = '6px';
       }
     });
-  }, [rawContent]);
+  }, [rawContent, mounted]);
 
   if (!rawContent || !rawContent.trim()) {
     return <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Not provided.</span>;
+  }
+
+  // Render a deterministic skeleton layout on the server and initial client hydration render
+  if (!mounted) {
+    return (
+      <div className="problem-statement-body" style={{ padding: '12px 0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes pulse-light {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 0.3; }
+          }
+        ` }} />
+        <div style={{ height: '16px', width: '70%', background: 'rgba(255,255,255,0.03)', borderRadius: '4px', animation: 'pulse-light 1.5s infinite' }} />
+        <div style={{ height: '12px', width: '95%', background: 'rgba(255,255,255,0.02)', borderRadius: '4px', animation: 'pulse-light 1.5s infinite' }} />
+        <div style={{ height: '12px', width: '85%', background: 'rgba(255,255,255,0.02)', borderRadius: '4px', animation: 'pulse-light 1.5s infinite' }} />
+      </div>
+    );
   }
 
   // Process math variables inside raw content
