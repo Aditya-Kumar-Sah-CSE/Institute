@@ -16,6 +16,38 @@ import type { Profile } from '@/types';
 import { LogOut, User, Download, X, MoreVertical, ChevronRight, ChevronDown, ChevronLeft, Crown } from 'lucide-react';
 import { signOut } from '@/features/auth/actions/auth';
 
+const ITEM_GROUPS: Record<string, string> = {
+  'Dashboard': 'Overview',
+  'Overview': 'Overview',
+  
+  'Courses': 'Study',
+  'My Courses': 'Study',
+  'My NPTEL Courses': 'Study',
+  'NPTEL Management': 'Study',
+  'Leaderboard': 'Study',
+  'Batch Doubts': 'Study',
+  'Chat': 'Study',
+  'Enrollments': 'Study',
+  'Administration': 'Study',
+  'Submissions': 'Study',
+  'Review Submissions': 'Study',
+  
+  'Code Arena': 'Coding',
+  'Coding Sheets': 'Coding',
+  'Compiler': 'Coding',
+  'SQL Editor': 'Coding',
+  'LaTeX Editor': 'Coding',
+  
+  'Brick Breaker': 'Games',
+  
+  'Notices': 'General',
+  'Feedback': 'General',
+  'Profile': 'General',
+  'Super Admin': 'General',
+};
+
+const GROUP_ORDER = ['Overview', 'Study', 'Coding', 'Games', 'General'];
+
 interface SidebarProps {
   profile: Profile;
   isAdmin?: boolean; // Deprecated, use roleView
@@ -100,6 +132,12 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
   const isInstructorUser = isInstructorRole(profile.role);
   const isAdminUser = isAdminRole(profile.role);
   const isPlatformOwner = profile?.email?.trim().toLowerCase() === 'iambestadi@gmail.com';
+
+  const showSuperAdminSwitch = isPlatformOwner;
+  const showStudentSwitch = currentView !== 'student';
+  const showAdminSwitch = currentView !== 'admin' && isAdminUser;
+  const showInstructorSwitch = currentView !== 'instructor' && isInstructorUser;
+  const hasSwitcherPanels = showSuperAdminSwitch || showStudentSwitch || showAdminSwitch || showInstructorSwitch;
 
   const navItems = [...baseNavItems];
   if (isPlatformOwner && !navItems.some(i => i.href === '/super-admin')) {
@@ -200,25 +238,45 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
         >
           {isNavWrapped ? <ChevronRight size={18} /> : <ChevronLeft size={24} />}
         </button>
-        {navItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`sidebar-nav-item ${pathname === item.href ? 'active' : ''}`}
-            onClick={handleNavClick}
-            suppressHydrationWarning
-          >
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }} suppressHydrationWarning>
-              <span className="sidebar-nav-icon" suppressHydrationWarning>{getIcon(item.icon, { className: 'w-5 h-5' })}</span>
-            </div>
-            <span className="sidebar-nav-label" suppressHydrationWarning>{item.label}</span>
-            {pathname === item.href && <span className="sidebar-nav-indicator" suppressHydrationWarning />}
-          </Link>
-        ))}
+        {GROUP_ORDER.map((groupName) => {
+          const itemsInGroup = navItems.filter(item => ITEM_GROUPS[item.label] === groupName);
+          if (itemsInGroup.length === 0) return null;
+
+          return (
+            <React.Fragment key={groupName}>
+              {groupName !== 'Overview' && (
+                <>
+                  <hr className="sidebar-divider" />
+                  <div className="sidebar-group-title">{groupName}</div>
+                </>
+              )}
+              {itemsInGroup.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`sidebar-nav-item ${pathname === item.href ? 'active' : ''}`}
+                  onClick={handleNavClick}
+                  suppressHydrationWarning
+                >
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }} suppressHydrationWarning>
+                    <span className="sidebar-nav-icon" suppressHydrationWarning>{getIcon(item.icon, { className: 'w-5 h-5' })}</span>
+                  </div>
+                  <span className="sidebar-nav-label" suppressHydrationWarning>{item.label}</span>
+                  {pathname === item.href && <span className="sidebar-nav-indicator" suppressHydrationWarning />}
+                </Link>
+              ))}
+            </React.Fragment>
+          );
+        })}
       </nav>
 
       <div className="sidebar-footer">
-        {isPlatformOwner && (
+        {hasSwitcherPanels && (
+          <div className="sidebar-group-title" style={{ marginTop: 0, paddingLeft: 'var(--space-md)', paddingBottom: 'var(--space-2xs)' }}>
+            Panels
+          </div>
+        )}
+        {showSuperAdminSwitch && (
           <Link
             href="/super-admin"
             className="sidebar-nav-item sidebar-switch"
@@ -238,19 +296,19 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
             <span className="sidebar-nav-label">👑 Super Admin Panel</span>
           </Link>
         )}
-        {currentView !== 'student' && (
+        {showStudentSwitch && (
           <a href="/dashboard" className="sidebar-nav-item sidebar-switch" onClick={handleNavClick}>
             <span className="sidebar-nav-icon">{getIcon('Instructors', { className: 'w-5 h-5' })}</span>
             <span className="sidebar-nav-label">Student View</span>
           </a>
         )}
-        {currentView !== 'admin' && isAdminUser && (
+        {showAdminSwitch && (
           <a href="/admin" className="sidebar-nav-item sidebar-switch" onClick={handleNavClick}>
             <span className="sidebar-nav-icon">{getIcon('Admin', { className: 'w-5 h-5' })}</span>
             <span className="sidebar-nav-label">{isAdminUser && profile.role?.toLowerCase().includes('developer') ? 'Developer Panel' : 'Administration Panel'}</span>
           </a>
         )}
-        {currentView !== 'instructor' && isInstructorUser && (
+        {showInstructorSwitch && (
           <a href="/instructor" className="sidebar-nav-item sidebar-switch" onClick={handleNavClick}>
             <span className="sidebar-nav-icon">{getIcon('Instructors', { className: 'w-5 h-5' })}</span>
             <span className="sidebar-nav-label">Instructor Panel</span>
