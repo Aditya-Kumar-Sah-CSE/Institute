@@ -172,17 +172,33 @@ export default function BadgesModal({ isOpen, onClose }: BadgesModalProps) {
                 const isLocked = !earnedDate;
                 const { current, target, percentage } = getBadgeProgress(badge);
                 
-                // Select IconComponent
-                const IconComponent = isLocked ? Lock : (iconMap[badge.icon] || Award);
-                
                 return (
                   <div 
                     key={badge.id} 
                     className={`badge-card ${isLocked ? 'locked' : 'unlocked'}`}
                   >
-                    <div className="badge-icon-wrapper">
+                    <div className="badge-icon-wrapper" style={{ fontSize: '20px', position: 'relative' }}>
                       <div className="badge-glow-ring" />
-                      <IconComponent className="badge-vector-icon" />
+                      <span style={{ zIndex: 2, filter: isLocked ? 'grayscale(80%) opacity(50%)' : 'none' }}>
+                        {badge.icon || '🏅'}
+                      </span>
+                      {isLocked && (
+                        <Lock 
+                          style={{ 
+                            position: 'absolute', 
+                            bottom: '-4px', 
+                            right: '-4px', 
+                            background: '#0f172a', 
+                            border: '1px solid var(--glass-border)', 
+                            borderRadius: '50%', 
+                            padding: '2.5px', 
+                            width: '17px', 
+                            height: '17px', 
+                            color: 'var(--text-muted)',
+                            zIndex: 3 
+                          }} 
+                        />
+                      )}
                     </div>
 
                     <div className="badge-info-details">
