@@ -77,10 +77,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       sheetQuery = sheetQuery.eq('slug', id);
     }
 
-    const { data: sheet } = await sheetQuery.maybeSingle();
+    const { data: sheet, error: sheetError } = await sheetQuery.maybeSingle();
+
+    if (sheetError) {
+      return NextResponse.json({ success: false, error: { message: `DB error: ${sheetError.message}` } }, { status: 500 });
+    }
 
     if (!sheet) {
-      return NextResponse.json({ success: false, error: { message: 'Sheet not found' } }, { status: 404 });
+      return NextResponse.json({ success: false, error: { message: `Sheet not found (id parameter: "${id}")` } }, { status: 404 });
     }
 
     if (!isInstructor) {
@@ -206,9 +210,12 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     sheetQuery = sheetQuery.eq('slug', id);
   }
 
-  const { data: sheet } = await sheetQuery.maybeSingle();
+  const { data: sheet, error: sheetError } = await sheetQuery.maybeSingle();
+  if (sheetError) {
+    return NextResponse.json({ success: false, error: { message: `DB error: ${sheetError.message}` } }, { status: 500 });
+  }
   if (!sheet) {
-    return NextResponse.json({ success: false, error: { message: 'Sheet not found' } }, { status: 404 });
+    return NextResponse.json({ success: false, error: { message: `Sheet not found (id parameter: "${id}")` } }, { status: 404 });
   }
 
   if (!isInstructor) {
