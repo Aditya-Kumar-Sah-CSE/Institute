@@ -45,36 +45,17 @@ export default function LeetCodeProfileCard({ account, isOwnProfile = true }: { 
   const rawHistory = account?.metadata?.contest_history || [];
   const hasContestData = !!(contestStats.rating || account?.rating || rawHistory.length > 0);
 
-  const rating = contestStats.rating || account?.rating || 1632;
-  const globalRanking = contestStats.globalRanking || null;
-  const totalParticipants = contestStats.totalParticipants || 878139;
-  const topPercentage = contestStats.topPercentage !== undefined ? contestStats.topPercentage : 20.22;
-  const ratingDistribution = contestStats.ratingDistribution && contestStats.ratingDistribution.length > 0
+  const rating = hasContestData ? (contestStats.rating || account?.rating || 0) : 0;
+  const globalRanking = hasContestData ? (contestStats.globalRanking || null) : null;
+  const totalParticipants = hasContestData ? (contestStats.totalParticipants || 0) : 0;
+  const topPercentage = hasContestData ? (contestStats.topPercentage !== undefined ? contestStats.topPercentage : null) : null;
+  const ratingDistribution = hasContestData && contestStats.ratingDistribution && contestStats.ratingDistribution.length > 0
     ? contestStats.ratingDistribution 
-    : [
-        { "minRating": 0, "maxRating": 1200, "userCount": 42000 },
-        { "minRating": 1200, "maxRating": 1300, "userCount": 48000 },
-        { "minRating": 1300, "maxRating": 1400, "userCount": 78000 },
-        { "minRating": 1400, "maxRating": 1500, "userCount": 115000 },
-        { "minRating": 1500, "maxRating": 1600, "userCount": 210000 },
-        { "minRating": 1600, "maxRating": 1700, "userCount": 155000 },
-        { "minRating": 1700, "maxRating": 1800, "userCount": 120000 },
-        { "minRating": 1800, "maxRating": 1900, "userCount": 75000 },
-        { "minRating": 1900, "maxRating": 2100, "userCount": 45000 },
-        { "minRating": 2100, "maxRating": 2400, "userCount": 25000 },
-        { "minRating": 2400, "maxRating": 3000, "userCount": 10000 }
-      ];
+    : [];
 
-  const contestHistory = rawHistory.length > 0 
+  const contestHistory = hasContestData && rawHistory.length > 0 
     ? rawHistory 
-    : [
-        { "attended": true, "rating": 1490, "contest": { "title": "Weekly Contest 340", "startTime": 1711843200 } },
-        { "attended": true, "rating": 1515, "contest": { "title": "Biweekly Contest 102", "startTime": 1712448000 } },
-        { "attended": true, "rating": 1560, "contest": { "title": "Weekly Contest 345", "startTime": 1713657600 } },
-        { "attended": true, "rating": 1652, "contest": { "title": "Weekly Contest 348", "startTime": 1714867200 } },
-        { "attended": true, "rating": 1618, "contest": { "title": "Weekly Contest 352", "startTime": 1716076800 } },
-        { "attended": true, "rating": 1632, "contest": { "title": "Weekly Contest 355", "startTime": 1717286400 } }
-      ];
+    : [];
 
   const historyAttended = contestHistory.filter((h: any) => h.attended);
   const chartData = drawLineChart(historyAttended);

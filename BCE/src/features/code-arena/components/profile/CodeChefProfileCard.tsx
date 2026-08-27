@@ -202,7 +202,7 @@ export default function CodeChefProfileCard({ account, isOwnProfile = true }: { 
   const medium = account.medium_solved || 0;
   const hard = account.hard_solved || 0;
   const total = account.problems_solved || 0;
-  const starsLabel = md.stars_label || account.rank || '1★ (Div 4)';
+  const starsLabel = md.stars_label || account.rank || '—';
 
   const ratingDistribution = [
     { label: 'Easy', range: 'Div 4', value: easy, color: 'var(--neon-green)', pct: total ? (easy / total) * 100 : 0 },
