@@ -5,7 +5,7 @@ import Button from '@/components/ui/Button';
 import Image from 'next/image';
 import { revalidatePath } from 'next/cache';
 import Link from 'next/link';
-import { BookOpen, FileText, Users, ExternalLink, Table, Pin, PinOff, UserPlus } from 'lucide-react';
+import { BookOpen, FileText, Users, ExternalLink, Table, Pin, PinOff, UserPlus, Code2 } from 'lucide-react';
 import ExpandableSettingsCard from './components/ExpandableSettingsCard';
 
 export default async function AdminDashboardPage() {
@@ -14,7 +14,8 @@ export default async function AdminDashboardPage() {
   // Fetch Analytics
   const { count: studentCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'student');
   const { count: instructorRequestCount } = await supabase.from('instructor_applications').select('*', { count: 'exact', head: true }).eq('status', 'pending');
-  const { count: courseCount } = await supabase.from('courses').select('*', { count: 'exact', head: true });
+  const { count: courseCount } = await supabase.from('courses').select('*', { count: 'exact', head: true }).eq('is_published', true);
+  const { count: sheetCount } = await supabase.from('coding_sheets').select('*', { count: 'exact', head: true });
   const { count: submissionCount } = await supabase.from('submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending');
   
   // Fetch Settings
@@ -98,6 +99,20 @@ export default async function AdminDashboardPage() {
                 {courseCount || 0}
               </div>
               <div className="text-secondary stat-card-label">Total Courses</div>
+            </div>
+          </Card>
+        </Link>
+
+        <Link href="/instructor/code-arena" style={{ textDecoration: 'none' }}>
+          <Card variant="glass" padding="lg" className="stat-card hover-lift" style={{ height: '100%' }}>
+            <div className="stat-card-icon" style={{ background: 'color-mix(in srgb, var(--neon-gold) 10%, transparent)', color: 'var(--neon-gold)' }}>
+              <Code2 size={24} />
+            </div>
+            <div className="stat-card-content">
+              <div className="stat-card-value" style={{ color: 'var(--neon-gold)' }}>
+                {sheetCount || 0}
+              </div>
+              <div className="text-secondary stat-card-label">Coding Sheets</div>
             </div>
           </Card>
         </Link>
