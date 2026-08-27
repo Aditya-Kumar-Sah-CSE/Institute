@@ -64,51 +64,8 @@ export default function ResizableIdeLayout({ problemData }: { problemData: Probl
         position: 'relative'
       }}
     >
-      <style dangerouslySetInnerHTML={{ __html: `
-        @media (max-width: 767px) {
-          .code-arena-ide-layout.resizable-ide {
-            flex-direction: column !important;
-            height: auto !important;
-            overflow-y: auto !important;
-          }
-          .code-statement-panel {
-            width: 100% !important;
-            height: auto !important;
-            overflow-y: visible !important;
-          }
-          .code-editor-resizable-wrapper {
-            width: 100% !important;
-            height: 600px !important;
-            margin-top: 20px !important;
-          }
-          .ide-resizer-bar {
-            display: none !important;
-          }
-        }
-        @media (min-width: 768px) {
-          .code-arena-ide-layout.resizable-ide {
-            flex-direction: row !important;
-            height: 100% !important;
-            overflow-y: hidden !important;
-          }
-          .code-statement-panel {
-            width: ${leftWidth}% !important;
-            height: 100% !important;
-            overflow-y: auto !important;
-          }
-          .code-editor-resizable-wrapper {
-            width: ${100 - leftWidth}% !important;
-            height: 100% !important;
-            margin-top: 0 !important;
-          }
-          .ide-resizer-bar {
-            display: flex !important;
-          }
-        }
-      ` }} />
-
       {/* Left panel: Statement */}
-      <section className="code-statement-panel">
+      <section className="code-statement-panel" style={{ width: `${leftWidth}%` }}>
         <ProblemStatementRenderer problem={problemData} />
       </section>
 
@@ -140,7 +97,7 @@ export default function ResizableIdeLayout({ problemData }: { problemData: Probl
       </div>
 
       {/* Right panel: Editor */}
-      <div className="code-editor-resizable-wrapper">
+      <div className="code-editor-resizable-wrapper" style={{ width: `${100 - leftWidth}%` }}>
         <CodeEditor
           problem={problemData}
           samples={problemData.samples as any}

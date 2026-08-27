@@ -4213,5 +4213,46 @@
   }
 }
 
+/* ===== RESIZABLE IDE WORKSPACE RESPONSIVENESS ===== */
+@media (max-width: 767px) {
+  .code-arena-ide-layout.resizable-ide {
+    flex-direction: column !important;
+    height: auto !important;
+    overflow-y: auto !important;
+  }
+  .code-statement-panel {
+    width: 100% !important;
+    height: auto !important;
+    overflow-y: visible !important;
+  }
+  .code-editor-resizable-wrapper {
+    width: 100% !important;
+    height: 600px !important;
+    margin-top: 20px !important;
+  }
+  .ide-resizer-bar {
+    display: none !important;
+  }
+}
+@media (min-width: 768px) {
+  .code-arena-ide-layout.resizable-ide {
+    flex-direction: row !important;
+    height: 100% !important;
+    overflow-y: hidden !important;
+  }
+  .code-statement-panel {
+    height: 100% !important;
+    overflow-y: auto !important;
+  }
+  .code-editor-resizable-wrapper {
+    height: 100% !important;
+    margin-top: 0 !important;
+  }
+  .ide-resizer-bar {
+    display: flex !important;
+  }
+}
+
+
 
 
