@@ -42,6 +42,9 @@ export default function LeetCodeProfileCard({ account, isOwnProfile = true }: { 
   };
 
   const contestStats = account?.metadata?.contest_stats || {};
+  const rawHistory = account?.metadata?.contest_history || [];
+  const hasContestData = !!(contestStats.rating || account?.rating || rawHistory.length > 0);
+
   const rating = contestStats.rating || account?.rating || 1632;
   const globalRanking = contestStats.globalRanking || null;
   const totalParticipants = contestStats.totalParticipants || 878139;
@@ -62,7 +65,6 @@ export default function LeetCodeProfileCard({ account, isOwnProfile = true }: { 
         { "minRating": 2400, "maxRating": 3000, "userCount": 10000 }
       ];
 
-  const rawHistory = account?.metadata?.contest_history || [];
   const contestHistory = rawHistory.length > 0 
     ? rawHistory 
     : [
@@ -324,164 +326,178 @@ export default function LeetCodeProfileCard({ account, isOwnProfile = true }: { 
       </div>
       
       {/* Contest Performance Charts Block */}
-      <div className="leetcode-contest-charts-section" style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '16px',
-        padding: '16px 20px',
-        borderTop: '1px solid var(--glass-border)',
-        background: 'rgba(255, 255, 255, 0.005)',
-      }}>
-        {/* Left Side: Contest Rating, Ranking, Attended + Line Chart */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
-            <div>
-              <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>Contest Rating</span>
-              <strong style={{ fontSize: '18px', color: '#ffa116', fontWeight: 800 }}>{rating.toLocaleString()}</strong>
-            </div>
-            <div>
-              <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>Global Ranking</span>
-              <strong style={{ fontSize: '12px', color: 'var(--text-main)', fontWeight: 800 }}>
-                {globalRanking ? globalRanking.toLocaleString() : '174,877'}
-                <span style={{ color: 'var(--text-muted)', fontWeight: 500, fontSize: '9px' }}>/{totalParticipants.toLocaleString()}</span>
-              </strong>
-            </div>
-            <div>
-              <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>Attended</span>
-              <strong style={{ fontSize: '15px', color: 'var(--text-main)', fontWeight: 800 }}>{contestStats.totalContests || historyAttended.length || 6}</strong>
-            </div>
-          </div>
-
-          {/* Line Chart SVG */}
-          {chartData && (
-            <div style={{ position: 'relative', marginTop: '4px' }}>
-              <svg width="100%" height="75" viewBox="0 0 240 75" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
-                <defs>
-                  <linearGradient id="lcLineGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="rgba(255, 161, 22, 0.25)" />
-                    <stop offset="100%" stopColor="rgba(255, 161, 22, 0)" />
-                  </linearGradient>
-                </defs>
-                {/* Grid lines */}
-                <line x1="0" y1="12" x2="240" y2="12" stroke="rgba(255,255,255,0.03)" strokeDasharray="3" />
-                <line x1="0" y1="37" x2="240" y2="37" stroke="rgba(255,255,255,0.03)" strokeDasharray="3" />
-                <line x1="0" y1="62" x2="240" y2="62" stroke="rgba(255,255,255,0.03)" strokeDasharray="3" />
-
-                {/* Fill area */}
-                <path d={chartData.fillD} fill="url(#lcLineGrad)" />
-                {/* Curve Line */}
-                <path d={chartData.pathD} fill="none" stroke="#ffa116" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                
-                {/* Interactive Dots */}
-                {chartData.points.map((p: any, idx: number) => {
-                  const isLast = idx === chartData.points.length - 1;
-                  return (
-                    <g key={idx} className="chart-node-group">
-                      <circle
-                        cx={p.x}
-                        cy={p.y}
-                        r={isLast ? 4 : 3}
-                        fill={isLast ? '#fff' : '#ffa116'}
-                        stroke={isLast ? '#ffa116' : 'rgba(11, 15, 25, 0.9)'}
-                        strokeWidth="1.5"
-                        style={{ cursor: 'pointer' }}
-                      />
-                      {/* Node tooltip text */}
-                      <g className="chart-node-tooltip" style={{ opacity: 0, transition: 'opacity 0.15s ease' }}>
-                        <rect x={p.x - 30} y={p.y - 28} width="60" height="20" rx="3" fill="#0f172a" stroke="rgba(255,255,255,0.15)" strokeWidth="0.5" />
-                        <text x={p.x} y={p.y - 14} fill="#fff" fontSize="9" fontWeight="700" textAnchor="middle">{p.rating}</text>
-                      </g>
-                    </g>
-                  );
-                })}
-              </svg>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '8px', color: 'var(--text-muted)', marginTop: '4px', fontWeight: 600 }}>
-                <span>Apr 2026</span>
-                <span>May 2026</span>
+      {hasContestData ? (
+        <div className="leetcode-contest-charts-section" style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '16px',
+          padding: '16px 20px',
+          borderTop: '1px solid var(--glass-border)',
+          background: 'rgba(255, 255, 255, 0.005)',
+        }}>
+          {/* Left Side: Contest Rating, Ranking, Attended + Line Chart */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+              <div>
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>Contest Rating</span>
+                <strong style={{ fontSize: '18px', color: '#ffa116', fontWeight: 800 }}>{rating.toLocaleString()}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>Global Ranking</span>
+                <strong style={{ fontSize: '12px', color: 'var(--text-main)', fontWeight: 800 }}>
+                  {globalRanking ? globalRanking.toLocaleString() : '—'}
+                  {totalParticipants > 0 && <span style={{ color: 'var(--text-muted)', fontWeight: 500, fontSize: '9px' }}>/{totalParticipants.toLocaleString()}</span>}
+                </strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>Attended</span>
+                <strong style={{ fontSize: '15px', color: 'var(--text-main)', fontWeight: 800 }}>{contestStats.totalContests || historyAttended.length || 0}</strong>
               </div>
             </div>
-          )}
-        </div>
 
-        {/* Right Side: Top % + Distribution Bar Chart */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0, borderLeft: '1px solid var(--glass-border)', paddingLeft: '16px' }}>
-          <div>
-            <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>Top</span>
-            <strong style={{ fontSize: '18px', color: '#ffa116', fontWeight: 800 }}>{topPercentage ? `${topPercentage}%` : '20.22%'}</strong>
-          </div>
+            {/* Line Chart SVG */}
+            {chartData && (
+              <div style={{ position: 'relative', marginTop: '4px' }}>
+                <svg width="100%" height="75" viewBox="0 0 240 75" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
+                  <defs>
+                    <linearGradient id="lcLineGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="rgba(255, 161, 22, 0.25)" />
+                      <stop offset="100%" stopColor="rgba(255, 161, 22, 0)" />
+                    </linearGradient>
+                  </defs>
+                  {/* Grid lines */}
+                  <line x1="0" y1="12" x2="240" y2="12" stroke="rgba(255,255,255,0.03)" strokeDasharray="3" />
+                  <line x1="0" y1="37" x2="240" y2="37" stroke="rgba(255,255,255,0.03)" strokeDasharray="3" />
+                  <line x1="0" y1="62" x2="240" y2="62" stroke="rgba(255,255,255,0.03)" strokeDasharray="3" />
 
-          {/* Bar Chart SVG */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', height: '65px', gap: '2px', paddingBottom: '2px', position: 'relative' }}>
-            {ratingDistribution.map((dist: any, idx: number) => {
-              const isHighlight = rating >= dist.minRating && rating < dist.maxRating;
-              const barHeightPercent = Math.max(8, ((dist.userCount || 1) / maxUserCount) * 100);
-              const barColor = isHighlight ? '#ffa116' : 'rgba(255, 255, 255, 0.15)';
-              const barHoverColor = isHighlight ? '#ffb84d' : 'rgba(255, 255, 255, 0.35)';
-
-              return (
-                <div
-                  key={idx}
-                  className="dist-bar"
-                  style={{
-                    flex: 1,
-                    height: `${barHeightPercent}%`,
-                    background: barColor,
-                    borderRadius: '1px 1px 0 0',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                    position: 'relative'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = barHoverColor;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = barColor;
-                  }}
-                >
-                  {/* Tooltip */}
-                  <div className="dist-bar-tooltip" style={{
-                    visibility: 'hidden',
-                    opacity: 0,
-                    position: 'absolute',
-                    bottom: '100%',
-                    left: '50%',
-                    transform: 'translateX(-50%) translateY(-6px)',
-                    background: '#0b0f19',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    color: 'var(--text-main)',
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    fontSize: '9px',
-                    whiteSpace: 'nowrap',
-                    zIndex: 1000,
-                    pointerEvents: 'none',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.6)',
-                    transition: 'opacity 0.15s, transform 0.15s'
-                  }}>
-                    <div style={{ fontWeight: 700 }}>Rating: {dist.minRating}-{dist.maxRating}</div>
-                    <div style={{ color: 'var(--text-muted)' }}>Users: {dist.userCount.toLocaleString()}</div>
-                  </div>
+                  {/* Fill area */}
+                  <path d={chartData.fillD} fill="url(#lcLineGrad)" />
+                  {/* Curve Line */}
+                  <path d={chartData.pathD} fill="none" stroke="#ffa116" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  
+                  {/* Interactive Dots */}
+                  {chartData.points.map((p: any, idx: number) => {
+                    const isLast = idx === chartData.points.length - 1;
+                    return (
+                      <g key={idx} className="chart-node-group">
+                        <circle
+                          cx={p.x}
+                          cy={p.y}
+                          r={isLast ? 4 : 3}
+                          fill={isLast ? '#fff' : '#ffa116'}
+                          stroke={isLast ? '#ffa116' : 'rgba(11, 15, 25, 0.9)'}
+                          strokeWidth="1.5"
+                          style={{ cursor: 'pointer' }}
+                        />
+                        {/* Node tooltip text */}
+                        <g className="chart-node-tooltip" style={{ opacity: 0, transition: 'opacity 0.15s ease' }}>
+                          <rect x={p.x - 30} y={p.y - 28} width="60" height="20" rx="3" fill="#0f172a" stroke="rgba(255,255,255,0.15)" strokeWidth="0.5" />
+                          <text x={p.x} y={p.y - 14} fill="#fff" fontSize="9" fontWeight="700" textAnchor="middle">{p.rating}</text>
+                        </g>
+                      </g>
+                    );
+                  })}
+                </svg>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '8px', color: 'var(--text-muted)', marginTop: '4px', fontWeight: 600 }}>
+                  <span>Apr 2026</span>
+                  <span>May 2026</span>
                 </div>
-              );
-            })}
+              </div>
+            )}
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '8px', color: 'var(--text-muted)', marginTop: '2px', fontWeight: 600 }}>
-            <span>0</span>
-            <span>3000+</span>
-          </div>
-        </div>
 
-        <style>{`
-          .chart-node-group:hover .chart-node-tooltip {
-            opacity: 1 !important;
-          }
-          .dist-bar:hover .dist-bar-tooltip {
-            visibility: visible !important;
-            opacity: 1 !important;
-            transform: translateX(-50%) translateY(-4px) !important;
-          }
-        `}</style>
-      </div>
+          {/* Right Side: Top % + Distribution Bar Chart */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0, borderLeft: '1px solid var(--glass-border)', paddingLeft: '16px' }}>
+            <div>
+              <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>Top</span>
+              <strong style={{ fontSize: '18px', color: '#ffa116', fontWeight: 800 }}>{topPercentage ? `${topPercentage}%` : '—'}</strong>
+            </div>
+
+            {/* Bar Chart SVG */}
+            <div style={{ display: 'flex', alignItems: 'flex-end', height: '65px', gap: '2px', paddingBottom: '2px', position: 'relative' }}>
+              {ratingDistribution.map((dist: any, idx: number) => {
+                const isHighlight = rating >= dist.minRating && rating < dist.maxRating;
+                const barHeightPercent = Math.max(8, ((dist.userCount || 1) / maxUserCount) * 100);
+                const barColor = isHighlight ? '#ffa116' : 'rgba(255, 255, 255, 0.15)';
+                const barHoverColor = isHighlight ? '#ffb84d' : 'rgba(255, 255, 255, 0.35)';
+
+                return (
+                  <div
+                    key={idx}
+                    className="dist-bar"
+                    style={{
+                      flex: 1,
+                      height: `${barHeightPercent}%`,
+                      background: barColor,
+                      borderRadius: '1px 1px 0 0',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      position: 'relative'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = barHoverColor;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = barColor;
+                    }}
+                  >
+                    {/* Tooltip */}
+                    <div className="dist-bar-tooltip" style={{
+                      visibility: 'hidden',
+                      opacity: 0,
+                      position: 'absolute',
+                      bottom: '100%',
+                      left: '50%',
+                      transform: 'translateX(-50%) translateY(-6px)',
+                      background: '#0b0f19',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      color: 'var(--text-main)',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      fontSize: '9px',
+                      whiteSpace: 'nowrap',
+                      zIndex: 1000,
+                      pointerEvents: 'none',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.6)',
+                      transition: 'opacity 0.15s, transform 0.15s'
+                    }}>
+                      <div style={{ fontWeight: 700 }}>Rating: {dist.minRating}-{dist.maxRating}</div>
+                      <div style={{ color: 'var(--text-muted)' }}>Users: {dist.userCount.toLocaleString()}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '8px', color: 'var(--text-muted)', marginTop: '2px', fontWeight: 600 }}>
+              <span>0</span>
+              <span>3000+</span>
+            </div>
+          </div>
+
+          <style>{`
+            .chart-node-group:hover .chart-node-tooltip {
+              opacity: 1 !important;
+            }
+            .dist-bar:hover .dist-bar-tooltip {
+              visibility: visible !important;
+              opacity: 1 !important;
+              transform: translateX(-50%) translateY(-4px) !important;
+            }
+          `}</style>
+        </div>
+      ) : (
+        <div style={{
+          padding: '24px 20px',
+          borderTop: '1px solid var(--glass-border)',
+          textAlign: 'center',
+          color: 'var(--text-muted, #94a3b8)',
+          fontSize: '12px',
+          background: 'rgba(255, 255, 255, 0.002)',
+          lineHeight: '1.5'
+        }}>
+          No contest history found. Participate in LeetCode contests (Weekly / Biweekly) to sync your contest rating, global rankings, and chart statistics.
+        </div>
+      )}
 
       <div className="platform-footer">
         <span className="last-synced">Last synced {mounted && account.last_synced_at ? new Date(account.last_synced_at).toLocaleString() : '—'}</span>
