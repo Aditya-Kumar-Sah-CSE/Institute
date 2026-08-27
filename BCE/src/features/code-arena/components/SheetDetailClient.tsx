@@ -357,9 +357,27 @@ export default function SheetDetailClient({
               <Lock size={12} /> Private
             </div>
           )}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--neon-cyan)', background: 'rgba(6,182,212,0.1)', padding: '4px 10px', borderRadius: '12px', fontWeight: 600 }}>
+          <Link 
+            href="/code-arena/sheets"
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '6px', 
+              fontSize: '12px', 
+              color: 'var(--neon-cyan)', 
+              background: 'rgba(6,182,212,0.1)', 
+              padding: '4px 10px', 
+              borderRadius: '12px', 
+              fontWeight: 600,
+              textDecoration: 'none',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(6,182,212,0.2)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(6,182,212,0.1)'; }}
+          >
             <BookOpen size={13} /> Sheet Detail
-          </div>
+          </Link>
         </div>
       </header>
 
