@@ -13,6 +13,7 @@ import { Zap, Flame, CheckCircle, Award, User, BookOpen, Download } from 'lucide
 import dynamic from 'next/dynamic';
 import AddGoalDashboardCard from '@/features/goals/components/AddGoalDashboardCard';
 import PinnedGoalAlert from '@/features/goals/components/PinnedGoalAlert';
+import { Suspense } from 'react';
 
 
 const NoticeBoard = dynamic(() => import('@/features/notices/components/NoticeBoard'), { loading: () => <div className="skeleton-dash" style={{ height: '300px', borderRadius: '12px' }}></div> });
@@ -45,62 +46,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
   const { getOrCreateProfile } = await import('@/lib/profile');
   const profilePromise = getOrCreateProfile(user);
   
-  // Fetch enrollments with course details
-  const enrollmentsPromise = supabase
-    .from('enrollments')
-    .select('progress, status, course_id, courses(id, title, thumbnail_url, description, difficulty, total_xp, is_published)')
-    .eq('user_id', user.id)
-    .order('enrolled_at', { ascending: false });
-
-  // Quick stats
-  const completedAssignmentsPromise = supabase
-    .from('submissions')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('status', 'approved');
-
-  const certificatesPromise = supabase
-    .from('certificates')
-    .select('id, course_id')
-    .eq('user_id', user.id);
-
-  const earnedBadgesPromise = supabase
-    .from('user_badges')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id);
-
-  // Fetch recent 2 notices
-  const noticesPromise = getNotices(2);
-
-  const adminSb = await createAdminClient();
-  const appDataPromise = adminSb
-    .from('instructor_applications')
-    .select('status')
-    .eq('user_id', user.id)
-    .order('submitted_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
   const settingsPromise = supabase.from('company_settings').select('is_admission_pinned').single();
-  const nptelMappingsPromise = supabase.from('student_nptel_courses').select('nptel_courses(course_name,nptel_assignments(title,deadline))').eq('student_id', user.id).eq('active', true);
-
-  // Fetch unread poll alerts
-  const pollAlertsPromise = supabase
-    .from('notifications')
-    .select('id, message, created_at, link')
-    .eq('user_id', user.id)
-    .eq('is_read', false)
-    .or('message.ilike.%posted a new poll in%,message.ilike.%created a global poll%')
-    .order('created_at', { ascending: false });
-
-  // Fetch active or upcoming coding battles
-  const battlesPromise = supabase
-    .from('coding_battles')
-    .select('id, title, status, start_time, end_time, duration_minutes, join_code')
-    .in('status', ['LOBBY', 'SCHEDULED', 'LIVE'])
-    .order('created_at', { ascending: false })
-    .limit(5);
-
   const activeGoalPromise = supabase
     .from('student_goals')
     .select('*')
@@ -110,56 +56,17 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
     .limit(1)
     .maybeSingle();
 
-  const dashboardPollsPromise = enrollmentsPromise.then(res => {
-    const ids = res.data?.filter(e => e.status === 'approved').map(e => e.course_id) || [];
-    return getDashboardPolls(ids);
-  });
-
   const [
     profile,
-    { data: enrollments, error: enrollmentsError },
-    { count: completedAssignments },
-    { count: earnedBadges },
-    notices,
-    { data: appData },
-    { data: pollAlerts },
-    { data: dashboardPolls, error: pollsError },
-    { data: certificatesData },
     { data: settings },
-    { data: activeBattles },
-    { data: nptelMappings },
-    { data: activeGoal },
-    globalPolls
+    { data: activeGoal }
   ] = await Promise.all([
     profilePromise,
-    enrollmentsPromise,
-    completedAssignmentsPromise,
-    earnedBadgesPromise,
-    noticesPromise,
-    appDataPromise,
-    pollAlertsPromise,
-    dashboardPollsPromise,
-    certificatesPromise,
     settingsPromise,
-    battlesPromise,
-    nptelMappingsPromise,
-    activeGoalPromise,
-    getGlobalPolls()
+    activeGoalPromise
   ]);
 
-  const enrolledCourses = enrollments?.filter(e => e.courses).map(e => e.courses as unknown as Course) || [];
-  
-  const activeGlobalPolls = (globalPolls || []).filter(
-    (poll: any) => !poll.expires_at || new Date(poll.expires_at) >= new Date()
-  );
-  
-  // Create a map of course_id -> certificate_id
-  const certificatesMap: Record<string, string> = {};
-  if (certificatesData) {
-    certificatesData.forEach(c => {
-      certificatesMap[c.course_id] = c.id;
-    });
-  }
+  if (!profile) return null;
 
   return (
     <div style={{ 
@@ -168,16 +75,6 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
       gap: 'var(--space-2xl)' 
     }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2xl)' }}>
-        {(enrollmentsError || pollsError) && (
-           <div style={{ padding: '1rem', background: 'rgba(255, 0, 0, 0.2)', border: '1px solid red', borderRadius: '8px', color: '#ffcccc' }}>
-             <h3>Debug Error Info (Live Only)</h3>
-             <pre style={{ whiteSpace: 'pre-wrap' }}>
-               Enrollments Error: {JSON.stringify(enrollmentsError, null, 2)}
-               {'\n'}
-               Polls Error: {JSON.stringify(pollsError, null, 2)}
-             </pre>
-           </div>
-        )}
 
         {searchParams?.error === 'FileTooLarge' && (
           <div style={{ background: 'rgba(255, 0, 0, 0.1)', border: '1px solid var(--neon-red)', padding: 'var(--space-md)', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--space-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
@@ -235,40 +132,29 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
         </div>
 
 
-        <PinnedGoalAlert />
-        <UpcomingContestsAlert />
+        <Suspense fallback={null}>
+          <PinnedGoalAlert />
+        </Suspense>
+        
+        <Suspense fallback={<div className="skeleton-dash" style={{ height: '140px', borderRadius: '12px' }}></div>}>
+          <UpcomingContestsAlert />
+        </Suspense>
 
-        {pollAlerts && pollAlerts.length > 0 && (
-          <PollAlerts alerts={pollAlerts} />
-        )}
+        <Suspense fallback={null}>
+          <DeferredPollAlerts userId={user.id} />
+        </Suspense>
 
-        {activeBattles && activeBattles.length > 0 && (
-          <DashboardBattleBanners battles={activeBattles} />
-        )}
+        <Suspense fallback={null}>
+          <DeferredBattles />
+        </Suspense>
 
-        {activeGlobalPolls && activeGlobalPolls.length > 0 && (
-          <div style={{ marginBottom: 'var(--space-2xl)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-lg)' }}>
-              <h2 className="section-title" style={{ margin: 0 }}>Active Global Polls</h2>
-              <Link href="/polls" style={{ color: 'var(--neon-cyan)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)', whiteSpace: 'nowrap' }}>View all polls →</Link>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 360px), 1fr))', gap: 'var(--space-lg)' }}>
-              {activeGlobalPolls.map((poll: any) => (
-                <GlobalPollCard 
-                  key={poll.id} 
-                  poll={poll} 
-                  currentUserId={user.id} 
-                  currentUserRole={profile?.role || 'student'} 
-                  currentUserEmail={profile?.email}
-                />
-              ))}
-            </div>
-          </div>
-        )}
+        <Suspense fallback={<div className="skeleton-dash" style={{ height: '220px', borderRadius: '12px' }}></div>}>
+          <DeferredGlobalPolls userId={user.id} role={profile?.role || 'student'} email={profile?.email} />
+        </Suspense>
 
-        {dashboardPolls && dashboardPolls.length > 0 && (
-          <DashboardPolls polls={dashboardPolls} currentUserId={user.id} />
-        )}
+        <Suspense fallback={<div className="skeleton-dash" style={{ height: '220px', borderRadius: '12px' }}></div>}>
+          <DeferredDashboardPolls userId={user.id} />
+        </Suspense>
 
         {profile?.role === 'student' && !profile.admission_filled && settings?.is_admission_pinned && (
           <div style={{ background: 'rgba(255, 0, 0, 0.1)', border: '1px solid var(--neon-red)', padding: 'var(--space-md)', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--space-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
@@ -285,34 +171,199 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
           </div>
         )}
 
-        <DashboardAlerts courseIds={enrollments?.filter(e => e.status === 'approved').map(e => e.course_id) || []} />
-        <NptelAssignmentsWidget assignments={(nptelMappings || []).flatMap((mapping: any) => (mapping.nptel_courses?.nptel_assignments || []).map((assignment: any) => ({ ...assignment, courseName: mapping.nptel_courses.course_name, status: new Date(assignment.deadline) < new Date() ? 'OVERDUE' : new Date(assignment.deadline).getTime() - Date.now() <= 86400000 ? 'URGENT' : 'UPCOMING' }))).sort((a: any, b: any) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime())} />
+        <Suspense fallback={null}>
+          <DeferredDashboardAlerts userId={user.id} />
+        </Suspense>
 
-        <div style={{ marginTop: 'var(--space-2xl)' }}>
-          <ContinueLearning enrollments={enrollments || []} certificatesMap={certificatesMap} />
-        </div>
+        <Suspense fallback={<div className="skeleton-dash" style={{ height: '180px', borderRadius: '12px' }}></div>}>
+          <DeferredNptelWidget userId={user.id} />
+        </Suspense>
+
+        <Suspense fallback={<div className="skeleton-dash" style={{ height: '250px', borderRadius: '12px' }}></div>}>
+          <DeferredContinueLearning userId={user.id} />
+        </Suspense>
 
         <div className="dashboard-bottom-row">
           <div className="dashboard-bottom-col">
-            {notices && (
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-lg)' }}>
-                  <h2 style={{ fontSize: 'var(--text-2xl)', margin: 0 }}>Recent Notices</h2>
-                  <Link href="/notices" style={{ color: 'var(--neon-cyan)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)', whiteSpace: 'nowrap' }}>View all notices →</Link>
-                </div>
-                <NoticeBoard notices={notices as Notice[]} />
-              </div>
-            )}
+            <Suspense fallback={<div className="skeleton-dash" style={{ height: '300px', borderRadius: '12px' }}></div>}>
+              <DeferredNotices />
+            </Suspense>
           </div>
           
           <div className="dashboard-bottom-col">
-            <DashboardProfileCard profile={profile} appData={appData} />
+            <Suspense fallback={<div className="skeleton-dash" style={{ height: '300px', borderRadius: '12px' }}></div>}>
+              <DeferredProfileCard profile={profile} />
+            </Suspense>
             <div style={{ marginTop: 'var(--space-2xl)' }}>
-              <ActivityFeed />
+              <Suspense fallback={<div className="skeleton-dash" style={{ height: '300px', borderRadius: '12px' }}></div>}>
+                <ActivityFeed />
+              </Suspense>
             </div>
           </div>
         </div>
       </div>
-  </div>
+    </div>
   );
+}
+
+// ── DEFERRED ASYNC COMPONENTS FOR FAST FIRST-SCREEN LOADING ──
+
+async function DeferredPollAlerts({ userId }: { userId: string }) {
+  const supabase = await createClient();
+  const { data: pollAlerts } = await supabase
+    .from('notifications')
+    .select('id, message, created_at, link')
+    .eq('user_id', userId)
+    .eq('is_read', false)
+    .or('message.ilike.%posted a new poll in%,message.ilike.%created a global poll%')
+    .order('created_at', { ascending: false });
+
+  if (!pollAlerts || pollAlerts.length === 0) return null;
+  return <PollAlerts alerts={pollAlerts} />;
+}
+
+async function DeferredBattles() {
+  const supabase = await createClient();
+  const { data: activeBattles } = await supabase
+    .from('coding_battles')
+    .select('id, title, status, start_time, end_time, duration_minutes, join_code')
+    .in('status', ['LOBBY', 'SCHEDULED', 'LIVE'])
+    .order('created_at', { ascending: false })
+    .limit(5);
+
+  if (!activeBattles || activeBattles.length === 0) return null;
+  return <DashboardBattleBanners battles={activeBattles} />;
+}
+
+async function DeferredGlobalPolls({ userId, role, email }: { userId: string; role: string; email?: string }) {
+  const globalPolls = await getGlobalPolls();
+  const activeGlobalPolls = (globalPolls || []).filter(
+    (poll: any) => !poll.expires_at || new Date(poll.expires_at) >= new Date()
+  );
+
+  if (!activeGlobalPolls || activeGlobalPolls.length === 0) return null;
+  return (
+    <div style={{ marginBottom: 'var(--space-2xl)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-lg)' }}>
+        <h2 className="section-title" style={{ margin: 0 }}>Active Global Polls</h2>
+        <Link href="/polls" style={{ color: 'var(--neon-cyan)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)', whiteSpace: 'nowrap' }}>View all polls →</Link>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 360px), 1fr))', gap: 'var(--space-lg)' }}>
+        {activeGlobalPolls.map((poll: any) => (
+          <GlobalPollCard 
+            key={poll.id} 
+            poll={poll} 
+            currentUserId={userId} 
+            currentUserRole={role} 
+            currentUserEmail={email}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+async function DeferredDashboardPolls({ userId }: { userId: string }) {
+  const supabase = await createClient();
+  const { data: enrollments } = await supabase
+    .from('enrollments')
+    .select('course_id')
+    .eq('user_id', userId)
+    .eq('status', 'approved');
+
+  const ids = enrollments?.map(e => e.course_id) || [];
+  if (ids.length === 0) return null;
+
+  const { data: dashboardPolls } = await getDashboardPolls(ids);
+  if (!dashboardPolls || dashboardPolls.length === 0) return null;
+  return <DashboardPolls polls={dashboardPolls} currentUserId={userId} />;
+}
+
+async function DeferredDashboardAlerts({ userId }: { userId: string }) {
+  const supabase = await createClient();
+  const { data: enrollments } = await supabase
+    .from('enrollments')
+    .select('course_id')
+    .eq('user_id', userId)
+    .eq('status', 'approved');
+
+  const ids = enrollments?.map(e => e.course_id) || [];
+  return <DashboardAlerts courseIds={ids} />;
+}
+
+async function DeferredNptelWidget({ userId }: { userId: string }) {
+  const supabase = await createClient();
+  const { data: nptelMappings } = await supabase
+    .from('student_nptel_courses')
+    .select('nptel_courses(course_name,nptel_assignments(title,deadline))')
+    .eq('student_id', userId)
+    .eq('active', true);
+
+  const assignments = (nptelMappings || []).flatMap((mapping: any) => 
+    (mapping.nptel_courses?.nptel_assignments || []).map((assignment: any) => ({
+      ...assignment,
+      courseName: mapping.nptel_courses.course_name,
+      status: new Date(assignment.deadline) < new Date() 
+        ? 'OVERDUE' 
+        : new Date(assignment.deadline).getTime() - Date.now() <= 86400000 
+          ? 'URGENT' 
+          : 'UPCOMING'
+    }))
+  ).sort((a: any, b: any) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
+
+  return <NptelAssignmentsWidget assignments={assignments} />;
+}
+
+async function DeferredContinueLearning({ userId }: { userId: string }) {
+  const supabase = await createClient();
+  const [
+    { data: enrollments },
+    { data: certificatesData }
+  ] = await Promise.all([
+    supabase
+      .from('enrollments')
+      .select('progress, status, course_id, courses(id, title, thumbnail_url, description, difficulty, total_xp, is_published)')
+      .eq('user_id', userId)
+      .order('enrolled_at', { ascending: false }),
+    supabase
+      .from('certificates')
+      .select('id, course_id')
+      .eq('user_id', userId)
+  ]);
+
+  const certificatesMap: Record<string, string> = {};
+  if (certificatesData) {
+    certificatesData.forEach(c => {
+      certificatesMap[c.course_id] = c.id;
+    });
+  }
+
+  return <ContinueLearning enrollments={enrollments || []} certificatesMap={certificatesMap} />;
+}
+
+async function DeferredNotices() {
+  const notices = await getNotices(2);
+  if (!notices || notices.length === 0) return null;
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-lg)' }}>
+        <h2 style={{ fontSize: 'var(--text-2xl)', margin: 0 }}>Recent Notices</h2>
+        <Link href="/notices" style={{ color: 'var(--neon-cyan)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)', whiteSpace: 'nowrap' }}>View all notices →</Link>
+      </div>
+      <NoticeBoard notices={notices as Notice[]} />
+    </div>
+  );
+}
+
+async function DeferredProfileCard({ profile }: { profile: any }) {
+  const adminSb = await createAdminClient();
+  const { data: appData } = await adminSb
+    .from('instructor_applications')
+    .select('status')
+    .eq('user_id', profile.id)
+    .order('submitted_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return <DashboardProfileCard profile={profile} appData={appData} />;
 }
