@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getCodeArenaActor } from '@/features/code-arena/server';
 import { generateUniqueSheetSlug } from '@/lib/slug-utils';
+import { createClient as createRawClient } from '@supabase/supabase-js';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -59,12 +60,24 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const { supabase, user, isInstructor } = await getCodeArenaActor();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  const serviceRoleClient = createRawClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
   try {
-    const { data: sheet } = await supabase
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    let sheetQuery = serviceRoleClient
       .from('coding_sheets')
-      .select('id, created_by, title, slug, is_public, published_at')
-      .eq('id', id)
-      .single();
+      .select('id, created_by, title, slug, is_public, published_at');
+
+    if (isUUID) {
+      sheetQuery = sheetQuery.eq('id', id);
+    } else {
+      sheetQuery = sheetQuery.eq('slug', id);
+    }
+
+    const { data: sheet } = await sheetQuery.maybeSingle();
 
     if (!sheet) {
       return NextResponse.json({ success: false, error: { message: 'Sheet not found' } }, { status: 404 });
@@ -79,13 +92,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     // Handle single problem's YT video and text solution update
     if (problem_id !== undefined) {
-      const { error: updateProblemError } = await supabase
+      const { error: updateProblemError } = await serviceRoleClient
         .from('coding_sheet_problems')
         .update({
           youtube_url: youtube_url !== undefined ? (youtube_url ? youtube_url.trim() : null) : undefined,
           text_solution: text_solution !== undefined ? (text_solution ? text_solution.trim() : null) : undefined,
         })
-        .eq('sheet_id', id)
+        .eq('sheet_id', sheet.id)
         .eq('problem_id', problem_id);
 
       if (updateProblemError) {
@@ -99,10 +112,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       updates.title = title.trim();
       // Important SDE Rule: Only regenerate slug if slug is currently missing or explicitly requested via regenerate_slug
       if (!sheet.slug || regenerate_slug) {
-        updates.slug = await generateUniqueSheetSlug(supabase, title.trim(), id);
+        updates.slug = await generateUniqueSheetSlug(serviceRoleClient, title.trim(), sheet.id);
       }
     } else if (regenerate_slug && sheet.title) {
-      updates.slug = await generateUniqueSheetSlug(supabase, sheet.title, id);
+      updates.slug = await generateUniqueSheetSlug(serviceRoleClient, sheet.title, sheet.id);
     }
 
     if (description !== undefined) updates.description = description || null;
@@ -126,10 +139,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     if (Object.keys(updates).length > 0) {
-      const { error: updateError } = await supabase
+      const { error: updateError } = await serviceRoleClient
         .from('coding_sheets')
         .update(updates)
-        .eq('id', id);
+        .eq('id', sheet.id);
 
       if (updateError) {
         return NextResponse.json({ success: false, error: { message: updateError.message } }, { status: 400 });
@@ -138,10 +151,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     if (problems !== undefined && Array.isArray(problems)) {
       // 1. Fetch existing problem links to preserve youtube_url and text_solution
-      const { data: existingLinks } = await supabase
+      const { data: existingLinks } = await serviceRoleClient
         .from('coding_sheet_problems')
         .select('problem_id, youtube_url, text_solution')
-        .eq('sheet_id', id);
+        .eq('sheet_id', sheet.id);
 
       const linksMap = new Map();
       (existingLinks || []).forEach(l => {
@@ -149,20 +162,20 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       });
 
       // 2. Re-link problems
-      await supabase.from('coding_sheet_problems').delete().eq('sheet_id', id);
+      await serviceRoleClient.from('coding_sheet_problems').delete().eq('sheet_id', sheet.id);
 
       if (problems.length > 0) {
         const problemLinks = problems.map((pId: string, idx: number) => {
           const existing = linksMap.get(pId) || {};
           return {
-            sheet_id: id,
+            sheet_id: sheet.id,
             problem_id: pId,
             order_index: idx,
             youtube_url: existing.youtube_url || null,
             text_solution: existing.text_solution || null,
           };
         });
-        const { error: linkError } = await supabase.from('coding_sheet_problems').insert(problemLinks);
+        const { error: linkError } = await serviceRoleClient.from('coding_sheet_problems').insert(problemLinks);
         if (linkError) {
           return NextResponse.json({ success: false, error: { message: 'Failed to update linked problems.' } }, { status: 400 });
         }
@@ -180,7 +193,20 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   const { supabase, user, isInstructor } = await getCodeArenaActor();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { data: sheet } = await supabase.from('coding_sheets').select('created_by').eq('id', id).single();
+  const serviceRoleClient = createRawClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  let sheetQuery = serviceRoleClient.from('coding_sheets').select('id, created_by');
+  if (isUUID) {
+    sheetQuery = sheetQuery.eq('id', id);
+  } else {
+    sheetQuery = sheetQuery.eq('slug', id);
+  }
+
+  const { data: sheet } = await sheetQuery.maybeSingle();
   if (!sheet) {
     return NextResponse.json({ success: false, error: { message: 'Sheet not found' } }, { status: 404 });
   }
@@ -189,7 +215,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     return NextResponse.json({ success: false, error: { message: 'Forbidden: Only instructors can delete coding sheets.' } }, { status: 403 });
   }
 
-  const { error: deleteError } = await supabase.from('coding_sheets').delete().eq('id', id);
+  const { error: deleteError } = await serviceRoleClient.from('coding_sheets').delete().eq('id', sheet.id);
   if (deleteError) {
     return NextResponse.json({ success: false, error: { message: deleteError.message } }, { status: 400 });
   }
