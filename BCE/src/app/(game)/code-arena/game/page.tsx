@@ -881,13 +881,21 @@ export default function GamePage() {
       }
 
       // Setup clean high-DPI scaling Matrix
-      ctx.save();
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
       const canvasRect = canvas.getBoundingClientRect();
       const w = canvasRect.width;
       const h = canvasRect.height;
+
+      // Update backing store resolution dynamically to avoid high-DPI blur/clip
+      const targetWidth = Math.floor(w * dpr);
+      const targetHeight = Math.floor(h * dpr);
+      if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+      }
+
+      ctx.save();
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.scale(w / GAME_WIDTH, h / GAME_HEIGHT);
 
       // Camera Shake
@@ -1307,7 +1315,8 @@ export default function GamePage() {
       style={{ 
         background: 'var(--bg-main, #040814)', 
         minHeight: '100dvh', 
-        width: '100dvw',
+        width: '100%',
+        maxWidth: '100dvw',
         display: 'flex', 
         flexDirection: 'column', 
         color: '#f8fafc', 
@@ -1317,9 +1326,45 @@ export default function GamePage() {
         paddingTop: 'env(safe-area-inset-top)',
         paddingBottom: 'env(safe-area-inset-bottom)',
         paddingLeft: 'env(safe-area-inset-left)',
-        paddingRight: 'env(safe-area-inset-right)'
+        paddingRight: 'env(safe-area-inset-right)',
+        boxSizing: 'border-box'
       }}
     >
+      <style dangerouslySetInnerHTML={{ __html: `
+        .game-shell, .game-shell * {
+          box-sizing: border-box !important;
+        }
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        .game-shell ::-webkit-scrollbar {
+          display: none !important;
+        }
+        
+        .game-shell {
+          scrollbar-width: none !important;
+          -ms-overflow-style: none !important;
+        }
+
+        @media (max-width: 480px) {
+          .game-header-title-text {
+            display: none !important;
+          }
+          .game-header-install-btn {
+            display: none !important;
+          }
+          .game-header-xp-pill {
+            padding: 4px 8px !important;
+          }
+          .game-header-xp-text {
+            font-size: 11px !important;
+          }
+        }
+      `}} />
+
       {/* Device Rotation Overlay Dialog */}
       {showRotationOverlay && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(7, 10, 20, 0.95)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '20px', zIndex: 1000, padding: '24px', textAlign: 'center' }}>
@@ -1350,34 +1395,36 @@ export default function GamePage() {
 
       {/* Top Header Navigation Panel */}
       {screen !== 'PLAYING' && screen !== 'PAUSED' && (
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 24px', borderBottom: '1px solid var(--border-divider, #1e293b)', background: 'rgba(7, 10, 20, 0.8)', backdropFilter: 'blur(8px)', position: 'sticky', top: 0, zIndex: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <header className="game-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid var(--border-divider, #1e293b)', background: 'rgba(7, 10, 20, 0.8)', backdropFilter: 'blur(8px)', position: 'sticky', top: 0, zIndex: 10, width: '100%', boxSizing: 'border-box' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
             <Link 
               href="/dashboard" 
               onClick={exitFullscreenAndLandscape}
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '6px 12px', borderRadius: '8px', color: '#cbd5e1', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '6px 10px', borderRadius: '8px', color: '#cbd5e1', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none', flexShrink: 0 }}
             >
-              <ArrowLeft size={16} /> Exit Arcade
+              <ArrowLeft size={14} /> Exit
             </Link>
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px', fontWeight: 800, color: 'var(--neon-cyan, #06b6d4)' }}>
-              <Gamepad2 size={20} /> Brick Breaker
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '15px', fontWeight: 800, color: 'var(--neon-cyan, #06b6d4)', minWidth: 0 }}>
+              <Gamepad2 size={16} style={{ flexShrink: 0 }} /> 
+              <span className="game-header-title-text" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Arcade: Brick Breaker</span>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
             {pwaInstallSupported && (
               <button 
                 onClick={triggerPwaInstall}
-                style={{ background: 'rgba(6, 182, 212, 0.1)', border: '1px solid rgba(6, 182, 212, 0.25)', padding: '6px 14px', borderRadius: '14px', color: '#22d3ee', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}
+                className="game-header-install-btn"
+                style={{ background: 'rgba(6, 182, 212, 0.1)', border: '1px solid rgba(6, 182, 212, 0.25)', padding: '6px 12px', borderRadius: '14px', color: '#22d3ee', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', cursor: 'pointer' }}
               >
-                <Download size={14} /> Install Game Mode
+                <Download size={12} /> Install
               </button>
             )}
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.25)', padding: '6px 14px', borderRadius: '14px' }}>
-              <Zap size={14} color="#a855f7" fill="#a855f7" />
-              <span style={{ fontSize: '13px', fontWeight: 700, color: '#c084fc' }}>{stats.totalXP} Arcade XP</span>
+            <div className="game-header-xp-pill" style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.25)', padding: '6px 12px', borderRadius: '14px' }}>
+              <Zap size={12} color="#a855f7" fill="#a855f7" />
+              <span className="game-header-xp-text" style={{ fontSize: '12px', fontWeight: 700, color: '#c084fc' }}>{stats.totalXP} XP</span>
             </div>
           </div>
         </header>
@@ -1385,23 +1432,23 @@ export default function GamePage() {
 
       {/* RENDER ACTIVE LOBBY / LEVEL PROGRESSION ROAD */}
       {screen === 'LOBBY' && (
-        <div style={{ flex: 1, padding: '30px 20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ flex: 1, padding: '20px 16px', overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', boxSizing: 'border-box' }}>
           
-          <div style={{ textAlign: 'center', maxWidth: '600px', marginBottom: '30px' }}>
-            <span style={{ display: 'inline-block', background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(168, 85, 247, 0.1))', border: '1px solid rgba(6,182,212,0.2)', padding: '4px 12px', borderRadius: '12px', fontSize: '10px', fontWeight: 700, letterSpacing: '1px', color: '#22d3ee', textTransform: 'uppercase', marginBottom: '10px' }}>
+          <div style={{ textAlign: 'center', maxWidth: '600px', marginBottom: '24px', width: '100%', boxSizing: 'border-box' }}>
+            <span style={{ display: 'inline-block', background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(168, 85, 247, 0.1))', border: '1px solid rgba(6,182,212,0.2)', padding: '4px 12px', borderRadius: '12px', fontSize: '9px', fontWeight: 700, letterSpacing: '1px', color: '#22d3ee', textTransform: 'uppercase', marginBottom: '8px' }}>
               GAMIFIED LEARNING ARCADE
             </span>
-            <h2 style={{ fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 900, background: 'linear-gradient(to right, #00f0ff, #c084fc)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', margin: '0 0 8px 0' }}>Brick Breaker Challenge</h2>
-            <p style={{ fontSize: '13px', color: '#94a3b8', lineHeight: 1.5, margin: 0 }}>
+            <h2 style={{ fontSize: 'clamp(20px, 5vw, 28px)', fontWeight: 900, background: 'linear-gradient(to right, #00f0ff, #c084fc)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', margin: '0 0 6px 0' }}>Brick Breaker Challenge</h2>
+            <p style={{ fontSize: '12px', color: '#94a3b8', lineHeight: 1.4, margin: 0 }}>
               Unlock levels, earn stars, and gain exclusive Smart Learn XP! Fits perfectly on mobile and desktop layout.
             </p>
           </div>
 
           {/* Level List - Path Layout */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', maxWidth: '540px', position: 'relative', paddingLeft: '10px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', maxWidth: '540px', position: 'relative', paddingLeft: '12px', paddingRight: '12px', boxSizing: 'border-box' }}>
             
             {/* Connection Line */}
-            <div style={{ position: 'absolute', left: '28px', top: '20px', bottom: '20px', width: '2px', background: 'linear-gradient(180deg, #06b6d4, #a855f7)', opacity: 0.3, zIndex: 1 }} />
+            <div style={{ position: 'absolute', left: '30px', top: '20px', bottom: '20px', width: '2px', background: 'linear-gradient(180deg, #06b6d4, #a855f7)', opacity: 0.3, zIndex: 1 }} />
 
             {LEVELS.map((level, idx) => {
               const isFirst = idx === 0;
@@ -1480,35 +1527,70 @@ export default function GamePage() {
 
       {/* RENDER LEVEL PREVIEW SCREEN */}
       {screen === 'PREVIEW' && (
-        <div style={{ flex: 1, display: 'grid', placeItems: 'center', padding: '24px' }}>
-          <div style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '20px', padding: '30px', maxWidth: '400px', width: '100%', textAlign: 'center', backdropFilter: 'blur(20px)', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }}>
+        <div style={{ flex: 1, display: 'grid', placeItems: 'center', padding: '16px', boxSizing: 'border-box', width: '100%', minHeight: 0 }}>
+          <div style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '20px', padding: 'clamp(16px, 4vh, 30px) 24px', maxWidth: '400px', width: 'min(92%, 400px)', textAlign: 'center', backdropFilter: 'blur(20px)', boxShadow: '0 20px 40px rgba(0,0,0,0.5)', maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto', boxSizing: 'border-box' }}>
             <span style={{ color: 'var(--neon-cyan)', fontSize: '11px', fontWeight: 800, letterSpacing: '2px' }}>LEVEL PREVIEW</span>
             
             <div style={{
-              width: '54px',
-              height: '54px',
-              borderRadius: '12px',
+              width: '44px',
+              height: '44px',
+              borderRadius: '10px',
               background: 'linear-gradient(135deg, #06b6d4, #a855f7)',
               display: 'grid',
               placeItems: 'center',
-              margin: '20px auto 14px auto',
-              boxShadow: '0 0 15px rgba(6,182,212,0.2)'
+              margin: '14px auto 10px auto',
+              boxShadow: '0 0 15px rgba(6,182,212,0.2)',
+              flexShrink: 0
             }}>
-              <Gamepad2 size={28} color="white" />
+              <Gamepad2 size={22} color="white" />
             </div>
 
-            <h3 style={{ fontSize: '20px', fontWeight: 950, margin: '0 0 4px 0' }}>Level {activeLevel.id}: {activeLevel.title}</h3>
-            <span style={{ fontSize: '12px', color: '#94a3b8' }}>Target score: {activeLevel.targetScore} points</span>
+            <h3 style={{ fontSize: '18px', fontWeight: 950, margin: '0 0 4px 0', color: 'white' }}>Level {activeLevel.id}: {activeLevel.title}</h3>
+            <span style={{ fontSize: '11px', color: '#94a3b8' }}>Target score: {activeLevel.targetScore} points</span>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', margin: '20px 0', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '16px' }}>
+            {/* Portrait game preview visual graphic */}
+            <div style={{ 
+              margin: '14px auto', 
+              padding: '12px', 
+              background: 'rgba(6, 9, 19, 0.6)', 
+              border: '1px dashed rgba(6, 182, 212, 0.4)', 
+              borderRadius: '12px', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
+              gap: '8px',
+              maxWidth: '260px',
+              width: '100%',
+              boxSizing: 'border-box'
+            }}>
+              <div style={{ fontSize: '9px', fontWeight: 800, color: 'rgba(255,255,255,0.4)', letterSpacing: '1px' }}>GAMEPLAY PREVIEW</div>
+              {/* Brick rows */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', width: '100%', justifyContent: 'center' }}>
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <div key={i} style={{ width: '32px', height: '8px', borderRadius: '2px', background: activeLevel.brickColors[i % activeLevel.brickColors.length] || '#06b6d4', opacity: 0.85 }} />
+                ))}
+              </div>
+              {/* Ball & Paddle */}
+              <div style={{ position: 'relative', width: '100%', height: '40px', marginTop: '6px' }}>
+                {/* Ball */}
+                <div style={{ position: 'absolute', left: '60%', top: '25%', width: '8px', height: '8px', borderRadius: '50%', background: '#fff', boxShadow: '0 0 8px #00f0ff' }} />
+                {/* Paddle */}
+                <div style={{ position: 'absolute', left: '40%', bottom: '5px', width: '50px', height: '6px', borderRadius: '3px', background: '#06b6d4', boxShadow: '0 0 6px #06b6d4' }} />
+              </div>
+              <div style={{ fontSize: '10px', color: '#94a3b8', fontStyle: 'italic', lineHeight: '1.2' }}>
+                Landscape gameplay activates on start
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', margin: '14px 0', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 700 }}>DIFFICULTY</span>
-                <span style={{ fontSize: '14px', fontWeight: 700, color: '#facc15' }}>{activeLevel.difficulty}</span>
+                <span style={{ fontSize: '9px', color: '#64748b', fontWeight: 700 }}>DIFFICULTY</span>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#facc15' }}>{activeLevel.difficulty}</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 700 }}>REWARD</span>
-                <span style={{ fontSize: '14px', fontWeight: 700, color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
-                  <Zap size={12} color="#10b981" fill="#10b981" /> +{activeLevel.xpReward} XP
+                <span style={{ fontSize: '9px', color: '#64748b', fontWeight: 700 }}>REWARD</span>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+                  <Zap size={11} color="#10b981" fill="#10b981" /> +{activeLevel.xpReward} XP
                 </span>
               </div>
             </div>
@@ -1555,23 +1637,24 @@ export default function GamePage() {
 
       {/* RENDER GAMEPLAY CANVAS CONTAINER */}
       {(screen === 'PLAYING' || screen === 'PAUSED') && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 0, position: 'relative', width: '100%', height: '100%' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 0, position: 'relative', width: '100%', height: '100%', boxSizing: 'border-box' }}>
           
           {/* HUD Layer Overlay Panel */}
           <div style={{ 
             display: 'flex', 
             justifyContent: 'space-between', 
             alignItems: 'center', 
-            width: 'calc(100% - 24px)', 
+            width: 'calc(100% - 16px)', 
             maxWidth: '1200px', 
             position: 'absolute', 
-            top: '12px', 
-            background: 'rgba(30, 41, 59, 0.45)', 
+            top: '8px', 
+            background: 'rgba(30, 41, 59, 0.55)', 
             border: '1px solid rgba(255, 255, 255, 0.08)', 
-            padding: '6px 16px', 
-            borderRadius: '12px', 
+            padding: '4px 12px', 
+            borderRadius: '8px', 
             zIndex: 10,
-            backdropFilter: 'blur(6px)'
+            backdropFilter: 'blur(6px)',
+            boxSizing: 'border-box'
           }}>
             
             {/* Lives counter */}
@@ -1589,7 +1672,7 @@ export default function GamePage() {
                 ))}
               </div>
             </div>
-
+ 
             {/* Score & Combo */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
               <div style={{ textAlign: 'center' }}>
@@ -1604,7 +1687,7 @@ export default function GamePage() {
                 </div>
               )}
             </div>
-
+ 
             {/* Level & Settings Controls */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ fontSize: '11px', fontWeight: 900 }}>LVL {activeLevel.id}</span>
@@ -1631,9 +1714,19 @@ export default function GamePage() {
               </div>
             </div>
           </div>
-
-          {/* Fully Immersive Gameplay Canvas Layer (Edge to Edge viewport) */}
-          <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden', background: '#060913' }}>
+ 
+          {/* Fully Immersive Gameplay Canvas Layer (Preserving Aspect Ratio) */}
+          <div style={{ 
+            position: 'relative', 
+            width: '100%', 
+            height: '100%', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            overflow: 'hidden', 
+            background: '#060913',
+            boxSizing: 'border-box'
+          }}>
             
             {/* Live game FPS counter (development only) */}
             {process.env.NODE_ENV === 'development' && (
@@ -1641,7 +1734,7 @@ export default function GamePage() {
                 FPS: {fps}
               </div>
             )}
-
+ 
             <canvas 
               ref={canvasRef}
               width={GAME_WIDTH}
@@ -1651,44 +1744,52 @@ export default function GamePage() {
                 display: 'block', 
                 width: '100%', 
                 height: '100%', 
+                maxWidth: '100%',
+                maxHeight: '100%',
+                aspectRatio: '16/9',
+                objectFit: 'contain',
+                margin: 'auto',
                 cursor: 'none',
                 touchAction: 'none', 
                 userSelect: 'none',
                 WebkitUserSelect: 'none'
               }}
             />
-
+ 
             {/* Active Pause Menu Overlay */}
             {screen === 'PAUSED' && (
               <div style={{ position: 'absolute', inset: 0, background: 'rgba(7, 10, 20, 0.8)', backdropFilter: 'blur(5px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px', zIndex: 20 }}>
-                <span style={{ background: 'rgba(6, 182, 212, 0.1)', border: '1px solid rgba(6, 182, 212, 0.3)', padding: '4px 12px', borderRadius: '8px', fontSize: '10px', fontWeight: 800, color: 'var(--neon-cyan)' }}>
-                  GAME PAUSED
-                </span>
-                <h3 style={{ fontSize: '24px', fontWeight: 900, margin: 0 }}>Smart Arcade</h3>
-                
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button 
-                    onClick={() => setScreen('PLAYING')}
-                    style={{ background: 'linear-gradient(135deg, #00f0ff, #3b82f6)', border: 'none', color: 'white', padding: '8px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
-                  >
-                    Resume
-                  </button>
-                  <button 
-                    onClick={startGame}
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', padding: '8px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
-                  >
-                    Restart
-                  </button>
-                  <button 
-                    onClick={() => {
-                      exitFullscreenAndLandscape();
-                      setScreen('LOBBY');
-                    }}
-                    style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', padding: '8px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
-                  >
-                    Exit
-                  </button>
+                <div style={{ background: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '16px', padding: '24px', width: 'min(92%, 360px)', textAlign: 'center', boxSizing: 'border-box', maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto' }}>
+                  <span style={{ display: 'inline-block', background: 'rgba(6, 182, 212, 0.1)', border: '1px solid rgba(6, 182, 212, 0.3)', padding: '4px 12px', borderRadius: '8px', fontSize: '10px', fontWeight: 800, color: 'var(--neon-cyan)', marginBottom: '10px' }}>
+                    GAME PAUSED
+                  </span>
+                  <h3 style={{ fontSize: '20px', fontWeight: 900, margin: '0 0 16px 0', color: 'white' }}>Smart Arcade</h3>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <button 
+                      onClick={() => setScreen('PLAYING')}
+                      style={{ width: '100%', background: 'linear-gradient(135deg, #00f0ff, #3b82f6)', border: 'none', color: 'white', padding: '10px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
+                    >
+                      Resume Game
+                    </button>
+                    <button 
+                      onClick={startGame}
+                      style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', padding: '10px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
+                    >
+                      Restart Level
+                    </button>
+                    <button 
+                      onClick={() => {
+                        exitFullscreenAndLandscape();
+                        setScreen('LOBBY');
+                      }}
+                      style={{ width: '100%', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', padding: '10px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
+                    >
+                      Exit to Lobby
+                    </button>
+                  </div>
                 </div>
+                {/* Removed redundant controls container */}
               </div>
             )}
           </div>
@@ -1697,8 +1798,8 @@ export default function GamePage() {
 
       {/* RENDER VICTORY SCREEN */}
       {screen === 'VICTORY' && (
-        <div style={{ flex: 1, display: 'grid', placeItems: 'center', padding: '24px' }}>
-          <div style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '20px', padding: '30px', maxWidth: '400px', width: '100%', textAlign: 'center', backdropFilter: 'blur(20px)', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }}>
+        <div style={{ flex: 1, display: 'grid', placeItems: 'center', padding: '16px', boxSizing: 'border-box', minHeight: 0 }}>
+          <div style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '20px', padding: '24px', maxWidth: '400px', width: 'min(92%, 400px)', textAlign: 'center', backdropFilter: 'blur(20px)', boxShadow: '0 20px 40px rgba(0,0,0,0.5)', maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto', boxSizing: 'border-box' }}>
             
             <div style={{ display: 'inline-flex', gap: '6px', justifyContent: 'center', marginBottom: '12px' }}>
               {[1, 2, 3].map(idx => (
@@ -1711,10 +1812,10 @@ export default function GamePage() {
               ))}
             </div>
 
-            <h3 style={{ fontSize: '24px', fontWeight: 900, color: '#10b981', margin: '0 0 4px 0' }}>LEVEL COMPLETE!</h3>
-            <span style={{ fontSize: '12px', color: '#94a3b8' }}>Excellent reflection angles!</span>
+            <h3 style={{ fontSize: '22px', fontWeight: 900, color: '#10b981', margin: '0 0 4px 0' }}>LEVEL COMPLETE!</h3>
+            <span style={{ fontSize: '11px', color: '#94a3b8' }}>Excellent reflection angles!</span>
 
-            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', padding: '12px 16px', margin: '20px 0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', padding: '12px 16px', margin: '14px 0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
                 <span style={{ color: '#64748b' }}>Score</span>
                 <span style={{ fontWeight: 800, color: 'var(--neon-cyan)' }}>{score} pts</span>
@@ -1799,8 +1900,8 @@ export default function GamePage() {
 
       {/* RENDER GAME OVER SCREEN */}
       {screen === 'GAME_OVER' && (
-        <div style={{ flex: 1, display: 'grid', placeItems: 'center', padding: '24px' }}>
-          <div style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '20px', padding: '30px', maxWidth: '400px', width: '100%', textAlign: 'center', backdropFilter: 'blur(20px)', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }}>
+        <div style={{ flex: 1, display: 'grid', placeItems: 'center', padding: '16px', boxSizing: 'border-box', minHeight: 0 }}>
+          <div style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '20px', padding: '24px', maxWidth: '400px', width: 'min(92%, 400px)', textAlign: 'center', backdropFilter: 'blur(20px)', boxShadow: '0 20px 40px rgba(0,0,0,0.5)', maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto', boxSizing: 'border-box' }}>
             
             <div style={{
               width: '54px',
@@ -1810,15 +1911,15 @@ export default function GamePage() {
               border: '1px solid rgba(239, 68, 68, 0.2)',
               display: 'grid',
               placeItems: 'center',
-              margin: '0 auto 20px auto'
+              margin: '0 auto 16px auto'
             }}>
               <AlertTriangle size={28} color="#ef4444" />
             </div>
 
-            <h3 style={{ fontSize: '24px', fontWeight: 900, color: '#ef4444', margin: '0 0 4px 0' }}>GAME OVER</h3>
-            <p style={{ fontSize: '12px', color: '#94a3b8', margin: '0 0 20px 0' }}>Keep practicing, you will clear the blocks next time!</p>
+            <h3 style={{ fontSize: '22px', fontWeight: 900, color: '#ef4444', margin: '0 0 4px 0' }}>GAME OVER</h3>
+            <p style={{ fontSize: '12px', color: '#94a3b8', margin: '0 0 16px 0' }}>Keep practicing, you will clear the blocks next time!</p>
 
-            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', padding: '12px 16px', margin: '20px 0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', padding: '12px 16px', margin: '14px 0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
                 <span style={{ color: '#64748b' }}>Your Score</span>
                 <span style={{ fontWeight: 800, color: '#f87171' }}>{score} pts</span>
