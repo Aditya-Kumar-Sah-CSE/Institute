@@ -75,7 +75,6 @@ export const NAV_ITEMS = [
   { label: 'Leaderboard', href: '/leaderboard', icon: 'Leaderboard' },
   { label: 'Batch Doubts', href: '/doubts', icon: 'Doubts' },
   { label: 'Notices', href: '/notices', icon: 'Notices' },
-  { label: 'Polls', href: '/polls', icon: 'Polls' },
   { label: 'Chat', href: '/dashboard/chat', icon: 'Chat' },
   { label: 'Profile', href: '/profile', icon: 'Profile' },
 ];
