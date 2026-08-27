@@ -306,3 +306,55 @@
     display: inline;
   }
 }
+
+/* Connected Profiles Styles */
+.connected-profiles-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+@media (max-width: 480px) {
+  .connected-profiles-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.connected-profile-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 0.9rem;
+  font-weight: var(--weight-semibold);
+  position: relative;
+  overflow: hidden;
+}
+
+.connected-profile-link:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.connected-profile-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: var(--radius-md);
+  transition: all 0.25s ease;
+}
+
+.connected-profile-link:hover .connected-profile-icon-wrapper {
+  transform: scale(1.1);
+  box-shadow: 0 0 8px currentColor;
+}
+
