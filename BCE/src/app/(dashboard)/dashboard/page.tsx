@@ -7,6 +7,8 @@ import type { Notice } from '@/features/notices/components/NoticeBoard';
 import type { Course } from '@/types';
 import { createAdminClient } from '@/lib/supabase/server';
 import { getDashboardPolls } from '@/features/courses/actions/polls';
+import { getGlobalPolls } from '@/features/polls/actions';
+import GlobalPollCard from '@/features/polls/components/GlobalPollCard';
 import { Zap, Flame, CheckCircle, Award, User, BookOpen, Download } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import AddGoalDashboardCard from '@/features/goals/components/AddGoalDashboardCard';
@@ -126,7 +128,8 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
     { data: settings },
     { data: activeBattles },
     { data: nptelMappings },
-    { data: activeGoal }
+    { data: activeGoal },
+    globalPolls
   ] = await Promise.all([
     profilePromise,
     enrollmentsPromise,
@@ -140,10 +143,15 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
     settingsPromise,
     battlesPromise,
     nptelMappingsPromise,
-    activeGoalPromise
+    activeGoalPromise,
+    getGlobalPolls()
   ]);
 
   const enrolledCourses = enrollments?.filter(e => e.courses).map(e => e.courses as unknown as Course) || [];
+  
+  const activeGlobalPolls = (globalPolls || []).filter(
+    (poll: any) => !poll.expires_at || new Date(poll.expires_at) >= new Date()
+  );
   
   // Create a map of course_id -> certificate_id
   const certificatesMap: Record<string, string> = {};
@@ -238,6 +246,29 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
           <DashboardBattleBanners battles={activeBattles} />
         )}
 
+        {activeGlobalPolls && activeGlobalPolls.length > 0 && (
+          <div style={{ marginBottom: 'var(--space-2xl)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
+              <h2 className="section-title" style={{ margin: 0 }}>Active Global Polls</h2>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 360px), 1fr))', gap: 'var(--space-lg)' }}>
+              {activeGlobalPolls.map((poll: any) => (
+                <GlobalPollCard 
+                  key={poll.id} 
+                  poll={poll} 
+                  currentUserId={user.id} 
+                  currentUserRole={profile?.role || 'student'} 
+                  currentUserEmail={profile?.email}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {dashboardPolls && dashboardPolls.length > 0 && (
+          <DashboardPolls polls={dashboardPolls} currentUserId={user.id} />
+        )}
+
         {profile?.role === 'student' && !profile.admission_filled && settings?.is_admission_pinned && (
           <div style={{ background: 'rgba(255, 0, 0, 0.1)', border: '1px solid var(--neon-red)', padding: 'var(--space-md)', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--space-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xs)' }}>
@@ -255,10 +286,6 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
 
         <DashboardAlerts courseIds={enrollments?.filter(e => e.status === 'approved').map(e => e.course_id) || []} />
         <NptelAssignmentsWidget assignments={(nptelMappings || []).flatMap((mapping: any) => (mapping.nptel_courses?.nptel_assignments || []).map((assignment: any) => ({ ...assignment, courseName: mapping.nptel_courses.course_name, status: new Date(assignment.deadline) < new Date() ? 'OVERDUE' : new Date(assignment.deadline).getTime() - Date.now() <= 86400000 ? 'URGENT' : 'UPCOMING' }))).sort((a: any, b: any) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime())} />
-
-        {dashboardPolls && dashboardPolls.length > 0 && (
-          <DashboardPolls polls={dashboardPolls} currentUserId={user.id} />
-        )}
 
         <div style={{ marginTop: 'var(--space-2xl)' }}>
           <ContinueLearning enrollments={enrollments || []} certificatesMap={certificatesMap} />
