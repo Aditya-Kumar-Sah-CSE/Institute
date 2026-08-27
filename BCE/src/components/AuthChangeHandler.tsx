@@ -4,6 +4,21 @@ import { useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { clearOfflineCache } from '@/lib/cache/offlineDb';
 
+if (typeof window !== 'undefined') {
+  const originalError = console.error;
+  console.error = (...args: any[]) => {
+    const msg = args[0];
+    if (
+      typeof msg === 'string' &&
+      (msg.includes('We are cleaning up async info that was not on the parent Suspense boundary') ||
+       msg.includes('removePreviousSuspendedBy'))
+    ) {
+      return;
+    }
+    originalError(...args);
+  };
+}
+
 export default function AuthChangeHandler() {
   const lastUserRef = useRef<string | null>(null);
 
