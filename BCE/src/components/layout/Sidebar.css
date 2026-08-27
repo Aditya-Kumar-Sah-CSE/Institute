@@ -351,7 +351,8 @@ body:not(.sidebar-is-collapsed) .open-sidebar-btn {
   .sidebar-nav-item[href*="code-arena/sheets"],
   .sidebar-nav-item[href*="sql-editor"],
   .sidebar-nav-item[href*="super-admin"],
-  .sidebar-nav-item[href="/admin/nptel"] {
+  .sidebar-nav-item[href="/admin/nptel"],
+  .sidebar-nav-item[href*="code-arena/game"] {
     display: none !important;
   }
 

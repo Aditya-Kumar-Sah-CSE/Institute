@@ -15,7 +15,8 @@ import {
   Building,
   Code2,
   LogOut,
-  Database
+  Database,
+  Gamepad2
 } from 'lucide-react';
 
 export function getIcon(name: string, props?: any) {
@@ -40,6 +41,7 @@ export function getIcon(name: string, props?: any) {
     case 'LaTeX': return <FileCode {...iconProps} />;
     case 'Database':
     case 'SQL': return <Database {...iconProps} />;
+    case 'Game': return <Gamepad2 {...iconProps} />;
     default: return <LayoutDashboard {...iconProps} />;
   }
 }
