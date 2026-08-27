@@ -88,7 +88,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
     .select('id, message, created_at, link')
     .eq('user_id', user.id)
     .eq('is_read', false)
-    .like('message', '%posted a new poll in%')
+    .or('message.ilike.%posted a new poll in%,message.ilike.%created a global poll%')
     .order('created_at', { ascending: false });
 
   // Fetch active or upcoming coding battles
