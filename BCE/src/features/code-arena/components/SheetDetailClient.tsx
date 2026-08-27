@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { 
   Trophy, ArrowLeft, BookOpen, CheckCircle2, Circle, 
   ExternalLink, Code2, ArrowRight, Award, Play, Pencil, Users,
-  Lock, Shield, Globe, KeyRound, AlertCircle, Video, FileText, Share2, Check, BarChart2, Search
+  Lock, Shield, Globe, KeyRound, AlertCircle, Video, FileText, Share2, Check, BarChart2, Search, Image
 } from 'lucide-react';
 import MobileCodeArenaToggle from './MobileCodeArenaToggle';
 import Card from '@/components/ui/Card';
@@ -40,6 +40,9 @@ type Sheet = {
   enrollment_access?: string;
   enrollment_passcode?: string;
   problems: Problem[];
+  attachment_url?: string | null;
+  attachment_type?: string | null;
+  youtube_url?: string | null;
 };
 
 type Solver = {
@@ -426,9 +429,66 @@ export default function SheetDetailClient({
           <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 800, margin: '0 0 6px 0' }} className="text-gradient">
             {sheet.title}
           </h2>
-          <p className="text-secondary" style={{ fontSize: 'var(--text-xs)', margin: '0 0 16px 0', maxWidth: '520px' }}>
+          <p className="text-secondary" style={{ fontSize: 'var(--text-xs)', margin: '0 0 12px 0', maxWidth: '520px' }}>
             {sheet.description || 'Practice curated coding questions.'}
           </p>
+
+          {/* Reference Material & Video Explanation Section */}
+          {(sheet.attachment_url || sheet.youtube_url) && (
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
+              {sheet.youtube_url && (
+                <button
+                  type="button"
+                  onClick={() => setActiveVideoProblem({ id: 'sheet-overview-video', title: sheet.title, difficulty: '', source_type: '', order_index: -1, youtube_url: sheet.youtube_url })}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    background: 'rgba(239, 68, 68, 0.12)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    color: '#ef4444',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)'; }}
+                >
+                  <Video size={14} fill="currentColor" style={{ opacity: 0.8 }} /> Watch Explanation Video
+                </button>
+              )}
+
+              {sheet.attachment_url && (
+                <a
+                  href={sheet.attachment_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    background: sheet.attachment_type === 'pdf' ? 'rgba(239,68,68,0.06)' : 'rgba(6,182,212,0.08)',
+                    border: sheet.attachment_type === 'pdf' ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(6,182,212,0.25)',
+                    color: sheet.attachment_type === 'pdf' ? '#f87171' : 'var(--neon-cyan)',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = sheet.attachment_type === 'pdf' ? 'rgba(239,68,68,0.12)' : 'rgba(6,182,212,0.15)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = sheet.attachment_type === 'pdf' ? 'rgba(239,68,68,0.06)' : 'rgba(6,182,212,0.08)'; }}
+                >
+                  {sheet.attachment_type === 'pdf' ? <FileText size={14} /> : <Image size={14} />}
+                  {sheet.attachment_type === 'pdf' ? 'Download Reference PDF' : 'View Reference Image'}
+                </a>
+              )}
+            </div>
+          )}
 
           {/* Community Solver Stats Bar — Visible to Everyone */}
           <div className="sheet-stats-container">
@@ -832,7 +892,7 @@ export default function SheetDetailClient({
       <Modal
         isOpen={activeVideoProblem !== null}
         onClose={() => setActiveVideoProblem(null)}
-        title={`Video Solution: ${activeVideoProblem?.title}`}
+        title={activeVideoProblem?.id === 'sheet-overview-video' ? `Video Explanation: ${activeVideoProblem.title}` : `Video Solution: ${activeVideoProblem?.title}`}
         size="lg"
       >
         {activeVideoProblem?.youtube_url && getYoutubeEmbedUrl(activeVideoProblem.youtube_url) ? (

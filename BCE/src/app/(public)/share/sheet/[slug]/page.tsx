@@ -17,7 +17,7 @@ async function getPublicSheetData(slugOrId: string) {
 
   let query = supabase
     .from('coding_sheets')
-    .select('id, slug, is_public, published_at, title, description, created_at, enrollment_access, created_by, profiles!coding_sheets_created_by_fkey(name, avatar_url, role)');
+    .select('id, slug, is_public, published_at, title, description, created_at, enrollment_access, created_by, attachment_url, attachment_type, youtube_url, profiles!coding_sheets_created_by_fkey(name, avatar_url, role)');
 
   if (isUUID) {
     query = query.eq('id', slugOrId);
@@ -61,6 +61,9 @@ async function getPublicSheetData(slugOrId: string) {
     is_public: sheet.is_public,
     published_at: sheet.published_at,
     enrollment_access: sheet.enrollment_access,
+    attachment_url: sheet.attachment_url,
+    attachment_type: sheet.attachment_type,
+    youtube_url: sheet.youtube_url,
     creator,
     problems,
   };

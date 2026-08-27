@@ -22,7 +22,7 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
   // 1. Fetch sheet details supporting both UUID id and slug parameter
   let query = supabase
     .from('coding_sheets')
-    .select('id, slug, title, description, created_by, created_at, enrollment_access');
+    .select('id, slug, title, description, created_by, created_at, enrollment_access, attachment_url, attachment_type, youtube_url');
 
   if (isUUID) {
     query = query.eq('id', id);

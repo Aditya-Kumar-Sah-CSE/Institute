@@ -33,7 +33,17 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { title, description, problems = [], enrollment_access = 'public', enrollment_passcode = null, is_public = true } = body;
+    const { 
+      title, 
+      description, 
+      problems = [], 
+      enrollment_access = 'public', 
+      enrollment_passcode = null, 
+      is_public = true,
+      attachment_url = null,
+      attachment_type = null,
+      youtube_url = null
+    } = body;
 
     if (!title?.trim()) {
       return NextResponse.json(
@@ -68,6 +78,9 @@ export async function POST(request: Request) {
         created_by: user.id,
         enrollment_access: accessValue,
         enrollment_passcode: accessValue === 'restricted' ? (enrollment_passcode || null) : null,
+        attachment_url: attachment_url || null,
+        attachment_type: attachment_type || null,
+        youtube_url: youtube_url || null,
       })
       .select()
       .single();

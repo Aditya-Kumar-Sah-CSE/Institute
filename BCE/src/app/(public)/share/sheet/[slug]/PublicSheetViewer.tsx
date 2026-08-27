@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { 
   Trophy, BookOpen, Share2, Search, ExternalLink, Play, Video, 
   FileText, Check, Shield, Globe, Lock, ArrowRight, Code2, Sparkles, ChevronRight,
-  UserPlus, CheckCircle2, Loader2
+  UserPlus, CheckCircle2, Loader2, Image
 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
@@ -33,6 +33,9 @@ type PublicSheet = {
   description: string;
   created_at: string;
   enrollment_access?: string;
+  attachment_url?: string | null;
+  attachment_type?: string | null;
+  youtube_url?: string | null;
   creator?: {
     name: string;
     avatar_url?: string | null;
@@ -353,9 +356,66 @@ export default function PublicSheetViewer({
                 {sheet.title}
               </h1>
 
-              <p style={{ fontSize: '14px', color: '#94a3b8', margin: '0 0 20px 0', lineHeight: 1.6, maxWidth: '640px' }}>
+              <p style={{ fontSize: '14px', color: '#94a3b8', margin: '0 0 16px 0', lineHeight: 1.6, maxWidth: '640px' }}>
                 {sheet.description || 'Master key algorithm patterns with this curated practice sheet.'}
               </p>
+
+              {/* Reference Material & Video Explanation Section */}
+              {(sheet.attachment_url || sheet.youtube_url) && (
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '20px' }}>
+                  {sheet.youtube_url && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveVideoProblem({ id: 'sheet-overview-video', title: sheet.title, difficulty: '', source_type: '', order_index: -1, youtube_url: sheet.youtube_url })}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '8px 16px',
+                        borderRadius: '8px',
+                        background: 'rgba(239, 68, 68, 0.12)',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        color: '#ef4444',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)'; }}
+                    >
+                      <Video size={14} fill="currentColor" style={{ opacity: 0.8 }} /> Watch Explanation Video
+                    </button>
+                  )}
+
+                  {sheet.attachment_url && (
+                    <a
+                      href={sheet.attachment_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '8px 16px',
+                        borderRadius: '8px',
+                        background: sheet.attachment_type === 'pdf' ? 'rgba(239,68,68,0.06)' : 'rgba(6,182,212,0.08)',
+                        border: sheet.attachment_type === 'pdf' ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(6,182,212,0.25)',
+                        color: sheet.attachment_type === 'pdf' ? '#f87171' : '#06b6d4',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = sheet.attachment_type === 'pdf' ? 'rgba(239,68,68,0.12)' : 'rgba(6,182,212,0.15)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = sheet.attachment_type === 'pdf' ? 'rgba(239,68,68,0.06)' : 'rgba(6,182,212,0.08)'; }}
+                    >
+                      {sheet.attachment_type === 'pdf' ? <FileText size={14} /> : <Image size={14} />}
+                      {sheet.attachment_type === 'pdf' ? 'Download Reference PDF' : 'View Reference Image'}
+                    </a>
+                  )}
+                </div>
+              )}
 
               {/* Creator Info */}
               {sheet.creator && (
@@ -689,7 +749,7 @@ export default function PublicSheetViewer({
       <Modal
         isOpen={activeVideoProblem !== null}
         onClose={() => setActiveVideoProblem(null)}
-        title={`Video Solution: ${activeVideoProblem?.title}`}
+        title={activeVideoProblem?.id === 'sheet-overview-video' ? `Video Explanation: ${activeVideoProblem.title}` : `Video Solution: ${activeVideoProblem?.title}`}
         size="lg"
       >
         {activeVideoProblem?.youtube_url && getYoutubeEmbedUrl(activeVideoProblem.youtube_url) ? (

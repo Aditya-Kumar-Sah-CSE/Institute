@@ -14,7 +14,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   // Fetch sheet details by ID or slug
   let sheetQuery = supabase
     .from('coding_sheets')
-    .select('id, slug, is_public, published_at, title, description, created_by, created_at, enrollment_access');
+    .select('id, slug, is_public, published_at, title, description, created_by, created_at, enrollment_access, attachment_url, attachment_type, youtube_url');
 
   if (isUUID) {
     sheetQuery = sheetQuery.eq('id', id);
@@ -92,7 +92,20 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     const body = await request.json();
-    const { title, description, problems, enrollment_access, enrollment_passcode, is_public, regenerate_slug, problem_id, youtube_url, text_solution } = body;
+    const { 
+      title, 
+      description, 
+      problems, 
+      enrollment_access, 
+      enrollment_passcode, 
+      is_public, 
+      regenerate_slug, 
+      problem_id, 
+      youtube_url, 
+      text_solution,
+      attachment_url,
+      attachment_type
+    } = body;
 
     // Handle single problem's YT video and text solution update
     if (problem_id !== undefined) {
@@ -123,6 +136,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     if (description !== undefined) updates.description = description || null;
+    
+    if (youtube_url !== undefined && problem_id === undefined) {
+      updates.youtube_url = youtube_url ? youtube_url.trim() : null;
+    }
+    if (attachment_url !== undefined) {
+      updates.attachment_url = attachment_url || null;
+    }
+    if (attachment_type !== undefined) {
+      updates.attachment_type = attachment_type || null;
+    }
     
     if (is_public !== undefined) {
       const isPublicBool = Boolean(is_public);

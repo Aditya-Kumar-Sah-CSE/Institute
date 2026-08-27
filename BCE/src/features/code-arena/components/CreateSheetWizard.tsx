@@ -21,7 +21,13 @@ import {
   Shield,
   Share2,
   Check,
+  UploadCloud,
+  FileText,
+  Image,
+  Video,
 } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import { uploadFiles, deleteUploadedFiles } from '@/lib/attachments';
 
 type ImportedProblem = {
   id: string;
@@ -54,6 +60,74 @@ export default function CreateSheetWizard({
   // Step 1: Basic Info
   const [title, setTitle] = useState(initialSheet?.title || 'Recursion & Backtracking');
   const [description, setDescription] = useState(initialSheet?.description || 'Curated problem sheet for fundamental DSA patterns.');
+  const [attachmentUrl, setAttachmentUrl] = useState<string | null>(initialSheet?.attachment_url || null);
+  const [attachmentType, setAttachmentType] = useState<string | null>(initialSheet?.attachment_type || null);
+  const [youtubeUrl, setYoutubeUrl] = useState<string>(initialSheet?.youtube_url || '');
+
+  // File uploading states
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const file = files[0];
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setUploadError('File exceeds 5MB limit.');
+      return;
+    }
+
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      setUploadError('Only PDF and image files (JPG, PNG, WEBP, GIF) are allowed.');
+      return;
+    }
+
+    setUploadError(null);
+    setIsUploading(true);
+
+    try {
+      const supabase = createClient();
+      const { urls, errors } = await uploadFiles({
+        files: [file],
+        supabase,
+        bucketName: 'attachments',
+        ensureBucket: true,
+      });
+
+      if (errors.length > 0) {
+        setUploadError(errors[0]);
+      } else if (urls.length > 0) {
+        setAttachmentUrl(urls[0]);
+        setAttachmentType(file.type === 'application/pdf' ? 'pdf' : 'image');
+      }
+    } catch (err: any) {
+      setUploadError(err.message || 'File upload failed.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemoveAttachment = async () => {
+    if (!attachmentUrl) return;
+    const url = attachmentUrl;
+    setAttachmentUrl(null);
+    setAttachmentType(null);
+    setUploadError(null);
+
+    try {
+      const supabase = createClient();
+      await deleteUploadedFiles({
+        urls: [url],
+        supabase,
+        bucketName: 'attachments',
+      });
+    } catch (err) {
+      console.error('Failed to delete attachment:', err);
+    }
+  };
 
   // Enrollment Access
   const [enrollmentAccess, setEnrollmentAccess] = useState<'public' | 'restricted' | 'private'>(initialSheet?.enrollment_access || 'public');
@@ -211,6 +285,9 @@ export default function CreateSheetWizard({
           problems: addedProblems.map((p) => p.id),
           enrollment_access: enrollmentAccess,
           enrollment_passcode: enrollmentAccess === 'restricted' ? enrollmentPasscode.trim() : null,
+          attachment_url: attachmentUrl,
+          attachment_type: attachmentType,
+          youtube_url: youtubeUrl.trim() || null,
         }),
       });
 
@@ -328,6 +405,107 @@ export default function CreateSheetWizard({
                   placeholder="e.g. Learn fundamental recursion concepts and build backtracking logic."
                   onChange={(e) => setDescription(e.target.value)}
                 />
+              </div>
+
+              {/* Attachment Upload and YouTube link fields */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '16px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-sm)' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600, marginBottom: '6px' }}>Reference Material (PDF or Image)</label>
+                  {!attachmentUrl ? (
+                    <div
+                      style={{
+                        border: '1.5px dashed var(--glass-border)',
+                        borderRadius: 'var(--radius-sm)',
+                        padding: '16px',
+                        textAlign: 'center',
+                        background: 'rgba(255,255,255,0.005)',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--neon-cyan)';
+                        e.currentTarget.style.background = 'rgba(6,182,212,0.02)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--glass-border)';
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.005)';
+                      }}
+                      onClick={() => document.getElementById('wizard-file-upload')?.click()}
+                    >
+                      <input
+                        type="file"
+                        id="wizard-file-upload"
+                        accept="application/pdf,image/*"
+                        style={{ display: 'none' }}
+                        onChange={handleFileUpload}
+                        disabled={isUploading}
+                      />
+                      {isUploading ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                          <Loader2 className="animate-spin" size={20} style={{ color: 'var(--neon-cyan)' }} />
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Uploading...</span>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                          <UploadCloud size={20} style={{ color: 'var(--text-muted)' }} />
+                          <div style={{ fontSize: '12px', fontWeight: 600 }}>Click to upload file</div>
+                          <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>PDF or Image up to 5MB</div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-card)', border: '1px solid rgba(6,182,212,0.3)', borderRadius: 'var(--radius-sm)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '6px', background: attachmentType === 'pdf' ? 'rgba(239,68,68,0.1)' : 'rgba(6,182,212,0.1)', display: 'grid', placeItems: 'center', color: attachmentType === 'pdf' ? '#ef4444' : 'var(--neon-cyan)', flexShrink: 0 }}>
+                          {attachmentType === 'pdf' ? <FileText size={18} /> : <Image size={18} />}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-main)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                            {attachmentUrl.split('/').pop()?.substring(37) || 'Attached File'}
+                          </div>
+                          <a href={attachmentUrl} target="_blank" rel="noreferrer" style={{ fontSize: '10px', color: 'var(--neon-cyan)', textDecoration: 'none', fontWeight: 600 }}>View File</a>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemoveAttachment}
+                        style={{ background: 'transparent', border: 'none', color: 'rgba(239,68,68,0.8)', cursor: 'pointer', padding: '4px', borderRadius: '4px' }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239,68,68,0.1)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  )}
+                  {uploadError && (
+                    <div style={{ fontSize: '11px', color: '#f87171', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <AlertTriangle size={12} /> {uploadError}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600, marginBottom: '6px' }}>YouTube Explanation URL</label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <Video size={16} style={{ position: 'absolute', left: '12px', color: '#ef4444' }} />
+                    <input
+                      type="text"
+                      placeholder="e.g. https://www.youtube.com/watch?v=..."
+                      value={youtubeUrl}
+                      onChange={(e) => setYoutubeUrl(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px 10px 36px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--glass-border)',
+                        color: 'var(--text-main)',
+                        fontSize: 'var(--text-sm)',
+                        outline: 'none',
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Enrollment Access Setting */}
