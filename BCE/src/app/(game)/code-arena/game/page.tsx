@@ -13,17 +13,15 @@ import {
   LayoutDashboard, 
   Trophy, 
   Sparkles, 
-  Maximize2, 
-  Minimize2,
   Lock,
   Star,
   CheckCircle2,
   AlertTriangle,
-  Award,
   Zap,
   ArrowLeft,
   Flame,
-  Gamepad2
+  Gamepad2,
+  Download
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -55,15 +53,17 @@ const LEVELS: GameLevel[] = [
   { id: 10, title: 'Smart Learn Champion', difficulty: 'Legend', ballSpeed: 11.0, paddleWidth: 100, rows: 7, cols: 12, lives: 2, xpReward: 150, targetScore: 15000, brickColors: ['#3b82f6', '#a855f7', '#ef4444', '#f59e0b', '#10b981', '#ec4899', '#06b6d4'] },
 ];
 
-// --- VIRTUAL GAME COORDINATE SYSTEM ---
+// --- VIRTUAL GAME RESOLUTION ---
 const GAME_WIDTH = 1280;
 const GAME_HEIGHT = 720;
-const PADDLE_HEIGHT = 20;
+const PADDLE_HEIGHT = 22;
 const BALL_RADIUS = 10;
 const BRICK_PADDING = 12;
 const BRICK_TOP_OFFSET = 90;
-const BRICK_HEIGHT = 32;
+const BRICK_HEIGHT = 34;
+
 const MAX_PARTICLES = 80;
+const MAX_FRAGMENTS = 100;
 
 type GameScreen = 'LOBBY' | 'PREVIEW' | 'PLAYING' | 'PAUSED' | 'GAME_OVER' | 'VICTORY';
 type PowerUpType = 'WIDE_PADDLE' | 'MULTI_BALL' | 'FIRE_BALL' | 'EXTRA_LIFE' | 'SLOW_MOTION' | 'SCORE_BOOST';
@@ -79,6 +79,12 @@ interface Brick {
   isSpecial: boolean;
   scoreValue: number;
   destroyed: boolean;
+  hitFlashTime: number; // impact flash timer in frames
+}
+
+interface BallTrail {
+  x: number;
+  y: number;
 }
 
 interface Ball {
@@ -88,6 +94,7 @@ interface Ball {
   vy: number;
   speed: number;
   active: boolean;
+  trail: BallTrail[];
 }
 
 interface PowerUp {
@@ -105,6 +112,19 @@ interface Particle {
   y: number;
   vx: number;
   vy: number;
+  size: number;
+  color: string;
+  alpha: number;
+  decay: number;
+}
+
+interface BrickFragment {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  rotation: number;
+  rotVelocity: number;
   size: number;
   color: string;
   alpha: number;
@@ -137,11 +157,11 @@ export default function GamePage() {
   const [lives, setLives] = useState<number>(3);
   const [activePowerUp, setActivePowerUp] = useState<PowerUpType | null>(null);
   
-  // Settings & Responsive Orientation
+  // Settings, Installation, & Responsive Orientation
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [musicEnabled, setMusicEnabled] = useState<boolean>(true);
-  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [showRotationOverlay, setShowRotationOverlay] = useState<boolean>(false);
+  const [pwaInstallSupported, setPwaInstallSupported] = useState<boolean>(false);
   
   // FPS Monitor
   const [fps, setFps] = useState<number>(60);
@@ -173,6 +193,7 @@ export default function GamePage() {
   const bricksRef = useRef<Brick[]>([]);
   const powerUpsRef = useRef<PowerUp[]>([]);
   const particlesRef = useRef<Particle[]>([]);
+  const fragmentsRef = useRef<BrickFragment[]>([]);
   const floatTextsRef = useRef<FloatingText[]>([]);
   const shakeTimerRef = useRef<number>(0);
   const comboRef = useRef<number>(0);
@@ -204,7 +225,7 @@ export default function GamePage() {
 
     const now = ctx.currentTime;
     const masterGain = ctx.createGain();
-    masterGain.gain.setValueAtTime(0.25, now);
+    masterGain.gain.setValueAtTime(0.2, now);
     masterGain.connect(ctx.destination);
 
     if (type === 'bounce') {
@@ -286,6 +307,49 @@ export default function GamePage() {
     }
   }, [soundEnabled, initAudio]);
 
+  // Synthwave BGM loop
+  useEffect(() => {
+    if (!musicEnabled || screen !== 'PLAYING') {
+      if (bgmTimerRef.current) clearInterval(bgmTimerRef.current);
+      return;
+    }
+
+    const bassNotes = [110, 110, 130.81, 146.83, 110, 110, 98, 87.31];
+    bgmStepRef.current = 0;
+
+    bgmTimerRef.current = setInterval(() => {
+      const ctx = initAudio();
+      if (!ctx || ctx.state !== 'running') return;
+
+      const now = ctx.currentTime;
+      const freq = bassNotes[bgmStepRef.current % bassNotes.length];
+      bgmStepRef.current++;
+
+      const osc = ctx.createOscillator();
+      const filter = ctx.createBiquadFilter();
+      const gain = ctx.createGain();
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, now);
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(350, now);
+      filter.frequency.exponentialRampToValueAtTime(120, now + 0.18);
+      gain.gain.setValueAtTime(0.06, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.18);
+    }, 180);
+
+    return () => {
+      if (bgmTimerRef.current) clearInterval(bgmTimerRef.current);
+    };
+  }, [musicEnabled, screen, initAudio]);
+
   // Haptic feedback API
   const triggerHaptic = (duration: number) => {
     if (typeof window !== 'undefined' && navigator.vibrate) {
@@ -324,10 +388,22 @@ export default function GamePage() {
     }
   };
 
+  // Detect PWA Installation prompt support
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      setPwaInstallSupported(true);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const triggerPwaInstall = () => {
+    window.dispatchEvent(new CustomEvent('show-pwa-install'));
+  };
+
   // Safe area window sizes listener
   useEffect(() => {
     const handleResize = () => {
-      // Check if we should prompt for rotation
       if (typeof window !== 'undefined') {
         const isPortrait = window.innerHeight > window.innerWidth;
         const isMobile = window.innerWidth <= 768 || window.innerHeight <= 768;
@@ -374,7 +450,7 @@ export default function GamePage() {
     };
   }, [screen]);
 
-  // Load progress
+  // Load stats
   useEffect(() => {
     try {
       const savedStats = localStorage.getItem('smartlearn_breaker_stats');
@@ -389,7 +465,7 @@ export default function GamePage() {
     } catch {}
   };
 
-  // Initialize Bricks
+  // Initialize Bricks matching visual materials configurations
   const initLevelBricks = useCallback((level: GameLevel) => {
     const bricks: Brick[] = [];
     const cols = level.cols;
@@ -397,13 +473,34 @@ export default function GamePage() {
     const totalPaddingX = BRICK_PADDING * (cols + 1);
     const brickWidth = (GAME_WIDTH - totalPaddingX) / cols;
 
+    const materials = [
+      { color: '#ef4444', durability: 3, score: 300, label: 'Red Brick (Strong)' },
+      { color: '#a855f7', durability: 2, score: 200, label: 'Purple Brick (High-value)' },
+      { color: '#3b82f6', durability: 1, score: 100, label: 'Blue Brick (Normal)' },
+      { color: '#06b6d4', durability: 1, score: 150, label: 'Cyan Brick (Bonus)' },
+      { color: '#eab308', durability: 1, score: 500, label: 'Gold Brick (Reward)' }
+    ];
+
     for (let r = 0; r < rows; r++) {
-      const color = level.brickColors[r % level.brickColors.length];
+      // Top rows get stronger bricks
+      let mat = materials[2]; // Blue (default)
+      if (r === 0) {
+        mat = materials[0]; // Red
+      } else if (r === 1) {
+        mat = materials[1]; // Purple
+      } else if (r === 2 && cols > 6) {
+        mat = Math.random() > 0.5 ? materials[3] : materials[4]; // Cyan or Gold
+      }
+
       for (let c = 0; c < cols; c++) {
-        const isSpecial = r === 0 && (c === Math.floor(cols / 2) || c === Math.floor(cols / 2) - 1);
-        const durability = level.difficulty === 'Expert' || level.difficulty === 'Master' || level.difficulty === 'Legend' 
-          ? (r < 2 ? 2 : 1) 
-          : 1;
+        // Random unbreakable slate bricks in hard levels
+        const isDarkUnbreakable = (level.difficulty === 'Expert' || level.difficulty === 'Master' || level.difficulty === 'Legend') &&
+                                   r === 0 && (c === 2 || c === cols - 3);
+
+        const color = isDarkUnbreakable ? '#334155' : mat.color;
+        const durability = isDarkUnbreakable ? 999 : mat.durability;
+        const maxDurability = isDarkUnbreakable ? 999 : mat.durability;
+        const isSpecial = !isDarkUnbreakable && mat.color === '#eab308';
 
         bricks.push({
           x: BRICK_PADDING + c * (brickWidth + BRICK_PADDING),
@@ -412,10 +509,11 @@ export default function GamePage() {
           height: BRICK_HEIGHT,
           color,
           durability,
-          maxDurability: durability,
+          maxDurability,
           isSpecial,
-          scoreValue: isSpecial ? 300 : durability * 100,
-          destroyed: false
+          scoreValue: isSpecial ? 500 : mat.score,
+          destroyed: false,
+          hitFlashTime: 0
         });
       }
     }
@@ -430,7 +528,7 @@ export default function GamePage() {
   const startGame = () => {
     initLevelBricks(activeLevel);
     
-    // Virtual coordinates: center of 1280
+    // Set paddle virtual coordinates
     paddleRef.current = {
       x: (GAME_WIDTH - activeLevel.paddleWidth) / 2,
       targetX: (GAME_WIDTH - activeLevel.paddleWidth) / 2,
@@ -439,19 +537,22 @@ export default function GamePage() {
       speed: 12.0
     };
     
+    // Set ball coordinates and clear trail
     ballsRef.current = [
       {
         x: GAME_WIDTH / 2,
-        y: GAME_HEIGHT - 45,
+        y: GAME_HEIGHT - 55,
         vx: (Math.random() > 0.5 ? 1 : -1) * activeLevel.ballSpeed,
         vy: -activeLevel.ballSpeed,
         speed: activeLevel.ballSpeed,
-        active: true
+        active: true,
+        trail: []
       }
     ];
 
     powerUpsRef.current = [];
     particlesRef.current = [];
+    fragmentsRef.current = [];
     floatTextsRef.current = [];
     comboRef.current = 0;
     
@@ -465,7 +566,6 @@ export default function GamePage() {
     
     if (powerupTimerRef.current) clearInterval(powerupTimerRef.current);
 
-    // Apply orientation locking request on mobile play
     requestFullscreenAndLandscape();
     
     setScreen('PLAYING');
@@ -474,23 +574,60 @@ export default function GamePage() {
 
   const triggerBurst = (x: number, y: number, color: string, count = 12) => {
     const list = particlesRef.current;
-    // Cap particle size to prevent memory leaks
     if (list.length > MAX_PARTICLES) {
       list.splice(0, count);
     }
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = Math.random() * 5 + 2;
+      const speed = Math.random() * 4 + 2;
       list.push({
         x,
         y,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
-        size: Math.random() * 4 + 2,
+        size: Math.random() * 3 + 2,
         color,
         alpha: 1.0,
-        decay: Math.random() * 0.025 + 0.018
+        decay: Math.random() * 0.02 + 0.015
       });
+    }
+  };
+
+  // Fragment burst splits brick physically
+  const triggerFragments = (bx: number, by: number, bw: number, bh: number, color: string) => {
+    const list = fragmentsRef.current;
+    const rows = 2;
+    const cols = 4;
+    const fragW = bw / cols;
+    const fragH = bh / rows;
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        if (list.length >= MAX_FRAGMENTS) {
+          list.shift(); // Evict oldest to keep FPS high
+        }
+
+        const fx = bx + c * fragW + fragW / 2;
+        const fy = by + r * fragH + fragH / 2;
+
+        const centerX = bx + bw / 2;
+        const centerY = by + bh / 2;
+        const angle = Math.atan2(fy - centerY, fx - centerX) + (Math.random() - 0.5) * 0.4;
+        const speed = Math.random() * 4 + 3;
+
+        list.push({
+          x: fx,
+          y: fy,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - (Math.random() * 2 + 2), // initial vertical pop
+          rotation: Math.random() * Math.PI * 2,
+          rotVelocity: (Math.random() - 0.5) * 0.25,
+          size: Math.random() * 4 + 5,
+          color,
+          alpha: 1.0,
+          decay: Math.random() * 0.015 + 0.012
+        });
+      }
     }
   };
 
@@ -521,10 +658,10 @@ export default function GamePage() {
       powerUpsRef.current.push({
         x,
         y,
-        vy: 3.5, // Virtual coordinate falling speed
+        vy: 3.5, 
         type: chosen,
-        width: 28,
-        height: 28,
+        width: 32,
+        height: 32,
         color: colors[chosen]
       });
     }
@@ -535,7 +672,7 @@ export default function GamePage() {
     triggerHaptic(60);
     setActivePowerUp(type);
     
-    spawnFloatText(type.replace('_', ' '), paddleRef.current.x + paddleRef.current.width / 2, GAME_HEIGHT - 65, '#3b82f6');
+    spawnFloatText(type.replace('_', ' '), paddleRef.current.x + paddleRef.current.width / 2, GAME_HEIGHT - 75, '#3b82f6');
 
     if (type === 'EXTRA_LIFE') {
       setLives(prev => Math.min(6, prev + 1));
@@ -570,8 +707,8 @@ export default function GamePage() {
       if (active.length > 0) {
         const base = active[0];
         const newBalls = [
-          { x: base.x, y: base.y, vx: base.vx * 0.9 + 2, vy: base.vy * 0.9, speed: base.speed, active: true },
-          { x: base.x, y: base.y, vx: base.vx * 0.9 - 2, vy: base.vy * 0.9, speed: base.speed, active: true }
+          { x: base.x, y: base.y, vx: base.vx * 0.9 + 2, vy: base.vy * 0.9, speed: base.speed, active: true, trail: [] },
+          { x: base.x, y: base.y, vx: base.vx * 0.9 - 2, vy: base.vy * 0.9, speed: base.speed, active: true, trail: [] }
         ];
         ballsRef.current.push(...newBalls);
       }
@@ -613,16 +750,105 @@ export default function GamePage() {
     };
   }, [screen]);
 
-  // Pointer position mapper with virtual game scaling coordinates calculation
+  // Pointer position mapper
   const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current || screen !== 'PLAYING') return;
     const rect = canvasRef.current.getBoundingClientRect();
     const relativeX = e.clientX - rect.left;
     
-    // Scale pointer to virtual 1280 scale coordinates
     const canvasX = (relativeX * GAME_WIDTH) / rect.width;
     const newTarget = canvasX - paddleRef.current.width / 2;
     paddleRef.current.targetX = Math.max(0, Math.min(GAME_WIDTH - paddleRef.current.width, newTarget));
+  };
+
+  // Draw 3D Brick bevel borders
+  const drawBrick3D = (ctx: CanvasRenderingContext2D, b: Brick) => {
+    const x = b.x;
+    const y = b.y;
+    const w = b.width;
+    const h = b.height;
+    
+    // Draw brick shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillRect(x + 5, y + 5, w, h);
+
+    // Draw base face
+    ctx.fillStyle = b.color;
+    ctx.fillRect(x, y, w, h);
+
+    // If hit flash is active
+    if (b.hitFlashTime > 0) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.fillRect(x, y, w, h);
+      return;
+    }
+
+    // Top Bevel Highlight (Light source top-left)
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.28)';
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + w, y);
+    ctx.lineTo(x + w - 4, y + 4);
+    ctx.lineTo(x + 4, y + 4);
+    ctx.closePath();
+    ctx.fill();
+
+    // Left Bevel Highlight
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + 4, y + 4);
+    ctx.lineTo(x + 4, y + h - 4);
+    ctx.lineTo(x, y + h);
+    ctx.closePath();
+    ctx.fill();
+
+    // Bottom Bevel Shading (Dark shadow)
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.38)';
+    ctx.beginPath();
+    ctx.moveTo(x, y + h);
+    ctx.lineTo(x + 4, y + h - 4);
+    ctx.lineTo(x + w - 4, y + h - 4);
+    ctx.lineTo(x + w, y + h);
+    ctx.closePath();
+    ctx.fill();
+
+    // Right Bevel Shading
+    ctx.beginPath();
+    ctx.moveTo(x + w, y);
+    ctx.lineTo(x + w, y + h);
+    ctx.lineTo(x + w - 4, y + h - 4);
+    ctx.lineTo(x + w - 4, y + 4);
+    ctx.closePath();
+    ctx.fill();
+
+    // Inner highlight border
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x + 4, y + 4, w - 8, h - 8);
+
+    // Render cracks based on durability damage ratio
+    if (b.durability < b.maxDurability && b.maxDurability > 1) {
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
+      ctx.lineWidth = 2.0;
+      ctx.beginPath();
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+
+      // Crack lines branching from center
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(x + w * 0.25, y + h * 0.2);
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(x + w * 0.75, y + h * 0.85);
+
+      if (b.durability === 1 && b.maxDurability === 3) {
+        // Additional extensive cracking
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(x + w * 0.8, y + h * 0.15);
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(x + w * 0.15, y + h * 0.75);
+      }
+      ctx.stroke();
+    }
   };
 
   // Main Canvas Render & Physics Loops
@@ -646,7 +872,7 @@ export default function GamePage() {
       const delta = Math.min((timestamp - previousTimestamp) / 16.666, 2.0); // Capped frame delta
       previousTimestamp = timestamp;
 
-      // FPS Monitor
+      // FPS calculation
       frameCountRef.current++;
       if (timestamp - lastFpsTimeRef.current >= 1000) {
         setFps(frameCountRef.current);
@@ -654,7 +880,7 @@ export default function GamePage() {
         lastFpsTimeRef.current = timestamp;
       }
 
-      // 1. Setup Canvas Transform using DPR & Viewport Scale
+      // Setup clean high-DPI scaling Matrix
       ctx.save();
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -662,11 +888,9 @@ export default function GamePage() {
       const canvasRect = canvas.getBoundingClientRect();
       const w = canvasRect.width;
       const h = canvasRect.height;
-      
-      // Auto-scale all coordinates drawn into virtual 1280x720 coordinates
       ctx.scale(w / GAME_WIDTH, h / GAME_HEIGHT);
 
-      // Screen shake translation
+      // Camera Shake
       if (shakeTimerRef.current > 0) {
         shakeTimerRef.current--;
         const shakeX = (Math.random() - 0.5) * 8;
@@ -674,11 +898,12 @@ export default function GamePage() {
         ctx.translate(shakeX, shakeY);
       }
 
-      // 2. Clear background grid
+      // Background Slate color
       ctx.fillStyle = '#060913';
       ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-      ctx.strokeStyle = 'rgba(6, 182, 212, 0.025)';
+      // Draw cyber Grid lines
+      ctx.strokeStyle = 'rgba(6, 182, 212, 0.02)';
       ctx.lineWidth = 1;
       for (let x = 0; x < GAME_WIDTH; x += 60) {
         ctx.beginPath();
@@ -693,7 +918,7 @@ export default function GamePage() {
         ctx.stroke();
       }
 
-      // 3. Move Paddle
+      // Move Paddle
       const pad = paddleRef.current;
       if (keysRef.current.left) {
         pad.targetX = Math.max(0, pad.targetX - pad.speed * delta);
@@ -703,9 +928,9 @@ export default function GamePage() {
       }
       
       pad.width += (pad.targetWidth - pad.width) * 0.1 * delta;
-      pad.x += (pad.targetX - pad.x) * 0.22 * delta; // lerp paddle
+      pad.x += (pad.targetX - pad.x) * 0.22 * delta; 
 
-      // 4. Update Balls
+      // Update Balls & Trails
       const balls = ballsRef.current;
       let activeBallCount = 0;
 
@@ -713,10 +938,16 @@ export default function GamePage() {
         if (!ball.active) return;
         activeBallCount++;
 
+        // Add coordinate to trail history
+        ball.trail.push({ x: ball.x, y: ball.y });
+        if (ball.trail.length > 8) {
+          ball.trail.shift();
+        }
+
         ball.x += ball.vx * delta;
         ball.y += ball.vy * delta;
 
-        // Collision: Left/Right boundaries
+        // Collision: Left/Right walls
         if (ball.x - BALL_RADIUS <= 0) {
           ball.x = BALL_RADIUS;
           ball.vx = Math.abs(ball.vx);
@@ -766,7 +997,7 @@ export default function GamePage() {
 
         bricks.forEach(b => {
           if (b.destroyed) return;
-          activeBricksLeft++;
+          if (b.durability !== 999) activeBricksLeft++;
 
           const closestX = Math.max(b.x, Math.min(ball.x, b.x + b.width));
           const closestY = Math.max(b.y, Math.min(ball.y, b.y + b.height));
@@ -775,36 +1006,49 @@ export default function GamePage() {
           const dist = Math.sqrt(distX * distX + distY * distY);
 
           if (dist < BALL_RADIUS) {
-            if (isFireballRef.current) {
-              b.durability = 0;
-            } else {
-              b.durability--;
-            }
+            // Apply impact flash timer
+            b.hitFlashTime = 4; // Flash for 4 frames (around 66ms)
 
-            if (b.durability <= 0) {
-              b.destroyed = true;
-              triggerBurst(b.x + b.width / 2, b.y + b.height / 2, b.color, b.isSpecial ? 24 : 12);
-              maybeSpawnPowerUp(b.x + b.width / 2, b.y + b.height / 2);
-              
-              comboRef.current++;
-              setCombo(comboRef.current);
-              setMaxCombo(prev => Math.max(prev, comboRef.current));
-
-              const multiplier = isScoreBoostRef.current ? 2 : 1;
-              const comboBonus = Math.floor(comboRef.current / 3) * 50;
-              const points = (b.scoreValue + comboBonus) * multiplier;
-              
-              setScore(prev => prev + points);
-              spawnFloatText(`+${points}`, b.x + b.width / 2, b.y, b.color);
-              
-              if (b.isSpecial) {
-                shakeTimerRef.current = 14;
-                playSound('victory');
+            if (b.durability !== 999) {
+              if (isFireballRef.current) {
+                b.durability = 0;
               } else {
-                playSound('brick');
+                b.durability--;
+              }
+
+              if (b.durability <= 0) {
+                b.destroyed = true;
+                
+                // Realistic physical fragments split
+                triggerFragments(b.x, b.y, b.width, b.height, b.color);
+                triggerBurst(b.x + b.width / 2, b.y + b.height / 2, b.color, 12);
+                maybeSpawnPowerUp(b.x + b.width / 2, b.y + b.height / 2);
+                
+                comboRef.current++;
+                setCombo(comboRef.current);
+                setMaxCombo(prev => Math.max(prev, comboRef.current));
+
+                const multiplier = isScoreBoostRef.current ? 2 : 1;
+                const comboBonus = Math.floor(comboRef.current / 3) * 50;
+                const points = (b.scoreValue + comboBonus) * multiplier;
+                
+                setScore(prev => prev + points);
+                spawnFloatText(`+${points}`, b.x + b.width / 2, b.y, b.color);
+                
+                // Screen shake on red or gold brick destruction
+                if (b.maxDurability >= 3 || b.isSpecial) {
+                  shakeTimerRef.current = 14;
+                  playSound('victory');
+                } else {
+                  playSound('brick');
+                }
+              } else {
+                triggerBurst(ball.x, ball.y, b.color, 5);
+                playSound('bounce');
               }
             } else {
-              triggerBurst(ball.x, ball.y, b.color, 4);
+              // Unbreakable slate brick hit response
+              triggerBurst(ball.x, ball.y, '#94a3b8', 6);
               playSound('bounce');
             }
 
@@ -818,13 +1062,13 @@ export default function GamePage() {
           }
         });
 
-        // Check victory condition
+        // Check level victory
         if (activeBricksLeft === 0) {
           handleVictory();
         }
       });
 
-      // Handle lost balls
+      // Handle ball lives checks
       if (activeBallCount === 0) {
         comboRef.current = 0;
         setCombo(0);
@@ -835,15 +1079,15 @@ export default function GamePage() {
           if (next <= 0) {
             handleGameOver();
           } else {
-            // Respawn ball
             ballsRef.current = [
               {
                 x: GAME_WIDTH / 2,
-                y: GAME_HEIGHT - 45,
+                y: GAME_HEIGHT - 55,
                 vx: (Math.random() > 0.5 ? 1 : -1) * activeLevel.ballSpeed,
                 vy: -activeLevel.ballSpeed,
                 speed: activeLevel.ballSpeed,
-                active: true
+                active: true,
+                trail: []
               }
             ];
             setActivePowerUp(null);
@@ -855,12 +1099,12 @@ export default function GamePage() {
         });
       }
 
-      // 5. Update Power-ups
+      // Update Power-ups
       const powerUps = powerUpsRef.current;
       powerUps.forEach((pu, idx) => {
         pu.y += pu.vy * delta;
 
-        // Check collection
+        // Collect powerup
         if (
           pu.y + pu.height >= GAME_HEIGHT - PADDLE_HEIGHT - 8 &&
           pu.y <= GAME_HEIGHT - 8 &&
@@ -877,7 +1121,7 @@ export default function GamePage() {
         }
       });
 
-      // 6. Update Particles
+      // Update Particles
       const particles = particlesRef.current;
       particles.forEach((p, idx) => {
         p.x += p.vx * delta;
@@ -888,17 +1132,30 @@ export default function GamePage() {
         }
       });
 
-      // 7. Update Float Texts
+      // Update Debris physical fragments with gravity
+      const fragments = fragmentsRef.current;
+      fragments.forEach((f, idx) => {
+        f.vy += 0.25 * delta; // Gravity physics
+        f.x += f.vx * delta;
+        f.y += f.vy * delta;
+        f.rotation += f.rotVelocity * delta;
+        f.alpha -= f.decay * delta;
+        if (f.alpha <= 0) {
+          fragments.splice(idx, 1);
+        }
+      });
+
+      // Update Float text popups
       const fTexts = floatTextsRef.current;
       fTexts.forEach((ft, idx) => {
         ft.y -= 1.0 * delta;
-        ft.alpha -= 0.02 * delta;
+        ft.alpha -= 0.025 * delta;
         if (ft.alpha <= 0) {
           fTexts.splice(idx, 1);
         }
       });
 
-      // --- DRAW OBJECTS TO CANVAS ---
+      // --- RENDERING CANVAS DRAW CALLS ---
       // Draw Paddle
       ctx.shadowColor = activePowerUp ? '#a855f7' : '#06b6d4';
       ctx.shadowBlur = 12;
@@ -907,26 +1164,30 @@ export default function GamePage() {
       ctx.roundRect(pad.x, GAME_HEIGHT - PADDLE_HEIGHT - 8, pad.width, PADDLE_HEIGHT, 8);
       ctx.fill();
 
-      // Draw Bricks (disable heavy calculations for fast drawing)
+      // Draw Bricks 3D
       bricksRef.current.forEach(b => {
         if (b.destroyed) return;
-        ctx.shadowBlur = b.isSpecial ? 16 : 0;
-        ctx.shadowColor = b.color;
-        ctx.fillStyle = b.color;
-        ctx.beginPath();
-        ctx.roundRect(b.x, b.y, b.width, b.height, 6);
-        ctx.fill();
-
-        if (b.durability > 1) {
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-          ctx.lineWidth = 2;
-          ctx.stroke();
+        if (b.hitFlashTime > 0) {
+          b.hitFlashTime--;
         }
+        drawBrick3D(ctx, b);
       });
 
-      // Draw Balls
+      // Draw Ball trails and core sphere
       balls.forEach(ball => {
         if (!ball.active) return;
+        
+        // Draw trailing buffer shadow paths
+        ball.trail.forEach((t, i) => {
+          const trailAlpha = (i / ball.trail.length) * 0.22;
+          ctx.fillStyle = isFireballRef.current ? `rgba(249, 115, 22, ${trailAlpha})` : `rgba(255, 255, 255, ${trailAlpha})`;
+          ctx.shadowBlur = 0;
+          ctx.beginPath();
+          ctx.arc(t.x, t.y, BALL_RADIUS * 0.8, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        // Core sphere
         ctx.fillStyle = isFireballRef.current ? '#f97316' : '#ffffff';
         ctx.shadowColor = isFireballRef.current ? '#f97316' : '#00f0ff';
         ctx.shadowBlur = 16;
@@ -935,7 +1196,7 @@ export default function GamePage() {
         ctx.fill();
       });
 
-      // Draw Power-ups
+      // Draw falling Power-ups
       ctx.shadowBlur = 8;
       powerUps.forEach(pu => {
         ctx.fillStyle = pu.color;
@@ -944,15 +1205,27 @@ export default function GamePage() {
         ctx.arc(pu.x + pu.width / 2, pu.y + pu.height / 2, pu.width / 2, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 12px sans-serif';
+        ctx.fillStyle = '#000000';
+        ctx.font = 'bold 13px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(pu.type[0], pu.x + pu.width / 2, pu.y + pu.height / 2);
       });
 
-      // Draw Particles
+      // Draw debris physical fragments with rotation
       ctx.shadowBlur = 0;
+      fragments.forEach(f => {
+        ctx.save();
+        ctx.globalAlpha = f.alpha;
+        ctx.fillStyle = f.color;
+        ctx.translate(f.x, f.y);
+        ctx.rotate(f.rotation);
+        // Draw rotated square debris
+        ctx.fillRect(-f.size / 2, -f.size / 2, f.size, f.size);
+        ctx.restore();
+      });
+
+      // Draw burst particles
       particles.forEach(p => {
         ctx.save();
         ctx.globalAlpha = p.alpha;
@@ -963,7 +1236,7 @@ export default function GamePage() {
         ctx.restore();
       });
 
-      // Draw Float Texts
+      // Draw floating score text pops
       fTexts.forEach(ft => {
         ctx.save();
         ctx.globalAlpha = ft.alpha;
@@ -973,7 +1246,7 @@ export default function GamePage() {
         ctx.restore();
       });
 
-      ctx.restore(); // Screen shake end
+      ctx.restore(); // Camera shake translate restore
       animationIdRef.current = requestAnimationFrame(gameLoop);
     };
 
@@ -1092,9 +1365,20 @@ export default function GamePage() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.25)', padding: '6px 14px', borderRadius: '14px' }}>
-            <Zap size={14} color="#a855f7" fill="#a855f7" />
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#c084fc' }}>{stats.totalXP} Arcade XP</span>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {pwaInstallSupported && (
+              <button 
+                onClick={triggerPwaInstall}
+                style={{ background: 'rgba(6, 182, 212, 0.1)', border: '1px solid rgba(6, 182, 212, 0.25)', padding: '6px 14px', borderRadius: '14px', color: '#22d3ee', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}
+              >
+                <Download size={14} /> Install Game Mode
+              </button>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.25)', padding: '6px 14px', borderRadius: '14px' }}>
+              <Zap size={14} color="#a855f7" fill="#a855f7" />
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#c084fc' }}>{stats.totalXP} Arcade XP</span>
+            </div>
           </div>
         </header>
       )}
@@ -1271,14 +1555,28 @@ export default function GamePage() {
 
       {/* RENDER GAMEPLAY CANVAS CONTAINER */}
       {(screen === 'PLAYING' || screen === 'PAUSED') && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px', position: 'relative' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 0, position: 'relative', width: '100%', height: '100%' }}>
           
-          {/* HUD Layer Panel */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', maxWidth: '800px', marginBottom: '8px', background: 'rgba(30, 41, 59, 0.2)', border: '1px solid rgba(255, 255, 255, 0.05)', padding: '8px 14px', borderRadius: '10px' }}>
+          {/* HUD Layer Overlay Panel */}
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            width: 'calc(100% - 24px)', 
+            maxWidth: '1200px', 
+            position: 'absolute', 
+            top: '12px', 
+            background: 'rgba(30, 41, 59, 0.45)', 
+            border: '1px solid rgba(255, 255, 255, 0.08)', 
+            padding: '6px 16px', 
+            borderRadius: '12px', 
+            zIndex: 10,
+            backdropFilter: 'blur(6px)'
+          }}>
             
             {/* Lives counter */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '9px', color: '#64748b', fontWeight: 800 }}>LIVES</span>
+              <span style={{ fontSize: '9px', color: '#94a3b8', fontWeight: 800 }}>LIVES</span>
               <div style={{ display: 'flex', gap: '3px' }}>
                 {Array.from({ length: 6 }).map((_, idx) => (
                   <Heart 
@@ -1295,21 +1593,21 @@ export default function GamePage() {
             {/* Score & Combo */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
               <div style={{ textAlign: 'center' }}>
-                <span style={{ display: 'block', fontSize: '8px', color: '#64748b', fontWeight: 800 }}>SCORE</span>
-                <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--neon-cyan)' }}>{score}</span>
+                <span style={{ display: 'block', fontSize: '8px', color: '#94a3b8', fontWeight: 800 }}>SCORE</span>
+                <span style={{ fontSize: '15px', fontWeight: 900, color: 'var(--neon-cyan, #06b6d4)' }}>{score}</span>
               </div>
               
               {combo > 1 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '2px', background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(249,115,22,0.3)', padding: '2px 6px', borderRadius: '6px' }}>
                   <Flame size={10} color="#f97316" fill="#f97316" />
-                  <span style={{ fontSize: '10px', fontWeight: 800, color: '#fdba74' }}>x{combo}</span>
+                  <span style={{ fontSize: '10px', fontWeight: 900, color: '#fdba74' }}>x{combo}</span>
                 </div>
               )}
             </div>
 
-            {/* Level & Controls */}
+            {/* Level & Settings Controls */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '11px', fontWeight: 800 }}>LVL {activeLevel.id}</span>
+              <span style={{ fontSize: '11px', fontWeight: 900 }}>LVL {activeLevel.id}</span>
               
               <div style={{ display: 'flex', gap: '4px' }}>
                 <button 
@@ -1334,12 +1632,12 @@ export default function GamePage() {
             </div>
           </div>
 
-          {/* Gameplay Canvas Layer */}
-          <div style={{ position: 'relative', width: '100%', maxWidth: '800px', borderRadius: '14px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', background: '#060913' }}>
+          {/* Fully Immersive Gameplay Canvas Layer (Edge to Edge viewport) */}
+          <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden', background: '#060913' }}>
             
             {/* Live game FPS counter (development only) */}
             {process.env.NODE_ENV === 'development' && (
-              <div style={{ position: 'absolute', top: '10px', left: '10px', background: 'rgba(0,0,0,0.6)', padding: '3px 6px', borderRadius: '4px', fontSize: '9px', color: '#10b981', zIndex: 10 }}>
+              <div style={{ position: 'absolute', bottom: '10px', left: '10px', background: 'rgba(0,0,0,0.6)', padding: '3px 6px', borderRadius: '4px', fontSize: '9px', color: '#10b981', zIndex: 10 }}>
                 FPS: {fps}
               </div>
             )}
@@ -1352,7 +1650,7 @@ export default function GamePage() {
               style={{ 
                 display: 'block', 
                 width: '100%', 
-                height: 'auto', 
+                height: '100%', 
                 cursor: 'none',
                 touchAction: 'none', 
                 userSelect: 'none',
@@ -1362,7 +1660,7 @@ export default function GamePage() {
 
             {/* Active Pause Menu Overlay */}
             {screen === 'PAUSED' && (
-              <div style={{ position: 'absolute', inset: 0, background: 'rgba(7, 10, 20, 0.8)', backdropFilter: 'blur(5px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px', zIndex: 5 }}>
+              <div style={{ position: 'absolute', inset: 0, background: 'rgba(7, 10, 20, 0.8)', backdropFilter: 'blur(5px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px', zIndex: 20 }}>
                 <span style={{ background: 'rgba(6, 182, 212, 0.1)', border: '1px solid rgba(6, 182, 212, 0.3)', padding: '4px 12px', borderRadius: '8px', fontSize: '10px', fontWeight: 800, color: 'var(--neon-cyan)' }}>
                   GAME PAUSED
                 </span>

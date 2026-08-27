@@ -7,8 +7,12 @@
   "id": "/pwa-start",
   "scope": "/",
 
-  "display": "standalone",
-  "orientation": "portrait-primary",
+  "display": "fullscreen",
+  "display_override": [
+    "fullscreen",
+    "standalone"
+  ],
+  "orientation": "landscape",
   "background_color": "#0b0f19",
   "theme_color": "#0b0f19",
   "categories": ["education", "productivity"],
