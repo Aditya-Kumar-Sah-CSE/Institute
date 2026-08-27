@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { getCodeArenaActor } from '@/features/code-arena/server';
 import SheetDetailClient from '@/features/code-arena/components/SheetDetailClient';
+import { createClient as createRawClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -10,6 +11,11 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const { supabase, user, isInstructor } = await getCodeArenaActor();
   if (!user) return null;
+
+  const serviceRoleClient = createRawClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
 
   const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
@@ -70,7 +76,7 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
   // 5. Community Solver Analytics for ALL users:
   const problemIds = problems.map((p: any) => p.id);
 
-  const { count: enrollmentsCount } = await supabase
+  const { count: enrollmentsCount } = await serviceRoleClient
     .from('coding_sheet_enrollments')
     .select('id', { count: 'exact', head: true })
     .eq('sheet_id', sheet.id);
@@ -80,7 +86,7 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
   let uniqueSolversCount = 0;
 
   if (problemIds.length > 0) {
-    const { data: acceptedSubmissions } = await supabase
+    const { data: acceptedSubmissions } = await serviceRoleClient
       .from('coding_submissions')
       .select('student_id, problem_id, profiles!coding_submissions_student_id_fkey(name, avatar_url)')
       .in('problem_id', problemIds)
