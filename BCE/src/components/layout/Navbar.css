@@ -114,6 +114,8 @@
   min-width: 220px;
   box-shadow: 0 10px 40px rgba(0,0,0,0.9);
   z-index: 1000;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
 .mobile-dropdown a, .mobile-logout-btn {

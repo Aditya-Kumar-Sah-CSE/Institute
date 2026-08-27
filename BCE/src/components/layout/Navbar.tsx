@@ -102,6 +102,9 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
                  )}
                  {currentView === 'admin' && (
                    <>
+                     <Link href="/admin/nptel" onClick={() => setIsMenuOpen(false)}>
+                       {getIcon('Courses', { size: 16, className: 'mobile-nav-icon' })} NPTEL Management
+                     </Link>
                      {profile.email === SUPER_ADMIN_EMAIL && (
                        <Link href="/admin/feedback" onClick={() => setIsMenuOpen(false)}>
                          {getIcon('Feedback', { size: 16, className: 'mobile-nav-icon' })} Feedback

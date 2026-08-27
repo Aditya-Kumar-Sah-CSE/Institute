@@ -350,7 +350,8 @@ body:not(.sidebar-is-collapsed) .open-sidebar-btn {
   .sidebar-nav-item[href*="latex-editor"],
   .sidebar-nav-item[href*="code-arena/sheets"],
   .sidebar-nav-item[href*="sql-editor"],
-  .sidebar-nav-item[href*="super-admin"] {
+  .sidebar-nav-item[href*="super-admin"],
+  .sidebar-nav-item[href="/admin/nptel"] {
     display: none !important;
   }
 
