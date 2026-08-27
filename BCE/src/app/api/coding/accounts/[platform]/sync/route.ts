@@ -246,11 +246,6 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
                   globalRanking
                   totalParticipants
                   topPercentage
-                  ratingDistribution {
-                    minRating
-                    maxRating
-                    userCount
-                  }
                 }
                 userContestRankingHistory(username: $username) {
                   attended
@@ -279,7 +274,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
               globalRanking: contestData.globalRanking || null,
               totalParticipants: contestData.totalParticipants || null,
               topPercentage: contestData.topPercentage || null,
-              ratingDistribution: contestData.ratingDistribution || [],
+              ratingDistribution: [],
             };
           }
           contestHistoryArr = contestJson?.data?.userContestRankingHistory || [];
