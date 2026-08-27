@@ -46,6 +46,7 @@ export default function SheetsListClient({
   const [enrollSheet, setEnrollSheet] = useState<CodingSheet | null>(null);
   const [enrolling, setEnrolling] = useState(false);
   const [enrollError, setEnrollError] = useState<string | null>(null);
+  const [passcodeInput, setPasscodeInput] = useState('');
 
   const handleShareSheet = async (sheet: CodingSheet, e: React.MouseEvent) => {
     e.preventDefault();
@@ -94,6 +95,7 @@ export default function SheetsListClient({
 
   const handleEnrollClick = (sheet: CodingSheet) => {
     setEnrollError(null);
+    setPasscodeInput('');
     setEnrollSheet(sheet);
   };
 
@@ -102,14 +104,21 @@ export default function SheetsListClient({
     setEnrolling(true);
     setEnrollError(null);
     try {
+      const body: any = {};
+      if (enrollSheet.enrollment_access === 'restricted') {
+        body.passcode = passcodeInput.trim();
+      }
+
       const res = await fetch(`/api/coding/sheets/${enrollSheet.id}/enroll`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
       });
       const json = await res.json();
       if (res.ok && json.success) {
         setEnrolledIds(prev => [...prev, enrollSheet.id]);
         setEnrollSheet(null);
+        setPasscodeInput('');
       } else {
         setEnrollError(json.error?.message || 'Failed to enroll. Please try again.');
       }
@@ -382,7 +391,7 @@ export default function SheetsListClient({
       {/* Enrollment Confirmation Modal */}
       <Modal
         isOpen={enrollSheet !== null}
-        onClose={() => { setEnrollSheet(null); setEnrollError(null); }}
+        onClose={() => { setEnrollSheet(null); setEnrollError(null); setPasscodeInput(''); }}
         title="Enroll in this Sheet"
         size="sm"
       >
@@ -423,8 +432,40 @@ export default function SheetsListClient({
             </div>
 
             <p style={{ fontSize: '13px', color: '#cbd5e1', lineHeight: 1.6, margin: 0 }}>
-              You&apos;ll be enrolled in this practice sheet. You can track your progress, submit solutions, and earn badges.
+              {enrollSheet.enrollment_access === 'restricted'
+                ? "This coding sheet is restricted. You must enter the passcode provided by your instructor to enroll."
+                : "You'll be enrolled in this practice sheet. You can track your progress, submit solutions, and earn badges."}
             </p>
+
+            {enrollSheet.enrollment_access === 'restricted' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                  ENTER PASSCODE
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter passcode..."
+                  value={passcodeInput}
+                  onChange={(e) => { setPasscodeInput(e.target.value); setEnrollError(null); }}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--glass-border)',
+                    color: 'var(--text-main)',
+                    fontSize: 'var(--text-sm)',
+                    outline: 'none',
+                    fontFamily: 'monospace',
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && passcodeInput.trim() && !enrolling) {
+                      handleEnrollConfirm();
+                    }
+                  }}
+                />
+              </div>
+            )}
 
             {enrollError && (
               <div
@@ -445,7 +486,7 @@ export default function SheetsListClient({
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
               <button
                 type="button"
-                onClick={() => { setEnrollSheet(null); setEnrollError(null); }}
+                onClick={() => { setEnrollSheet(null); setEnrollError(null); setPasscodeInput(''); }}
                 disabled={enrolling}
                 style={{
                   padding: '10px 20px',
@@ -465,7 +506,7 @@ export default function SheetsListClient({
               <button
                 type="button"
                 onClick={handleEnrollConfirm}
-                disabled={enrolling}
+                disabled={enrolling || (enrollSheet.enrollment_access === 'restricted' && !passcodeInput.trim())}
                 style={{
                   padding: '10px 24px',
                   borderRadius: '8px',
@@ -474,12 +515,12 @@ export default function SheetsListClient({
                   color: 'white',
                   fontSize: '13px',
                   fontWeight: 700,
-                  cursor: enrolling ? 'not-allowed' : 'pointer',
+                  cursor: (enrolling || (enrollSheet.enrollment_access === 'restricted' && !passcodeInput.trim())) ? 'not-allowed' : 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
                   boxShadow: '0 0 20px rgba(6, 182, 212, 0.3)',
-                  opacity: enrolling ? 0.8 : 1,
+                  opacity: (enrolling || (enrollSheet.enrollment_access === 'restricted' && !passcodeInput.trim())) ? 0.5 : 1,
                   transition: 'all 0.15s ease',
                 }}
               >
