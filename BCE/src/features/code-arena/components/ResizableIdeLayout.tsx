@@ -9,6 +9,16 @@ export default function ResizableIdeLayout({ problemData }: { problemData: Probl
   const [leftWidth, setLeftWidth] = useState(40); // default 40%
   const [isResizing, setIsResizing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem('bce:ide-split-width');
@@ -60,62 +70,70 @@ export default function ResizableIdeLayout({ problemData }: { problemData: Probl
       className="code-arena-ide-layout resizable-ide"
       style={{
         display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
         width: '100%',
-        height: '100%',
+        height: isMobile ? 'auto' : '100%',
         minHeight: 0,
-        position: 'relative'
+        position: 'relative',
+        overflowY: isMobile ? 'auto' : 'hidden'
       }}
     >
       {/* Left panel: Statement */}
       <section 
         className="code-statement-panel"
         style={{
-          width: `${leftWidth}%`,
+          width: isMobile ? '100%' : `${leftWidth}%`,
           flexShrink: 0,
           flexGrow: 0,
-          margin: 0
+          margin: 0,
+          height: isMobile ? 'auto' : '100%',
+          overflowY: isMobile ? 'visible' : 'auto'
         }}
       >
         <ProblemStatementRenderer problem={problemData} />
       </section>
 
       {/* Resizer bar */}
-      <div
-        className="ide-resizer-bar"
-        onMouseDown={handleMouseDown}
-        style={{
-          width: '8px',
-          cursor: 'col-resize',
-          background: isResizing ? 'var(--neon-cyan)' : 'transparent',
-          borderLeft: '1px solid var(--glass-border)',
-          borderRight: '1px solid var(--glass-border)',
-          flexShrink: 0,
-          zIndex: 10,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          userSelect: 'none'
-        }}
-        title="Drag to resize panels"
-      >
-        <div style={{
-          width: '2px',
-          height: '24px',
-          background: 'var(--text-muted)',
-          borderRadius: '1px'
-        }} />
-      </div>
+      {!isMobile && (
+        <div
+          className="ide-resizer-bar"
+          onMouseDown={handleMouseDown}
+          style={{
+            width: '8px',
+            cursor: 'col-resize',
+            background: isResizing ? 'var(--neon-cyan)' : 'transparent',
+            borderLeft: '1px solid var(--glass-border)',
+            borderRight: '1px solid var(--glass-border)',
+            flexShrink: 0,
+            zIndex: 10,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            userSelect: 'none'
+          }}
+          title="Drag to resize panels"
+        >
+          <div style={{
+            width: '2px',
+            height: '24px',
+            background: 'var(--text-muted)',
+            borderRadius: '1px'
+          }} />
+        </div>
+      )}
 
       {/* Right panel: Editor */}
       <div 
         className="code-editor-resizable-wrapper"
         style={{
-          width: `${100 - leftWidth}%`,
+          width: isMobile ? '100%' : `${100 - leftWidth}%`,
           flexShrink: 0,
           flexGrow: 0,
           display: 'flex',
           flexDirection: 'column',
-          minWidth: 0
+          minWidth: 0,
+          height: isMobile ? '600px' : '100%',
+          marginTop: isMobile ? '20px' : '0'
         }}
       >
         <CodeEditor

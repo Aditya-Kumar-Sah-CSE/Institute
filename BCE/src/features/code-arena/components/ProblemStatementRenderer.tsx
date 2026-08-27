@@ -207,121 +207,44 @@ export const cleanMathNotationText = (text: string): string => {
 };
 
 // Client-side HTML / Markdown content renderer
-function SafeContentRenderer({ rawContent }: { rawContent: string }) {
+function SafeContentRenderer({ rawContent, isMainStatement = false }: { rawContent: string; isMainStatement?: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
     
-    // Style normal paragraphs, list items, and table cells with cycling colors
-    const paragraphs = containerRef.current.querySelectorAll('p, li, td, dd, dt');
-    const colors = [
-      'var(--neon-cyan)',
-      '#a855f7',
-      'var(--neon-gold)',
-      'var(--neon-pink)',
-      '#3b82f6',
-      '#10b981',
-      '#fb923c',
-      '#f43f5e',
-    ];
-    paragraphs.forEach((p, idx) => {
-      const el = p as HTMLElement;
-      el.style.color = colors[idx % colors.length];
-      el.style.textShadow = '0 0 1px rgba(0,0,0,0.5)';
-      el.style.transition = 'color 0.3s ease';
-    });
-
     // Style the structured spec divs if present (standard Codeforces HTML structure)
     const inputSpecs = containerRef.current.querySelectorAll('.input-specification');
     inputSpecs.forEach(el => {
-      (el as HTMLElement).style.background = 'rgba(6, 182, 212, 0.03)';
-      (el as HTMLElement).style.borderLeft = '4px solid var(--neon-cyan)';
+      (el as HTMLElement).style.background = 'rgba(6, 182, 212, 0.02)';
+      (el as HTMLElement).style.borderLeft = '3px solid var(--neon-cyan)';
       (el as HTMLElement).style.borderRadius = '4px';
-      (el as HTMLElement).style.padding = '12px 16px';
-      (el as HTMLElement).style.margin = '16px 0';
+      (el as HTMLElement).style.padding = '8px 12px';
+      (el as HTMLElement).style.margin = '12px 0';
       
       const title = el.querySelector('.section-title');
       if (title) {
         (title as HTMLElement).style.color = 'var(--neon-cyan)';
-        (title as HTMLElement).style.fontSize = '15px';
+        (title as HTMLElement).style.fontSize = '13px';
         (title as HTMLElement).style.fontWeight = '800';
-        (title as HTMLElement).style.marginBottom = '8px';
+        (title as HTMLElement).style.marginBottom = '6px';
       }
-      
-      const paras = el.querySelectorAll('p');
-      paras.forEach(p => { p.style.color = '#22d3ee'; });
     });
 
     const outputSpecs = containerRef.current.querySelectorAll('.output-specification');
     outputSpecs.forEach(el => {
-      (el as HTMLElement).style.background = 'rgba(236, 72, 153, 0.03)';
-      (el as HTMLElement).style.borderLeft = '4px solid var(--neon-pink)';
+      (el as HTMLElement).style.background = 'rgba(236, 72, 153, 0.02)';
+      (el as HTMLElement).style.borderLeft = '3px solid var(--neon-pink)';
       (el as HTMLElement).style.borderRadius = '4px';
-      (el as HTMLElement).style.padding = '12px 16px';
-      (el as HTMLElement).style.margin = '16px 0';
+      (el as HTMLElement).style.padding = '8px 12px';
+      (el as HTMLElement).style.margin = '12px 0';
       
       const title = el.querySelector('.section-title');
       if (title) {
         (title as HTMLElement).style.color = 'var(--neon-pink)';
-        (title as HTMLElement).style.fontSize = '15px';
+        (title as HTMLElement).style.fontSize = '13px';
         (title as HTMLElement).style.fontWeight = '800';
-        (title as HTMLElement).style.marginBottom = '8px';
-      }
-      
-      const paras = el.querySelectorAll('p');
-      paras.forEach(p => { p.style.color = '#f472b6'; });
-    });
-
-    // Fallback scanner for flat text structures (Markdown headers)
-    const allElements = Array.from(containerRef.current.querySelectorAll('*'));
-    let inInputSec = false;
-    let inOutputSec = false;
-    
-    allElements.forEach(el => {
-      const text = el.textContent?.trim();
-      const tagName = el.tagName.toLowerCase();
-      
-      if (el.closest('.input-specification') || el.closest('.output-specification')) return;
-      
-      const isHeader = (tagName === 'div' && el.classList.contains('section-title')) || 
-          tagName === 'h3' || tagName === 'h4' || tagName === 'strong' || tagName === 'b';
-          
-      if (isHeader) {
-        if (text === 'Input') {
-          inInputSec = true; inOutputSec = false;
-          (el as HTMLElement).style.color = 'var(--neon-cyan)';
-          (el as HTMLElement).style.fontSize = '15px';
-          (el as HTMLElement).style.fontWeight = '800';
-          (el as HTMLElement).style.display = 'block';
-          (el as HTMLElement).style.marginTop = '20px';
-          (el as HTMLElement).style.marginBottom = '10px';
-          (el as HTMLElement).style.borderLeft = '3px solid var(--neon-cyan)';
-          (el as HTMLElement).style.paddingLeft = '8px';
-          return;
-        } else if (text === 'Output') {
-          inInputSec = false; inOutputSec = true;
-          (el as HTMLElement).style.color = 'var(--neon-pink)';
-          (el as HTMLElement).style.fontSize = '15px';
-          (el as HTMLElement).style.fontWeight = '800';
-          (el as HTMLElement).style.display = 'block';
-          (el as HTMLElement).style.marginTop = '20px';
-          (el as HTMLElement).style.marginBottom = '10px';
-          (el as HTMLElement).style.borderLeft = '3px solid var(--neon-pink)';
-          (el as HTMLElement).style.paddingLeft = '8px';
-          return;
-        } else if (text === 'Note' || text === 'Examples' || text === 'Example') {
-          inInputSec = false; inOutputSec = false;
-        }
-      }
-      
-      if (el.tagName.toLowerCase() === 'table' || el.classList.contains('sample-tests') || el.classList.contains('sample-test')) {
-        inInputSec = false; inOutputSec = false;
-      }
-      
-      if (tagName === 'p' || (tagName === 'div' && !el.children.length)) {
-        if (inInputSec) (el as HTMLElement).style.color = '#22d3ee';
-        else if (inOutputSec) (el as HTMLElement).style.color = '#f472b6';
+        (title as HTMLElement).style.marginBottom = '6px';
       }
     });
   }, [rawContent]);
@@ -334,18 +257,11 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
   const processedMath = cleanMathNotationHtml(rawContent.trim());
   let contentToRender = processedMath;
 
-  // Strip the header section (time limit, memory limit) — but NOT Input/Output body content
-  contentToRender = contentToRender.replace(/<div\s+class=["']header["']>[\s\S]*?<\/div>/gi, '');
-  // Strip only the metadata divs (time-limit, memory-limit, input-file, output-file)
-  contentToRender = contentToRender.replace(/<div\s+class=["'](?:time-limit|memory-limit|input-file|output-file)["'][^>]*>[\s\S]*?<\/div>/gi, '');
-
   // Fix image URLs: handle all Codeforces relative paths
-  // Pattern covers /predownloaded/, /images/, /espresso/, /data/, /userpic/
   contentToRender = contentToRender.replace(
     /src=["']\/(predownloaded|images|assets|espresso|data|userpic)\/([^"']+)["']/g,
     'src="https://codeforces.com/$1/$2"'
   );
-  // Also handle bare paths without protocol in img tags
   contentToRender = contentToRender.replace(
     /(<img[^>]+src=["'])(?!https?:\/\/)(?!data:)([^"']+)(["'])/gi,
     '$1https://codeforces.com$2$3'
@@ -356,7 +272,29 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
   if (hasHtml) {
     let cleanHtml = contentToRender;
     if (typeof window !== 'undefined') {
-      cleanHtml = DOMPurify.sanitize(contentToRender, {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(contentToRender, 'text/html');
+      
+      const header = doc.querySelector('.header');
+      if (header) header.remove();
+
+      if (isMainStatement) {
+        const inputSpec = doc.querySelector('.input-specification');
+        if (inputSpec) inputSpec.remove();
+
+        const outputSpec = doc.querySelector('.output-specification');
+        if (outputSpec) outputSpec.remove();
+
+        const sampleTests = doc.querySelector('.sample-tests, .sample-test');
+        if (sampleTests) sampleTests.remove();
+
+        const note = doc.querySelector('.note');
+        if (note) note.remove();
+      }
+      
+      cleanHtml = doc.body.innerHTML;
+
+      cleanHtml = DOMPurify.sanitize(cleanHtml, {
         ADD_TAGS: ['iframe', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'sub', 'sup'],
         ADD_ATTR: ['target', 'rel', 'colspan', 'rowspan', 'style'],
       });
@@ -366,15 +304,90 @@ function SafeContentRenderer({ rawContent }: { rawContent: string }) {
         ref={containerRef}
         className="problem-statement-body"
         suppressHydrationWarning
-        dangerouslySetInnerHTML={{ __html: cleanHtml }}
         style={{ fontSize: 'var(--text-sm)', lineHeight: '1.65', color: 'var(--text-main)' }}
-      />
+      >
+        <style dangerouslySetInnerHTML={{ __html: `
+          .problem-statement-body {
+            max-width: 100% !important;
+            overflow-x: auto !important;
+            word-wrap: break-word !important;
+            color: var(--text-main) !important;
+          }
+          .problem-statement-body p, 
+          .problem-statement-body li, 
+          .problem-statement-body td {
+            color: var(--text-main) !important;
+            font-size: 13.5px !important;
+            line-height: 1.6 !important;
+            text-shadow: none !important;
+          }
+          .problem-statement-body pre, 
+          .problem-statement-body code {
+            white-space: pre-wrap !important;
+            word-break: break-word !important;
+            max-width: 100% !important;
+            background: rgba(255, 255, 255, 0.02) !important;
+            border: 1px solid var(--glass-border) !important;
+            border-radius: 4px !important;
+            padding: 8px 12px !important;
+            font-family: monospace !important;
+            color: var(--text-main) !important;
+          }
+          .problem-statement-body table {
+            width: 100% !important;
+            max-width: 100% !important;
+            border-collapse: collapse !important;
+            margin: 16px 0 !important;
+            overflow-x: auto !important;
+            display: block !important;
+          }
+          .problem-statement-body td, 
+          .problem-statement-body th {
+            border: 1px solid var(--glass-border) !important;
+            padding: 6px 10px !important;
+            color: var(--text-main) !important;
+            font-size: 12px !important;
+          }
+          .problem-statement-body img {
+            max-width: 100% !important;
+            height: auto !important;
+            border-radius: 4px !important;
+          }
+        ` }} />
+        <div dangerouslySetInnerHTML={{ __html: cleanHtml }} />
+      </div>
     );
   }
 
   // Fallback to Markdown or plain text
   return (
     <div ref={containerRef} className="problem-statement-body" style={{ fontSize: 'var(--text-sm)', lineHeight: '1.65', color: 'var(--text-main)' }}>
+      <style dangerouslySetInnerHTML={{ __html: `
+        .problem-statement-body {
+          max-width: 100% !important;
+          overflow-x: auto !important;
+          word-wrap: break-word !important;
+          color: var(--text-main) !important;
+        }
+        .problem-statement-body p, 
+        .problem-statement-body li {
+          color: var(--text-main) !important;
+          font-size: 13.5px !important;
+          line-height: 1.6 !important;
+        }
+        .problem-statement-body pre, 
+        .problem-statement-body code {
+          white-space: pre-wrap !important;
+          word-break: break-word !important;
+          max-width: 100% !important;
+          background: rgba(255, 255, 255, 0.02) !important;
+          border: 1px solid var(--glass-border) !important;
+          border-radius: 4px !important;
+          padding: 8px 12px !important;
+          font-family: monospace !important;
+          color: var(--text-main) !important;
+        }
+      ` }} />
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{contentToRender}</ReactMarkdown>
     </div>
   );
@@ -684,7 +697,7 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
             ))}
           </div>
 
-          <SafeContentRenderer rawContent={rawStatement} />
+          <SafeContentRenderer rawContent={rawStatement} isMainStatement={true} />
         </section>
       )}
 
