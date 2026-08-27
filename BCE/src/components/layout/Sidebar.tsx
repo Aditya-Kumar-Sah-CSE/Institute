@@ -41,6 +41,7 @@ const ITEM_GROUPS: Record<string, string> = {
   'Brick Breaker': 'Games',
   
   'Notices': 'General',
+  'Polls': 'General',
   'Feedback': 'General',
   'Profile': 'General',
   'Super Admin': 'General',

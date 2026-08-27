@@ -16,7 +16,8 @@ import {
   Code2,
   LogOut,
   Database,
-  Gamepad2
+  Gamepad2,
+  Vote
 } from 'lucide-react';
 
 export function getIcon(name: string, props?: any) {
@@ -27,6 +28,7 @@ export function getIcon(name: string, props?: any) {
     case 'Leaderboard': return <Trophy {...iconProps} />;
     case 'Doubts': return <HelpCircle {...iconProps} />;
     case 'Notices': return <Megaphone {...iconProps} />;
+    case 'Polls': return <Vote {...iconProps} />;
     case 'Profile': return <User {...iconProps} />;
     case 'Enrollments': return <Users {...iconProps} />;
     case 'Students': return <Users {...iconProps} />;

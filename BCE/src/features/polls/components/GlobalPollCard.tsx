@@ -2,13 +2,11 @@
 
 import React, { useState, useTransition } from 'react';
 import Card from '@/components/ui/Card';
-import Button from '@/components/ui/Button';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import Modal from '@/components/ui/Modal';
 import { formatDistanceToNow } from 'date-fns';
-import { User } from 'lucide-react';
-import { submitPollVote, deleteCoursePoll } from '../actions/polls';
-import { Trash2 } from 'lucide-react';
+import { User, Trash2 } from 'lucide-react';
+import { submitGlobalPollVote, deleteGlobalPoll } from '../actions';
 
 interface PollOption {
   id: string;
@@ -20,25 +18,34 @@ interface PollOption {
   }[];
 }
 
-export interface Poll {
+export interface GlobalPoll {
   id: string;
-  course_id: string;
   created_by: string;
   question: string;
   is_multiple_choice: boolean;
   expires_at: string | null;
   created_at: string;
-  profiles?: { name: string } | null;
+  profiles?: { 
+    name: string;
+    role: string;
+    email?: string;
+  } | null;
   options: PollOption[];
 }
 
-interface PollCardProps {
-  poll: Poll;
+interface GlobalPollCardProps {
+  poll: GlobalPoll;
   currentUserId: string;
-  isFaculty?: boolean;
+  currentUserRole: string;
+  currentUserEmail?: string;
 }
 
-export default function PollCard({ poll, currentUserId, isFaculty = false }: PollCardProps) {
+export default function GlobalPollCard({ 
+  poll, 
+  currentUserId, 
+  currentUserRole,
+  currentUserEmail
+}: GlobalPollCardProps) {
   const [isPending, startTransition] = useTransition();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -54,7 +61,6 @@ export default function PollCard({ poll, currentUserId, isFaculty = false }: Pol
   });
 
   const totalVotes = poll.options.reduce((sum, opt) => sum + opt.votes.length, 0);
-
   const isExpired = poll.expires_at ? new Date(poll.expires_at) < new Date() : false;
 
   const handleOptionChange = (optionId: string) => {
@@ -69,12 +75,10 @@ export default function PollCard({ poll, currentUserId, isFaculty = false }: Pol
       nextSet.add(optionId);
     }
     
-    // Update local state instantly for optimistic UI
     setSelectedOptions(nextSet);
 
-    // Auto-submit vote to server
     startTransition(async () => {
-      const result = await submitPollVote(poll.id, Array.from(nextSet), poll.course_id);
+      const result = await submitGlobalPollVote(poll.id, Array.from(nextSet));
       if (result.error) {
         alert(result.error);
       }
@@ -88,7 +92,7 @@ export default function PollCard({ poll, currentUserId, isFaculty = false }: Pol
   const confirmDelete = () => {
     setIsDeleting(true);
     startTransition(async () => {
-      const result = await deleteCoursePoll(poll.id, poll.course_id);
+      const result = await deleteGlobalPoll(poll.id);
       if (result.error) {
         alert(result.error);
         setIsDeleting(false);
@@ -97,10 +101,25 @@ export default function PollCard({ poll, currentUserId, isFaculty = false }: Pol
     });
   };
 
-  const canDelete = isFaculty || poll.created_by === currentUserId;
+  const isPlatformOwner = currentUserEmail?.trim().toLowerCase() === 'iambestadi@gmail.com';
+  const isAdmin = isPlatformOwner || ['admin', 'developer', 'superadmin', 'super_admin'].includes(currentUserRole);
+  const canDelete = isAdmin || poll.created_by === currentUserId;
 
   return (
-    <Card className="poll-card" variant="glass" padding="md" style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'rgba(46, 204, 113, 0.12)', border: '1px solid rgba(46, 204, 113, 0.4)', boxShadow: '0 4px 20px rgba(46, 204, 113, 0.1)' }}>
+    <Card 
+      className="global-poll-card" 
+      variant="glass" 
+      padding="md" 
+      style={{ 
+        height: '100%', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        background: 'rgba(0, 240, 255, 0.05)', 
+        border: '1px solid rgba(0, 240, 255, 0.25)', 
+        boxShadow: '0 4px 20px rgba(0, 240, 255, 0.05)',
+        position: 'relative'
+      }}
+    >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)', marginBottom: 'var(--space-md)' }}>
         <h3 style={{ fontSize: 'var(--text-lg)', wordBreak: 'break-word', lineHeight: 1.3, margin: 0, width: '100%' }}>
           {poll.question}
@@ -178,7 +197,7 @@ export default function PollCard({ poll, currentUserId, isFaculty = false }: Pol
                   left: 0,
                   bottom: 0,
                   width: `${percentage}%`,
-                  background: isSelected ? 'rgba(0, 242, 254, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                  background: isSelected ? 'rgba(0, 240, 255, 0.15)' : 'rgba(255, 255, 255, 0.03)',
                   zIndex: 0,
                   transition: 'width 0.5s ease'
                 }}
@@ -186,7 +205,7 @@ export default function PollCard({ poll, currentUserId, isFaculty = false }: Pol
               
               {/* Checkbox / Radio */}
               <div style={{ zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '1.25rem', height: '1.25rem', borderRadius: poll.is_multiple_choice ? '0.25rem' : '50%', border: `2px solid ${isSelected ? 'var(--neon-cyan)' : 'var(--text-muted)'}`, background: isSelected ? 'var(--neon-cyan)' : 'transparent' }}>
-                {isSelected && <span style={{ color: '#000', fontSize: '12px', fontWeight: 'bold' }}>✓</span>}
+                {isSelected && <span style={{ color: '#000', fontSize: '10px', fontWeight: 'bold' }}>✓</span>}
               </div>
 
               {/* Option Text */}
@@ -204,22 +223,22 @@ export default function PollCard({ poll, currentUserId, isFaculty = false }: Pol
                         key={v.id} 
                         title={v.profiles?.name || 'User'}
                         style={{
-                          width: '1.5rem',
-                          height: '1.5rem',
+                          width: '1.25rem',
+                          height: '1.25rem',
                           borderRadius: '50%',
-                          background: 'var(--gradient-xp)',
+                          background: 'var(--gradient-xp, linear-gradient(135deg, var(--neon-cyan), var(--neon-blue)))',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontSize: '0.625rem',
+                          fontSize: '0.6rem',
                           fontWeight: 'bold',
                           color: '#000',
-                          border: '2px solid var(--bg-card)',
-                          marginLeft: i > 0 ? '-0.5rem' : '0',
+                          border: '1.5px solid var(--bg-card)',
+                          marginLeft: i > 0 ? '-0.4rem' : '0',
                           zIndex: 3 - i
                         }}
                       >
-                        <User size={14} opacity={0.8} />
+                        <User size={10} opacity={0.8} />
                       </div>
                     ))}
                   </div>
@@ -237,14 +256,16 @@ export default function PollCard({ poll, currentUserId, isFaculty = false }: Pol
           </span>
           {totalVotes > 0 && (
             <button
-              onClick={() => setShowVotesModal(true)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowVotesModal(true);
+              }}
               style={{ background: 'transparent', border: 'none', color: 'var(--neon-cyan)', cursor: 'pointer', fontSize: 'var(--text-sm)', padding: 0 }}
             >
               View votes
             </button>
           )}
         </div>
-
       </div>
 
       <ConfirmModal
@@ -252,7 +273,7 @@ export default function PollCard({ poll, currentUserId, isFaculty = false }: Pol
         onClose={() => setShowConfirm(false)}
         onConfirm={confirmDelete}
         title="Delete Poll"
-        message="Are you sure you want to delete this poll? This cannot be undone."
+        message="Are you sure you want to delete this global poll? This cannot be undone."
         confirmText="Delete"
         isDestructive={true}
         isPending={isDeleting}

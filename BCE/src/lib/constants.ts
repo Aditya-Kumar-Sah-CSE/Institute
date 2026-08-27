@@ -75,6 +75,7 @@ export const NAV_ITEMS = [
   { label: 'Leaderboard', href: '/leaderboard', icon: 'Leaderboard' },
   { label: 'Batch Doubts', href: '/doubts', icon: 'Doubts' },
   { label: 'Notices', href: '/notices', icon: 'Notices' },
+  { label: 'Polls', href: '/polls', icon: 'Polls' },
   { label: 'Chat', href: '/dashboard/chat', icon: 'Chat' },
   { label: 'Profile', href: '/profile', icon: 'Profile' },
 ];
@@ -89,6 +90,7 @@ export const ADMIN_NAV_ITEMS = [
   { label: 'Batch Doubts', href: '/doubts', icon: 'Doubts' },
   { label: 'Feedback', href: '/admin/feedback', icon: 'Feedback' },
   { label: 'Notices', href: '/admin/notices', icon: 'Notices' },
+  { label: 'Polls', href: '/admin/polls', icon: 'Polls' },
 ];
 
 export const INSTRUCTOR_NAV_ITEMS = [
@@ -98,4 +100,5 @@ export const INSTRUCTOR_NAV_ITEMS = [
   { label: 'Coding Sheets', href: '/code-arena/sheets', icon: 'Submissions' },
   { label: 'Enrollments', href: '/instructor/enrollments', icon: 'Enrollments' },
   { label: 'Review Submissions', href: '/instructor/submissions', icon: 'Submissions' },
+  { label: 'Polls', href: '/instructor/polls', icon: 'Polls' },
 ];
