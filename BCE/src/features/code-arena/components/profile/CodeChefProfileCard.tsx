@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, ExternalLink, CheckCircle2, TrendingUp, Target, Award, Key, Unlink, Star, ChefHat } from 'lucide-react';
+import { RefreshCw, ExternalLink, CheckCircle2, TrendingUp, Target, Award, Key, Unlink, Star, ChefHat, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function CodeChefProfileCard({ account, isOwnProfile = true }: { account: any; isOwnProfile?: boolean }) {
@@ -13,6 +13,7 @@ export default function CodeChefProfileCard({ account, isOwnProfile = true }: { 
   const [syncStatus, setSyncStatus] = useState<'IDLE' | 'SUCCESS' | 'ERROR'>('IDLE');
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [showGuide, setShowGuide] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -103,9 +104,47 @@ export default function CodeChefProfileCard({ account, isOwnProfile = true }: { 
         <div className="platform-body" style={{ padding: '0 16px 16px 16px' }}>
           {isOwnProfile ? (
             <form onSubmit={handleConnect} style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', marginTop: '8px' }}>
-              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: 0 }}>
-                Connect your public CodeChef handle to track rating, stars, rank, and solved problems.
+              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
+                <span>Connect your public CodeChef handle to track rating, stars, rank, and solved problems.</span>
+                <button
+                  type="button"
+                  onClick={() => setShowGuide(!showGuide)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--neon-cyan, #06b6d4)',
+                    fontSize: '11px',
+                    textDecoration: 'underline',
+                    cursor: 'pointer',
+                    padding: 0
+                  }}
+                >
+                  {showGuide ? 'Hide Guide' : 'Connection Guide'}
+                </button>
               </p>
+
+              {showGuide && (
+                <div style={{
+                  padding: '10px 12px',
+                  background: 'rgba(6, 182, 212, 0.05)',
+                  border: '1px solid rgba(6, 182, 212, 0.15)',
+                  borderRadius: 'var(--radius-sm, 6px)',
+                  fontSize: '11px',
+                  lineHeight: '1.4',
+                  color: 'var(--text-main, #f8fafc)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px'
+                }}>
+                  <div style={{ fontWeight: 'bold', color: 'var(--neon-cyan, #06b6d4)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Sparkles size={12} /> CodeChef Connection Steps:
+                  </div>
+                  <div><strong>Step 1:</strong> First, open your browser and log into <a href="https://www.codechef.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--neon-cyan)', textDecoration: 'underline' }}>codechef.com</a>.</div>
+                  <div><strong>Step 2:</strong> Copy ONLY your exact username (handle) from your profile page (e.g. <code>tourist</code>). Do NOT copy the full link or @ symbol.</div>
+                  <div><strong>Step 3:</strong> Paste your username below and click <strong>Connect</strong>.</div>
+                </div>
+              )}
+
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input
                   type="text"
