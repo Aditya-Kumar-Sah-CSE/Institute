@@ -10,6 +10,14 @@
   flex-direction: column;
   z-index: var(--z-sticky);
   overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+.sidebar::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Opera */
 }
 
 .sidebar-header {

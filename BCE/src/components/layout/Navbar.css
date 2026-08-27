@@ -116,6 +116,14 @@
   z-index: 1000;
   max-height: 80vh;
   overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+.mobile-dropdown::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Opera */
 }
 .mobile-divider {
   border-top: 1px solid var(--border-divider);
