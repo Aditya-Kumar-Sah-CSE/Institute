@@ -76,10 +76,19 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
   // 5. Community Solver Analytics for ALL users:
   const problemIds = problems.map((p: any) => p.id);
 
-  const { count: enrollmentsCount } = await serviceRoleClient
+  const { data: enrollmentsData, count: enrollmentsCount } = await serviceRoleClient
     .from('coding_sheet_enrollments')
-    .select('id', { count: 'exact', head: true })
-    .eq('sheet_id', sheet.id);
+    .select('user_id, enrolled_at, profiles(id, name, avatar_url, email)', { count: 'exact' })
+    .eq('sheet_id', sheet.id)
+    .order('enrolled_at', { ascending: false });
+
+  const enrolledStudents = (enrollmentsData || []).map((e: any) => ({
+    id: e.profiles?.id || e.user_id,
+    name: e.profiles?.name || 'Anonymous Student',
+    avatar_url: e.profiles?.avatar_url || null,
+    email: e.profiles?.email || '',
+    enrolled_at: e.enrolled_at
+  }));
 
   let solversLeaderboard: { id: string; name: string; avatar_url?: string; solvedCount: number }[] = [];
   let totalSolvedSum = 0;
@@ -139,6 +148,7 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
         totalEnrolled={enrollmentsCount || 0}
         avgQuestionsSolved={avgQuestionsSolved}
         solversLeaderboard={solversLeaderboard}
+        enrolledStudents={enrolledStudents}
         enrollmentAccess={sheet.enrollment_access || 'public'}
         isEnrolled={isEnrolled}
       />

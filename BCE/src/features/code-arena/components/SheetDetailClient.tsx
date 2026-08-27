@@ -62,6 +62,7 @@ export default function SheetDetailClient({
   totalEnrolled = 0,
   avgQuestionsSolved = '0',
   solversLeaderboard = [],
+  enrolledStudents = [],
   enrollmentAccess = 'public',
   isEnrolled: initialIsEnrolled = false,
 }: {
@@ -74,6 +75,7 @@ export default function SheetDetailClient({
   totalEnrolled?: number;
   avgQuestionsSolved?: string;
   solversLeaderboard?: Solver[];
+  enrolledStudents?: { id: string; name: string; avatar_url?: string | null; email: string; enrolled_at?: string }[];
   enrollmentAccess?: string;
   isEnrolled?: boolean;
 }) {
@@ -87,9 +89,16 @@ export default function SheetDetailClient({
   const [copiedShare, setCopiedShare] = useState(false);
   const [showSolversModal, setShowSolversModal] = useState(false);
   const [solverSearch, setSolverSearch] = useState('');
+  const [showEnrolledModal, setShowEnrolledModal] = useState(false);
+  const [enrolledSearch, setEnrolledSearch] = useState('');
 
   const filteredSolvers = solversLeaderboard.filter(s =>
     s.name.toLowerCase().includes(solverSearch.toLowerCase())
+  );
+
+  const filteredEnrolled = enrolledStudents.filter(s =>
+    s.name.toLowerCase().includes(enrolledSearch.toLowerCase()) ||
+    s.email.toLowerCase().includes(enrolledSearch.toLowerCase())
   );
 
   useEffect(() => {
@@ -493,7 +502,10 @@ export default function SheetDetailClient({
           {/* Community Solver Stats Bar — Visible to Everyone */}
           <div className="sheet-stats-container">
             {/* Box 1: Enrolled */}
-            <div className="sheet-stat-box">
+            <div 
+              onClick={() => setShowEnrolledModal(true)}
+              className="sheet-stat-box clickable"
+            >
               <Users size={15} style={{ color: 'var(--neon-cyan)' }} />
               <div>
                 <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.5px' }}>ENROLLED</div>
@@ -1145,6 +1157,105 @@ export default function SheetDetailClient({
             {filteredSolvers.length === 0 && (
               <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)', fontSize: '13px' }}>
                 No solvers found matching "{solverSearch}".
+              </div>
+            )}
+          </div>
+        </div>
+      </Modal>
+
+      {/* Enrolled Students Modal */}
+      <Modal
+        isOpen={showEnrolledModal}
+        onClose={() => setShowEnrolledModal(false)}
+        title="👥 Enrolled Students List"
+        size="lg"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '72vh', overflowY: 'auto', paddingRight: '4px' }}>
+          {/* Summary Banner */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--glass-border)', padding: '12px', borderRadius: '8px', textAlign: 'center' }}>
+            <div>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>TOTAL ENROLLED</div>
+              <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--neon-cyan)' }}>{enrolledStudents.length} Students</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>ENROLLMENT ACCESS</div>
+              <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--neon-purple)', textTransform: 'capitalize' }}>{enrollmentAccess}</div>
+            </div>
+          </div>
+
+          {/* Search bar */}
+          <div style={{ position: 'relative' }}>
+            <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <input
+              type="text"
+              placeholder="Search student by name or email..."
+              value={enrolledSearch}
+              onChange={(e) => setEnrolledSearch(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 14px 10px 36px',
+                borderRadius: '8px',
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid var(--glass-border)',
+                color: 'var(--text-main)',
+                fontSize: '13px',
+                outline: 'none',
+              }}
+            />
+          </div>
+
+          {/* Students list */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {filteredEnrolled.map((student) => {
+              const solverInfo = solversLeaderboard.find(s => s.id === student.id);
+              const solvedCount = solverInfo ? solverInfo.solvedCount : 0;
+
+              return (
+                <div
+                  key={student.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid var(--glass-border)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <img
+                      src={student.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(student.name)}&background=a855f7&color=fff`}
+                      alt={student.name}
+                      style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }}
+                    />
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)' }}>
+                        {student.name}
+                      </div>
+                      <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                        {student.email || 'No email provided'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: solvedCount > 0 ? 'var(--neon-cyan)' : 'var(--text-muted)' }}>
+                      {solvedCount} / {totalProblems} Solved
+                    </span>
+                    {student.enrolled_at && (
+                      <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>
+                        Enrolled {new Date(student.enrolled_at).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            {filteredEnrolled.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)', fontSize: '13px' }}>
+                No enrolled students found matching "{enrolledSearch}".
               </div>
             )}
           </div>
