@@ -15,6 +15,7 @@ export default async function AdminCoursesPage() {
   const query = supabase
     .from('courses')
     .select('*, profiles!courses_created_by_fkey(name), course_instructors(instructor_id)')
+    .eq('is_deleted', false)
     .order('created_at', { ascending: false });
   
   const { data: courses } = await query;

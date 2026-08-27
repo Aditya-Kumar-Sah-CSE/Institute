@@ -14,7 +14,7 @@ export default async function AdminDashboardPage() {
   // Fetch Analytics
   const { count: studentCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'student');
   const { count: instructorRequestCount } = await supabase.from('instructor_applications').select('*', { count: 'exact', head: true }).eq('status', 'pending');
-  const { count: courseCount } = await supabase.from('courses').select('*', { count: 'exact', head: true }).eq('is_published', true);
+  const { count: courseCount } = await supabase.from('courses').select('*', { count: 'exact', head: true }).eq('is_published', true).eq('is_deleted', false);
   const { count: sheetCount } = await supabase.from('coding_sheets').select('*', { count: 'exact', head: true });
   const { count: submissionCount } = await supabase.from('submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending');
   

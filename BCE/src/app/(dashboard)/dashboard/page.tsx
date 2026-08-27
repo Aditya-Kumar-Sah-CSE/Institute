@@ -322,7 +322,7 @@ async function DeferredContinueLearning({ userId }: { userId: string }) {
   ] = await Promise.all([
     supabase
       .from('enrollments')
-      .select('progress, status, course_id, courses(id, title, thumbnail_url, description, difficulty, total_xp, is_published)')
+      .select('progress, status, course_id, courses(id, title, thumbnail_url, description, difficulty, total_xp, is_published, is_deleted)')
       .eq('user_id', userId)
       .order('enrolled_at', { ascending: false }),
     supabase
@@ -338,7 +338,11 @@ async function DeferredContinueLearning({ userId }: { userId: string }) {
     });
   }
 
-  return <ContinueLearning enrollments={enrollments || []} certificatesMap={certificatesMap} />;
+  const validEnrollments = (enrollments || []).filter(
+    (e: any) => e.courses && !e.courses.is_deleted
+  );
+
+  return <ContinueLearning enrollments={validEnrollments} certificatesMap={certificatesMap} />;
 }
 
 async function DeferredNotices() {

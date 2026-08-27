@@ -88,8 +88,9 @@ export default async function DoubtsRedirectPage() {
   // For students
   const { data: enrollments } = await supabase
     .from('enrollments')
-    .select('course_id')
-    .eq('user_id', user.id);
+    .select('course_id, courses!inner(is_deleted)')
+    .eq('user_id', user.id)
+    .eq('courses.is_deleted', false);
 
   const enrolledCourseIds = enrollments?.map(e => e.course_id) || [];
 

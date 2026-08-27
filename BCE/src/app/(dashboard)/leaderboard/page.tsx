@@ -58,7 +58,7 @@ export default async function LeaderboardPage({
     pendingApps = pends || [];
   }
 
-  const coursesQuery = supabase.from('courses').select('id, title');
+  const coursesQuery = supabase.from('courses').select('id, title').eq('is_deleted', false);
 
   let profilesQuery;
   let enrollmentsQuery;

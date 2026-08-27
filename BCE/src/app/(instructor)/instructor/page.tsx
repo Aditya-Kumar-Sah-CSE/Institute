@@ -14,6 +14,7 @@ export default async function InstructorDashboardPage() {
     .from('courses')
     .select('*, lessons(id)')
     .eq('created_by', user?.id)
+    .eq('is_deleted', false)
     .order('created_at', { ascending: false });
 
   const courseCount = courses?.length || 0;

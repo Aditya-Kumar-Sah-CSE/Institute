@@ -8,6 +8,8 @@ export default async function CoursesPage() {
   const coursesQuery = supabase
     .from('courses')
     .select('*, profiles!courses_created_by_fkey(name)')
+    .eq('is_published', true)
+    .eq('is_deleted', false)
     .order('created_at', { ascending: false });
 
   const enrollmentsQuery = user ? supabase
@@ -33,6 +35,8 @@ export default async function CoursesPage() {
     const { data: rawCourses } = await supabase
       .from('courses')
       .select('*')
+      .eq('is_published', true)
+      .eq('is_deleted', false)
       .order('created_at', { ascending: false });
     courses = rawCourses;
   }
