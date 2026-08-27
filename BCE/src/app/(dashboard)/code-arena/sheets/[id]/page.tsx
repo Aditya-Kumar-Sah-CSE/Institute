@@ -130,6 +130,7 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
         currentUser={user}
         totalStudentsSolving={uniqueSolversCount}
         totalEnrolledSolvers={totalEnrolledSolvers}
+        totalEnrolled={enrollmentsCount || 0}
         avgQuestionsSolved={avgQuestionsSolved}
         solversLeaderboard={solversLeaderboard}
         enrollmentAccess={sheet.enrollment_access || 'public'}

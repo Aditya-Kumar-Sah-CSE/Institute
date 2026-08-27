@@ -56,6 +56,7 @@ export default function SheetDetailClient({
   currentUser,
   totalStudentsSolving = 0,
   totalEnrolledSolvers = 0,
+  totalEnrolled = 0,
   avgQuestionsSolved = '0',
   solversLeaderboard = [],
   enrollmentAccess = 'public',
@@ -67,6 +68,7 @@ export default function SheetDetailClient({
   currentUser?: any;
   totalStudentsSolving?: number;
   totalEnrolledSolvers?: number;
+  totalEnrolled?: number;
   avgQuestionsSolved?: string;
   solversLeaderboard?: Solver[];
   enrollmentAccess?: string;
@@ -411,77 +413,73 @@ export default function SheetDetailClient({
           </p>
 
           {/* Community Solver Stats Bar — Visible to Everyone */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            {/* Total Enrolled Solvers */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255, 255, 255, 0.04)', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
+          <div className="sheet-stats-container">
+            {/* Box 1: Enrolled */}
+            <div className="sheet-stat-box">
               <Users size={15} style={{ color: 'var(--neon-cyan)' }} />
               <div>
-                <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.5px' }}>SOLVERS ENROLLED</div>
-                <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)' }}>{totalEnrolledSolvers || totalStudentsSolving} Students</div>
+                <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.5px' }}>ENROLLED</div>
+                <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)' }}>{totalEnrolled} Students</div>
               </div>
             </div>
 
-            {/* Avg Questions Solved */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255, 255, 255, 0.04)', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
+            {/* Box 2: Solver Enrolled */}
+            <div className="sheet-stat-box">
+              <CheckCircle2 size={15} style={{ color: '#10b981' }} />
+              <div>
+                <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.5px' }}>SOLVER ENROLLED</div>
+                <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)' }}>{totalStudentsSolving} Students</div>
+              </div>
+            </div>
+
+            {/* Box 3: Avg Questions Solved */}
+            <div className="sheet-stat-box">
               <BarChart2 size={15} style={{ color: 'var(--neon-purple)' }} />
               <div>
-                <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.5px' }}>AVG QUESTIONS SOLVED</div>
+                <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.5px' }}>AVG QUESTIONS</div>
                 <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)' }}>{avgQuestionsSolved} / {totalProblems}</div>
               </div>
             </div>
 
-            {/* Top Performers Preview & View All Solvers Button */}
-            {solversLeaderboard.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  {solversLeaderboard.slice(0, 3).map((solver, idx) => (
-                    <div
-                      key={solver.id}
-                      style={{
-                        width: '24px',
-                        height: '24px',
-                        borderRadius: '50%',
-                        border: '2px solid #18181b',
-                        marginLeft: idx > 0 ? '-6px' : '0',
-                        overflow: 'hidden',
-                        background: '#1e293b',
-                        position: 'relative',
-                      }}
-                      title={`#${idx + 1} ${solver.name} (${solver.solvedCount}/${totalProblems} solved)`}
-                    >
-                      <img
-                        src={solver.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(solver.name)}&background=06b6d4&color=fff`}
-                        alt={solver.name}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      />
+            {/* Box 4: View All Solvers */}
+            <div 
+              onClick={() => setShowSolversModal(true)}
+              className="sheet-stat-box clickable"
+            >
+              <Trophy size={15} style={{ color: '#fbbf24' }} />
+              <div>
+                <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.5px' }}>VIEW ALL SOLVER</div>
+                <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  Leaderboard ({solversLeaderboard.length})
+                  {solversLeaderboard.length > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', marginLeft: '4px' }}>
+                      {solversLeaderboard.slice(0, 3).map((solver, idx) => (
+                        <div
+                          key={solver.id}
+                          style={{
+                            width: '16px',
+                            height: '16px',
+                            borderRadius: '50%',
+                            border: '1px solid #18181b',
+                            marginLeft: idx > 0 ? '-4px' : '0',
+                            overflow: 'hidden',
+                            background: '#1e293b',
+                            position: 'relative',
+                          }}
+                          title={`#${idx + 1} ${solver.name}`}
+                        >
+                          <img
+                            src={solver.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(solver.name)}&background=06b6d4&color=fff`}
+                            alt={solver.name}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => setShowSolversModal(true)}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    height: '32px',
-                    padding: '0 12px',
-                    borderRadius: '8px',
-                    background: 'rgba(6, 182, 212, 0.12)',
-                    border: '1px solid rgba(6, 182, 212, 0.3)',
-                    color: 'var(--neon-cyan)',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    boxShadow: '0 0 10px rgba(6, 182, 212, 0.15)',
-                  }}
-                >
-                  <Trophy size={13} /> View All Solvers ({solversLeaderboard.length})
-                </button>
               </div>
-            )}
+            </div>
           </div>
         </div>
 
