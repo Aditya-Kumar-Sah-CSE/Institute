@@ -213,6 +213,25 @@ function SafeContentRenderer({ rawContent, isMainStatement = false }: { rawConte
   useEffect(() => {
     if (!containerRef.current) return;
     
+    // Style normal paragraphs, list items, and table cells with cycling colors
+    const paragraphs = containerRef.current.querySelectorAll('p, li, td, dd, dt');
+    const colors = [
+      'var(--neon-cyan)',
+      '#a855f7',
+      'var(--neon-gold)',
+      'var(--neon-pink)',
+      '#3b82f6',
+      '#10b981',
+      '#fb923c',
+      '#f43f5e',
+    ];
+    paragraphs.forEach((p, idx) => {
+      const el = p as HTMLElement;
+      el.style.color = colors[idx % colors.length];
+      el.style.textShadow = '0 0 1px rgba(0,0,0,0.5)';
+      el.style.transition = 'color 0.3s ease';
+    });
+
     // Style the structured spec divs if present (standard Codeforces HTML structure)
     const inputSpecs = containerRef.current.querySelectorAll('.input-specification');
     inputSpecs.forEach(el => {
@@ -278,6 +297,10 @@ function SafeContentRenderer({ rawContent, isMainStatement = false }: { rawConte
       const header = doc.querySelector('.header');
       if (header) header.remove();
 
+      // Query and remove individual limit and IO file elements that are saved in Codeforces HTML
+      const limitElements = doc.querySelectorAll('.time-limit, .memory-limit, .input-file, .output-file');
+      limitElements.forEach(el => el.remove());
+
       if (isMainStatement) {
         const inputSpec = doc.querySelector('.input-specification');
         if (inputSpec) inputSpec.remove();
@@ -311,12 +334,11 @@ function SafeContentRenderer({ rawContent, isMainStatement = false }: { rawConte
             max-width: 100% !important;
             overflow-x: auto !important;
             word-wrap: break-word !important;
-            color: var(--text-main) !important;
+            color: var(--text-main);
           }
           .problem-statement-body p, 
           .problem-statement-body li, 
           .problem-statement-body td {
-            color: var(--text-main) !important;
             font-size: 13.5px !important;
             line-height: 1.6 !important;
             text-shadow: none !important;
@@ -345,7 +367,6 @@ function SafeContentRenderer({ rawContent, isMainStatement = false }: { rawConte
           .problem-statement-body th {
             border: 1px solid var(--glass-border) !important;
             padding: 6px 10px !important;
-            color: var(--text-main) !important;
             font-size: 12px !important;
           }
           .problem-statement-body img {
@@ -367,11 +388,10 @@ function SafeContentRenderer({ rawContent, isMainStatement = false }: { rawConte
           max-width: 100% !important;
           overflow-x: auto !important;
           word-wrap: break-word !important;
-          color: var(--text-main) !important;
+          color: var(--text-main);
         }
         .problem-statement-body p, 
         .problem-statement-body li {
-          color: var(--text-main) !important;
           font-size: 13.5px !important;
           line-height: 1.6 !important;
         }
