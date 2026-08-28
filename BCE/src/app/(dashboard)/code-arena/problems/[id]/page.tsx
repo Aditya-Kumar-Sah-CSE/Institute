@@ -154,6 +154,34 @@ export default async function CodeProblemPage({ params, searchParams }: { params
   const hasSolved = (submissions || []).some(s => s.status === 'ACCEPTED');
   const hasAttempted = (submissions || []).length > 0;
 
+  let sheetProblems: { problem_id: string }[] = [];
+  if (sheetData) {
+    const { data: problemsList } = await supabase
+      .from('coding_sheet_problems')
+      .select('problem_id')
+      .eq('sheet_id', sheetData.id)
+      .order('order_index', { ascending: true });
+    sheetProblems = problemsList || [];
+  } else {
+    const { data: allProblems } = await supabase
+      .from('coding_problems')
+      .select('id')
+      .eq('is_published', true)
+      .order('created_at', { ascending: true });
+    sheetProblems = (allProblems || []).map(p => ({ problem_id: p.id }));
+  }
+
+  const currentIndex = sheetProblems.findIndex(p => p.problem_id === id);
+  const navigation = currentIndex !== -1 ? {
+    currentIndex,
+    totalProblems: sheetProblems.length,
+    prevProblemId: currentIndex > 0 ? sheetProblems[currentIndex - 1].problem_id : null,
+    nextProblemId: currentIndex < sheetProblems.length - 1 ? sheetProblems[currentIndex + 1].problem_id : null,
+    firstProblemId: sheetProblems.length > 0 ? sheetProblems[0].problem_id : null,
+    lastProblemId: sheetProblems.length > 0 ? sheetProblems[sheetProblems.length - 1].problem_id : null,
+    sheetId: sheetId || null,
+  } : null;
+
   const pAny = problem as any;
   let problemData = {
     ...problem,
@@ -167,6 +195,7 @@ export default async function CodeProblemPage({ params, searchParams }: { params
     examples: pAny.examples || [],
     text_solution,
     youtube_url,
+    navigation,
   };
 
   const isLc = problem.source_type === 'LEETCODE' || problem.external_platform === 'LEETCODE';

@@ -22,10 +22,16 @@ import {
   Bot,
   X,
   Send,
-  HelpCircle
+  HelpCircle,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export interface ProblemSample {
   input: string;
@@ -72,6 +78,15 @@ export interface ProblemData {
   supported_languages?: CodeLanguage[];
   text_solution?: string | null;
   youtube_url?: string | null;
+  navigation?: {
+    currentIndex: number;
+    totalProblems: number;
+    prevProblemId: string | null;
+    nextProblemId: string | null;
+    firstProblemId: string | null;
+    lastProblemId: string | null;
+    sheetId: string | null;
+  } | null;
 }
 
 export function ExampleCopyBlock({ label, content }: { label: string; content: string }) {
@@ -859,6 +874,57 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
   const [isCopied, setIsCopied] = useState(false);
   
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const navigation = problem.navigation;
+
+  // Prefetch adjacent problem pages
+  useEffect(() => {
+    if (navigation) {
+      const sheetParam = navigation.sheetId ? `?sheet=${navigation.sheetId}` : '';
+      if (navigation.prevProblemId) {
+        router.prefetch(`/code-arena/problems/${navigation.prevProblemId}${sheetParam}`);
+      }
+      if (navigation.nextProblemId) {
+        router.prefetch(`/code-arena/problems/${navigation.nextProblemId}${sheetParam}`);
+      }
+    }
+  }, [navigation, router]);
+
+  // Keyboard shortcuts (Left/Right arrow keys)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      if (activeEl) {
+        const tagName = activeEl.tagName.toLowerCase();
+        if (
+          tagName === 'input' ||
+          tagName === 'textarea' ||
+          tagName === 'select' ||
+          activeEl.hasAttribute('contenteditable') ||
+          activeEl.classList.contains('input') ||
+          activeEl.classList.contains('monaco-editor') ||
+          activeEl.closest('.monaco-editor')
+        ) {
+          return;
+        }
+      }
+
+      const sheetParam = navigation?.sheetId ? `?sheet=${navigation.sheetId}` : '';
+
+      if (e.key === 'ArrowLeft' && navigation?.prevProblemId) {
+        e.preventDefault();
+        router.push(`/code-arena/problems/${navigation.prevProblemId}${sheetParam}`);
+      } else if (e.key === 'ArrowRight' && navigation?.nextProblemId) {
+        e.preventDefault();
+        router.push(`/code-arena/problems/${navigation.nextProblemId}${sheetParam}`);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [navigation, router]);
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -1035,6 +1101,133 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+      {/* Premium Problem Navigation Bar */}
+      {navigation && navigation.totalProblems > 0 && (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          background: 'rgba(255, 255, 255, 0.02)',
+          border: '1px solid var(--glass-border)',
+          borderRadius: '12px',
+          padding: '8px 16px',
+          backdropFilter: 'blur(8px)',
+          fontSize: '13px',
+          color: 'var(--text-secondary)',
+          userSelect: 'none',
+          boxSizing: 'border-box'
+        }}>
+          {/* Left: First & Prev */}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <Link
+              href={navigation.firstProblemId ? `/code-arena/problems/${navigation.firstProblemId}${navigation.sheetId ? `?sheet=${navigation.sheetId}` : ''}` : '#'}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                color: navigation.currentIndex === 0 ? 'var(--text-muted)' : 'var(--text-primary)',
+                textDecoration: 'none',
+                opacity: navigation.currentIndex === 0 ? 0.3 : 1,
+                pointerEvents: navigation.currentIndex === 0 ? 'none' : 'auto',
+                transition: 'all 0.2s ease',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+              title="First Problem"
+              onMouseEnter={(e) => {
+                if (navigation.currentIndex > 0) e.currentTarget.style.color = 'var(--neon-cyan)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = navigation.currentIndex === 0 ? 'var(--text-muted)' : 'var(--text-primary)';
+              }}
+            >
+              <ChevronsLeft size={16} /> <span className="desktop-only">First</span>
+            </Link>
+            <Link
+              href={navigation.prevProblemId ? `/code-arena/problems/${navigation.prevProblemId}${navigation.sheetId ? `?sheet=${navigation.sheetId}` : ''}` : '#'}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                color: !navigation.prevProblemId ? 'var(--text-muted)' : 'var(--text-primary)',
+                textDecoration: 'none',
+                opacity: !navigation.prevProblemId ? 0.3 : 1,
+                pointerEvents: !navigation.prevProblemId ? 'none' : 'auto',
+                transition: 'all 0.2s ease',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+              title="Previous Problem"
+              onMouseEnter={(e) => {
+                if (navigation.prevProblemId) e.currentTarget.style.color = 'var(--neon-cyan)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = !navigation.prevProblemId ? 'var(--text-muted)' : 'var(--text-primary)';
+              }}
+            >
+              <ChevronLeft size={16} /> <span>Previous</span>
+            </Link>
+          </div>
+
+          {/* Middle: Progress Indicator */}
+          <div style={{ fontWeight: 700, color: 'var(--neon-cyan)', letterSpacing: '0.5px' }}>
+            Problem {navigation.currentIndex + 1} / {navigation.totalProblems}
+          </div>
+
+          {/* Right: Next & Last */}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <Link
+              href={navigation.nextProblemId ? `/code-arena/problems/${navigation.nextProblemId}${navigation.sheetId ? `?sheet=${navigation.sheetId}` : ''}` : '#'}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                color: !navigation.nextProblemId ? 'var(--text-muted)' : 'var(--text-primary)',
+                textDecoration: 'none',
+                opacity: !navigation.nextProblemId ? 0.3 : 1,
+                pointerEvents: !navigation.nextProblemId ? 'none' : 'auto',
+                transition: 'all 0.2s ease',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+              title="Next Problem"
+              onMouseEnter={(e) => {
+                if (navigation.nextProblemId) e.currentTarget.style.color = 'var(--neon-cyan)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = !navigation.nextProblemId ? 'var(--text-muted)' : 'var(--text-primary)';
+              }}
+            >
+              <span>Next</span> <ChevronLeft size={16} style={{ transform: 'rotate(180deg)' }} />
+            </Link>
+            <Link
+              href={navigation.lastProblemId ? `/code-arena/problems/${navigation.lastProblemId}${navigation.sheetId ? `?sheet=${navigation.sheetId}` : ''}` : '#'}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                color: navigation.currentIndex === navigation.totalProblems - 1 ? 'var(--text-muted)' : 'var(--text-primary)',
+                textDecoration: 'none',
+                opacity: navigation.currentIndex === navigation.totalProblems - 1 ? 0.3 : 1,
+                pointerEvents: navigation.currentIndex === navigation.totalProblems - 1 ? 'none' : 'auto',
+                transition: 'all 0.2s ease',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+              title="Last Problem"
+              onMouseEnter={(e) => {
+                if (navigation.currentIndex < navigation.totalProblems - 1) e.currentTarget.style.color = 'var(--neon-cyan)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = navigation.currentIndex === navigation.totalProblems - 1 ? 'var(--text-muted)' : 'var(--text-primary)';
+              }}
+            >
+              <span className="desktop-only">Last</span> <ChevronsRight size={16} />
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Polished Problem Header */}
       <div style={{ borderBottom: '1px solid var(--glass-border)', paddingBottom: 'var(--space-md)' }}>
         <div style={{ display: 'flex', flexDirection: 'column' }}>

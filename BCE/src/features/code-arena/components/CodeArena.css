@@ -146,6 +146,12 @@
   padding: var(--space-lg);
   height: 100%; /* Take full layout cell height */
   overflow-y: auto;
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.code-statement-panel::-webkit-scrollbar {
+  display: none;
 }
 
 @media (min-width: 901px) {
