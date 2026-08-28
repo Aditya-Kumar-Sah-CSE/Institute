@@ -206,6 +206,159 @@ export const cleanMathNotationText = (text: string): string => {
   });
 };
 
+const PROBLEM_STATEMENT_STYLES = `
+  .problem-statement-body {
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    word-wrap: break-word !important;
+    color: var(--text-main);
+  }
+  .problem-statement-body p, 
+  .problem-statement-body li, 
+  .problem-statement-body td {
+    font-size: 13.5px !important;
+    line-height: 1.6 !important;
+    text-shadow: none !important;
+  }
+  .problem-statement-body pre, 
+  .problem-statement-body code {
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    max-width: 100% !important;
+    background: rgba(255, 255, 255, 0.02) !important;
+    border: 1px solid var(--glass-border) !important;
+    border-radius: 4px !important;
+    padding: 8px 12px !important;
+    font-family: monospace !important;
+    color: var(--text-main) !important;
+  }
+  .problem-statement-body code.math-formula {
+    color: var(--neon-cyan) !important;
+    font-weight: 500 !important;
+    background: rgba(255,255,255,0.04) !important;
+    border: 1px solid rgba(255,255,255,0.03) !important;
+  }
+  .problem-statement-body table {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-collapse: collapse !important;
+    margin: 16px 0 !important;
+    overflow-x: auto !important;
+    display: block !important;
+  }
+  .problem-statement-body td, 
+  .problem-statement-body th {
+    border: 1px solid var(--glass-border) !important;
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+  }
+  .problem-statement-body img {
+    max-width: 100% !important;
+    height: auto !important;
+    border-radius: 4px !important;
+  }
+  .problem-statement-body .input-specification {
+    background: rgba(6, 182, 212, 0.02) !important;
+    border-left: 3px solid var(--neon-cyan) !important;
+    border-radius: 4px !important;
+    padding: 8px 12px !important;
+    margin: 12px 0 !important;
+  }
+  .problem-statement-body .input-specification .section-title {
+    color: var(--neon-cyan) !important;
+    font-size: 13px !important;
+    font-weight: 800 !important;
+    margin-bottom: 6px !important;
+  }
+  .problem-statement-body .output-specification {
+    background: rgba(236, 72, 153, 0.02) !important;
+    border-left: 3px solid var(--neon-pink) !important;
+    border-radius: 4px !important;
+    padding: 8px 12px !important;
+    margin: 12px 0 !important;
+  }
+  .problem-statement-body .output-specification .section-title {
+    color: var(--neon-pink) !important;
+    font-size: 13px !important;
+    font-weight: 800 !important;
+    margin-bottom: 6px !important;
+  }
+  
+  /* Cycling colors for paragraphs, list items, definition descriptions, and table cells */
+  .problem-statement-body p:nth-of-type(8n+1),
+  .problem-statement-body li:nth-of-type(8n+1),
+  .problem-statement-body td:nth-of-type(8n+1),
+  .problem-statement-body dd:nth-of-type(8n+1),
+  .problem-statement-body dt:nth-of-type(8n+1) {
+    color: var(--neon-cyan) !important;
+    text-shadow: 0 0 1px rgba(0,0,0,0.5);
+    transition: color 0.3s ease;
+  }
+  .problem-statement-body p:nth-of-type(8n+2),
+  .problem-statement-body li:nth-of-type(8n+2),
+  .problem-statement-body td:nth-of-type(8n+2),
+  .problem-statement-body dd:nth-of-type(8n+2),
+  .problem-statement-body dt:nth-of-type(8n+2) {
+    color: #a855f7 !important;
+    text-shadow: 0 0 1px rgba(0,0,0,0.5);
+    transition: color 0.3s ease;
+  }
+  .problem-statement-body p:nth-of-type(8n+3),
+  .problem-statement-body li:nth-of-type(8n+3),
+  .problem-statement-body td:nth-of-type(8n+3),
+  .problem-statement-body dd:nth-of-type(8n+3),
+  .problem-statement-body dt:nth-of-type(8n+3) {
+    color: var(--neon-gold) !important;
+    text-shadow: 0 0 1px rgba(0,0,0,0.5);
+    transition: color 0.3s ease;
+  }
+  .problem-statement-body p:nth-of-type(8n+4),
+  .problem-statement-body li:nth-of-type(8n+4),
+  .problem-statement-body td:nth-of-type(8n+4),
+  .problem-statement-body dd:nth-of-type(8n+4),
+  .problem-statement-body dt:nth-of-type(8n+4) {
+    color: var(--neon-pink) !important;
+    text-shadow: 0 0 1px rgba(0,0,0,0.5);
+    transition: color 0.3s ease;
+  }
+  .problem-statement-body p:nth-of-type(8n+5),
+  .problem-statement-body li:nth-of-type(8n+5),
+  .problem-statement-body td:nth-of-type(8n+5),
+  .problem-statement-body dd:nth-of-type(8n+5),
+  .problem-statement-body dt:nth-of-type(8n+5) {
+    color: #3b82f6 !important;
+    text-shadow: 0 0 1px rgba(0,0,0,0.5);
+    transition: color 0.3s ease;
+  }
+  .problem-statement-body p:nth-of-type(8n+6),
+  .problem-statement-body li:nth-of-type(8n+6),
+  .problem-statement-body td:nth-of-type(8n+6),
+  .problem-statement-body dd:nth-of-type(8n+6),
+  .problem-statement-body dt:nth-of-type(8n+6) {
+    color: #10b981 !important;
+    text-shadow: 0 0 1px rgba(0,0,0,0.5);
+    transition: color 0.3s ease;
+  }
+  .problem-statement-body p:nth-of-type(8n+7),
+  .problem-statement-body li:nth-of-type(8n+7),
+  .problem-statement-body td:nth-of-type(8n+7),
+  .problem-statement-body dd:nth-of-type(8n+7),
+  .problem-statement-body dt:nth-of-type(8n+7) {
+    color: #fb923c !important;
+    text-shadow: 0 0 1px rgba(0,0,0,0.5);
+    transition: color 0.3s ease;
+  }
+  .problem-statement-body p:nth-of-type(8n),
+  .problem-statement-body li:nth-of-type(8n),
+  .problem-statement-body td:nth-of-type(8n),
+  .problem-statement-body dd:nth-of-type(8n),
+  .problem-statement-body dt:nth-of-type(8n) {
+    color: #f43f5e !important;
+    text-shadow: 0 0 1px rgba(0,0,0,0.5);
+    transition: color 0.3s ease;
+  }
+`;
+
 // Client-side HTML / Markdown content renderer
 function SafeContentRenderer({ rawContent, isMainStatement = false }: { rawContent: string; isMainStatement?: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -215,63 +368,7 @@ function SafeContentRenderer({ rawContent, isMainStatement = false }: { rawConte
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (!mounted || !containerRef.current) return;
-    
-    // Style normal paragraphs, list items, and table cells with cycling colors
-    const paragraphs = containerRef.current.querySelectorAll('p, li, td, dd, dt');
-    const colors = [
-      'var(--neon-cyan)',
-      '#a855f7',
-      'var(--neon-gold)',
-      'var(--neon-pink)',
-      '#3b82f6',
-      '#10b981',
-      '#fb923c',
-      '#f43f5e',
-    ];
-    paragraphs.forEach((p, idx) => {
-      const el = p as HTMLElement;
-      el.style.color = colors[idx % colors.length];
-      el.style.textShadow = '0 0 1px rgba(0,0,0,0.5)';
-      el.style.transition = 'color 0.3s ease';
-    });
-
-    // Style the structured spec divs if present (standard Codeforces HTML structure)
-    const inputSpecs = containerRef.current.querySelectorAll('.input-specification');
-    inputSpecs.forEach(el => {
-      (el as HTMLElement).style.background = 'rgba(6, 182, 212, 0.02)';
-      (el as HTMLElement).style.borderLeft = '3px solid var(--neon-cyan)';
-      (el as HTMLElement).style.borderRadius = '4px';
-      (el as HTMLElement).style.padding = '8px 12px';
-      (el as HTMLElement).style.margin = '12px 0';
-      
-      const title = el.querySelector('.section-title');
-      if (title) {
-        (title as HTMLElement).style.color = 'var(--neon-cyan)';
-        (title as HTMLElement).style.fontSize = '13px';
-        (title as HTMLElement).style.fontWeight = '800';
-        (title as HTMLElement).style.marginBottom = '6px';
-      }
-    });
-
-    const outputSpecs = containerRef.current.querySelectorAll('.output-specification');
-    outputSpecs.forEach(el => {
-      (el as HTMLElement).style.background = 'rgba(236, 72, 153, 0.02)';
-      (el as HTMLElement).style.borderLeft = '3px solid var(--neon-pink)';
-      (el as HTMLElement).style.borderRadius = '4px';
-      (el as HTMLElement).style.padding = '8px 12px';
-      (el as HTMLElement).style.margin = '12px 0';
-      
-      const title = el.querySelector('.section-title');
-      if (title) {
-        (title as HTMLElement).style.color = 'var(--neon-pink)';
-        (title as HTMLElement).style.fontSize = '13px';
-        (title as HTMLElement).style.fontWeight = '800';
-        (title as HTMLElement).style.marginBottom = '6px';
-      }
-    });
-  }, [rawContent, mounted]);
+  // Paragraph styling and specification box formatting are fully handled by CSS rules in PROBLEM_STATEMENT_STYLES
 
   if (!rawContent || !rawContent.trim()) {
     return <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Not provided.</span>;
@@ -351,52 +448,7 @@ function SafeContentRenderer({ rawContent, isMainStatement = false }: { rawConte
         suppressHydrationWarning
         style={{ fontSize: 'var(--text-sm)', lineHeight: '1.65', color: 'var(--text-main)' }}
       >
-        <style dangerouslySetInnerHTML={{ __html: `
-          .problem-statement-body {
-            max-width: 100% !important;
-            overflow-x: auto !important;
-            word-wrap: break-word !important;
-            color: var(--text-main);
-          }
-          .problem-statement-body p, 
-          .problem-statement-body li, 
-          .problem-statement-body td {
-            font-size: 13.5px !important;
-            line-height: 1.6 !important;
-            text-shadow: none !important;
-          }
-          .problem-statement-body pre, 
-          .problem-statement-body code {
-            white-space: pre-wrap !important;
-            word-break: break-word !important;
-            max-width: 100% !important;
-            background: rgba(255, 255, 255, 0.02) !important;
-            border: 1px solid var(--glass-border) !important;
-            border-radius: 4px !important;
-            padding: 8px 12px !important;
-            font-family: monospace !important;
-            color: var(--text-main) !important;
-          }
-          .problem-statement-body table {
-            width: 100% !important;
-            max-width: 100% !important;
-            border-collapse: collapse !important;
-            margin: 16px 0 !important;
-            overflow-x: auto !important;
-            display: block !important;
-          }
-          .problem-statement-body td, 
-          .problem-statement-body th {
-            border: 1px solid var(--glass-border) !important;
-            padding: 6px 10px !important;
-            font-size: 12px !important;
-          }
-          .problem-statement-body img {
-            max-width: 100% !important;
-            height: auto !important;
-            border-radius: 4px !important;
-          }
-        ` }} />
+        <style dangerouslySetInnerHTML={{ __html: PROBLEM_STATEMENT_STYLES }} />
         <div dangerouslySetInnerHTML={{ __html: cleanHtml }} />
       </div>
     );
@@ -405,31 +457,7 @@ function SafeContentRenderer({ rawContent, isMainStatement = false }: { rawConte
   // Fallback to Markdown or plain text
   return (
     <div ref={containerRef} className="problem-statement-body" style={{ fontSize: 'var(--text-sm)', lineHeight: '1.65', color: 'var(--text-main)' }}>
-      <style dangerouslySetInnerHTML={{ __html: `
-        .problem-statement-body {
-          max-width: 100% !important;
-          overflow-x: auto !important;
-          word-wrap: break-word !important;
-          color: var(--text-main);
-        }
-        .problem-statement-body p, 
-        .problem-statement-body li {
-          font-size: 13.5px !important;
-          line-height: 1.6 !important;
-        }
-        .problem-statement-body pre, 
-        .problem-statement-body code {
-          white-space: pre-wrap !important;
-          word-break: break-word !important;
-          max-width: 100% !important;
-          background: rgba(255, 255, 255, 0.02) !important;
-          border: 1px solid var(--glass-border) !important;
-          border-radius: 4px !important;
-          padding: 8px 12px !important;
-          font-family: monospace !important;
-          color: var(--text-main) !important;
-        }
-      ` }} />
+      <style dangerouslySetInnerHTML={{ __html: PROBLEM_STATEMENT_STYLES }} />
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{contentToRender}</ReactMarkdown>
     </div>
   );
