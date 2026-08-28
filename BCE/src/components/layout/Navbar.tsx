@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import NotificationBell from './NotificationBell';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import './Navbar.css';
@@ -13,7 +13,7 @@ import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 import { getIcon } from '@/lib/icon-mapper';
 import { signOut } from '@/features/auth/actions/auth';
 import { isAdminRole, isInstructorRole } from '@/lib/role-utils';
-import { MoreVertical } from 'lucide-react';
+import { MoreVertical, ArrowLeft } from 'lucide-react';
 
 const ITEM_GROUPS: Record<string, string> = {
   'Dashboard': 'Overview',
@@ -58,6 +58,54 @@ interface NavbarProps {
 export default function Navbar({ title, companyName, companyLogo, profile, currentView = 'student' }: NavbarProps) {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+
+  const [canGoBack, setCanGoBack] = React.useState(false);
+  const [currentUrl, setCurrentUrl] = React.useState('');
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setCurrentUrl(window.location.pathname + window.location.search);
+    }
+  });
+
+  React.useEffect(() => {
+    if (!currentUrl) return;
+
+    const sessionStack = sessionStorage.getItem('bce:nav-stack');
+    let stack: string[] = sessionStack ? JSON.parse(sessionStack) : [];
+
+    const isBack = sessionStorage.getItem('bce:nav-is-back') === 'true';
+    sessionStorage.removeItem('bce:nav-is-back');
+
+    if (isBack) {
+      setCanGoBack(stack.length > 1);
+    } else {
+      if (stack.length === 0 || stack[stack.length - 1] !== currentUrl) {
+        stack.push(currentUrl);
+        if (stack.length > 50) stack.shift();
+        sessionStorage.setItem('bce:nav-stack', JSON.stringify(stack));
+      }
+      setCanGoBack(stack.length > 1);
+    }
+  }, [currentUrl]);
+
+  const handleBack = () => {
+    if (typeof window === 'undefined') return;
+
+    const sessionStack = sessionStorage.getItem('bce:nav-stack');
+    let stack: string[] = sessionStack ? JSON.parse(sessionStack) : [];
+
+    if (stack.length > 1) {
+      stack.pop();
+      const prevUrl = stack[stack.length - 1];
+      
+      sessionStorage.setItem('bce:nav-stack', JSON.stringify(stack));
+      sessionStorage.setItem('bce:nav-is-back', 'true');
+      
+      router.push(prevUrl);
+    }
+  };
   const pageTitle = title || (pathname === '/dashboard' ? 'Dashboard' : 
                     pathname.startsWith('/admin') ? 'Admin Panel' :
                     pathname.startsWith('/courses') ? 'Courses' : 
@@ -127,6 +175,46 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
   return (
     <header className="dashboard-navbar" style={{ padding: '0 var(--space-md)' }}>
       <div className="navbar-left" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+        {canGoBack && (
+          <button
+            onClick={handleBack}
+            className="navbar-back-btn"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: '20px',
+              padding: '6px 14px',
+              fontSize: '12px',
+              fontWeight: 700,
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              marginRight: '8px',
+              userSelect: 'none',
+              boxSizing: 'border-box',
+              height: '32px'
+            }}
+            title="Go to previous page"
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(6, 182, 212, 0.08)';
+              e.currentTarget.style.borderColor = 'rgba(6, 182, 212, 0.3)';
+              e.currentTarget.style.color = 'var(--neon-cyan)';
+              e.currentTarget.style.boxShadow = '0 0 10px rgba(6, 182, 212, 0.2)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
+              e.currentTarget.style.borderColor = 'var(--glass-border)';
+              e.currentTarget.style.color = 'var(--text-secondary)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <ArrowLeft size={14} /> Back
+          </button>
+        )}
+
         {companyName && (
           <Link href={homeLink} className="company-branding-nav" style={{ padding: '0', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
             {companyLogo ? (
