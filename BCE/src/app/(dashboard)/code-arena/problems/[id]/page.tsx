@@ -6,6 +6,7 @@ import { getCodeArenaActor } from '@/features/code-arena/server';
 import ProblemStatementRenderer from '@/features/code-arena/components/ProblemStatementRenderer';
 import CodeEditor from '@/features/code-arena/components/CodeEditor';
 import ResizableIdeLayout from '@/features/code-arena/components/ResizableIdeLayout';
+import FocusTimer from '@/features/code-arena/components/FocusTimer';
 import { unstable_cache } from 'next/cache';
 import { codeforcesAdapter } from '@/lib/coding-platforms/codeforces';
 import { leetcodeAdapter } from '@/lib/coding-platforms/leetcode';
@@ -355,6 +356,8 @@ export default async function CodeProblemPage({ params, searchParams }: { params
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <FocusTimer />
+          
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--neon-cyan)', background: 'rgba(6,182,212,0.1)', padding: '4px 10px', borderRadius: '12px', fontWeight: 600 }}>
             <Trophy size={13} /> Practice Arena
           </div>

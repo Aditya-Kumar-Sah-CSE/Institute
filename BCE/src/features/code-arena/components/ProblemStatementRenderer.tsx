@@ -16,7 +16,13 @@ import {
   Tag,
   AlertCircle,
   PlayCircle,
-  BookOpen
+  BookOpen,
+  Sparkles,
+  Brain,
+  Bot,
+  X,
+  Send,
+  HelpCircle
 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
@@ -357,6 +363,225 @@ const PROBLEM_STATEMENT_STYLES = `
     text-shadow: 0 0 1px rgba(0,0,0,0.5);
     transition: color 0.3s ease;
   }
+
+  /* AI Assistant Side Drawer */
+  .ai-drawer-overlay {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 380px;
+    max-width: 100%;
+    background: rgba(11, 15, 25, 0.96);
+    backdrop-filter: blur(12px);
+    border-left: 1px solid var(--glass-border);
+    z-index: 50;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+  }
+  .ai-drawer-overlay.open {
+    transform: translateX(0);
+  }
+  .ai-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    border-bottom: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.01);
+  }
+  .ai-drawer-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ai-drawer-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    transition: all 0.2s;
+  }
+  .ai-drawer-close:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-main);
+  }
+  
+  .ai-chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    scrollbar-width: thin;
+  }
+  .ai-message {
+    max-width: 85%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    word-wrap: break-word;
+  }
+  .ai-message.assistant {
+    align-self: flex-start;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    border-bottom-left-radius: 2px;
+  }
+  .ai-message.user {
+    align-self: flex-end;
+    background: rgba(6, 182, 212, 0.15);
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    color: var(--neon-cyan);
+    border-bottom-right-radius: 2px;
+    text-shadow: 0 0 1px rgba(0,0,0,0.5);
+  }
+  .ai-message p {
+    margin: 0 0 8px 0 !important;
+    color: inherit !important;
+  }
+  .ai-message p:last-child {
+    margin-bottom: 0 !important;
+  }
+  .ai-message code {
+    background: rgba(0,0,0,0.3) !important;
+    border: 1px solid rgba(255,255,255,0.05) !important;
+    padding: 2px 4px !important;
+    border-radius: 3px !important;
+    font-size: 11px !important;
+    color: var(--neon-gold) !important;
+  }
+  .ai-message pre {
+    background: rgba(0,0,0,0.4) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    padding: 8px 12px !important;
+    border-radius: 6px !important;
+    overflow-x: auto !important;
+    margin: 8px 0 !important;
+  }
+  .ai-message pre code {
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+    font-size: 11px !important;
+    color: #e2e8f0 !important;
+  }
+  .ai-message h3 {
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    margin: 12px 0 6px 0 !important;
+    color: var(--neon-cyan) !important;
+  }
+  .ai-message h3:first-child {
+    margin-top: 0 !important;
+  }
+  
+  .ai-action-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .ai-action-chip {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .ai-action-chip:hover {
+    background: rgba(6, 182, 212, 0.1);
+    border-color: rgba(6, 182, 212, 0.4);
+    color: var(--neon-cyan);
+  }
+  
+  .ai-chat-input-container {
+    padding: 12px 16px;
+    border-top: 1px solid var(--glass-border);
+    background: rgba(15, 23, 42, 0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .ai-chat-input-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .ai-chat-input {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 8px 14px;
+    color: white;
+    font-size: 12.5px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .ai-chat-input:focus {
+    border-color: rgba(6, 182, 212, 0.5);
+  }
+  .ai-chat-send {
+    background: linear-gradient(135deg, var(--neon-cyan), var(--neon-blue));
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    color: black;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .ai-chat-send:hover:not(:disabled) {
+    transform: scale(1.05);
+    box-shadow: 0 0 10px rgba(6, 182, 212, 0.4);
+  }
+  .ai-chat-send:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  /* Typing Indicator */
+  .typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+  }
+  .typing-dot {
+    width: 5px;
+    height: 5px;
+    background: var(--text-muted);
+    border-radius: 50%;
+    animation: typingPulse 1.4s infinite ease-in-out;
+  }
+  .typing-dot:nth-child(1) { animation-delay: 0s; }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typingPulse {
+    0%, 100% { transform: translateY(0); opacity: 0.4; }
+    50% { transform: translateY(-4px); opacity: 1; }
+  }
 `;
 
 // Client-side HTML / Markdown content renderer
@@ -463,9 +688,255 @@ function SafeContentRenderer({ rawContent, isMainStatement = false }: { rawConte
   );
 }
 
+const generateChatGPTPrompt = (problem: ProblemData) => {
+  const statementText = problem.statement || problem.description || '';
+  const constraintsText = problem.constraints || '';
+  const inputFormat = problem.input_format || problem.inputDescription || '';
+  const outputFormat = problem.output_format || problem.outputDescription || '';
+  
+  const examplesList = problem.examples && problem.examples.length > 0 ? problem.examples : problem.samples || [];
+  let examplesText = '';
+  examplesList.forEach((ex: any, idx: number) => {
+    examplesText += `Example ${idx + 1}:\nInput:\n${ex.input || ex.stdin || ''}\nOutput:\n${ex.expected_output || ex.stdout || ''}\n\n`;
+  });
+
+  const stripHtml = (html: string) => {
+    if (typeof window === 'undefined') return html;
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    return temp.textContent || temp.innerText || html;
+  };
+
+  return `I am working on the following programming problem in C++17. Please help me understand the problem, analyze the complexity requirements, and provide a clean, optimized solution.
+
+### Problem Title: ${problem.title}
+### Platform: ${problem.source_type || problem.external_platform || 'INTERNAL'}
+
+### Problem Description:
+${stripHtml(statementText).trim()}
+
+### Constraints:
+${stripHtml(constraintsText).trim() || 'No specific constraints listed.'}
+
+### Input Format:
+${stripHtml(inputFormat).trim() || 'Standard input.'}
+
+### Output Format:
+${stripHtml(outputFormat).trim() || 'Standard output.'}
+
+### Examples:
+${examplesText.trim() || 'No sample examples provided.'}
+
+### Requested Programming Language: C++17`;
+};
+
+const getSimulatedAiResponse = (query: string, problem: ProblemData): string => {
+  const lower = query.toLowerCase();
+  const title = problem.title;
+  const constraintsText = problem.constraints || '';
+
+  const stripHtml = (html: string) => {
+    if (typeof window === 'undefined') return html;
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    return temp.textContent || temp.innerText || html;
+  };
+
+  const cleanConstraints = stripHtml(constraintsText).trim() || 'N <= 100,000';
+
+  if (lower.includes('explain') || lower.includes('simple terms') || lower.includes('understand')) {
+    return `### Problem Breakdown: **${title}**
+
+Here is a simplified explanation of what the problem is asking:
+1. **The Goal**: We need to process the given input and produce the correct output according to the problem rules.
+2. **Inputs**: We are provided with structured data (as detailed in the input specification).
+3. **Outputs**: We need to print the result exactly as described.
+4. **Key Logic**: Read the statement carefully. We want to identify the relationships between variables and handle any edge cases (like zero, negative numbers, or empty lists).
+
+Let me know if you want a specific approach suggested!`;
+  }
+
+  if (lower.includes('approach') || lower.includes('algorithm') || lower.includes('solve') || lower.includes('logic') || lower.includes('hint')) {
+    return `### Recommended Strategy for **${title}**
+
+To tackle this problem efficiently, consider the following approach:
+1. **Understand Constraints**: First, evaluate if a simple brute-force approach (like nesting loops) will fit within the time limits.
+2. **Optimal Data Structures**:
+   - Use a **Hash Map / Set** if you need $O(1)$ search and lookup operations.
+   - Use **Prefix Sums** or **Two Pointers** if the problem involves contiguous subarrays or sorted arrays.
+   - Use a **Stack / Queue** for tracking history or sliding windows.
+3. **Pseudocode Outline**:
+   - Initialize variables and read the input size $N$.
+   - Precompute values or sort the array if ordering helps.
+   - Loop through the input and maintain running status.
+   - Print the final result.
+
+What programming language syntax or API calls are you planning to use?`;
+  }
+
+  if (lower.includes('complexity') || lower.includes('time') || lower.includes('space') || lower.includes('limit')) {
+    return `### Time & Space Complexity Analysis
+
+For **${title}**, the constraints are:
+\`${cleanConstraints}\`
+
+**Guidelines based on Input Size ($N$):**
+- If $N \\le 10^5$, an **$O(N)$** or **$O(N \\log N)$** algorithm is required (e.g. Single pass loop, Sorting, Binary Search). An $O(N^2)$ nested loop will result in a **Time Limit Exceeded (TLE)**.
+- If $N \\le 20$, an $O(2^N)$ backtracking or recursion is acceptable.
+- Space Complexity: Aim for **$O(1)$** auxiliary space or **$O(N)$** if arrays/maps are needed. Avoid allocating heavy matrices unless explicitly required.
+
+Ensure you utilize fast I/O operations in C++ (\`cin.tie(NULL)\`) to minimize reading overhead.`;
+  }
+
+  if (lower.includes('c++') || lower.includes('cpp') || lower.includes('code') || lower.includes('solution')) {
+    return `### C++17 Implementation Hints
+
+Here is a recommended starter structure for your solution in C++17:
+
+\`\`\`cpp
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <unordered_map>
+
+using namespace std;
+
+void solve() {
+    // Read input variables
+    // Implement your logic here
+}
+
+int main() {
+    // Fast I/O
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    
+    // For single testcase
+    solve();
+    
+    // Or for multiple testcases:
+    /*
+    int t;
+    cin >> t;
+    while(t--) {
+        solve();
+    }
+    */
+    
+    return 0;
+}
+\`\`\`
+
+**Tips:**
+- Use \`std::vector\` for dynamic arrays.
+- Prefer \`std::unordered_map\` over \`std::map\` for $O(1)$ average lookups.
+- Avoid using \`std::endl\`, use \`'\\n'\` instead, as it does not force-flush the stream buffer.`;
+  }
+
+  return `### Smart Learn AI Support
+
+I've received your query about **${title}**. 
+
+I can help you with:
+- **"Explain the problem"**: Clarify the statement and requirements.
+- **"Suggest an approach"**: Brainstorm algorithmic structures.
+- **"Analyze complexity constraints"**: Check the limits and recommended time bounds.
+- **"C++17 hints"**: Give you template guidelines for implementing code.
+
+Please select one of the action chips above or ask a more specific question about standard library functions or debugging logic!`;
+};
+
 export default function ProblemStatementRenderer({ problem, onScrollToBottom }: { problem: ProblemData; onScrollToBottom?: () => void }) {
   const [showVideoSolution, setShowVideoSolution] = useState(false);
   const [showTextSolution, setShowTextSolution] = useState(false);
+
+  const [isAiDrawerOpen, setIsAiDrawerOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [isTyping, setIsTyping] = useState(false);
+  const [customQuery, setCustomQuery] = useState('');
+  const [isGptModalOpen, setIsGptModalOpen] = useState(false);
+  const [promptText, setPromptText] = useState('');
+  const [isCopied, setIsCopied] = useState(false);
+  
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [chatMessages, isTyping]);
+
+  const handleAskChatGPT = () => {
+    const prompt = generateChatGPTPrompt(problem);
+    
+    // Attempt automatic clipboard copy
+    try {
+      navigator.clipboard.writeText(prompt);
+    } catch (e) {
+      console.error('Failed to copy to clipboard', e);
+    }
+
+    const canPrefill = prompt.length < 2000;
+    if (canPrefill) {
+      // Direct prefill open
+      window.open(`https://chatgpt.com/?q=${encodeURIComponent(prompt)}`, '_blank');
+    } else {
+      // Problem too long, show copy fallback dialog
+      setPromptText(prompt);
+      setIsGptModalOpen(true);
+      // Wait a fraction and open ChatGPT in new tab
+      setTimeout(() => {
+        window.open('https://chatgpt.com/', '_blank');
+      }, 800);
+    }
+  };
+
+  const handleAskSmartLearnAI = () => {
+    setIsAiDrawerOpen(true);
+    if (chatMessages.length === 0) {
+      setChatMessages([
+        {
+          sender: 'assistant',
+          text: `Hello! I am your Smart Learn AI assistant. I have analyzed the problem **"${problem.title}"** and loaded its context (statement, constraints, examples, and C++17 workspace language).\n\nHow can I help you today? You can choose one of the quick options below or ask a question.`
+        }
+      ]);
+    }
+  };
+
+  const handleActionChipClick = (actionText: string) => {
+    if (isTyping) return;
+    
+    // Add user message
+    const userMsg = { sender: 'user', text: actionText };
+    setChatMessages((prev) => [...prev, userMsg]);
+    
+    // Trigger AI typing
+    setIsTyping(true);
+    
+    setTimeout(() => {
+      const responseText = getSimulatedAiResponse(actionText, problem);
+      setChatMessages((prev) => [...prev, { sender: 'assistant', text: responseText }]);
+      setIsTyping(false);
+    }, 1200);
+  };
+
+  const handleSendCustomQuery = () => {
+    if (!customQuery.trim() || isTyping) return;
+    
+    const query = customQuery.trim();
+    setCustomQuery('');
+    
+    // Add user message
+    setChatMessages((prev) => [...prev, { sender: 'user', text: query }]);
+    
+    setIsTyping(true);
+    
+    setTimeout(() => {
+      const responseText = getSimulatedAiResponse(query, problem);
+      setChatMessages((prev) => [...prev, { sender: 'assistant', text: responseText }]);
+      setIsTyping(false);
+    }, 1200);
+  };
 
   if (!problem) return null;
   const platformName = problem.source_type || problem.external_platform || 'INTERNAL';
@@ -600,7 +1071,68 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
               {problem.title.startsWith(externalId || '___') ? problem.title : `${externalId ? `${externalId} — ` : ''}${problem.title}`}
             </h1>
             
-            <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+            <div style={{ display: 'flex', gap: '8px', flexShrink: 0, flexWrap: 'wrap' }}>
+              <button
+                onClick={handleAskChatGPT}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid var(--glass-border)',
+                  color: 'var(--text-primary)',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.background = 'rgba(6, 182, 212, 0.1)';
+                  e.currentTarget.style.borderColor = 'rgba(6, 182, 212, 0.3)';
+                  e.currentTarget.style.color = 'var(--neon-cyan)';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                  e.currentTarget.style.borderColor = 'var(--glass-border)';
+                  e.currentTarget.style.color = 'var(--text-primary)';
+                }}
+                title="Ask ChatGPT to explain or help with this problem"
+              >
+                <Sparkles size={14} style={{ color: 'var(--neon-cyan)' }} /> Ask ChatGPT
+              </button>
+
+              <button
+                onClick={handleAskSmartLearnAI}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'rgba(6, 182, 212, 0.1)',
+                  border: '1px solid rgba(6, 182, 212, 0.3)',
+                  color: 'var(--neon-cyan)',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 0 10px rgba(6,182,212,0.15)'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.background = 'rgba(6, 182, 212, 0.2)';
+                  e.currentTarget.style.boxShadow = '0 0 14px rgba(6,182,212,0.25)';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.background = 'rgba(6, 182, 212, 0.1)';
+                  e.currentTarget.style.boxShadow = '0 0 10px rgba(6,182,212,0.15)';
+                }}
+                title="Open Smart Learn AI assistant"
+              >
+                <Brain size={14} /> Ask Smart Learn AI
+              </button>
+
               {problem.text_solution && (
                 <button
                   onClick={() => setShowTextSolution(true)}
@@ -946,6 +1478,140 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
             No video solution available.
           </p>
         )}
+      </Modal>
+      {/* Smart Learn AI Assistant Drawer */}
+      <div className={`ai-drawer-overlay ${isAiDrawerOpen ? 'open' : ''}`}>
+        <div className="ai-drawer-header">
+          <div className="ai-drawer-title">
+            <Bot size={16} className="text-neon-cyan" style={{ animation: 'pulse 2s infinite' }} />
+            <span>Smart Learn AI</span>
+          </div>
+          <button className="ai-drawer-close" onClick={() => setIsAiDrawerOpen(false)} aria-label="Close AI Assistant">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="ai-chat-messages" ref={chatContainerRef}>
+          {chatMessages.map((msg, idx) => (
+            <div key={idx} className={`ai-message ${msg.sender}`}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.text}</ReactMarkdown>
+            </div>
+          ))}
+          {isTyping && (
+            <div className="ai-message assistant">
+              <div className="typing-indicator">
+                <span className="typing-dot"></span>
+                <span className="typing-dot"></span>
+                <span className="typing-dot"></span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="ai-chat-input-container">
+          <div className="ai-action-chips">
+            <button className="ai-action-chip" onClick={() => handleActionChipClick('Explain the problem in simple terms')}>
+              Explain Problem
+            </button>
+            <button className="ai-action-chip" onClick={() => handleActionChipClick('Suggest approach/algorithm')}>
+              Suggest Approach
+            </button>
+            <button className="ai-action-chip" onClick={() => handleActionChipClick('Analyze time complexity constraints')}>
+              Analyze Complexity
+            </button>
+          </div>
+          <div className="ai-chat-input-row">
+            <input
+              type="text"
+              className="ai-chat-input"
+              placeholder="Ask a question..."
+              value={customQuery}
+              onChange={(e) => setCustomQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && customQuery.trim() && !isTyping) {
+                  handleSendCustomQuery();
+                }
+              }}
+            />
+            <button
+              className="ai-chat-send"
+              onClick={handleSendCustomQuery}
+              disabled={!customQuery.trim() || isTyping}
+              title="Send message"
+            >
+              <Send size={14} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ChatGPT Fallback Modal */}
+      <Modal
+        isOpen={isGptModalOpen}
+        onClose={() => setIsGptModalOpen(false)}
+        title="Ask ChatGPT"
+        size="sm"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--neon-cyan)', background: 'rgba(6,182,212,0.06)', border: '1px solid rgba(6,182,212,0.15)', padding: '12px', borderRadius: '8px' }}>
+            <Sparkles size={20} style={{ flexShrink: 0 }} />
+            <div style={{ fontSize: '13px', lineHeight: '1.5' }}>
+              We have copied the high-quality solution prompt to your clipboard and opened ChatGPT in a new tab!
+            </div>
+          </div>
+
+          <p style={{ margin: 0, fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+            Since the problem description is too long to prefill directly via the URL, please paste the copied text (\`Ctrl+V\` or \`Cmd+V\`) into the ChatGPT prompt box to get your help.
+          </p>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(promptText);
+                setIsCopied(true);
+                setTimeout(() => setIsCopied(false), 2000);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid var(--glass-border)',
+                color: 'var(--text-primary)',
+                padding: '6px 14px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              {isCopied ? <Check size={13} style={{ color: 'var(--neon-lime)' }} /> : <Copy size={13} />}
+              {isCopied ? 'Copied!' : 'Copy Prompt'}
+            </button>
+            <button
+              onClick={() => {
+                window.open('https://chatgpt.com/', '_blank');
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-blue))',
+                border: 'none',
+                color: 'black',
+                padding: '6px 14px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              <ExternalLink size={13} /> Open ChatGPT
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
