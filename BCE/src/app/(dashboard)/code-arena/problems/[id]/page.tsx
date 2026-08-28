@@ -1,12 +1,13 @@
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, Bell, UserCircle, Trophy } from 'lucide-react';
+import { ArrowLeft, Trophy } from 'lucide-react';
 import Link from 'next/link';
 import { getCodeArenaActor } from '@/features/code-arena/server';
 import ProblemStatementRenderer from '@/features/code-arena/components/ProblemStatementRenderer';
 import CodeEditor from '@/features/code-arena/components/CodeEditor';
 import ResizableIdeLayout from '@/features/code-arena/components/ResizableIdeLayout';
 import FocusTimer from '@/features/code-arena/components/FocusTimer';
+import UserAvatar from '@/components/shared/UserAvatar';
 import { unstable_cache } from 'next/cache';
 import { codeforcesAdapter } from '@/lib/coding-platforms/codeforces';
 import { leetcodeAdapter } from '@/lib/coding-platforms/leetcode';
@@ -65,6 +66,15 @@ export default async function CodeProblemPage({ params, searchParams }: { params
   const sheetId = search?.sheet;
   const { supabase, user } = await getCodeArenaActor();
   if (!user) return null;
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('name, avatar_url')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  const profileName = profile?.name || 'User';
+  const profileAvatar = profile?.avatar_url || null;
 
   const { data: problem } = await supabase
     .from('coding_problems')
@@ -363,22 +373,15 @@ export default async function CodeProblemPage({ params, searchParams }: { params
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)' }}>
-            <button
-              type="button"
+            <Link
+              href="/profile"
               className="oj-icon-btn"
-              aria-label="Notifications"
-              title="Notifications"
+              style={{ overflow: 'hidden', position: 'relative', width: '30px', height: '30px', borderRadius: '50%' }}
+              title={`View Profile: ${profileName}`}
+              aria-label="View Profile"
             >
-              <Bell size={15} />
-            </button>
-            <button
-              type="button"
-              className="oj-icon-btn"
-              aria-label="User profile"
-              title="User profile"
-            >
-              <UserCircle size={15} />
-            </button>
+              <UserAvatar url={profileAvatar} name={profileName} size={30} />
+            </Link>
           </div>
         </div>
       </header>
