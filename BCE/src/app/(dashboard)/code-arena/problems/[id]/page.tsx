@@ -7,6 +7,7 @@ import ProblemStatementRenderer from '@/features/code-arena/components/ProblemSt
 import CodeEditor from '@/features/code-arena/components/CodeEditor';
 import ResizableIdeLayout from '@/features/code-arena/components/ResizableIdeLayout';
 import FocusTimer from '@/features/code-arena/components/FocusTimer';
+import SpotifyConnect from '@/features/code-arena/components/SpotifyConnect';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { unstable_cache } from 'next/cache';
 import { codeforcesAdapter } from '@/lib/coding-platforms/codeforces';
@@ -366,6 +367,7 @@ export default async function CodeProblemPage({ params, searchParams }: { params
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <SpotifyConnect />
           <FocusTimer />
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--neon-cyan)', background: 'rgba(6,182,212,0.1)', padding: '4px 10px', borderRadius: '12px', fontWeight: 600 }}>
