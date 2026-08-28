@@ -11,9 +11,40 @@ export default function SpotifyConnect() {
   }, []);
 
   const handleOpenSpotify = () => {
-    if (typeof window !== 'undefined') {
-      window.open('https://open.spotify.com/', '_blank', 'noopener,noreferrer');
+    if (typeof window === 'undefined') return;
+
+    // Check if running inside Electron / desktop context
+    const isElectron = 
+      window.navigator.userAgent.toLowerCase().indexOf(' electron/') > -1 ||
+      (window as any).electron ||
+      (window as any).ipcRenderer;
+
+    if (isElectron) {
+      // Attempt using window.electron to open URL in Brave
+      const electronObj = (window as any).electron;
+      if (electronObj && typeof electronObj.openUrl === 'function') {
+        try {
+          electronObj.openUrl('https://open.spotify.com/', 'brave');
+          return;
+        } catch (e) {
+          console.error('Failed to open via Electron openUrl:', e);
+        }
+      }
+
+      // Attempt using ipcRenderer to send custom URL open events
+      const ipc = (window as any).ipcRenderer;
+      if (ipc && typeof ipc.send === 'function') {
+        try {
+          ipc.send('open-url', { url: 'https://open.spotify.com/', browser: 'brave' });
+          return;
+        } catch (e) {
+          console.error('Failed to send open-url via Electron ipcRenderer:', e);
+        }
+      }
     }
+
+    // Default web/Vercel browser launch fallback
+    window.open('https://open.spotify.com/', '_blank', 'noopener,noreferrer');
   };
 
   // SSR Safe: Return a matching static skeleton during server rendering and hydration
