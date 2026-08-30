@@ -142,6 +142,11 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
   const hasSwitcherPanels = showSuperAdminSwitch || showStudentSwitch || showAdminSwitch || showInstructorSwitch;
 
   const navItems = [...baseNavItems];
+  // Add Multiplayer Games directly here (not in constants.ts) to avoid SSR/client hydration mismatch
+  if (!navItems.some(i => i.href === '/games')) {
+    const brickIdx = navItems.findIndex(i => i.href === '/code-arena/game');
+    navItems.splice(brickIdx + 1, 0, { label: 'Multiplayer Games', href: '/games', icon: 'Game' });
+  }
   if (isPlatformOwner && !navItems.some(i => i.href === '/super-admin')) {
     navItems.push({ label: 'Super Admin', href: '/super-admin', icon: 'Admin' });
   }
