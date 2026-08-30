@@ -36,6 +36,7 @@ import Modal from '@/components/ui/Modal';
 import type { CodeLanguage, NormalizedExecutionResult } from '../types';
 type SaveStatus = 'Saved' | 'Saving...' | 'Local save unavailable' | 'Saved locally';
 import './CodeArena.css';
+import { registerMonacoIntelliSense, intelliSenseEditorOptions } from '../lib/monacoIntelliSense';
 
 const Editor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
@@ -1798,7 +1799,13 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
             language={monaco[language]}
             value={code}
             onChange={(v) => handleCodeChange(v || '')}
-            options={{ automaticLayout: true, minimap: { enabled: false }, fontSize: 14 }}
+            beforeMount={registerMonacoIntelliSense}
+            options={{
+              automaticLayout: true,
+              minimap: { enabled: false },
+              fontSize: 14,
+              ...intelliSenseEditorOptions,
+            }}
           />
         </div>
          {/* Bottom Console Panel */}

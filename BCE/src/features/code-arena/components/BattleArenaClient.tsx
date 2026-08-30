@@ -49,6 +49,7 @@ import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import { saveDraft, getDraft } from '../storage/problemStorage';
 import { downloadSvgAsImage } from '@/lib/utils/certificateExporter';
 import './CodeArena.css';
+import { registerMonacoIntelliSense, intelliSenseEditorOptions } from '../lib/monacoIntelliSense';
 
 const Editor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
@@ -1704,12 +1705,14 @@ export default function BattleArenaClient({
                     language={language === 'cpp17' ? 'cpp' : language}
                     value={code}
                     onChange={(v) => handleCodeChange(v || '')}
+                    beforeMount={registerMonacoIntelliSense}
                     options={{
                        automaticLayout: true,
                        minimap: { enabled: false },
                        fontSize: 13,
                        lineNumbers: 'on',
                        renderLineHighlight: 'all',
+                       ...intelliSenseEditorOptions,
                     }}
                   />
                 </div>

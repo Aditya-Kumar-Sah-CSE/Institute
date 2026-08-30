@@ -22,6 +22,7 @@ import { useRouter } from 'next/navigation';
 import type { ProblemData } from './ProblemStatementRenderer';
 import { saveDraft, getDraft } from '../storage/problemStorage';
 import './CodeArena.css';
+import { registerMonacoIntelliSense, intelliSenseEditorOptions } from '../lib/monacoIntelliSense';
 
 const Editor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
@@ -468,6 +469,7 @@ export default function CodeEditor({
               theme="vs-dark"
               value={code}
               onChange={(v) => handleCodeChange(v || '')}
+              beforeMount={registerMonacoIntelliSense}
               options={{
                 minimap: { enabled: false },
                 fontSize: 14,
@@ -476,6 +478,7 @@ export default function CodeEditor({
                 lineNumbers: 'on',
                 renderLineHighlight: 'all',
                 padding: { top: 10, bottom: 10 },
+                ...intelliSenseEditorOptions,
               }}
             />
           </Suspense>
