@@ -296,3 +296,53 @@ small, .caption {
     max-width: 100% !important;
   }
 }
+
+/* === Premium Global Button Loading Glow Animation === */
+.premium-loading-active {
+  position: relative !important;
+  pointer-events: none !important;
+  opacity: 0.9 !important;
+  user-select: none !important;
+  transition: opacity 0.2s ease !important;
+}
+
+.premium-border-flow-overlay {
+  position: absolute !important;
+  inset: 0 !important;
+  border-radius: inherit !important;
+  padding: 2px !important; /* Border thickness */
+  pointer-events: none !important;
+  z-index: 99999 !important;
+  overflow: hidden !important;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor !important;
+  mask-composite: exclude !important;
+}
+
+.premium-border-flow-glow {
+  position: absolute !important;
+  top: -50% !important;
+  left: -50% !important;
+  width: 200% !important;
+  height: 200% !important;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0%,
+    transparent 60%,
+    #10b981 85%,
+    #34d399 95%,
+    #10b981 100%
+  ) !important;
+  animation: premium-border-spin 1.2s linear infinite !important;
+  border-radius: inherit !important;
+}
+
+@keyframes premium-border-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+

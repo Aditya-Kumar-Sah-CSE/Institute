@@ -18,6 +18,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 import { ThemeProvider } from '@/components/ThemeProvider';
 import AuthChangeHandler from '@/components/AuthChangeHandler';
+import GlobalButtonLoadingHandler from '@/components/GlobalButtonLoadingHandler';
 
 export const viewport: Viewport = {
   themeColor: '#0b0f19',
@@ -60,6 +61,7 @@ export default function RootLayout({
       <body suppressHydrationWarning className={`${outfit.variable} ${jetbrainsMono.variable}`}>
         <ThemeProvider attribute="data-theme" defaultTheme="dark" enableSystem={false} disableTransitionOnChange={false}>
           <AuthChangeHandler />
+          <GlobalButtonLoadingHandler />
           {children}
         </ThemeProvider>
       </body>
