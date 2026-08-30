@@ -95,8 +95,15 @@ export default function BattleArenaClient({
   const [activeRightTab, setActiveRightTab] = useState<'editor' | 'results'>('editor');
 
   // Editor save states
-  const [saveStatus, setSaveStatus] = useState<'Saved' | 'Saving...' | 'Unsaved changes'>('Saved');
+  const [saveStatus, setSaveStatus] = useState<'Saved' | 'Saving...' | 'Unsaved changes' | 'Save failed'>('Saved');
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const backupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSavedCodeRef = useRef<string>('');
+  const lastSavedTimeRef = useRef<number>(0);
+  const codeRef = useRef<string>('');
+  useEffect(() => {
+    codeRef.current = code;
+  }, [code]);
 
   // Anti-cheat states
   const [cheatWarning, setCheatWarning] = useState<string | null>(null);
@@ -291,28 +298,58 @@ export default function BattleArenaClient({
     const uid = currentUser?.id || 'guest';
     const storageProbId = `${battle.id}:${problem.id}`;
     
+    let initialCode = problem.starterCode?.[lang] || starters[lang];
+    let lastSavedTime = 0;
+
+    const draft = await getDraft(uid, storageProbId, lang);
+    if (draft) {
+      initialCode = draft.code;
+      lastSavedTime = draft.updatedAt || 0;
+    }
+
     if (typeof window !== 'undefined') {
       const legacyKey = `bce:code-save:${uid}:${battle.id}:${problem.id}:${lang}`;
       const legacySaved = localStorage.getItem(legacyKey);
       if (legacySaved) {
+        initialCode = legacySaved;
         await saveDraft(uid, storageProbId, lang, legacySaved);
         localStorage.removeItem(legacyKey);
-        return legacySaved;
+        lastSavedTime = Date.now();
+      } else {
+        const draftKey = `bce:code-draft:${battle.id}:${problem.id}:${lang}`;
+        const legacySaved2 = localStorage.getItem(draftKey);
+        if (legacySaved2) {
+          initialCode = legacySaved2;
+          await saveDraft(uid, storageProbId, lang, legacySaved2);
+          localStorage.removeItem(draftKey);
+          lastSavedTime = Date.now();
+        }
       }
-      
-      // Fallback to legacy draft key to never lose code
-      const draftKey = `bce:code-draft:${battle.id}:${problem.id}:${lang}`;
-      const legacySaved2 = localStorage.getItem(draftKey);
-      if (legacySaved2) {
-        await saveDraft(uid, storageProbId, lang, legacySaved2);
-        localStorage.removeItem(draftKey);
-        return legacySaved2;
+
+      // Check lightweight backup
+      const backupKey = `bce:backup-save-battle:${uid}:${battle.id}:${problem.id}:${lang}`;
+      const backupRaw = localStorage.getItem(backupKey);
+      if (backupRaw) {
+        try {
+          const backup = JSON.parse(backupRaw);
+          if (
+            backup.userId === uid &&
+            backup.battleId === battle.id &&
+            backup.problemId === problem.id &&
+            backup.language === lang &&
+            backup.timestamp > lastSavedTime
+          ) {
+            initialCode = backup.code;
+            await saveDraft(uid, storageProbId, lang, backup.code);
+          }
+        } catch (e) {
+          console.error('Failed to parse battle backup:', e);
+        }
+        localStorage.removeItem(backupKey);
       }
     }
 
-    const draft = await getDraft(uid, storageProbId, lang);
-    if (draft) return draft.code;
-    return problem.starterCode?.[lang] || starters[lang];
+    return initialCode;
   };
 
   // Load initial code draft on mount
@@ -321,6 +358,8 @@ export default function BattleArenaClient({
       if (problems && problems[0]) {
         const initialCode = await loadDraftOrStarter(problems[0], language);
         setCode(initialCode);
+        lastSavedCodeRef.current = initialCode;
+        setSaveStatus('Saved');
       }
     }
     initCode();
@@ -463,47 +502,154 @@ export default function BattleArenaClient({
   }, [battle.status, isInstructor, isVirtualPractice]);
 
   const saveCode = async (newCode: string, probId: string, lang: CodeLanguage) => {
+    if (newCode === lastSavedCodeRef.current) {
+      setSaveStatus('Saved');
+      return;
+    }
+
     setSaveStatus('Saving...');
     const uid = currentUser?.id || 'guest';
-    await saveDraft(uid, `${battle.id}:${probId}`, lang, newCode);
-    setSaveStatus('Saved');
+    try {
+      await saveDraft(uid, `${battle.id}:${probId}`, lang, newCode);
+      lastSavedCodeRef.current = newCode;
+      lastSavedTimeRef.current = Date.now();
+      
+      const backupKey = `bce:backup-save-battle:${uid}:${battle.id}:${probId}:${lang}`;
+      localStorage.removeItem(backupKey);
+      
+      setSaveStatus('Saved');
+    } catch (e) {
+      console.error('Failed to save battle code draft:', e);
+      setSaveStatus('Save failed');
+    }
   };
 
   // Initialize code when problem or language changes
   const handleSelectProblem = async (idx: number) => {
+    // Flush current pending changes before switching
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+    if (currentProblem && code !== lastSavedCodeRef.current) {
+      const uid = currentUser?.id || 'guest';
+      await saveDraft(uid, `${battle.id}:${currentProblem.id}`, language, code);
+      const backupKey = `bce:backup-save-battle:${uid}:${battle.id}:${currentProblem.id}:${language}`;
+      localStorage.removeItem(backupKey);
+    }
+
     setActiveProblemIdx(idx);
     const prob = problems[idx];
     if (prob) {
       const loadedCode = await loadDraftOrStarter(prob, language);
       setCode(loadedCode);
+      lastSavedCodeRef.current = loadedCode;
       setSaveStatus('Saved');
     }
   };
 
   const handleSelectLanguage = async (lang: CodeLanguage) => {
+    // Flush current pending changes before switching
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+    if (currentProblem && code !== lastSavedCodeRef.current) {
+      const uid = currentUser?.id || 'guest';
+      await saveDraft(uid, `${battle.id}:${currentProblem.id}`, language, code);
+      const backupKey = `bce:backup-save-battle:${uid}:${battle.id}:${currentProblem.id}:${language}`;
+      localStorage.removeItem(backupKey);
+    }
+
     setLanguage(lang);
     if (currentProblem) {
       const loadedCode = await loadDraftOrStarter(currentProblem, lang);
       setCode(loadedCode);
+      lastSavedCodeRef.current = loadedCode;
       setSaveStatus('Saved');
     }
   };
 
   const handleCodeChange = (newVal: string) => {
     setCode(newVal);
+    
+    if (newVal === lastSavedCodeRef.current) {
+      setSaveStatus('Saved');
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+      if (currentProblem) {
+        const uid = currentUser?.id || 'guest';
+        const backupKey = `bce:backup-save-battle:${uid}:${battle.id}:${currentProblem.id}:${language}`;
+        localStorage.removeItem(backupKey);
+      }
+      return;
+    }
+
     setSaveStatus('Unsaved changes');
+
+    // Debounced lightweight backup to localStorage
+    if (backupTimeoutRef.current) clearTimeout(backupTimeoutRef.current);
+    backupTimeoutRef.current = setTimeout(() => {
+      if (currentProblem) {
+        const uid = currentUser?.id || 'guest';
+        const backupKey = `bce:backup-save-battle:${uid}:${battle.id}:${currentProblem.id}:${language}`;
+        localStorage.setItem(backupKey, JSON.stringify({
+          code: newVal,
+          timestamp: Date.now(),
+          userId: uid,
+          battleId: battle.id,
+          problemId: currentProblem.id,
+          language
+        }));
+      }
+    }, 100);
+
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(() => {
       if (currentProblem) {
         saveCode(newVal, currentProblem.id, language);
       }
-    }, 1000);
+    }, 1500);
+  };
+
+  const handleManualSave = async () => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+    if (currentProblem) {
+      await saveCode(codeRef.current, currentProblem.id, language);
+    }
   };
 
   useEffect(() => {
-    return () => {
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (codeRef.current !== lastSavedCodeRef.current) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return e.returnValue;
+      }
     };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      if (backupTimeoutRef.current) clearTimeout(backupTimeoutRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleSaveKeyDown = (e: KeyboardEvent) => {
+      const isMod = e.ctrlKey || e.metaKey;
+      if (isMod && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        handleManualSave();
+      }
+    };
+    window.addEventListener('keydown', handleSaveKeyDown);
+    return () => window.removeEventListener('keydown', handleSaveKeyDown);
   }, []);
 
   const resetCode = () => {
@@ -511,6 +657,10 @@ export default function BattleArenaClient({
       if (currentProblem) {
         const starter = currentProblem.starterCode?.[language] || starters[language];
         setCode(starter);
+        if (saveTimeoutRef.current) {
+          clearTimeout(saveTimeoutRef.current);
+          saveTimeoutRef.current = null;
+        }
         saveCode(starter, currentProblem.id, language);
       }
     }
@@ -1616,7 +1766,7 @@ export default function BattleArenaClient({
                   </button>
                 </div>
                 {/* Monaco Container with protections and captures */}
-                <div 
+                 <div 
                   className={`code-monaco-wrapper ${isFullscreen ? 'code-editor-fullscreen' : ''}`}
                   onContextMenuCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
                   onCopyCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
@@ -1630,10 +1780,17 @@ export default function BattleArenaClient({
                   onDropCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
                   onKeyDownCapture={(e) => {
                     const isMod = e.ctrlKey || e.metaKey;
-                    if (isMod && ['c', 'v', 'x'].includes(e.key.toLowerCase())) {
+                    const isShift = e.shiftKey;
+                    const key = e.key.toLowerCase();
+                    if (
+                      (isMod && ['c', 'v', 'x'].includes(key)) ||
+                      (isShift && e.key === 'Insert') ||
+                      (isMod && e.key === 'Insert') ||
+                      (isShift && e.key === 'Delete')
+                    ) {
                       e.preventDefault();
                       e.stopPropagation();
-                      if (e.key.toLowerCase() === 'v') {
+                      if (key === 'v' || e.key === 'Insert') {
                         reportSuspiciousActivity('paste', 'User attempted to paste code via keyboard shortcut');
                       }
                     }
@@ -1662,7 +1819,7 @@ export default function BattleArenaClient({
                       </span>
                       <button
                         type="button"
-                        onClick={() => currentProblem && saveCode(code, currentProblem.id, language)}
+                        onClick={handleManualSave}
                         style={{
                           background: 'rgba(6, 182, 212, 0.1)',
                           border: '1px solid rgba(6, 182, 212, 0.3)',
@@ -1712,6 +1869,7 @@ export default function BattleArenaClient({
                        fontSize: 13,
                        lineNumbers: 'on',
                        renderLineHighlight: 'all',
+                       contextmenu: false,
                        ...intelliSenseEditorOptions,
                     }}
                   />

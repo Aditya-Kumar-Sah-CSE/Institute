@@ -1,0 +1,136 @@
+# Upgrade Monaco Editor IntelliSense
+
+Enhance the existing Monaco Editor across all three code arena components (`PersonalCompiler`, `CodeEditor`, `BattleArenaClient`) with rich, language-aware IntelliSense — without replacing Monaco or breaking the existing workspace/save/compile/terminal system.
+
+## Current State
+
+- **Monaco wrapper**: `@monaco-editor/react` v4.7.0 (uses `monaco-editor` underneath)
+- **3 Editor instances** exist across the codebase:
+  - [PersonalCompiler.tsx](file:///d:/Institute/BCE/src/features/code-arena/components/PersonalCompiler.tsx#L1795-L1802) — main IDE workspace
+  - [CodeEditor.tsx](file:///d:/Institute/BCE/src/features/code-arena/components/CodeEditor.tsx#L465-L480) — problem-solving editor
+  - [BattleArenaClient.tsx](file:///d:/Institute/BCE/src/features/code-arena/components/BattleArenaClient.tsx#L1701-L1714) — battle arena editor
+- **Current IntelliSense**: Only Monaco's built-in defaults (basic syntax highlighting, bracket matching). No custom completion providers, no snippets, no enhanced suggestions.
+- **Language detection**: Already maps file extensions → Monaco language IDs.
+
+## Proposed Changes
+
+### New IntelliSense Provider Module
+
+#### [NEW] [monacoIntelliSense.ts](file:///d:/Institute/BCE/src/features/code-arena/lib/monacoIntelliSense.ts)
+
+A single module that registers all IntelliSense providers with Monaco. Called once via `beforeMount` on the first Editor to load. Contains:
+
+1. **Completion Providers** (via `monaco.languages.registerCompletionItemProvider`) for each language:
+   - **C++ (`cpp`)**: STL headers (`#include` suggestions triggered after `#`), `std::` namespace members, container methods (`.push_back`, `.begin`, etc.), `->` / `::` triggers, all C++ keywords, competitive programming templates (BFS, DFS, segment tree, DSU, etc.)
+   - **C (`c`)**: Standard library headers (`#include` suggestions), `stdio.h`/`stdlib.h`/`string.h` functions, C keywords, common macros
+   - **Python (`python`)**: Built-in functions (`print`, `range`, `len`, `sorted`, etc.), common stdlib modules (`collections`, `heapq`, `bisect`, `sys`, `math`, `itertools`), Python keywords, `.` member access on common types, competitive programming snippets
+   - **Java (`java`)**: `java.util.*` classes, `Scanner`/`BufferedReader` methods, collections API, `System.out` suggestions, Java keywords, import suggestions, CP templates
+   - **JavaScript (`javascript`)**: Built-in globals (`console`, `Math`, `Array`, `Object`, `JSON`, `Map`, `Set`, `Promise`), `.` member access, module patterns, keywords, arrow function templates
+
+2. **Trigger Characters**: `.`, `>` (for `->` in C/C++), `:` (for `::` in C++), `#` (for `#include`), `/` (for path suggestions in `#include`)
+
+3. **Signature Help Providers** (via `monaco.languages.registerSignatureHelpProvider`):
+   - Show function parameter info in a popup when typing `(` or `,`
+   - Cover commonly-used standard library functions per language
+
+4. **Hover Providers** (via `monaco.languages.registerHoverProvider`):
+   - Brief docs for standard library functions and keywords on hover
+
+5. **User-Defined Symbol Extraction**:
+   - Parse the current editor content to extract user-defined variable names, function names, class names, and struct names
+   - Provide these as completion suggestions with appropriate icons and priority
+
+6. **Competitive Programming Snippet Library**:
+   - Common CP templates: BFS, DFS, Dijkstra, segment tree, BIT/Fenwick, DSU/Union-Find, binary search template, fast I/O, modular arithmetic, matrix exponentiation, etc.
+   - Registered as `monaco.languages.CompletionItemKind.Snippet` with proper `insertTextRules` for tab stops
+   - Categorized with detail descriptions like `[CP Template] Dijkstra's Algorithm`
+
+---
+
+### Editor Component Modifications
+
+#### [MODIFY] [PersonalCompiler.tsx](file:///d:/Institute/BCE/src/features/code-arena/components/PersonalCompiler.tsx)
+
+- Add `beforeMount` prop to the `<Editor>` component that calls the IntelliSense registration function
+- Enhance editor `options` to enable:
+  - `quickSuggestions: true` (for automatic suggestions)  
+  - `suggestOnTriggerCharacters: true`
+  - `parameterHints: { enabled: true }`
+  - `wordBasedSuggestions: 'currentDocument'`
+  - `suggest: { showSnippets: true, showKeywords: true, snippetsPreventQuickSuggestions: false, localityBonus: true }`
+  - `tabCompletion: 'on'`
+  - `acceptSuggestionOnEnter: 'on'`
+
+#### [MODIFY] [CodeEditor.tsx](file:///d:/Institute/BCE/src/features/code-arena/components/CodeEditor.tsx)
+
+- Same `beforeMount` prop addition and enhanced editor options as PersonalCompiler
+
+#### [MODIFY] [BattleArenaClient.tsx](file:///d:/Institute/BCE/src/features/code-arena/components/BattleArenaClient.tsx)
+
+- Same `beforeMount` prop addition and enhanced editor options as PersonalCompiler
+
+---
+
+## Implementation Details
+
+### Registration Strategy
+
+- All providers are registered **once** inside a `beforeMount` callback using `@monaco-editor/react`'s `beforeMount` prop
+- A module-level guard (`let registered = false`) prevents double registration across multiple editor mounts
+- The registration function accepts the `monaco` instance and registers all completion/signature/hover providers
+- Each language gets its own `registerCompletionItemProvider` call with language-specific `triggerCharacters`
+
+### User-Defined Symbol Extraction
+
+- On each completion request, the current editor model text is parsed with simple regex patterns:
+  - C/C++: `(int|void|string|auto|...)\s+(\w+)\s*\(` for functions, `(struct|class)\s+(\w+)` for types, variable declarations
+  - Python: `def\s+(\w+)`, `class\s+(\w+)`, variable assignments `^(\w+)\s*=`
+  - Java: `(public|private|...)\s+\w+\s+(\w+)\s*\(`, `class\s+(\w+)`
+  - JavaScript: `(function|const|let|var)\s+(\w+)`, `class\s+(\w+)`
+- These are lightweight regex scans (~1ms for typical competitive programming code)
+
+### `#include` Suggestions (C/C++)
+
+- Triggered when typing `#` or after `#include <` / `#include "`
+- Suggests common headers: `<iostream>`, `<vector>`, `<algorithm>`, `<string>`, `<map>`, `<set>`, `<queue>`, `<stack>`, `<cmath>`, `<bits/stdc++.h>`, etc.
+- For C: `<stdio.h>`, `<stdlib.h>`, `<string.h>`, `<math.h>`, etc.
+
+### Member Access Suggestions
+
+- `.` trigger: Suggests common methods for containers/types (e.g., after typing `vec.` → `push_back`, `size`, `empty`, `begin`, `end`)
+- `->` trigger (C/C++): Same set of member suggestions
+- `::` trigger (C++): `std::` members, `cin`, `cout`, `endl`, `vector`, `map`, `set`, etc.
+
+### Performance Considerations
+
+- All data is **static and in-memory** — no network requests for completions
+- User symbol extraction uses simple regex, not full AST parsing
+- Suggestion lists are bounded (max ~200 items per category)
+- Provider registration is gated by a `registered` boolean, zero cost on subsequent mounts
+- Lazy module import: the IntelliSense module is only loaded client-side through the `beforeMount` callback
+
+## Verification Plan
+
+### Manual Verification
+
+1. Open PersonalCompiler → create a `.cpp` file → verify:
+   - Keywords autocomplete (type `for` → see `for` loop suggestion)
+   - `#include` suggestions after `#include <`
+   - `std::` member suggestions after typing `std::`
+   - `.` member suggestions after `vec.`
+   - CP snippets appear (type `bfs`, `dfs`, `dijkstra`)
+   - User-defined function/variable names appear in suggestions
+   - `Ctrl+Space` triggers manual suggestion popup
+   - Tab/Enter accepts suggestions
+   - Function signature help appears after `(`
+
+2. Same verification for Python, Java, JavaScript, C files
+
+3. Verify no regressions:
+   - Editor loads without errors
+   - Code editing / save / compile / run all work
+   - Battle arena editor works with anti-cheat intact
+   - Terminal workspace unaffected
+   - Local PC folder mode unaffected
+
+4. Performance: No visible lag when typing or triggering completions

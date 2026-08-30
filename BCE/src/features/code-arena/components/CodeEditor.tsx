@@ -61,8 +61,12 @@ export default function CodeEditor({
 
   const router = useRouter();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [saveStatus, setSaveStatus] = useState<'Saved' | 'Saving...' | 'Unsaved changes'>('Saved');
+  const [saveStatus, setSaveStatus] = useState<'Saved' | 'Saving...' | 'Unsaved changes' | 'Save failed'>('Saved');
+  
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const backupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSavedCodeRef = useRef<string>('');
+  const lastSavedTimeRef = useRef<number>(0);
 
   const [language, setLanguage] = useState<CodeLanguage>(supportedLanguages[0] || 'cpp17');
   const [code, setCode] = useState(() => {
@@ -73,6 +77,12 @@ export default function CodeEditor({
     }
     return starters[firstLang] || starters.cpp17;
   });
+
+  const codeRef = useRef<string>(code);
+  useEffect(() => {
+    codeRef.current = code;
+  }, [code]);
+
   const [customInput, setCustomInput] = useState(samples[0]?.input || '');
   const [isFullscreen, setIsFullscreen] = useState(false); // Do not open fullscreen by default
   const [activeTab, setActiveTab] = useState<ConsoleTab>('output');
@@ -94,75 +104,196 @@ export default function CodeEditor({
         const uid = data.user?.id || 'guest';
         setCurrentUserId(uid);
 
-        // Check for legacy localStorage data first for migration
+        const backupKey = `bce:backup-save-code:${uid}:${problemId}:${language}`;
         const legacyKey = `bce:code-save:${uid}:${problemId}:${language}`;
+        
+        const backupRaw = localStorage.getItem(backupKey);
         const legacySaved = localStorage.getItem(legacyKey);
         
+        let initialCode = starters[language] || starters.cpp17;
+        let lastSavedTime = 0;
+
+        // 1. Fetch from IndexedDB
+        const draft = await getDraft(uid, problemId, language);
+        if (draft) {
+          initialCode = draft.code;
+          lastSavedTime = draft.updatedAt || 0;
+        }
+
+        // 2. Check for migration legacy
         if (legacySaved) {
-          setCode(legacySaved);
-          // Migrate to IndexedDB
+          initialCode = legacySaved;
           await saveDraft(uid, problemId, language, legacySaved);
           localStorage.removeItem(legacyKey);
-        } else {
-          // Load from IndexedDB
-          const draft = await getDraft(uid, problemId, language);
-          if (draft) {
-            setCode(draft.code);
-          }
+          lastSavedTime = Date.now();
         }
+
+        // 3. Restore lightweight backup if newer than last saved
+        if (backupRaw) {
+          try {
+            const backup = JSON.parse(backupRaw);
+            if (
+              backup.userId === uid &&
+              backup.problemId === problemId &&
+              backup.language === language &&
+              backup.timestamp > lastSavedTime
+            ) {
+              initialCode = backup.code;
+              await saveDraft(uid, problemId, language, backup.code);
+            }
+          } catch (e) {
+            console.error('Failed to parse backup:', e);
+          }
+          localStorage.removeItem(backupKey);
+        }
+
+        setCode(initialCode);
+        lastSavedCodeRef.current = initialCode;
+        lastSavedTimeRef.current = lastSavedTime || Date.now();
+        setSaveStatus('Saved');
       } catch (err) {
         console.error('Failed to load user state or draft:', err);
       }
     }
     loadUserAndCode();
-  }, [problemId]); // We only trigger on mount or problem change, language change handled separately
+  }, [problemId]);
 
   const saveCode = async (newCode: string, lang: CodeLanguage) => {
+    if (newCode === lastSavedCodeRef.current) {
+      setSaveStatus('Saved');
+      return;
+    }
+
     setSaveStatus('Saving...');
     const uid = currentUserId || 'guest';
-    await saveDraft(uid, problemId, lang, newCode);
-    setSaveStatus('Saved');
+    try {
+      await saveDraft(uid, problemId, lang, newCode);
+      lastSavedCodeRef.current = newCode;
+      lastSavedTimeRef.current = Date.now();
+      
+      // Clear backup on successful save
+      const backupKey = `bce:backup-save-code:${uid}:${problemId}:${lang}`;
+      localStorage.removeItem(backupKey);
+      
+      setSaveStatus('Saved');
+    } catch (err) {
+      console.error('Failed to save code draft:', err);
+      setSaveStatus('Save failed');
+    }
   };
 
   const handleCodeChange = (newVal: string) => {
     setCode(newVal);
+    
+    if (newVal === lastSavedCodeRef.current) {
+      setSaveStatus('Saved');
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+      const uid = currentUserId || 'guest';
+      const backupKey = `bce:backup-save-code:${uid}:${problemId}:${language}`;
+      localStorage.removeItem(backupKey);
+      return;
+    }
+
     setSaveStatus('Unsaved changes');
+
+    // Debounced lightweight backup to localStorage
+    if (backupTimeoutRef.current) clearTimeout(backupTimeoutRef.current);
+    backupTimeoutRef.current = setTimeout(() => {
+      const uid = currentUserId || 'guest';
+      const backupKey = `bce:backup-save-code:${uid}:${problemId}:${language}`;
+      localStorage.setItem(backupKey, JSON.stringify({
+        code: newVal,
+        timestamp: Date.now(),
+        userId: uid,
+        problemId,
+        language
+      }));
+    }, 100);
+
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(() => {
       saveCode(newVal, language);
-    }, 1000);
+    }, 1500);
+  };
+
+  const handleManualSave = async () => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+    await saveCode(codeRef.current, language);
   };
 
   useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (codeRef.current !== lastSavedCodeRef.current) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      if (backupTimeoutRef.current) clearTimeout(backupTimeoutRef.current);
     };
   }, []);
 
   const handleLanguageChange = async (nextLang: CodeLanguage) => {
+    // Flush current pending changes of the previous language before switching
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+    if (code !== lastSavedCodeRef.current) {
+      const uid = currentUserId || 'guest';
+      await saveDraft(uid, problemId, language, code);
+      const oldBackupKey = `bce:backup-save-code:${uid}:${problemId}:${language}`;
+      localStorage.removeItem(oldBackupKey);
+    }
+
     setLanguage(nextLang);
     const uid = currentUserId || 'guest';
     
-    // Check migration first
-    const legacyKey = `bce:code-save:${uid}:${problemId}:${nextLang}`;
-    const legacySaved = localStorage.getItem(legacyKey);
+    const backupKey = `bce:backup-save-code:${uid}:${problemId}:${nextLang}`;
+    const backupRaw = localStorage.getItem(backupKey);
     
-    if (legacySaved) {
-      setCode(legacySaved);
-      await saveDraft(uid, problemId, nextLang, legacySaved);
-      localStorage.removeItem(legacyKey);
-      return;
-    }
+    let initialCode = starters[nextLang] || starters.cpp17;
+    let lastSavedTime = 0;
 
     const draft = await getDraft(uid, problemId, nextLang);
     if (draft) {
-      setCode(draft.code);
-    } else {
-      const starter = (problem.starterCode && typeof problem.starterCode === 'object')
-        ? ((problem.starterCode as Record<string, string>)[nextLang] || starters[nextLang])
-        : (starters[nextLang] || starters.cpp17);
-      setCode(starter);
+      initialCode = draft.code;
+      lastSavedTime = draft.updatedAt || 0;
     }
+
+    // Restore backup if newer than last saved
+    if (backupRaw) {
+      try {
+        const backup = JSON.parse(backupRaw);
+        if (
+          backup.userId === uid &&
+          backup.problemId === problemId &&
+          backup.language === nextLang &&
+          backup.timestamp > lastSavedTime
+        ) {
+          initialCode = backup.code;
+          await saveDraft(uid, problemId, nextLang, backup.code);
+        }
+      } catch (e) {
+        console.error('Failed to parse backup:', e);
+      }
+      localStorage.removeItem(backupKey);
+    }
+
+    setCode(initialCode);
+    lastSavedCodeRef.current = initialCode;
+    lastSavedTimeRef.current = lastSavedTime || Date.now();
+    setSaveStatus('Saved');
   };
 
   const resetCode = () => {
@@ -171,6 +302,10 @@ export default function CodeEditor({
         ? ((problem.starterCode as Record<string, string>)[language] || starters[language])
         : (starters[language] || starters.cpp17);
       setCode(resetTo);
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
       saveCode(resetTo, language);
     }
   };
@@ -324,7 +459,7 @@ export default function CodeEditor({
     }
   };
 
-  // Keyboard Shortcuts: Ctrl+Enter (Run Code), Ctrl+Shift+Enter (Submit Solution)
+  // Keyboard Shortcuts: Ctrl+Enter (Run Code), Ctrl+Shift+Enter (Submit Solution), Ctrl+S (Save Code)
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       const isMod = e.ctrlKey || e.metaKey;
@@ -337,11 +472,14 @@ export default function CodeEditor({
             runCode();
           }
         }
+      } else if (isMod && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        handleManualSave();
       }
     };
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [code, language, problemId, running, submitting, testCases, customInput]);
+  }, [language, problemId, running, submitting, testCases, customInput]);
 
   const errorCount =
     (execResult && (execResult.compileStderr || execResult.stderr || execResult.status !== 'SUCCESS')) ||
@@ -380,7 +518,14 @@ export default function CodeEditor({
         onDropCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
         onKeyDownCapture={(e) => {
           const isMod = e.ctrlKey || e.metaKey;
-          if (isMod && ['c', 'v', 'x'].includes(e.key.toLowerCase())) {
+          const isShift = e.shiftKey;
+          const key = e.key.toLowerCase();
+          if (
+            (isMod && ['c', 'v', 'x'].includes(key)) ||
+            (isShift && e.key === 'Insert') ||
+            (isMod && e.key === 'Insert') ||
+            (isShift && e.key === 'Delete')
+          ) {
             e.preventDefault();
             e.stopPropagation();
           }
@@ -422,7 +567,7 @@ export default function CodeEditor({
             </span>
             <button
               type="button"
-              onClick={() => saveCode(code, language)}
+              onClick={handleManualSave}
               style={{
                 background: 'rgba(6, 182, 212, 0.1)',
                 border: '1px solid rgba(6, 182, 212, 0.3)',
@@ -478,6 +623,7 @@ export default function CodeEditor({
                 lineNumbers: 'on',
                 renderLineHighlight: 'all',
                 padding: { top: 10, bottom: 10 },
+                contextmenu: false,
                 ...intelliSenseEditorOptions,
               }}
             />
