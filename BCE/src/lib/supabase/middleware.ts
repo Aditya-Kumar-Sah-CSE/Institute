@@ -42,6 +42,7 @@ export async function updateSession(request: NextRequest) {
     // Root-level app routes (route groups (dashboard), (admin), (instructor), (public))
     'courses', 'leaderboard', 'doubts', 'notices', 'profile', 'feedbacks',
     'share-doubt', 'users', 'batch', 'certificates', 'code-arena', 'sheets', 'share',
+    'games',
     // Misc root pages
     'admission', 'pwa-start', 'contact', 'institution-not-found', 'institution-disabled',
     'privacy', 'terms', 'latex-editor', 'student', 'polls',
