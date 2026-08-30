@@ -89,7 +89,7 @@ export default function TerminalWorkspace({ onCommandComplete }: TerminalWorkspa
 
     // Welcome Message
     term.writeln('\x1b[1;32m===================================================\x1b[0m');
-    term.writeln('\x1b[1;36m  Welcome to BCE Code Arena Sandbox Browser Shell   \x1b[0m');
+    term.writeln('\x1b[1;36m  Welcome to Smart Learn Sandbox Browser Shell   \x1b[0m');
     term.writeln('\x1b[1;32m===================================================\x1b[0m');
     if (shellCwdRef.current) {
       term.writeln(`\x1b[2;37mSession restored — cwd: ~/workspace/${shellCwdRef.current}\x1b[0m`);
