@@ -70,6 +70,7 @@ export const NAV_ITEMS = [
   { label: 'Coding Sheets', href: '/code-arena/sheets', icon: 'Submissions' },
   { label: 'Compiler', href: '/code-arena/compiler', icon: 'Code' },
   { label: 'Brick Breaker', href: '/code-arena/game', icon: 'Game' },
+  { label: 'Multiplayer Games', href: '/games', icon: 'Game' },
   { label: 'SQL Editor', href: '/dashboard/sql-editor', icon: 'Database' },
   { label: 'LaTeX Editor', href: '/latex-editor', icon: 'LaTeX' },
   { label: 'Leaderboard', href: '/leaderboard', icon: 'Leaderboard' },

@@ -39,6 +39,7 @@ const ITEM_GROUPS: Record<string, string> = {
   'LaTeX Editor': 'Coding',
   
   'Brick Breaker': 'Games',
+  'Multiplayer Games': 'Games',
   
   'Notices': 'General',
   'Polls': 'General',

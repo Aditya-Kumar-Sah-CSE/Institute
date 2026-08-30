@@ -38,6 +38,7 @@ const ITEM_GROUPS: Record<string, string> = {
   'LaTeX Editor': 'Coding',
   
   'Brick Breaker': 'Games',
+  'Multiplayer Games': 'Games',
   
   'Notices': 'General',
   'Feedback': 'General',
@@ -165,6 +166,7 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
     menuItems.push({ href: '/code-arena', label: 'Code Arena', icon: 'Code' });
     menuItems.push({ href: '/code-arena/sheets', label: 'Coding Sheets', icon: 'Submissions' });
     menuItems.push({ href: '/code-arena/game', label: 'Brick Breaker', icon: 'Game' });
+    menuItems.push({ href: '/games', label: 'Multiplayer Games', icon: 'Game' });
     menuItems.push({ href: '/dashboard/sql-editor', label: 'SQL Editor', icon: 'Database' });
     menuItems.push({ href: '/code-arena/compiler', label: 'Compiler', icon: 'Code' });
     menuItems.push({ href: '/latex-editor', label: 'LaTeX Editor', icon: 'LaTeX' });
