@@ -167,6 +167,53 @@ function ssRemove(key: string) {
   try { sessionStorage.removeItem(key); } catch { /* noop */ }
 }
 
+// ── IndexedDB helpers for local directory handle persistence (Chromium-only) ──
+function openLocalDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined') return reject(new Error('Window undefined'));
+    const request = indexedDB.open('BCELocalFolderDB', 1);
+    request.onupgradeneeded = (e) => {
+      const db = (e.target as IDBOpenDBRequest).result;
+      if (!db.objectStoreNames.contains('handles')) {
+        db.createObjectStore('handles');
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function saveLocalDirectoryHandle(handle: FileSystemDirectoryHandle): Promise<void> {
+  try {
+    const db = await openLocalDB();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction('handles', 'readwrite');
+      const store = tx.objectStore('handles');
+      const req = store.put(handle, 'root');
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    console.error('Failed to save directory handle to IndexedDB:', err);
+  }
+}
+
+async function loadLocalDirectoryHandle(): Promise<FileSystemDirectoryHandle | null> {
+  try {
+    const db = await openLocalDB();
+    return await new Promise<FileSystemDirectoryHandle | null>((resolve, reject) => {
+      const tx = db.transaction('handles', 'readonly');
+      const store = tx.objectStore('handles');
+      const req = store.get('root');
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    console.error('Failed to load directory handle from IndexedDB:', err);
+    return null;
+  }
+}
+
 export default function PersonalCompiler({ initialSnippets }: { initialSnippets: Snippet[] }) {
   const [explorerWidth, setExplorerWidth] = useState(20);
   const [isResizing, setIsResizing] = useState(false);
@@ -177,6 +224,13 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
   const [files, setFiles] = useState<FileItem[]>([]);
   const [activeFile, setActiveFile] = useState<FileItem | null>(null);
   const [rootDirectoryHandle, setRootDirectoryHandle] = useState<FileSystemDirectoryHandle | null>(null);
+  const [workspaceMode, setWorkspaceMode] = useState<'cloud' | 'local'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('bce:arena:workspaceMode') as 'cloud' | 'local') || 'cloud';
+    }
+    return 'cloud';
+  });
+  const [localPermissionNeeded, setLocalPermissionNeeded] = useState(false);
 
   // Restore expanded paths from sessionStorage
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() => {
@@ -306,73 +360,122 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
     checkHealth();
   }, []);
 
-  // 2. Database Workspace Restoration on Mount — reconcile with sessionStorage
+  // 2. Database/Local Workspace Restoration on Mount
   useEffect(() => {
     if (initCalledRef.current) return; // prevent double-init in StrictMode
     initCalledRef.current = true;
 
-    async function initDatabaseWorkspace() {
+    async function initWorkspace() {
       setIsWorkspaceLoading(true);
       try {
-        const res = await fetch('/api/code-arena/files/tree');
-        if (!res.ok) {
-          throw new Error('Failed to load workspace files');
-        }
-        const data = await res.json();
-        const treeFiles: FileItem[] = data.files || [];
-        setFiles(treeFiles);
-
-        // Reconcile: try to restore the previously active file from sessionStorage
-        const savedPath = ssGet(SS_ACTIVE_FILE);
-        const savedDirty = ssGet(SS_DIRTY_CONTENT);
-
-        // Flatten tree helper to find a file by path
-        function findFileInTree(nodes: FileItem[], path: string): FileItem | null {
-          for (const n of nodes) {
-            if (n.path === path && n.kind === 'file') return n;
-            if (n.children) {
-              const found = findFileInTree(n.children, path);
-              if (found) return found;
-            }
-          }
-          return null;
-        }
-
-        let targetFile: FileItem | null = null;
-        if (savedPath) {
-          targetFile = findFileInTree(treeFiles, savedPath);
-        }
-        if (!targetFile) {
-          // Fallback: first file found
-          targetFile = findFileInTree(treeFiles, 'main.cpp');
-          if (!targetFile && treeFiles.length > 0) {
-            targetFile = treeFiles.find(f => f.kind === 'file') || treeFiles[0];
-          }
-        }
-
-        if (targetFile) {
-          await selectFile(targetFile);
-
-          // If there was dirty (unsaved) content, overlay it on top of the backend content
-          if (savedDirty && savedPath === targetFile.path) {
-            try {
-              const parsed = JSON.parse(savedDirty);
-              if (parsed.path === targetFile.path && typeof parsed.content === 'string') {
-                setCode(parsed.content);
-                setActiveFile(prev => prev ? { ...prev, content: parsed.content, isDirty: true } : null);
-                setState('Unsaved changes (restored)');
+        if (workspaceMode === 'local') {
+          const handle = await loadLocalDirectoryHandle();
+          if (handle) {
+            setRootDirectoryHandle(handle);
+            const permission = await (handle as any).queryPermission({ mode: 'readwrite' });
+            if (permission === 'granted') {
+              const tree = await buildLocalFileTree(handle);
+              setFiles(tree);
+              
+              // Restore active file path
+              const savedPath = ssGet(SS_ACTIVE_FILE);
+              const savedDirty = ssGet(SS_DIRTY_CONTENT);
+              
+              function findFileInTree(nodes: FileItem[], path: string): FileItem | null {
+                for (const n of nodes) {
+                  if (n.path === path && n.kind === 'file') return n;
+                  if (n.children) {
+                    const found = findFileInTree(n.children, path);
+                    if (found) return found;
+                  }
+                }
+                return null;
               }
-            } catch { /* ignore corrupt data */ }
+              
+              let targetFile = savedPath ? findFileInTree(tree, savedPath) : null;
+              if (!targetFile && tree.length > 0) {
+                targetFile = findFileInTree(tree, 'main.cpp') || tree.find(f => f.kind === 'file') || tree[0];
+              }
+              
+              if (targetFile) {
+                await selectFile(targetFile);
+                if (savedDirty && savedPath === targetFile.path) {
+                  try {
+                    const parsed = JSON.parse(savedDirty);
+                    if (parsed.path === targetFile.path && typeof parsed.content === 'string') {
+                      setCode(parsed.content);
+                      setActiveFile(prev => prev ? { ...prev, content: parsed.content, isDirty: true } : null);
+                      setState('Unsaved changes (restored)');
+                    }
+                  } catch { /* ignore */ }
+                }
+              }
+            } else {
+              setLocalPermissionNeeded(true);
+            }
+          } else {
+            // No local handle found, fallback to cloud mode
+            setWorkspaceMode('cloud');
+            localStorage.setItem('bce:arena:workspaceMode', 'cloud');
+            await initCloudWorkspace();
           }
+        } else {
+          await initCloudWorkspace();
         }
       } catch (e) {
-        console.warn('Error loading workspace from DB:', e);
+        console.warn('Workspace initialization error:', e);
       } finally {
         setIsWorkspaceLoading(false);
       }
     }
 
-    initDatabaseWorkspace();
+    async function initCloudWorkspace() {
+      const res = await fetch('/api/code-arena/files/tree');
+      if (!res.ok) {
+        throw new Error('Failed to load workspace files');
+      }
+      const data = await res.json();
+      const treeFiles: FileItem[] = data.files || [];
+      setFiles(treeFiles);
+
+      const savedPath = ssGet(SS_ACTIVE_FILE);
+      const savedDirty = ssGet(SS_DIRTY_CONTENT);
+
+      function findFileInTree(nodes: FileItem[], path: string): FileItem | null {
+        for (const n of nodes) {
+          if (n.path === path && n.kind === 'file') return n;
+          if (n.children) {
+            const found = findFileInTree(n.children, path);
+            if (found) return found;
+          }
+        }
+        return null;
+      }
+
+      let targetFile = savedPath ? findFileInTree(treeFiles, savedPath) : null;
+      if (!targetFile) {
+        targetFile = findFileInTree(treeFiles, 'main.cpp');
+        if (!targetFile && treeFiles.length > 0) {
+          targetFile = treeFiles.find(f => f.kind === 'file') || treeFiles[0];
+        }
+      }
+
+      if (targetFile) {
+        await selectFile(targetFile);
+        if (savedDirty && savedPath === targetFile.path) {
+          try {
+            const parsed = JSON.parse(savedDirty);
+            if (parsed.path === targetFile.path && typeof parsed.content === 'string') {
+              setCode(parsed.content);
+              setActiveFile(prev => prev ? { ...prev, content: parsed.content, isDirty: true } : null);
+              setState('Unsaved changes (restored)');
+            }
+          } catch { /* ignore */ }
+        }
+      }
+    }
+
+    initWorkspace();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -477,15 +580,186 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
     return false;
   }
 
+  // Helper methods for Local Filesystem
+  async function buildLocalFileTree(dirHandle: FileSystemDirectoryHandle, relativePath = ''): Promise<FileItem[]> {
+    const items: FileItem[] = [];
+    for await (const entry of (dirHandle as any).values()) {
+      const entryPath = relativePath ? `${relativePath}/${entry.name}` : entry.name;
+      if (entry.kind === 'file') {
+        items.push({
+          name: entry.name,
+          path: entryPath,
+          kind: 'file',
+          handle: entry,
+        });
+      } else if (entry.kind === 'directory') {
+        if (EXCLUDED_FOLDERS.includes(entry.name)) continue;
+        const children = await buildLocalFileTree(entry, entryPath);
+        items.push({
+          name: entry.name,
+          path: entryPath,
+          kind: 'directory',
+          handle: entry,
+          children,
+        });
+      }
+    }
+    return items.sort((a, b) => {
+      if (a.kind !== b.kind) return a.kind === 'directory' ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
+  }
+
+  async function findLocalDirectoryHandle(root: FileSystemDirectoryHandle, targetPath: string): Promise<FileSystemDirectoryHandle | null> {
+    if (!targetPath) return root;
+    const parts = targetPath.split('/');
+    let current = root;
+    for (const part of parts) {
+      current = await current.getDirectoryHandle(part);
+    }
+    return current;
+  }
+
+  const switchWorkspaceMode = async (mode: 'cloud' | 'local') => {
+    if (mode === workspaceMode) return;
+    
+    if (activeFile?.isDirty) {
+      if (confirm(`You have unsaved changes in "${activeFile.name}". Save now?`)) {
+        await handleSaveActiveFile();
+      }
+    }
+    
+    localStorage.setItem('bce:arena:workspaceMode', mode);
+    setWorkspaceMode(mode);
+    setActiveFile(null);
+    setCode('');
+    setFiles([]);
+    setLocalPermissionNeeded(false);
+
+    if (mode === 'cloud') {
+      setRootDirectoryHandle(null);
+      setIsWorkspaceLoading(true);
+      try {
+        const res = await fetch('/api/code-arena/files/tree');
+        if (res.ok) {
+          const data = await res.json();
+          setFiles(data.files || []);
+          const defaultFile = data.files?.find((f: any) => f.path === 'main.cpp') || data.files?.[0];
+          if (defaultFile) {
+            await selectFile(defaultFile);
+          }
+        }
+      } catch (e) {
+        console.error('Error loading cloud files:', e);
+      } finally {
+        setIsWorkspaceLoading(false);
+      }
+    } else {
+      setIsWorkspaceLoading(true);
+      try {
+        const handle = await loadLocalDirectoryHandle();
+        if (handle) {
+          setRootDirectoryHandle(handle);
+          const permission = await (handle as any).queryPermission({ mode: 'readwrite' });
+          if (permission === 'granted') {
+            const tree = await buildLocalFileTree(handle);
+            setFiles(tree);
+            const first = findFirstFile(tree);
+            if (first) {
+              await selectFile(first);
+            }
+          } else {
+            setLocalPermissionNeeded(true);
+          }
+        }
+      } catch (e) {
+        console.error('Error loading local handle:', e);
+      } finally {
+        setIsWorkspaceLoading(false);
+      }
+    }
+  };
+
+  const requestLocalPermission = async () => {
+    if (!rootDirectoryHandle) return;
+    try {
+      const permission = await (rootDirectoryHandle as any).requestPermission({ mode: 'readwrite' });
+      if (permission === 'granted') {
+        setLocalPermissionNeeded(false);
+        const tree = await buildLocalFileTree(rootDirectoryHandle);
+        setFiles(tree);
+        const first = findFirstFile(tree);
+        if (first) {
+          await selectFile(first);
+        }
+      }
+    } catch (err: any) {
+      alert('Permission denied or failed: ' + err.message);
+    }
+  };
+
+  const openLocalFolderPicker = async () => {
+    if (typeof window === 'undefined' || !('showDirectoryPicker' in window)) {
+      alert('Local Folder access is only supported on Chromium-based desktop browsers like Google Chrome, Microsoft Edge, and Brave.');
+      return;
+    }
+    
+    try {
+      if (activeFile?.isDirty) {
+        if (confirm(`You have unsaved changes in "${activeFile.name}". Save now?`)) {
+          await handleSaveActiveFile();
+        }
+      }
+      
+      const dirHandle = await (window as any).showDirectoryPicker();
+      setRootDirectoryHandle(dirHandle);
+      await saveLocalDirectoryHandle(dirHandle);
+      setLocalPermissionNeeded(false);
+      
+      setIsWorkspaceLoading(true);
+      const tree = await buildLocalFileTree(dirHandle);
+      setFiles(tree);
+      const first = findFirstFile(tree);
+      if (first) {
+        await selectFile(first);
+      } else {
+        setActiveFile(null);
+        setCode('');
+      }
+    } catch (e: any) {
+      if (e.name !== 'AbortError') {
+        alert('Could not open directory: ' + e.message);
+      }
+    } finally {
+      setIsWorkspaceLoading(false);
+    }
+  };
+
+  const findFirstFile = (tree: FileItem[]): FileItem | null => {
+    for (const item of tree) {
+      if (item.kind === 'file') return item;
+      if (item.children) {
+        const found = findFirstFile(item.children);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
   const selectFile = async (item: FileItem) => {
     try {
       let content = '';
-      const res = await fetch(`/api/code-arena/files/read?path=${encodeURIComponent(item.path)}`);
-      if (!res.ok) {
-        throw new Error((await res.json()).error || 'Failed to read file');
+      if (item.handle && item.handle.kind === 'file') {
+        const file = await (item.handle as FileSystemFileHandle).getFile();
+        content = await file.text();
+      } else {
+        const res = await fetch(`/api/code-arena/files/read?path=${encodeURIComponent(item.path)}`);
+        if (!res.ok) {
+          throw new Error((await res.json()).error || 'Failed to read file');
+        }
+        const data = await res.json();
+        content = data.content || '';
       }
-      const data = await res.json();
-      content = data.content || '';
 
       const parts = item.name.split('.');
       const ext = parts[parts.length - 1]?.toLowerCase() || '';
@@ -541,18 +815,25 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
     setState('Saving…');
 
     try {
-      const res = await fetch('/api/code-arena/files/write', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: activeFile.path, content: code }),
-      });
-      if (!res.ok) {
-        throw new Error((await res.json()).error || 'Failed to save file');
+      if (activeFile.handle && activeFile.handle.kind === 'file') {
+        const writable = await (activeFile.handle as any).createWritable();
+        await writable.write(code);
+        await writable.close();
+      } else {
+        const res = await fetch('/api/code-arena/files/write', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: activeFile.path, content: code }),
+        });
+        if (!res.ok) {
+          throw new Error((await res.json()).error || 'Failed to save file');
+        }
       }
 
       setFiles(prev => updateFileInTree(prev, activeFile.path, { content: code, isDirty: false }));
       setActiveFile(prev => prev ? { ...prev, content: code, isDirty: false } : null);
       setState('Saved');
+      ssRemove(SS_DIRTY_CONTENT);
     } catch (err: any) {
       alert('Failed to save file: ' + err.message);
       setState('Unsaved changes');
@@ -597,6 +878,19 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
       onConfirm: async (filename) => {
         if (!filename) return;
 
+        if (workspaceMode === 'local' && rootDirectoryHandle) {
+          try {
+            const parentHandle = await findLocalDirectoryHandle(rootDirectoryHandle, parentPath);
+            if (parentHandle) {
+              await parentHandle.getFileHandle(filename, { create: true });
+              await refreshExplorer();
+            }
+          } catch (e: any) {
+            alert('Failed to create local file: ' + e.message);
+          }
+          return;
+        }
+
         const fullPath = parentPath ? `${parentPath}/${filename}` : filename;
         try {
           const res = await fetch('/api/code-arena/files/create', {
@@ -624,6 +918,19 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
       placeholder: 'New Folder',
       onConfirm: async (foldername) => {
         if (!foldername) return;
+
+        if (workspaceMode === 'local' && rootDirectoryHandle) {
+          try {
+            const parentHandle = await findLocalDirectoryHandle(rootDirectoryHandle, parentPath);
+            if (parentHandle) {
+              await parentHandle.getDirectoryHandle(foldername, { create: true });
+              await refreshExplorer();
+            }
+          } catch (e: any) {
+            alert('Failed to create local folder: ' + e.message);
+          }
+          return;
+        }
 
         const fullPath = parentPath ? `${parentPath}/${foldername}` : foldername;
         try {
@@ -653,6 +960,43 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
       onConfirm: async (newName) => {
         if (!newName || newName === item.name) return;
 
+        if (workspaceMode === 'local' && rootDirectoryHandle) {
+          try {
+            if (item.handle) {
+              if (typeof (item.handle as any).move === 'function') {
+                await (item.handle as any).move(newName);
+              } else {
+                if (item.kind === 'file') {
+                  const file = await (item.handle as FileSystemFileHandle).getFile();
+                  const text = await file.text();
+                  const parentPath = item.path.split('/').slice(0, -1).join('/');
+                  const parentHandle = await findLocalDirectoryHandle(rootDirectoryHandle, parentPath);
+                  if (parentHandle) {
+                    const newHandle = await parentHandle.getFileHandle(newName, { create: true });
+                    const wr = await newHandle.createWritable();
+                    await wr.write(text);
+                    await wr.close();
+                    await parentHandle.removeEntry(item.name);
+                  }
+                } else {
+                  throw new Error('Rename folders is not supported natively in this browser fallback.');
+                }
+              }
+              await refreshExplorer();
+              if (activeFile?.path === item.path) {
+                const parts = item.path.split('/');
+                parts[parts.length - 1] = newName;
+                const newPath = parts.join('/');
+                setActiveFile(prev => prev ? { ...prev, name: newName, path: newPath } : null);
+                setTitle(newName);
+              }
+            }
+          } catch (e: any) {
+            alert('Rename failed: ' + e.message);
+          }
+          return;
+        }
+
         const parts = item.path.split('/');
         parts[parts.length - 1] = newName;
         const newPath = parts.join('/');
@@ -681,6 +1025,24 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
   const triggerDelete = async (item: FileItem) => {
     if (!confirm(`Are you sure you want to delete "${item.name}"?`)) return;
 
+    if (workspaceMode === 'local' && rootDirectoryHandle) {
+      try {
+        const parentPath = item.path.split('/').slice(0, -1).join('/');
+        const parentHandle = await findLocalDirectoryHandle(rootDirectoryHandle, parentPath);
+        if (parentHandle) {
+          await parentHandle.removeEntry(item.name, { recursive: true });
+          await refreshExplorer();
+          if (activeFile?.path === item.path) {
+            setActiveFile(null);
+            setCode('');
+          }
+        }
+      } catch (e: any) {
+        alert('Deletion failed: ' + e.message);
+      }
+      return;
+    }
+
     try {
       const res = await fetch('/api/code-arena/files/delete', {
         method: 'POST',
@@ -702,10 +1064,15 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
 
   const refreshExplorer = async () => {
     try {
-      const res = await fetch('/api/code-arena/files/tree');
-      if (res.ok) {
-        const data = await res.json();
-        setFiles(data.files || []);
+      if (workspaceMode === 'local' && rootDirectoryHandle) {
+        const tree = await buildLocalFileTree(rootDirectoryHandle);
+        setFiles(tree);
+      } else {
+        const res = await fetch('/api/code-arena/files/tree');
+        if (res.ok) {
+          const data = await res.json();
+          setFiles(data.files || []);
+        }
       }
     } catch (e) {
       console.error('Failed to refresh explorer:', e);
@@ -901,49 +1268,234 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
           </div>
         </div>
 
-        <div
-          style={{
-            width: '100%',
-            height: '2.2rem',
-            fontSize: '12.5px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            borderRadius: '4px',
-            border: '1px solid var(--glass-border)',
-            background: 'rgba(6, 182, 212, 0.05)',
-            color: 'var(--neon-cyan)',
-            fontWeight: 600,
-            flexShrink: 0
-          }}
-        >
-          <Folder size={13} /> ~/workspace
+        {/* Workspace mode switcher tabs */}
+        <div style={{ display: 'flex', gap: '4px', background: 'rgba(255, 255, 255, 0.02)', padding: '2px', borderRadius: '6px', border: '1px solid var(--glass-border)', flexShrink: 0 }}>
+          <button
+            onClick={() => switchWorkspaceMode('cloud')}
+            style={{
+              flex: 1,
+              padding: '6px',
+              fontSize: '11px',
+              fontWeight: 'bold',
+              borderRadius: '4px',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '4px',
+              background: workspaceMode === 'cloud' ? 'rgba(6, 182, 212, 0.15)' : 'transparent',
+              color: workspaceMode === 'cloud' ? 'var(--neon-cyan)' : 'var(--text-secondary)',
+              transition: 'all 0.2s'
+            }}
+          >
+            <Globe size={12} /> Cloud Sandbox
+          </button>
+          <button
+            onClick={() => switchWorkspaceMode('local')}
+            style={{
+              flex: 1,
+              padding: '6px',
+              fontSize: '11px',
+              fontWeight: 'bold',
+              borderRadius: '4px',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '4px',
+              background: workspaceMode === 'local' ? 'rgba(6, 182, 212, 0.15)' : 'transparent',
+              color: workspaceMode === 'local' ? 'var(--neon-cyan)' : 'var(--text-secondary)',
+              transition: 'all 0.2s'
+            }}
+          >
+            <FolderOpen size={12} /> Local PC Folder
+          </button>
         </div>
 
-        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          {files.map((file, idx) => (
-            <FileExplorerItem
-              key={idx}
-              item={file}
-              depth={0}
-              activePath={activeFile?.path}
-              expandedPaths={expandedPaths}
-              onSelect={selectFile}
-              onToggle={(p) => setExpandedPaths(prev => {
-                const next = new Set(prev);
-                if (next.has(p)) next.delete(p);
-                else next.add(p);
-                ssSet(SS_EXPANDED, JSON.stringify([...next]));
-                return next;
-              })}
-              onCreateFile={triggerCreateFile}
-              onCreateFolder={triggerCreateFolder}
-              onRename={triggerRename}
-              onDelete={triggerDelete}
-            />
-          ))}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <strong style={{ fontSize: 'var(--text-sm)' }}>
+            {workspaceMode === 'local' ? 'PC Filesystem' : 'Cloud Workspace'}
+          </strong>
+          {(!localPermissionNeeded && (workspaceMode === 'cloud' || rootDirectoryHandle)) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <button
+                onClick={() => triggerCreateFile('')}
+                title="New File"
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: '4px' }}
+              >
+                <Plus size={14} />
+              </button>
+              <button
+                onClick={() => triggerCreateFolder('')}
+                title="New Folder"
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: '4px' }}
+              >
+                <FolderPlus size={14} />
+              </button>
+              <button
+                onClick={refreshExplorer}
+                title="Refresh Explorer"
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: '4px' }}
+              >
+                <RefreshCw size={12} />
+              </button>
+            </div>
+          )}
         </div>
+
+        {workspaceMode === 'cloud' ? (
+          <div
+            style={{
+              width: '100%',
+              height: '2.2rem',
+              fontSize: '12.5px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              borderRadius: '4px',
+              border: '1px solid var(--glass-border)',
+              background: 'rgba(6, 182, 212, 0.05)',
+              color: 'var(--neon-cyan)',
+              fontWeight: 600,
+              flexShrink: 0
+            }}
+          >
+            <Globe size={13} /> ~/workspace
+          </div>
+        ) : rootDirectoryHandle ? (
+          <div
+            style={{
+              width: '100%',
+              height: '2.2rem',
+              fontSize: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              borderRadius: '4px',
+              border: '1px solid var(--glass-border)',
+              background: 'rgba(6, 182, 212, 0.05)',
+              color: 'var(--neon-cyan)',
+              fontWeight: 600,
+              flexShrink: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              padding: '0 8px'
+            }}
+            title={`Local Folder: ${rootDirectoryHandle.name}`}
+          >
+            <FolderOpen size={13} style={{ flexShrink: 0 }} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              Local Folder: {rootDirectoryHandle.name}
+            </span>
+          </div>
+        ) : null}
+
+        {workspaceMode === 'local' && !rootDirectoryHandle && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', justifyContent: 'center', padding: '24px 8px', border: '1px dashed var(--glass-border)', borderRadius: '6px' }}>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center' }}>
+              Open a folder on your PC to edit local files directly in the browser sandbox.
+            </span>
+            <button
+              onClick={openLocalFolderPicker}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                fontSize: '12px',
+                fontWeight: 600,
+                color: 'white',
+                background: 'var(--neon-cyan)',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                transition: 'opacity 0.2s'
+              }}
+              onMouseOver={e => e.currentTarget.style.opacity = '0.8'}
+              onMouseOut={e => e.currentTarget.style.opacity = '1'}
+            >
+              <FolderOpen size={13} /> Open Local Folder
+            </button>
+          </div>
+        )}
+
+        {workspaceMode === 'local' && rootDirectoryHandle && localPermissionNeeded && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', justifyContent: 'center', padding: '24px 8px', border: '1px dashed var(--neon-cyan)', borderRadius: '6px', background: 'rgba(6, 182, 212, 0.02)' }}>
+            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textAlign: 'center', lineHeight: 1.4 }}>
+              BCE needs permission to read and write files in:
+              <br />
+              <strong style={{ color: 'var(--neon-cyan)' }}>{rootDirectoryHandle.name}</strong>
+            </span>
+            <button
+              onClick={requestLocalPermission}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                fontSize: '12px',
+                fontWeight: 600,
+                color: 'white',
+                background: '#10b981',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                transition: 'opacity 0.2s'
+              }}
+              onMouseOver={e => e.currentTarget.style.opacity = '0.8'}
+              onMouseOut={e => e.currentTarget.style.opacity = '1'}
+            >
+              <Check size={13} /> Grant Access
+            </button>
+            <button
+              onClick={openLocalFolderPicker}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '4px 8px',
+                fontSize: '11px',
+                color: 'var(--text-muted)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              Select different folder
+            </button>
+          </div>
+        )}
+
+        {(!localPermissionNeeded && (workspaceMode === 'cloud' || rootDirectoryHandle)) && (
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            {files.map((file, idx) => (
+              <FileExplorerItem
+                key={idx}
+                item={file}
+                depth={0}
+                activePath={activeFile?.path}
+                expandedPaths={expandedPaths}
+                onSelect={selectFile}
+                onToggle={(p) => setExpandedPaths(prev => {
+                  const next = new Set(prev);
+                  if (next.has(p)) next.delete(p);
+                  else next.add(p);
+                  ssSet(SS_EXPANDED, JSON.stringify([...next]));
+                  return next;
+                })}
+                onCreateFile={triggerCreateFile}
+                onCreateFolder={triggerCreateFolder}
+                onRename={triggerRename}
+                onDelete={triggerDelete}
+              />
+            ))}
+          </div>
+        )}
       </aside>
 
       {/* Resize bar handler */}
