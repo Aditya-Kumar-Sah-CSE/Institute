@@ -5,6 +5,29 @@ import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
 
+// ── sessionStorage keys (scoped per-tab, never shared across tabs/users) ──
+const SS_CWD = 'bce:terminal:cwd';
+const SS_HISTORY = 'bce:terminal:history';
+const MAX_HISTORY = 200;
+
+function loadCwd(): string {
+  try { return sessionStorage.getItem(SS_CWD) || ''; } catch { return ''; }
+}
+function saveCwd(cwd: string) {
+  try { sessionStorage.setItem(SS_CWD, cwd); } catch { /* noop */ }
+}
+function loadHistory(): string[] {
+  try {
+    const raw = sessionStorage.getItem(SS_HISTORY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+function saveHistory(history: string[]) {
+  try {
+    sessionStorage.setItem(SS_HISTORY, JSON.stringify(history.slice(-MAX_HISTORY)));
+  } catch { /* noop */ }
+}
+
 interface TerminalWorkspaceProps {
   onCommandComplete?: () => void;
 }
@@ -12,14 +35,16 @@ interface TerminalWorkspaceProps {
 export default function TerminalWorkspace({ onCommandComplete }: TerminalWorkspaceProps) {
   const terminalRef = useRef<HTMLDivElement>(null);
   const [booting, setBooting] = useState(true);
-  const shellCwdRef = useRef<string>(''); // Virtual relative path (empty string = root)
+  const shellCwdRef = useRef<string>(loadCwd());
   const abortControllerRef = useRef<AbortController | null>(null);
+  const initRef = useRef(false); // prevent double-init in StrictMode
 
   useEffect(() => {
+    if (initRef.current || !terminalRef.current) return;
+    initRef.current = true;
+
     let term: Terminal;
     let fitAddon: FitAddon;
-
-    if (!terminalRef.current) return;
 
     // Initialize premium dark theme xterm terminal
     term = new Terminal({
@@ -42,10 +67,10 @@ export default function TerminalWorkspace({ onCommandComplete }: TerminalWorkspa
     fitAddon.fit();
     setBooting(false);
 
-    // Shell state
+    // Shell state — restore from sessionStorage
     let lineBuffer = '';
-    const commandHistory: string[] = [];
-    let historyIndex = -1;
+    const commandHistory: string[] = loadHistory();
+    let historyIndex = commandHistory.length;
 
     // Interactive stdin state
     let isReadingStdin = false;
@@ -66,6 +91,9 @@ export default function TerminalWorkspace({ onCommandComplete }: TerminalWorkspa
     term.writeln('\x1b[1;32m===================================================\x1b[0m');
     term.writeln('\x1b[1;36m  Welcome to BCE Code Arena Sandbox Browser Shell   \x1b[0m');
     term.writeln('\x1b[1;32m===================================================\x1b[0m');
+    if (shellCwdRef.current) {
+      term.writeln(`\x1b[2;37mSession restored — cwd: ~/workspace/${shellCwdRef.current}\x1b[0m`);
+    }
     term.writeln('Compile C++: \x1b[33mg++ main.cpp -o main\x1b[0m & execute: \x1b[33m./main\x1b[0m');
     term.writeln('Compile Java: \x1b[33mjavac Main.java\x1b[0m & execute: \x1b[33mjava Main\x1b[0m');
     term.writeln('Run Python: \x1b[33mpython solve.py\x1b[0m | Node.js: \x1b[33mnode script.js\x1b[0m');
@@ -106,9 +134,10 @@ export default function TerminalWorkspace({ onCommandComplete }: TerminalWorkspa
           term.write(`\x1b[1;31m${data.stderr.replace(/\n/g, '\r\n')}\x1b[0m`);
         }
 
-        // Update working directory if changed
+        // Update working directory if changed — persist to sessionStorage
         if (typeof data.cwd === 'string') {
           shellCwdRef.current = data.cwd;
+          saveCwd(data.cwd);
         }
 
         // Trigger file tree refresh
@@ -191,6 +220,7 @@ export default function TerminalWorkspace({ onCommandComplete }: TerminalWorkspa
         if (cmd) {
           commandHistory.push(lineBuffer);
           historyIndex = commandHistory.length;
+          saveHistory(commandHistory); // persist history
           
           // Check if command is a code runner that might need stdin
           const parts = cmd.split(' ');
@@ -267,6 +297,7 @@ export default function TerminalWorkspace({ onCommandComplete }: TerminalWorkspa
     return () => {
       window.removeEventListener('resize', handleResize);
       term?.dispose();
+      initRef.current = false;
     };
   }, [onCommandComplete]);
 

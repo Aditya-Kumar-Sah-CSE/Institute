@@ -152,16 +152,38 @@ type TabType = 'output' | 'error' | 'input' | 'details' | 'preview' | 'terminal'
 
 const EXCLUDED_FOLDERS = ['.git', 'node_modules', '.next', 'dist', 'build', 'out'];
 
+// ── sessionStorage keys for UI state persistence (scoped per tab) ──
+const SS_ACTIVE_FILE = 'bce:arena:activeFilePath';
+const SS_DIRTY_CONTENT = 'bce:arena:dirtyContent';
+const SS_EXPANDED = 'bce:arena:expandedPaths';
+
+function ssGet(key: string): string | null {
+  try { return sessionStorage.getItem(key); } catch { return null; }
+}
+function ssSet(key: string, value: string) {
+  try { sessionStorage.setItem(key, value); } catch { /* noop */ }
+}
+function ssRemove(key: string) {
+  try { sessionStorage.removeItem(key); } catch { /* noop */ }
+}
+
 export default function PersonalCompiler({ initialSnippets }: { initialSnippets: Snippet[] }) {
   const [explorerWidth, setExplorerWidth] = useState(20);
   const [isResizing, setIsResizing] = useState(false);
   const workspaceContainerRef = useRef<HTMLDivElement>(null);
+  const initCalledRef = useRef(false); // guard against double init
 
   // File explorer states
   const [files, setFiles] = useState<FileItem[]>([]);
   const [activeFile, setActiveFile] = useState<FileItem | null>(null);
   const [rootDirectoryHandle, setRootDirectoryHandle] = useState<FileSystemDirectoryHandle | null>(null);
-  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
+
+  // Restore expanded paths from sessionStorage
+  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() => {
+    const raw = ssGet(SS_EXPANDED);
+    if (raw) { try { return new Set(JSON.parse(raw)); } catch { /* noop */ } }
+    return new Set<string>();
+  });
 
   const [title, setTitle] = useState('Untitled snippet');
   const [language, setLanguage] = useState<CodeLanguage>('cpp17');
@@ -284,8 +306,11 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
     checkHealth();
   }, []);
 
-  // 2. Database Workspace Restoration on Mount
+  // 2. Database Workspace Restoration on Mount — reconcile with sessionStorage
   useEffect(() => {
+    if (initCalledRef.current) return; // prevent double-init in StrictMode
+    initCalledRef.current = true;
+
     async function initDatabaseWorkspace() {
       setIsWorkspaceLoading(true);
       try {
@@ -294,12 +319,51 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
           throw new Error('Failed to load workspace files');
         }
         const data = await res.json();
-        setFiles(data.files || []);
-        
-        // Find default or first file to select
-        const defaultFile = data.files?.find((f: any) => f.path === 'main.cpp') || data.files?.[0];
-        if (defaultFile) {
-          await selectFile(defaultFile);
+        const treeFiles: FileItem[] = data.files || [];
+        setFiles(treeFiles);
+
+        // Reconcile: try to restore the previously active file from sessionStorage
+        const savedPath = ssGet(SS_ACTIVE_FILE);
+        const savedDirty = ssGet(SS_DIRTY_CONTENT);
+
+        // Flatten tree helper to find a file by path
+        function findFileInTree(nodes: FileItem[], path: string): FileItem | null {
+          for (const n of nodes) {
+            if (n.path === path && n.kind === 'file') return n;
+            if (n.children) {
+              const found = findFileInTree(n.children, path);
+              if (found) return found;
+            }
+          }
+          return null;
+        }
+
+        let targetFile: FileItem | null = null;
+        if (savedPath) {
+          targetFile = findFileInTree(treeFiles, savedPath);
+        }
+        if (!targetFile) {
+          // Fallback: first file found
+          targetFile = findFileInTree(treeFiles, 'main.cpp');
+          if (!targetFile && treeFiles.length > 0) {
+            targetFile = treeFiles.find(f => f.kind === 'file') || treeFiles[0];
+          }
+        }
+
+        if (targetFile) {
+          await selectFile(targetFile);
+
+          // If there was dirty (unsaved) content, overlay it on top of the backend content
+          if (savedDirty && savedPath === targetFile.path) {
+            try {
+              const parsed = JSON.parse(savedDirty);
+              if (parsed.path === targetFile.path && typeof parsed.content === 'string') {
+                setCode(parsed.content);
+                setActiveFile(prev => prev ? { ...prev, content: parsed.content, isDirty: true } : null);
+                setState('Unsaved changes (restored)');
+              }
+            } catch { /* ignore corrupt data */ }
+          }
         }
       } catch (e) {
         console.warn('Error loading workspace from DB:', e);
@@ -379,9 +443,19 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeFile, code, language, stdin, files]);
 
-  // 5. Beforeunload unsaved alert
+  // 5. Beforeunload — persist dirty state + warn user
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Flush current dirty content to sessionStorage so it survives reload
+      if (activeFile && code) {
+        ssSet(SS_ACTIVE_FILE, activeFile.path);
+        if (activeFile.isDirty) {
+          ssSet(SS_DIRTY_CONTENT, JSON.stringify({ path: activeFile.path, content: code }));
+        }
+      }
+      // Persist expanded paths
+      ssSet(SS_EXPANDED, JSON.stringify([...expandedPaths]));
+
       const hasUnsaved = activeFile?.isDirty || files.some(f => hasUnsavedChanges(f));
       if (hasUnsaved) {
         e.preventDefault();
@@ -392,7 +466,7 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeFile, files]);
+  }, [activeFile, files, code, expandedPaths]);
 
   // Helper utility functions
   function hasUnsavedChanges(node: FileItem): boolean {
@@ -428,6 +502,10 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
       setLanguage(detectedLang);
       setTitle(item.name);
       setState('Saved');
+
+      // Persist active file path to sessionStorage & clear stale dirty content
+      ssSet(SS_ACTIVE_FILE, item.path);
+      ssRemove(SS_DIRTY_CONTENT);
     } catch (e: any) {
       alert('Error reading file contents: ' + e.message);
     }
@@ -439,6 +517,8 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
       setActiveFile(prev => prev ? { ...prev, content: newCode, isDirty: true } : null);
       setFiles(prev => updateFileInTree(prev, activeFile.path, { content: newCode, isDirty: true }));
       setState('Unsaved changes');
+      // Persist dirty content to sessionStorage for reload recovery
+      ssSet(SS_DIRTY_CONTENT, JSON.stringify({ path: activeFile.path, content: newCode }));
     }
   };
 
@@ -854,6 +934,7 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
                 const next = new Set(prev);
                 if (next.has(p)) next.delete(p);
                 else next.add(p);
+                ssSet(SS_EXPANDED, JSON.stringify([...next]));
                 return next;
               })}
               onCreateFile={triggerCreateFile}
