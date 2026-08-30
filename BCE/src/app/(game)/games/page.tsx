@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Gamepad2, Bot, Users, Trophy, Flame, Play, Plus, RefreshCw, Sparkles, Award } from 'lucide-react';
+import { Gamepad2, Bot, Users, Trophy, Flame, Play, Plus, RefreshCw, Sparkles, Award, ArrowLeft } from 'lucide-react';
 import '@/features/games/components/Games.css';
 
 interface UserStats {
@@ -91,6 +91,10 @@ export default function GamesLobbyPage() {
 
   return (
     <div className="games-lobby-container">
+      <Link href="/dashboard" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#94a3b8', fontSize: '12px', fontWeight: 700, marginBottom: 20 }}>
+        <ArrowLeft size={14} /> Back to Dashboard
+      </Link>
+
       {/* Hero Header */}
       <div className="games-hero">
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(0,240,255,0.1)', border: '1px solid rgba(0,240,255,0.25)', padding: '4px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: 800, color: '#00f0ff', marginBottom: 12 }}>
