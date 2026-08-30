@@ -7,17 +7,8 @@ import { signIn } from '@/features/auth/actions/auth';
 import { createClient } from '@/lib/supabase/client';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import { Mail, Lock, Cloud } from 'lucide-react';
+import { Mail, Lock } from 'lucide-react';
 import './AuthForms.css';
-
-const GoogleIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-  </svg>
-);
 
 interface LoginFormProps {
   companyName?: string;
@@ -58,8 +49,6 @@ export default function LoginForm({ companyName, logoUrl, baseUrl }: LoginFormPr
   const urlError = searchParams.get('error');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [isDriveLoading, setIsDriveLoading] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const supabase = createClient();
@@ -69,21 +58,7 @@ export default function LoginForm({ companyName, logoUrl, baseUrl }: LoginFormPr
 
   useEffect(() => {
     if (urlError) {
-      const lowerErr = urlError.toLowerCase();
-      if (
-        lowerErr.includes('oauth') ||
-        lowerErr.includes('access_denied') ||
-        lowerErr.includes('deleted_client') ||
-        lowerErr.includes('disabled') ||
-        lowerErr.includes('signin') ||
-        lowerErr.includes('authenticate') ||
-        lowerErr.includes('identity') ||
-        lowerErr.includes('credential')
-      ) {
-        setError('Google sign-in is temporarily unavailable. Please try again.');
-      } else {
-        setError(urlError);
-      }
+      setError(urlError);
     }
   }, [urlError]);
 
@@ -129,51 +104,6 @@ export default function LoginForm({ companyName, logoUrl, baseUrl }: LoginFormPr
     if (result?.error) {
       setError(result.error);
       setIsLoading(false);
-    }
-  }
-
-  async function handleGoogleSignIn(withDrive: boolean = false) {
-    if (withDrive) {
-      setIsDriveLoading(true);
-    } else {
-      setIsGoogleLoading(true);
-    }
-    setError('');
-    
-    const options: any = {
-      redirectTo: `${window.location.origin}/api/auth/callback${withDrive ? '?connect_drive=true' : ''}`,
-    };
-
-    if (withDrive) {
-      options.scopes = 'https://www.googleapis.com/auth/drive.file';
-      options.queryParams = {
-        access_type: 'offline',
-      };
-    }
-
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options,
-    });
-
-    if (error) {
-      const lowerErr = error.message.toLowerCase();
-      if (
-        lowerErr.includes('oauth') ||
-        lowerErr.includes('access_denied') ||
-        lowerErr.includes('deleted_client') ||
-        lowerErr.includes('disabled') ||
-        lowerErr.includes('signin') ||
-        lowerErr.includes('authenticate') ||
-        lowerErr.includes('identity') ||
-        lowerErr.includes('credential')
-      ) {
-        setError('Google sign-in is temporarily unavailable. Please try again.');
-      } else {
-        setError(error.message);
-      }
-      setIsGoogleLoading(false);
-      setIsDriveLoading(false);
     }
   }
 
@@ -251,57 +181,6 @@ export default function LoginForm({ companyName, logoUrl, baseUrl }: LoginFormPr
           <Button type="button" fullWidth isLoading={isLoading} size="lg" onClick={() => handleSubmit()}>
             Sign In
           </Button>
-
-          <div style={{ display: 'flex', alignItems: 'center', margin: 'var(--space-md) 0' }}>
-            <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }} />
-            <span style={{ padding: '0 var(--space-sm)', color: 'var(--text-tertiary)', fontSize: 'var(--text-xs)' }}>OR KEEP IT CLUTTER-FREE</span>
-            <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }} />
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <Button 
-              type="button" 
-              variant="ghost" 
-              fullWidth 
-              isLoading={isDriveLoading} 
-              size="lg"
-              onClick={() => handleGoogleSignIn(true)}
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                gap: '8px',
-                backgroundColor: 'rgba(0, 242, 254, 0.1)',
-                border: '1px solid rgba(0, 242, 254, 0.35)',
-                color: '#00f2fe',
-                fontWeight: 700,
-              }}
-            >
-              <Cloud size={18} />
-              Continue with Google + Drive
-            </Button>
-
-            <Button 
-              type="button" 
-              variant="ghost" 
-              fullWidth 
-              isLoading={isGoogleLoading} 
-              size="lg"
-              onClick={() => handleGoogleSignIn(false)}
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                gap: '8px',
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid var(--border-color)',
-                color: 'var(--text-primary)'
-              }}
-            >
-              <GoogleIcon />
-              Continue with Google
-            </Button>
-          </div>
         </div>
 
         <div className="auth-footer">
@@ -314,3 +193,4 @@ export default function LoginForm({ companyName, logoUrl, baseUrl }: LoginFormPr
     </div>
   );
 }
+

@@ -1,0 +1,184 @@
+/* ============================================
+   Smart Learn Multiplayer Games CSS System
+   ============================================ */
+
+.games-lobby-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 16px 48px 16px;
+  box-sizing: border-box;
+  color: #fff;
+  font-family: var(--font-display, system-ui, sans-serif);
+}
+
+.games-hero {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.games-hero-title {
+  font-size: 36px;
+  font-weight: 950;
+  background: linear-gradient(135deg, #00f0ff, #a855f7, #ec4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+}
+
+.games-hero-subtitle {
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+/* Game Card Grid */
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+.game-card {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 24px;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.game-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(0, 240, 255, 0.3);
+  box-shadow: 0 16px 40px rgba(0, 240, 255, 0.15);
+}
+
+.game-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Modals */
+.game-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(7, 10, 20, 0.82);
+  backdrop-filter: blur(10px);
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  animation: fadeIn 0.2s ease forwards;
+}
+
+.game-modal-content {
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  padding: 28px;
+  max-width: 440px;
+  width: 100%;
+  box-sizing: border-box;
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.6);
+}
+
+/* Tic Tac Toe Board */
+.ttt-board-container {
+  position: relative;
+  width: min(340px, 88vw);
+  height: min(340px, 88vw);
+  margin: 20px auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.ttt-cell {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  font-size: 48px;
+  font-weight: 950;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+  backdrop-filter: blur(8px);
+}
+
+.ttt-cell:hover:not(:disabled) {
+  background: rgba(6, 182, 212, 0.15);
+  border-color: rgba(6, 182, 212, 0.4);
+  transform: scale(1.03);
+}
+
+.ttt-cell-x {
+  color: #06b6d4;
+  text-shadow: 0 0 16px rgba(6, 182, 212, 0.8);
+}
+
+.ttt-cell-o {
+  color: #ec4899;
+  text-shadow: 0 0 16px rgba(236, 72, 153, 0.8);
+}
+
+/* RPS 3D Choice Cards */
+.rps-choice-btn {
+  background: rgba(15, 23, 42, 0.7);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 20px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+}
+
+.rps-choice-btn:hover:not(:disabled) {
+  transform: translateY(-6px) scale(1.05);
+  border-color: #00f0ff;
+  box-shadow: 0 12px 24px rgba(0, 240, 255, 0.25);
+}
+
+.rps-choice-btn.selected {
+  border-color: #a855f7;
+  background: rgba(168, 85, 247, 0.2);
+  box-shadow: 0 0 30px rgba(168, 85, 247, 0.4);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 15px rgba(6, 182, 212, 0.2); }
+  50% { box-shadow: 0 0 30px rgba(6, 182, 212, 0.5); }
+}
+
+/* Winning Strike SVG Overlay */
+.ttt-winning-line {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}

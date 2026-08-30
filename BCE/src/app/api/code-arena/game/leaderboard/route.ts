@@ -39,12 +39,16 @@ export async function GET(req: Request) {
         wave,
         survival_time,
         created_at,
-        profiles (
+        profiles!inner (
           name,
-          avatar_url
+          avatar_url,
+          is_verified,
+          last_login_at
         )
       `)
-      .eq('mode', mode);
+      .eq('mode', mode)
+      .eq('profiles.is_verified', true)
+      .not('profiles.last_login_at', 'is', null);
 
     if (dateFilter) {
       query = query.gte('created_at', dateFilter);

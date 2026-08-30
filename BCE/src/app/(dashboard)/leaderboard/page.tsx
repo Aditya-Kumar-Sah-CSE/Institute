@@ -69,16 +69,20 @@ export default async function LeaderboardPage({
       .select('*, user_badges(count)')
       .eq('role', 'student')
       .neq('email', SUPER_ADMIN_EMAIL)
+      .eq('is_verified', true)
+      .not('last_login_at', 'is', null)
       .order('xp', { ascending: false })
       .limit(50);
   } else {
     const adminClient = await createAdminClient();
     enrollmentsQuery = adminClient
       .from('enrollments')
-      .select('progress, user_id, profiles!inner(id, name, avatar_url, xp, level, role, user_badges(count))')
+      .select('progress, user_id, profiles!inner(id, name, avatar_url, xp, level, role, is_verified, last_login_at, user_badges(count))')
       .eq('course_id', filter)
       .eq('profiles.role', 'student')
       .neq('profiles.email', SUPER_ADMIN_EMAIL)
+      .eq('profiles.is_verified', true)
+      .not('profiles.last_login_at', 'is', null)
       .order('progress', { ascending: false })
       .limit(50);
   }

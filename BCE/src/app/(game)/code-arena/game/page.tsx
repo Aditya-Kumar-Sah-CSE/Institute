@@ -268,8 +268,14 @@ export default function GamePage() {
   const isScoreBoostRef = useRef<boolean>(false);
   const hasBottomShieldRef = useRef<boolean>(false);
 
-  // Current session ID from backend
+  // Current session ID & level refs
   const activeSessionIdRef = useRef<string | null>(null);
+  const isGameEndingRef = useRef<boolean>(false);
+  const activeLevelRef = useRef<GameLevel>(activeLevel);
+
+  useEffect(() => {
+    activeLevelRef.current = activeLevel;
+  }, [activeLevel]);
 
   // Timer Ref for Rebuild countdown in Infinite Mode
   const infiniteRebuildTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -883,6 +889,7 @@ export default function GamePage() {
   }, []);
 
   const selectLevelForPlay = (level: GameLevel) => {
+    activeLevelRef.current = level;
     setGamePlayMode('challenge');
     setActiveLevel(level);
     setScreen('PREVIEW');
@@ -894,14 +901,14 @@ export default function GamePage() {
   };
 
   // Start secure game session from Server
-  const startSecureSession = async () => {
+  const startSecureSession = async (overrideLevelId?: number | null) => {
     try {
       const res = await fetch('/api/code-arena/game/session/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           mode: gamePlayMode,
-          level: gamePlayMode === 'challenge' ? activeLevel.id : null,
+          level: gamePlayMode === 'challenge' ? (overrideLevelId ?? activeLevelRef.current.id) : null,
           wave: gamePlayMode === 'infinite' ? infiniteWave : null
         })
       });
@@ -916,8 +923,16 @@ export default function GamePage() {
     return false;
   };
 
-  const startGame = async () => {
-    const isStarted = await startSecureSession();
+  const startGame = async (levelToStart?: GameLevel | React.SyntheticEvent) => {
+    const isGameLevel = (obj: any): obj is GameLevel => Boolean(obj && typeof obj.id === 'number' && typeof obj.ballSpeed === 'number');
+    const levelObj = (gamePlayMode === 'challenge' && isGameLevel(levelToStart)) ? levelToStart : activeLevelRef.current;
+    activeLevelRef.current = levelObj;
+    if (gamePlayMode === 'challenge') {
+      setActiveLevel(levelObj);
+    }
+
+    isGameEndingRef.current = false;
+    const isStarted = await startSecureSession(gamePlayMode === 'challenge' ? levelObj.id : null);
     if (!isStarted) {
       // Try again or alert offline
       alert('Could not start a secure game session. Please check your connection.');
@@ -928,18 +943,18 @@ export default function GamePage() {
     setGoldBricksBrokenCount(0);
 
     const speed = gamePlayMode === 'challenge' 
-      ? activeLevel.ballSpeed 
+      ? levelObj.ballSpeed 
       : 5.5 + Math.min(4.0, (infiniteWave - 1) * 0.35); // Endless speed scaling
 
     const paddleW = gamePlayMode === 'challenge'
-      ? activeLevel.paddleWidth
+      ? levelObj.paddleWidth
       : 170; // Endless default paddle
 
     if (gamePlayMode === 'challenge') {
-      initLevelBricks(activeLevel);
-      setLives(activeLevel.lives);
+      initLevelBricks(levelObj);
+      setLives(levelObj.lives);
       
-      const isBoss = activeLevel.id % 5 === 0;
+      const isBoss = levelObj.id % 5 === 0;
       if (isBoss) {
         setShowBossIntro(true);
         setTimeout(() => setShowBossIntro(false), 2400);
@@ -1628,16 +1643,20 @@ export default function GamePage() {
 
                   if (b.durability <= 0) {
                     b.destroyed = true;
-                    // Mega Boss explosion
-                    triggerFragments(b.x, b.y, b.width, b.height, '#f43f5e');
-                    triggerBurst(b.x + b.width / 2, b.y + b.height / 2, '#ef4444', 35);
-                    
-                    setScore(prev => prev + 5000);
-                    spawnFloatText('+5000 BOSS DEFEAT!', b.x + b.width / 2, b.y, '#f43f5e');
-                    playSound('victory');
-                    
-                    // Win game
-                    setTimeout(() => handleVictory(true), 800);
+                    if (!isGameEndingRef.current) {
+                      isGameEndingRef.current = true;
+                      if (animationIdRef.current) cancelAnimationFrame(animationIdRef.current);
+                      // Mega Boss explosion
+                      triggerFragments(b.x, b.y, b.width, b.height, '#f43f5e');
+                      triggerBurst(b.x + b.width / 2, b.y + b.height / 2, '#ef4444', 35);
+                      
+                      setScore(prev => prev + 5000);
+                      spawnFloatText('+5000 BOSS DEFEAT!', b.x + b.width / 2, b.y, '#f43f5e');
+                      playSound('victory');
+                      
+                      // Win game
+                      setTimeout(() => handleVictory(true), 600);
+                    }
                   }
                   
                   // Reflect ball
@@ -1691,6 +1710,17 @@ export default function GamePage() {
                   if (b.type === 'GOLDEN' && perfQuality !== 'LOW') {
                     shakeTimerRef.current = 10;
                   }
+
+                  // Check remaining breakable bricks immediately upon destroying a brick
+                  if (gamePlayMode === 'challenge' && !isBossLevel && !isGameEndingRef.current) {
+                    const remainingBreakable = bricks.filter(br => !br.destroyed && br.type !== 'UNBREAKABLE').length;
+                    if (remainingBreakable === 0) {
+                      isGameEndingRef.current = true;
+                      if (animationIdRef.current) cancelAnimationFrame(animationIdRef.current);
+                      playSound('victory');
+                      setTimeout(() => handleVictory(false), 300);
+                    }
+                  }
                 } else {
                   triggerBurst(ball.x, ball.y, b.color, 5);
                   playSound('bounce');
@@ -1713,10 +1743,16 @@ export default function GamePage() {
             }
           }
 
-          // Check level victory (only challenge mode without boss, boss handled separately)
-          if (gamePlayMode === 'challenge' && activeBricksLeft === 0 && !isBossLevel) {
-            handleVictory(false);
-            break;
+          // Check level victory fallback
+          if (gamePlayMode === 'challenge' && !isBossLevel && !isGameEndingRef.current) {
+            const remainingBreakable = bricks.filter(br => !br.destroyed && br.type !== 'UNBREAKABLE').length;
+            if (remainingBreakable === 0) {
+              isGameEndingRef.current = true;
+              if (animationIdRef.current) cancelAnimationFrame(animationIdRef.current);
+              playSound('victory');
+              setTimeout(() => handleVictory(false), 300);
+              break;
+            }
           }
         }
       });
@@ -1926,6 +1962,30 @@ export default function GamePage() {
     playSound('victory');
     triggerHaptic(150);
 
+    const currentLvl = activeLevelRef.current;
+    const nextLevelId = currentLvl.id + 1;
+
+    // Update local stats state immediately so Next Level unlocks synchronously
+    setStats(prev => {
+      const completedSet = new Set([...(prev.completedLevels || []), currentLvl.id]);
+      const unlockedSet = new Set([...(prev.unlockedLevels || [1]), currentLvl.id]);
+      if (currentLvl.id < LEVELS.length) {
+        unlockedSet.add(nextLevelId);
+      }
+      const updated: LocalStats = {
+        ...prev,
+        completedLevels: Array.from(completedSet),
+        unlockedLevels: Array.from(unlockedSet),
+        bestScores: { ...prev.bestScores, [currentLvl.id]: Math.max(prev.bestScores?.[currentLvl.id] || 0, score) }
+      };
+      try {
+        localStorage.setItem('smartlearn_breaker_stats', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    setScreen('VICTORY');
+
     // Call submit secure session API on Server
     const duration = Math.floor((Date.now() - sessionStartTimeRef.current) / 1000);
     
@@ -1951,35 +2011,27 @@ export default function GamePage() {
         setSessionAchievements(data.newAchievements || []);
         setSessionMilestones(data.newMilestones || []);
         
+        // Reconcile server unlocked levels to ensure single source of truth
+        if (data.unlockedLevels) {
+          setStats(prev => ({
+            ...prev,
+            completedLevels: Array.from(new Set([...(prev.completedLevels || []), currentLvl.id])),
+            unlockedLevels: Array.from(new Set([...(prev.unlockedLevels || []), ...data.unlockedLevels, nextLevelId]))
+          }));
+        }
+
         // Refresh profile stats
         fetchProgress();
       }
     } catch (e) {
       console.error('Failed to submit score to Server', e);
-      // Offline backup
       let stars = 1;
-      if (score > activeLevel.targetScore * 1.3) stars = 3;
-      else if (score > activeLevel.targetScore) stars = 2;
+      if (score > currentLvl.targetScore * 1.3) stars = 3;
+      else if (score > currentLvl.targetScore) stars = 2;
       setEarnedStars(stars);
-      setEarnedXP(activeLevel.xpReward);
+      setEarnedXP(currentLvl.xpReward);
       setEarnedCoins(15);
-      
-      const unlockedSet = new Set([...stats.completedLevels, activeLevel.id]);
-      if (activeLevel.id < LEVELS.length) unlockedSet.add(activeLevel.id + 1);
-
-      const local: LocalStats = {
-        ...stats,
-        completedLevels: Array.from(unlockedSet),
-        unlockedLevels: Array.from(unlockedSet),
-        bestScores: { ...stats.bestScores, [activeLevel.id]: Math.max(stats.bestScores[activeLevel.id] || 0, score) },
-        stars: { ...stats.stars, [activeLevel.id]: Math.max(stats.stars[activeLevel.id] || 0, stars) },
-        totalXP: stats.totalXP + activeLevel.xpReward,
-        coins: stats.coins + 15
-      };
-      setStats(local);
-      localStorage.setItem('smartlearn_breaker_stats', JSON.stringify(local));
     }
-    setScreen('VICTORY');
   };
 
   const handleGameOver = async () => {
@@ -2425,7 +2477,7 @@ export default function GamePage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <button 
-                onClick={startGame}
+                onClick={() => startGame()}
                 style={{
                   width: '100%',
                   padding: '12px 16px',
@@ -2646,7 +2698,7 @@ export default function GamePage() {
                       Resume Game
                     </button>
                     <button 
-                      onClick={startGame}
+                      onClick={() => startGame()}
                       style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', padding: '10px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
                     >
                       Restart Game
@@ -2715,11 +2767,15 @@ export default function GamePage() {
             )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {activeLevel.id < LEVELS.length ? (
+              {activeLevelRef.current.id < LEVELS.length ? (
                 <button 
                   onClick={() => {
-                    const next = LEVELS.find(l => l.id === activeLevel.id + 1);
-                    if (next) selectLevelForPlay(next);
+                    const nextId = activeLevelRef.current.id + 1;
+                    const next = LEVELS.find(l => l.id === nextId);
+                    if (next) {
+                      selectLevelForPlay(next);
+                      startGame(next);
+                    }
                   }}
                   style={{
                     width: '100%',
@@ -2734,7 +2790,7 @@ export default function GamePage() {
                     boxShadow: '0 0 15px rgba(16,185,129,0.25)',
                   }}
                 >
-                  NEXT LEVEL
+                  NEXT LEVEL ({activeLevelRef.current.id + 1})
                 </button>
               ) : (
                 <div style={{ color: '#facc15', fontWeight: 800, fontSize: '14px', marginBottom: '8px' }}>
@@ -2743,7 +2799,7 @@ export default function GamePage() {
               )}
 
               <button 
-                onClick={startGame}
+                onClick={() => startGame()}
                 style={{
                   width: '100%',
                   padding: '10px 16px',
@@ -2820,7 +2876,7 @@ export default function GamePage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <button 
-                onClick={startGame}
+                onClick={() => startGame()}
                 style={{
                   width: '100%',
                   padding: '12px 16px',
@@ -2915,7 +2971,7 @@ export default function GamePage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <button 
-                onClick={startGame}
+                onClick={() => startGame()}
                 style={{
                   width: '100%',
                   padding: '12px 16px',

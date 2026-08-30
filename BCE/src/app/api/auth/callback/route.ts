@@ -35,14 +35,25 @@ export async function GET(request: Request) {
 
   if (token_hash && type) {
     const supabase = await createClient();
-    const { error } = await supabase.auth.verifyOtp({ token_hash, type });
+    const { data: verifyData, error } = await supabase.auth.verifyOtp({ token_hash, type });
     if (!error) {
+      if (verifyData.user) {
+        await supabase.from('profiles').update({
+          is_verified: true,
+          last_login_at: new Date().toISOString()
+        }).eq('id', verifyData.user.id);
+      }
       return NextResponse.redirect(`${origin}${safeRedirect}`);
     }
   } else if (code) {
     const supabase = await createClient();
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error && data.session && data.user) {
+      await supabase.from('profiles').update({
+        is_verified: true,
+        last_login_at: new Date().toISOString()
+      }).eq('id', data.user.id);
+
       const connectDrive = searchParams.get('connect_drive') === 'true';
       const providerToken = data.session.provider_token;
       const providerRefreshToken = data.session.provider_refresh_token;

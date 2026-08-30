@@ -111,6 +111,10 @@ export async function signIn(formData: FormData) {
     if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
       try {
         const adminSupabase = await createAdminClient();
+        await adminSupabase.from('profiles').update({
+          is_verified: true,
+          last_login_at: new Date().toISOString()
+        }).eq('id', data.user.id);
         const { data: profile } = await adminSupabase.from('profiles').select('role').eq('id', data.user.id).single();
         if (profile?.role) role = profile.role;
       } catch (err) {
@@ -120,6 +124,10 @@ export async function signIn(formData: FormData) {
 
     if (!role) {
       try {
+        await supabase.from('profiles').update({
+          is_verified: true,
+          last_login_at: new Date().toISOString()
+        }).eq('id', data.user.id);
         const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single();
         if (profile?.role) role = profile.role;
       } catch (err) {
