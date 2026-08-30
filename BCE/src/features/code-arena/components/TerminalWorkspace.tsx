@@ -1,170 +1,280 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { WebContainer } from '@webcontainer/api';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
 
-let webcontainerInstance: WebContainer | null = null;
+interface TerminalWorkspaceProps {
+  onCommandComplete?: () => void;
+}
 
-export default function TerminalWorkspace({ files }: { files: any }) {
+export default function TerminalWorkspace({ onCommandComplete }: TerminalWorkspaceProps) {
   const terminalRef = useRef<HTMLDivElement>(null);
   const [booting, setBooting] = useState(true);
-  const [isolationError, setIsolationError] = useState<string | null>(null);
-  const shellProcessRef = useRef<any>(null);
+  const shellCwdRef = useRef<string>(''); // Virtual relative path (empty string = root)
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     let term: Terminal;
     let fitAddon: FitAddon;
 
-    async function init() {
-      // Gracefully verify cross-origin isolation before trying to boot WebContainer
-      if (typeof window !== 'undefined' && !window.crossOriginIsolated) {
-        setIsolationError('Security isolation (COOP/COEP headers) is missing. The terminal WebContainer environment requires a cross-origin isolated context to run safely.');
-        setBooting(false);
+    if (!terminalRef.current) return;
+
+    // Initialize premium dark theme xterm terminal
+    term = new Terminal({
+      fontFamily: '"Fira Code", Menlo, Monaco, Consolas, monospace',
+      fontSize: 13,
+      lineHeight: 1.2,
+      theme: {
+        background: '#0a0a0a',
+        foreground: '#f8fafc',
+        cursor: '#06b6d4',
+        cursorAccent: '#0a0a0a',
+        selectionBackground: 'rgba(6, 182, 212, 0.3)',
+      },
+      cursorBlink: true,
+    });
+
+    fitAddon = new FitAddon();
+    term.loadAddon(fitAddon);
+    term.open(terminalRef.current);
+    fitAddon.fit();
+    setBooting(false);
+
+    // Shell state
+    let lineBuffer = '';
+    const commandHistory: string[] = [];
+    let historyIndex = -1;
+
+    // Interactive stdin state
+    let isReadingStdin = false;
+    let stdinCommand = '';
+    let stdinLines: string[] = [];
+    let stdinLineBuffer = '';
+
+    const getPrompt = () => {
+      const virtualPath = shellCwdRef.current ? `~/workspace/${shellCwdRef.current}` : '~/workspace';
+      return `\x1b[1;36m${virtualPath}\x1b[0m \x1b[1;32m$\x1b[0m `;
+    };
+
+    const printPrompt = () => {
+      term.write(`\r\n${getPrompt()}`);
+    };
+
+    // Welcome Message
+    term.writeln('\x1b[1;32m===================================================\x1b[0m');
+    term.writeln('\x1b[1;36m  Welcome to BCE Code Arena Sandbox Browser Shell   \x1b[0m');
+    term.writeln('\x1b[1;32m===================================================\x1b[0m');
+    term.writeln('Compile C++: \x1b[33mg++ main.cpp -o main\x1b[0m & execute: \x1b[33m./main\x1b[0m');
+    term.writeln('Compile Java: \x1b[33mjavac Main.java\x1b[0m & execute: \x1b[33mjava Main\x1b[0m');
+    term.writeln('Run Python: \x1b[33mpython solve.py\x1b[0m | Node.js: \x1b[33mnode script.js\x1b[0m');
+    term.write(getPrompt());
+
+    const executeCommand = async (cmdLine: string, stdinData: string = '') => {
+      abortControllerRef.current = new AbortController();
+      
+      try {
+        term.write('\r\n\x1b[2;37mRunning...\x1b[0m\r\n');
+        
+        const response = await fetch('/api/code-arena/terminal/execute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            command: cmdLine, 
+            cwd: shellCwdRef.current,
+            stdin: stdinData 
+          }),
+          signal: abortControllerRef.current.signal
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          term.write(`\x1b[1;31mError: ${errData.error || 'Server error'}\x1b[0m\r\n`);
+          printPrompt();
+          return;
+        }
+
+        const data = await response.json();
+        
+        // Print stdout
+        if (data.stdout) {
+          term.write(data.stdout.replace(/\n/g, '\r\n'));
+        }
+        // Print stderr
+        if (data.stderr) {
+          term.write(`\x1b[1;31m${data.stderr.replace(/\n/g, '\r\n')}\x1b[0m`);
+        }
+
+        // Update working directory if changed
+        if (typeof data.cwd === 'string') {
+          shellCwdRef.current = data.cwd;
+        }
+
+        // Trigger file tree refresh
+        if (onCommandComplete) {
+          onCommandComplete();
+        }
+      } catch (err: any) {
+        if (err.name === 'AbortError') {
+          term.write('\r\n\x1b[1;31mProcess terminated.\x1b[0m\r\n');
+        } else {
+          term.write(`\r\n\x1b[1;31mExecution failed: ${err.message || err}\x1b[0m\r\n`);
+        }
+      } finally {
+        abortControllerRef.current = null;
+        printPrompt();
+      }
+    };
+
+    // Terminal Key Event Handler
+    term.onData((data) => {
+      if (abortControllerRef.current) {
+        // Process is executing. If Ctrl+C is pressed, abort process
+        if (data === '\x03') { // Ctrl+C
+          abortControllerRef.current.abort();
+        }
         return;
       }
 
-      if (!terminalRef.current) return;
-
-      term = new Terminal({
-        fontFamily: '"Fira Code", monospace',
-        fontSize: 12,
-        theme: {
-          background: '#00000000', // Transparent
-          foreground: '#f8fafc',
-          cursor: '#06b6d4',
-        }
-      });
-      fitAddon = new FitAddon();
-      term.loadAddon(fitAddon);
-      term.open(terminalRef.current);
-      fitAddon.fit();
-
-      // Boot WebContainer
-      if (!webcontainerInstance) {
-        try {
-          webcontainerInstance = await WebContainer.boot();
-        } catch (e: any) {
-          term.write(`\n\x1b[1;31mError booting WebContainer: ${e.message}\x1b[0m\n`);
-          setBooting(false);
+      // If reading stdin interactively
+      if (isReadingStdin) {
+        if (data === '\x03') { // Ctrl+C to cancel stdin
+          term.write('^C\r\n\x1b[1;31mCancelled.\x1b[0m');
+          isReadingStdin = false;
+          stdinCommand = '';
+          stdinLines = [];
+          stdinLineBuffer = '';
+          printPrompt();
           return;
         }
-      }
-      
-      // Sync files
-      if (files && files.length > 0) {
-        const fileSystemTree: any = {};
-        const processNode = (node: any, treeRef: any) => {
-          if (node.kind === 'file') {
-            treeRef[node.name] = { file: { contents: node.content || '' } };
-          } else if (node.kind === 'directory' && node.children) {
-            treeRef[node.name] = { directory: {} };
-            node.children.forEach((child: any) => processNode(child, treeRef[node.name].directory));
+
+        if (data === '\x04') { // Ctrl+D to trigger execution
+          term.write('\r\n[Executing with stdin...]');
+          isReadingStdin = false;
+          const fullStdin = stdinLines.join('\n') + (stdinLineBuffer ? '\n' : '') + stdinLineBuffer;
+          executeCommand(stdinCommand, fullStdin);
+          stdinCommand = '';
+          stdinLines = [];
+          stdinLineBuffer = '';
+          return;
+        }
+
+        if (data === '\r') { // Enter
+          stdinLines.push(stdinLineBuffer);
+          stdinLineBuffer = '';
+          term.write('\r\n');
+          return;
+        }
+
+        if (data === '\x7f' || data === '\x08') { // Backspace
+          if (stdinLineBuffer.length > 0) {
+            stdinLineBuffer = stdinLineBuffer.slice(0, -1);
+            term.write('\b \b');
           }
-        };
-        files.forEach((f: any) => processNode(f, fileSystemTree));
+          return;
+        }
+
+        // Echo and buffer readable character
+        if (data.charCodeAt(0) >= 32) {
+          stdinLineBuffer += data;
+          term.write(data);
+        }
+        return;
+      }
+
+      // Normal terminal input
+      if (data === '\r') { // Enter
+        const cmd = lineBuffer.trim();
+        term.write('\r\n');
         
-        try {
-          await webcontainerInstance.mount(fileSystemTree);
-        } catch(e) {
-          console.warn("Could not mount all files", e);
+        if (cmd) {
+          commandHistory.push(lineBuffer);
+          historyIndex = commandHistory.length;
+          
+          // Check if command is a code runner that might need stdin
+          const parts = cmd.split(' ');
+          const isRunner = parts[0] === 'python' || parts[0] === 'python3' || parts[0] === 'java' || parts[0] === 'node' || parts[0].startsWith('./');
+          
+          if (isRunner) {
+            // Prompt user for stdin input
+            isReadingStdin = true;
+            stdinCommand = cmd;
+            term.writeln('\x1b[33m[Reading Stdin. Press Enter for next line, Ctrl+D to Execute, Ctrl+C to Cancel]\x1b[0m');
+            term.write('> ');
+          } else {
+            executeCommand(cmd);
+          }
+        } else {
+          printPrompt();
         }
+        lineBuffer = '';
+        return;
       }
 
-      setBooting(false);
-
-      // Start shell
-      const shellProcess = await webcontainerInstance.spawn('jsh', {
-        terminal: {
-          cols: term.cols,
-          rows: term.rows,
-        },
-      });
-      shellProcessRef.current = shellProcess;
-      
-      shellProcess.output.pipeTo(
-        new WritableStream({
-          write(data) {
-            term.write(data);
-          }
-        })
-      );
-      
-      const input = shellProcess.input.getWriter();
-      term.onData((data) => {
-        input.write(data);
-      });
-
-      const handleResize = () => {
-        fitAddon.fit();
-        if (shellProcessRef.current) {
-          shellProcessRef.current.resize({
-            cols: term.cols,
-            rows: term.rows,
-          });
+      if (data === '\x7f' || data === '\x08') { // Backspace
+        if (lineBuffer.length > 0) {
+          lineBuffer = lineBuffer.slice(0, -1);
+          term.write('\b \b');
         }
-      };
-      
-      window.addEventListener('resize', handleResize);
-    }
+        return;
+      }
+
+      if (data === '\x03') { // Ctrl+C
+        term.write('^C');
+        lineBuffer = '';
+        printPrompt();
+        return;
+      }
+
+      // Handle Arrow Up / Down for history
+      if (data === '\u001b[A') { // Up Arrow
+        if (commandHistory.length > 0 && historyIndex > 0) {
+          historyIndex--;
+          term.write('\b \b'.repeat(lineBuffer.length));
+          lineBuffer = commandHistory[historyIndex];
+          term.write(lineBuffer);
+        }
+        return;
+      }
+      if (data === '\u001b[B') { // Down Arrow
+        if (commandHistory.length > 0 && historyIndex < commandHistory.length) {
+          historyIndex++;
+          term.write('\b \b'.repeat(lineBuffer.length));
+          if (historyIndex === commandHistory.length) {
+            lineBuffer = '';
+          } else {
+            lineBuffer = commandHistory[historyIndex];
+            term.write(lineBuffer);
+          }
+        }
+        return;
+      }
+
+      // Echo printable character
+      if (data.charCodeAt(0) >= 32) {
+        lineBuffer += data;
+        term.write(data);
+      }
+    });
+
+    const handleResize = () => {
+      fitAddon.fit();
+    };
     
-    init();
+    window.addEventListener('resize', handleResize);
 
     return () => {
+      window.removeEventListener('resize', handleResize);
       term?.dispose();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  if (isolationError) {
-    return (
-      <div style={{
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '24px',
-        background: '#0a0a0a',
-        border: '1px solid var(--glass-border)',
-        borderRadius: '8px',
-        textAlign: 'center',
-        color: 'var(--text-secondary)'
-      }}>
-        <div style={{ color: '#ef4444', fontSize: '24px', marginBottom: '12px' }}>🔒 Terminal Locked</div>
-        <p style={{ fontSize: '13px', maxWidth: '400px', margin: '0 0 16px 0', lineHeight: '1.5' }}>
-          {isolationError}
-        </p>
-        <button 
-          onClick={() => window.location.reload()}
-          style={{
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid var(--glass-border)',
-            color: 'white',
-            padding: '8px 16px',
-            borderRadius: '6px',
-            fontSize: '11px',
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            transition: 'background 0.2s'
-          }}
-          onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-          onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-        >
-          Retry Loading Route
-        </button>
-      </div>
-    );
-  }
+  }, [onCommandComplete]);
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative', background: '#0a0a0a', padding: '8px' }}>
       {booting && (
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', color: 'var(--neon-cyan)', zIndex: 10, fontSize: '12px' }}>
-          Booting Isolated Engine...
+          Initializing terminal...
         </div>
       )}
       <div ref={terminalRef} style={{ width: '100%', height: '100%' }} />

@@ -34,8 +34,7 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import Modal from '@/components/ui/Modal';
 import type { CodeLanguage, NormalizedExecutionResult } from '../types';
-import { loadWorkspace, saveWorkspace, resetWorkspace, clearWorkspaceData, getDefaultWorkspace } from '../storage/compilerStorage';
-import type { CompilerFile, CompilerWorkspace, SaveStatus } from '../storage/compilerTypes';
+type SaveStatus = 'Saved' | 'Saving...' | 'Local save unavailable' | 'Saved locally';
 import './CodeArena.css';
 
 const Editor = dynamic(() => import('@monaco-editor/react'), {
@@ -220,7 +219,7 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
   const [result, setResult] = useState<NormalizedExecutionResult | null>(null);
   const [iframeKey, setIframeKey] = useState(0);
 
-  // Local-First IndexedDB state management
+  // Local-First state management
   const [isWorkspaceLoading, setIsWorkspaceLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('Saved locally');
   const [resetModalOpen, setResetModalOpen] = useState(false);
@@ -243,6 +242,31 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isInitialMountRef = useRef(true);
 
+  const handleResetWorkspace = async () => {
+    try {
+      setIsWorkspaceLoading(true);
+      const res = await fetch('/api/code-arena/files/reset', { method: 'POST' });
+      if (!res.ok) {
+        throw new Error((await res.json()).error || 'Failed to reset workspace');
+      }
+      await refreshExplorer();
+      
+      const filesRes = await fetch('/api/code-arena/files/tree');
+      if (filesRes.ok) {
+        const filesData = await filesRes.json();
+        const mainFile = filesData.files?.find((f: any) => f.path === 'main.cpp') || filesData.files?.[0];
+        if (mainFile) {
+          await selectFile(mainFile);
+        }
+      }
+    } catch (e: any) {
+      alert('Reset failed: ' + e.message);
+    } finally {
+      setIsWorkspaceLoading(false);
+      setResetModalOpen(false);
+    }
+  };
+
   // 1. Introspect Wandbox compiler service health dynamically
   useEffect(() => {
     async function checkHealth() {
@@ -260,76 +284,35 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
     checkHealth();
   }, []);
 
-  // 2. Local-First IndexedDB Workspace Restoration on Mount
+  // 2. Database Workspace Restoration on Mount
   useEffect(() => {
-    async function initIndexedDBWorkspace() {
+    async function initDatabaseWorkspace() {
       setIsWorkspaceLoading(true);
       try {
-        const params = new URLSearchParams(window.location.search);
-        const codeParam = params.get('code');
-        const langParam = params.get('lang');
-        const titleParam = params.get('title');
-
-        if (codeParam) {
-          const decodedCode = decodeURIComponent(codeParam);
-          const decodedTitle = titleParam ? decodeURIComponent(titleParam) : 'Shared code';
-          const decodedLang = (langParam as CodeLanguage) || 'cpp17';
-
-          const sharedFile: FileItem = {
-            name: decodedTitle,
-            path: decodedTitle,
-            kind: 'file',
-            content: decodedCode,
-          };
-
-          setFiles([sharedFile]);
-          setLanguage(decodedLang);
-          setActiveFile(sharedFile);
-          setCode(decodedCode);
-          setTitle(decodedTitle);
-          setIsWorkspaceLoading(false);
-          return;
+        const res = await fetch('/api/code-arena/files/tree');
+        if (!res.ok) {
+          throw new Error('Failed to load workspace files');
         }
-
-        const ws = await loadWorkspace();
-        if (ws && ws.files && ws.files.length > 0) {
-          const mappedFiles: FileItem[] = ws.files.map(f => ({
-            name: f.name,
-            path: f.path,
-            kind: f.kind,
-            content: f.content,
-            isDirty: f.isDirty,
-          }));
-
-          setFiles(mappedFiles);
-          setLanguage(ws.language || 'cpp17');
-          if (ws.testcases && ws.testcases.length > 0) {
-            setTestcases(ws.testcases);
-            setActiveTestcaseIdx(ws.activeTestcaseIdx || 0);
-          }
-
-          const active = mappedFiles.find(f => f.path === ws.activeFileId) || mappedFiles[0];
-          if (active) {
-            setActiveFile(active);
-            setCode(active.content || '');
-            setTitle(active.name);
-          }
-        } else {
-          loadDefaultVirtualFiles();
+        const data = await res.json();
+        setFiles(data.files || []);
+        
+        // Find default or first file to select
+        const defaultFile = data.files?.find((f: any) => f.path === 'main.cpp') || data.files?.[0];
+        if (defaultFile) {
+          await selectFile(defaultFile);
         }
       } catch (e) {
-        console.warn('Error loading workspace from IndexedDB:', e);
-        loadDefaultVirtualFiles();
+        console.warn('Error loading workspace from DB:', e);
       } finally {
         setIsWorkspaceLoading(false);
       }
     }
 
-    initIndexedDBWorkspace();
+    initDatabaseWorkspace();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 3. Debounced (500ms) Auto-Save to IndexedDB
+  // 3. Debounced (1500ms) Auto-Save to Database
   useEffect(() => {
     if (isWorkspaceLoading || isInitialMountRef.current) {
       if (!isWorkspaceLoading) {
@@ -337,8 +320,6 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
       }
       return;
     }
-
-    if (rootDirectoryHandle) return;
 
     setSaveStatus('Saving...');
 
@@ -348,96 +329,31 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
 
     saveTimeoutRef.current = setTimeout(async () => {
       try {
-        const cleanFiles: CompilerFile[] = files.map(f => ({
-          id: f.path,
-          name: f.name,
-          path: f.path,
-          kind: f.kind,
-          content: f.path === activeFile?.path ? code : (f.content || ''),
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        }));
-
-        const wsToSave: CompilerWorkspace = {
-          id: 'bce-default-workspace',
-          name: 'BCE Code Arena Workspace',
-          activeFileId: activeFile?.path || 'main.cpp',
-          files: cleanFiles,
-          language,
-          testcases,
-          activeTestcaseIdx,
-          compilerSettings: { fontSize: 14, tabSize: 2, autoSave: true },
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        };
-
-        await saveWorkspace(wsToSave);
-        setSaveStatus('Saved locally');
+        if (activeFile) {
+          const res = await fetch('/api/code-arena/files/write', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: activeFile.path, content: code }),
+          });
+          if (res.ok) {
+            setSaveStatus('Saved locally');
+            // Reset dirty status
+            setFiles(prev => updateFileInTree(prev, activeFile.path, { content: code, isDirty: false }));
+            setActiveFile(prev => prev ? { ...prev, content: code, isDirty: false } : null);
+          } else {
+            setSaveStatus('Local save unavailable');
+          }
+        }
       } catch (err) {
-        console.error('Failed to auto-save to IndexedDB:', err);
+        console.error('Failed to auto-save:', err);
         setSaveStatus('Local save unavailable');
       }
-    }, 500);
+    }, 1500);
 
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
-  }, [code, files, activeFile, language, testcases, activeTestcaseIdx, isWorkspaceLoading, rootDirectoryHandle]);
-
-  const handleResetWorkspace = async () => {
-    try {
-      setIsWorkspaceLoading(true);
-      const defaultWs = await resetWorkspace();
-      const mappedFiles: FileItem[] = defaultWs.files.map(f => ({
-        name: f.name,
-        path: f.path,
-        kind: f.kind,
-        content: f.content,
-      }));
-      setFiles(mappedFiles);
-      setLanguage(defaultWs.language);
-      setTestcases(defaultWs.testcases);
-      setActiveTestcaseIdx(0);
-      const active = mappedFiles[0];
-      setActiveFile(active);
-      setCode(active.content || '');
-      setTitle(active.name);
-      setSaveStatus('Saved locally');
-    } catch (e: any) {
-      alert('Reset failed: ' + e.message);
-    } finally {
-      setIsWorkspaceLoading(false);
-      setResetModalOpen(false);
-    }
-  };
-
-  const handleClearLocalData = async () => {
-    try {
-      setIsWorkspaceLoading(true);
-      await clearWorkspaceData();
-      const defaultWs = getDefaultWorkspace();
-      const mappedFiles: FileItem[] = defaultWs.files.map(f => ({
-        name: f.name,
-        path: f.path,
-        kind: f.kind,
-        content: f.content,
-      }));
-      setFiles(mappedFiles);
-      setLanguage(defaultWs.language);
-      setTestcases(defaultWs.testcases);
-      setActiveTestcaseIdx(0);
-      const active = mappedFiles[0];
-      setActiveFile(active);
-      setCode(active.content || '');
-      setTitle(active.name);
-      setSaveStatus('Saved locally');
-    } catch (e: any) {
-      alert('Clear failed: ' + e.message);
-    } finally {
-      setIsWorkspaceLoading(false);
-      setClearModalOpen(false);
-    }
-  };
+  }, [code, activeFile, isWorkspaceLoading]);
 
   // 4. Keyboard shortcuts listener
   useEffect(() => {
@@ -479,17 +395,6 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
   }, [activeFile, files]);
 
   // Helper utility functions
-  function stripHandles(tree: FileItem[]): FileItem[] {
-    return tree.map(node => ({
-      name: node.name,
-      path: node.path,
-      kind: node.kind,
-      content: node.content,
-      isDirty: node.isDirty,
-      children: node.children ? stripHandles(node.children) : undefined,
-    }));
-  }
-
   function hasUnsavedChanges(node: FileItem): boolean {
     if (node.isDirty) return true;
     if (node.children) {
@@ -498,91 +403,15 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
     return false;
   }
 
-  function loadDefaultVirtualFiles() {
-    const defaultTree: FileItem[] = [
-      { name: 'main.cpp', path: 'main.cpp', kind: 'file', content: starters.cpp17 },
-      { name: 'Main.java', path: 'Main.java', kind: 'file', content: starters.java },
-      { name: 'solve.py', path: 'solve.py', kind: 'file', content: starters.python },
-      { name: 'index.html', path: 'index.html', kind: 'file', content: starters.html },
-      { name: 'script.js', path: 'script.js', kind: 'file', content: starters.javascript },
-    ];
-    setFiles(defaultTree);
-    selectFile(defaultTree[0]);
-  }
-
-  function findFirstFile(tree: FileItem[]): FileItem | null {
-    for (const item of tree) {
-      if (item.kind === 'file') return item;
-      if (item.children) {
-        const found = findFirstFile(item.children);
-        if (found) return found;
-      }
-    }
-    return null;
-  }
-
-  async function buildFileTree(dirHandle: FileSystemDirectoryHandle, relativePath = ''): Promise<FileItem[]> {
-    const items: FileItem[] = [];
-    for await (const entry of (dirHandle as any).values()) {
-      const entryPath = relativePath ? `${relativePath}/${entry.name}` : entry.name;
-      if (entry.kind === 'file') {
-        items.push({
-          name: entry.name,
-          path: entryPath,
-          kind: 'file',
-          handle: entry,
-        });
-      } else if (entry.kind === 'directory') {
-        if (EXCLUDED_FOLDERS.includes(entry.name)) continue;
-        const children = await buildFileTree(entry, entryPath);
-        items.push({
-          name: entry.name,
-          path: entryPath,
-          kind: 'directory',
-          handle: entry,
-          children,
-        });
-      }
-    }
-    return items.sort((a, b) => {
-      if (a.kind !== b.kind) return a.kind === 'directory' ? -1 : 1;
-      return a.name.localeCompare(b.name);
-    });
-  }
-
-  // File explorer interactions
-  const openFolder = async () => {
-    try {
-      if (activeFile?.isDirty) {
-        if (confirm(`You have unsaved changes in "${activeFile.name}". Save now?`)) {
-          await handleSaveActiveFile();
-        }
-      }
-      const dirHandle = await (window as any).showDirectoryPicker();
-      setRootDirectoryHandle(dirHandle);
-      const tree = await buildFileTree(dirHandle);
-      setFiles(tree);
-      const first = findFirstFile(tree);
-      if (first) {
-        await selectFile(first);
-      } else {
-        setActiveFile(null);
-        setCode('');
-      }
-    } catch (e: any) {
-      if (e.name !== 'AbortError') {
-        alert('Could not mount directory: ' + e.message);
-      }
-    }
-  };
-
   const selectFile = async (item: FileItem) => {
     try {
-      let content = item.content || '';
-      if (item.handle && item.handle.kind === 'file') {
-        const file = await (item.handle as FileSystemFileHandle).getFile();
-        content = await file.text();
+      let content = '';
+      const res = await fetch(`/api/code-arena/files/read?path=${encodeURIComponent(item.path)}`);
+      if (!res.ok) {
+        throw new Error((await res.json()).error || 'Failed to read file');
       }
+      const data = await res.json();
+      content = data.content || '';
 
       const parts = item.name.split('.');
       const ext = parts[parts.length - 1]?.toLowerCase() || '';
@@ -594,11 +423,11 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
       else if (['js', 'mjs', 'cjs'].includes(ext)) detectedLang = 'javascript';
       else if (['html', 'htm'].includes(ext)) detectedLang = 'html';
 
-      setActiveFile({ ...item, content, isDirty: !!item.isDirty });
+      setActiveFile({ ...item, content, isDirty: false });
       setCode(content);
       setLanguage(detectedLang);
       setTitle(item.name);
-      setState(item.isDirty ? 'Unsaved changes' : 'Saved');
+      setState('Saved');
     } catch (e: any) {
       alert('Error reading file contents: ' + e.message);
     }
@@ -632,10 +461,13 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
     setState('Saving…');
 
     try {
-      if (activeFile.handle && activeFile.handle.kind === 'file') {
-        const writable = await (activeFile.handle as any).createWritable();
-        await writable.write(code);
-        await writable.close();
+      const res = await fetch('/api/code-arena/files/write', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: activeFile.path, content: code }),
+      });
+      if (!res.ok) {
+        throw new Error((await res.json()).error || 'Failed to save file');
       }
 
       setFiles(prev => updateFileInTree(prev, activeFile.path, { content: code, isDirty: false }));
@@ -686,32 +518,19 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
         if (!filename) return;
 
         const fullPath = parentPath ? `${parentPath}/${filename}` : filename;
-        const newNode: FileItem = {
-          name: filename,
-          path: fullPath,
-          kind: 'file',
-          content: starters[getFileLanguage(filename)] || '',
-        };
-
         try {
-          if (rootDirectoryHandle) {
-            const parentHandle = await findDirectoryHandle(rootDirectoryHandle, parentPath);
-            if (parentHandle) {
-              const fileHandle = await parentHandle.getFileHandle(filename, { create: true });
-              const writable = await fileHandle.createWritable();
-              await writable.write(starters[getFileLanguage(filename)] || '');
-              await writable.close();
-              const tree = await buildFileTree(rootDirectoryHandle);
-              setFiles(tree);
-              return;
-            }
+          const res = await fetch('/api/code-arena/files/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: fullPath, kind: 'file' }),
+          });
+          if (!res.ok) {
+            throw new Error((await res.json()).error || 'Failed to create file');
           }
+          await refreshExplorer();
         } catch (e: any) {
-          console.warn('FileSystem API unavailable, using virtual file:', e.message);
+          alert('Create failed: ' + e.message);
         }
-
-        // Virtual file creation (always works)
-        setFiles(prev => addNodeToTree(prev, parentPath, newNode));
       }
     });
   };
@@ -727,29 +546,19 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
         if (!foldername) return;
 
         const fullPath = parentPath ? `${parentPath}/${foldername}` : foldername;
-        const newNode: FileItem = {
-          name: foldername,
-          path: fullPath,
-          kind: 'directory',
-          children: [],
-        };
-
         try {
-          if (rootDirectoryHandle) {
-            const parentHandle = await findDirectoryHandle(rootDirectoryHandle, parentPath);
-            if (parentHandle) {
-              await parentHandle.getDirectoryHandle(foldername, { create: true });
-              const tree = await buildFileTree(rootDirectoryHandle);
-              setFiles(tree);
-              return;
-            }
+          const res = await fetch('/api/code-arena/files/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: fullPath, kind: 'directory' }),
+          });
+          if (!res.ok) {
+            throw new Error((await res.json()).error || 'Failed to create folder');
           }
+          await refreshExplorer();
         } catch (e: any) {
-          console.warn('FileSystem API unavailable, using virtual folder:', e.message);
+          alert('Create failed: ' + e.message);
         }
-
-        // Virtual folder creation (always works)
-        setFiles(prev => addNodeToTree(prev, parentPath, newNode));
       }
     });
   };
@@ -764,39 +573,23 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
       onConfirm: async (newName) => {
         if (!newName || newName === item.name) return;
 
+        const parts = item.path.split('/');
+        parts[parts.length - 1] = newName;
+        const newPath = parts.join('/');
+
         try {
-          if (rootDirectoryHandle) {
-            if (item.handle) {
-              if (typeof (item.handle as any).move === 'function') {
-                await (item.handle as any).move(newName);
-              } else {
-                // Manual fallback if handle.move is not supported
-                if (item.kind === 'file') {
-                  const file = await (item.handle as FileSystemFileHandle).getFile();
-                  const text = await file.text();
-                  const parentPath = item.path.split('/').slice(0, -1).join('/');
-                  const parentHandle = await findDirectoryHandle(rootDirectoryHandle, parentPath);
-                  if (parentHandle) {
-                    const newHandle = await parentHandle.getFileHandle(newName, { create: true });
-                    const wr = await newHandle.createWritable();
-                    await wr.write(text);
-                    await wr.close();
-                    await parentHandle.removeEntry(item.name);
-                  }
-                } else {
-                  throw new Error('Folder renaming not supported natively on this browser.');
-                }
-              }
-              const tree = await buildFileTree(rootDirectoryHandle);
-              setFiles(tree);
-            }
-          } else {
-            setFiles(prev => renameNodeInTree(prev, item.path, newName));
-            if (activeFile?.path === item.path) {
-              const parts = item.path.split('/');
-              parts[parts.length - 1] = newName;
-              setActiveFile(prev => prev ? { ...prev, name: newName, path: parts.join('/') } : null);
-            }
+          const res = await fetch('/api/code-arena/files/rename', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ oldPath: item.path, newPath }),
+          });
+          if (!res.ok) {
+            throw new Error((await res.json()).error || 'Failed to rename');
+          }
+          await refreshExplorer();
+          if (activeFile?.path === item.path) {
+            setActiveFile(prev => prev ? { ...prev, name: newName, path: newPath } : null);
+            setTitle(newName);
           }
         } catch (e: any) {
           alert('Rename failed: ' + e.message);
@@ -809,18 +602,15 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
     if (!confirm(`Are you sure you want to delete "${item.name}"?`)) return;
 
     try {
-      if (rootDirectoryHandle) {
-        const parentPath = item.path.split('/').slice(0, -1).join('/');
-        const parentHandle = await findDirectoryHandle(rootDirectoryHandle, parentPath);
-        if (parentHandle) {
-          await parentHandle.removeEntry(item.name, { recursive: true });
-          const tree = await buildFileTree(rootDirectoryHandle);
-          setFiles(tree);
-        }
-      } else {
-        setFiles(prev => deleteNodeFromTree(prev, item.path));
+      const res = await fetch('/api/code-arena/files/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: item.path }),
+      });
+      if (!res.ok) {
+        throw new Error((await res.json()).error || 'Failed to delete');
       }
-
+      await refreshExplorer();
       if (activeFile?.path === item.path) {
         setActiveFile(null);
         setCode('');
@@ -831,72 +621,16 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
   };
 
   const refreshExplorer = async () => {
-    if (rootDirectoryHandle) {
-      const tree = await buildFileTree(rootDirectoryHandle);
-      setFiles(tree);
+    try {
+      const res = await fetch('/api/code-arena/files/tree');
+      if (res.ok) {
+        const data = await res.json();
+        setFiles(data.files || []);
+      }
+    } catch (e) {
+      console.error('Failed to refresh explorer:', e);
     }
   };
-
-  // Helper traversal methods for explorer
-  async function findDirectoryHandle(root: FileSystemDirectoryHandle, targetPath: string): Promise<FileSystemDirectoryHandle | null> {
-    if (!targetPath) return root;
-    const parts = targetPath.split('/');
-    let current = root;
-    for (const part of parts) {
-      current = await current.getDirectoryHandle(part);
-    }
-    return current;
-  }
-
-  function addNodeToTree(nodes: FileItem[], parentPath: string, newNode: FileItem): FileItem[] {
-    if (!parentPath) {
-      return [...nodes, newNode].sort((a, b) => {
-        if (a.kind !== b.kind) return a.kind === 'directory' ? -1 : 1;
-        return a.name.localeCompare(b.name);
-      });
-    }
-    return nodes.map(node => {
-      if (node.path === parentPath) {
-        return {
-          ...node,
-          children: [...(node.children || []), newNode].sort((a, b) => {
-            if (a.kind !== b.kind) return a.kind === 'directory' ? -1 : 1;
-            return a.name.localeCompare(b.name);
-          }),
-        };
-      }
-      if (node.children) {
-        return { ...node, children: addNodeToTree(node.children, parentPath, newNode) };
-      }
-      return node;
-    });
-  }
-
-  function deleteNodeFromTree(nodes: FileItem[], path: string): FileItem[] {
-    return nodes
-      .filter(node => node.path !== path)
-      .map(node => {
-        if (node.children) {
-          return { ...node, children: deleteNodeFromTree(node.children, path) };
-        }
-        return node;
-      });
-  }
-
-  function renameNodeInTree(nodes: FileItem[], oldPath: string, newName: string): FileItem[] {
-    return nodes.map(node => {
-      if (node.path === oldPath) {
-        const parts = oldPath.split('/');
-        parts[parts.length - 1] = newName;
-        const newPath = parts.join('/');
-        return { ...node, name: newName, path: newPath };
-      }
-      if (node.children) {
-        return { ...node, children: renameNodeInTree(node.children, oldPath, newName) };
-      }
-      return node;
-    });
-  }
 
   function getFileLanguage(filename: string): CodeLanguage {
     const ext = filename.split('.').pop()?.toLowerCase();
@@ -1077,44 +811,35 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
             >
               <FolderPlus size={14} />
             </button>
-            {rootDirectoryHandle && (
-              <button
-                onClick={refreshExplorer}
-                title="Refresh Explorer"
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: '4px' }}
-              >
-                <RefreshCw size={12} />
-              </button>
-            )}
+            <button
+              onClick={refreshExplorer}
+              title="Refresh Explorer"
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: '4px' }}
+            >
+              <RefreshCw size={12} />
+            </button>
           </div>
         </div>
 
-        <button
-          onClick={openFolder}
+        <div
           style={{
             width: '100%',
             height: '2.2rem',
-            fontSize: '12px',
+            fontSize: '12.5px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: '6px',
             borderRadius: '4px',
             border: '1px solid var(--glass-border)',
-            background: 'rgba(255, 255, 255, 0.03)',
-            color: 'var(--text-secondary)',
-            cursor: 'pointer',
+            background: 'rgba(6, 182, 212, 0.05)',
+            color: 'var(--neon-cyan)',
+            fontWeight: 600,
             flexShrink: 0
           }}
         >
-          <FolderOpen size={13} /> {rootDirectoryHandle ? 'Change Folder' : 'Open Folder'}
-        </button>
-
-        {rootDirectoryHandle && (
-          <div style={{ fontSize: '11px', color: 'var(--neon-cyan)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            📁 {rootDirectoryHandle.name}
-          </div>
-        )}
+          <Folder size={13} /> ~/workspace
+        </div>
 
         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2px' }}>
           {files.map((file, idx) => (
@@ -1503,7 +1228,7 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
 
               {activeTab === 'terminal' && (
                 <div style={{ width: '100%', height: '100%', minHeight: '220px', borderRadius: '4px', overflow: 'hidden' }}>
-                    <TerminalWorkspace files={files} />
+                    <TerminalWorkspace onCommandComplete={refreshExplorer} />
                 </div>
               )}
 
