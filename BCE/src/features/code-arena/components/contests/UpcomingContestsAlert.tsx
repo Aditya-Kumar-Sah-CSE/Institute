@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, ExternalLink, Timer, Radio, Calendar, RefreshCw, MoreVertical, X, ChefHat, BarChart3, Code2, Trophy, Globe, Zap, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Bell, ExternalLink, Timer, Radio, Calendar, RefreshCw, MoreVertical, X, ChefHat, BarChart3, Code2, Trophy, Globe, Zap, CheckCircle2, AlertCircle, BookOpen } from 'lucide-react';
 import type { UnifiedContest } from '@/app/api/coding/contests/route';
 import { loadContestsCache, saveContestsCache, fetchFreshContests } from '@/features/code-arena/lib/contestCache';
 
@@ -36,7 +36,7 @@ export default function UpcomingContestsAlert({ initialExpand = false }: Upcomin
   const [isBackgroundFetching, setIsBackgroundFetching] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
   const [isCachedNotice, setIsCachedNotice] = useState(false);
-  const [selectedPlatform, setSelectedPlatform] = useState<'ALL' | 'CODECHEF' | 'CODEFORCES' | 'LEETCODE'>('ALL');
+  const [selectedPlatform, setSelectedPlatform] = useState<'ALL' | 'CODECHEF' | 'CODEFORCES' | 'LEETCODE' | 'GEEKSFORGEEKS'>('ALL');
   const [registrations, setRegistrations] = useState<Record<string, RegistrationState>>({});
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [, setNowTick] = useState(Date.now());
@@ -241,6 +241,8 @@ export default function UpcomingContestsAlert({ initialExpand = false }: Upcomin
         return { name: 'Codeforces', icon: <BarChart3 size={13} />, color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.15)', border: 'rgba(56, 189, 248, 0.4)' };
       case 'LEETCODE':
         return { name: 'LeetCode', icon: <Code2 size={13} />, color: '#ffa116', bg: 'rgba(255, 161, 22, 0.15)', border: 'rgba(255, 161, 22, 0.4)' };
+      case 'GEEKSFORGEEKS':
+        return { name: 'GeeksforGeeks', icon: <BookOpen size={13} />, color: '#22c55e', bg: 'rgba(34, 197, 94, 0.15)', border: 'rgba(34, 197, 94, 0.4)' };
       default:
         return { name: platform, icon: <Trophy size={13} />, color: 'var(--neon-cyan)', bg: 'rgba(6, 182, 212, 0.15)', border: 'rgba(6, 182, 212, 0.4)' };
     }
@@ -392,7 +394,7 @@ export default function UpcomingContestsAlert({ initialExpand = false }: Upcomin
             border: '1px solid var(--glass-border)',
             marginBottom: '14px',
           }}>
-            {(['ALL', 'CODECHEF', 'CODEFORCES', 'LEETCODE'] as const).map((plt) => (
+            {(['ALL', 'CODECHEF', 'CODEFORCES', 'LEETCODE', 'GEEKSFORGEEKS'] as const).map((plt) => (
               <button
                 suppressHydrationWarning
                 key={plt}
@@ -417,8 +419,10 @@ export default function UpcomingContestsAlert({ initialExpand = false }: Upcomin
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><ChefHat size={13} /> CodeChef</span>
                 ) : plt === 'CODEFORCES' ? (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><BarChart3 size={13} /> Codeforces</span>
-                ) : (
+                ) : plt === 'LEETCODE' ? (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Code2 size={13} /> LeetCode</span>
+                ) : (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><BookOpen size={13} /> GFG</span>
                 )}
               </button>
             ))}

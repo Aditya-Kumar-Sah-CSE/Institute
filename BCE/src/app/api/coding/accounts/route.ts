@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getCodeArenaActor } from '@/features/code-arena/server';
 import { fetchCodeChefUserProfile } from '@/lib/coding-platforms/codechef';
+import { fetchGfgUserProfile } from '@/lib/coding-platforms/gfg';
 
 export async function GET() {
   const { supabase, user } = await getCodeArenaActor();
@@ -22,12 +23,14 @@ export async function POST(request: Request) {
 
   const { platform, username, isPublic = false } = await request.json();
 
-  if (!['CODEFORCES', 'LEETCODE', 'CODECHEF'].includes(platform) || !String(username || '').match(/^[A-Za-z0-9_-]{1,64}$/)) {
+  const normPlatform = platform === 'GFG' ? 'GEEKSFORGEEKS' : platform;
+
+  if (!['CODEFORCES', 'LEETCODE', 'CODECHEF', 'GEEKSFORGEEKS'].includes(normPlatform) || !String(username || '').match(/^[A-Za-z0-9_.-]{1,64}$/)) {
     return NextResponse.json({ error: 'Enter a valid public handle.' }, { status: 400 });
   }
 
   try {
-    if (platform === 'CODEFORCES') {
+    if (normPlatform === 'CODEFORCES') {
       const response = await fetch(
         `https://codeforces.com/api/user.info?handles=${encodeURIComponent(username)}`,
         { cache: 'no-store' }
@@ -38,7 +41,7 @@ export async function POST(request: Request) {
 
       const data = {
         student_id: user.id,
-        platform,
+        platform: 'CODEFORCES',
         username: p.handle,
         external_user_id: String(p.handle),
         profile_url: `https://codeforces.com/profile/${p.handle}`,
@@ -58,7 +61,7 @@ export async function POST(request: Request) {
         : NextResponse.json({ data });
     }
 
-    if (platform === 'LEETCODE') {
+    if (normPlatform === 'LEETCODE') {
       // Verify the LeetCode username exists via their public GraphQL API
       const graphqlRes = await fetch('https://leetcode.com/graphql', {
         method: 'POST',
@@ -109,7 +112,7 @@ export async function POST(request: Request) {
 
       const data = {
         student_id: user.id,
-        platform,
+        platform: 'LEETCODE',
         username: lcUser.username,
         external_user_id: lcUser.username,
         profile_url: `https://leetcode.com/u/${lcUser.username}/`,
@@ -133,7 +136,7 @@ export async function POST(request: Request) {
         : NextResponse.json({ data });
     }
 
-    if (platform === 'CODECHEF') {
+    if (normPlatform === 'CODECHEF') {
       const ccProfile = await fetchCodeChefUserProfile(username);
 
       const data = {
@@ -156,6 +159,40 @@ export async function POST(request: Request) {
           stars_label: ccProfile.starsLabel,
           global_rank: ccProfile.globalRank,
           country_rank: ccProfile.countryRank,
+        },
+      };
+
+      const { error } = await supabase
+        .from('student_external_accounts')
+        .upsert(data, { onConflict: 'student_id,platform' });
+
+      return error
+        ? NextResponse.json({ error: error.message }, { status: 400 })
+        : NextResponse.json({ data });
+    }
+
+    if (normPlatform === 'GEEKSFORGEEKS') {
+      const gfgProfile = await fetchGfgUserProfile(username);
+
+      const data = {
+        student_id: user.id,
+        platform: 'GEEKSFORGEEKS',
+        username: gfgProfile.handle,
+        external_user_id: gfgProfile.handle,
+        profile_url: gfgProfile.profileUrl,
+        rating: gfgProfile.codingScore,
+        max_rating: gfgProfile.codingScore,
+        rank: gfgProfile.globalRank ? `#${gfgProfile.globalRank}` : null,
+        problems_solved: gfgProfile.totalSolved,
+        easy_solved: gfgProfile.easySolved,
+        medium_solved: gfgProfile.mediumSolved,
+        hard_solved: gfgProfile.hardSolved,
+        is_public: Boolean(isPublic),
+        last_synced_at: new Date().toISOString(),
+        metadata: {
+          coding_score: gfgProfile.codingScore,
+          global_rank: gfgProfile.globalRank,
+          institute_rank: gfgProfile.instituteRank,
         },
       };
 

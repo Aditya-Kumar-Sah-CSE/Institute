@@ -11,11 +11,12 @@ interface CodingProfileHeroProps {
   codeforcesConnected: boolean;
   leetCodeConnected: boolean;
   codechefConnected?: boolean;
+  gfgConnected?: boolean;
   isOwnProfile?: boolean;
   dailyActivity?: Record<string, { bce: number; cf: number; lc: number; total: number }>;
 }
 
-export default function CodingProfileHero({ profile, codeforcesConnected, leetCodeConnected, codechefConnected = false, isOwnProfile = true, dailyActivity }: CodingProfileHeroProps) {
+export default function CodingProfileHero({ profile, codeforcesConnected, leetCodeConnected, codechefConnected = false, gfgConnected = false, isOwnProfile = true, dailyActivity }: CodingProfileHeroProps) {
   const [selectedPeriod, setSelectedPeriod] = React.useState<string>('last12');
   const [copied, setCopied] = React.useState(false);
 
@@ -162,6 +163,12 @@ export default function CodingProfileHero({ profile, codeforcesConnected, leetCo
               <span className="profile-badge connection-badge cc-badge" style={{ borderColor: 'rgba(245, 158, 11, 0.4)', color: '#f59e0b' }}>
                 <CheckCircle2 size={14} />
                 CodeChef
+              </span>
+            )}
+            {gfgConnected && (
+              <span className="profile-badge connection-badge gfg-badge" style={{ borderColor: 'rgba(34, 197, 94, 0.4)', color: '#22c55e' }}>
+                <CheckCircle2 size={14} />
+                GeeksforGeeks
               </span>
             )}
           </div>

@@ -438,7 +438,7 @@ export default function PinnedGoalAlert() {
             transition: 'all 0.2s',
           }}
         >
-          <Play size={12} style={{ fill: 'currentColor' }} /> Start Focus Session
+          <Play size={12} style={{ fill: 'currentColor' }} /> Start Focus 
         </button>
       </div>
     );
@@ -476,7 +476,7 @@ export default function PinnedGoalAlert() {
           </div>
           <div>
             <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>
-              🎯 Set Your Learning Goal
+              🎯 Set  Goal
             </h3>
           </div>
         </div>
@@ -495,7 +495,7 @@ export default function PinnedGoalAlert() {
             transition: 'all 0.2s',
           }}
         >
-          + New Goal
+          + New 
         </button>
       </div>
     );

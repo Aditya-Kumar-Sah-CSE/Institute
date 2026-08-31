@@ -1,15 +1,17 @@
 import { NextResponse } from 'next/server';
 import { getCodeArenaActor } from '@/features/code-arena/server';
 import { fetchCodeChefUserProfile } from '@/lib/coding-platforms/codechef';
+import { fetchGfgUserProfile } from '@/lib/coding-platforms/gfg';
 
 export async function POST(_: Request, { params }: { params: Promise<{ platform: string }> }) {
   try {
     const { platform } = await params;
-    const platformUpper = platform.toUpperCase();
+    const platformRaw = platform.toUpperCase();
+    const platformUpper = platformRaw === 'GFG' ? 'GEEKSFORGEEKS' : platformRaw;
     const { supabase, user } = await getCodeArenaActor();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    if (platformUpper !== 'CODEFORCES' && platformUpper !== 'LEETCODE' && platformUpper !== 'CODECHEF') {
+    if (platformUpper !== 'CODEFORCES' && platformUpper !== 'LEETCODE' && platformUpper !== 'CODECHEF' && platformUpper !== 'GEEKSFORGEEKS') {
       return NextResponse.json({ error: 'Unsupported platform.' }, { status: 400 });
     }
 
@@ -26,6 +28,59 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
     }
 
     const handle = account.username;
+
+    // ==================== GEEKSFORGEEKS SYNC ====================
+    if (platformUpper === 'GEEKSFORGEEKS') {
+      const gfgProfile = await fetchGfgUserProfile(handle);
+
+      const existingMetadata = account.metadata || {};
+      const { error: updateError } = await supabase
+        .from('student_external_accounts')
+        .update({
+          rating: gfgProfile.codingScore,
+          max_rating: gfgProfile.codingScore,
+          rank: gfgProfile.globalRank ? `#${gfgProfile.globalRank}` : null,
+          problems_solved: gfgProfile.totalSolved,
+          easy_solved: gfgProfile.easySolved,
+          medium_solved: gfgProfile.mediumSolved,
+          hard_solved: gfgProfile.hardSolved,
+          last_synced_at: new Date().toISOString(),
+          metadata: {
+            ...existingMetadata,
+            coding_score: gfgProfile.codingScore,
+            global_rank: gfgProfile.globalRank,
+            institute_rank: gfgProfile.instituteRank,
+          },
+        })
+        .eq('id', account.id);
+
+      if (updateError) {
+        return NextResponse.json({ error: 'Sync completed but failed to save. Try again.' }, { status: 500 });
+      }
+
+      // Trigger badge evaluation
+      try {
+        const { checkBadges } = await import('@/features/gamification/actions/gamification');
+        await checkBadges(user.id);
+      } catch (badgeErr) {
+        console.error('[GFG BADGES] Failed to calculate badges:', badgeErr);
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          handle,
+          rating: gfgProfile.codingScore,
+          maxRating: gfgProfile.codingScore,
+          rank: gfgProfile.globalRank ? `#${gfgProfile.globalRank}` : null,
+          problemsSolved: gfgProfile.totalSolved,
+          easySolved: gfgProfile.easySolved,
+          mediumSolved: gfgProfile.mediumSolved,
+          hardSolved: gfgProfile.hardSolved,
+          syncedAt: new Date().toISOString(),
+        },
+      });
+    }
 
     // ==================== CODECHEF SYNC ====================
     if (platformUpper === 'CODECHEF') {

@@ -12,7 +12,7 @@ import MobileCodeArenaToggle from './MobileCodeArenaToggle';
 import Modal from '@/components/ui/Modal';
 import './CodeArena.css';
 
-const PLATFORMS = ['All', 'CODEFORCES', 'LEETCODE', 'SL'] as const;
+const PLATFORMS = ['All', 'CODEFORCES', 'LEETCODE', 'CODECHEF', 'GEEKSFORGEEKS', 'SL'] as const;
 const DIFFICULTIES = ['All', 'EASY', 'MEDIUM', 'HARD'] as const;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -20,7 +20,7 @@ export default function ProblemHubClient({ userId }: { userId: string }) {
   const [problems, setProblems] = useState<ProblemCardData[]>([]);
   const [loading, setLoading] = useState(true);
   const [showImportModal, setShowImportModal] = useState(false);
-  const [importPlatform, setImportPlatform] = useState<'CODEFORCES' | 'LEETCODE'>('CODEFORCES');
+  const [importPlatform, setImportPlatform] = useState<'CODEFORCES' | 'LEETCODE' | 'CODECHEF' | 'GEEKSFORGEEKS'>('CODEFORCES');
   const [importProblemId, setImportProblemId] = useState('');
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState('');
@@ -202,7 +202,7 @@ export default function ProblemHubClient({ userId }: { userId: string }) {
                   className={`hub-chip ${platform === p || (!platform && p === 'All') ? 'active' : ''}`}
                   onClick={() => applyFilter(p === 'All' ? '' : p, difficulty, selectedTag)}
                 >
-                  {p === 'All' ? 'All' : p === 'SL' ? '● SL' : p === 'CODEFORCES' ? '● CF' : '● LC'}
+                  {p === 'All' ? 'All' : p === 'SL' ? '● SL' : p === 'CODEFORCES' ? '● CF' : p === 'LEETCODE' ? '● LC' : p === 'CODECHEF' ? '● CC' : '● GFG'}
                 </button>
               ))}
             </div>
@@ -363,17 +363,17 @@ export default function ProblemHubClient({ userId }: { userId: string }) {
       <Modal isOpen={showImportModal} onClose={() => !importing && setShowImportModal(false)} title="Import CP Problem" size="md">
         <form onSubmit={handleImport} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
           <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: 0 }}>
-            Enter a Codeforces Contest + Index (e.g., <code>4A</code>, <code>1985A</code>) or LeetCode slug (e.g., <code>two-sum</code>), or copy-paste the full problem URL. We will download the statements and official testcases.
+            Enter a Codeforces ID (e.g., <code>4A</code>), LeetCode slug (e.g., <code>two-sum</code>), CodeChef code (e.g., <code>FLOW001</code>), or GFG slug (e.g., <code>k-largest-elements</code>), or paste the problem URL.
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
             <span style={{ fontSize: '0.6875rem', fontWeight: 650, color: 'var(--text-muted)' }}>SELECT PLATFORM</span>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.375rem' }}>
               <button
                 type="button"
                 className={`hub-chip ${importPlatform === 'CODEFORCES' ? 'active' : ''}`}
                 onClick={() => setImportPlatform('CODEFORCES')}
-                style={{ flex: 1, padding: '0.625rem', display: 'flex', justifyContent: 'center', fontWeight: 'bold' }}
+                style={{ padding: '0.5rem', display: 'flex', justifyContent: 'center', fontWeight: 'bold', fontSize: '11px' }}
               >
                 Codeforces
               </button>
@@ -381,9 +381,25 @@ export default function ProblemHubClient({ userId }: { userId: string }) {
                 type="button"
                 className={`hub-chip ${importPlatform === 'LEETCODE' ? 'active' : ''}`}
                 onClick={() => setImportPlatform('LEETCODE')}
-                style={{ flex: 1, padding: '0.625rem', display: 'flex', justifyContent: 'center', fontWeight: 'bold' }}
+                style={{ padding: '0.5rem', display: 'flex', justifyContent: 'center', fontWeight: 'bold', fontSize: '11px' }}
               >
                 LeetCode
+              </button>
+              <button
+                type="button"
+                className={`hub-chip ${importPlatform === 'CODECHEF' ? 'active' : ''}`}
+                onClick={() => setImportPlatform('CODECHEF')}
+                style={{ padding: '0.5rem', display: 'flex', justifyContent: 'center', fontWeight: 'bold', fontSize: '11px' }}
+              >
+                CodeChef
+              </button>
+              <button
+                type="button"
+                className={`hub-chip ${importPlatform === 'GEEKSFORGEEKS' ? 'active' : ''}`}
+                onClick={() => setImportPlatform('GEEKSFORGEEKS')}
+                style={{ padding: '0.5rem', display: 'flex', justifyContent: 'center', fontWeight: 'bold', fontSize: '11px' }}
+              >
+                GFG
               </button>
             </div>
           </div>
@@ -392,7 +408,12 @@ export default function ProblemHubClient({ userId }: { userId: string }) {
             <span style={{ fontSize: '0.6875rem', fontWeight: 650, color: 'var(--text-muted)' }}>PROBLEM ID OR URL</span>
             <input
               type="text"
-              placeholder={importPlatform === 'CODEFORCES' ? "e.g., 4A, 1982B, or URL" : "e.g., two-sum, reverse-integer, or URL"}
+              placeholder={
+                importPlatform === 'CODEFORCES' ? "e.g., 4A, 1982B, or URL" :
+                importPlatform === 'LEETCODE' ? "e.g., two-sum, reverse-integer, or URL" :
+                importPlatform === 'CODECHEF' ? "e.g., FLOW001, TEST, or URL" :
+                "e.g., k-largest-elements, or URL"
+              }
               value={importProblemId}
               onChange={(e) => setImportProblemId(e.target.value)}
               disabled={importing}

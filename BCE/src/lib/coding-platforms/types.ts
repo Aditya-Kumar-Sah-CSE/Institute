@@ -1,4 +1,4 @@
-export type PlatformName = 'CODEFORCES' | 'LEETCODE' | 'CODECHEF';
+export type PlatformName = 'CODEFORCES' | 'LEETCODE' | 'CODECHEF' | 'GEEKSFORGEEKS' | 'GFG';
 
 export interface PlatformProblemIdentifier {
   platform: PlatformName;
@@ -6,6 +6,7 @@ export interface PlatformProblemIdentifier {
   problemIndex?: string; // Codeforces problemIndex (e.g., "A")
   slug?: string; // LeetCode title slug (e.g., "two-sum")
   codechefCode?: string; // CodeChef problem code (e.g., "FLOW001")
+  gfgSlug?: string; // GeeksforGeeks problem slug (e.g., "k-largest-elements")
   rawInput: string;
 }
 

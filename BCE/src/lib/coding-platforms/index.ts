@@ -1,12 +1,15 @@
 import { codeforcesAdapter } from './codeforces';
 import { leetcodeAdapter } from './leetcode';
 import { codechefAdapter } from './codechef';
+import { gfgAdapter } from './gfg';
 import type { CodingPlatformAdapter, ExternalProblem, PlatformName, PlatformProblemIdentifier } from './types';
 
 const adapters: Record<PlatformName, CodingPlatformAdapter> = {
   CODEFORCES: codeforcesAdapter,
   LEETCODE: leetcodeAdapter,
   CODECHEF: codechefAdapter,
+  GEEKSFORGEEKS: gfgAdapter,
+  GFG: gfgAdapter,
 };
 
 /**
@@ -50,9 +53,10 @@ export function validateAndNormalizeInput(rawInput: string, preferredPlatform?: 
       const isCodeforces = hostname === 'codeforces.com' || hostname.endsWith('.codeforces.com');
       const isLeetCode = hostname === 'leetcode.com' || hostname.endsWith('.leetcode.com');
       const isCodeChef = hostname === 'codechef.com' || hostname.endsWith('.codechef.com');
+      const isGfg = hostname === 'geeksforgeeks.org' || hostname.endsWith('.geeksforgeeks.org');
 
-      if (!isCodeforces && !isLeetCode && !isCodeChef) {
-        throw new Error('Only official Codeforces, LeetCode, and CodeChef URLs are supported.');
+      if (!isCodeforces && !isLeetCode && !isCodeChef && !isGfg) {
+        throw new Error('Only official Codeforces, LeetCode, CodeChef, and GeeksforGeeks URLs are supported.');
       }
 
       if (isCodeforces) {
@@ -69,14 +73,20 @@ export function validateAndNormalizeInput(rawInput: string, preferredPlatform?: 
         const parsed = codechefAdapter.parseIdentifier(trimmed);
         if (parsed) return parsed;
       }
+
+      if (isGfg) {
+        const parsed = gfgAdapter.parseIdentifier(trimmed);
+        if (parsed) return parsed;
+      }
     } catch (err: any) {
       throw new Error(err.message || 'Invalid or unsupported problem URL.');
     }
   }
 
   // 2. Short-form ID parsing if preferred platform specified
-  if (preferredPlatform && adapters[preferredPlatform]) {
-    const parsed = adapters[preferredPlatform].parseIdentifier(trimmed);
+  const normPlatform = preferredPlatform === 'GFG' ? 'GEEKSFORGEEKS' : preferredPlatform;
+  if (normPlatform && adapters[normPlatform]) {
+    const parsed = adapters[normPlatform].parseIdentifier(trimmed);
     if (parsed) return parsed;
   }
 
@@ -90,7 +100,10 @@ export function validateAndNormalizeInput(rawInput: string, preferredPlatform?: 
   const ccParsed = codechefAdapter.parseIdentifier(trimmed);
   if (ccParsed) return ccParsed;
 
-  throw new Error('Could not identify problem platform. Use format like 4A for Codeforces, two-sum for LeetCode, or FLOW001 for CodeChef.');
+  const gfgParsed = gfgAdapter.parseIdentifier(trimmed);
+  if (gfgParsed) return gfgParsed;
+
+  throw new Error('Could not identify problem platform. Use format like 4A for Codeforces, two-sum for LeetCode, FLOW001 for CodeChef, or k-largest-elements for GeeksforGeeks.');
 }
 
 /**
@@ -98,7 +111,8 @@ export function validateAndNormalizeInput(rawInput: string, preferredPlatform?: 
  */
 export async function fetchExternalProblem(rawInput: string, platformHint?: PlatformName): Promise<ExternalProblem> {
   const identifier = validateAndNormalizeInput(rawInput, platformHint);
-  const adapter = adapters[identifier.platform];
+  const normPlatform = identifier.platform === 'GFG' ? 'GEEKSFORGEEKS' : identifier.platform;
+  const adapter = adapters[normPlatform];
   if (!adapter) {
     throw new Error(`Unsupported platform: ${identifier.platform}`);
   }

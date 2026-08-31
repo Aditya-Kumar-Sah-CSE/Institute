@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export interface UnifiedContest {
   id: string;
-  platform: 'CODECHEF' | 'CODEFORCES' | 'LEETCODE';
+  platform: 'CODECHEF' | 'CODEFORCES' | 'LEETCODE' | 'GEEKSFORGEEKS';
   title: string;
   startTime: number; // ms
   endTime: number; // ms
@@ -172,6 +172,52 @@ export async function GET() {
     }
   } catch (e) {
     console.warn('[CONTESTS API] LeetCode fetch error:', e);
+  }
+
+  // 4. GeeksforGeeks Contests
+  try {
+    const gfgRes = await fetch('https://practiceapi.geeksforgeeks.org/api/vr/events/?type=contest&page_number=1&sub_type=all', {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+      next: { revalidate: 300 },
+    });
+    if (gfgRes.ok) {
+      const gfgJson = await gfgRes.json();
+      const eventsList = gfgJson.results || gfgJson.data || gfgJson.events || [];
+      if (Array.isArray(eventsList)) {
+        for (const ev of eventsList) {
+          const startTimeStr = ev.start_time || ev.start_date || ev.startTime;
+          const endTimeStr = ev.end_time || ev.end_date || ev.endTime;
+          if (!startTimeStr) continue;
+
+          const startTime = new Date(startTimeStr).getTime();
+          if (isNaN(startTime)) continue;
+
+          const endTime = endTimeStr ? new Date(endTimeStr).getTime() : startTime + 2 * 3600 * 1000;
+          const duration = Math.max(3600, Math.floor((endTime - startTime) / 1000));
+
+          let status: 'UPCOMING' | 'LIVE' | 'STARTING_SOON' = 'UPCOMING';
+          if (now >= startTime && now <= endTime) {
+            status = 'LIVE';
+          } else if (startTime - now <= 3 * 3600 * 1000 && startTime > now) {
+            status = 'STARTING_SOON';
+          }
+
+          const slug = ev.slug || ev.id || String(ev.title || 'contest').toLowerCase().replace(/\s+/g, '-');
+          contests.push({
+            id: `gfg-${slug}`,
+            platform: 'GEEKSFORGEEKS',
+            title: ev.title || ev.name || `GeeksforGeeks Contest ${slug}`,
+            startTime,
+            endTime,
+            duration,
+            registerUrl: ev.url || `https://practice.geeksforgeeks.org/contest/${slug}`,
+            status,
+          });
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[CONTESTS API] GeeksforGeeks fetch error:', e);
   }
 
   // Sort by startTime ascending
