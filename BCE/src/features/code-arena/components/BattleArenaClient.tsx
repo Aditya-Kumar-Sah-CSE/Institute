@@ -50,6 +50,14 @@ import { saveDraft, getDraft } from '../storage/problemStorage';
 import { downloadSvgAsImage } from '@/lib/utils/certificateExporter';
 import './CodeArena.css';
 import { registerMonacoIntelliSense, intelliSenseEditorOptions } from '../lib/monacoIntelliSense';
+import {
+  saveLocalStorageBackup,
+  buildBackupKey,
+  clearLocalStorageBackup,
+  restoreBackupIfNewer,
+  VersionTracker,
+} from '../lib/saveManager';
+import { practiceAndBattleClipboardProps } from '../lib/clipboardPolicy';
 
 const Editor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
@@ -99,7 +107,10 @@ export default function BattleArenaClient({
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const backupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedCodeRef = useRef<string>('');
+  const lastSavedProblemIdRef = useRef<string>('');
+  const lastSavedLangRef = useRef<string>('');
   const lastSavedTimeRef = useRef<number>(0);
+  const versionTrackerRef = useRef(new VersionTracker());
   const codeRef = useRef<string>('');
   useEffect(() => {
     codeRef.current = code;
@@ -297,6 +308,7 @@ export default function BattleArenaClient({
     if (!problem) return starters[lang];
     const uid = currentUser?.id || 'guest';
     const storageProbId = `${battle.id}:${problem.id}`;
+    const workspaceId = `battle:${battle.id}`;
     
     let initialCode = problem.starterCode?.[lang] || starters[lang];
     let lastSavedTime = 0;
@@ -308,44 +320,13 @@ export default function BattleArenaClient({
     }
 
     if (typeof window !== 'undefined') {
-      const legacyKey = `bce:code-save:${uid}:${battle.id}:${problem.id}:${lang}`;
-      const legacySaved = localStorage.getItem(legacyKey);
-      if (legacySaved) {
-        initialCode = legacySaved;
-        await saveDraft(uid, storageProbId, lang, legacySaved);
-        localStorage.removeItem(legacyKey);
-        lastSavedTime = Date.now();
-      } else {
-        const draftKey = `bce:code-draft:${battle.id}:${problem.id}:${lang}`;
-        const legacySaved2 = localStorage.getItem(draftKey);
-        if (legacySaved2) {
-          initialCode = legacySaved2;
-          await saveDraft(uid, storageProbId, lang, legacySaved2);
-          localStorage.removeItem(draftKey);
-          lastSavedTime = Date.now();
-        }
-      }
+      const backupKey = buildBackupKey(uid, workspaceId, problem.id, lang);
 
-      // Check lightweight backup
-      const backupKey = `bce:backup-save-battle:${uid}:${battle.id}:${problem.id}:${lang}`;
-      const backupRaw = localStorage.getItem(backupKey);
-      if (backupRaw) {
-        try {
-          const backup = JSON.parse(backupRaw);
-          if (
-            backup.userId === uid &&
-            backup.battleId === battle.id &&
-            backup.problemId === problem.id &&
-            backup.language === lang &&
-            backup.timestamp > lastSavedTime
-          ) {
-            initialCode = backup.code;
-            await saveDraft(uid, storageProbId, lang, backup.code);
-          }
-        } catch (e) {
-          console.error('Failed to parse battle backup:', e);
-        }
-        localStorage.removeItem(backupKey);
+      // Restore backup if newer than confirmed storage timestamp
+      const restored = restoreBackupIfNewer(uid, workspaceId, problem.id, lang, lastSavedTime, backupKey);
+      if (restored) {
+        initialCode = restored;
+        await saveDraft(uid, storageProbId, lang, restored);
       }
     }
 
@@ -359,168 +340,50 @@ export default function BattleArenaClient({
         const initialCode = await loadDraftOrStarter(problems[0], language);
         setCode(initialCode);
         lastSavedCodeRef.current = initialCode;
+        lastSavedProblemIdRef.current = problems[0].id;
+        lastSavedLangRef.current = language;
         setSaveStatus('Saved');
       }
     }
     initCode();
   }, [problems, currentUser]);
 
-  // Anti-cheat activity reporter
-  const reportSuspiciousActivity = async (eventType: 'paste' | 'tab_switch' | 'focus_loss' | 'devtools' | 'screenshot' | 'copy', detail: string) => {
-    let warningMsg = '';
-    if (eventType === 'tab_switch') {
-      warningMsg = 'Warning: Tab/window switching detected! Suspicious activity is logged.';
-    } else if (eventType === 'focus_loss') {
-      warningMsg = 'Warning: Focus loss detected! Keep your coding workspace active.';
-    } else if (eventType === 'devtools') {
-      warningMsg = 'Warning: Developer tools shortcut detected! Suspicious activity is logged.';
-    } else if (eventType === 'paste') {
-      warningMsg = 'Warning: Paste action blocked! Manual coding is required in battles.';
-    } else if (eventType === 'screenshot') {
-      warningMsg = 'Warning: Screenshot taking attempt detected and blocked!';
-    } else if (eventType === 'copy') {
-      warningMsg = 'Warning: Copying problem statement is strictly prohibited!';
-    }
-
-    setCheatWarning(warningMsg);
-    setTimeout(() => setCheatWarning(null), 5000);
-
-    try {
-      const res = await fetch(`/api/coding/battles/${battle.id}/report-activity`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventType, detail }),
-      });
-      if (res.ok) {
-        // Refresh participants roster to fetch latest flagged stats
-        const partRes = await fetch(`/api/coding/battles/${battle.id}/leaderboard`);
-        if (partRes.ok) {
-          const partData = await partRes.json();
-          if (partData.participants) setParticipants(partData.participants);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to report anti-cheat event:', err);
-    }
-  };
-
-  // Anti-cheat visibility & window focus event listeners
-  useEffect(() => {
-    if (battle.status !== 'LIVE' || isInstructor || isVirtualPractice) return;
-
-    let screenHiddenTimer: NodeJS.Timeout;
-
-    const triggerScreenBlock = (detail: string) => {
-      setIsScreenHidden(true);
-      reportSuspiciousActivity('screenshot', detail);
-
-      try {
-        navigator.clipboard.writeText('');
-      } catch (err) {}
-
-      clearTimeout(screenHiddenTimer);
-      screenHiddenTimer = setTimeout(() => {
-        setIsScreenHidden(false);
-      }, 2000);
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        reportSuspiciousActivity('tab_switch', 'User minimized window or switched browser tabs');
-      }
-    };
-
-    const handleWindowBlur = () => {
-      reportSuspiciousActivity('focus_loss', 'User clicked outside coding screen area');
-    };
-
-    const handleKeyDownGlobal = (e: KeyboardEvent) => {
-      const isF12 = e.key === 'F12';
-      const isCtrlShiftI = (e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j');
-      const isMacDevTools = e.metaKey && e.altKey && (e.key === 'I' || e.key === 'i');
-
-      if (isF12 || isCtrlShiftI || isMacDevTools) {
-        e.preventDefault();
-        reportSuspiciousActivity('devtools', `Keyboard shortcut devtools access: ${e.key}`);
-      }
-
-      // 1. Detect PrintScreen Key
-      if (e.key === 'PrintScreen') {
-        e.preventDefault();
-        triggerScreenBlock('User pressed PrintScreen key');
-      }
-
-      // 2. Detect Screenshot Shortcuts
-      const isShiftS = e.shiftKey && e.key.toLowerCase() === 's';
-      const isWinShiftS = e.metaKey && isShiftS; // Windows Key + Shift + S
-      const isCtrlShiftS = e.ctrlKey && isShiftS; // Ctrl + Shift + S
-      
-      // Mac Screenshot commands: Cmd + Shift + 3, 4, 5
-      const isMacScreenshot = e.metaKey && e.shiftKey && ['3', '4', '5'].includes(e.key);
-
-      if (isWinShiftS || isCtrlShiftS || isMacScreenshot) {
-        e.preventDefault();
-        triggerScreenBlock(`User triggered screenshot shortcut: ${e.key}`);
-      }
-
-      // 3. Prevent Print Page (Ctrl + P or Cmd + P)
-      const isPrint = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p';
-      if (isPrint) {
-        e.preventDefault();
-        triggerScreenBlock('User attempted to print/save page');
-      }
-    };
-
-    const handleKeyUpGlobal = (e: KeyboardEvent) => {
-      if (e.key === 'PrintScreen') {
-        triggerScreenBlock('User released PrintScreen key');
-      }
-    };
-
-    const handleCopyGlobal = (e: Event) => {
-      e.preventDefault();
-      try {
-        navigator.clipboard.writeText('Copying is disabled in live battles.');
-      } catch (err) {}
-      reportSuspiciousActivity('copy', 'User attempted to copy screen content');
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('blur', handleWindowBlur);
-    window.addEventListener('keydown', handleKeyDownGlobal);
-    window.addEventListener('keyup', handleKeyUpGlobal);
-    document.addEventListener('copy', handleCopyGlobal);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('blur', handleWindowBlur);
-      window.removeEventListener('keydown', handleKeyDownGlobal);
-      window.removeEventListener('keyup', handleKeyUpGlobal);
-      document.removeEventListener('copy', handleCopyGlobal);
-      clearTimeout(screenHiddenTimer);
-    };
-  }, [battle.status, isInstructor, isVirtualPractice]);
-
   const saveCode = async (newCode: string, probId: string, lang: CodeLanguage) => {
-    if (newCode === lastSavedCodeRef.current) {
+    if (
+      newCode === lastSavedCodeRef.current &&
+      probId === lastSavedProblemIdRef.current &&
+      lang === lastSavedLangRef.current
+    ) {
       setSaveStatus('Saved');
       return;
     }
 
+    const version = versionTrackerRef.current.next();
     setSaveStatus('Saving...');
     const uid = currentUser?.id || 'guest';
+    const storageProbId = `${battle.id}:${probId}`;
+    const workspaceId = `battle:${battle.id}`;
+
     try {
-      await saveDraft(uid, `${battle.id}:${probId}`, lang, newCode);
+      await saveDraft(uid, storageProbId, lang, newCode);
+
+      // Stale Save Protection: Ignore out-of-order response if newer edit has occurred
+      if (!versionTrackerRef.current.isLatest(version)) return;
+
       lastSavedCodeRef.current = newCode;
+      lastSavedProblemIdRef.current = probId;
+      lastSavedLangRef.current = lang;
       lastSavedTimeRef.current = Date.now();
       
-      const backupKey = `bce:backup-save-battle:${uid}:${battle.id}:${probId}:${lang}`;
-      localStorage.removeItem(backupKey);
+      const backupKey = buildBackupKey(uid, workspaceId, probId, lang);
+      clearLocalStorageBackup(backupKey);
       
       setSaveStatus('Saved');
     } catch (e) {
       console.error('Failed to save battle code draft:', e);
-      setSaveStatus('Save failed');
+      if (versionTrackerRef.current.isLatest(version)) {
+        setSaveStatus('Save failed');
+      }
     }
   };
 
@@ -531,11 +394,14 @@ export default function BattleArenaClient({
       clearTimeout(saveTimeoutRef.current);
       saveTimeoutRef.current = null;
     }
-    if (currentProblem && code !== lastSavedCodeRef.current) {
-      const uid = currentUser?.id || 'guest';
-      await saveDraft(uid, `${battle.id}:${currentProblem.id}`, language, code);
-      const backupKey = `bce:backup-save-battle:${uid}:${battle.id}:${currentProblem.id}:${language}`;
-      localStorage.removeItem(backupKey);
+    const uid = currentUser?.id || 'guest';
+    if (
+      currentProblem &&
+      (codeRef.current !== lastSavedCodeRef.current || currentProblem.id !== lastSavedProblemIdRef.current)
+    ) {
+      await saveDraft(uid, `${battle.id}:${currentProblem.id}`, language, codeRef.current);
+      const backupKey = buildBackupKey(uid, `battle:${battle.id}`, currentProblem.id, language);
+      clearLocalStorageBackup(backupKey);
     }
 
     setActiveProblemIdx(idx);
@@ -544,6 +410,8 @@ export default function BattleArenaClient({
       const loadedCode = await loadDraftOrStarter(prob, language);
       setCode(loadedCode);
       lastSavedCodeRef.current = loadedCode;
+      lastSavedProblemIdRef.current = prob.id;
+      lastSavedLangRef.current = language;
       setSaveStatus('Saved');
     }
   };
@@ -554,11 +422,14 @@ export default function BattleArenaClient({
       clearTimeout(saveTimeoutRef.current);
       saveTimeoutRef.current = null;
     }
-    if (currentProblem && code !== lastSavedCodeRef.current) {
-      const uid = currentUser?.id || 'guest';
-      await saveDraft(uid, `${battle.id}:${currentProblem.id}`, language, code);
-      const backupKey = `bce:backup-save-battle:${uid}:${battle.id}:${currentProblem.id}:${language}`;
-      localStorage.removeItem(backupKey);
+    const uid = currentUser?.id || 'guest';
+    if (
+      currentProblem &&
+      (codeRef.current !== lastSavedCodeRef.current || language !== lastSavedLangRef.current)
+    ) {
+      await saveDraft(uid, `${battle.id}:${currentProblem.id}`, language, codeRef.current);
+      const backupKey = buildBackupKey(uid, `battle:${battle.id}`, currentProblem.id, language);
+      clearLocalStorageBackup(backupKey);
     }
 
     setLanguage(lang);
@@ -566,6 +437,8 @@ export default function BattleArenaClient({
       const loadedCode = await loadDraftOrStarter(currentProblem, lang);
       setCode(loadedCode);
       lastSavedCodeRef.current = loadedCode;
+      lastSavedProblemIdRef.current = currentProblem.id;
+      lastSavedLangRef.current = lang;
       setSaveStatus('Saved');
     }
   };
@@ -573,39 +446,43 @@ export default function BattleArenaClient({
   const handleCodeChange = (newVal: string) => {
     setCode(newVal);
     
-    if (newVal === lastSavedCodeRef.current) {
+    if (
+      currentProblem &&
+      newVal === lastSavedCodeRef.current &&
+      currentProblem.id === lastSavedProblemIdRef.current &&
+      language === lastSavedLangRef.current
+    ) {
       setSaveStatus('Saved');
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
         saveTimeoutRef.current = null;
       }
-      if (currentProblem) {
-        const uid = currentUser?.id || 'guest';
-        const backupKey = `bce:backup-save-battle:${uid}:${battle.id}:${currentProblem.id}:${language}`;
-        localStorage.removeItem(backupKey);
-      }
+      const uid = currentUser?.id || 'guest';
+      const backupKey = buildBackupKey(uid, `battle:${battle.id}`, currentProblem.id, language);
+      clearLocalStorageBackup(backupKey);
       return;
     }
 
     setSaveStatus('Unsaved changes');
 
-    // Debounced lightweight backup to localStorage
+    // Debounced 100ms lightweight backup to localStorage
     if (backupTimeoutRef.current) clearTimeout(backupTimeoutRef.current);
     backupTimeoutRef.current = setTimeout(() => {
       if (currentProblem) {
         const uid = currentUser?.id || 'guest';
-        const backupKey = `bce:backup-save-battle:${uid}:${battle.id}:${currentProblem.id}:${language}`;
-        localStorage.setItem(backupKey, JSON.stringify({
-          code: newVal,
-          timestamp: Date.now(),
+        const backupKey = buildBackupKey(uid, `battle:${battle.id}`, currentProblem.id, language);
+        saveLocalStorageBackup(backupKey, {
           userId: uid,
-          battleId: battle.id,
-          problemId: currentProblem.id,
-          language
-        }));
+          workspaceId: `battle:${battle.id}`,
+          targetId: currentProblem.id,
+          language,
+          content: newVal,
+          timestamp: Date.now()
+        });
       }
     }, 100);
 
+    // Debounced 1500ms storage save
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(() => {
       if (currentProblem) {
@@ -1768,33 +1645,7 @@ export default function BattleArenaClient({
                 {/* Monaco Container with protections and captures */}
                  <div 
                   className={`code-monaco-wrapper ${isFullscreen ? 'code-editor-fullscreen' : ''}`}
-                  onContextMenuCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                  onCopyCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                  onCutCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                  onPasteCapture={(e) => { 
-                    e.preventDefault(); 
-                    e.stopPropagation(); 
-                    reportSuspiciousActivity('paste', 'User attempted to paste text into editor');
-                  }}
-                  onDragStartCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                  onDropCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                  onKeyDownCapture={(e) => {
-                    const isMod = e.ctrlKey || e.metaKey;
-                    const isShift = e.shiftKey;
-                    const key = e.key.toLowerCase();
-                    if (
-                      (isMod && ['c', 'v', 'x'].includes(key)) ||
-                      (isShift && e.key === 'Insert') ||
-                      (isMod && e.key === 'Insert') ||
-                      (isShift && e.key === 'Delete')
-                    ) {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (key === 'v' || e.key === 'Insert') {
-                        reportSuspiciousActivity('paste', 'User attempted to paste code via keyboard shortcut');
-                      }
-                    }
-                  }}
+                  {...practiceAndBattleClipboardProps}
                 >
                   <div className="code-editor-toolbar">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

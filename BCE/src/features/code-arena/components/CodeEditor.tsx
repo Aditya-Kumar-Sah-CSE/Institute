@@ -24,6 +24,15 @@ import { saveDraft, getDraft } from '../storage/problemStorage';
 import './CodeArena.css';
 import { registerMonacoIntelliSense, intelliSenseEditorOptions } from '../lib/monacoIntelliSense';
 
+import {
+  saveLocalStorageBackup,
+  buildBackupKey,
+  clearLocalStorageBackup,
+  restoreBackupIfNewer,
+  VersionTracker,
+} from '../lib/saveManager';
+import { practiceAndBattleClipboardProps } from '../lib/clipboardPolicy';
+
 const Editor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
   loading: () => <div className="code-editor-loading">Loading IDE workspace editor…</div>,
@@ -66,7 +75,9 @@ export default function CodeEditor({
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const backupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedCodeRef = useRef<string>('');
+  const lastSavedLangRef = useRef<string>('');
   const lastSavedTimeRef = useRef<number>(0);
+  const versionTrackerRef = useRef(new VersionTracker());
 
   const [language, setLanguage] = useState<CodeLanguage>(supportedLanguages[0] || 'cpp17');
   const [code, setCode] = useState(() => {
@@ -104,11 +115,10 @@ export default function CodeEditor({
         const uid = data.user?.id || 'guest';
         setCurrentUserId(uid);
 
-        const backupKey = `bce:backup-save-code:${uid}:${problemId}:${language}`;
+        const backupKey = buildBackupKey(uid, 'practice', problemId, language);
         const legacyKey = `bce:code-save:${uid}:${problemId}:${language}`;
         
-        const backupRaw = localStorage.getItem(backupKey);
-        const legacySaved = localStorage.getItem(legacyKey);
+        const legacySaved = typeof window !== 'undefined' ? localStorage.getItem(legacyKey) : null;
         
         let initialCode = starters[language] || starters.cpp17;
         let lastSavedTime = 0;
@@ -120,7 +130,7 @@ export default function CodeEditor({
           lastSavedTime = draft.updatedAt || 0;
         }
 
-        // 2. Check for migration legacy
+        // 2. Migration from legacy key
         if (legacySaved) {
           initialCode = legacySaved;
           await saveDraft(uid, problemId, language, legacySaved);
@@ -128,27 +138,16 @@ export default function CodeEditor({
           lastSavedTime = Date.now();
         }
 
-        // 3. Restore lightweight backup if newer than last saved
-        if (backupRaw) {
-          try {
-            const backup = JSON.parse(backupRaw);
-            if (
-              backup.userId === uid &&
-              backup.problemId === problemId &&
-              backup.language === language &&
-              backup.timestamp > lastSavedTime
-            ) {
-              initialCode = backup.code;
-              await saveDraft(uid, problemId, language, backup.code);
-            }
-          } catch (e) {
-            console.error('Failed to parse backup:', e);
-          }
-          localStorage.removeItem(backupKey);
+        // 3. Deterministic Backup Recovery: restore if newer than confirmed storage timestamp
+        const restoredBackup = restoreBackupIfNewer(uid, 'practice', problemId, language, lastSavedTime, backupKey);
+        if (restoredBackup) {
+          initialCode = restoredBackup;
+          await saveDraft(uid, problemId, language, restoredBackup);
         }
 
         setCode(initialCode);
         lastSavedCodeRef.current = initialCode;
+        lastSavedLangRef.current = language;
         lastSavedTimeRef.current = lastSavedTime || Date.now();
         setSaveStatus('Saved');
       } catch (err) {
@@ -159,60 +158,70 @@ export default function CodeEditor({
   }, [problemId]);
 
   const saveCode = async (newCode: string, lang: CodeLanguage) => {
-    if (newCode === lastSavedCodeRef.current) {
+    if (newCode === lastSavedCodeRef.current && lang === lastSavedLangRef.current) {
       setSaveStatus('Saved');
       return;
     }
 
+    const version = versionTrackerRef.current.next();
     setSaveStatus('Saving...');
     const uid = currentUserId || 'guest';
     try {
       await saveDraft(uid, problemId, lang, newCode);
+
+      // Stale Save Protection: Ignore out-of-order response if newer edit has occurred
+      if (!versionTrackerRef.current.isLatest(version)) return;
+
       lastSavedCodeRef.current = newCode;
+      lastSavedLangRef.current = lang;
       lastSavedTimeRef.current = Date.now();
       
       // Clear backup on successful save
-      const backupKey = `bce:backup-save-code:${uid}:${problemId}:${lang}`;
-      localStorage.removeItem(backupKey);
+      const backupKey = buildBackupKey(uid, 'practice', problemId, lang);
+      clearLocalStorageBackup(backupKey);
       
       setSaveStatus('Saved');
     } catch (err) {
       console.error('Failed to save code draft:', err);
-      setSaveStatus('Save failed');
+      if (versionTrackerRef.current.isLatest(version)) {
+        setSaveStatus('Save failed');
+      }
     }
   };
 
   const handleCodeChange = (newVal: string) => {
     setCode(newVal);
     
-    if (newVal === lastSavedCodeRef.current) {
+    if (newVal === lastSavedCodeRef.current && language === lastSavedLangRef.current) {
       setSaveStatus('Saved');
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
         saveTimeoutRef.current = null;
       }
       const uid = currentUserId || 'guest';
-      const backupKey = `bce:backup-save-code:${uid}:${problemId}:${language}`;
-      localStorage.removeItem(backupKey);
+      const backupKey = buildBackupKey(uid, 'practice', problemId, language);
+      clearLocalStorageBackup(backupKey);
       return;
     }
 
     setSaveStatus('Unsaved changes');
 
-    // Debounced lightweight backup to localStorage
+    // Debounced 100ms lightweight backup to localStorage
     if (backupTimeoutRef.current) clearTimeout(backupTimeoutRef.current);
     backupTimeoutRef.current = setTimeout(() => {
       const uid = currentUserId || 'guest';
-      const backupKey = `bce:backup-save-code:${uid}:${problemId}:${language}`;
-      localStorage.setItem(backupKey, JSON.stringify({
-        code: newVal,
-        timestamp: Date.now(),
+      const backupKey = buildBackupKey(uid, 'practice', problemId, language);
+      saveLocalStorageBackup(backupKey, {
         userId: uid,
-        problemId,
-        language
-      }));
+        workspaceId: 'practice',
+        targetId: problemId,
+        language,
+        content: newVal,
+        timestamp: Date.now()
+      });
     }, 100);
 
+    // Debounced 1500ms server/storage save
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(() => {
       saveCode(newVal, language);
@@ -249,18 +258,15 @@ export default function CodeEditor({
       clearTimeout(saveTimeoutRef.current);
       saveTimeoutRef.current = null;
     }
-    if (code !== lastSavedCodeRef.current) {
-      const uid = currentUserId || 'guest';
+    const uid = currentUserId || 'guest';
+    if (code !== lastSavedCodeRef.current || language !== lastSavedLangRef.current) {
       await saveDraft(uid, problemId, language, code);
-      const oldBackupKey = `bce:backup-save-code:${uid}:${problemId}:${language}`;
-      localStorage.removeItem(oldBackupKey);
+      const oldBackupKey = buildBackupKey(uid, 'practice', problemId, language);
+      clearLocalStorageBackup(oldBackupKey);
     }
 
     setLanguage(nextLang);
-    const uid = currentUserId || 'guest';
-    
-    const backupKey = `bce:backup-save-code:${uid}:${problemId}:${nextLang}`;
-    const backupRaw = localStorage.getItem(backupKey);
+    const nextBackupKey = buildBackupKey(uid, 'practice', problemId, nextLang);
     
     let initialCode = starters[nextLang] || starters.cpp17;
     let lastSavedTime = 0;
@@ -271,27 +277,16 @@ export default function CodeEditor({
       lastSavedTime = draft.updatedAt || 0;
     }
 
-    // Restore backup if newer than last saved
-    if (backupRaw) {
-      try {
-        const backup = JSON.parse(backupRaw);
-        if (
-          backup.userId === uid &&
-          backup.problemId === problemId &&
-          backup.language === nextLang &&
-          backup.timestamp > lastSavedTime
-        ) {
-          initialCode = backup.code;
-          await saveDraft(uid, problemId, nextLang, backup.code);
-        }
-      } catch (e) {
-        console.error('Failed to parse backup:', e);
-      }
-      localStorage.removeItem(backupKey);
+    // Restore backup if newer than confirmed storage timestamp
+    const restoredBackup = restoreBackupIfNewer(uid, 'practice', problemId, nextLang, lastSavedTime, nextBackupKey);
+    if (restoredBackup) {
+      initialCode = restoredBackup;
+      await saveDraft(uid, problemId, nextLang, restoredBackup);
     }
 
     setCode(initialCode);
     lastSavedCodeRef.current = initialCode;
+    lastSavedLangRef.current = nextLang;
     lastSavedTimeRef.current = lastSavedTime || Date.now();
     setSaveStatus('Saved');
   };
@@ -510,26 +505,7 @@ export default function CodeEditor({
       {/* Monaco Container with Fullscreen Toggle and Event Captures */}
       <div 
         className={`code-monaco-wrapper ${isFullscreen ? 'code-editor-fullscreen' : ''}`}
-        onContextMenuCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
-        onCopyCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
-        onCutCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
-        onPasteCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
-        onDragStartCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
-        onDropCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
-        onKeyDownCapture={(e) => {
-          const isMod = e.ctrlKey || e.metaKey;
-          const isShift = e.shiftKey;
-          const key = e.key.toLowerCase();
-          if (
-            (isMod && ['c', 'v', 'x'].includes(key)) ||
-            (isShift && e.key === 'Insert') ||
-            (isMod && e.key === 'Insert') ||
-            (isShift && e.key === 'Delete')
-          ) {
-            e.preventDefault();
-            e.stopPropagation();
-          }
-        }}
+        {...practiceAndBattleClipboardProps}
       >
         {/* Editor Toolbar */}
         <div className="code-editor-toolbar">

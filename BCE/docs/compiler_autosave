@@ -1,0 +1,125 @@
+# Production-Ready Code Editor, Save Manager, Folder Lifecycle & Responsive Layout Plan
+
+This plan details the technical design and step-by-step implementation for upgrading the BCE Code Arena editor system (`CodeEditor.tsx`, `BattleArenaClient.tsx`, and `PersonalCompiler.tsx`).
+
+---
+
+## Technical Architecture
+
+```mermaid
+flowchart TD
+    subgraph SaveManager["Save Manager & Version Guard"]
+        Edit["User Typing in Controlled handleCodeChange"] --> IncVer["Increment saveVersionRef++"]
+        IncVer --> StatusUnsaved["Status: Unsaved"]
+        StatusUnsaved --> LSBackup["Debounce 100ms: Save localStorage Backup"]
+        LSBackup --> SaveTimer["Debounce 1500ms: Execute Save Operation"]
+        
+        SaveTimer --> AsyncSave["Async Save (Cloud API / IndexedDB / Local Handle)"]
+        AsyncSave --> VerCheck{"saveVersion == currentVersion?"}
+        VerCheck -- Yes --> ConfirmSave["Status: Saved + Clear localStorage Backup"]
+        VerCheck -- No (Stale) --> IgnoreSave["Ignore Stale Response (Do Not Overwrite Newer State)"]
+    end
+    
+    subgraph Lifecycle["Switching & Folder Lifecycle"]
+        SwitchAction["Switch File / Problem / Language / Folder"] --> FlushDirty{"Current Item Dirty?"}
+        FlushDirty -- Yes --> ImmediateSave["Immediate Flush & Save Previous Item"]
+        ImmediateSave --> LoadNew["Load New Item / Folder"]
+        FlushDirty -- No --> LoadNew
+        
+        LoadNew --> CheckBackup{"localStorage Backup Newer than Saved Timestamp?"}
+        CheckBackup -- Yes --> RestoreBackup["Restore Backup Content"]
+        CheckBackup -- No --> UseSaved["Use Confirmed Saved Content"]
+    end
+
+    subgraph ClipboardPolicy["Context-Aware Clipboard Policy"]
+        PracticeBattle["CodeEditor & BattleArenaClient"] --> BlockClipboard["Enforce Capture Handlers (Block Copy/Paste/Cut/Right-Click/Drag-Drop, Allow Autocomplete & Shortcuts)"]
+        CompilerWorkspace["PersonalCompiler (Cloud & Local)"] --> AllowClipboard["Allow Copy/Paste/Cut & Right-Click Context Menu"]
+    end
+```
+
+---
+
+## Proposed Changes
+
+### 1. Save Manager & Clipboard Utilities
+
+#### [NEW] [saveManager.ts](file:///d:/Institute/BCE/src/features/code-arena/lib/saveManager.ts)
+- `saveLocalStorageBackup(key: string, payload: BackupPayload)`
+- `getLocalStorageBackup(key: string): BackupPayload | null`
+- `clearLocalStorageBackup(key: string)`
+- `restoreBackupIfNewer(userId, workspaceId, targetId, language, confirmedSavedTimestamp, backupKey)`
+- Monotonic versioning helper (`createVersionGuard()`) to reject out-of-order stale async save responses.
+
+#### [NEW] [clipboardPolicy.ts](file:///d:/Institute/BCE/src/features/code-arena/lib/clipboardPolicy.ts)
+- Reusable React capture event handlers for Monaco wrapper container:
+  - `onContextMenuCapture`
+  - `onCopyCapture`, `onCutCapture`, `onPasteCapture`
+  - `onDragStartCapture`, `onDropCapture`
+  - `onKeyDownCapture`: Blocks `Ctrl/Cmd+C, V, X`, `Shift+Insert`, `Ctrl+Insert`, `Shift+Delete` while explicitly allowing Monaco navigation, `Ctrl+Space`, autocomplete, Enter, Backspace, and Tab.
+
+---
+
+### 2. Practice Problem Editor
+
+#### [MODIFY] [CodeEditor.tsx](file:///d:/Institute/BCE/src/features/code-arena/components/CodeEditor.tsx)
+- Integrate `saveManager` version sequence guard (`saveVersionRef`).
+- Controlled `handleCodeChange(newVal)`:
+  - Controlled entry point (avoids hydration auto-saves).
+  - 100ms debounced localStorage backup.
+  - 1500ms debounced storage save.
+- Flush previous code/draft when switching language or problem BEFORE updating active state.
+- `Ctrl/Cmd+S`: Immediate save with debounce cancellation.
+- Attach `clipboardPolicy` capture event handlers to Monaco wrapper div.
+
+---
+
+### 3. Coding Battle Arena
+
+#### [MODIFY] [BattleArenaClient.tsx](file:///d:/Institute/BCE/src/features/code-arena/components/BattleArenaClient.tsx)
+- Integrate `saveManager` version sequence guard (`saveVersionRef`).
+- Flush previous problem/language draft BEFORE changing `activeProblemIdx` or `language`.
+- Controlled `handleCodeChange(newVal)` with 100ms localStorage backup and 1500ms debounced save.
+- `Ctrl/Cmd+S`: Immediate save with debounce cancellation.
+- Attach `clipboardPolicy` capture event handlers to Monaco wrapper div.
+
+---
+
+### 4. Personal Compiler & Folder Workspace
+
+#### [MODIFY] [PersonalCompiler.tsx](file:///d:/Institute/BCE/src/features/code-arena/components/PersonalCompiler.tsx)
+- **UNRESTRICTED CLIPBOARD**: Copy, Paste, Cut, Right-click context menu, and drag/drop remain fully enabled.
+- **REMOVE `useEffect([code, activeFile])` save trigger**: Prevent hydration and file selection save races.
+- Implement explicit versioned `saveFileContent(path, content, fileItem)` supporting Cloud API (`/api/code-arena/files/write`) and Local PC Folder handles (`FileSystemFileHandle`).
+- In `selectFile(nextItem)`:
+  - Check if `activeFile` is dirty or code was modified.
+  - Flush and save previous file `activeFile.path` using `codeRef.current` BEFORE loading `nextItem`.
+  - Check for newer localStorage backup for `nextItem.path` and restore if newer.
+- Complete **Folder Lifecycle**:
+  - `openLocalFolderPicker()`: Open folder via File System Access API & IndexedDB persistence.
+  - `closeWorkspaceFolder()`: Prompt user if unsaved changes exist (Save, Discard, Cancel), clear folder handles/state, and stop folder watchers/timers.
+  - `switchWorkspaceMode()` / `switchFolder()`: Safely close active workspace then open new workspace.
+  - `createNewFolder()`: Provide UI action for adding new folders.
+- **Responsive Layout**:
+  - Desktop: Multi-column IDE sidebar, Monaco editor, and Terminal workspace.
+  - Tablet: Collapsible file explorer drawer & resizable console.
+  - Mobile (<768px): Mobile top bar with compact actions, full-bleed Monaco editor, mobile drawer for file explorer, and bottom sheet console.
+
+---
+
+## Verification Plan
+
+### Automated Tests / Type & Build Checks
+- `npx tsc --noEmit` to verify type safety.
+- `npm run build` to verify production build.
+
+### Manual Test Scenarios
+1. **Auto-save**: Type code -> status transitions `Unsaved` -> `Saving...` -> `Saved` / `Saved locally`.
+2. **Immediate Save**: Press `Ctrl+S` / `Cmd+S` -> immediate save and status update.
+3. **Stale Save Race Protection**: Out-of-order async save responses are rejected if newer edits have occurred.
+4. **File & Problem Switching**: Edits in File/Problem A are saved under File/Problem A before File/Problem B is loaded.
+5. **Reload Recovery**: Edits saved in 100ms localStorage backup are restored after reload if newer than server/storage timestamp.
+6. **Folder Lifecycle**: Open, Close (with unsaved prompt), Switch, and New Folder operations succeed without state leak.
+7. **Clipboard Policy**:
+   - Practice & Battle: Copy/Paste/Cut/Right-click blocked; Monaco autocomplete & `Ctrl+Space` work.
+   - Personal Compiler: Copy/Paste/Cut/Right-click work normally.
+8. **Responsive UI**: Responsive testing at 320px, 375px, 768px, 1024px, and 1440px+.

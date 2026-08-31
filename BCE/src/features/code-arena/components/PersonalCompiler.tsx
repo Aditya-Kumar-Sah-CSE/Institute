@@ -34,9 +34,16 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import Modal from '@/components/ui/Modal';
 import type { CodeLanguage, NormalizedExecutionResult } from '../types';
-type SaveStatus = 'Saved' | 'Saving...' | 'Local save unavailable' | 'Saved locally';
+type SaveStatus = 'Saved' | 'Saving...' | 'Local save unavailable' | 'Saved locally' | 'Unsaved changes';
 import './CodeArena.css';
 import { registerMonacoIntelliSense, intelliSenseEditorOptions } from '../lib/monacoIntelliSense';
+import {
+  saveLocalStorageBackup,
+  buildBackupKey,
+  clearLocalStorageBackup,
+  restoreBackupIfNewer,
+  VersionTracker,
+} from '../lib/saveManager';
 
 const Editor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
@@ -215,6 +222,17 @@ async function loadLocalDirectoryHandle(): Promise<FileSystemDirectoryHandle | n
   }
 }
 
+function findFileInTree(nodes: FileItem[], path: string): FileItem | null {
+  for (const n of nodes) {
+    if (n.path === path && n.kind === 'file') return n;
+    if (n.children) {
+      const found = findFileInTree(n.children, path);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
 export default function PersonalCompiler({ initialSnippets }: { initialSnippets: Snippet[] }) {
   const [explorerWidth, setExplorerWidth] = useState(20);
   const [isResizing, setIsResizing] = useState(false);
@@ -317,7 +335,29 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
     onConfirm: () => {},
   });
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const backupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSavedCodeRef = useRef<string>('');
+  const lastSavedPathRef = useRef<string>('');
+  const codeRef = useRef<string>('');
+  const versionTrackerRef = useRef(new VersionTracker());
+  const [currentUserId, setCurrentUserId] = useState<string>('guest');
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const isInitialMountRef = useRef(true);
+
+  useEffect(() => {
+    codeRef.current = code;
+  }, [code]);
+
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const supabaseClient = createClient();
+        const { data } = await supabaseClient.auth.getUser();
+        if (data.user?.id) setCurrentUserId(data.user.id);
+      } catch (err) {}
+    }
+    fetchUser();
+  }, []);
 
   const handleResetWorkspace = async () => {
     try {
@@ -480,48 +520,58 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 3. Debounced (1500ms) Auto-Save to Database
-  useEffect(() => {
-    if (isWorkspaceLoading || isInitialMountRef.current) {
-      if (!isWorkspaceLoading) {
-        isInitialMountRef.current = false;
-      }
+  // Production-Safe Versioned Save File Content Helper
+  const saveFileContent = async (targetPath: string, contentToSave: string, targetItem?: FileItem) => {
+    if (!targetPath) return;
+    if (contentToSave === lastSavedCodeRef.current && targetPath === lastSavedPathRef.current) {
+      setSaveStatus('Saved locally');
+      setState('Saved');
       return;
     }
 
+    const version = versionTrackerRef.current.next();
     setSaveStatus('Saving...');
+    setState('Saving…');
 
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-
-    saveTimeoutRef.current = setTimeout(async () => {
-      try {
-        if (activeFile) {
-          const res = await fetch('/api/code-arena/files/write', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path: activeFile.path, content: code }),
-          });
-          if (res.ok) {
-            setSaveStatus('Saved locally');
-            // Reset dirty status
-            setFiles(prev => updateFileInTree(prev, activeFile.path, { content: code, isDirty: false }));
-            setActiveFile(prev => prev ? { ...prev, content: code, isDirty: false } : null);
-          } else {
-            setSaveStatus('Local save unavailable');
-          }
+    try {
+      const item = targetItem || findFileInTree(files, targetPath);
+      if (item?.handle && item.handle.kind === 'file') {
+        const writable = await (item.handle as any).createWritable();
+        await writable.write(contentToSave);
+        await writable.close();
+      } else {
+        const res = await fetch('/api/code-arena/files/write', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: targetPath, content: contentToSave }),
+        });
+        if (!res.ok) {
+          throw new Error((await res.json()).error || 'Failed to save file');
         }
-      } catch (err) {
-        console.error('Failed to auto-save:', err);
-        setSaveStatus('Local save unavailable');
       }
-    }, 1500);
 
-    return () => {
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    };
-  }, [code, activeFile, isWorkspaceLoading]);
+      // Stale Save Protection: Ignore out-of-order response if newer edit occurred
+      if (!versionTrackerRef.current.isLatest(version)) return;
+
+      lastSavedCodeRef.current = contentToSave;
+      lastSavedPathRef.current = targetPath;
+      
+      setFiles(prev => updateFileInTree(prev, targetPath, { content: contentToSave, isDirty: false }));
+      setActiveFile(prev => (prev?.path === targetPath ? { ...prev, content: contentToSave, isDirty: false } : prev));
+
+      const backupKey = buildBackupKey(currentUserId || 'guest', workspaceMode, targetPath);
+      clearLocalStorageBackup(backupKey);
+      ssRemove(SS_DIRTY_CONTENT);
+      setSaveStatus('Saved locally');
+      setState('Saved');
+    } catch (err: any) {
+      console.error('Failed to save file content:', err);
+      if (versionTrackerRef.current.isLatest(version)) {
+        setSaveStatus('Local save unavailable');
+        setState('Unsaved changes');
+      }
+    }
+  };
 
   // 4. Keyboard shortcuts listener
   useEffect(() => {
@@ -624,17 +674,10 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
   const switchWorkspaceMode = async (mode: 'cloud' | 'local') => {
     if (mode === workspaceMode) return;
     
-    if (activeFile?.isDirty) {
-      if (confirm(`You have unsaved changes in "${activeFile.name}". Save now?`)) {
-        await handleSaveActiveFile();
-      }
-    }
+    await closeWorkspaceFolder();
     
     localStorage.setItem('bce:arena:workspaceMode', mode);
     setWorkspaceMode(mode);
-    setActiveFile(null);
-    setCode('');
-    setFiles([]);
     setLocalPermissionNeeded(false);
 
     if (mode === 'cloud') {
@@ -747,12 +790,51 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
     return null;
   };
 
+  const closeWorkspaceFolder = async (): Promise<boolean> => {
+    const hasDirty = activeFile?.isDirty || files.some((f) => hasUnsavedChanges(f));
+    if (hasDirty) {
+      const choice = confirm(`Workspace has unsaved changes. Save before closing folder?\n\nOK = Save changes & Close\nCancel = Discard changes & Close`);
+      if (choice && activeFile) {
+        await saveFileContent(activeFile.path, codeRef.current, activeFile);
+      }
+    }
+
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    if (backupTimeoutRef.current) clearTimeout(backupTimeoutRef.current);
+
+    setActiveFile(null);
+    setCode('');
+    setFiles([]);
+    setRootDirectoryHandle(null);
+    ssRemove(SS_ACTIVE_FILE);
+    ssRemove(SS_DIRTY_CONTENT);
+    return true;
+  };
+
   const selectFile = async (item: FileItem) => {
+    if (item.kind !== 'file') return;
+
+    // 1. BEFORE switching, flush & save previous file if dirty
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+
+    if (
+      activeFile &&
+      activeFile.path !== item.path &&
+      (activeFile.isDirty || codeRef.current !== lastSavedCodeRef.current)
+    ) {
+      await saveFileContent(activeFile.path, codeRef.current, activeFile);
+    }
+
     try {
       let content = '';
+      let lastMod = Date.now();
       if (item.handle && item.handle.kind === 'file') {
         const file = await (item.handle as FileSystemFileHandle).getFile();
         content = await file.text();
+        lastMod = file.lastModified || Date.now();
       } else {
         const res = await fetch(`/api/code-arena/files/read?path=${encodeURIComponent(item.path)}`);
         if (!res.ok) {
@@ -772,15 +854,29 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
       else if (['js', 'mjs', 'cjs'].includes(ext)) detectedLang = 'javascript';
       else if (['html', 'htm'].includes(ext)) detectedLang = 'html';
 
-      setActiveFile({ ...item, content, isDirty: false });
-      setCode(content);
+      // 2. Deterministic Backup Recovery check
+      const backupKey = buildBackupKey(currentUserId || 'guest', workspaceMode, item.path);
+      const restored = restoreBackupIfNewer(currentUserId || 'guest', workspaceMode, item.path, undefined, lastMod, backupKey);
+
+      let finalContent = content;
+      let isDirty = false;
+      if (restored) {
+        finalContent = restored;
+        isDirty = true;
+      }
+
+      setActiveFile({ ...item, content: finalContent, isDirty });
+      setCode(finalContent);
+      lastSavedCodeRef.current = content;
+      lastSavedPathRef.current = item.path;
       setLanguage(detectedLang);
       setTitle(item.name);
-      setState('Saved');
+      setSaveStatus(isDirty ? 'Unsaved changes' : 'Saved locally');
+      setState(isDirty ? 'Unsaved changes (restored)' : 'Saved');
 
-      // Persist active file path to sessionStorage & clear stale dirty content
       ssSet(SS_ACTIVE_FILE, item.path);
-      ssRemove(SS_DIRTY_CONTENT);
+      if (!isDirty) ssRemove(SS_DIRTY_CONTENT);
+      setMobileDrawerOpen(false); // Auto-close mobile file drawer on file selection
     } catch (e: any) {
       alert('Error reading file contents: ' + e.message);
     }
@@ -788,17 +884,55 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
 
   const handleCodeChange = (newCode: string) => {
     setCode(newCode);
-    if (activeFile) {
-      setActiveFile(prev => prev ? { ...prev, content: newCode, isDirty: true } : null);
-      setFiles(prev => updateFileInTree(prev, activeFile.path, { content: newCode, isDirty: true }));
-      setState('Unsaved changes');
-      // Persist dirty content to sessionStorage for reload recovery
-      ssSet(SS_DIRTY_CONTENT, JSON.stringify({ path: activeFile.path, content: newCode }));
+    codeRef.current = newCode;
+    if (!activeFile) return;
+
+    if (newCode === lastSavedCodeRef.current && activeFile.path === lastSavedPathRef.current) {
+      setSaveStatus('Saved locally');
+      setState('Saved');
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+      const backupKey = buildBackupKey(currentUserId || 'guest', workspaceMode, activeFile.path);
+      clearLocalStorageBackup(backupKey);
+      ssRemove(SS_DIRTY_CONTENT);
+      return;
     }
+
+    setActiveFile((prev) => (prev ? { ...prev, content: newCode, isDirty: true } : null));
+    setFiles((prev) => updateFileInTree(prev, activeFile.path, { content: newCode, isDirty: true }));
+    setSaveStatus('Unsaved changes');
+    setState('Unsaved changes');
+    ssSet(SS_DIRTY_CONTENT, JSON.stringify({ path: activeFile.path, content: newCode }));
+
+    // Debounced 100ms lightweight backup
+    if (backupTimeoutRef.current) clearTimeout(backupTimeoutRef.current);
+    backupTimeoutRef.current = setTimeout(() => {
+      if (activeFile) {
+        const backupKey = buildBackupKey(currentUserId || 'guest', workspaceMode, activeFile.path);
+        saveLocalStorageBackup(backupKey, {
+          userId: currentUserId || 'guest',
+          workspaceId: workspaceMode,
+          targetId: activeFile.path,
+          language,
+          content: newCode,
+          timestamp: Date.now(),
+        });
+      }
+    }, 100);
+
+    // Debounced 1500ms auto-save
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      if (activeFile) {
+        saveFileContent(activeFile.path, newCode, activeFile);
+      }
+    }, 1500);
   };
 
   function updateFileInTree(nodes: FileItem[], path: string, updates: Partial<FileItem>): FileItem[] {
-    return nodes.map(node => {
+    return nodes.map((node) => {
       if (node.path === path) {
         return { ...node, ...updates };
       }
@@ -811,35 +945,12 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
 
   // Save actions
   const handleSaveActiveFile = async () => {
-    if (!activeFile) return;
-    setSaving(true);
-    setState('Saving…');
-
-    try {
-      if (activeFile.handle && activeFile.handle.kind === 'file') {
-        const writable = await (activeFile.handle as any).createWritable();
-        await writable.write(code);
-        await writable.close();
-      } else {
-        const res = await fetch('/api/code-arena/files/write', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ path: activeFile.path, content: code }),
-        });
-        if (!res.ok) {
-          throw new Error((await res.json()).error || 'Failed to save file');
-        }
-      }
-
-      setFiles(prev => updateFileInTree(prev, activeFile.path, { content: code, isDirty: false }));
-      setActiveFile(prev => prev ? { ...prev, content: code, isDirty: false } : null);
-      setState('Saved');
-      ssRemove(SS_DIRTY_CONTENT);
-    } catch (err: any) {
-      alert('Failed to save file: ' + err.message);
-      setState('Unsaved changes');
-    } finally {
-      setSaving(false);
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+    if (activeFile) {
+      await saveFileContent(activeFile.path, codeRef.current, activeFile);
     }
   };
 
