@@ -16,7 +16,7 @@ export async function GET(
     // 1. Query latest ACCEPTED submission for this student and problem
     const { data: submission, error } = await supabase
       .from('coding_submissions')
-      .select('id, code, language, status, runtime_ms, memory_bytes, created_at')
+      .select('id, source_code, language, status, execution_time_ms, created_at')
       .eq('student_id', user.id)
       .eq('problem_id', problemId)
       .eq('status', 'ACCEPTED')
@@ -54,11 +54,11 @@ export async function GET(
       success: true,
       data: {
         id: submission.id,
-        code: submission.code,
+        code: submission.source_code,
         language: submission.language,
         status: submission.status,
-        runtime: submission.runtime_ms,
-        memory: submission.memory_bytes,
+        runtime: submission.execution_time_ms,
+        memory: null,
         createdAt: submission.created_at,
       },
     });
