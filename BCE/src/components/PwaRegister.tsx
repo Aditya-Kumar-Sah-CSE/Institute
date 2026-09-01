@@ -98,5 +98,19 @@ export default function PwaRegister() {
     };
   }, []);
 
+  // Enforce portrait orientation by default for installed PWAs 
+  // (since manifest orientation is "any" to allow runtime toggling)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches) {
+      if (window.screen && window.screen.orientation && 'lock' in window.screen.orientation) {
+        try {
+          (window.screen.orientation as any).lock('portrait').catch(() => {});
+        } catch (e) {
+          console.warn('[PwaRegister] Default portrait lock failed:', e);
+        }
+      }
+    }
+  }, []);
+
   return null;
 }

@@ -79,22 +79,49 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
   const toggleOrientation = async () => {
     try {
       if (!isLandscape) {
-        if (document.documentElement.requestFullscreen) {
-          await document.documentElement.requestFullscreen();
+        if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+          try {
+            await document.documentElement.requestFullscreen();
+          } catch (fsErr) {
+            console.warn('Fullscreen request failed:', fsErr);
+          }
         }
+        
         if (window.screen && window.screen.orientation && 'lock' in window.screen.orientation) {
-          await (window.screen.orientation as any).lock('landscape');
+          try {
+            await (window.screen.orientation as any).lock('landscape');
+            setIsLandscape(true);
+          } catch (lockErr: any) {
+            console.warn('Orientation lock failed:', lockErr);
+            if (lockErr.name === 'NotSupportedError' || lockErr.name === 'SecurityError') {
+              alert('Rotate Display is not supported on this device/browser in this mode.');
+            } else {
+              alert(`Could not rotate display: ${lockErr.message}`);
+            }
+          }
+        } else {
+          alert('Display rotation is not supported by your browser.');
         }
       } else {
-        if (document.fullscreenElement) {
-          await document.exitFullscreen();
-        }
         if (window.screen && window.screen.orientation && 'unlock' in window.screen.orientation) {
-          (window.screen.orientation as any).unlock();
+          try {
+            (window.screen.orientation as any).unlock();
+          } catch (unlockErr) {
+            console.warn('Orientation unlock failed:', unlockErr);
+          }
         }
+        if (document.fullscreenElement && document.exitFullscreen) {
+          try {
+            await document.exitFullscreen();
+          } catch (fsErr) {
+            console.warn('Exit fullscreen failed:', fsErr);
+          }
+        }
+        setIsLandscape(false);
       }
-    } catch (e) {
-      console.warn('Orientation toggle failed', e);
+    } catch (e: any) {
+      console.error('Unexpected error in toggleOrientation:', e);
+      alert(`Unexpected error: ${e.message}`);
     }
   };
 

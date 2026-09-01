@@ -13,7 +13,7 @@
     "minimal-ui",
     "browser"
   ],
-  "orientation": "portrait",
+  "orientation": "any",
   "background_color": "#0b0f19",
   "theme_color": "#0b0f19",
   "categories": ["education", "productivity"],

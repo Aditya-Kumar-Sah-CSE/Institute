@@ -90,22 +90,54 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
   const toggleOrientation = async () => {
     try {
       if (!isLandscape) {
-        if (document.documentElement.requestFullscreen) {
-          await document.documentElement.requestFullscreen();
+        // Attempt fullscreen first (required by many browsers for orientation lock)
+        if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+          try {
+            await document.documentElement.requestFullscreen();
+          } catch (fsErr) {
+            console.warn('Fullscreen request failed:', fsErr);
+            // Non-fatal, might still work in PWA mode
+          }
         }
+        
         if (window.screen && window.screen.orientation && 'lock' in window.screen.orientation) {
-          await (window.screen.orientation as any).lock('landscape');
+          try {
+            await (window.screen.orientation as any).lock('landscape');
+            setIsLandscape(true);
+          } catch (lockErr: any) {
+            console.warn('Orientation lock failed:', lockErr);
+            if (lockErr.name === 'NotSupportedError' || lockErr.name === 'SecurityError') {
+              alert('Rotate Display is not supported on this device/browser in this mode.');
+            } else {
+              alert(`Could not rotate display: ${lockErr.message}`);
+            }
+          }
+        } else {
+          alert('Display rotation is not supported by your browser.');
         }
       } else {
-        if (document.fullscreenElement) {
-          await document.exitFullscreen();
-        }
+        // Unlock Orientation
         if (window.screen && window.screen.orientation && 'unlock' in window.screen.orientation) {
-          (window.screen.orientation as any).unlock();
+          try {
+            (window.screen.orientation as any).unlock();
+          } catch (unlockErr) {
+            console.warn('Orientation unlock failed:', unlockErr);
+          }
         }
+        
+        // Exit Fullscreen
+        if (document.fullscreenElement && document.exitFullscreen) {
+          try {
+            await document.exitFullscreen();
+          } catch (fsErr) {
+            console.warn('Exit fullscreen failed:', fsErr);
+          }
+        }
+        setIsLandscape(false);
       }
-    } catch (e) {
-      console.warn('Orientation toggle failed', e);
+    } catch (e: any) {
+      console.error('Unexpected error in toggleOrientation:', e);
+      alert(`Unexpected error: ${e.message}`);
     }
   };
 
