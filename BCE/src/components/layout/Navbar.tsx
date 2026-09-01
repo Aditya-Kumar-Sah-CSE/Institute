@@ -13,7 +13,7 @@ import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 import { getIcon } from '@/lib/icon-mapper';
 import { signOut } from '@/features/auth/actions/auth';
 import { isAdminRole, isInstructorRole } from '@/lib/role-utils';
-import { MoreVertical, ArrowLeft } from 'lucide-react';
+import { MoreVertical, ArrowLeft, Smartphone, Monitor } from 'lucide-react';
 
 const ITEM_GROUPS: Record<string, string> = {
   'Dashboard': 'Overview',
@@ -63,6 +63,40 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
 
   const [canGoBack, setCanGoBack] = React.useState(false);
   const [currentUrl, setCurrentUrl] = React.useState('');
+
+  const [isLandscape, setIsLandscape] = React.useState(false);
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && window.screen?.orientation) {
+      setIsLandscape(window.screen.orientation.type.includes('landscape'));
+      const handleOrientationChange = () => {
+        setIsLandscape(window.screen.orientation.type.includes('landscape'));
+      };
+      window.screen.orientation.addEventListener('change', handleOrientationChange);
+      return () => window.screen.orientation.removeEventListener('change', handleOrientationChange);
+    }
+  }, []);
+
+  const toggleOrientation = async () => {
+    try {
+      if (!isLandscape) {
+        if (document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen();
+        }
+        if (window.screen && window.screen.orientation && 'lock' in window.screen.orientation) {
+          await (window.screen.orientation as any).lock('landscape');
+        }
+      } else {
+        if (document.fullscreenElement) {
+          await document.exitFullscreen();
+        }
+        if (window.screen && window.screen.orientation && 'unlock' in window.screen.orientation) {
+          (window.screen.orientation as any).unlock();
+        }
+      }
+    } catch (e) {
+      console.warn('Orientation toggle failed', e);
+    }
+  };
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -322,6 +356,12 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
                   <span style={{ color: 'var(--text-primary)', fontSize: 'var(--text-base)', fontWeight: 'bold' }}>Theme</span>
                   <ThemeToggle />
                 </div>
+
+                <div className="mobile-divider" style={{ borderTop: '1px solid var(--border-divider)', margin: '4px 0' }} />
+                
+                <button type="button" onClick={toggleOrientation} className="mobile-logout-btn" style={{ marginBottom: '8px', color: 'var(--text-primary)' }}>
+                  {isLandscape ? <Monitor size={16} className="mobile-nav-icon" /> : <Smartphone size={16} className="mobile-nav-icon" />} Rotate Display
+                </button>
 
                 <form action={signOut} style={{ margin: 0, width: '100%' }}>
                   <button type="submit" className="mobile-logout-btn">

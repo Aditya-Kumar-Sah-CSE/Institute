@@ -13,7 +13,7 @@ import XPBar from '@/components/shared/XPBar';
 import LevelBadge from '@/components/shared/LevelBadge';
 import Modal from '@/components/ui/Modal';
 import type { Profile } from '@/types';
-import { LogOut, User, Download, X, MoreVertical, ChevronRight, ChevronDown, ChevronLeft, Crown } from 'lucide-react';
+import { LogOut, User, Download, X, MoreVertical, ChevronRight, ChevronDown, ChevronLeft, Crown, Smartphone, Monitor } from 'lucide-react';
 import { signOut } from '@/features/auth/actions/auth';
 
 const ITEM_GROUPS: Record<string, string> = {
@@ -74,6 +74,40 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
       document.body.classList.remove('sidebar-is-collapsed');
     }
   }, [isCollapsed]);
+
+  const [isLandscape, setIsLandscape] = useState(false);
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.screen?.orientation) {
+      setIsLandscape(window.screen.orientation.type.includes('landscape'));
+      const handleOrientationChange = () => {
+        setIsLandscape(window.screen.orientation.type.includes('landscape'));
+      };
+      window.screen.orientation.addEventListener('change', handleOrientationChange);
+      return () => window.screen.orientation.removeEventListener('change', handleOrientationChange);
+    }
+  }, []);
+
+  const toggleOrientation = async () => {
+    try {
+      if (!isLandscape) {
+        if (document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen();
+        }
+        if (window.screen && window.screen.orientation && 'lock' in window.screen.orientation) {
+          await (window.screen.orientation as any).lock('landscape');
+        }
+      } else {
+        if (document.fullscreenElement) {
+          await document.exitFullscreen();
+        }
+        if (window.screen && window.screen.orientation && 'unlock' in window.screen.orientation) {
+          (window.screen.orientation as any).unlock();
+        }
+      }
+    } catch (e) {
+      console.warn('Orientation toggle failed', e);
+    }
+  };
 
   useEffect(() => {
     const expandHandler = () => setIsCollapsed(false);
@@ -327,6 +361,10 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
             <span className="sidebar-nav-label">Install App</span>
           </button>
         )}
+        <button suppressHydrationWarning type="button" onClick={toggleOrientation} className="sidebar-nav-item" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px' }}>
+          <span className="sidebar-nav-icon">{isLandscape ? <Monitor className="w-5 h-5" /> : <Smartphone className="w-5 h-5" />}</span>
+          <span className="sidebar-nav-label">Rotate Display</span>
+        </button>
         <form action={signOut}>
           <button suppressHydrationWarning type="submit" className="sidebar-nav-item sidebar-logout">
             <span className="sidebar-nav-icon"><LogOut className="w-5 h-5" /></span>
