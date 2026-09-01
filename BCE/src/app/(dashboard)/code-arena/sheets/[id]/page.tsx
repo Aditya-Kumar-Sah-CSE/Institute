@@ -129,6 +129,33 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
     }
   }
 
+  // 5b. Merge current user's external solved count into leaderboard
+  const currentUserSolvedCount = solvedProblemIds.length;
+  const existingEntry = solversLeaderboard.find(s => s.id === user.id);
+  if (existingEntry) {
+    // Update if external solves added more
+    if (currentUserSolvedCount > existingEntry.solvedCount) {
+      totalSolvedSum += (currentUserSolvedCount - existingEntry.solvedCount);
+      existingEntry.solvedCount = currentUserSolvedCount;
+    }
+  } else if (currentUserSolvedCount > 0) {
+    // User not in leaderboard yet but has external solves
+    const { data: profile } = await serviceRoleClient
+      .from('profiles')
+      .select('name, avatar_url')
+      .eq('id', user.id)
+      .maybeSingle();
+    solversLeaderboard.push({
+      id: user.id,
+      name: profile?.name || 'You',
+      avatar_url: profile?.avatar_url,
+      solvedCount: currentUserSolvedCount,
+    });
+    uniqueSolversCount += 1;
+    totalSolvedSum += currentUserSolvedCount;
+  }
+  solversLeaderboard.sort((a, b) => b.solvedCount - a.solvedCount);
+
   const totalEnrolledSolvers = Math.max(enrollmentsCount || 0, uniqueSolversCount);
   const avgQuestionsSolved = uniqueSolversCount > 0 ? (totalSolvedSum / uniqueSolversCount).toFixed(1) : '0';
 
