@@ -23,7 +23,9 @@ import {
   Gamepad2,
   Download,
   Shield as ShieldIcon,
-  Award
+  Award,
+  Smartphone,
+  Monitor
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -203,6 +205,34 @@ export default function GamePage() {
   const [musicEnabled, setMusicEnabled] = useState<boolean>(true);
   const [showRotationOverlay, setShowRotationOverlay] = useState<boolean>(false);
   const [pwaInstallSupported, setPwaInstallSupported] = useState<boolean>(false);
+  
+  const [isLandscape, setIsLandscape] = useState<boolean>(false);
+
+  const toggleOrientation = async () => {
+    try {
+      if (!isLandscape) {
+        if (containerRef.current?.requestFullscreen) {
+          await containerRef.current.requestFullscreen();
+        }
+        if (window.screen && window.screen.orientation && 'lock' in window.screen.orientation) {
+          await (window.screen.orientation as any).lock('landscape');
+        }
+        setIsLandscape(true);
+      } else {
+        if (document.fullscreenElement) {
+          await document.exitFullscreen();
+        }
+        if (window.screen && window.screen.orientation && 'unlock' in window.screen.orientation) {
+          (window.screen.orientation as any).unlock();
+        }
+        setIsLandscape(false);
+      }
+    } catch (e) {
+      console.warn('Orientation toggle failed', e);
+      // Toggle anyway to flip the icon
+      setIsLandscape(!isLandscape);
+    }
+  };
   
   // Leaderboards States
   const [leaderboardTab, setLeaderboardTab] = useState<'daily' | 'weekly' | 'all'>('all');
@@ -2624,6 +2654,13 @@ export default function GamePage() {
                   style={{ background: 'none', border: 'none', color: soundEnabled ? 'var(--neon-cyan)' : '#64748b', cursor: 'pointer', padding: 2 }}
                 >
                   {soundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
+                </button>
+                <button 
+                  onClick={toggleOrientation}
+                  title="Toggle Display Orientation"
+                  style={{ background: 'none', border: 'none', color: isLandscape ? 'var(--neon-cyan)' : '#64748b', cursor: 'pointer', padding: 2 }}
+                >
+                  {isLandscape ? <Monitor size={14} /> : <Smartphone size={14} />}
                 </button>
                 <button 
                   onClick={() => setScreen(screen === 'PLAYING' ? 'PAUSED' : 'PLAYING')}
