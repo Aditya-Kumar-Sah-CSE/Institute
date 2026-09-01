@@ -2254,6 +2254,13 @@ export default function GamePage() {
 
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
             <button 
+              onClick={toggleOrientation}
+              title="Toggle Display Orientation"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '6px 10px', borderRadius: '8px', color: isLandscape ? '#06b6d4' : '#cbd5e1', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+            >
+              {isLandscape ? <><Monitor size={13} /> Landscape</> : <><Smartphone size={13} /> Portrait</>}
+            </button>
+            <button 
               onClick={() => setScreen(screen === 'LEADERBOARD' ? 'LOBBY' : 'LEADERBOARD')}
               style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '6px 10px', borderRadius: '8px', color: '#cbd5e1', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
             >
