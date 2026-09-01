@@ -180,36 +180,67 @@ export async function POST(request: Request) {
         const { createAdminClient } = await import('@/lib/supabase/server');
         const adminClient = await createAdminClient();
 
-        // Perform parallelized activity & completion updates
-        const today = new Date().toISOString().split('T')[0];
-
-        const updateActivityTask = (async () => {
-          const { data: profile } = await adminClient.from('profiles').select('institution_id').eq('id', user.id).single();
-          const { data: currentActivity } = await adminClient
-            .from('daily_coding_activity')
-            .select('problems_solved')
-            .eq('user_id', user.id)
-            .eq('date', today)
-            .maybeSingle();
-
-          if (currentActivity) {
-            await adminClient.from('daily_coding_activity')
-              .update({ problems_solved: currentActivity.problems_solved + 1, updated_at: new Date().toISOString() })
-              .eq('user_id', user.id).eq('date', today);
-          } else {
-            await adminClient.from('daily_coding_activity')
-              .insert({ user_id: user.id, institution_id: profile?.institution_id || null, date: today, problems_solved: 1 });
-          }
-        })();
-
-        const updateSolvedTask = adminClient
+        // 1. Check if already solved
+        const { data: alreadySolved } = await adminClient
           .from('student_completed_problems')
-          .upsert({
-            student_id: user.id,
-            platform: 'SMART_LEARN',
-            problem_id: problemId,
-            solved_at: new Date().toISOString(),
-          }, { onConflict: 'student_id,platform,problem_id' });
+          .select('id')
+          .eq('student_id', user.id)
+          .eq('platform', 'SMART_LEARN')
+          .eq('problem_id', problemId)
+          .maybeSingle();
+
+        const isNewSolve = !alreadySolved;
+
+        // 2. Perform parallelized activity & completion updates
+        const formatter = new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'Asia/Kolkata',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        });
+        const today = formatter.format(new Date());
+
+        const tasks: Promise<any>[] = [];
+
+        if (isNewSolve) {
+          const updateActivityTask = (async () => {
+            const { data: profile } = await adminClient.from('profiles').select('institution_id').eq('id', user.id).single();
+            const { data: currentActivity } = await adminClient
+              .from('daily_coding_activity')
+              .select('problems_solved')
+              .eq('user_id', user.id)
+              .eq('date', today)
+              .maybeSingle();
+
+            if (currentActivity) {
+              await adminClient.from('daily_coding_activity')
+                .update({ problems_solved: currentActivity.problems_solved + 1, updated_at: new Date().toISOString() })
+                .eq('user_id', user.id).eq('date', today);
+            } else {
+              await adminClient.from('daily_coding_activity')
+                .insert({ user_id: user.id, institution_id: profile?.institution_id || null, date: today, problems_solved: 1 });
+            }
+          })();
+          tasks.push(updateActivityTask);
+
+          const awardXpTask = (async () => {
+             const { awardXP } = await import('@/features/auth/actions/auth');
+             await awardXP(user.id, 20, 'Solved Coding Problem', 'code_arena', problemId);
+          })();
+          tasks.push(awardXpTask);
+        }
+
+        const updateSolvedTask = (async () => {
+          await adminClient
+            .from('student_completed_problems')
+            .upsert({
+              student_id: user.id,
+              platform: 'SMART_LEARN',
+              problem_id: problemId,
+              solved_at: new Date().toISOString(),
+            }, { onConflict: 'student_id,platform,problem_id' });
+        })();
+        tasks.push(updateSolvedTask);
 
         const triggerBadgesTask = (async () => {
           try {
@@ -219,8 +250,17 @@ export async function POST(request: Request) {
             console.error('[BADGES] Failed to trigger checkBadges:', badgeErr);
           }
         })();
+        tasks.push(triggerBadgesTask);
 
-        await Promise.allSettled([updateActivityTask, updateSolvedTask, triggerBadgesTask]);
+        await Promise.allSettled(tasks);
+
+        // Targeted Revalidation
+        if (isNewSolve) {
+          const { revalidatePath } = await import('next/cache');
+          revalidatePath('/leaderboard');
+          revalidatePath('/code-arena/profile');
+          revalidatePath('/code-arena');
+        }
 
         // Handle battle score if applicable
         if (finalBattleId) {

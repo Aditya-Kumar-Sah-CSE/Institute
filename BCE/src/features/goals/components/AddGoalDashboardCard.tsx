@@ -18,6 +18,7 @@ import {
   type RoutineSlot,
   type CompletionRecord,
 } from '../utils/routineSelection';
+import { fetchDeduplicated } from '../utils/fetchDeduplicated';
 
 export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any }) {
   const { alert: premiumAlert, AlertComponent } = usePremiumAlert();
@@ -56,8 +57,7 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
 
   useEffect(() => {
     // Check if there's a cached running session on mount
-    fetch('/api/goals/sessions?active=true')
-      .then(r => r.json())
+    fetchDeduplicated('/api/goals/sessions?active=true')
       .then(data => {
          if (data.sessions && data.sessions.length > 0) {
             setActiveSession(data.sessions[0]);
@@ -66,8 +66,7 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
       .catch(() => {});
 
     // Fetch routines to show current scheduled task
-    fetch('/api/goals/routines')
-      .then(r => r.json())
+    fetchDeduplicated('/api/goals/routines')
       .then(data => {
          if (data.routines) {
            setRoutines(data.routines);
@@ -76,8 +75,7 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
       .catch(() => {});
 
     // Fetch daily completions
-    fetch('/api/goals/routines/completions')
-      .then(r => r.json())
+    fetchDeduplicated('/api/goals/routines/completions')
       .then(data => {
          if (data.completions) {
            setCompletions(data.completions);
@@ -96,8 +94,7 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
   // Sync state dynamically on goal-update event
   useEffect(() => {
     const handleUpdate = () => {
-      fetch('/api/goals/sessions?active=true')
-        .then(r => r.json())
+      fetchDeduplicated('/api/goals/sessions?active=true', 0)
         .then(data => {
            if (data.sessions && data.sessions.length > 0) {
               setActiveSession(data.sessions[0]);
@@ -107,8 +104,7 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
         })
         .catch(() => {});
 
-      fetch('/api/goals/routines/completions')
-        .then(r => r.json())
+      fetchDeduplicated('/api/goals/routines/completions', 0)
         .then(data => {
            if (data.completions) {
              setCompletions(data.completions);

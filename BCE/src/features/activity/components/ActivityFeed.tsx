@@ -10,12 +10,30 @@ export default function ActivityFeed() {
   const [activities, setActivities] = useState<ActivityFeedItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [inView, setInView] = useState(false);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
   useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1, rootMargin: '100px' }
+    );
+    if (containerRef.current) observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!inView) return;
     fetchActivityFeed(1, 10).then(data => {
       setActivities(data);
       setLoading(false);
     });
-  }, []);
+  }, [inView]);
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -39,7 +57,7 @@ export default function ActivityFeed() {
 
   if (loading) {
     return (
-      <div className="bg-white/5 dark:bg-dark-card border border-gray-100 dark:border-gray-800 rounded-3xl p-6">
+      <div ref={containerRef} className="bg-white/5 dark:bg-dark-card border border-gray-100 dark:border-gray-800 rounded-3xl p-6">
         <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-gray-800 dark:text-gray-100"><Activity size={20} className="text-neon-cyan" /> Campus Activity</h3>
         <div className="space-y-4 animate-pulse">
            {[1, 2, 3].map(i => (

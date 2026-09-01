@@ -6,8 +6,6 @@ import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 import { signOut } from '@/features/auth/actions/auth';
 import { updateStreak } from '@/features/gamification/actions/gamification';
 import { 
-  DynamicBadgeCelebrator as BadgeCelebrator, 
-  DynamicMonthlyCelebrator as MonthlyCelebrator,
   DynamicPwaRegister as PwaRegister,
   DynamicPwaUpdateToast as PwaUpdateToast,
   DynamicPWAInstallPrompt as PWAInstallPrompt,
@@ -81,8 +79,7 @@ export default async function DashboardLayout({
           {children}
         </main>
       </div>
-      <BadgeCelebrator />
-      <MonthlyCelebrator />
+
       <PwaRegister />
       <PwaUpdateToast />
       <PWAInstallPrompt />

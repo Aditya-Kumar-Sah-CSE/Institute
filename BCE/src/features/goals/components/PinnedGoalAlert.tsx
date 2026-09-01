@@ -11,6 +11,7 @@ import {
   type RoutineSlot,
   type CompletionRecord,
 } from '../utils/routineSelection';
+import { fetchDeduplicated } from '../utils/fetchDeduplicated';
 
 export default function PinnedGoalAlert() {
   const router = useRouter();
@@ -37,12 +38,11 @@ export default function PinnedGoalAlert() {
 
   const loadData = async () => {
     try {
-      const [sessionRes, statsRes, goalsRes, routinesRes, completionsRes] = await Promise.all([
-        fetch('/api/goals/sessions?active=true').then(r => r.json()),
-        fetch('/api/goals/stats').then(r => r.json()),
-        fetch('/api/goals?all=true').then(r => r.json()),
-        fetch('/api/goals/routines').then(r => r.json()),
-        fetch('/api/goals/routines/completions').then(r => r.json()),
+      const [sessionRes, statsRes, routinesRes, completionsRes] = await Promise.all([
+        fetchDeduplicated('/api/goals/sessions?active=true'),
+        fetchDeduplicated('/api/goals/stats'),
+        fetchDeduplicated('/api/goals/routines'),
+        fetchDeduplicated('/api/goals/routines/completions'),
       ]);
 
       if (sessionRes.sessions && sessionRes.sessions.length > 0) {
@@ -55,8 +55,13 @@ export default function PinnedGoalAlert() {
         setStats(statsRes);
       }
 
-      if (goalsRes.goals) {
-        const active = goalsRes.goals.find((g: any) => g.status === 'active');
+      // activeGoal is now fetched differently or not at all since we don't fetch all=true on client by default.
+      // Wait, PinnedGoalAlert needs activeGoal to show the "Today's Focus Goal" fallback.
+      // If we don't have it, we can fetch just the active goal or rely on the server fetch.
+      // We will add it to fetchDeduplicated with ?status=active if needed, but for now we'll do:
+      const activeGoalRes = await fetchDeduplicated('/api/goals?status=active');
+      if (activeGoalRes.goals) {
+        const active = activeGoalRes.goals.find((g: any) => g.status === 'active');
         setActiveGoal(active || null);
       }
 

@@ -8,7 +8,6 @@ import LevelBadge from '@/components/shared/LevelBadge';
 import UserAvatar from '@/components/shared/UserAvatar';
 import Button from '@/components/ui/Button';
 import { User, Share2, Trophy, Flame } from 'lucide-react';
-import StorageUsageIndicator from '@/components/shared/StorageUsageIndicator';
 import BadgesModal from '@/components/shared/BadgesModal';
 
 interface DashboardProfileCardProps {
@@ -18,19 +17,7 @@ interface DashboardProfileCardProps {
 
 export default function DashboardProfileCard({ profile, appData }: DashboardProfileCardProps) {
   const router = useRouter();
-  const [badgeCount, setBadgeCount] = React.useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
-
-  React.useEffect(() => {
-    fetch('/api/gamification/badges/list')
-      .then(res => res.json())
-      .then(json => {
-        if (json.success && json.data?.earned) {
-          setBadgeCount(json.data.earned.length);
-        }
-      })
-      .catch(err => console.error('Error fetching badges count:', err));
-  }, []);
 
   if (!profile) return null;
 
@@ -211,7 +198,7 @@ export default function DashboardProfileCard({ profile, appData }: DashboardProf
             }}
           >
             <Trophy size={14} className="text-neon-gold" />
-            <span>{badgeCount !== null ? `${badgeCount} Badges` : 'Badges'}</span>
+            <span>Badges</span>
             {profile.streak_days > 0 && (
               <>
                 <span style={{ color: 'var(--text-muted)', margin: '0 2px' }}>•</span>
@@ -251,16 +238,7 @@ export default function DashboardProfileCard({ profile, appData }: DashboardProf
         )}
       </div>
 
-      {/* PART 4: Database / Storage Usage Indicator */}
-      <div style={{ 
-        padding: '0 var(--space-xl) var(--space-xl)',
-        width: '100%',
-        boxSizing: 'border-box'
-      }}>
-        <React.Suspense fallback={<div style={{ height: '60px', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.05)' }} />}>
-          <StorageUsageIndicator userId={profile.id} compact />
-        </React.Suspense>
-      </div>
+
 
     </Card>
   );
