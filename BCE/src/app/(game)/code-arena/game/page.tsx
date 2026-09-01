@@ -476,21 +476,12 @@ export default function GamePage() {
         (container as any).webkitRequestFullscreen();
       }
     }
-    // Attempt lock screen
-    if (window.screen && window.screen.orientation && (window.screen.orientation as any).lock) {
-      (window.screen.orientation as any).lock('landscape').catch(() => {});
-    }
   };
 
   const exitFullscreenAndLandscape = () => {
     if (typeof window === 'undefined') return;
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(() => {});
-    }
-    if (window.screen && window.screen.orientation && (window.screen.orientation as any).unlock) {
-      try {
-        (window.screen.orientation as any).unlock();
-      } catch {}
     }
   };
 
