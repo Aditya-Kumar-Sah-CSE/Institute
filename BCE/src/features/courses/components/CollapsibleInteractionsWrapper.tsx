@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { MoreVertical, X, ChevronDown, Activity, Settings, BellRing } from 'lucide-react';
+import { ChevronDown, Activity, Settings, BellRing } from 'lucide-react';
 import './CollapsibleInteractionsWrapper.css';
 
 interface CollapsibleInteractionsWrapperProps {
@@ -15,9 +15,7 @@ export default function CollapsibleInteractionsWrapper({ children, courseId }: C
   
   // States: 'open', 'collapsed', 'hidden'
   const [wrapperState, setWrapperState] = useState<'open' | 'collapsed' | 'hidden'>('collapsed');
-  const [showMenu, setShowMenu] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Load from localStorage on mount
@@ -26,20 +24,11 @@ export default function CollapsibleInteractionsWrapper({ children, courseId }: C
       setWrapperState(savedState);
     }
     setIsLoaded(true);
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setShowMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [storageKey]);
 
   const updateState = (newState: 'open' | 'collapsed' | 'hidden') => {
     setWrapperState(newState);
     localStorage.setItem(storageKey, newState);
-    setShowMenu(false);
   };
 
   if (!isLoaded) return null; // Avoid hydration mismatch
@@ -68,34 +57,6 @@ export default function CollapsibleInteractionsWrapper({ children, courseId }: C
             onClick={() => updateState(wrapperState === 'open' ? 'collapsed' : 'open')}
           >
             <ChevronDown size={20} className={`chevron-icon ${wrapperState === 'open' ? 'rotated' : ''}`} />
-          </button>
-          
-          <div className="interactions-menu-container" ref={menuRef}>
-            <button 
-              className="interactions-action-btn"
-              onClick={() => setShowMenu(!showMenu)}
-            >
-              <MoreVertical size={20} />
-            </button>
-            
-            {showMenu && (
-              <div className="interactions-dropdown-menu">
-                <button onClick={() => updateState('collapsed')}>
-                  Collapse Menu
-                </button>
-                <button onClick={() => updateState('hidden')} className="danger-text">
-                  Hide Completely
-                </button>
-              </div>
-            )}
-          </div>
-          
-          <button 
-            className="interactions-action-btn"
-            title="Close"
-            onClick={() => updateState('collapsed')}
-          >
-            <X size={20} />
           </button>
         </div>
       </div>
