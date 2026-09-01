@@ -28,8 +28,8 @@ CREATE POLICY "Users can delete chats they own or are part of" ON chat_conversat
     id IN (
       SELECT conversation_id FROM chat_members 
       WHERE user_id = auth.uid() AND (
-        (SELECT type FROM chat_conversations c WHERE c.id = chat_members.conversation_id) = 'personal' 
-        OR role IN ('owner', 'admin')
+        chat_conversations.type = 'personal' 
+        OR chat_members.role IN ('owner', 'admin')
       )
     )
   );
