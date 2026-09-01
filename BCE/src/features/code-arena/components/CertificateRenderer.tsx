@@ -781,7 +781,7 @@ export default function CertificateRenderer({
                 type="text"
                 value={organizerName}
                 onChange={(e) => setOrganizerName(e.target.value)}
-                placeholder="e.g. BCE Code Arena"
+                placeholder="e.g. Smart Learn Code Arena"
                 style={{
                   width: '100%',
                   padding: '8px 12px',

@@ -33,7 +33,7 @@ export default function Error({
         Something went wrong!
       </h2>
       <p style={{ color: 'var(--text-secondary)', maxWidth: '500px', lineHeight: '1.6', margin: 0 }}>
-        An unexpected error occurred in this section. The rest of BCE remains fully active. You can try reloading this module or navigating to another section.
+        An unexpected error occurred in this section. The rest of Smart Learn remains fully active. You can try reloading this module or navigating to another section.
       </p>
       {error.message && (
         <pre style={{

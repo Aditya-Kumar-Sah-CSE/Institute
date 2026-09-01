@@ -6,8 +6,8 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import '@/app/Landing.css';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service | Smart Learn BCE',
-  description: 'Terms of Service for the Smart Learn BCE student, instructor, and institution platform.',
+  title: 'Terms of Service | Smart Learn',
+  description: 'Terms of Service for the Smart Learn student, instructor, and institution platform.',
 };
 
 export default function TermsOfServicePage() {
@@ -26,7 +26,7 @@ export default function TermsOfServicePage() {
             style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '8px' }}
             unoptimized
           />
-          <span className="logo-text" style={{ marginLeft: '10px' }}>Smart Learn BCE</span>
+          <span className="logo-text" style={{ marginLeft: '10px' }}>Smart Learn</span>
         </Link>
         <div className="landing-nav-actions">
           <ThemeToggle />
@@ -53,7 +53,7 @@ export default function TermsOfServicePage() {
                 1. Introduction
               </h2>
               <p>
-                Welcome to Smart Learn BCE. These Terms of Service ("Terms") govern your access to and use of our platform, services, websites, and applications (collectively referred to as "Smart Learn BCE" or "Platform"). By creating an account, logging in, or otherwise using the Platform, you agree to be bound by these Terms. If you do not agree to these Terms, you must immediately cease all access and use.
+                Welcome to Smart Learn. These Terms of Service ("Terms") govern your access to and use of our platform, services, websites, and applications (collectively referred to as "Smart Learn" or "Platform"). By creating an account, logging in, or otherwise using the Platform, you agree to be bound by these Terms. If you do not agree to these Terms, you must immediately cease all access and use.
               </p>
             </section>
 
@@ -119,7 +119,7 @@ export default function TermsOfServicePage() {
               <ul style={{ paddingLeft: '1.5rem', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <li>You own or have the necessary intellectual property rights to submit the User Content.</li>
                 <li>Your submission does not violate any third-party copyright, trade secret, or confidentiality agreements.</li>
-                <li>You grant Smart Learn BCE the necessary hosting, database caching, and transmission permissions to serve and display your content to instructors and peers as requested by your profile settings.</li>
+                <li>You grant Smart Learn the necessary hosting, database caching, and transmission permissions to serve and display your content to instructors and peers as requested by your profile settings.</li>
               </ul>
             </section>
 
@@ -128,7 +128,7 @@ export default function TermsOfServicePage() {
                 7. Certificates and Badges
               </h2>
               <p>
-                The digital certificates, battle achievements, and virtual badges awarded on the Platform represent a user's performance validated by the Smart Learn BCE evaluation algorithms.
+                The digital certificates, battle achievements, and virtual badges awarded on the Platform represent a user's performance validated by the Smart Learn evaluation algorithms.
               </p>
               <p style={{ marginTop: '0.5rem' }}>
                 <strong>No Professional Accreditation:</strong> You acknowledge that the certificates and badges issued by the Platform are educational performance completion records. Unless explicitly stated otherwise in a separate written agreement, they are not accredited by government education boards, university bodies, or professional certifying corporations.
@@ -149,7 +149,7 @@ export default function TermsOfServicePage() {
                 9. Intellectual Property
               </h2>
               <p>
-                The Platform infrastructure, layout, artwork, CSS, proprietary compilers, test cases, and database structure remain the exclusive property of Smart Learn BCE and its licensors, protected by copyrights and intellectual property laws. You retain full ownership of the original codes and commentaries you write, subject to the hosting permissions required for the Platform's core functionality.
+                The Platform infrastructure, layout, artwork, CSS, proprietary compilers, test cases, and database structure remain the exclusive property of Smart Learn and its licensors, protected by copyrights and intellectual property laws. You retain full ownership of the original codes and commentaries you write, subject to the hosting permissions required for the Platform's core functionality.
               </p>
             </section>
 
@@ -222,7 +222,7 @@ export default function TermsOfServicePage() {
       {/* Footer */}
       <footer className="landing-footer">
         <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-          <p>&copy; {new Date().getFullYear()} Smart Learn BCE. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Smart Learn. All rights reserved.</p>
           <div style={{ display: 'flex', gap: '1.5rem' }}>
             <Link href="/terms" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 'bold' }}>Terms of Service</Link>
             <Link href="/privacy" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Privacy Policy</Link>

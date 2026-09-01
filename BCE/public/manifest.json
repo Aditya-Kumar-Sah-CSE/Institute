@@ -1,18 +1,19 @@
 {
   "name": "Smart Learn",
-  "short_name": "Smart Learning",
+  "short_name": "Smart Learn",
   "description": "Smart Hybrid Learning & Student Engagement Platform",
 
   "start_url": "/pwa-start",
   "id": "/pwa-start",
   "scope": "/",
 
-  "display": "fullscreen",
+  "display": "standalone",
   "display_override": [
-    "fullscreen",
-    "standalone"
+    "standalone",
+    "minimal-ui",
+    "browser"
   ],
-  "orientation": "landscape",
+  "orientation": "any",
   "background_color": "#0b0f19",
   "theme_color": "#0b0f19",
   "categories": ["education", "productivity"],
@@ -50,36 +51,48 @@
       "short_name": "Dashboard",
       "description": "Open student learning dashboard",
       "url": "/dashboard",
-      "icons": [{ "src": "/icon-192x192.png?v=4", "sizes": "192x192" }]
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
     },
     {
       "name": "Courses",
       "short_name": "Courses",
       "description": "Browse active courses and lessons",
       "url": "/courses",
-      "icons": [{ "src": "/icon-192x192.png?v=4", "sizes": "192x192" }]
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
     },
     {
       "name": "Coding Battle",
       "short_name": "Battles",
       "description": "Join live coding challenges",
       "url": "/battles",
-      "icons": [{ "src": "/icon-192x192.png?v=4", "sizes": "192x192" }]
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
     }
   ],
 
   "icons": [
     {
-      "src": "/icon-192x192.png?v=4",
+      "src": "/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-512x512.png?v=4",
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

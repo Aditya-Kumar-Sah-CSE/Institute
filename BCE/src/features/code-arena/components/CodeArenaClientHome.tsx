@@ -214,7 +214,7 @@ export default function CodeArenaClientHome({
               suppressHydrationWarning
               type="text"
               className="invitation-input"
-              placeholder="BCE-XXXXX"
+              placeholder="SL-XXXXX"
               value={joinCodeInput}
               onChange={(e) => setJoinCodeInput(e.target.value.toUpperCase().trim())}
               onKeyDown={(e) => { if (e.key === 'Enter') handleJoinBattle(); }}

@@ -12,6 +12,7 @@ import UserAvatar from '@/components/shared/UserAvatar';
 import { unstable_cache } from 'next/cache';
 import { codeforcesAdapter } from '@/lib/coding-platforms/codeforces';
 import { leetcodeAdapter } from '@/lib/coding-platforms/leetcode';
+import { gfgAdapter } from '@/lib/coding-platforms/gfg';
 import '@/features/code-arena/components/CodeArena.css';
 
 // Cache Codeforces problem data for 1 hour
@@ -43,11 +44,34 @@ const getCachedLeetCodeProblem = unstable_cache(
   { revalidate: 3600 }
 );
 
+// Cache GFG problem data for 1 hour
+const getCachedGfgProblem = unstable_cache(
+  async (slug: string) => {
+    const ident = {
+      platform: 'GEEKSFORGEEKS' as const,
+      slug,
+      rawInput: slug
+    };
+    return await gfgAdapter.fetchProblem(ident);
+  },
+  ['gfg-problem-cache'],
+  { revalidate: 3600 }
+);
+
 async function getLeetCodeProblemSafe(slug: string) {
   try {
     return await getCachedLeetCodeProblem(slug);
   } catch (e) {
     console.error(`Failed to fetch LeetCode problem ${slug}:`, e);
+    return null;
+  }
+}
+
+async function getGfgProblemSafe(slug: string) {
+  try {
+    return await getCachedGfgProblem(slug);
+  } catch (e) {
+    console.error(`Failed to fetch GFG problem ${slug}:`, e);
     return null;
   }
 }
@@ -200,6 +224,7 @@ export default async function CodeProblemPage({ params, searchParams }: { params
 
   const isLc = problem.source_type === 'LEETCODE' || problem.external_platform === 'LEETCODE';
   const isCf = problem.source_type === 'CODEFORCES' || problem.external_platform === 'CODEFORCES';
+  const isGfg = problem.source_type === 'GEEKSFORGEEKS' || problem.external_platform === 'GEEKSFORGEEKS';
 
   if (isLc) {
     const needSync = !pAny.starter_code || Object.keys(pAny.starter_code).length === 0 || !problem.description || (samples || []).length === 0;
@@ -287,30 +312,40 @@ export default async function CodeProblemPage({ params, searchParams }: { params
         }));
       }
     }
-  } else if (isCf && problem.external_problem_id) {
-    const match = problem.external_problem_id.match(/^(\d+)([A-Z]\d*)$/i);
-    if (match) {
-      const scraped = await getCodeforcesProblemSafe(match[1], match[2]);
-      if (scraped) {
-        problemData = {
-          ...problemData,
-          title: scraped.title || problemData.title,
-          statement: scraped.statement || problemData.statement,
-          input_format: scraped.inputFormat || problemData.input_format,
-          output_format: scraped.outputFormat || problemData.output_format,
-          explanation: scraped.explanation || problemData.explanation,
-          constraints: scraped.constraints || problemData.constraints,
-          starterCode: scraped.starterCode || null,
-        };
+  } else if (isGfg) {
+    const scraped = await getGfgProblemSafe(problem.external_problem_id || problem.slug || '');
+    if (scraped) {
+      const { createAdminClient } = await import('@/lib/supabase/server');
+      const adminClient = await createAdminClient();
+      await adminClient
+        .from('coding_problems')
+        .update({
+          title: scraped.title || problem.title,
+          description: scraped.statement || problem.description,
+          constraints: scraped.constraints || problem.constraints,
+          starter_code: scraped.starterCode || {},
+          examples: scraped.examples || [],
+          metadata: scraped.metadata || {},
+          external_url: scraped.officialUrl || problem.external_url,
+        })
+        .eq('id', problem.id);
 
-        if (scraped.examples && scraped.examples.length > 0) {
-          problemData.samples = scraped.examples.map((ex, idx) => ({
-            input: ex.input,
-            expected_output: ex.output,
-            sample_name: `Sample #${idx + 1}`,
-            order_index: idx,
-          }));
-        }
+      problemData = {
+        ...problemData,
+        title: scraped.title || problemData.title,
+        statement: scraped.statement || problemData.statement,
+        description: scraped.statement || problemData.description,
+        constraints: scraped.constraints || problemData.constraints,
+        starterCode: scraped.starterCode || problemData.starterCode,
+      };
+
+      if ((samples || []).length === 0 && scraped.examples && scraped.examples.length > 0) {
+        problemData.samples = scraped.examples.map((ex, idx) => ({
+          input: ex.input,
+          expected_output: ex.output,
+          sample_name: `Sample #${idx + 1}`,
+          order_index: idx,
+        }));
       }
     }
   }

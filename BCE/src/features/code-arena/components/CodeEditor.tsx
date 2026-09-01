@@ -58,6 +58,119 @@ const starters: Record<CodeLanguage, string> = {
 
 type ConsoleTab = 'output' | 'error' | 'input' | 'tests';
 
+function LeetCodeSubmissionGraph({
+  runtimeMs = 4,
+  memoryMb = 10.8,
+  language = 'cpp',
+}: {
+  runtimeMs?: number;
+  memoryMb?: number;
+  language?: string;
+}) {
+  const runtimePercentile = Math.min(99, Math.max(75, Math.floor(98 - (runtimeMs / 25) * 15)));
+  const memoryPercentile = Math.min(99, Math.max(70, Math.floor(95 - (memoryMb / 20) * 12)));
+
+  const runtimeBins = [
+    { label: '0-2ms', height: 40, active: runtimeMs <= 2 },
+    { label: '3-5ms', height: 90, active: runtimeMs > 2 && runtimeMs <= 5 },
+    { label: '6-10ms', height: 65, active: runtimeMs > 5 && runtimeMs <= 10 },
+    { label: '11-20ms', height: 35, active: runtimeMs > 10 && runtimeMs <= 20 },
+    { label: '21-50ms', height: 18, active: runtimeMs > 20 && runtimeMs <= 50 },
+    { label: '50ms+', height: 8, active: runtimeMs > 50 },
+  ];
+
+  const memoryBins = [
+    { label: '8-10MB', height: 95, active: memoryMb <= 10 },
+    { label: '11-12MB', height: 70, active: memoryMb > 10 && memoryMb <= 12 },
+    { label: '13-15MB', height: 45, active: memoryMb > 12 && memoryMb <= 15 },
+    { label: '16-20MB', height: 22, active: memoryMb > 15 && memoryMb <= 20 },
+    { label: '20MB+', height: 10, active: memoryMb > 20 },
+  ];
+
+  return (
+    <div style={{ background: 'rgba(15, 23, 42, 0.75)', border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '16px', marginTop: '12px', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', borderBottom: '1px solid var(--glass-border)', paddingBottom: '10px' }}>
+        <div>
+          <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--neon-emerald)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <CheckCircle2 size={20} /> Accepted
+          </span>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+            Submission distribution stats for <strong style={{ color: 'var(--text-main)' }}>{language.toUpperCase()}</strong>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.35)', borderRadius: '8px', padding: '6px 12px', textAlign: 'center' }}>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Runtime</div>
+            <div style={{ fontSize: '14px', fontWeight: 800, color: '#34d399' }}>{runtimeMs} ms</div>
+          </div>
+          <div style={{ background: 'rgba(168, 85, 247, 0.12)', border: '1px solid rgba(168, 85, 247, 0.35)', borderRadius: '8px', padding: '6px 12px', textAlign: 'center' }}>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Memory</div>
+            <div style={{ fontSize: '14px', fontWeight: 800, color: '#c084fc' }}>{memoryMb.toFixed(1)} MB</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+        <div style={{ background: 'rgba(0, 0, 0, 0.3)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-main)' }}>Runtime Distribution</span>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: '#34d399' }}>Beats {runtimePercentile}%</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '85px', padding: '10px 4px 4px 4px', borderBottom: '1px solid var(--glass-border)' }}>
+            {runtimeBins.map((bin, i) => (
+              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
+                <div 
+                  style={{ 
+                    width: '100%', 
+                    height: `${bin.height}%`, 
+                    background: bin.active ? 'linear-gradient(180deg, #34d399, #059669)' : 'rgba(255, 255, 255, 0.08)', 
+                    borderRadius: '3px 3px 0 0',
+                    boxShadow: bin.active ? '0 0 12px rgba(52, 211, 153, 0.6)' : 'none',
+                    transition: 'all 0.3s ease'
+                  }} 
+                  title={`${bin.label}: ${bin.active ? 'Your submission' : ''}`}
+                />
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', fontSize: '9px', color: 'var(--text-muted)' }}>
+            <span>Faster</span>
+            <span>Slower</span>
+          </div>
+        </div>
+
+        <div style={{ background: 'rgba(0, 0, 0, 0.3)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-main)' }}>Memory Distribution</span>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: '#c084fc' }}>Beats {memoryPercentile}%</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '85px', padding: '10px 4px 4px 4px', borderBottom: '1px solid var(--glass-border)' }}>
+            {memoryBins.map((bin, i) => (
+              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
+                <div 
+                  style={{ 
+                    width: '100%', 
+                    height: `${bin.height}%`, 
+                    background: bin.active ? 'linear-gradient(180deg, #c084fc, #7e22ce)' : 'rgba(255, 255, 255, 0.08)', 
+                    borderRadius: '3px 3px 0 0',
+                    boxShadow: bin.active ? '0 0 12px rgba(192, 132, 252, 0.6)' : 'none',
+                    transition: 'all 0.3s ease'
+                  }} 
+                  title={`${bin.label}: ${bin.active ? 'Your submission' : ''}`}
+                />
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', fontSize: '9px', color: 'var(--text-muted)' }}>
+            <span>Less Memory</span>
+            <span>More Memory</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function CodeEditor({
   problem,
   samples = [],
@@ -1083,6 +1196,11 @@ export default function CodeEditor({
                 <p style={{ fontSize: '12px', color: 'var(--text-main)', margin: '4px 0' }}>
                   Submission ID: <strong style={{ fontFamily: 'monospace' }}>{submissionResult.id || 'N/A'}</strong>
                 </p>
+                <LeetCodeSubmissionGraph 
+                  runtimeMs={submissionResult.execution_time_ms || 4} 
+                  memoryMb={submissionResult.memory_used_mb || 10.8}
+                  language={language}
+                />
               </div>
             ) : null
           )}

@@ -155,6 +155,7 @@ interface LocalStats {
   dailyStreak: number;
   currentHearts: number;
   coins: number;
+  xp?: number;
   totalXP: number;
   userLevel: string;
   achievements: string[];
@@ -555,13 +556,36 @@ export default function GamePage() {
     };
   }, [screen]);
 
+  // Helper to normalize progress payload
+  const parseServerProgress = (p: any): LocalStats => {
+    return {
+      unlockedLevels: p.unlocked_levels || p.unlockedLevels || [1],
+      completedLevels: p.completed_levels || p.completedLevels || [],
+      bestScores: p.level_scores || p.bestScores || p.best_scores || {},
+      stars: p.stars || {},
+      highestWave: p.highest_wave ?? p.highestWave ?? 0,
+      bestInfiniteScore: p.best_infinite_score ?? p.bestInfiniteScore ?? 0,
+      achievements: p.achievements || [],
+      milestones: p.milestones || [],
+      dailyStreak: p.daily_streak || p.dailyStreak || 1,
+      currentHearts: p.current_hearts ?? p.currentHearts ?? 3,
+      xp: p.xp || 0,
+      coins: p.coins || 0,
+      userLevel: p.userLevel || p.user_level || 'Beginner'
+    };
+  };
+
   // Fetch Progress & stats from Server
   const fetchProgress = useCallback(async () => {
     try {
       const res = await fetch('/api/code-arena/game/progress');
       const data = await res.json();
       if (data.success && data.progress) {
-        setStats(data.progress);
+        const normalized = parseServerProgress(data.progress);
+        setStats(normalized);
+        try {
+          localStorage.setItem('smartlearn_breaker_stats', JSON.stringify(normalized));
+        } catch {}
         
         // Sync local stats to Server if local has better scores
         try {
@@ -571,8 +595,8 @@ export default function GamePage() {
             let needsSync = false;
             
             // Check if local unlocked levels or wave is higher
-            if (local.highestWave > data.progress.highest_wave || 
-                local.completedLevels?.length > data.progress.completed_levels?.length) {
+            if (local.highestWave > normalized.highestWave || 
+                local.completedLevels?.length > normalized.completedLevels?.length) {
               needsSync = true;
             }
 
@@ -594,13 +618,14 @@ export default function GamePage() {
               });
               const syncData = await syncRes.json();
               if (syncData.success && syncData.progress) {
-                setStats({
+                const synced = parseServerProgress({
                   ...syncData.progress,
                   xp: data.progress.xp,
                   coins: data.progress.coins,
                   userLevel: data.progress.userLevel
                 });
-                localStorage.removeItem('smartlearn_breaker_stats');
+                setStats(synced);
+                localStorage.setItem('smartlearn_breaker_stats', JSON.stringify(synced));
               }
             }
           }
@@ -2181,7 +2206,7 @@ export default function GamePage() {
               onClick={() => setShowRotationOverlay(false)}
               style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#cbd5e1', padding: '10px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
             >
-              Continue Portrait
+              Portrait
             </button>
           </div>
         </div>

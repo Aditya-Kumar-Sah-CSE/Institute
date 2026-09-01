@@ -99,6 +99,7 @@ export default function ResizableIdeLayout({ problemData }: { problemData: Probl
       {/* Right panel: Editor */}
       <div className="code-editor-resizable-wrapper" style={{ width: `${100 - leftWidth}%` }}>
         <CodeEditor
+          key={problemData.id}
           problem={problemData}
           samples={problemData.samples as any}
         />

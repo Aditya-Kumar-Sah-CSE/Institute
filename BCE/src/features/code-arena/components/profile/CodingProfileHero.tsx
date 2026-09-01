@@ -203,7 +203,7 @@ export default function CodingProfileHero({ profile, codeforcesConnected, leetCo
             </select>
           </span>
           <div style={{ display: 'flex', gap: '6px', fontSize: '9px', color: 'var(--text-muted)', fontWeight: 600 }}>
-            <span>BCE</span>
+            <span>SL</span>
             <span style={{ color: 'var(--neon-cyan)' }}>■</span>
             <span>CF</span>
             <span style={{ color: '#ee5b5b' }}>■</span>
@@ -292,7 +292,7 @@ export default function CodingProfileHero({ profile, codeforcesConnected, leetCo
                         <div style={{ fontWeight: 700, marginBottom: '2px' }}>{new Date(cell.dateStr).toLocaleDateString(undefined, { dateStyle: 'medium' })}</div>
                         <div style={{ color: 'var(--neon-emerald)', fontWeight: 800 }}>Total: {total} solved</div>
                         <div style={{ display: 'flex', gap: '8px', color: 'var(--text-muted)', fontSize: '9px', marginTop: '2px' }}>
-                          <span>BCE: {cell.activity.bce}</span>
+                          <span>SL: {cell.activity.bce}</span>
                           <span>CF: {cell.activity.cf}</span>
                           <span>LC: {cell.activity.lc}</span>
                         </div>

@@ -243,69 +243,7 @@ export const judgeService: JudgeService = {
 
     const compiler = WANDBOX_COMPILERS[language] || 'gcc-head';
 
-    // OPTIMIZATION: Compile Once, Execute Many (Single-Compilation Stream Batching)
-    // For function mode or multiple test cases, batch inputs into a single stdin stream
-    if (mode === 'leetcode_function' && testCases.length > 1) {
-      const batchedInput = testCases.map(tc => tc.input.trim()).join('\n');
-      const batchResult = await runSingleTestCase(compiler, sourceCode, batchedInput, '', language);
-
-      if (batchResult.status === 'COMPILATION_ERROR') {
-        const allResults: SingleTestResult[] = testCases.map(tc => ({
-          status: 'COMPILATION_ERROR',
-          input: tc.input,
-          expectedOutput: tc.expectedOutput,
-          actualOutput: '',
-          passed: false,
-          stderr: batchResult.stderr,
-        }));
-        return {
-          status: 'COMPILATION_ERROR',
-          passedTests: 0,
-          totalTests: testCases.length,
-          compilerOutput: batchResult.stderr,
-          runtimeOutput: JSON.stringify(allResults),
-        };
-      }
-
-      // If batch execution ran cleanly, split output by non-empty lines
-      if (batchResult.status === 'PASSED' || batchResult.status === 'WRONG_ANSWER') {
-        const rawOutputLines = batchResult.actualOutput.split('\n').map(l => l.trim()).filter(Boolean);
-
-        if (rawOutputLines.length === testCases.length) {
-          const allResults: SingleTestResult[] = testCases.map((tc, idx) => {
-            const actual = rawOutputLines[idx];
-            const mismatch = getMismatchInfo(tc.expectedOutput, actual);
-            const passed = mismatch === null;
-            return {
-              status: passed ? 'PASSED' : 'WRONG_ANSWER',
-              input: tc.input,
-              expectedOutput: tc.expectedOutput,
-              actualOutput: actual,
-              passed,
-              mismatchInfo: mismatch || undefined,
-            };
-          });
-
-          const passedCount = allResults.filter(r => r.passed).length;
-          const overallStatus: SubmissionStatus = passedCount === testCases.length ? 'ACCEPTED' : 'WRONG_ANSWER';
-
-          const totalTime = Date.now() - startTime;
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`[CodeArena Perf] Mode: ${mode} (Batched Single-Compile), SigLookup: ${signatureLookupTime}ms, Total: ${totalTime}ms`);
-          }
-
-          return {
-            status: overallStatus,
-            passedTests: passedCount,
-            totalTests: testCases.length,
-            runtimeOutput: JSON.stringify(allResults),
-          };
-        }
-      }
-      // If output lines count mismatch or runtime error occurs, fall back to individual testcase execution
-    }
-
-    // Fallback: Run testcases individually with fast concurrency limit
+    // Run testcases cleanly and concurrently for accurate evaluation
     const tc1 = testCases[0];
     const res1 = await runSingleTestCase(compiler, sourceCode, tc1.input, tc1.expectedOutput, language);
 

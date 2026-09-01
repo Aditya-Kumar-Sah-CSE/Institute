@@ -287,6 +287,26 @@ export const gfgAdapter: CodingPlatformAdapter = {
             statement = cleanHtml(descMatch[1]);
           }
 
+          // Constraints parsing
+          const constraintsMatch = htmlContent.match(/<strong>\s*Constraints:?\s*<\/strong>([\s\S]*?)(?:<p>|<div)/i) || 
+                                   htmlContent.match(/Constraints:?<\/strong>([\s\S]*?)(?:<p>|<div)/i) ||
+                                   htmlContent.match(/Constraints:\s*<br>\s*([\s\S]*?)(?:<br>|<p>|<div)/i);
+          if (constraintsMatch) {
+            let rawConstraints = constraintsMatch[1];
+            rawConstraints = rawConstraints.replace(/<sup>(.*?)<\/sup>/gi, '^$1');
+            rawConstraints = stripTags(rawConstraints)
+              .replace(/&le;/gi, '<=')
+              .replace(/&ge;/gi, '>=')
+              .replace(/&lt;/gi, '<')
+              .replace(/&gt;/gi, '>')
+              .replace(/&#183;/gi, '*')
+              .replace(/&times;/gi, '*')
+              .trim();
+            if (rawConstraints) {
+              constraints = rawConstraints;
+            }
+          }
+
           // Sample Testcases parsing
           const sampleRegex = /Example 1:[\s\S]*?Input:?\s*([^\n<]+)[\s\S]*?Output:?\s*([^\n<]+)/gi;
           let match;

@@ -14,10 +14,7 @@ self.addEventListener('message', (event) => {
 const SHELL_ASSETS = [
   '/manifest.json',
   '/icon-192x192.png',
-  '/icon-512x512.png',
-  '/pwa-start',
-  '/dashboard',
-  '/code-arena'
+  '/icon-512x512.png'
 ];
 
 self.addEventListener('install', (event) => {

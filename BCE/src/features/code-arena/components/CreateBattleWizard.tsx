@@ -735,7 +735,7 @@ export default function CreateBattleWizard({
                       <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600, marginBottom: '6px' }}>Organizer / Institution Name</label>
                       <input
                         type="text"
-                        placeholder="e.g. BCE Bhagalpur / Code Arena"
+                        placeholder="e.g. Smart Learn Bhagalpur / Code Arena"
                         style={{
                           width: '100%',
                           padding: '10px 14px',
