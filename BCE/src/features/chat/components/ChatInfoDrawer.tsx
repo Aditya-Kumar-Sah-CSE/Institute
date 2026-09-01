@@ -14,6 +14,9 @@ interface ChatInfoDrawerProps {
   onClose: () => void;
   onSelectMedia: (url: string, type: string) => void;
   onClearChat?: () => void;
+  onDeleteChat?: () => void;
+  onBlockUser?: () => void;
+  isBlockedByMe?: boolean;
   onUpdateGroupAvatar?: (newIconUrl: string) => void;
 }
 
@@ -26,6 +29,9 @@ export default function ChatInfoDrawer({
   onClose,
   onSelectMedia,
   onClearChat,
+  onDeleteChat,
+  onBlockUser,
+  isBlockedByMe,
   onUpdateGroupAvatar
 }: ChatInfoDrawerProps) {
   const [activeTab, setActiveTab] = useState<'info' | 'media' | 'docs' | 'pins'>('info');
@@ -329,6 +335,27 @@ export default function ChatInfoDrawer({
                     width: '100%',
                     padding: '10px 14px',
                     borderRadius: '8px',
+                    background: 'var(--bg-elevated)',
+                    border: '1px solid var(--border-divider)',
+                    color: 'var(--text-primary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    fontWeight: 500
+                  }}
+                >
+                  <Trash2 size={16} /> Clear Chat
+                </button>
+              )}
+              {onDeleteChat && (
+                <button
+                  onClick={onDeleteChat}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
                     background: 'rgba(255,59,48,0.1)',
                     border: '1px solid rgba(255,59,48,0.3)',
                     color: '#ff3b30',
@@ -340,7 +367,28 @@ export default function ChatInfoDrawer({
                     fontWeight: 600
                   }}
                 >
-                  <Trash2 size={16} /> Clear Chat
+                  <Trash2 size={16} /> Delete Chat
+                </button>
+              )}
+              {!isGroup && onBlockUser && (
+                <button
+                  onClick={onBlockUser}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    background: isBlockedByMe ? 'var(--bg-elevated)' : 'rgba(255,59,48,0.1)',
+                    border: isBlockedByMe ? '1px solid var(--border-divider)' : '1px solid rgba(255,59,48,0.3)',
+                    color: isBlockedByMe ? 'var(--text-primary)' : '#ff3b30',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    fontWeight: 600
+                  }}
+                >
+                  <Shield size={16} /> {isBlockedByMe ? 'Unblock User' : 'Block User'}
                 </button>
               )}
             </div>

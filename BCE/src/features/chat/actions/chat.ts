@@ -44,6 +44,13 @@ export async function createDirectChat(targetUserId: string) {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData?.user) throw new Error('Not authenticated');
 
+  // Check if either user has blocked the other
+  const { data: isBlocked } = await supabase.rpc('is_chat_blocked', {
+    user1: userData.user.id,
+    user2: targetUserId
+  });
+  if (isBlocked) throw new Error('Cannot create chat. User is blocked.');
+
   const { data: convId } = await supabase.rpc('get_or_create_direct_chat', {
     peer_id: targetUserId,
   }).single();
@@ -96,6 +103,30 @@ export async function sendChatMessage(
   if (!rl.success) throw new Error(rl.error);
 
   if (!content.trim() && !attachmentLink) throw new Error('Message cannot be empty');
+
+  // If this is a personal chat, check for blocks
+  const { data: conv } = await supabase
+    .from('chat_conversations')
+    .select('type')
+    .eq('id', conversationId)
+    .single();
+
+  if (conv?.type === 'personal') {
+    // Find the peer user
+    const { data: members } = await supabase
+      .from('chat_members')
+      .select('user_id')
+      .eq('conversation_id', conversationId);
+    
+    const peer = members?.find(m => m.user_id !== userData.user.id);
+    if (peer) {
+      const { data: isBlocked } = await supabase.rpc('is_chat_blocked', {
+        user1: userData.user.id,
+        user2: peer.user_id
+      });
+      if (isBlocked) throw new Error('Message cannot be sent. User is blocked.');
+    }
+  }
 
   const { error } = await supabase
     .from('chat_messages')
@@ -305,5 +336,88 @@ export async function updateGroupAvatar(conversationId: string, iconUrl: string)
 
   revalidatePath('/dashboard/chat');
   return { success: true };
+}
+
+export async function deleteChatConversation(conversationId: string) {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData?.user) throw new Error('Not authenticated');
+
+  const { error } = await supabase
+    .from('chat_conversations')
+    .delete()
+    .eq('id', conversationId);
+
+  if (error) {
+    console.error('Delete conversation error:', error);
+    throw new Error('Failed to delete chat: ' + error.message);
+  }
+
+  revalidatePath('/dashboard/chat');
+  return { success: true };
+}
+
+export async function blockUser(targetUserId: string) {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData?.user) throw new Error('Not authenticated');
+
+  const { error } = await supabase
+    .from('chat_blocks')
+    .insert({
+      blocker_id: userData.user.id,
+      blocked_id: targetUserId
+    });
+
+  if (error) {
+    if (error.code === '23505') {
+      // Unique violation (already blocked)
+      return { success: true };
+    }
+    throw new Error('Failed to block user: ' + error.message);
+  }
+
+  revalidatePath('/dashboard/chat');
+  return { success: true };
+}
+
+export async function unblockUser(targetUserId: string) {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData?.user) throw new Error('Not authenticated');
+
+  const { error } = await supabase
+    .from('chat_blocks')
+    .delete()
+    .eq('blocker_id', userData.user.id)
+    .eq('blocked_id', targetUserId);
+
+  if (error) throw new Error('Failed to unblock user: ' + error.message);
+
+  revalidatePath('/dashboard/chat');
+  return { success: true };
+}
+
+export async function checkBlockStatus(targetUserId: string) {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData?.user) return { isBlockedByMe: false, isBlockedByThem: false };
+
+  const { data: blocks } = await supabase
+    .from('chat_blocks')
+    .select('*')
+    .or(`and(blocker_id.eq.${userData.user.id},blocked_id.eq.${targetUserId}),and(blocker_id.eq.${targetUserId},blocked_id.eq.${userData.user.id})`);
+
+  let isBlockedByMe = false;
+  let isBlockedByThem = false;
+
+  if (blocks) {
+    for (const block of blocks) {
+      if (block.blocker_id === userData.user.id) isBlockedByMe = true;
+      if (block.blocker_id === targetUserId) isBlockedByThem = true;
+    }
+  }
+
+  return { isBlockedByMe, isBlockedByThem };
 }
 

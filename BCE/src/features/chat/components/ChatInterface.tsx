@@ -19,7 +19,8 @@ import CallModal, { CallState } from './CallModal';
 import ForwardModal from './ForwardModal';
 import DateSeparator from './DateSeparator';
 import { 
-  editChatMessage, deleteChatMessage, togglePinChatMessage, toggleMessageReaction 
+  editChatMessage, deleteChatMessage, togglePinChatMessage, toggleMessageReaction,
+  deleteChatConversation, blockUser, unblockUser, checkBlockStatus
 } from '@/features/chat/actions/chat';
 import { useRouter } from 'next/navigation';
 import { getOfflineDb } from '@/lib/cache/offlineDb';
@@ -65,6 +66,10 @@ export default function ChatInterface() {
   const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null);
   const [editText, setEditText] = useState('');
   const [showScrollBottom, setShowScrollBottom] = useState(false);
+
+  const [isBlockedByMe, setIsBlockedByMe] = useState(false);
+  const [isBlockedByThem, setIsBlockedByThem] = useState(false);
+  const [isBlockingOrDeleting, setIsBlockingOrDeleting] = useState(false);
 
   // WebRTC Audio/Video Call System State
   const [callSession, setCallSession] = useState<CallSession | null>(null);
@@ -328,8 +333,21 @@ export default function ChatInterface() {
       setIsSearchOpen(false);
       setSearchQuery('');
       setReplyToMessage(null);
+
+      if (activeChat.type === 'personal') {
+        const peer = activeChat.members?.find(m => m.user_id !== currentUserId);
+        if (peer) {
+          checkBlockStatus(peer.user_id).then(status => {
+            setIsBlockedByMe(status.isBlockedByMe);
+            setIsBlockedByThem(status.isBlockedByThem);
+          });
+        }
+      } else {
+        setIsBlockedByMe(false);
+        setIsBlockedByThem(false);
+      }
     }
-  }, [activeChat]);
+  }, [activeChat, currentUserId]);
 
   // Presence channel subscription
   useEffect(() => {
@@ -1080,11 +1098,49 @@ export default function ChatInterface() {
     alert('Message forwarded successfully!');
   };
 
-  const handleUpdateGroupAvatar = (newIconUrl: string) => {
+  const handleUpdateGroupAvatar = (url: string) => {
+    setActiveChat(prev => prev ? { ...prev, icon_url: url } : null);
+    setChats(prevChats => prevChats.map(c => c.id === activeChat?.id ? { ...c, icon_url: url } : c));
+  };
+
+  const handleDeleteChat = async () => {
     if (!activeChat) return;
-    const updated = { ...activeChat, icon_url: newIconUrl };
-    setActiveChat(updated);
-    setChats(prev => prev.map(c => c.id === activeChat.id ? { ...c, icon_url: newIconUrl } : c));
+    if (!confirm('Are you sure you want to delete this chat permanently?')) return;
+    
+    setIsBlockingOrDeleting(true);
+    try {
+      await deleteChatConversation(activeChat.id);
+      setChats(prev => prev.filter(c => c.id !== activeChat.id));
+      setActiveChat(null);
+      setIsInfoDrawerOpen(false);
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete chat');
+    } finally {
+      setIsBlockingOrDeleting(false);
+    }
+  };
+
+  const handleBlockUser = async () => {
+    if (!activeChat || activeChat.type !== 'personal') return;
+    const peer = activeChat.members?.find(m => m.user_id !== currentUserId);
+    if (!peer) return;
+
+    setIsBlockingOrDeleting(true);
+    try {
+      if (isBlockedByMe) {
+        await unblockUser(peer.user_id);
+        setIsBlockedByMe(false);
+      } else {
+        if (confirm('Are you sure you want to block this user?')) {
+          await blockUser(peer.user_id);
+          setIsBlockedByMe(true);
+        }
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to block/unblock user');
+    } finally {
+      setIsBlockingOrDeleting(false);
+    }
   };
 
   const getChatName = (chat: ChatConversation) => {
@@ -1275,16 +1331,22 @@ export default function ChatInterface() {
                )}
             </div>
 
-            {/* Input Composer */}
-            <ChatComposer 
-              msgInput={msgInput} 
-              setMsgInput={setMsgInput} 
-              handleSend={handleSend} 
-              isSomeoneTyping={typingUsers.length > 0} 
-              replyToMessage={replyToMessage}
-              onCancelReply={() => setReplyToMessage(null)}
-            />
-          </>
+              {/* Input Composer */}
+              {isBlockedByMe || isBlockedByThem ? (
+                <div style={{ padding: '20px', textAlign: 'center', color: '#ff3b30', background: 'rgba(255,59,48,0.1)', borderTop: '1px solid var(--border-divider)' }}>
+                  {isBlockedByMe ? "You have blocked this user." : "You cannot send messages to this user."}
+                </div>
+              ) : (
+                <ChatComposer 
+                  msgInput={msgInput} 
+                  setMsgInput={setMsgInput} 
+                  handleSend={handleSend} 
+                  isSomeoneTyping={typingUsers.length > 0} 
+                  replyToMessage={replyToMessage}
+                  onCancelReply={() => setReplyToMessage(null)}
+                />
+              )}
+            </>
         ) : (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
              <div style={{ width: '96px', height: '96px', background: 'var(--bg-elevated)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 'var(--space-md)', border: '1px solid var(--border-default)' }}>
@@ -1306,6 +1368,9 @@ export default function ChatInterface() {
           onClose={() => setIsInfoDrawerOpen(false)}
           onSelectMedia={(url, type) => setLightboxMedia({ url, type })}
           onUpdateGroupAvatar={handleUpdateGroupAvatar}
+          onDeleteChat={handleDeleteChat}
+          onBlockUser={handleBlockUser}
+          isBlockedByMe={isBlockedByMe}
         />
       )}
 
