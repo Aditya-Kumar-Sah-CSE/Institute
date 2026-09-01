@@ -76,14 +76,21 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
   }, [isCollapsed]);
 
   const [isLandscape, setIsLandscape] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+  
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.screen?.orientation) {
-      setIsLandscape(window.screen.orientation.type.includes('landscape'));
-      const handleOrientationChange = () => {
+    if (typeof window !== 'undefined') {
+      const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+      setIsStandalone(isStandaloneMode);
+
+      if (window.screen?.orientation) {
         setIsLandscape(window.screen.orientation.type.includes('landscape'));
-      };
-      window.screen.orientation.addEventListener('change', handleOrientationChange);
-      return () => window.screen.orientation.removeEventListener('change', handleOrientationChange);
+        const handleOrientationChange = () => {
+          setIsLandscape(window.screen.orientation.type.includes('landscape'));
+        };
+        window.screen.orientation.addEventListener('change', handleOrientationChange);
+        return () => window.screen.orientation.removeEventListener('change', handleOrientationChange);
+      }
     }
   }, []);
 
@@ -393,10 +400,12 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
             <span className="sidebar-nav-label">Install App</span>
           </button>
         )}
-        <button suppressHydrationWarning type="button" onClick={toggleOrientation} className="sidebar-nav-item" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px' }}>
-          <span className="sidebar-nav-icon">{isLandscape ? <Monitor className="w-5 h-5" /> : <Smartphone className="w-5 h-5" />}</span>
-          <span className="sidebar-nav-label">Rotate Display</span>
-        </button>
+        {isStandalone && (
+          <button suppressHydrationWarning type="button" onClick={toggleOrientation} className="sidebar-nav-item" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px' }}>
+            <span className="sidebar-nav-icon">{isLandscape ? <Monitor className="w-5 h-5" /> : <Smartphone className="w-5 h-5" />}</span>
+            <span className="sidebar-nav-label">Rotate Display</span>
+          </button>
+        )}
         <form action={signOut}>
           <button suppressHydrationWarning type="submit" className="sidebar-nav-item sidebar-logout">
             <span className="sidebar-nav-icon"><LogOut className="w-5 h-5" /></span>

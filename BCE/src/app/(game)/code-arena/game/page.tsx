@@ -207,30 +207,60 @@ export default function GamePage() {
   const [pwaInstallSupported, setPwaInstallSupported] = useState<boolean>(false);
   
   const [isLandscape, setIsLandscape] = useState<boolean>(false);
+  const [isStandalone, setIsStandalone] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+      setIsStandalone(isStandaloneMode);
+    }
+  }, []);
 
   const toggleOrientation = async () => {
     try {
       if (!isLandscape) {
-        if (containerRef.current?.requestFullscreen) {
-          await containerRef.current.requestFullscreen();
+        if (containerRef.current?.requestFullscreen && !document.fullscreenElement) {
+          try {
+            await containerRef.current.requestFullscreen();
+          } catch (fsErr) {
+            console.warn('Fullscreen request failed:', fsErr);
+          }
         }
         if (window.screen && window.screen.orientation && 'lock' in window.screen.orientation) {
-          await (window.screen.orientation as any).lock('landscape');
+          try {
+            await (window.screen.orientation as any).lock('landscape');
+            setIsLandscape(true);
+          } catch (lockErr: any) {
+            console.warn('Orientation lock failed:', lockErr);
+            if (lockErr.name === 'NotSupportedError' || lockErr.name === 'SecurityError') {
+              alert('Rotate Display is not supported on this device/browser in this mode.');
+            } else {
+              alert(`Could not rotate display: ${lockErr.message}`);
+            }
+          }
+        } else {
+          alert('Display rotation is not supported by your browser.');
         }
-        setIsLandscape(true);
       } else {
-        if (document.fullscreenElement) {
-          await document.exitFullscreen();
-        }
         if (window.screen && window.screen.orientation && 'unlock' in window.screen.orientation) {
-          (window.screen.orientation as any).unlock();
+          try {
+            (window.screen.orientation as any).unlock();
+          } catch (unlockErr) {
+            console.warn('Orientation unlock failed:', unlockErr);
+          }
+        }
+        if (document.fullscreenElement && document.exitFullscreen) {
+          try {
+            await document.exitFullscreen();
+          } catch (fsErr) {
+            console.warn('Exit fullscreen failed:', fsErr);
+          }
         }
         setIsLandscape(false);
       }
-    } catch (e) {
-      console.warn('Orientation toggle failed', e);
-      // Toggle anyway to flip the icon
-      setIsLandscape(!isLandscape);
+    } catch (e: any) {
+      console.error('Unexpected error in toggleOrientation:', e);
+      alert(`Unexpected error: ${e.message}`);
     }
   };
   
@@ -2253,13 +2283,15 @@ export default function GamePage() {
           </div>
 
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
-            <button 
-              onClick={toggleOrientation}
-              title="Toggle Display Orientation"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '6px 10px', borderRadius: '8px', color: isLandscape ? '#06b6d4' : '#cbd5e1', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-            >
-              {isLandscape ? <><Monitor size={13} /> Landscape</> : <><Smartphone size={13} /> Portrait</>}
-            </button>
+            {isStandalone && (
+              <button 
+                onClick={toggleOrientation}
+                title="Toggle Display Orientation"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '6px 10px', borderRadius: '8px', color: isLandscape ? '#06b6d4' : '#cbd5e1', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                {isLandscape ? <><Monitor size={13} /> Landscape</> : <><Smartphone size={13} /> Portrait</>}
+              </button>
+            )}
             <button 
               onClick={() => setScreen(screen === 'LEADERBOARD' ? 'LOBBY' : 'LEADERBOARD')}
               style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '6px 10px', borderRadius: '8px', color: '#cbd5e1', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
@@ -2662,13 +2694,15 @@ export default function GamePage() {
                 >
                   {soundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
                 </button>
-                <button 
-                  onClick={toggleOrientation}
-                  title="Toggle Display Orientation"
-                  style={{ background: 'none', border: 'none', color: isLandscape ? 'var(--neon-cyan)' : '#64748b', cursor: 'pointer', padding: 2 }}
-                >
-                  {isLandscape ? <Monitor size={14} /> : <Smartphone size={14} />}
-                </button>
+                {isStandalone && (
+                  <button 
+                    onClick={toggleOrientation}
+                    title="Toggle Display Orientation"
+                    style={{ background: 'none', border: 'none', color: isLandscape ? 'var(--neon-cyan)' : '#64748b', cursor: 'pointer', padding: 2 }}
+                  >
+                    {isLandscape ? <Monitor size={14} /> : <Smartphone size={14} />}
+                  </button>
+                )}
                 <button 
                   onClick={() => setScreen(screen === 'PLAYING' ? 'PAUSED' : 'PLAYING')}
                   style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: 2 }}

@@ -65,14 +65,21 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
   const [currentUrl, setCurrentUrl] = React.useState('');
 
   const [isLandscape, setIsLandscape] = React.useState(false);
+  const [isStandalone, setIsStandalone] = React.useState(false);
+  
   React.useEffect(() => {
-    if (typeof window !== 'undefined' && window.screen?.orientation) {
-      setIsLandscape(window.screen.orientation.type.includes('landscape'));
-      const handleOrientationChange = () => {
+    if (typeof window !== 'undefined') {
+      const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+      setIsStandalone(isStandaloneMode);
+
+      if (window.screen?.orientation) {
         setIsLandscape(window.screen.orientation.type.includes('landscape'));
-      };
-      window.screen.orientation.addEventListener('change', handleOrientationChange);
-      return () => window.screen.orientation.removeEventListener('change', handleOrientationChange);
+        const handleOrientationChange = () => {
+          setIsLandscape(window.screen.orientation.type.includes('landscape'));
+        };
+        window.screen.orientation.addEventListener('change', handleOrientationChange);
+        return () => window.screen.orientation.removeEventListener('change', handleOrientationChange);
+      }
     }
   }, []);
 
@@ -384,11 +391,14 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
                   <ThemeToggle />
                 </div>
 
-                <div className="mobile-divider" style={{ borderTop: '1px solid var(--border-divider)', margin: '4px 0' }} />
-                
-                <button type="button" onClick={toggleOrientation} className="mobile-logout-btn" style={{ marginBottom: '8px', color: 'var(--text-primary)' }}>
-                  {isLandscape ? <Monitor size={16} className="mobile-nav-icon" /> : <Smartphone size={16} className="mobile-nav-icon" />} Rotate Display
-                </button>
+                {isStandalone && (
+                  <>
+                    <div className="mobile-divider" style={{ borderTop: '1px solid var(--border-divider)', margin: '4px 0' }} />
+                    <button type="button" onClick={toggleOrientation} className="mobile-logout-btn" style={{ marginBottom: '8px', color: 'var(--text-primary)' }}>
+                      {isLandscape ? <Monitor size={16} className="mobile-nav-icon" /> : <Smartphone size={16} className="mobile-nav-icon" />} Rotate Display
+                    </button>
+                  </>
+                )}
 
                 <form action={signOut} style={{ margin: 0, width: '100%' }}>
                   <button type="submit" className="mobile-logout-btn">
