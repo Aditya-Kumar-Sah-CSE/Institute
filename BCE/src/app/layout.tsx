@@ -51,6 +51,8 @@ export const metadata: Metadata = {
   },
 };
 
+import PwaRegister from '@/components/PwaRegister';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -62,6 +64,7 @@ export default function RootLayout({
         <ThemeProvider attribute="data-theme" defaultTheme="dark" enableSystem={false} disableTransitionOnChange={false}>
           <AuthChangeHandler />
           <GlobalButtonLoadingHandler />
+          <PwaRegister />
           {children}
         </ThemeProvider>
       </body>
