@@ -4,6 +4,7 @@ import { getCoursePolls } from '../actions/polls';
 import CoursePollsClient from './CoursePollsClient';
 import CreatePollWidget from './CreatePollWidget';
 import CreateAlertSection from './CreateAlertSection';
+import CollapsibleInteractionsWrapper from './CollapsibleInteractionsWrapper';
 
 interface CoursePollsSectionProps {
   courseId: string;
@@ -36,7 +37,7 @@ export default async function CoursePollsSection({ courseId, currentUserId, isEn
   const hasPollContent = polls && polls.length > 0;
 
   return (
-    <div style={{ marginBottom: 'var(--space-2xl)' }}>
+    <CollapsibleInteractionsWrapper courseId={courseId}>
       {/* Desktop: 50/50 two-column layout for Alert + Polls creation */}
       <div className="polls-desktop-grid">
         {/* Left column: Emergency Alert */}
@@ -61,6 +62,6 @@ export default async function CoursePollsSection({ courseId, currentUserId, isEn
           )}
         </div>
       </div>
-    </div>
+    </CollapsibleInteractionsWrapper>
   );
 }

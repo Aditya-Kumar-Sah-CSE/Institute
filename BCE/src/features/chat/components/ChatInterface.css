@@ -109,8 +109,19 @@
 
 /* Mobile Responsive Overrides */
 @media (max-width: 768px) {
+  /* Override parent dashboard layout padding which causes the gap above keyboard */
+  .dashboard-layout:has(.chat-container) .dashboard-main {
+    padding-bottom: 0 !important;
+  }
+  .dashboard-layout:has(.chat-container) .dashboard-content {
+    padding: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
   .chat-container {
-    height: calc(100dvh - 80px); /* Bottom navbar is explicitly hidden, so we snap composer precisely to bottom */
+    height: 100dvh;
+    margin-bottom: 0;
+    padding-bottom: 0;
     border-radius: 0;
     border: none;
     border-top: 1px solid var(--border-divider);
