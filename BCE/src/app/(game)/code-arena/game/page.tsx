@@ -570,6 +570,7 @@ export default function GamePage() {
       dailyStreak: p.daily_streak || p.dailyStreak || 1,
       currentHearts: p.current_hearts ?? p.currentHearts ?? 3,
       xp: p.xp || 0,
+      totalXP: p.total_xp ?? p.totalXP ?? p.xp ?? 0,
       coins: p.coins || 0,
       userLevel: p.userLevel || p.user_level || 'Beginner'
     };

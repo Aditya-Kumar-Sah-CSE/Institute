@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { 
   Trophy, ArrowLeft, BookOpen, CheckCircle2, Circle, 
   ExternalLink, Code2, ArrowRight, Award, Play, Pencil, Users,
-  Lock, Shield, Globe, KeyRound, AlertCircle, Video, FileText, Share2, Check, BarChart2, Search, Image
+  Lock, Shield, Globe, KeyRound, AlertCircle, Video, FileText, Share2, Check, BarChart2, Search, Image,
+  RefreshCw, RotateCcw, Eye, Copy
 } from 'lucide-react';
 import MobileCodeArenaToggle from './MobileCodeArenaToggle';
 import Card from '@/components/ui/Card';
@@ -15,6 +16,7 @@ import Modal from '@/components/ui/Modal';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import SolutionEditor from './SolutionEditor';
 import { calculateMotivationalAnalytics } from '../lib/motivational-engine';
+import { SolvedStatusMap } from '@/lib/coding-platforms/solved-matcher';
 import './CodeArena.css';
 
 type Problem = {
@@ -55,6 +57,7 @@ type Solver = {
 export default function SheetDetailClient({
   sheet,
   solvedProblemIds,
+  solvedStatusMap = {},
   isInstructor,
   currentUser,
   totalStudentsSolving = 0,
@@ -68,6 +71,7 @@ export default function SheetDetailClient({
 }: {
   sheet: Sheet;
   solvedProblemIds: string[];
+  solvedStatusMap?: SolvedStatusMap;
   isInstructor?: boolean;
   currentUser?: any;
   totalStudentsSolving?: number;
@@ -134,10 +138,69 @@ export default function SheetDetailClient({
   const [activeSolutionProblem, setActiveSolutionProblem] = useState<Problem | null>(null);
   const [editProblem, setEditProblem] = useState<Problem | null>(null);
 
+  // Last Solution Modal State
+  const [activeLastSubmissionProblem, setActiveLastSubmissionProblem] = useState<Problem | null>(null);
+  const [lastSubmissionData, setLastSubmissionData] = useState<{
+    id?: string;
+    code?: string;
+    language?: string;
+    status?: string;
+    runtime?: number;
+    memory?: number;
+    createdAt?: string;
+    externalInfo?: { platform?: string; externalUrl?: string; title?: string } | null;
+  } | null>(null);
+  const [loadingLastSubmission, setLoadingLastSubmission] = useState(false);
+  const [syncingAccounts, setSyncingAccounts] = useState(false);
+  const [copiedSubmissionCode, setCopiedSubmissionCode] = useState(false);
+
   // Edit fields
   const [editYoutubeUrl, setEditYoutubeUrl] = useState('');
   const [editSolutionText, setEditSolutionText] = useState('');
   const [savingSolution, setSavingSolution] = useState(false);
+
+  const handleSyncAccounts = async () => {
+    setSyncingAccounts(true);
+    try {
+      await Promise.allSettled([
+        fetch('/api/coding/accounts/LEETCODE/sync', { method: 'POST' }),
+        fetch('/api/coding/accounts/CODEFORCES/sync', { method: 'POST' }),
+        fetch('/api/coding/accounts/CODECHEF/sync', { method: 'POST' }),
+        fetch('/api/coding/accounts/GEEKSFORGEEKS/sync', { method: 'POST' }),
+      ]);
+      router.refresh();
+    } catch {
+      // Ignore network errors
+    } finally {
+      setSyncingAccounts(false);
+    }
+  };
+
+  const handleViewLastSolution = async (problem: Problem) => {
+    setActiveLastSubmissionProblem(problem);
+    setLoadingLastSubmission(true);
+    setLastSubmissionData(null);
+    setCopiedSubmissionCode(false);
+
+    try {
+      const res = await fetch(`/api/coding/problems/${problem.id}/last-submission`);
+      const json = await res.json();
+
+      if (res.ok && json.success) {
+        if (json.data) {
+          setLastSubmissionData(json.data);
+        } else {
+          setLastSubmissionData({ externalInfo: json.externalInfo });
+        }
+      } else {
+        setLastSubmissionData(null);
+      }
+    } catch {
+      setLastSubmissionData(null);
+    } finally {
+      setLoadingLastSubmission(false);
+    }
+  };
   
   // Motivational Engine State
   const [activityLog, setActivityLog] = useState<{date: string, problems_solved: number}[]>([]);
@@ -307,6 +370,30 @@ export default function SheetDetailClient({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }} suppressHydrationWarning>
+          <button
+            type="button"
+            onClick={handleSyncAccounts}
+            disabled={syncingAccounts}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: syncingAccounts ? 'rgba(6,182,212,0.15)' : 'rgba(255,255,255,0.05)',
+              border: syncingAccounts ? '1px solid rgba(6,182,212,0.4)' : '1px solid var(--glass-border)',
+              color: syncingAccounts ? 'var(--neon-cyan)' : 'var(--text-main)',
+              padding: '4px 12px',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: syncingAccounts ? 'wait' : 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+            title="Sync solved problems from connected LeetCode and Codeforces accounts"
+          >
+            <RefreshCw size={12} className={syncingAccounts ? 'spin-icon' : ''} />
+            {syncingAccounts ? 'Syncing...' : 'Sync Connected Accounts'}
+          </button>
+
           <button
             type="button"
             onClick={handleCopyShareLink}
@@ -765,7 +852,9 @@ export default function SheetDetailClient({
 
           <div className="practice-rows-list">
             {problems.map((problem, idx) => {
-              const isSolved = solvedProblemIds.includes(problem.id);
+              const status = solvedStatusMap[problem.id];
+              const isSolved = status ? status.isSolved : solvedProblemIds.includes(problem.id);
+              const sources = status?.sources || (isSolved ? ['ARENA'] : []);
 
               return (
                 <div 
@@ -774,8 +863,8 @@ export default function SheetDetailClient({
                   style={{ 
                     textDecoration: 'none', 
                     cursor: 'default',
-                    border: isSolved ? '1px solid rgba(6, 182, 212, 0.2)' : '1px solid var(--glass-border)',
-                    background: isSolved ? 'rgba(6, 182, 212, 0.02)' : 'rgba(255,255,255,0.01)',
+                    border: isSolved ? '1px solid rgba(6, 182, 212, 0.25)' : '1px solid var(--glass-border)',
+                    background: isSolved ? 'rgba(6, 182, 212, 0.03)' : 'rgba(255,255,255,0.01)',
                   }}
                 >
                   <div className="row-item-left">
@@ -789,9 +878,38 @@ export default function SheetDetailClient({
                     </div>
 
                     <div className="row-problem-meta" style={{ marginLeft: '4px' }}>
-                      <span className="row-problem-title" style={{ fontWeight: 700, fontSize: '13px' }}>
-                        {idx + 1}. {problem.title}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span className="row-problem-title" style={{ fontWeight: 700, fontSize: '13px' }}>
+                          {idx + 1}. {problem.title}
+                        </span>
+
+                        {/* Solved Platform Badges */}
+                        {isSolved && (
+                          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                            {sources.includes('LEETCODE') && (
+                              <span style={{ fontSize: '9px', fontWeight: 700, color: '#f97316', background: 'rgba(249, 115, 22, 0.12)', border: '1px solid rgba(249, 115, 22, 0.3)', padding: '1px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                <Check size={10} /> Solved on LeetCode
+                              </span>
+                            )}
+                            {sources.includes('CODEFORCES') && (
+                              <span style={{ fontSize: '9px', fontWeight: 700, color: '#3b82f6', background: 'rgba(59, 130, 246, 0.12)', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '1px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                <Check size={10} /> Solved on Codeforces
+                              </span>
+                            )}
+                            {sources.includes('ARENA') && (
+                              <span style={{ fontSize: '9px', fontWeight: 700, color: '#10b981', background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '1px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                <Check size={10} /> Solved in Arena
+                              </span>
+                            )}
+                            {sources.length === 0 && (
+                              <span style={{ fontSize: '9px', fontWeight: 700, color: '#10b981', background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '1px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                <Check size={10} /> Solved
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
                       <div className="row-tags-group">
                         <span className="source-label" style={{ fontSize: '9px', padding: '1px 6px' }}>
                           {problem.source_type}
@@ -803,12 +921,37 @@ export default function SheetDetailClient({
                     </div>
                   </div>
 
-                  <div className="row-item-right" style={{ gap: '12px' }}>
+                  <div className="row-item-right" style={{ gap: '10px' }}>
                     <span suppressHydrationWarning className={`difficulty-badge-styled difficulty-${problem.difficulty}`} style={{ fontSize: '9px' }}>
                       {problem.difficulty}
                     </span>
 
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      {/* View Last Solution Button for Solved Problems */}
+                      {isSolved && (
+                        <button
+                          type="button"
+                          onClick={() => handleViewLastSolution(problem)}
+                          className="oj-icon-btn"
+                          title="View Last Submitted Solution"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '4px 8px',
+                            background: 'rgba(6, 182, 212, 0.1)',
+                            border: '1px solid rgba(6, 182, 212, 0.3)',
+                            borderRadius: '6px',
+                            color: 'var(--neon-cyan)',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <Eye size={12} /> Last Solution
+                        </button>
+                      )}
+
                       {/* Video Solution button if present */}
                       {problem.youtube_url && (
                         <button
@@ -862,24 +1005,47 @@ export default function SheetDetailClient({
                         </a>
                       )}
 
-                      {/* Solve inside Arena button */}
-                      <Link
-                        href={`/code-arena/problems/${problem.id}?sheet=${sheet.id}`}
-                        className="btn-battle-action action-live"
-                        style={{ 
-                          display: 'inline-flex', 
-                          alignItems: 'center', 
-                          gap: '6px', 
-                          padding: '6px 14px', 
-                          borderRadius: '6px', 
-                          fontSize: '11px', 
-                          fontWeight: 'bold',
-                          height: '32px',
-                          textDecoration: 'none'
-                        }}
-                      >
-                        <Play size={12} fill="currentColor" /> Solve in Arena
-                      </Link>
+                      {/* Reattempt / Solve Button */}
+                      {isSolved ? (
+                        <Link
+                          href={`/code-arena/problems/${problem.id}?sheet=${sheet.id}&reattempt=true`}
+                          style={{ 
+                            display: 'inline-flex', 
+                            alignItems: 'center', 
+                            gap: '4px', 
+                            padding: '6px 12px', 
+                            borderRadius: '6px', 
+                            fontSize: '11px', 
+                            fontWeight: 'bold',
+                            height: '32px',
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            border: '1px solid var(--glass-border)',
+                            color: 'var(--text-main)',
+                            textDecoration: 'none',
+                          }}
+                          title="Solve clean starter code again"
+                        >
+                          <RotateCcw size={12} /> Reattempt
+                        </Link>
+                      ) : (
+                        <Link
+                          href={`/code-arena/problems/${problem.id}?sheet=${sheet.id}`}
+                          className="btn-battle-action action-live"
+                          style={{ 
+                            display: 'inline-flex', 
+                            alignItems: 'center', 
+                            gap: '6px', 
+                            padding: '6px 14px', 
+                            borderRadius: '6px', 
+                            fontSize: '11px', 
+                            fontWeight: 'bold',
+                            height: '32px',
+                            textDecoration: 'none'
+                          }}
+                        >
+                          <Play size={12} fill="currentColor" /> Solve in Arena
+                        </Link>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1259,6 +1425,105 @@ export default function SheetDetailClient({
               </div>
             )}
           </div>
+        </div>
+      </Modal>
+      {/* View Last Solution Modal */}
+      <Modal
+        isOpen={activeLastSubmissionProblem !== null}
+        onClose={() => setActiveLastSubmissionProblem(null)}
+        title={`📜 Last Accepted Solution: ${activeLastSubmissionProblem?.title}`}
+        size="lg"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '75vh', overflowY: 'auto' }}>
+          {loadingLastSubmission ? (
+            <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
+              Loading solution details...
+            </div>
+          ) : lastSubmissionData?.code ? (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--glass-border)', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', fontSize: '12px' }}>
+                  <span style={{ fontWeight: 800, color: 'var(--neon-cyan)', textTransform: 'uppercase' }}>
+                    {lastSubmissionData.language || 'Code'}
+                  </span>
+                  {lastSubmissionData.runtime !== undefined && (
+                    <span style={{ color: 'var(--text-muted)' }}>
+                      ⚡ Runtime: <strong style={{ color: '#4ade80' }}>{lastSubmissionData.runtime} ms</strong>
+                    </span>
+                  )}
+                  {lastSubmissionData.memory !== undefined && (
+                    <span style={{ color: 'var(--text-muted)' }}>
+                      💾 Memory: <strong style={{ color: '#3b82f6' }}>{(lastSubmissionData.memory / (1024 * 1024)).toFixed(2)} MB</strong>
+                    </span>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (lastSubmissionData?.code) {
+                      navigator.clipboard.writeText(lastSubmissionData.code);
+                      setCopiedSubmissionCode(true);
+                      setTimeout(() => setCopiedSubmissionCode(false), 2000);
+                    }
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    background: copiedSubmissionCode ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                    border: copiedSubmissionCode ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid var(--glass-border)',
+                    color: copiedSubmissionCode ? '#4ade80' : 'var(--text-main)',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {copiedSubmissionCode ? <Check size={12} /> : <Copy size={12} />}
+                  {copiedSubmissionCode ? 'Copied!' : 'Copy Code'}
+                </button>
+              </div>
+
+              <div style={{ background: '#0d1117', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '14px', overflowX: 'auto' }}>
+                <pre style={{ margin: 0, fontFamily: 'Fira Code, monospace', fontSize: '13px', lineHeight: '1.5', color: '#e6edf3' }}>
+                  <code>{lastSubmissionData.code}</code>
+                </pre>
+              </div>
+            </>
+          ) : lastSubmissionData?.externalInfo ? (
+            <div style={{ textAlign: 'center', padding: '30px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+              <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
+                This problem was solved on <strong style={{ color: 'var(--text-main)' }}>{lastSubmissionData.externalInfo.platform || 'External Platform'}</strong>.
+              </div>
+              {lastSubmissionData.externalInfo.externalUrl && (
+                <a
+                  href={lastSubmissionData.externalInfo.externalUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))',
+                    color: 'white',
+                    fontWeight: 700,
+                    fontSize: '12px',
+                    textDecoration: 'none',
+                  }}
+                >
+                  <ExternalLink size={14} /> View Problem & Submission on {lastSubmissionData.externalInfo.platform || 'Official Site'}
+                </a>
+              )}
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
+              No accepted submission code found for this problem.
+            </div>
+          )}
         </div>
       </Modal>
     </div>

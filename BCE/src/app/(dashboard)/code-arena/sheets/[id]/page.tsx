@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { getCodeArenaActor } from '@/features/code-arena/server';
 import SheetDetailClient from '@/features/code-arena/components/SheetDetailClient';
 import { createClient as createRawClient } from '@supabase/supabase-js';
+import { getSolvedStatusMap } from '@/lib/coding-platforms/solved-matcher';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -54,14 +55,9 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
     youtube_url: p.youtube_url,
   }));
 
-  // 3. Fetch user solved status
-  const { data: submissions } = await supabase
-    .from('coding_submissions')
-    .select('problem_id')
-    .eq('student_id', user.id)
-    .eq('status', 'ACCEPTED');
-
-  const solvedProblemIds = Array.from(new Set((submissions || []).map(s => s.problem_id)));
+  // 3. Fetch user solved status across Arena and connected external profiles
+  const solvedStatusMap = await getSolvedStatusMap(supabase, user.id, problems);
+  const solvedProblemIds = Object.keys(solvedStatusMap).filter(id => solvedStatusMap[id].isSolved);
 
   // 4. Check if user is enrolled in this sheet
   const { data: enrollment } = await supabase
@@ -141,6 +137,7 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
       <SheetDetailClient
         sheet={{ ...sheet, problems }}
         solvedProblemIds={solvedProblemIds}
+        solvedStatusMap={solvedStatusMap}
         isInstructor={isInstructor}
         currentUser={user}
         totalStudentsSolving={uniqueSolversCount}

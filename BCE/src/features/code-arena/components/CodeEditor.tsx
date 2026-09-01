@@ -16,6 +16,7 @@ import {
   X,
   Code2,
   Zap,
+  ExternalLink,
 } from 'lucide-react';
 import type { CodeLanguage, NormalizedExecutionResult } from '../types';
 import { useRouter } from 'next/navigation';
@@ -219,6 +220,11 @@ export default function CodeEditor({
   const [showCFModal, setShowCFModal] = useState(false);
   const [showLCModal, setShowLCModal] = useState(false);
 
+  const [showPastSolutionModal, setShowPastSolutionModal] = useState(false);
+  const [pastSolutionData, setPastSolutionData] = useState<any>(null);
+  const [loadingPastSolution, setLoadingPastSolution] = useState(false);
+  const [isReattemptMode, setIsReattemptMode] = useState(false);
+
   // Fetch current user and load initial saved code
   useEffect(() => {
     async function loadUserAndCode() {
@@ -228,12 +234,30 @@ export default function CodeEditor({
         const uid = data.user?.id || 'guest';
         setCurrentUserId(uid);
 
+        // Check if opened with reattempt query parameter
+        const searchParams = new URLSearchParams(window.location.search);
+        const isReattempt = searchParams.get('reattempt') === 'true';
+        if (isReattempt) {
+          setIsReattemptMode(true);
+          const customStarter = (problem.starterCode && typeof problem.starterCode === 'object')
+            ? (problem.starterCode as Record<string, string>)[language]
+            : null;
+          const cleanCode = customStarter || starters[language] || starters.cpp17;
+          setCode(cleanCode);
+          lastSavedCodeRef.current = cleanCode;
+          lastSavedLangRef.current = language;
+          setSaveStatus('Saved');
+          return;
+        }
+
         const backupKey = buildBackupKey(uid, 'practice', problemId, language);
         const legacyKey = `bce:code-save:${uid}:${problemId}:${language}`;
         
         const legacySaved = typeof window !== 'undefined' ? localStorage.getItem(legacyKey) : null;
         
-        let initialCode = starters[language] || starters.cpp17;
+        let initialCode = (problem.starterCode && typeof problem.starterCode === 'object' && (problem.starterCode as Record<string, string>)[language])
+          ? (problem.starterCode as Record<string, string>)[language]
+          : (starters[language] || starters.cpp17);
         let lastSavedTime = 0;
 
         // 1. Fetch from IndexedDB
@@ -268,7 +292,7 @@ export default function CodeEditor({
       }
     }
     loadUserAndCode();
-  }, [problemId]);
+  }, [problemId, language]);
 
   const saveCode = async (newCode: string, lang: CodeLanguage) => {
     if (newCode === lastSavedCodeRef.current && lang === lastSavedLangRef.current) {
@@ -674,9 +698,49 @@ export default function CodeEditor({
 
             <button
               type="button"
-              onClick={resetCode}
+              onClick={async () => {
+                setShowPastSolutionModal(true);
+                setLoadingPastSolution(true);
+                try {
+                  const res = await fetch(`/api/coding/problems/${problem.id}/last-submission`);
+                  const json = await res.json();
+                  if (res.ok && json.success) {
+                    setPastSolutionData(json.data || { externalInfo: json.externalInfo });
+                  }
+                } catch {
+                  setPastSolutionData(null);
+                } finally {
+                  setLoadingPastSolution(false);
+                }
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                background: 'rgba(168, 85, 247, 0.1)',
+                border: '1px solid rgba(168, 85, 247, 0.3)',
+                color: '#a855f7',
+                fontSize: '11px',
+                padding: '4px 10px',
+                borderRadius: 'var(--radius-sm)',
+                fontWeight: 600,
+                cursor: 'pointer',
+                marginRight: '6px',
+              }}
+              title="View past accepted solution code and stats"
+            >
+              <Code2 size={13} /> Past Solution
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm('Reset code to default starter template? Unsubmitted edits will be replaced.')) {
+                  resetCode();
+                }
+              }}
               aria-label="Reset starter code"
-              title="Reset code template"
+              title="Reset starter code (Requires Confirmation)"
               className="oj-icon-btn"
             >
               <RotateCcw size={14} />
@@ -1682,6 +1746,118 @@ export default function CodeEditor({
               >
                 Go to Submit Portal ↗
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Past Solution Modal */}
+      {showPastSolutionModal && (
+        <div className="oj-modal-overlay" style={{ zIndex: 1100 }}>
+          <div className="oj-modal-card" style={{ maxWidth: '750px', width: '90%' }}>
+            <div className="oj-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Code2 size={18} style={{ color: 'var(--neon-purple)' }} />
+                <h3 className="oj-modal-title" style={{ margin: 0, fontSize: '15px', fontWeight: 800 }}>
+                  Past Accepted Solution: {problem.title}
+                </h3>
+              </div>
+              <button
+                type="button"
+                className="oj-modal-close"
+                onClick={() => setShowPastSolutionModal(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '70vh', overflowY: 'auto' }}>
+              {loadingPastSolution ? (
+                <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
+                  Loading past solution...
+                </div>
+              ) : pastSolutionData?.code ? (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--glass-border)', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center', fontSize: '12px' }}>
+                      <span style={{ fontWeight: 800, color: 'var(--neon-cyan)', textTransform: 'uppercase' }}>
+                        {pastSolutionData.language || 'Code'}
+                      </span>
+                      {pastSolutionData.runtime !== undefined && (
+                        <span style={{ color: 'var(--text-muted)' }}>
+                          ⚡ Runtime: <strong style={{ color: '#4ade80' }}>{pastSolutionData.runtime} ms</strong>
+                        </span>
+                      )}
+                      {pastSolutionData.memory !== undefined && (
+                        <span style={{ color: 'var(--text-muted)' }}>
+                          💾 Memory: <strong style={{ color: '#3b82f6' }}>{(pastSolutionData.memory / (1024 * 1024)).toFixed(2)} MB</strong>
+                        </span>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (pastSolutionData?.code) {
+                          navigator.clipboard.writeText(pastSolutionData.code);
+                          alert('Past solution code copied to clipboard!');
+                        }
+                      }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid var(--glass-border)',
+                        color: 'var(--text-main)',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <Copy size={12} /> Copy Code
+                    </button>
+                  </div>
+
+                  <div style={{ background: '#0d1117', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '14px', overflowX: 'auto' }}>
+                    <pre style={{ margin: 0, fontFamily: 'Fira Code, monospace', fontSize: '13px', lineHeight: '1.5', color: '#e6edf3' }}>
+                      <code>{pastSolutionData.code}</code>
+                    </pre>
+                  </div>
+                </>
+              ) : pastSolutionData?.externalInfo ? (
+                <div style={{ textAlign: 'center', padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                  <p style={{ margin: 0, color: 'var(--text-muted)' }}>
+                    Solved on external platform: <strong style={{ color: 'var(--text-main)' }}>{pastSolutionData.externalInfo.platform || 'External'}</strong>
+                  </p>
+                  {pastSolutionData.externalInfo.externalUrl && (
+                    <a
+                      href={pastSolutionData.externalInfo.externalUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '8px 14px',
+                        borderRadius: '6px',
+                        background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))',
+                        color: 'white',
+                        fontWeight: 700,
+                        fontSize: '12px',
+                        textDecoration: 'none',
+                      }}
+                    >
+                      <ExternalLink size={14} /> Open External Problem Page ↗
+                    </a>
+                  )}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                  No accepted past submission found for this problem in Code Arena.
+                </div>
+              )}
             </div>
           </div>
         </div>
