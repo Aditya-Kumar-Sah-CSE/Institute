@@ -5,24 +5,42 @@ import { createClient } from '@/lib/supabase/server';
 export async function getPreviewCourses(page = 0, limit = 6, category = 'All Categories') {
   const supabase = await createClient();
   
-  let query = supabase
+  const { data, error } = await supabase
     .from('courses')
     .select('id, title, description, thumbnail_url, difficulty, tags, lesson_count')
     .eq('is_published', true)
     .eq('is_deleted', false)
-    .order('created_at', { ascending: false })
-    .range(page * limit, (page + 1) * limit - 1);
+    .order('created_at', { ascending: false });
 
-  if (category !== 'All Categories') {
-    query = query.contains('tags', [category]);
-  }
-
-  const { data, error } = await query;
   if (error) {
     console.error('Error fetching courses:', error);
     return { data: [], error: error.message };
   }
-  return { data: data || [], error: null };
+
+  let filtered = data || [];
+
+  if (category !== 'All Categories') {
+    filtered = filtered.filter(course => {
+      if (!course.tags) return false;
+      if (Array.isArray(course.tags)) {
+        return course.tags.some(tag => typeof tag === 'string' && tag.trim() === category);
+      }
+      if (typeof course.tags === 'string') {
+        try {
+          const parsed = JSON.parse(course.tags);
+          if (Array.isArray(parsed)) return parsed.some(tag => typeof tag === 'string' && tag.trim() === category);
+        } catch (e) {
+          return (course.tags as string).split(',').some(tag => tag.trim() === category);
+        }
+      }
+      return false;
+    });
+  }
+
+  const start = page * limit;
+  const sliced = filtered.slice(start, start + limit);
+
+  return { data: sliced, error: null };
 }
 
 export async function getCourseCategories() {
@@ -40,12 +58,32 @@ export async function getCourseCategories() {
 
   const tagsSet = new Set<string>();
   data.forEach(course => {
-    if (course.tags && Array.isArray(course.tags)) {
+    if (!course.tags) return;
+    
+    if (Array.isArray(course.tags)) {
       course.tags.forEach(tag => {
         if (typeof tag === 'string' && tag.trim() !== '') {
           tagsSet.add(tag.trim());
         }
       });
+    } else if (typeof course.tags === 'string') {
+      try {
+        const parsed = JSON.parse(course.tags);
+        if (Array.isArray(parsed)) {
+          parsed.forEach(tag => {
+            if (typeof tag === 'string' && tag.trim() !== '') {
+              tagsSet.add(tag.trim());
+            }
+          });
+        } else {
+          tagsSet.add((course.tags as string).trim());
+        }
+      } catch (e) {
+        const strTags = (course.tags as string).split(',');
+        strTags.forEach(tag => {
+          if (tag.trim() !== '') tagsSet.add(tag.trim());
+        });
+      }
     }
   });
 

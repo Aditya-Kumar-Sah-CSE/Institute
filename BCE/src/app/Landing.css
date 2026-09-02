@@ -1262,6 +1262,8 @@
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     scroll-behavior: smooth;
+    scroll-padding-left: 16px;
+    scroll-padding-right: 16px;
     gap: 16px;
     padding-bottom: 24px; /* Space for shadows */
     margin-left: -16px;
@@ -1276,7 +1278,7 @@
   }
   .mobile-carousel > div {
     flex: 0 0 85%;
-    scroll-snap-align: center;
+    scroll-snap-align: start;
     min-width: 280px;
     margin: 0;
   }
