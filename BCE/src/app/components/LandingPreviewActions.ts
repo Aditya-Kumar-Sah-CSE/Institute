@@ -12,53 +12,25 @@ export async function getPreviewCourses(page = 0, limit = 6, category = 'All Cat
     .eq('is_deleted', false)
     .order('created_at', { ascending: false });
 
-  // Fast path for All Categories (default load)
-  if (category === 'All Categories') {
-    query = query.range(page * limit, (page + 1) * limit - 1);
-    const { data, error } = await query;
-    if (error) {
-      console.error('Error fetching courses:', error);
-      return { data: [], error: error.message };
-    }
-    return { data: data || [], error: null };
+  // Filter by difficulty category if not "All Categories"
+  if (category !== 'All Categories') {
+    query = query.eq('difficulty', category);
   }
 
-  // Slow path for category filtering in-memory
+  query = query.range(page * limit, (page + 1) * limit - 1);
   const { data, error } = await query;
   if (error) {
     console.error('Error fetching courses:', error);
     return { data: [], error: error.message };
   }
-
-  let filtered = data || [];
-
-  filtered = filtered.filter(course => {
-    if (!course.tags) return false;
-    if (Array.isArray(course.tags)) {
-      return course.tags.some(tag => typeof tag === 'string' && tag.trim() === category);
-    }
-    if (typeof course.tags === 'string') {
-      try {
-        const parsed = JSON.parse(course.tags);
-        if (Array.isArray(parsed)) return parsed.some(tag => typeof tag === 'string' && tag.trim() === category);
-      } catch (e) {
-        return (course.tags as string).split(',').some(tag => tag.trim() === category);
-      }
-    }
-    return false;
-  });
-
-  const start = page * limit;
-  const sliced = filtered.slice(start, start + limit);
-
-  return { data: sliced, error: null };
+  return { data: data || [], error: null };
 }
 
 export async function getCourseCategories() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('courses')
-    .select('tags')
+    .select('difficulty')
     .eq('is_published', true)
     .eq('is_deleted', false);
 
@@ -67,38 +39,14 @@ export async function getCourseCategories() {
     return [];
   }
 
-  const tagsSet = new Set<string>();
+  const categoriesSet = new Set<string>();
   data.forEach(course => {
-    if (!course.tags) return;
-    
-    if (Array.isArray(course.tags)) {
-      course.tags.forEach(tag => {
-        if (typeof tag === 'string' && tag.trim() !== '') {
-          tagsSet.add(tag.trim());
-        }
-      });
-    } else if (typeof course.tags === 'string') {
-      try {
-        const parsed = JSON.parse(course.tags);
-        if (Array.isArray(parsed)) {
-          parsed.forEach(tag => {
-            if (typeof tag === 'string' && tag.trim() !== '') {
-              tagsSet.add(tag.trim());
-            }
-          });
-        } else {
-          tagsSet.add((course.tags as string).trim());
-        }
-      } catch (e) {
-        const strTags = (course.tags as string).split(',');
-        strTags.forEach(tag => {
-          if (tag.trim() !== '') tagsSet.add(tag.trim());
-        });
-      }
+    if (course.difficulty && typeof course.difficulty === 'string' && course.difficulty.trim() !== '') {
+      categoriesSet.add(course.difficulty.trim());
     }
   });
 
-  return Array.from(tagsSet).sort();
+  return Array.from(categoriesSet).sort();
 }
 
 export async function getPreviewDSASheets(page = 0, limit = 6) {

@@ -7,7 +7,7 @@ export default async function LandingDSAPreview() {
   const { data: initialSheets } = await getPreviewDSASheets(0, 6);
 
   return (
-    <section id="landing-dsa" className="landing-section" style={{ background: 'var(--bg-card)', position: 'relative', zIndex: 1, padding: '3rem 24px' }}>
+    <section id="landing-dsa" className="landing-section" style={{ background: 'var(--bg-secondary)', position: 'relative', zIndex: 1, padding: '3rem 24px' }}>
       <div style={{ maxWidth: '1240px', margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
           <span style={{ color: '#06b6d4', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.85rem', display: 'inline-block', marginBottom: '0.5rem' }}>Practice Ground</span>

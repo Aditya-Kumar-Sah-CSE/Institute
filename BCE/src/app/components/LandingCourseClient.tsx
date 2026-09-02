@@ -77,9 +77,12 @@ export default function LandingCourseClient({
     if (node) observerRef.current.observe(node);
   }, [hasMore, page, activeCategory, loadMore]);
 
+  const [isSwapping, setIsSwapping] = useState(false);
+
   const handleCategoryChange = async (cat: string) => {
     if (cat === activeCategory) return;
     setActiveCategory(cat);
+    setIsSwapping(true);
     setLoading(true);
     setPage(0);
     setActiveIndex(0);
@@ -87,6 +90,10 @@ export default function LandingCourseClient({
     setCourses(data || []);
     setHasMore(data && data.length === 6);
     setLoading(false);
+    // Small delay for fade-in animation
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setIsSwapping(false));
+    });
     if (carouselRef.current) {
       carouselRef.current.scrollTo({ left: 0, behavior: 'smooth' });
     }
@@ -141,7 +148,7 @@ export default function LandingCourseClient({
       </div>
 
       {(!courses || courses.length === 0) ? (
-        <div style={{ textAlign: 'center', padding: '4rem', background: 'var(--bg-card)', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.05)', maxWidth: '600px', margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', padding: '4rem', background: 'var(--bg-card)', borderRadius: '24px', border: '1px solid var(--border-default)', maxWidth: '600px', margin: '0 auto' }}>
            <BookOpen size={48} color="var(--text-muted)" style={{ margin: '0 auto 1rem auto' }} />
            <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', color: 'var(--text-main)', fontWeight: 700 }}>No courses available in this category yet.</h3>
            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Try selecting a different category or check back later.</p>
@@ -162,6 +169,11 @@ export default function LandingCourseClient({
             onMouseEnter={() => isHovered.current = true}
             onTouchStart={() => isHovered.current = true}
             onTouchEnd={() => isHovered.current = false}
+            style={{ 
+              opacity: isSwapping ? 0 : 1, 
+              transform: isSwapping ? 'translateY(12px)' : 'translateY(0)',
+              transition: 'opacity 0.35s ease, transform 0.35s ease'
+            }}
           >
             {courses.map((course, index) => {
               const isLast = index === courses.length - 1;
@@ -177,12 +189,12 @@ export default function LandingCourseClient({
                   className={`preview-course-card coverflow-card ${isActive ? 'coverflow-active' : 'coverflow-inactive'}`}
                 style={{ 
                   background: 'var(--bg-card)', 
-                  border: '1px solid rgba(255,255,255,0.05)', 
+                  border: '1px solid var(--border-default)', 
                   borderRadius: '24px',
                   padding: '24px',
                   display: 'flex',
                   flexDirection: 'column',
-                  minHeight: '430px',
+                  minHeight: '380px',
                   maxWidth: '360px',
                   width: '100%',
                   cursor: 'default'
@@ -247,7 +259,7 @@ export default function LandingCourseClient({
                   fontSize: '18px', 
                   fontWeight: 700, 
                   marginBottom: '8px', 
-                  color: '#ffffff', 
+                  color: 'var(--text-primary)', 
                   lineHeight: 1.3,
                   display: '-webkit-box', 
                   WebkitLineClamp: 2, 
@@ -259,7 +271,7 @@ export default function LandingCourseClient({
                 </h3>
                 
                 <p style={{ 
-                  color: '#94a3b8', 
+                  color: 'var(--text-secondary)', 
                   fontSize: '14px', 
                   lineHeight: 1.5,
                   marginBottom: '20px', 
@@ -280,7 +292,7 @@ export default function LandingCourseClient({
                   gap: '6px', 
                   marginBottom: '20px', 
                   fontSize: '13px', 
-                  color: '#64748b',
+                  color: 'var(--text-muted)',
                   fontWeight: 500
                 }}>
                   <Layers size={14} color="#818cf8" /> {course.lesson_count || 0} Modules
@@ -290,15 +302,15 @@ export default function LandingCourseClient({
                 <Link href="/login" style={{ width: '100%', textDecoration: 'none' }}>
                   <div className="preview-course-btn" style={{ 
                     width: '100%', 
-                    height: '48px',
+                    height: '44px',
                     display: 'flex', 
                     alignItems: 'center', 
                     justifyContent: 'center', 
                     gap: '8px', 
                     borderRadius: '24px', 
                     border: '1px solid rgba(99, 102, 241, 0.4)',
-                    background: 'transparent',
-                    color: '#ffffff',
+                    background: 'rgba(99, 102, 241, 0.06)',
+                    color: 'var(--text-primary)',
                     fontSize: '14px',
                     fontWeight: 600,
                     cursor: 'pointer'

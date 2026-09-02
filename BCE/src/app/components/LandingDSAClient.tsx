@@ -108,7 +108,7 @@ export default function LandingDSAClient({
   return (
     <>
       {(!sheets || sheets.length === 0) ? (
-        <div style={{ textAlign: 'center', padding: '4rem', background: 'var(--bg-surface)', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.05)', maxWidth: '600px', margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', padding: '4rem', background: 'var(--bg-card)', borderRadius: '24px', border: '1px solid var(--border-default)', maxWidth: '600px', margin: '0 auto' }}>
            <Code size={48} color="var(--text-muted)" style={{ margin: '0 auto 1rem auto' }} />
            <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', color: 'var(--text-main)', fontWeight: 700 }}>Practice sets are being prepared.</h3>
            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>New DSA sheets will appear here soon.</p>
@@ -144,13 +144,13 @@ export default function LandingDSAClient({
                   }}
                   className={`preview-dsa-card coverflow-card ${isActive ? 'coverflow-active' : 'coverflow-inactive'}`}
                 style={{ 
-                  background: 'var(--bg-surface)', 
-                  border: '1px solid rgba(255,255,255,0.05)', 
+                  background: 'var(--bg-card)', 
+                  border: '1px solid var(--border-default)', 
                   borderRadius: '24px',
                   padding: '24px',
                   display: 'flex',
                   flexDirection: 'column',
-                  minHeight: '410px',
+                  minHeight: '370px',
                   maxWidth: '320px',
                   width: '100%',
                   cursor: 'default'
@@ -194,7 +194,7 @@ export default function LandingDSAClient({
                   fontSize: '18px', 
                   fontWeight: 700, 
                   marginBottom: '8px', 
-                  color: '#ffffff', 
+                  color: 'var(--text-primary)', 
                   lineHeight: 1.3,
                   display: '-webkit-box', 
                   WebkitLineClamp: 2, 
@@ -206,7 +206,7 @@ export default function LandingDSAClient({
                 </h3>
                 
                 <p style={{ 
-                  color: '#94a3b8', 
+                  color: 'var(--text-secondary)', 
                   fontSize: '14px',
                   lineHeight: 1.5,
                   marginBottom: '20px', 
@@ -223,7 +223,7 @@ export default function LandingDSAClient({
                 {/* Problem Count Box */}
                 <div style={{ 
                   width: '100%',
-                  height: '60px',
+                  height: '52px',
                   background: 'rgba(6, 182, 212, 0.08)',
                   borderRadius: '12px',
                   display: 'flex',
@@ -234,23 +234,23 @@ export default function LandingDSAClient({
                   border: '1px solid rgba(6, 182, 212, 0.15)'
                 }}>
                   <Code size={18} color="#06b6d4" />
-                  <span style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff' }}>{problemsCount}</span>
-                  <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 500, marginTop: '2px' }}>Problems</span>
+                  <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>{problemsCount}</span>
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500, marginTop: '2px' }}>Problems</span>
                 </div>
 
                 {/* CTA Button */}
                 <Link href="/login" style={{ width: '100%', textDecoration: 'none' }}>
                   <div className="preview-dsa-btn" style={{ 
                     width: '100%', 
-                    height: '48px',
+                    height: '44px',
                     display: 'flex', 
                     alignItems: 'center', 
                     justifyContent: 'center', 
                     gap: '8px', 
                     borderRadius: '24px', 
                     border: '1px solid rgba(6, 182, 212, 0.4)',
-                    background: 'transparent',
-                    color: '#ffffff',
+                    background: 'rgba(6, 182, 212, 0.06)',
+                    color: 'var(--text-primary)',
                     fontSize: '14px',
                     fontWeight: 600,
                     cursor: 'pointer'

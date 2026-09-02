@@ -679,7 +679,7 @@
   max-width: var(--max-content-width);
   margin: 0 auto;
   padding-top: var(--space-xl);
-  border-top: 1px solid rgba(255,255,255,0.05);
+  border-top: 1px solid var(--border-divider);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1098,11 +1098,11 @@
 
 /* Override Gallery Cards to match exact Dark Mockup */
 .gallery-card {
-  background-color: #0f172a !important; /* slate-900 */
-  border: 1px solid #1e293b !important;
+  background-color: var(--bg-card) !important;
+  border: 1px solid var(--border-default) !important;
   border-radius: 1.5rem !important;
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+  box-shadow: var(--shadow-md) !important;
   display: flex;
   flex-direction: column;
 }
@@ -1114,21 +1114,21 @@
   width: 100% !important;
   height: 100% !important;
   object-fit: cover !important;
-  border-bottom: 1px solid #1e293b;
+  border-bottom: 1px solid var(--border-default);
 }
 .gallery-card-info {
-  background-color: #181b2f !important;
+  background-color: var(--bg-elevated) !important;
   padding: 1.1rem 1.25rem !important;
   flex: 1;
 }
 .gallery-card-info h3 {
-  color: #ffffff !important;
+  color: var(--text-primary) !important;
   font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 0.75rem;
 }
 .gallery-card-info p {
-  color: #94a3b8 !important; /* slate-400 */
+  color: var(--text-secondary) !important;
   font-size: 1.1rem;
   line-height: 1.6;
 }
@@ -1162,23 +1162,23 @@
 
 /* Previews Hover States */
 .preview-course-card {
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  box-shadow: var(--shadow-md);
 }
 .preview-course-card:hover {
   transform: translateY(-4px);
-  border-color: rgba(255, 255, 255, 0.1) !important;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2) !important;
+  border-color: var(--border-hover) !important;
+  box-shadow: var(--shadow-lg) !important;
 }
 
 .preview-dsa-card {
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  box-shadow: var(--shadow-md);
 }
 .preview-dsa-card:hover {
   transform: translateY(-4px);
   border-color: rgba(6, 182, 212, 0.3) !important;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15) !important;
+  box-shadow: var(--shadow-lg) !important;
 }
 .preview-dsa-card:hover .dsa-icon-box {
   filter: brightness(1.2);
@@ -1221,7 +1221,7 @@
 
 .category-tab {
   background: transparent;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid var(--border-default);
   color: var(--text-secondary);
   padding: 8px 20px;
   border-radius: 24px;
@@ -1229,11 +1229,12 @@
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
 }
 .category-tab:hover {
-  border-color: rgba(255,255,255,0.3);
+  border-color: var(--border-hover);
   color: var(--text-primary);
+  background: var(--interactive-hover);
 }
 .category-tab.active {
   border-color: rgba(6, 182, 212, 0.6);
@@ -1293,6 +1294,15 @@
     scroll-snap-stop: normal;
     margin: 0 !important;
     box-sizing: border-box;
+  }
+  /* Reduce card height for mobile */
+  .mobile-carousel .preview-course-card {
+    min-height: 330px !important;
+    padding: 20px !important;
+  }
+  .mobile-carousel .preview-dsa-card {
+    min-height: 320px !important;
+    padding: 20px !important;
   }
   .mobile-carousel > div:first-child {
     margin-left: 0 !important;
