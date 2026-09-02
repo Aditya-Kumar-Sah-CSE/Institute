@@ -52,6 +52,7 @@ export const metadata: Metadata = {
 };
 
 import PwaRegister from '@/components/PwaRegister';
+import { DynamicPWAInstallPrompt, DynamicPwaUpdateToast } from '@/components/DynamicWrappers';
 
 export default function RootLayout({
   children,
@@ -65,6 +66,8 @@ export default function RootLayout({
           <AuthChangeHandler />
           <GlobalButtonLoadingHandler />
           <PwaRegister />
+          <DynamicPwaUpdateToast />
+          <DynamicPWAInstallPrompt />
           {children}
         </ThemeProvider>
       </body>
