@@ -29,6 +29,7 @@ export default function LandingCourseClient({
   const isHovered = useRef(false);
   const startX = useRef(0);
   const scrollLeftRef = useRef(0);
+  const isMounted = useRef(false);
   
   // Auto-scroll effect
   React.useEffect(() => {
@@ -47,6 +48,9 @@ export default function LandingCourseClient({
     };
     
     animationFrameId = requestAnimationFrame(scroll);
+    isMounted.current = true;
+    handleScroll(); // Sync active state based on any browser-restored scroll position AFTER hydration
+    
     return () => cancelAnimationFrame(animationFrameId);
   }, []);
   
@@ -106,6 +110,7 @@ export default function LandingCourseClient({
   };
 
   const handleScroll = () => {
+    if (!isMounted.current) return;
     if (!carouselRef.current || courses.length === 0) return;
     const firstChild = carouselRef.current.children[0] as HTMLElement;
     const secondChild = carouselRef.current.children[1] as HTMLElement;
@@ -260,7 +265,7 @@ export default function LandingCourseClient({
                   flexShrink: 0
                 }}>
                   {course.thumbnail_url ? (
-                    <Image src={course.thumbnail_url} alt={course.title} fill sizes="72px" style={{ objectFit: 'cover' }} />
+                    <Image src={course.thumbnail_url} alt={course.title} fill sizes="72px" unoptimized style={{ objectFit: 'cover' }} />
                   ) : (
                     <BookOpen size={32} color="#818cf8" />
                   )}

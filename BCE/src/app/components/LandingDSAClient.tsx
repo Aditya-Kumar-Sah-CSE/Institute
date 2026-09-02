@@ -25,6 +25,7 @@ export default function LandingDSAClient({
   const isHovered = useRef(false);
   const startX = useRef(0);
   const scrollLeftRef = useRef(0);
+  const isMounted = useRef(false);
   
   // Auto-scroll effect
   React.useEffect(() => {
@@ -43,6 +44,9 @@ export default function LandingDSAClient({
     };
     
     animationFrameId = requestAnimationFrame(scroll);
+    isMounted.current = true;
+    handleScroll(); // Sync active state based on any browser-restored scroll position AFTER hydration
+    
     return () => cancelAnimationFrame(animationFrameId);
   }, []);
   
@@ -87,6 +91,7 @@ export default function LandingDSAClient({
   }, [hasMore, page, loadMore]);
 
   const handleScroll = () => {
+    if (!isMounted.current) return;
     if (!carouselRef.current || sheets.length === 0) return;
     const firstChild = carouselRef.current.children[0] as HTMLElement;
     const secondChild = carouselRef.current.children[1] as HTMLElement;

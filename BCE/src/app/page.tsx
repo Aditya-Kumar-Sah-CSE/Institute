@@ -35,7 +35,7 @@ export default async function LandingPage() {
       {/* Navigation */}
       <header className="landing-nav">
         <div className="landing-logo" style={{ display: 'flex', alignItems: 'center', padding: '0', margin: '0', background: 'transparent' }}>
-          {settings?.logo_url && <Image src={settings.logo_url} alt={`${companyName} logo`} width={40} height={40} style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '8px' }} />}
+          {settings?.logo_url && <Image src={settings.logo_url} alt={`${companyName} logo`} width={40} height={40} unoptimized style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '8px' }} />}
         </div>
         <div className="landing-nav-actions">
           <ThemeToggle />
@@ -100,6 +100,7 @@ export default async function LandingPage() {
                 height={600}
                 priority
                 sizes="(max-width: 768px) 100vw, 50vw"
+                unoptimized
                 style={{ width: '135%', height: 'auto', objectFit: 'contain', pointerEvents: 'none' }}
               />
             </div>}
@@ -121,7 +122,7 @@ export default async function LandingPage() {
         {/* Features Grid */}
         {coreFeatures && coreFeatures.length > 0 && <section id="features" className="features-section">
           <AutoScrollMarquee className="features-marquee-wrapper" innerClassName="features-keyword-grid">
-                {(coreFeatures?.length ? coreFeatures : [{ id: 'fallback', title: 'Approval System', description: '', icon: 'UserCheck' }]).map((feature: any) => <div className="feature-card" key={feature.id}><div className="feature-icon-wrapper">{feature.image_url ? <Image src={feature.image_url} alt="" width={32} height={32} style={{ objectFit: 'contain' }} /> : <Star size={32} strokeWidth={1.5} />}</div><h3>{feature.title}</h3>{feature.description && <p>{feature.description}</p>}</div>)}
+                {(coreFeatures?.length ? coreFeatures : [{ id: 'fallback', title: 'Approval System', description: '', icon: 'UserCheck' }]).map((feature: any) => <div className="feature-card" key={feature.id}><div className="feature-icon-wrapper">{feature.image_url ? <Image src={feature.image_url} alt="" width={32} height={32} unoptimized style={{ objectFit: 'contain' }} /> : <Star size={32} strokeWidth={1.5} />}</div><h3>{feature.title}</h3>{feature.description && <p>{feature.description}</p>}</div>)}
           </AutoScrollMarquee>
         </section>}
 

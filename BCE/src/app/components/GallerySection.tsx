@@ -58,6 +58,7 @@ export default function GallerySection({ items }: { items: GalleryItem[] }) {
                 width={600}
                 height={400}
                 sizes="(max-width: 768px) 100vw, 400px"
+                unoptimized
                 style={{ width: '100%', height: 'auto', objectFit: 'cover' }}
               />
             </div>
@@ -98,6 +99,7 @@ export default function GallerySection({ items }: { items: GalleryItem[] }) {
               width={1600}
               height={1000}
               sizes="100vw"
+              unoptimized
               style={{ objectFit: 'contain', maxWidth: '100%', maxHeight: '100%', borderRadius: '12px', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}
             />
           </div>
