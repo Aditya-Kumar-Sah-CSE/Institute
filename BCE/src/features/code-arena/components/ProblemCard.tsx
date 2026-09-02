@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { CheckCircle2, Circle, Dot, Clock, HardDrive, ExternalLink, Code2 } from 'lucide-react';
+import { CheckCircle2, Circle, Dot, Clock, HardDrive, ExternalLink, Code2, Youtube } from 'lucide-react';
 
 export interface ProblemCardData {
   id: string;
@@ -107,6 +107,17 @@ export default function ProblemCard({ problem }: { problem: ProblemCardData }) {
         >
           <Code2 size={13} /> Solve in SL
         </Link>
+        <a
+          href={`https://www.youtube.com/results?search_query=${encodeURIComponent(problem.title || problem.id)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hub-external-link"
+          aria-label="Ask YT - Search on YouTube"
+          title="Ask YT - Search on YouTube"
+          style={{ color: '#ef4444' }}
+        >
+          <Youtube size={13} />
+        </a>
         {problem.external_url && (
           <a
             href={problem.external_url}

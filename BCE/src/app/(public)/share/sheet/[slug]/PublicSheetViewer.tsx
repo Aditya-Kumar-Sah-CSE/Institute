@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { 
   Trophy, BookOpen, Share2, Search, ExternalLink, Play, Video, 
   FileText, Check, Shield, Globe, Lock, ArrowRight, Code2, Sparkles, ChevronRight,
-  UserPlus, CheckCircle2, Loader2, Image
+  UserPlus, CheckCircle2, Loader2, Image, Youtube
 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
@@ -617,6 +617,28 @@ export default function PublicSheetViewer({
                     >
                       {problem.difficulty}
                     </span>
+
+                    {/* Ask YT Button */}
+                    <a
+                      href={`https://www.youtube.com/results?search_query=${encodeURIComponent(problem.title || problem.id)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Ask YT - Search on YouTube"
+                      style={{
+                        display: 'grid',
+                        placeItems: 'center',
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '6px',
+                        background: 'rgba(239, 68, 68, 0.05)',
+                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                        color: '#ef4444',
+                        cursor: 'pointer',
+                        textDecoration: 'none'
+                      }}
+                    >
+                      <Youtube size={14} />
+                    </a>
 
                     {/* Solution Video button if available */}
                     {problem.youtube_url && (

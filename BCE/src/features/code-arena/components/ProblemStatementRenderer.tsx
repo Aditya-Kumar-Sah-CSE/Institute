@@ -26,7 +26,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
-  ChevronsRight
+  ChevronsRight,
+  Youtube
 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
@@ -1265,6 +1266,38 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
             </h1>
             
             <div style={{ display: 'flex', gap: '8px', flexShrink: 0, flexWrap: 'wrap' }}>
+              <a
+                href={`https://www.youtube.com/results?search_query=${encodeURIComponent(problem.title || problem.id)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'rgba(239, 68, 68, 0.05)',
+                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                  color: '#ef4444',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  textDecoration: 'none'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
+                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.05)';
+                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+                }}
+                title="Search on YouTube"
+              >
+                <Youtube size={14} style={{ color: '#ef4444' }} /> Ask YT
+              </a>
+
               <button
                 onClick={handleAskChatGPT}
                 style={{

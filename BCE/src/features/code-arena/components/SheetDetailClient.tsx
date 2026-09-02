@@ -6,7 +6,7 @@ import {
   Trophy, ArrowLeft, BookOpen, CheckCircle2, Circle, 
   ExternalLink, Code2, ArrowRight, Award, Play, Pencil, Users,
   Lock, Shield, Globe, KeyRound, AlertCircle, Video, FileText, Share2, Check, BarChart2, Search, Image,
-  RefreshCw, RotateCcw, Eye, Copy
+  RefreshCw, RotateCcw, Eye, Copy, Youtube
 } from 'lucide-react';
 import MobileCodeArenaToggle from './MobileCodeArenaToggle';
 import Card from '@/components/ui/Card';
@@ -903,6 +903,18 @@ export default function SheetDetailClient({
                           <Eye size={12} /> Last Solution
                         </button>
                       )}
+
+                      {/* Ask YT Button */}
+                      <a
+                        href={`https://www.youtube.com/results?search_query=${encodeURIComponent(problem.title || problem.id)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="oj-icon-btn"
+                        title="Ask YT - Search on YouTube"
+                        style={{ display: 'grid', placeItems: 'center', width: '32px', height: '32px', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '6px', color: '#ef4444', cursor: 'pointer', textDecoration: 'none' }}
+                      >
+                        <Youtube size={13} />
+                      </a>
 
                       {/* Video Solution button if present */}
                       {problem.youtube_url && (
