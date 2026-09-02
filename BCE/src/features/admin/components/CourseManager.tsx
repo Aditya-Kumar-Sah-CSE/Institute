@@ -286,7 +286,7 @@ function MultiSelectFacultyDropdown({
               filteredInstructors.map((inst) => {
                 const isSelected = selectedIds.includes(inst.id);
                 const roleLower = (inst.role || '').toLowerCase();
-                const roleLabel = roleLower === 'admin' ? 'Admin' : roleLower === 'instructor' ? 'Instructor' : roleLower === 'developer' ? 'Developer' : 'Faculty';
+                const roleLabel = roleLower === 'admin' ? 'Admin' : roleLower === 'instructor' ? 'Instructor' : roleLower === 'developer' ? 'Developer' : (roleLower === 'super_admin' || roleLower === 'superadmin') ? 'Super Admin' : 'Faculty';
                 return (
                   <div
                     key={inst.id}
@@ -366,7 +366,7 @@ export default function CourseManager({ courses, instructors = [], currentUserId
       title: '',
       description: '',
       difficulty: 'sem 1',
-      is_published: 'false',
+      is_published: 'true',
       enrollment_restriction: 'any',
       instructor_ids: currentUserId ? [currentUserId] : []
     });

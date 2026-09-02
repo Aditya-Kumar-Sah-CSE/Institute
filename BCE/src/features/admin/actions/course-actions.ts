@@ -67,7 +67,7 @@ export async function addCourse(formData: FormData) {
 
     for (const p of validatedProfiles) {
       const roleLower = (p.role || '').toLowerCase();
-      if (roleLower !== 'admin' && roleLower !== 'instructor' && roleLower !== 'developer' && roleLower !== 'faculty') {
+      if (roleLower !== 'admin' && roleLower !== 'instructor' && roleLower !== 'developer' && roleLower !== 'faculty' && roleLower !== 'super_admin' && roleLower !== 'superadmin') {
         return { error: `User is not an Instructor or Admin.` };
       }
       if (instituteId && p.institute_id !== instituteId) {
@@ -145,7 +145,7 @@ export async function updateCourse(id: string, formData: FormData) {
 
     for (const p of validatedProfiles) {
       const roleLower = (p.role || '').toLowerCase();
-      if (roleLower !== 'admin' && roleLower !== 'instructor' && roleLower !== 'developer' && roleLower !== 'faculty') {
+      if (roleLower !== 'admin' && roleLower !== 'instructor' && roleLower !== 'developer' && roleLower !== 'faculty' && roleLower !== 'super_admin' && roleLower !== 'superadmin') {
         return { error: `User is not an Instructor or Admin.` };
       }
       if (instituteId && p.institute_id !== instituteId) {
@@ -237,7 +237,7 @@ export async function getEligibleFaculty(search?: string, includeIds?: string[])
     let query = supabase
       .from('profiles')
       .select('id, name, email, role, institute_id')
-      .in('role', ['instructor', 'admin', 'developer', 'faculty', 'Instructor', 'Admin', 'Developer', 'Faculty']);
+      .in('role', ['instructor', 'admin', 'developer', 'faculty', 'super_admin', 'superadmin', 'Instructor', 'Admin', 'Developer', 'Faculty', 'Super_Admin', 'SuperAdmin']);
 
     if (tenantId) {
       query = query.eq('institute_id', tenantId);
