@@ -900,7 +900,7 @@ export default function SheetDetailClient({
                             cursor: 'pointer',
                           }}
                         >
-                          <Eye size={12} /> Last Solution
+                          <Eye size={12} /> Last Sol
                         </button>
                       )}
 
