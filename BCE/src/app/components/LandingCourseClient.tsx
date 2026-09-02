@@ -140,6 +140,7 @@ export default function LandingCourseClient({
                 <div 
                   key={`${course.id}-${index}`}
                   ref={isLast ? lastElementRef : null}
+                  onMouseEnter={() => setActiveIndex(index)}
                   className={`preview-course-card coverflow-card ${isActive ? 'coverflow-active' : 'coverflow-inactive'}`}
                 style={{ 
                   background: 'var(--bg-card)', 

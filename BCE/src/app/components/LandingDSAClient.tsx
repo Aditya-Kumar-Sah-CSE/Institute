@@ -108,6 +108,7 @@ export default function LandingDSAClient({
                 <div 
                   key={`${sheet.id}-${index}`}
                   ref={isLast ? lastElementRef : null}
+                  onMouseEnter={() => setActiveIndex(index)}
                   className={`preview-dsa-card coverflow-card ${isActive ? 'coverflow-active' : 'coverflow-inactive'}`}
                 style={{ 
                   background: 'var(--bg-surface)', 
