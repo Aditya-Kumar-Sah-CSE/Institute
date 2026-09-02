@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { CheckCircle2, Circle, Dot, Clock, HardDrive, ExternalLink, Code2, Youtube } from 'lucide-react';
+import { CheckCircle2, Circle, Dot, Clock, HardDrive, ExternalLink, Code2, Search } from 'lucide-react';
 
 export interface ProblemCardData {
   id: string;
@@ -116,7 +116,7 @@ export default function ProblemCard({ problem }: { problem: ProblemCardData }) {
           title="Ask YT - Search on YouTube"
           style={{ color: '#ef4444' }}
         >
-          <Youtube size={13} />
+          <Search size={13} />
         </a>
         {problem.external_url && (
           <a

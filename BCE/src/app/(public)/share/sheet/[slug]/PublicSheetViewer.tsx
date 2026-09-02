@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { 
   Trophy, BookOpen, Share2, Search, ExternalLink, Play, Video, 
   FileText, Check, Shield, Globe, Lock, ArrowRight, Code2, Sparkles, ChevronRight,
-  UserPlus, CheckCircle2, Loader2, Image, Youtube
+  UserPlus, CheckCircle2, Loader2, Image
 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
@@ -637,7 +637,7 @@ export default function PublicSheetViewer({
                         textDecoration: 'none'
                       }}
                     >
-                      <Youtube size={14} />
+                      <Search size={14} />
                     </a>
 
                     {/* Solution Video button if available */}

@@ -27,7 +27,7 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  Youtube
+  Search
 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
@@ -1295,7 +1295,7 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
                 }}
                 title="Search on YouTube"
               >
-                <Youtube size={14} style={{ color: '#ef4444' }} /> Ask YT
+                <Search size={14} style={{ color: '#ef4444' }} /> Ask YT
               </a>
 
               <button

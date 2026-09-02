@@ -4259,6 +4259,33 @@
   }
 }
 
+/* ===== LEADERBOARD RESPONSIVE LAYOUTS ===== */
+.summary-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
 
+.podium-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr 1fr;
+}
 
-
+@media (max-width: 550px) {
+  .summary-stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .podium-grid {
+    grid-template-columns: 1fr;
+    gap: 12px !important;
+  }
+  
+  /* Fix podium ordering on mobile to 1st, 2nd, 3rd */
+  .podium-grid > div:nth-child(1) { order: 2; }
+  .podium-grid > div:nth-child(2) { 
+    order: 1; 
+    transform: scale(1) !important;
+    box-shadow: 0 0 10px rgba(250, 204, 21, 0.1) !important;
+  }
+  .podium-grid > div:nth-child(3) { order: 3; }
+}
