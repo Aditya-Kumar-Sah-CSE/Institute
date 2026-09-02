@@ -1264,10 +1264,10 @@
     scroll-behavior: smooth;
     gap: 16px;
     padding-bottom: 24px; /* Space for shadows */
-    margin-left: -16px;
-    margin-right: -16px;
-    padding-left: 16px;
-    padding-right: 16px;
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 0;
+    padding-right: 0;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
@@ -1277,8 +1277,14 @@
   .mobile-carousel > div {
     flex: 0 0 85%;
     scroll-snap-align: center;
-    min-width: 280px;
+    scroll-snap-stop: always;
     margin: 0;
+  }
+  .mobile-carousel > div:first-child {
+    margin-left: calc(50% - 42.5%);
+  }
+  .mobile-carousel > div:last-child {
+    margin-right: calc(50% - 42.5%);
   }
 }
 
