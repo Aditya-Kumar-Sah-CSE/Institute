@@ -5,13 +5,26 @@ import { createClient } from '@/lib/supabase/server';
 export async function getPreviewCourses(page = 0, limit = 6, category = 'All Categories') {
   const supabase = await createClient();
   
-  const { data, error } = await supabase
+  let query = supabase
     .from('courses')
     .select('id, title, description, thumbnail_url, difficulty, tags, lesson_count')
     .eq('is_published', true)
     .eq('is_deleted', false)
     .order('created_at', { ascending: false });
 
+  // Fast path for All Categories (default load)
+  if (category === 'All Categories') {
+    query = query.range(page * limit, (page + 1) * limit - 1);
+    const { data, error } = await query;
+    if (error) {
+      console.error('Error fetching courses:', error);
+      return { data: [], error: error.message };
+    }
+    return { data: data || [], error: null };
+  }
+
+  // Slow path for category filtering in-memory
+  const { data, error } = await query;
   if (error) {
     console.error('Error fetching courses:', error);
     return { data: [], error: error.message };
@@ -19,23 +32,21 @@ export async function getPreviewCourses(page = 0, limit = 6, category = 'All Cat
 
   let filtered = data || [];
 
-  if (category !== 'All Categories') {
-    filtered = filtered.filter(course => {
-      if (!course.tags) return false;
-      if (Array.isArray(course.tags)) {
-        return course.tags.some(tag => typeof tag === 'string' && tag.trim() === category);
+  filtered = filtered.filter(course => {
+    if (!course.tags) return false;
+    if (Array.isArray(course.tags)) {
+      return course.tags.some(tag => typeof tag === 'string' && tag.trim() === category);
+    }
+    if (typeof course.tags === 'string') {
+      try {
+        const parsed = JSON.parse(course.tags);
+        if (Array.isArray(parsed)) return parsed.some(tag => typeof tag === 'string' && tag.trim() === category);
+      } catch (e) {
+        return (course.tags as string).split(',').some(tag => tag.trim() === category);
       }
-      if (typeof course.tags === 'string') {
-        try {
-          const parsed = JSON.parse(course.tags);
-          if (Array.isArray(parsed)) return parsed.some(tag => typeof tag === 'string' && tag.trim() === category);
-        } catch (e) {
-          return (course.tags as string).split(',').some(tag => tag.trim() === category);
-        }
-      }
-      return false;
-    });
-  }
+    }
+    return false;
+  });
 
   const start = page * limit;
   const sliced = filtered.slice(start, start + limit);

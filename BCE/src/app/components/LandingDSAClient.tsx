@@ -18,6 +18,7 @@ export default function LandingDSAClient({
   
   const observerRef = useRef<IntersectionObserver | null>(null);
   const carouselRef = useRef<HTMLDivElement | null>(null);
+  const loadingRef = useRef(false);
   
   // Drag states
   const isDragging = useRef(false);
@@ -25,31 +26,44 @@ export default function LandingDSAClient({
   const scrollLeftRef = useRef(0);
   
   const loadMore = useCallback(async (currentPage: number) => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
     setLoading(true);
-    const nextPage = currentPage + 1;
-    const { data } = await getPreviewDSASheets(nextPage, 6);
-    if (data && data.length > 0) {
-      setSheets(prev => [...prev, ...data]);
-      setPage(nextPage);
-      if (data.length < 6) setHasMore(false);
-    } else {
+    
+    try {
+      const nextPage = currentPage + 1;
+      const { data } = await getPreviewDSASheets(nextPage, 6);
+      if (data && data.length > 0) {
+        setSheets(prev => {
+          const newSheets = data.filter((d: any) => !prev.some(p => p.id === d.id));
+          return [...prev, ...newSheets];
+        });
+        setPage(nextPage);
+        if (data.length < 6) setHasMore(false);
+      } else {
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error('Error loading more DSA sheets:', error);
       setHasMore(false);
     }
+    
     setLoading(false);
+    loadingRef.current = false;
   }, []);
 
   const lastElementRef = useCallback((node: HTMLDivElement | null) => {
-    if (loading) return;
+    if (loadingRef.current) return;
     if (observerRef.current) observerRef.current.disconnect();
     
     observerRef.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore) {
+      if (entries[0].isIntersecting && hasMore && !loadingRef.current) {
         loadMore(page);
       }
     });
     
     if (node) observerRef.current.observe(node);
-  }, [loading, hasMore, page, loadMore]);
+  }, [hasMore, page, loadMore]);
 
   const handleScroll = () => {
     if (!carouselRef.current) return;

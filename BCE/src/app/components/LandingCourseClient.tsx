@@ -22,6 +22,7 @@ export default function LandingCourseClient({
   
   const observerRef = useRef<IntersectionObserver | null>(null);
   const carouselRef = useRef<HTMLDivElement | null>(null);
+  const loadingRef = useRef(false);
   
   // Drag states
   const isDragging = useRef(false);
@@ -29,31 +30,44 @@ export default function LandingCourseClient({
   const scrollLeftRef = useRef(0);
   
   const loadMore = useCallback(async (currentPage: number, currentCategory: string) => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
     setLoading(true);
-    const nextPage = currentPage + 1;
-    const { data } = await getPreviewCourses(nextPage, 6, currentCategory);
-    if (data && data.length > 0) {
-      setCourses(prev => [...prev, ...data]);
-      setPage(nextPage);
-      if (data.length < 6) setHasMore(false);
-    } else {
+    
+    try {
+      const nextPage = currentPage + 1;
+      const { data } = await getPreviewCourses(nextPage, 6, currentCategory);
+      if (data && data.length > 0) {
+        setCourses(prev => {
+          const newCourses = data.filter((d: any) => !prev.some(p => p.id === d.id));
+          return [...prev, ...newCourses];
+        });
+        setPage(nextPage);
+        if (data.length < 6) setHasMore(false);
+      } else {
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error('Error loading more courses:', error);
       setHasMore(false);
     }
+    
     setLoading(false);
+    loadingRef.current = false;
   }, []);
 
   const lastElementRef = useCallback((node: HTMLDivElement | null) => {
-    if (loading) return;
+    if (loadingRef.current) return;
     if (observerRef.current) observerRef.current.disconnect();
     
     observerRef.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore) {
+      if (entries[0].isIntersecting && hasMore && !loadingRef.current) {
         loadMore(page, activeCategory);
       }
     });
     
     if (node) observerRef.current.observe(node);
-  }, [loading, hasMore, page, activeCategory, loadMore]);
+  }, [hasMore, page, activeCategory, loadMore]);
 
   const handleCategoryChange = async (cat: string) => {
     if (cat === activeCategory) return;
