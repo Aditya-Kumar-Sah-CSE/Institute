@@ -1262,8 +1262,6 @@
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     scroll-behavior: smooth;
-    scroll-padding-left: 16px;
-    scroll-padding-right: 16px;
     gap: 16px;
     padding-bottom: 24px; /* Space for shadows */
     margin-left: -16px;
@@ -1278,8 +1276,60 @@
   }
   .mobile-carousel > div {
     flex: 0 0 85%;
-    scroll-snap-align: start;
+    scroll-snap-align: center;
     min-width: 280px;
     margin: 0;
+  }
+}
+
+/* ========================================= */
+/* 3D Coverflow Carousel                   */
+/* ========================================= */
+
+.coverflow-card {
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease, filter 0.4s ease, box-shadow 0.4s ease;
+  will-change: transform, opacity, filter;
+}
+
+.coverflow-active {
+  transform: scale(1) translateY(-4px);
+  opacity: 1;
+  filter: blur(0px);
+  box-shadow: 0 12px 30px rgba(6, 182, 212, 0.2) !important;
+  border-color: rgba(6, 182, 212, 0.4) !important;
+  z-index: 2;
+}
+
+.coverflow-inactive {
+  transform: scale(0.88);
+  opacity: 0.5;
+  filter: blur(2px);
+  z-index: 1;
+}
+
+.carousel-pagination {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .carousel-pagination {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 1rem;
+  }
+  .carousel-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+  .carousel-dot.active {
+    width: 16px;
+    border-radius: 4px;
+    background: #06b6d4;
+    box-shadow: 0 0 8px rgba(6, 182, 212, 0.4);
   }
 }

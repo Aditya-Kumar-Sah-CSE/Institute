@@ -14,8 +14,15 @@ export default function LandingDSAClient({
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(initialSheets.length === 6);
+  const [activeIndex, setActiveIndex] = useState(0);
   
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const carouselRef = useRef<HTMLDivElement | null>(null);
+  
+  // Drag states
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const scrollLeftRef = useRef(0);
   
   const loadMore = useCallback(async (currentPage: number) => {
     setLoading(true);
@@ -44,6 +51,36 @@ export default function LandingDSAClient({
     if (node) observerRef.current.observe(node);
   }, [loading, hasMore, page, loadMore]);
 
+  const handleScroll = () => {
+    if (!carouselRef.current) return;
+    const firstChild = carouselRef.current.firstElementChild as HTMLElement;
+    if (!firstChild) return;
+    
+    // Add gap space to calculate exact card step
+    const cardWidthExact = firstChild.offsetWidth + 16; 
+    const newIndex = Math.round(carouselRef.current.scrollLeft / cardWidthExact);
+    if (newIndex !== activeIndex && newIndex >= 0 && newIndex < sheets.length) {
+      setActiveIndex(newIndex);
+    }
+  };
+
+  // Mouse drag handlers for desktop/tablet
+  const onMouseDown = (e: React.MouseEvent) => {
+    if (!carouselRef.current) return;
+    isDragging.current = true;
+    startX.current = e.pageX - carouselRef.current.offsetLeft;
+    scrollLeftRef.current = carouselRef.current.scrollLeft;
+  };
+  const onMouseLeave = () => { isDragging.current = false; };
+  const onMouseUp = () => { isDragging.current = false; };
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging.current || !carouselRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - carouselRef.current.offsetLeft;
+    const walk = (x - startX.current) * 1.5; 
+    carouselRef.current.scrollLeft = scrollLeftRef.current - walk;
+  };
+
   return (
     <>
       {(!sheets || sheets.length === 0) ? (
@@ -53,15 +90,25 @@ export default function LandingDSAClient({
            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>New DSA sheets will appear here soon.</p>
         </div>
       ) : (
-        <div className="preview-grid mobile-carousel">
-          {sheets.map((sheet, index) => {
-            const problemsCount = sheet.coding_sheet_problems?.length || 0;
-            const isLast = index === sheets.length - 1;
-            return (
-              <div 
-                key={`${sheet.id}-${index}`}
-                ref={isLast ? lastElementRef : null}
-                className="preview-dsa-card"
+        <>
+          <div 
+            className="preview-grid mobile-carousel"
+            ref={carouselRef}
+            onScroll={handleScroll}
+            onMouseDown={onMouseDown}
+            onMouseLeave={onMouseLeave}
+            onMouseUp={onMouseUp}
+            onMouseMove={onMouseMove}
+          >
+            {sheets.map((sheet, index) => {
+              const problemsCount = sheet.coding_sheet_problems?.length || 0;
+              const isLast = index === sheets.length - 1;
+              const isActive = index === activeIndex;
+              return (
+                <div 
+                  key={`${sheet.id}-${index}`}
+                  ref={isLast ? lastElementRef : null}
+                  className={`preview-dsa-card coverflow-card ${isActive ? 'coverflow-active' : 'coverflow-inactive'}`}
                 style={{ 
                   background: 'var(--bg-surface)', 
                   border: '1px solid rgba(255,255,255,0.05)', 
@@ -182,6 +229,24 @@ export default function LandingDSAClient({
             );
           })}
         </div>
+
+        {sheets.length > 0 && (
+          <div className="carousel-pagination">
+            {sheets.map((_, i) => (
+              <div 
+                key={i} 
+                className={`carousel-dot ${i === activeIndex ? 'active' : ''}`}
+                onClick={() => {
+                   if (!carouselRef.current) return;
+                   const cardWidth = (carouselRef.current.firstElementChild as HTMLElement)?.offsetWidth + 16;
+                   carouselRef.current.scrollTo({ left: i * cardWidth, behavior: 'smooth' });
+                   setActiveIndex(i);
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </>
       )}
     </>
   );

@@ -18,8 +18,15 @@ export default function LandingCourseClient({
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(initialCourses.length === 6);
+  const [activeIndex, setActiveIndex] = useState(0);
   
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const carouselRef = useRef<HTMLDivElement | null>(null);
+  
+  // Drag states
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const scrollLeftRef = useRef(0);
   
   const loadMore = useCallback(async (currentPage: number, currentCategory: string) => {
     setLoading(true);
@@ -53,10 +60,44 @@ export default function LandingCourseClient({
     setActiveCategory(cat);
     setLoading(true);
     setPage(0);
+    setActiveIndex(0);
     const { data } = await getPreviewCourses(0, 6, cat);
     setCourses(data || []);
     setHasMore(data && data.length === 6);
     setLoading(false);
+    if (carouselRef.current) {
+      carouselRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleScroll = () => {
+    if (!carouselRef.current) return;
+    const firstChild = carouselRef.current.firstElementChild as HTMLElement;
+    if (!firstChild) return;
+    
+    // Add gap space to calculate exact card step
+    const cardWidthExact = firstChild.offsetWidth + 16; 
+    const newIndex = Math.round(carouselRef.current.scrollLeft / cardWidthExact);
+    if (newIndex !== activeIndex && newIndex >= 0 && newIndex < courses.length) {
+      setActiveIndex(newIndex);
+    }
+  };
+
+  // Mouse drag handlers for desktop/tablet
+  const onMouseDown = (e: React.MouseEvent) => {
+    if (!carouselRef.current) return;
+    isDragging.current = true;
+    startX.current = e.pageX - carouselRef.current.offsetLeft;
+    scrollLeftRef.current = carouselRef.current.scrollLeft;
+  };
+  const onMouseLeave = () => { isDragging.current = false; };
+  const onMouseUp = () => { isDragging.current = false; };
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging.current || !carouselRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - carouselRef.current.offsetLeft;
+    const walk = (x - startX.current) * 1.5; 
+    carouselRef.current.scrollLeft = scrollLeftRef.current - walk;
   };
 
   const allTabs = ['All Categories', ...categories];
@@ -82,14 +123,24 @@ export default function LandingCourseClient({
            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Try selecting a different category or check back later.</p>
         </div>
       ) : (
-        <div className="preview-grid mobile-carousel">
-          {courses.map((course, index) => {
-            const isLast = index === courses.length - 1;
-            return (
-              <div 
-                key={`${course.id}-${index}`}
-                ref={isLast ? lastElementRef : null}
-                className="preview-course-card"
+        <>
+          <div 
+            className="preview-grid mobile-carousel"
+            ref={carouselRef}
+            onScroll={handleScroll}
+            onMouseDown={onMouseDown}
+            onMouseLeave={onMouseLeave}
+            onMouseUp={onMouseUp}
+            onMouseMove={onMouseMove}
+          >
+            {courses.map((course, index) => {
+              const isLast = index === courses.length - 1;
+              const isActive = index === activeIndex;
+              return (
+                <div 
+                  key={`${course.id}-${index}`}
+                  ref={isLast ? lastElementRef : null}
+                  className={`preview-course-card coverflow-card ${isActive ? 'coverflow-active' : 'coverflow-inactive'}`}
                 style={{ 
                   background: 'var(--bg-card)', 
                   border: '1px solid rgba(255,255,255,0.05)', 
@@ -226,6 +277,24 @@ export default function LandingCourseClient({
             );
           })}
         </div>
+        
+        {courses.length > 0 && (
+          <div className="carousel-pagination">
+            {courses.map((_, i) => (
+              <div 
+                key={i} 
+                className={`carousel-dot ${i === activeIndex ? 'active' : ''}`}
+                onClick={() => {
+                   if (!carouselRef.current) return;
+                   const cardWidth = (carouselRef.current.firstElementChild as HTMLElement)?.offsetWidth + 16;
+                   carouselRef.current.scrollTo({ left: i * cardWidth, behavior: 'smooth' });
+                   setActiveIndex(i);
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </>
       )}
     </>
   );
