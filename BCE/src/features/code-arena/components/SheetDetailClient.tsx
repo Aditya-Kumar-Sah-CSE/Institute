@@ -341,33 +341,6 @@ export default function SheetDetailClient({
 
       {/* Header Bar */}
       <header className="code-arena-header-compact">
-        <div className="code-arena-header-left">
-          <Link
-            href="/code-arena/sheets"
-            style={{
-              display: 'grid',
-              placeItems: 'center',
-              width: '34px',
-              height: '34px',
-              borderRadius: '8px',
-              background: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid var(--glass-border)',
-              color: 'var(--text-muted)',
-              textDecoration: 'none',
-              transition: 'all 0.15s ease',
-            }}
-            title="Back to Sheets"
-            aria-label="Back to Sheets"
-            className="oj-icon-btn"
-          >
-            <ArrowLeft size={16} />
-          </Link>
-          <div>
-            <h1 className="code-arena-header-title">
-              Code Arena
-            </h1>
-          </div>
-        </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }} suppressHydrationWarning>
           <button
@@ -456,27 +429,6 @@ export default function SheetDetailClient({
               <Lock size={12} /> Private
             </div>
           )}
-          <Link 
-            href="/code-arena/sheets"
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '6px', 
-              fontSize: '12px', 
-              color: 'var(--neon-cyan)', 
-              background: 'rgba(6,182,212,0.1)', 
-              padding: '4px 10px', 
-              borderRadius: '12px', 
-              fontWeight: 600,
-              textDecoration: 'none',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(6,182,212,0.2)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(6,182,212,0.1)'; }}
-          >
-            <BookOpen size={13} /> Sheet Detail
-          </Link>
         </div>
       </header>
 
@@ -926,7 +878,7 @@ export default function SheetDetailClient({
                       {problem.difficulty}
                     </span>
 
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                       {/* View Last Solution Button for Solved Problems */}
                       {isSolved && (
                         <button
@@ -1182,7 +1134,7 @@ export default function SheetDetailClient({
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '72vh', overflowY: 'auto', paddingRight: '4px' }}>
           {/* Summary Banner */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--glass-border)', padding: '12px', borderRadius: '8px', textAlign: 'center' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--glass-border)', padding: '12px', borderRadius: '8px', textAlign: 'center' }}>
             <div>
               <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>TOTAL SOLVERS</div>
               <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--neon-cyan)' }}>{solversLeaderboard.length} Students</div>
@@ -1220,7 +1172,7 @@ export default function SheetDetailClient({
 
           {/* Top 3 Podium Highlights if search is empty */}
           {!solverSearch && solversLeaderboard.length >= 3 && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', margin: '4px 0 8px 0' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '10px', margin: '4px 0 8px 0' }}>
               {/* 2nd Place */}
               <div style={{ background: 'rgba(148, 163, 184, 0.08)', border: '1px solid rgba(148, 163, 184, 0.3)', borderRadius: '10px', padding: '12px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <div style={{ fontSize: '11px', fontWeight: 800, color: '#cbd5e1', marginBottom: '4px' }}>🥈 2nd Place</div>
@@ -1279,7 +1231,7 @@ export default function SheetDetailClient({
                     border: isPerfect ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid var(--glass-border)',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '12px', fontWeight: 800, width: '28px', color: rank === 1 ? '#facc15' : rank === 2 ? '#cbd5e1' : rank === 3 ? '#fbbf24' : 'var(--text-muted)' }}>
                       #{rank}
                     </span>
@@ -1338,7 +1290,7 @@ export default function SheetDetailClient({
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '72vh', overflowY: 'auto', paddingRight: '4px' }}>
           {/* Summary Banner */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--glass-border)', padding: '12px', borderRadius: '8px', textAlign: 'center' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--glass-border)', padding: '12px', borderRadius: '8px', textAlign: 'center' }}>
             <div>
               <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>TOTAL ENROLLED</div>
               <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--neon-cyan)' }}>{enrolledStudents.length} Students</div>
@@ -1389,7 +1341,7 @@ export default function SheetDetailClient({
                     border: '1px solid var(--glass-border)',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                     <img
                       src={student.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(student.name)}&background=a855f7&color=fff`}
                       alt={student.name}
