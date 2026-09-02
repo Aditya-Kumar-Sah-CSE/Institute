@@ -1158,3 +1158,44 @@
 .slider-nav-btn:active {
   transform: translateY(0);
 }
+
+
+/* Previews Hover States */
+.preview-course-card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+.preview-course-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2) !important;
+}
+
+.preview-dsa-card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+.preview-dsa-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(6, 182, 212, 0.3) !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15) !important;
+}
+.preview-dsa-card:hover .dsa-icon-box {
+  filter: brightness(1.2);
+}
+
+.preview-course-btn {
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.preview-course-btn:hover {
+  background: rgba(99, 102, 241, 0.15) !important;
+  border-color: rgba(99, 102, 241, 0.6) !important;
+}
+
+.preview-dsa-btn {
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.preview-dsa-btn:hover {
+  background: rgba(6, 182, 212, 0.15) !important;
+  border-color: rgba(6, 182, 212, 0.6) !important;
+}

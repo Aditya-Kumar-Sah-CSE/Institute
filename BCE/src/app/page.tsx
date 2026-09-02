@@ -12,6 +12,8 @@ import { ArrowRight, Star } from 'lucide-react';
 import AutoScrollMarquee from '@/components/ui/AutoScrollMarquee';
 import ExploreMoreWrapper from './components/ExploreMoreWrapper';
 import GallerySection from './components/GallerySection';
+import LandingCoursePreview from './components/LandingCoursePreview';
+import LandingDSAPreview from './components/LandingDSAPreview';
 import './Landing.css';
 import { createClient } from '@/lib/supabase/server';
 
@@ -102,6 +104,10 @@ export default async function LandingPage() {
 
           {/* Hero Bottom Bar */}
         </section>
+
+        {/* Public Previews */}
+        <LandingCoursePreview />
+        <LandingDSAPreview />
       </main>
 
       <ExploreMoreWrapper>
