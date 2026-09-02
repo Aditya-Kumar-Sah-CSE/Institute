@@ -29,7 +29,9 @@ import {
   Globe,
   Loader2,
   Check,
-  Settings
+  Settings,
+  MoreVertical,
+  X
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import Modal from '@/components/ui/Modal';
@@ -231,6 +233,108 @@ function findFileInTree(nodes: FileItem[], path: string): FileItem | null {
     }
   }
   return null;
+}
+
+function ExplorerActionsMenu({
+  onNewFile,
+  onNewFolder,
+  onOpenFolder,
+  onCloseFolder,
+  isLocalMode
+}: {
+  onNewFile: () => void;
+  onNewFolder: () => void;
+  onOpenFolder: () => void;
+  onCloseFolder: () => void;
+  isLocalMode: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open]);
+
+  const handleAction = (e: React.MouseEvent, action: () => void) => {
+    e.stopPropagation();
+    action();
+    setOpen(false);
+  };
+
+  return (
+    <div ref={menuRef} style={{ position: 'relative' }}>
+      <button
+        onClick={() => setOpen(!open)}
+        title="More Actions"
+        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: '4px' }}
+      >
+        <MoreVertical size={14} />
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute',
+          top: '100%',
+          right: 0,
+          marginTop: '4px',
+          background: 'var(--bg-secondary, #1e293b)',
+          border: '1px solid var(--glass-border)',
+          borderRadius: '6px',
+          padding: '4px',
+          zIndex: 50,
+          minWidth: '160px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '2px'
+        }}>
+          {isLocalMode && (
+            <button
+              onClick={(e) => handleAction(e, onOpenFolder)}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', background: 'none', border: 'none', color: 'var(--text-main)', cursor: 'pointer', textAlign: 'left', borderRadius: '4px', fontSize: '12px' }}
+              onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+              onMouseOut={e => e.currentTarget.style.background = 'none'}
+            >
+              <Folder size={14} /> Open New Folder
+            </button>
+          )}
+          <button
+            onClick={(e) => handleAction(e, onNewFile)}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', background: 'none', border: 'none', color: 'var(--text-main)', cursor: 'pointer', textAlign: 'left', borderRadius: '4px', fontSize: '12px' }}
+            onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+            onMouseOut={e => e.currentTarget.style.background = 'none'}
+          >
+            <FileCode size={14} /> Create New File
+          </button>
+          <button
+            onClick={(e) => handleAction(e, onNewFolder)}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', background: 'none', border: 'none', color: 'var(--text-main)', cursor: 'pointer', textAlign: 'left', borderRadius: '4px', fontSize: '12px' }}
+            onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+            onMouseOut={e => e.currentTarget.style.background = 'none'}
+          >
+            <FolderPlus size={14} /> Create New Folder
+          </button>
+          {isLocalMode && (
+            <button
+              onClick={(e) => handleAction(e, onCloseFolder)}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', background: 'none', border: 'none', color: 'var(--text-main)', cursor: 'pointer', textAlign: 'left', borderRadius: '4px', fontSize: '12px', borderTop: '1px solid var(--glass-border)', marginTop: '2px', paddingTop: '6px' }}
+              onMouseOver={e => e.currentTarget.style.background = 'rgba(239,68,68,0.1)'}
+              onMouseOut={e => e.currentTarget.style.background = 'none'}
+            >
+              <X size={14} color="#ef4444" /> <span style={{ color: '#ef4444' }}>Close Folder</span>
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function PersonalCompiler({ initialSnippets }: { initialSnippets: Snippet[] }) {
@@ -1357,26 +1461,19 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
           <strong style={{ fontSize: 'var(--text-sm)' }}>Explorer</strong>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <button
-              onClick={() => triggerCreateFile('')}
-              title="New File"
-              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: '4px' }}
-            >
-              <Plus size={14} />
-            </button>
-            <button
-              onClick={() => triggerCreateFolder('')}
-              title="New Folder"
-              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: '4px' }}
-            >
-              <FolderPlus size={14} />
-            </button>
-            <button
               onClick={refreshExplorer}
-              title="Refresh Explorer"
+              title="Refresh"
               style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: '4px' }}
             >
               <RefreshCw size={12} />
             </button>
+            <ExplorerActionsMenu
+              onNewFile={() => triggerCreateFile('')}
+              onNewFolder={() => triggerCreateFolder('')}
+              onOpenFolder={workspaceMode === 'local' ? openLocalFolderPicker : () => { switchWorkspaceMode('local'); setTimeout(openLocalFolderPicker, 100); }}
+              onCloseFolder={closeWorkspaceFolder}
+              isLocalMode={true}
+            />
           </div>
         </div>
 
@@ -1433,26 +1530,19 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
           {(!localPermissionNeeded && (workspaceMode === 'cloud' || rootDirectoryHandle)) && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <button
-                onClick={() => triggerCreateFile('')}
-                title="New File"
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: '4px' }}
-              >
-                <Plus size={14} />
-              </button>
-              <button
-                onClick={() => triggerCreateFolder('')}
-                title="New Folder"
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: '4px' }}
-              >
-                <FolderPlus size={14} />
-              </button>
-              <button
                 onClick={refreshExplorer}
-                title="Refresh Explorer"
+                title="Refresh"
                 style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: '4px' }}
               >
                 <RefreshCw size={12} />
               </button>
+              <ExplorerActionsMenu
+                onNewFile={() => triggerCreateFile('')}
+                onNewFolder={() => triggerCreateFolder('')}
+                onOpenFolder={workspaceMode === 'local' ? openLocalFolderPicker : () => { switchWorkspaceMode('local'); setTimeout(openLocalFolderPicker, 100); }}
+                onCloseFolder={closeWorkspaceFolder}
+                isLocalMode={workspaceMode === 'local'}
+              />
             </div>
           )}
         </div>
@@ -1485,7 +1575,7 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
               fontSize: '12px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
+              justifyContent: 'space-between',
               gap: '6px',
               borderRadius: '4px',
               border: '1px solid var(--glass-border)',
@@ -1493,23 +1583,43 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
               color: 'var(--neon-cyan)',
               fontWeight: 600,
               flexShrink: 0,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
               padding: '0 8px'
             }}
             title={`Local Folder: ${rootDirectoryHandle.name}`}
           >
-            <FolderOpen size={13} style={{ flexShrink: 0 }} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              Local Folder: {rootDirectoryHandle.name}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
+              <FolderOpen size={13} style={{ flexShrink: 0 }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                Local Folder: {rootDirectoryHandle.name}
+              </span>
+            </div>
+            <button
+              onClick={closeWorkspaceFolder}
+              title="Close Folder"
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--neon-cyan)',
+                cursor: 'pointer',
+                display: 'flex',
+                padding: '4px',
+                opacity: 0.8,
+                transition: 'opacity 0.2s'
+              }}
+              onMouseOver={e => e.currentTarget.style.opacity = '1'}
+              onMouseOut={e => e.currentTarget.style.opacity = '0.8'}
+            >
+              <div style={{ fontSize: '14px', lineHeight: 1 }}>✕</div>
+            </button>
           </div>
         ) : null}
 
         {workspaceMode === 'local' && !rootDirectoryHandle && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', justifyContent: 'center', padding: '24px 8px', border: '1px dashed var(--glass-border)', borderRadius: '6px' }}>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center' }}>
+            <strong style={{ fontSize: '12px', color: 'var(--text-main)', textAlign: 'center' }}>
+              No folder opened
+            </strong>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', marginBottom: '4px' }}>
               Open a folder on your PC to edit local files directly in the browser sandbox.
             </span>
             <button
@@ -1531,7 +1641,7 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
               onMouseOver={e => e.currentTarget.style.opacity = '0.8'}
               onMouseOut={e => e.currentTarget.style.opacity = '1'}
             >
-              <FolderOpen size={13} /> Open Local Folder
+              <FolderOpen size={13} /> Open Folder
             </button>
           </div>
         )}
