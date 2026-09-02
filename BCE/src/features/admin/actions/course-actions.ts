@@ -70,9 +70,6 @@ export async function addCourse(formData: FormData) {
       if (roleLower !== 'admin' && roleLower !== 'instructor' && roleLower !== 'developer' && roleLower !== 'faculty' && roleLower !== 'super_admin' && roleLower !== 'superadmin') {
         return { error: `User is not an Instructor or Admin.` };
       }
-      if (instituteId && p.institute_id !== instituteId) {
-        return { error: `Selected faculty member does not belong to the current institute.` };
-      }
     }
   }
 
@@ -148,9 +145,6 @@ export async function updateCourse(id: string, formData: FormData) {
       if (roleLower !== 'admin' && roleLower !== 'instructor' && roleLower !== 'developer' && roleLower !== 'faculty' && roleLower !== 'super_admin' && roleLower !== 'superadmin') {
         return { error: `User is not an Instructor or Admin.` };
       }
-      if (instituteId && p.institute_id !== instituteId) {
-        return { error: `Selected faculty member does not belong to the current institute.` };
-      }
     }
   }
 
@@ -221,27 +215,17 @@ export async function getEligibleFaculty(search?: string, includeIds?: string[])
       return { error: 'Not authenticated' };
     }
 
-    const { data: currentProfile, error: profileError } = await supabase
-      .from('profiles')
-      .select('institute_id')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError || !currentProfile) {
-      return { error: 'User profile not found' };
-    }
-
-    const tenantId = currentProfile.institute_id;
+    const ALLOWED_ROLES = [
+      'instructor', 'admin', 'developer', 'faculty', 'super_admin', 'superadmin',
+      'Instructor', 'Admin', 'Developer', 'Faculty', 'Super_Admin', 'SuperAdmin',
+      'ADMIN', 'INSTRUCTOR', 'DEVELOPER', 'FACULTY', 'SUPER_ADMIN', 'SUPERADMIN'
+    ];
 
     // Roles permitted for courses
     let query = supabase
       .from('profiles')
-      .select('id, name, email, role, institute_id')
-      .in('role', ['instructor', 'admin', 'developer', 'faculty', 'super_admin', 'superadmin', 'Instructor', 'Admin', 'Developer', 'Faculty', 'Super_Admin', 'SuperAdmin']);
-
-    if (tenantId) {
-      query = query.eq('institute_id', tenantId);
-    }
+      .select('id, name, email, role')
+      .in('role', ALLOWED_ROLES);
 
     // Add search conditions
     if (search && search.trim() !== '') {
@@ -260,16 +244,11 @@ export async function getEligibleFaculty(search?: string, includeIds?: string[])
     if (includeIds && includeIds.length > 0) {
       const missingIds = includeIds.filter(id => !result.some(p => p.id === id));
       if (missingIds.length > 0) {
-        let includeQuery = supabase
+        const { data: includedProfiles } = await supabase
           .from('profiles')
-          .select('id, name, email, role, institute_id')
+          .select('id, name, email, role')
           .in('id', missingIds);
 
-        if (tenantId) {
-          includeQuery = includeQuery.eq('institute_id', tenantId);
-        }
-
-        const { data: includedProfiles } = await includeQuery;
         if (includedProfiles) {
           result = [...result, ...includedProfiles];
         }
@@ -283,15 +262,14 @@ export async function getEligibleFaculty(search?: string, includeIds?: string[])
 
     for (const p of result) {
       const emailLower = (p.email || '').toLowerCase().trim();
-      if (!seenIds.has(p.id) && !seenEmails.has(emailLower)) {
+      if (!seenIds.has(p.id) && (!emailLower || !seenEmails.has(emailLower))) {
         seenIds.add(p.id);
-        seenEmails.add(emailLower);
+        if (emailLower) seenEmails.add(emailLower);
         deduplicated.push({
           id: p.id,
-          name: p.name,
-          email: p.email,
-          role: p.role,
-          institute_id: p.institute_id
+          name: p.name || p.email || 'Unnamed Faculty',
+          email: p.email || '',
+          role: p.role || 'instructor'
         });
       }
     }

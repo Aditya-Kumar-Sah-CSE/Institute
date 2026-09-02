@@ -29,10 +29,22 @@ function MultiSelectFacultyDropdown({
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [loadedInstructors, setLoadedInstructors] = useState<any[]>([]);
+  const [loadedInstructors, setLoadedInstructors] = useState<any[]>(fallbackInstructors || []);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Sync loadedInstructors when fallbackInstructors prop is updated
+  useEffect(() => {
+    if (fallbackInstructors && fallbackInstructors.length > 0) {
+      setLoadedInstructors(prev => {
+        const map = new Map<string, any>();
+        fallbackInstructors.forEach(item => map.set(item.id, item));
+        prev.forEach(item => map.set(item.id, item));
+        return Array.from(map.values());
+      });
+    }
+  }, [fallbackInstructors]);
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -103,7 +115,7 @@ function MultiSelectFacultyDropdown({
 
   // Client-side local filtering based on input query for instant UI responsiveness
   const filteredInstructors = loadedInstructors.filter((inst) => {
-    const name = (inst.name || '').toLowerCase();
+    const name = (inst.name || inst.full_name || '').toLowerCase();
     const email = (inst.email || '').toLowerCase();
     const role = (inst.role || '').toLowerCase();
     const query = search.toLowerCase().trim();
@@ -310,7 +322,7 @@ function MultiSelectFacultyDropdown({
                     />
                     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: '2px' }}>
                       <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: isSelected ? 600 : 400 }}>
-                        👤 {inst.name}
+                        👤 {inst.name || inst.full_name || inst.email}
                       </span>
                       <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
                         📧 {inst.email}

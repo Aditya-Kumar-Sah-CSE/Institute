@@ -21,15 +21,17 @@ export default async function AdminCoursesPage() {
   const { data: courses } = await query;
 
   // Fetch all profiles with instructor/admin/developer roles for the faculty dropdown
-  let instructorsQuery = supabase
-    .from('profiles')
-    .select('id, name, full_name:name, email, role, institute_id')
-    .in('role', ['instructor', 'admin', 'developer', 'faculty', 'Instructor', 'Admin', 'Developer'])
-    .order('name', { ascending: true });
+  const ALLOWED_ROLES = [
+    'instructor', 'admin', 'developer', 'faculty', 'super_admin', 'superadmin',
+    'Instructor', 'Admin', 'Developer', 'Faculty', 'Super_Admin', 'SuperAdmin',
+    'ADMIN', 'INSTRUCTOR', 'DEVELOPER', 'FACULTY', 'SUPER_ADMIN', 'SUPERADMIN'
+  ];
 
-  if (profile?.institute_id) {
-    instructorsQuery = instructorsQuery.eq('institute_id', profile.institute_id);
-  }
+  const instructorsQuery = supabase
+    .from('profiles')
+    .select('id, name, full_name:name, email, role')
+    .in('role', ALLOWED_ROLES)
+    .order('name', { ascending: true });
 
   const { data: instructors } = await instructorsQuery;
 
