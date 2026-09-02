@@ -27,27 +27,10 @@ export default function LandingDSAClient({
   const scrollLeftRef = useRef(0);
   const isMounted = useRef(false);
   
-  // Auto-scroll effect
+  // Mount sync effect
   React.useEffect(() => {
-    let animationFrameId: number;
-    let accumulatedScroll = 0;
-    
-    const scroll = () => {
-      if (!isDragging.current && !isHovered.current && carouselRef.current) {
-        accumulatedScroll += 0.5; // Adjust speed (pixels per frame)
-        if (accumulatedScroll >= 1) {
-          carouselRef.current.scrollLeft += Math.floor(accumulatedScroll);
-          accumulatedScroll -= Math.floor(accumulatedScroll);
-        }
-      }
-      animationFrameId = requestAnimationFrame(scroll);
-    };
-    
-    animationFrameId = requestAnimationFrame(scroll);
     isMounted.current = true;
     handleScroll(); // Sync active state based on any browser-restored scroll position AFTER hydration
-    
-    return () => cancelAnimationFrame(animationFrameId);
   }, []);
   
   const loadMore = useCallback(async (currentPage: number) => {
@@ -93,24 +76,14 @@ export default function LandingDSAClient({
   const handleScroll = () => {
     if (!isMounted.current) return;
     if (!carouselRef.current || sheets.length === 0) return;
-    const firstChild = carouselRef.current.children[0] as HTMLElement;
-    const secondChild = carouselRef.current.children[1] as HTMLElement;
+    const container = carouselRef.current;
+    const firstChild = container.children[0] as HTMLElement;
+    const secondChild = container.children[1] as HTMLElement;
     if (!firstChild) return;
     
-    const cardWidthExact = secondChild ? (secondChild.offsetLeft - firstChild.offsetLeft) : firstChild.offsetWidth;
-    const maxScroll = cardWidthExact * sheets.length;
-    
-    // Infinite loop check
-    if (carouselRef.current.scrollLeft >= maxScroll) {
-      carouselRef.current.scrollLeft -= maxScroll;
-      if (isDragging.current) scrollLeftRef.current -= maxScroll;
-    } else if (carouselRef.current.scrollLeft <= 0 && isDragging.current) {
-      carouselRef.current.scrollLeft += maxScroll;
-      if (isDragging.current) scrollLeftRef.current += maxScroll;
-    }
-    
-    const newIndex = Math.round(carouselRef.current.scrollLeft / cardWidthExact) % sheets.length;
-    if (newIndex !== activeIndex && newIndex >= 0 && !isNaN(newIndex)) {
+    const cardWidthExact = secondChild ? (secondChild.offsetLeft - firstChild.offsetLeft) : (firstChild.offsetWidth + 16);
+    const newIndex = Math.round(container.scrollLeft / cardWidthExact);
+    if (newIndex !== activeIndex && newIndex >= 0 && newIndex < sheets.length && !isNaN(newIndex)) {
       setActiveIndex(newIndex);
     }
   };
@@ -157,18 +130,17 @@ export default function LandingDSAClient({
             onTouchStart={() => isHovered.current = true}
             onTouchEnd={() => isHovered.current = false}
           >
-            {[...sheets, ...sheets].map((sheet, index) => {
-              const originalIndex = index % sheets.length;
+            {sheets.map((sheet, index) => {
               const problemsCount = sheet.coding_sheet_problems?.length || 0;
-              const isLast = index === (sheets.length * 2) - 1;
-              const isActive = originalIndex === activeIndex;
+              const isLast = index === sheets.length - 1;
+              const isActive = index === activeIndex;
               return (
                 <div 
-                  key={`${sheet.id}-${index}`}
+                  key={sheet.id}
                   ref={isLast ? lastElementRef : null}
                   onMouseEnter={() => {
                      isHovered.current = true;
-                     setActiveIndex(originalIndex);
+                     setActiveIndex(index);
                   }}
                   className={`preview-dsa-card coverflow-card ${isActive ? 'coverflow-active' : 'coverflow-inactive'}`}
                 style={{ 
@@ -181,7 +153,6 @@ export default function LandingDSAClient({
                   minHeight: '410px',
                   maxWidth: '320px',
                   width: '100%',
-                  margin: '0 auto',
                   cursor: 'default'
                 }}
               >

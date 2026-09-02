@@ -31,27 +31,10 @@ export default function LandingCourseClient({
   const scrollLeftRef = useRef(0);
   const isMounted = useRef(false);
   
-  // Auto-scroll effect
+  // Mount sync effect
   React.useEffect(() => {
-    let animationFrameId: number;
-    let accumulatedScroll = 0;
-    
-    const scroll = () => {
-      if (!isDragging.current && !isHovered.current && carouselRef.current) {
-        accumulatedScroll += 0.5; // Adjust speed (pixels per frame)
-        if (accumulatedScroll >= 1) {
-          carouselRef.current.scrollLeft += Math.floor(accumulatedScroll);
-          accumulatedScroll -= Math.floor(accumulatedScroll);
-        }
-      }
-      animationFrameId = requestAnimationFrame(scroll);
-    };
-    
-    animationFrameId = requestAnimationFrame(scroll);
     isMounted.current = true;
     handleScroll(); // Sync active state based on any browser-restored scroll position AFTER hydration
-    
-    return () => cancelAnimationFrame(animationFrameId);
   }, []);
   
   const loadMore = useCallback(async (currentPage: number, currentCategory: string) => {
@@ -112,24 +95,14 @@ export default function LandingCourseClient({
   const handleScroll = () => {
     if (!isMounted.current) return;
     if (!carouselRef.current || courses.length === 0) return;
-    const firstChild = carouselRef.current.children[0] as HTMLElement;
-    const secondChild = carouselRef.current.children[1] as HTMLElement;
+    const container = carouselRef.current;
+    const firstChild = container.children[0] as HTMLElement;
+    const secondChild = container.children[1] as HTMLElement;
     if (!firstChild) return;
     
-    const cardWidthExact = secondChild ? (secondChild.offsetLeft - firstChild.offsetLeft) : firstChild.offsetWidth;
-    const maxScroll = cardWidthExact * courses.length;
-    
-    // Infinite loop check
-    if (carouselRef.current.scrollLeft >= maxScroll) {
-      carouselRef.current.scrollLeft -= maxScroll;
-      if (isDragging.current) scrollLeftRef.current -= maxScroll;
-    } else if (carouselRef.current.scrollLeft <= 0 && isDragging.current) {
-      carouselRef.current.scrollLeft += maxScroll;
-      if (isDragging.current) scrollLeftRef.current += maxScroll;
-    }
-    
-    const newIndex = Math.round(carouselRef.current.scrollLeft / cardWidthExact) % courses.length;
-    if (newIndex !== activeIndex && newIndex >= 0 && !isNaN(newIndex)) {
+    const cardWidthExact = secondChild ? (secondChild.offsetLeft - firstChild.offsetLeft) : (firstChild.offsetWidth + 16);
+    const newIndex = Math.round(container.scrollLeft / cardWidthExact);
+    if (newIndex !== activeIndex && newIndex >= 0 && newIndex < courses.length && !isNaN(newIndex)) {
       setActiveIndex(newIndex);
     }
   };
@@ -190,17 +163,16 @@ export default function LandingCourseClient({
             onTouchStart={() => isHovered.current = true}
             onTouchEnd={() => isHovered.current = false}
           >
-            {[...courses, ...courses].map((course, index) => {
-              const originalIndex = index % courses.length;
-              const isLast = index === (courses.length * 2) - 1;
-              const isActive = originalIndex === activeIndex;
+            {courses.map((course, index) => {
+              const isLast = index === courses.length - 1;
+              const isActive = index === activeIndex;
               return (
                 <div 
-                  key={`${course.id}-${index}`}
+                  key={course.id}
                   ref={isLast ? lastElementRef : null}
                   onMouseEnter={() => {
                      isHovered.current = true;
-                     setActiveIndex(originalIndex);
+                     setActiveIndex(index);
                   }}
                   className={`preview-course-card coverflow-card ${isActive ? 'coverflow-active' : 'coverflow-inactive'}`}
                 style={{ 
@@ -213,7 +185,6 @@ export default function LandingCourseClient({
                   minHeight: '430px',
                   maxWidth: '360px',
                   width: '100%',
-                  margin: '0 auto',
                   cursor: 'default'
                 }}
               >
