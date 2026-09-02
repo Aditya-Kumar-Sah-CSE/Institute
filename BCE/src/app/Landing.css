@@ -1307,9 +1307,9 @@
 }
 
 .coverflow-inactive {
-  transform: scale(0.88);
-  opacity: 0.5;
-  filter: blur(2px);
+  transform: scale(1);
+  opacity: 1;
+  filter: blur(0px);
   z-index: 1;
 }
 

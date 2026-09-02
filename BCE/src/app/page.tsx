@@ -9,20 +9,23 @@ import Image from 'next/image';
 import InstallAppButton from '@/components/pwa/InstallAppButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ArrowRight, Star } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import AutoScrollMarquee from '@/components/ui/AutoScrollMarquee';
 import ExploreMoreWrapper from './components/ExploreMoreWrapper';
-import GallerySection from './components/GallerySection';
 import LandingCoursePreview from './components/LandingCoursePreview';
 import LandingDSAPreview from './components/LandingDSAPreview';
 import './Landing.css';
 import { createClient } from '@/lib/supabase/server';
 
+const GallerySection = dynamic(() => import('./components/GallerySection'));
+
 export default async function LandingPage() {
   const supabase = await createClient();
-  const [{ data: settings }, { data: hero }, { data: coreFeatures }] = await Promise.all([
+  const [{ data: settings }, { data: hero }, { data: coreFeatures }, { data: galleryItems }] = await Promise.all([
     supabase.from('company_settings').select('company_name, tagline, logo_url').maybeSingle(),
     supabase.from('landing_content').select('*').eq('id', 'default').maybeSingle(),
     supabase.from('landing_core_features').select('*').eq('is_active', true).order('sort_order'),
+    supabase.from('landing_gallery').select('id, image_url, title, description, sort_order').eq('is_active', true).order('sort_order', { ascending: true }),
   ]);
   const companyName = settings?.company_name || hero?.hero_heading || '';
   const tagline = settings?.tagline || '';
@@ -32,7 +35,7 @@ export default async function LandingPage() {
       {/* Navigation */}
       <header className="landing-nav">
         <div className="landing-logo" style={{ display: 'flex', alignItems: 'center', padding: '0', margin: '0', background: 'transparent' }}>
-          {settings?.logo_url && <Image src={settings.logo_url} alt={`${companyName} logo`} width={40} height={40} style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '8px' }} unoptimized />}
+          {settings?.logo_url && <Image src={settings.logo_url} alt={`${companyName} logo`} width={40} height={40} style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '8px' }} />}
         </div>
         <div className="landing-nav-actions">
           <ThemeToggle />
@@ -96,8 +99,8 @@ export default async function LandingPage() {
                 width={800}
                 height={600}
                 priority
+                sizes="(max-width: 768px) 100vw, 50vw"
                 style={{ width: '135%', height: 'auto', objectFit: 'contain', pointerEvents: 'none' }}
-                unoptimized
               />
             </div>}
           </div>
@@ -113,12 +116,12 @@ export default async function LandingPage() {
       <ExploreMoreWrapper>
         <main className="landing-main" style={{ minHeight: 'auto' }}>
           {/* Gallery Section — Dynamic + Manual with Show More */}
-          <GallerySection />
+          <GallerySection items={galleryItems || []} />
 
         {/* Features Grid */}
         {coreFeatures && coreFeatures.length > 0 && <section id="features" className="features-section">
           <AutoScrollMarquee className="features-marquee-wrapper" innerClassName="features-keyword-grid">
-                {(coreFeatures?.length ? coreFeatures : [{ id: 'fallback', title: 'Approval System', description: '', icon: 'UserCheck' }]).map((feature: any) => <div className="feature-card" key={feature.id}><div className="feature-icon-wrapper">{feature.image_url ? <Image src={feature.image_url} alt="" width={32} height={32} style={{ objectFit: 'contain' }} unoptimized /> : <Star size={32} strokeWidth={1.5} />}</div><h3>{feature.title}</h3>{feature.description && <p>{feature.description}</p>}</div>)}
+                {(coreFeatures?.length ? coreFeatures : [{ id: 'fallback', title: 'Approval System', description: '', icon: 'UserCheck' }]).map((feature: any) => <div className="feature-card" key={feature.id}><div className="feature-icon-wrapper">{feature.image_url ? <Image src={feature.image_url} alt="" width={32} height={32} style={{ objectFit: 'contain' }} /> : <Star size={32} strokeWidth={1.5} />}</div><h3>{feature.title}</h3>{feature.description && <p>{feature.description}</p>}</div>)}
           </AutoScrollMarquee>
         </section>}
 

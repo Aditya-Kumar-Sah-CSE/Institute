@@ -12,8 +12,7 @@ interface GalleryItem {
   sort_order: number;
 }
 
-export default function GallerySection() {
-  const [items, setItems] = useState<GalleryItem[]>([]);
+export default function GallerySection({ items }: { items: GalleryItem[] }) {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
 
@@ -24,26 +23,7 @@ export default function GallerySection() {
     }
   };
 
-  useEffect(() => {
-    async function fetchGallery() {
-      try {
-        const supabase = createClient();
-        const { data, error } = await supabase
-          .from('landing_gallery')
-          .select('id, image_url, title, description, sort_order')
-          .eq('is_active', true)
-          .order('sort_order', { ascending: true });
 
-        if (!error && data && data.length > 0) {
-          setItems(data as GalleryItem[]);
-        }
-        // Empty or unavailable CMS content intentionally renders no legacy fallback cards.
-      } catch {
-        // Silently fallback to manual items
-      }
-    }
-    fetchGallery();
-  }, []);
 
   if (items.length === 0) return null;
 
@@ -77,8 +57,8 @@ export default function GallerySection() {
                 alt={item.title}
                 width={600}
                 height={400}
+                sizes="(max-width: 768px) 100vw, 400px"
                 style={{ width: '100%', height: 'auto', objectFit: 'cover' }}
-                unoptimized
               />
             </div>
             <div className="gallery-card-info">
@@ -117,8 +97,8 @@ export default function GallerySection() {
               alt="Preview Fullscreen"
               width={1600}
               height={1000}
+              sizes="100vw"
               style={{ objectFit: 'contain', maxWidth: '100%', maxHeight: '100%', borderRadius: '12px', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}
-              unoptimized
             />
           </div>
         </div>

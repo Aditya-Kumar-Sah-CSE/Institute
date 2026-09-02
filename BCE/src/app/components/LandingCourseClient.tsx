@@ -26,8 +26,29 @@ export default function LandingCourseClient({
   
   // Drag states
   const isDragging = useRef(false);
+  const isHovered = useRef(false);
   const startX = useRef(0);
   const scrollLeftRef = useRef(0);
+  
+  // Auto-scroll effect
+  React.useEffect(() => {
+    let animationFrameId: number;
+    let accumulatedScroll = 0;
+    
+    const scroll = () => {
+      if (!isDragging.current && !isHovered.current && carouselRef.current) {
+        accumulatedScroll += 0.5; // Adjust speed (pixels per frame)
+        if (accumulatedScroll >= 1) {
+          carouselRef.current.scrollLeft += Math.floor(accumulatedScroll);
+          accumulatedScroll -= Math.floor(accumulatedScroll);
+        }
+      }
+      animationFrameId = requestAnimationFrame(scroll);
+    };
+    
+    animationFrameId = requestAnimationFrame(scroll);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, []);
   
   const loadMore = useCallback(async (currentPage: number, currentCategory: string) => {
     if (loadingRef.current) return;
@@ -85,14 +106,25 @@ export default function LandingCourseClient({
   };
 
   const handleScroll = () => {
-    if (!carouselRef.current) return;
-    const firstChild = carouselRef.current.firstElementChild as HTMLElement;
+    if (!carouselRef.current || courses.length === 0) return;
+    const firstChild = carouselRef.current.children[0] as HTMLElement;
+    const secondChild = carouselRef.current.children[1] as HTMLElement;
     if (!firstChild) return;
     
-    // Add gap space to calculate exact card step
-    const cardWidthExact = firstChild.offsetWidth + 16; 
-    const newIndex = Math.round(carouselRef.current.scrollLeft / cardWidthExact);
-    if (newIndex !== activeIndex && newIndex >= 0 && newIndex < courses.length) {
+    const cardWidthExact = secondChild ? (secondChild.offsetLeft - firstChild.offsetLeft) : firstChild.offsetWidth;
+    const maxScroll = cardWidthExact * courses.length;
+    
+    // Infinite loop check
+    if (carouselRef.current.scrollLeft >= maxScroll) {
+      carouselRef.current.scrollLeft -= maxScroll;
+      if (isDragging.current) scrollLeftRef.current -= maxScroll;
+    } else if (carouselRef.current.scrollLeft <= 0 && isDragging.current) {
+      carouselRef.current.scrollLeft += maxScroll;
+      if (isDragging.current) scrollLeftRef.current += maxScroll;
+    }
+    
+    const newIndex = Math.round(carouselRef.current.scrollLeft / cardWidthExact) % courses.length;
+    if (newIndex !== activeIndex && newIndex >= 0 && !isNaN(newIndex)) {
       setActiveIndex(newIndex);
     }
   };
@@ -143,18 +175,28 @@ export default function LandingCourseClient({
             ref={carouselRef}
             onScroll={handleScroll}
             onMouseDown={onMouseDown}
-            onMouseLeave={onMouseLeave}
+            onMouseLeave={(e) => {
+               onMouseLeave();
+               isHovered.current = false;
+            }}
             onMouseUp={onMouseUp}
             onMouseMove={onMouseMove}
+            onMouseEnter={() => isHovered.current = true}
+            onTouchStart={() => isHovered.current = true}
+            onTouchEnd={() => isHovered.current = false}
           >
-            {courses.map((course, index) => {
-              const isLast = index === courses.length - 1;
-              const isActive = index === activeIndex;
+            {[...courses, ...courses].map((course, index) => {
+              const originalIndex = index % courses.length;
+              const isLast = index === (courses.length * 2) - 1;
+              const isActive = originalIndex === activeIndex;
               return (
                 <div 
                   key={`${course.id}-${index}`}
                   ref={isLast ? lastElementRef : null}
-                  onMouseEnter={() => setActiveIndex(index)}
+                  onMouseEnter={() => {
+                     isHovered.current = true;
+                     setActiveIndex(originalIndex);
+                  }}
                   className={`preview-course-card coverflow-card ${isActive ? 'coverflow-active' : 'coverflow-inactive'}`}
                 style={{ 
                   background: 'var(--bg-card)', 
@@ -218,7 +260,7 @@ export default function LandingCourseClient({
                   flexShrink: 0
                 }}>
                   {course.thumbnail_url ? (
-                    <Image src={course.thumbnail_url} alt={course.title} fill style={{ objectFit: 'cover' }} unoptimized />
+                    <Image src={course.thumbnail_url} alt={course.title} fill sizes="72px" style={{ objectFit: 'cover' }} />
                   ) : (
                     <BookOpen size={32} color="#818cf8" />
                   )}
@@ -301,7 +343,9 @@ export default function LandingCourseClient({
                 className={`carousel-dot ${i === activeIndex ? 'active' : ''}`}
                 onClick={() => {
                    if (!carouselRef.current) return;
-                   const cardWidth = (carouselRef.current.firstElementChild as HTMLElement)?.offsetWidth + 16;
+                   const firstChild = carouselRef.current.children[0] as HTMLElement;
+                   const secondChild = carouselRef.current.children[1] as HTMLElement;
+                   const cardWidth = secondChild ? (secondChild.offsetLeft - firstChild.offsetLeft) : firstChild.offsetWidth;
                    carouselRef.current.scrollTo({ left: i * cardWidth, behavior: 'smooth' });
                    setActiveIndex(i);
                 }}

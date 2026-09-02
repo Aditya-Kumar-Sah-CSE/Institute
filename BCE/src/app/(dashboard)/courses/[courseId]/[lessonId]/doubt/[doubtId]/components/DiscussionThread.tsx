@@ -77,7 +77,7 @@ export default function DiscussionThread({ doubt, replies, currentUser }: any) {
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-sm)' }}>
           <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'flex-start' }}>
-            <img src={reply.author?.avatar_url || DEFAULT_AVATAR} alt="avatar" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1px solid var(--glass-border)' }} onError={(e) => { e.currentTarget.src = DEFAULT_AVATAR; }} />
+            <img src={reply.author?.avatar_url || DEFAULT_AVATAR} alt="avatar" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1px solid var(--glass-border)' }} onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = DEFAULT_AVATAR; }} />
             <div>
               <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {reply.author?.name} 
@@ -167,7 +167,7 @@ export default function DiscussionThread({ doubt, replies, currentUser }: any) {
         <h1 style={{ fontSize: 'clamp(var(--text-xl), 5vw, var(--text-2xl))', marginBottom: 'var(--space-md)', color: 'var(--text-primary)' }}>{doubt.title}</h1>
         
         <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'flex-start', marginBottom: 'var(--space-lg)', paddingBottom: 'var(--space-md)', borderBottom: '1px solid rgba(255,255,255,0.1)', flexWrap: 'wrap' }}>
-          <img src={doubt.author?.avatar_url || DEFAULT_AVATAR} alt="avatar" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid var(--neon-cyan)' }} onError={(e) => { e.currentTarget.src = DEFAULT_AVATAR; }} />
+          <img src={doubt.author?.avatar_url || DEFAULT_AVATAR} alt="avatar" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid var(--neon-cyan)' }} onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = DEFAULT_AVATAR; }} />
           <div>
             <div style={{ fontWeight: 'bold' }}>{doubt.author?.name}</div>
             <div suppressHydrationWarning style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
