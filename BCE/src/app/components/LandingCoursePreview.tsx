@@ -1,6 +1,6 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
-const LandingCourseClient = dynamic(() => import('./LandingCourseClient'), { ssr: false });
+const LandingCourseClient = dynamic(() => import('./LandingCourseClient'));
 import { getPreviewCourses, getCourseCategories } from './LandingPreviewActions';
 
 export default async function LandingCoursePreview() {
