@@ -30,17 +30,24 @@ export default async function LandingPage() {
   const companyName = settings?.company_name || hero?.hero_heading || '';
   const tagline = settings?.tagline || '';
 
+  const logoUrl = settings?.logo_url;
+  const isRemoteLogo = !!(logoUrl && (logoUrl.startsWith('http://') || logoUrl.startsWith('https://')));
+
+  const heroImageUrl = hero?.hero_image_url || '/images/hero_img.png';
+  const isRemoteHero = !!(heroImageUrl && (heroImageUrl.startsWith('http://') || heroImageUrl.startsWith('https://')));
+
   return (
     <div className="landing-container">
       {/* Navigation */}
       <header className="landing-nav">
         <div className="landing-logo" style={{ display: 'flex', alignItems: 'center', padding: '0', margin: '0', background: 'transparent' }}>
-          {settings?.logo_url && (
+          {logoUrl && (
             <Image 
-              src={settings.logo_url} 
+              src={logoUrl} 
               alt={`${companyName} logo`} 
               width={40} 
-              height={40} 
+              height={40}
+              unoptimized={isRemoteLogo}
               style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '8px' }} 
             />
           )}
@@ -105,16 +112,17 @@ export default async function LandingPage() {
             </div>
 
             {/* Right — Hero Image */}
-            {hero?.hero_image_url && (
+            {heroImageUrl && (
               <div className="hero-image animate-fade-up delay-200">
                 <div className="hero-image-glow"></div>
                 <Image
-                  src={hero?.hero_image_url || '/images/hero_img.png'}
+                  src={heroImageUrl}
                   alt={`${companyName} hero`}
                   width={800}
                   height={600}
                   priority
                   sizes="(max-width: 768px) 100vw, 50vw"
+                  unoptimized={isRemoteHero}
                   style={{ width: '135%', height: 'auto', objectFit: 'contain', pointerEvents: 'none' }}
                 />
               </div>
@@ -136,19 +144,29 @@ export default async function LandingPage() {
           {coreFeatures && coreFeatures.length > 0 && (
             <section id="features" className="features-section">
               <AutoScrollMarquee className="features-marquee-wrapper" innerClassName="features-keyword-grid">
-                {(coreFeatures?.length ? coreFeatures : [{ id: 'fallback', title: 'Approval System', description: '', icon: 'UserCheck' }]).map((feature: any) => (
-                  <div className="feature-card" key={feature.id}>
-                    <div className="feature-icon-wrapper">
-                      {feature.image_url ? (
-                        <Image src={feature.image_url} alt={feature.title || 'Feature icon'} width={32} height={32} style={{ objectFit: 'contain' }} />
-                      ) : (
-                        <Star size={32} strokeWidth={1.5} />
-                      )}
+                {(coreFeatures?.length ? coreFeatures : [{ id: 'fallback', title: 'Approval System', description: '', icon: 'UserCheck' }]).map((feature: any) => {
+                  const isRemoteFeatureImg = !!(feature.image_url && (feature.image_url.startsWith('http://') || feature.image_url.startsWith('https://')));
+                  return (
+                    <div className="feature-card" key={feature.id}>
+                      <div className="feature-icon-wrapper">
+                        {feature.image_url ? (
+                          <Image 
+                            src={feature.image_url} 
+                            alt={feature.title || 'Feature icon'} 
+                            width={32} 
+                            height={32} 
+                            unoptimized={isRemoteFeatureImg}
+                            style={{ objectFit: 'contain' }} 
+                          />
+                        ) : (
+                          <Star size={32} strokeWidth={1.5} />
+                        )}
+                      </div>
+                      <h3>{feature.title}</h3>
+                      {feature.description && <p>{feature.description}</p>}
                     </div>
-                    <h3>{feature.title}</h3>
-                    {feature.description && <p>{feature.description}</p>}
-                  </div>
-                ))}
+                  );
+                })}
               </AutoScrollMarquee>
             </section>
           )}

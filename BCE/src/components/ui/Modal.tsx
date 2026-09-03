@@ -2,7 +2,6 @@
 
 import React, { useEffect, useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
-import './Modal.css';
 
 interface ModalProps {
   isOpen: boolean;

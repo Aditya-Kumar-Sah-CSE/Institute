@@ -75,10 +75,14 @@ export async function GET(request: Request) {
 
       return NextResponse.redirect(`${origin}${safeRedirect}`);
     } else if (error) {
-      return NextResponse.redirect(`${origin}${baseUrl || ''}/login?error=${encodeURIComponent(error.message)}`);
+      const isExpiredOrInvalid = error.message?.toLowerCase().includes('expired') || error.message?.toLowerCase().includes('invalid');
+      const errorMsg = isExpiredOrInvalid 
+        ? 'Verification link has expired or is invalid. Please request a new link below.' 
+        : error.message;
+      return NextResponse.redirect(`${origin}${baseUrl || ''}/verify-email?error=${encodeURIComponent(errorMsg)}`);
     }
   }
 
-  // return the user to an error page with some instructions
-  return NextResponse.redirect(`${origin}${baseUrl || ''}/login?error=Could not authenticate user. Please try requesting a new link.`);
+  // Fallback for missing/invalid token or OTP error
+  return NextResponse.redirect(`${origin}${baseUrl || ''}/verify-email?error=${encodeURIComponent('Verification link has expired or is invalid. Please request a new link below.')}`);
 }

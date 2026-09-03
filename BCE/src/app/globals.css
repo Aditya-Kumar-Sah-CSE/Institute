@@ -3,6 +3,10 @@
    ============================================ */
 @import '../styles/variables.css';
 @import '../styles/animations.css';
+@import '../components/ui/Button.css';
+@import '../components/ui/Input.css';
+@import '../components/ui/Card.css';
+@import '../components/ui/Modal.css';
 
 /* === Reset === */
 *, *::before, *::after {

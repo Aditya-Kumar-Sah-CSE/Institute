@@ -1,7 +1,6 @@
 "use client";
 
 import React from 'react';
-import './Card.css';
 
 interface CardProps {
   children: React.ReactNode;

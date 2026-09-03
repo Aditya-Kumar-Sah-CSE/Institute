@@ -74,8 +74,78 @@ export async function signUp(formData: FormData) {
     // Sign out the user so they must manually sign in as per requested flow
     await supabase.auth.signOut();
   
-    redirect('/login?message=Account created successfully. Please check your email to confirm.');
+    redirect(`/verify-email?email=${encodeURIComponent(email)}`);
   }
+}
+
+export async function resendVerificationEmail(email: string) {
+  if (!email || typeof email !== 'string') {
+    return { error: 'Please enter a valid email address.' };
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(normalizedEmail)) {
+    return { error: 'Please enter a valid email address.' };
+  }
+
+  // 1. Global daily quota protection (250 resends/day globally to protect Brevo daily quota)
+  const globalRl = checkRateLimit('resend_global_daily', 250, 86400000);
+  if (!globalRl.success) {
+    return { error: 'Email service temporarily unavailable. Please try again later.' };
+  }
+
+  // 2. Per-email 60-second cooldown
+  const cooldownRl = checkRateLimit(`resend_cooldown:${normalizedEmail}`, 1, 60000);
+  if (!cooldownRl.success) {
+    const secs = cooldownRl.retryAfterSeconds || 60;
+    return { error: `Please wait ${secs} seconds before requesting another email.` };
+  }
+
+  // 3. Per-email 1-hour limit (max 5 resends / hour)
+  const hourlyRl = checkRateLimit(`resend_hourly:${normalizedEmail}`, 5, 3600000);
+  if (!hourlyRl.success) {
+    return { error: 'Too many requests. Please try again later.' };
+  }
+
+  const supabase = await createClient();
+
+  // 4. Check if account is already verified in profiles
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_verified')
+    .eq('email', normalizedEmail)
+    .maybeSingle();
+
+  if (profile?.is_verified) {
+    return {
+      success: true,
+      message: 'If this account requires verification, a verification email has been sent.',
+    };
+  }
+
+  // 5. Trigger Supabase Auth resend email (uses Supabase Custom SMTP -> Brevo)
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email: normalizedEmail,
+  });
+
+  if (error) {
+    if (error.status === 429 || error.message?.toLowerCase().includes('rate limit')) {
+      return { error: 'Please wait before requesting another email.' };
+    }
+    console.error('[resendVerificationEmail] Supabase resend error:', error.message);
+    // Generic safe response to prevent email enumeration or internal error leakage
+    return {
+      success: true,
+      message: 'If this account requires verification, a verification email has been sent.',
+    };
+  }
+
+  return {
+    success: true,
+    message: 'Verification email sent successfully. Please check your inbox or spam folder.',
+  };
 }
 
 export async function signIn(formData: FormData) {

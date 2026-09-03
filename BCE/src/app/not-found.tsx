@@ -1,4 +1,6 @@
-import BrickBreakerGame from '@/components/404/BrickBreakerGame';
+import dynamic from 'next/dynamic';
+
+const BrickBreakerGame = dynamic(() => import('@/components/404/BrickBreakerGame'));
 
 export const metadata = {
   title: '404 - Page Not Found | Smart Learn',

@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import './Button.css';
 import Modal from './Modal';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {

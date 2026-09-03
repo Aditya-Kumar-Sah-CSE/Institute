@@ -3,11 +3,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { signIn } from '@/features/auth/actions/auth';
+import { signIn, resendVerificationEmail } from '@/features/auth/actions/auth';
 import { createClient } from '@/lib/supabase/client';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import { Mail, Lock } from 'lucide-react';
+import { Mail, Lock, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
 import './AuthForms.css';
 
 interface LoginFormProps {
@@ -49,6 +49,10 @@ export default function LoginForm({ companyName, logoUrl, baseUrl }: LoginFormPr
   const urlError = searchParams.get('error');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [isResending, setIsResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
+  
   const router = useRouter();
   const pathname = usePathname();
   const supabase = createClient();
@@ -61,6 +65,14 @@ export default function LoginForm({ companyName, logoUrl, baseUrl }: LoginFormPr
       setError(urlError);
     }
   }, [urlError]);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown(prev => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
 
   useEffect(() => {
     let cancelled = false;
@@ -92,6 +104,7 @@ export default function LoginForm({ companyName, logoUrl, baseUrl }: LoginFormPr
     if (e) e.preventDefault();
     setIsLoading(true);
     setError('');
+    setResendMessage(null);
 
     const form = new FormData();
     form.append('email', formData.email);
@@ -106,6 +119,31 @@ export default function LoginForm({ companyName, logoUrl, baseUrl }: LoginFormPr
       setIsLoading(false);
     }
   }
+
+  async function handleResendFromLogin() {
+    if (!formData.email) {
+      setResendMessage({ type: 'error', text: 'Please enter your email address above first.' });
+      return;
+    }
+    setIsResending(true);
+    setResendMessage(null);
+
+    const result = await resendVerificationEmail(formData.email);
+    if (result.error) {
+      setResendMessage({ type: 'error', text: result.error });
+      setIsResending(false);
+    } else {
+      setResendMessage({ type: 'success', text: result.message || 'Verification email sent.' });
+      setIsResending(false);
+      setResendCooldown(60);
+    }
+  }
+
+  const isUnverifiedError = error && (
+    error.toLowerCase().includes('email not confirmed') || 
+    error.toLowerCase().includes('confirmation link') || 
+    error.toLowerCase().includes('verify')
+  );
 
   return (
     <div className="auth-container">
@@ -149,7 +187,44 @@ export default function LoginForm({ companyName, logoUrl, baseUrl }: LoginFormPr
 
         <div className="auth-form" onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(e); }}>
           {message && !error && <div className="auth-success" style={{ color: 'var(--neon-lime)', background: 'rgba(57, 255, 20, 0.1)', padding: 'var(--space-sm)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--neon-lime)' }}>{message}</div>}
-          {error && <div className="auth-error">{error}</div>}
+          
+          {error && (
+            isUnverifiedError ? (
+              <div style={{ background: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgba(234, 179, 8, 0.3)', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ color: '#facc15', fontWeight: 600, fontSize: 'var(--text-sm)' }}>Email not verified</div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-xs)', lineHeight: 1.4 }}>
+                  Please verify your email before signing in. Check your inbox or click below to resend.
+                </div>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    isLoading={isResending}
+                    disabled={resendCooldown > 0 || isResending}
+                    onClick={handleResendFromLogin}
+                    style={{ width: '100%' }}
+                  >
+                    {resendCooldown > 0 ? (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <RefreshCw size={14} className="spin" /> Resend available in {resendCooldown}s
+                      </span>
+                    ) : (
+                      'Resend Verification Email'
+                    )}
+                  </Button>
+                </div>
+                {resendMessage && (
+                  <div style={{ fontSize: 'var(--text-xs)', color: resendMessage.type === 'error' ? 'var(--neon-red)' : 'var(--neon-lime)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {resendMessage.type === 'error' ? <AlertCircle size={14} /> : <CheckCircle2 size={14} />}
+                    <span>{resendMessage.text}</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="auth-error">{error}</div>
+            )
+          )}
 
           <Input
             name="email"

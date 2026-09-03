@@ -39,29 +39,33 @@ export default function GallerySection({ items }: { items: GalleryItem[] }) {
           scrollbarWidth: 'none' 
         }}
       >
-        {items.map((item) => (
-          <div key={item.id} className="gallery-card why-huge-card" style={{ scrollSnapAlign: 'start' }}>
-            <div 
-              className="gallery-card-img" 
-              onClick={() => setPreviewImage(item.image_url)} 
-              style={{ cursor: 'pointer' }}
-              title="Click to view full image"
-            >
-              <Image
-                src={item.image_url}
-                alt={item.title}
-                width={600}
-                height={400}
-                sizes="(max-width: 768px) 100vw, 400px"
-                style={{ width: '100%', height: 'auto', objectFit: 'cover' }}
-              />
+        {items.map((item) => {
+          const isRemote = !!(item.image_url && (item.image_url.startsWith('http://') || item.image_url.startsWith('https://')));
+          return (
+            <div key={item.id} className="gallery-card why-huge-card" style={{ scrollSnapAlign: 'start' }}>
+              <div 
+                className="gallery-card-img" 
+                onClick={() => setPreviewImage(item.image_url)} 
+                style={{ cursor: 'pointer' }}
+                title="Click to view full image"
+              >
+                <Image
+                  src={item.image_url}
+                  alt={item.title}
+                  width={600}
+                  height={400}
+                  sizes="(max-width: 768px) 100vw, 400px"
+                  unoptimized={isRemote}
+                  style={{ width: '100%', height: 'auto', objectFit: 'cover' }}
+                />
+              </div>
+              <div className="gallery-card-info">
+                <h3>{item.title}</h3>
+                {item.description && <p>{item.description}</p>}
+              </div>
             </div>
-            <div className="gallery-card-info">
-              <h3>{item.title}</h3>
-              {item.description && <p>{item.description}</p>}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '2rem' }}>
@@ -94,6 +98,7 @@ export default function GallerySection({ items }: { items: GalleryItem[] }) {
               width={1600}
               height={1000}
               sizes="100vw"
+              unoptimized={previewImage.startsWith('http://') || previewImage.startsWith('https://')}
               style={{ objectFit: 'contain', maxWidth: '100%', maxHeight: '100%', borderRadius: '12px', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}
             />
           </div>
