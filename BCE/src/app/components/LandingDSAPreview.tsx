@@ -1,6 +1,6 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
-const LandingDSAClient = dynamic(() => import('./LandingDSAClient'));
+const LandingDSAClient = dynamic(() => import('./LandingDSAClient'), { ssr: false });
 import { getPreviewDSASheets } from './LandingPreviewActions';
 
 export default async function LandingDSAPreview() {
