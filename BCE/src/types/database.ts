@@ -21,12 +21,68 @@ export interface Profile {
   last_active_at: string | null;
   created_at: string;
   social_links?: Record<string, string>;
+  linkedin_url?: string | null;
+  institute_id?: string | null;
   graduation_period?: string | null;
   college_name?: string | null;
   cgpa?: number | null;
   sgpa?: Record<string, number> | null;
   admission_filled?: boolean;
+  professional_details?: Record<string, any> | null;
+  qualifications?: Qualification[];
+  work_experience?: WorkExperience[];
+  interests?: string[];
+  skills?: string[];
+  external_certificates?: ExternalCertificate[];
 }
+
+export interface Qualification {
+  id: string;
+  degree: string;
+  institution: string;
+  year: string;
+  fieldOfStudy?: string;
+  grade?: string;
+}
+
+export interface WorkExperience {
+  id: string;
+  title: string;
+  company: string;
+  startDate: string;
+  endDate?: string;
+  current?: boolean;
+  description?: string;
+}
+
+export interface ExternalCertificate {
+  id: string;
+  title: string;
+  issuer: string;
+  date: string;
+  credentialUrl?: string;
+  fileUrl?: string;
+}
+
+export interface CourseReview {
+  id: string;
+  course_id: string;
+  user_id: string;
+  rating: number;
+  review_text: string | null;
+  status: 'published' | 'hidden' | 'flagged';
+  is_public: boolean;
+  created_at: string;
+  updated_at: string;
+  profile?: {
+    id?: string;
+    name: string;
+    avatar_url?: string | null;
+    role?: string;
+    institute_id?: string | null;
+  } | null;
+}
+
 
 export interface InstructorApplication {
   id: string;

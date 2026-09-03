@@ -16,6 +16,11 @@ import BasicInfoEdit from './components/BasicInfoEdit';
 import ShareProfileButton from '@/components/shared/ShareProfileButton';
 import EnrolledCoursesList from '@/components/shared/EnrolledCoursesList';
 import { getPastMonthlyRewards } from '@/features/gamification/actions/monthly-rewards';
+import ProfileCompletionCard from './components/ProfileCompletionCard';
+import QualificationsManager from './components/QualificationsManager';
+import WorkExperienceManager from './components/WorkExperienceManager';
+import TagsManager from './components/TagsManager';
+import ExternalCertificatesManager from './components/ExternalCertificatesManager';
 import RecentActivity from './components/RecentActivity';
 import StorageUsageIndicator from '@/components/shared/StorageUsageIndicator';
 import { Suspense } from 'react';
@@ -68,7 +73,7 @@ export default async function ProfilePage() {
     const { data } = await adminSb.from('courses').select('id, title').eq('created_by', user.id);
     teachingCourses = data;
   }
-  // Sort descending by month_date
+  
   const latestReward = monthlyRewards.length > 0 ? monthlyRewards.sort((a, b) => new Date(b.month_date).getTime() - new Date(a.month_date).getTime())[0] : null;
 
   if (!profile) return <div>Profile not found.</div>;
@@ -87,6 +92,7 @@ export default async function ProfilePage() {
         <div style={{ position: 'absolute', top: '16px', right: '16px', zIndex: 10 }}>
           <ShareProfileButton userId={user.id} />
         </div>
+        
         {/* Left Column: Profile Info */}
         <div className="profile-info-large" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', justifyContent: 'center' }}>
           <h1 className="profile-name">{profile.name}</h1>
@@ -163,13 +169,26 @@ export default async function ProfilePage() {
         </div>
       </div>
 
+      {/* Profile Completion Indicator */}
+      <div style={{ marginBottom: 'var(--space-xl)' }}>
+        <ProfileCompletionCard profile={profile} />
+      </div>
+
       <div className="profile-grid">
         {profile.role === 'student' ? (
-          <div className="profile-col-main">
+          <div className="profile-col-main" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
             <Card variant="glass" className="profile-section">
               <h2 className="section-title-sm">Current Progress</h2>
               <XPBar xp={profile.xp} size="lg" />
             </Card>
+
+            <QualificationsManager initialQualifications={profile.qualifications} />
+
+            <WorkExperienceManager initialWorkExperience={profile.work_experience} />
+
+            <TagsManager initialSkills={profile.skills} initialInterests={profile.interests} />
+
+            <ExternalCertificatesManager initialCertificates={profile.external_certificates} />
 
             <Card variant="glass" className="profile-section">
               <h2 className="section-title-sm">Badges ({earnedBadges?.length || 0}/{allBadges?.length || 0})</h2>
@@ -182,7 +201,7 @@ export default async function ProfilePage() {
             </Card>
 
             <Card variant="glass" className="profile-section">
-              <h2 className="section-title-sm">My Certificates</h2>
+              <h2 className="section-title-sm">My Course Certificates</h2>
               {certificates && certificates.length > 0 ? (
                 <div className="enrollments-list">
                   {certificates.map((cert: any) => (
@@ -222,7 +241,15 @@ export default async function ProfilePage() {
             </Card>
           </div>
         ) : (
-          <div className="profile-col-main">
+          <div className="profile-col-main" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
+            <QualificationsManager initialQualifications={profile.qualifications} />
+
+            <WorkExperienceManager initialWorkExperience={profile.work_experience} />
+
+            <TagsManager initialSkills={profile.skills} initialInterests={profile.interests} />
+
+            <ExternalCertificatesManager initialCertificates={profile.external_certificates} />
+
             <Card variant="glass" className="profile-section">
               <h2 className="section-title-sm">Courses Teaching</h2>
               {teachingCourses && teachingCourses.length > 0 ? (
@@ -288,3 +315,4 @@ export default async function ProfilePage() {
     </div>
   );
 }
+

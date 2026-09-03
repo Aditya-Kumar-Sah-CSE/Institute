@@ -14,6 +14,9 @@ import CourseDoubtsSection from '@/features/courses/components/CourseDoubtsSecti
 import CurriculumListClient from '@/features/courses/components/CurriculumListClient';
 import EnrollCourseButton from '@/features/courses/components/EnrollCourseButton';
 import JoinedStudentsList from '@/features/admin/components/JoinedStudentsList';
+import CourseReviewsSection from '@/features/courses/components/CourseReviewsSection';
+import EndOfCourseReviewCard from '@/features/courses/components/EndOfCourseReviewCard';
+import { getCourseReviewsData } from '@/features/courses/actions/reviews';
 import './CourseDetail.css';
 
 export default async function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
@@ -105,11 +108,21 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
     .single();
 
   const adminClient = await createAdminClient();
-  const { data: enrolledStudents } = await adminClient
-    .from('enrollments')
-    .select('id, user_id, status, profiles(id, name, email, avatar_url, institute_id)')
-    .eq('course_id', courseId)
-    .eq('status', 'approved');
+  const [
+    { data: enrolledStudents },
+    reviewsData
+  ] = await Promise.all([
+    adminClient
+      .from('enrollments')
+      .select('id, user_id, status, profiles(id, name, email, avatar_url, institute_id)')
+      .eq('course_id', courseId)
+      .eq('status', 'approved'),
+    getCourseReviewsData(courseId, user.id)
+  ]);
+
+  const isEnrolled = !!(enrollment && enrollment.status === 'approved');
+  const isCourseCompleted = !!userCertificate || (enrollment && (enrollment.progress || 0) >= 1.0);
+
 
   return (
     <div className="course-detail-page">
@@ -182,10 +195,14 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
           )}
           <p className="course-desc-large" style={{ marginBottom: '8px' }}>{course.description}</p>
           
-          <div className="course-stats" style={{ marginBottom: '16px' }}>
+          <div className="course-stats" style={{ marginBottom: '16px', display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
             <span>📚 {lessons?.length || 0} Lessons</span>
-            <span className="text-gradient">⭐ {course.total_xp} Total XP</span>
+            <span className="text-gradient">⚡ {course.total_xp} Total XP</span>
+            <span style={{ color: '#f59e0b', fontWeight: 600 }}>
+              ⭐ {reviewsData.stats.averageRating > 0 ? `${reviewsData.stats.averageRating} / 5.0 (${reviewsData.stats.totalReviews} ${reviewsData.stats.totalReviews === 1 ? 'review' : 'reviews'})` : 'New Course'}
+            </span>
           </div>
+
 
           {userCertificate ? (
             <Link href={`/certificates/${userCertificate.id}`} style={{ textDecoration: 'none', display: 'inline-block', marginBottom: '16px', width: '100%' }}>
@@ -314,6 +331,32 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
           isStaff={Boolean(isStaffUser || course.created_by === user.id)} 
         />
       </div>
+
+      {/* End of Course Feedback Prompt */}
+      {isEnrolled && isCourseCompleted && (
+        <div style={{ marginTop: 'var(--space-2xl)' }}>
+          <EndOfCourseReviewCard 
+            courseId={courseId} 
+            courseTitle={course.title} 
+            existingRating={reviewsData.userReview?.rating} 
+            existingFeedback={reviewsData.userReview?.review_text || ''} 
+          />
+        </div>
+      )}
+
+      {/* Course Public Reviews Section */}
+      <div style={{ marginTop: 'var(--space-2xl)' }}>
+        <CourseReviewsSection 
+          courseId={courseId} 
+          currentUserId={user.id} 
+          isEnrolled={isEnrolled} 
+          isStaff={Boolean(isStaffUser || course.created_by === user.id)} 
+          reviews={reviewsData.reviews} 
+          userReview={reviewsData.userReview || null} 
+          stats={reviewsData.stats} 
+        />
+      </div>
     </div>
   );
 }
+

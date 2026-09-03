@@ -203,7 +203,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
     // Fetch the public profile
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, name, email, avatar_url, xp, level, role, streak_days, social_links, linkedin_url, institute_id, instructor_id, graduation_period, cgpa, sgpa, created_at, professional_details, college_name')
+      .select('id, name, email, avatar_url, xp, level, role, streak_days, social_links, linkedin_url, institute_id, instructor_id, graduation_period, cgpa, sgpa, created_at, professional_details, college_name, qualifications, work_experience, skills, interests, external_certificates')
       .eq('id', id)
       .maybeSingle();
       
@@ -372,22 +372,121 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
       <div className="profile-grid">
         {profile.role === 'student' ? (
           <>
-            <div className="profile-col-main">
+            <div className="profile-col-main" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
               <Card variant="glass" className="profile-section">
                 <h2 className="section-title-sm">Current Progress</h2>
                 <XPBar xp={profile.xp} size="lg" />
               </Card>
 
-          <Card variant="glass" className="profile-section">
-            <h2 className="section-title-sm">Badges ({earnedBadges?.length || 0}/{allBadges?.length || 0})</h2>
-            <BadgeDisplay allBadges={allBadges || []} earnedBadges={earnedBadges || []} />
-          </Card>
+              {/* Skills & Interests Tags */}
+              {((profile.skills && profile.skills.length > 0) || (profile.interests && profile.interests.length > 0)) && (
+                <Card variant="glass" className="profile-section">
+                  {profile.skills && profile.skills.length > 0 && (
+                    <div style={{ marginBottom: profile.interests && profile.interests.length > 0 ? 'var(--space-md)' : 0 }}>
+                      <h3 style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 'var(--space-xs)' }}>Skills</h3>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {profile.skills.map((s: string) => (
+                          <span key={s} style={{ padding: '3px 10px', borderRadius: '12px', background: 'rgba(6, 182, 212, 0.1)', border: '1px solid rgba(6, 182, 212, 0.3)', color: 'var(--neon-cyan)', fontSize: '12px', fontWeight: 600 }}>
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-          <Card variant="glass" className="profile-section">
-            <h2 className="section-title-sm">Enrolled Courses</h2>
-            <EnrolledCoursesList enrollments={enrollments || []} />
-          </Card>
+                  {profile.interests && profile.interests.length > 0 && (
+                    <div>
+                      <h3 style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 'var(--space-xs)' }}>Interests</h3>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {profile.interests.map((i: string) => (
+                          <span key={i} style={{ padding: '3px 10px', borderRadius: '12px', background: 'rgba(236, 72, 153, 0.1)', border: '1px solid rgba(236, 72, 153, 0.3)', color: 'var(--neon-pink)', fontSize: '12px', fontWeight: 600 }}>
+                            {i}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </Card>
+              )}
+
+              {/* Qualifications */}
+              {profile.qualifications && profile.qualifications.length > 0 && (
+                <Card variant="glass" className="profile-section">
+                  <h2 className="section-title-sm">Qualifications</h2>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
+                    {profile.qualifications.map((q: any) => (
+                      <div key={q.id || q.degree} style={{ padding: 'var(--space-sm) var(--space-md)', background: 'rgba(0,0,0,0.2)', borderRadius: 'var(--radius-md)', border: '1px solid var(--glass-border)' }}>
+                        <h4 style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-primary)' }}>{q.degree}</h4>
+                        <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--neon-cyan)' }}>{q.institution}</p>
+                        <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                          {q.fieldOfStudy && <span>{q.fieldOfStudy}</span>}
+                          {q.year && <span>Year: {q.year}</span>}
+                          {q.grade && <span>Grade: {q.grade}</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+
+              {/* Work Experience */}
+              {profile.work_experience && profile.work_experience.length > 0 && (
+                <Card variant="glass" className="profile-section">
+                  <h2 className="section-title-sm">Work Experience</h2>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
+                    {profile.work_experience.map((w: any) => (
+                      <div key={w.id || w.title} style={{ padding: 'var(--space-sm) var(--space-md)', background: 'rgba(0,0,0,0.2)', borderRadius: 'var(--radius-md)', border: '1px solid var(--glass-border)' }}>
+                        <h4 style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-primary)' }}>{w.title}</h4>
+                        <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--neon-purple)', fontWeight: 600 }}>{w.company}</p>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                          {w.startDate} {w.startDate && (w.endDate || w.current) ? '–' : ''} {w.current ? 'Present' : w.endDate}
+                        </div>
+                        {w.description && <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>{w.description}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+
+              {/* External Certifications */}
+              {profile.external_certificates && profile.external_certificates.length > 0 && (
+                <Card variant="glass" className="profile-section">
+                  <h2 className="section-title-sm">Certifications & Credentials</h2>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
+                    {profile.external_certificates.map((c: any) => (
+                      <div key={c.id || c.title} style={{ padding: 'var(--space-sm) var(--space-md)', background: 'rgba(255, 215, 0, 0.04)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255, 215, 0, 0.2)' }}>
+                        <h4 style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--neon-gold)' }}>{c.title}</h4>
+                        <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--text-primary)' }}>{c.issuer}</p>
+                        <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                          {c.date && <span>Issued: {c.date}</span>}
+                          {c.credentialUrl && (
+                            <a href={c.credentialUrl.startsWith('http') ? c.credentialUrl : `https://${c.credentialUrl}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--neon-cyan)', textDecoration: 'none' }}>
+                              Verify Link ↗
+                            </a>
+                          )}
+                          {c.fileUrl && (
+                            <a href={c.fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#10b981', textDecoration: 'none' }}>
+                              View Document 📄
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+
+              <Card variant="glass" className="profile-section">
+                <h2 className="section-title-sm">Badges ({earnedBadges?.length || 0}/{allBadges?.length || 0})</h2>
+                <BadgeDisplay allBadges={allBadges || []} earnedBadges={earnedBadges || []} />
+              </Card>
+
+              <Card variant="glass" className="profile-section">
+                <h2 className="section-title-sm">Enrolled Courses</h2>
+                <EnrolledCoursesList enrollments={enrollments || []} />
+              </Card>
             </div>
+
 
             <div className="profile-col-side">
               {(profile.sgpa && Object.keys(profile.sgpa).length > 0) && (
