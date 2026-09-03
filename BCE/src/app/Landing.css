@@ -1184,6 +1184,13 @@
   filter: brightness(1.2);
 }
 
+.dsa-badge-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .preview-course-btn {
   transition: background 0.2s ease, border-color 0.2s ease;
 }

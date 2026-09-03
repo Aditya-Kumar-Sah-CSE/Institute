@@ -187,6 +187,7 @@ export default function LandingCourseClient({
               return (
                 <div 
                   key={course.id}
+                  suppressHydrationWarning
                   ref={isLast ? lastElementRef : null}
                   onMouseEnter={() => {
                      isHovered.current = true;

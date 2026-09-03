@@ -146,6 +146,7 @@ export default function LandingDSAClient({
               return (
                 <div 
                   key={sheet.id}
+                  suppressHydrationWarning
                   ref={isLast ? lastElementRef : null}
                   onMouseEnter={() => {
                      isHovered.current = true;
@@ -183,7 +184,7 @@ export default function LandingDSAClient({
                     <FolderGit2 size={28} />
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <div className="dsa-badge-container" suppressHydrationWarning>
                     {/* Star Rating Badge */}
                     <div style={{
                       display: 'inline-flex',
