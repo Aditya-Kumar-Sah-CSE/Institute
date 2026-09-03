@@ -27,12 +27,15 @@ export default function LandingDSAClient({
   const scrollLeftRef = useRef(0);
   const isMounted = useRef(false);
   
-  // Mount sync effect
+  // Mount sync effect — force initial scroll position to 0
   React.useEffect(() => {
     isMounted.current = true;
-    handleScroll(); // Sync active state based on any browser-restored scroll position AFTER hydration
+    if (carouselRef.current) {
+      carouselRef.current.scrollLeft = 0;
+    }
+    setActiveIndex(0);
   }, []);
-  
+
   const loadMore = useCallback(async (currentPage: number) => {
     if (loadingRef.current) return;
     loadingRef.current = true;
@@ -73,20 +76,26 @@ export default function LandingDSAClient({
     if (node) observerRef.current.observe(node);
   }, [hasMore, page, loadMore]);
 
-  const handleScroll = () => {
-    if (!isMounted.current) return;
-    if (!carouselRef.current || sheets.length === 0) return;
+  const handleScroll = useCallback(() => {
+    if (!isMounted.current || !carouselRef.current || sheets.length === 0) return;
     const container = carouselRef.current;
+    if (container.scrollLeft <= 10) {
+      if (activeIndex !== 0) setActiveIndex(0);
+      return;
+    }
     const firstChild = container.children[0] as HTMLElement;
     const secondChild = container.children[1] as HTMLElement;
     if (!firstChild) return;
     
     const cardWidthExact = secondChild ? (secondChild.offsetLeft - firstChild.offsetLeft) : (firstChild.offsetWidth + 16);
-    const newIndex = Math.round(container.scrollLeft / cardWidthExact);
-    if (newIndex !== activeIndex && newIndex >= 0 && newIndex < sheets.length && !isNaN(newIndex)) {
-      setActiveIndex(newIndex);
+    if (cardWidthExact <= 0) return;
+
+    const calculatedIndex = Math.round(container.scrollLeft / cardWidthExact);
+    const clampedIndex = Math.max(0, Math.min(sheets.length - 1, calculatedIndex));
+    if (clampedIndex !== activeIndex && !isNaN(clampedIndex)) {
+      setActiveIndex(clampedIndex);
     }
-  };
+  }, [sheets.length, activeIndex]);
 
   // Mouse drag handlers for desktop/tablet
   const onMouseDown = (e: React.MouseEvent) => {
@@ -291,11 +300,16 @@ export default function LandingDSAClient({
                 className={`carousel-dot ${i === activeIndex ? 'active' : ''}`}
                 onClick={() => {
                    if (!carouselRef.current) return;
-                   const firstChild = carouselRef.current.children[0] as HTMLElement;
-                   const secondChild = carouselRef.current.children[1] as HTMLElement;
-                   const cardWidth = secondChild ? (secondChild.offsetLeft - firstChild.offsetLeft) : firstChild.offsetWidth;
-                   carouselRef.current.scrollTo({ left: i * cardWidth, behavior: 'smooth' });
-                   setActiveIndex(i);
+                   const targetIndex = Math.max(0, Math.min(sheets.length - 1, i));
+                   if (targetIndex === 0) {
+                     carouselRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+                   } else {
+                     const firstChild = carouselRef.current.children[0] as HTMLElement;
+                     const secondChild = carouselRef.current.children[1] as HTMLElement;
+                     const cardWidth = secondChild ? (secondChild.offsetLeft - firstChild.offsetLeft) : (firstChild.offsetWidth + 16);
+                     carouselRef.current.scrollTo({ left: targetIndex * cardWidth, behavior: 'smooth' });
+                   }
+                   setActiveIndex(targetIndex);
                 }}
               />
             ))}

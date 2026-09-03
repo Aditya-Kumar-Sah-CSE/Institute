@@ -99,20 +99,26 @@ export default function LandingCourseClient({
     }
   };
 
-  const handleScroll = () => {
-    if (!isMounted.current) return;
-    if (!carouselRef.current || courses.length === 0) return;
+  const handleScroll = useCallback(() => {
+    if (!isMounted.current || !carouselRef.current || courses.length === 0) return;
     const container = carouselRef.current;
+    if (container.scrollLeft <= 10) {
+      if (activeIndex !== 0) setActiveIndex(0);
+      return;
+    }
     const firstChild = container.children[0] as HTMLElement;
     const secondChild = container.children[1] as HTMLElement;
     if (!firstChild) return;
     
     const cardWidthExact = secondChild ? (secondChild.offsetLeft - firstChild.offsetLeft) : (firstChild.offsetWidth + 16);
-    const newIndex = Math.round(container.scrollLeft / cardWidthExact);
-    if (newIndex !== activeIndex && newIndex >= 0 && newIndex < courses.length && !isNaN(newIndex)) {
-      setActiveIndex(newIndex);
+    if (cardWidthExact <= 0) return;
+
+    const calculatedIndex = Math.round(container.scrollLeft / cardWidthExact);
+    const clampedIndex = Math.max(0, Math.min(courses.length - 1, calculatedIndex));
+    if (clampedIndex !== activeIndex && !isNaN(clampedIndex)) {
+      setActiveIndex(clampedIndex);
     }
-  };
+  }, [courses.length, activeIndex]);
 
   // Mouse drag handlers for desktop/tablet
   const onMouseDown = (e: React.MouseEvent) => {
@@ -342,11 +348,16 @@ export default function LandingCourseClient({
                 className={`carousel-dot ${i === activeIndex ? 'active' : ''}`}
                 onClick={() => {
                    if (!carouselRef.current) return;
-                   const firstChild = carouselRef.current.children[0] as HTMLElement;
-                   const secondChild = carouselRef.current.children[1] as HTMLElement;
-                   const cardWidth = secondChild ? (secondChild.offsetLeft - firstChild.offsetLeft) : firstChild.offsetWidth;
-                   carouselRef.current.scrollTo({ left: i * cardWidth, behavior: 'smooth' });
-                   setActiveIndex(i);
+                   const targetIndex = Math.max(0, Math.min(courses.length - 1, i));
+                   if (targetIndex === 0) {
+                     carouselRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+                   } else {
+                     const firstChild = carouselRef.current.children[0] as HTMLElement;
+                     const secondChild = carouselRef.current.children[1] as HTMLElement;
+                     const cardWidth = secondChild ? (secondChild.offsetLeft - firstChild.offsetLeft) : (firstChild.offsetWidth + 16);
+                     carouselRef.current.scrollTo({ left: targetIndex * cardWidth, behavior: 'smooth' });
+                   }
+                   setActiveIndex(targetIndex);
                 }}
               />
             ))}

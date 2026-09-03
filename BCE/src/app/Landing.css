@@ -1273,8 +1273,8 @@
     gap: 16px !important;
     padding-top: 8px;
     padding-bottom: 24px; /* Space for shadows */
-    padding-left: 7.5vw !important;
-    padding-right: 7.5vw !important;
+    padding-left: 24px !important;
+    padding-right: 24px !important;
     margin-left: -24px !important;
     margin-right: -24px !important;
     width: calc(100% + 48px) !important;
@@ -1283,7 +1283,7 @@
     touch-action: pan-x;
     box-sizing: border-box;
     /* Snap position accounts for padding so cards don't clip */
-    scroll-padding-inline: 7.5vw !important;
+    scroll-padding-inline: 24px !important;
   }
   .mobile-carousel::-webkit-scrollbar {
     display: none !important;
