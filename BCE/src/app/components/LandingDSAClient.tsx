@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { Lock, Code, Shield, FolderGit2 } from 'lucide-react';
+import { Lock, Code, Shield, FolderGit2, Star } from 'lucide-react';
 import { getPreviewDSASheets } from './LandingPreviewActions';
 
 export default function LandingDSAClient({ 
@@ -174,19 +174,39 @@ export default function LandingDSAClient({
                     <FolderGit2 size={28} />
                   </div>
 
-                  {sheet.enrollment_access && sheet.enrollment_access !== 'public' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    {/* Star Rating Badge */}
                     <div style={{
-                      display: 'flex', alignItems: 'center', gap: '4px',
-                      fontSize: '0.75rem', fontWeight: 700,
-                      padding: '4px 10px', borderRadius: '16px',
-                      color: sheet.enrollment_access === 'restricted' ? '#fbbf24' : '#f87171',
-                      background: 'rgba(0, 0, 0, 0.2)',
-                      border: sheet.enrollment_access === 'restricted' ? '1px solid rgba(251,191,36,0.3)' : '1px solid rgba(248,113,113,0.3)'
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '4px 10px',
+                      borderRadius: '16px',
+                      background: 'rgba(245, 158, 11, 0.12)',
+                      border: '1px solid rgba(245, 158, 11, 0.35)',
+                      color: '#f59e0b',
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      boxShadow: '0 0 10px rgba(245, 158, 11, 0.15)'
                     }}>
-                      {sheet.enrollment_access === 'restricted' ? <Shield size={12} /> : <Lock size={12} />}
-                      {sheet.enrollment_access === 'restricted' ? 'PASSCODE' : 'PRIVATE'}
+                      <Star size={12} fill="#f59e0b" style={{ filter: 'drop-shadow(0 0 4px rgba(245, 158, 11, 0.6))' }} />
+                      <span>{sheet.averageRating > 0 ? `${sheet.averageRating} (${sheet.totalReviews})` : 'New Sheet'}</span>
                     </div>
-                  )}
+
+                    {sheet.enrollment_access && sheet.enrollment_access !== 'public' && (
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '4px',
+                        fontSize: '0.75rem', fontWeight: 700,
+                        padding: '4px 10px', borderRadius: '16px',
+                        color: sheet.enrollment_access === 'restricted' ? '#fbbf24' : '#f87171',
+                        background: 'rgba(0, 0, 0, 0.2)',
+                        border: sheet.enrollment_access === 'restricted' ? '1px solid rgba(251,191,36,0.3)' : '1px solid rgba(248,113,113,0.3)'
+                      }}>
+                        {sheet.enrollment_access === 'restricted' ? <Shield size={12} /> : <Lock size={12} />}
+                        {sheet.enrollment_access === 'restricted' ? 'PASSCODE' : 'PRIVATE'}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Text Content */}
