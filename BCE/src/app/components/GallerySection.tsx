@@ -1,6 +1,5 @@
 'use client';
-import React, { useState, useEffect, useRef } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import React, { useState, useRef } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 
@@ -23,14 +22,10 @@ export default function GallerySection({ items }: { items: GalleryItem[] }) {
     }
   };
 
-
-
   if (items.length === 0) return null;
 
   return (
     <section className="gallery-section">
-
-      {/* Native horizontal slide row removing duplicate auto-scroll */}
       <div 
         ref={trackRef}
         className="why-gallery-track" 
@@ -58,7 +53,6 @@ export default function GallerySection({ items }: { items: GalleryItem[] }) {
                 width={600}
                 height={400}
                 sizes="(max-width: 768px) 100vw, 400px"
-                unoptimized
                 style={{ width: '100%', height: 'auto', objectFit: 'cover' }}
               />
             </div>
@@ -88,6 +82,7 @@ export default function GallerySection({ items }: { items: GalleryItem[] }) {
           <button 
             style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', cursor: 'pointer', padding: '0.5rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s ease' }}
             onClick={() => setPreviewImage(null)}
+            aria-label="Close image preview"
             className="hover:bg-white hover:text-black"
           >
             <X size={28} />
@@ -99,7 +94,6 @@ export default function GallerySection({ items }: { items: GalleryItem[] }) {
               width={1600}
               height={1000}
               sizes="100vw"
-              unoptimized
               style={{ objectFit: 'contain', maxWidth: '100%', maxHeight: '100%', borderRadius: '12px', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}
             />
           </div>

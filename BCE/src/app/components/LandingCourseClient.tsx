@@ -255,7 +255,7 @@ export default function LandingCourseClient({
                   flexShrink: 0
                 }}>
                   {course.thumbnail_url ? (
-                    <Image src={course.thumbnail_url} alt={course.title} fill sizes="72px" unoptimized style={{ objectFit: 'cover' }} />
+                    <Image src={course.thumbnail_url} alt={course.title} fill sizes="72px" style={{ objectFit: 'cover' }} />
                   ) : (
                     <BookOpen size={32} color="#818cf8" />
                   )}

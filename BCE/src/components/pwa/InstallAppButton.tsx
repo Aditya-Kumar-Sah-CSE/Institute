@@ -22,6 +22,7 @@ export default function InstallAppButton({ className, variant = 'secondary' }: {
       onClick={() => window.dispatchEvent(new Event('show-pwa-install'))}
       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px' }}
       title="Install App"
+      aria-label="Install App"
     >
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
