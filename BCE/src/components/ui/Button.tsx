@@ -71,6 +71,7 @@ export default function Button({
     <>
       <button
         ref={buttonRef}
+        suppressHydrationWarning
         className={`btn btn-${variant} btn-${size} ${fullWidth ? 'btn-full' : ''} ${isLoading ? 'btn-loading' : ''} ${className}`}
         disabled={disabled || isLoading}
         onClick={handleClick}

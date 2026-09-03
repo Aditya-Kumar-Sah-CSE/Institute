@@ -16,6 +16,7 @@ import EnrollCourseButton from '@/features/courses/components/EnrollCourseButton
 import JoinedStudentsList from '@/features/admin/components/JoinedStudentsList';
 import CourseReviewsSection from '@/features/courses/components/CourseReviewsSection';
 import EndOfCourseReviewCard from '@/features/courses/components/EndOfCourseReviewCard';
+import CourseHeroCard from '@/features/courses/components/CourseHeroCard';
 import { getCourseReviewsData } from '@/features/courses/actions/reviews';
 import './CourseDetail.css';
 
@@ -179,7 +180,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
         />
       </div>
 
-      <div className="course-hero glass-card">
+      <CourseHeroCard courseTitle={course.title} instructorName={course.profiles?.name}>
         <div className="course-hero-content">
           <div 
             className="course-difficulty-badge"
@@ -321,7 +322,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
             />
           </div>
         )}
-      </div>
+      </CourseHeroCard>
 
       <div id="joined-students" className="enrolled-students-section" style={{ marginTop: 'var(--space-xl)' }}>
         <h2 className="section-title" style={{ marginBottom: 'var(--space-md)' }}>Joined Students</h2>

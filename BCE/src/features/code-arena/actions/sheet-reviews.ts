@@ -4,9 +4,9 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { awardXP } from '@/features/auth/actions/auth';
-import { CourseReview } from '@/types/database';
+import { SheetReview } from '@/types/database';
 
-export interface CourseReviewStats {
+export interface SheetReviewStats {
   averageRating: number;
   totalReviews: number;
   breakdown: {
@@ -19,10 +19,10 @@ export interface CourseReviewStats {
 }
 
 /**
- * Submit or update a course review
+ * Submit or update a practice sheet review
  */
-export async function submitOrUpdateReviewAction(
-  courseId: string, 
+export async function submitOrUpdateSheetReviewAction(
+  sheetId: string, 
   rating: number, 
   reviewText: string, 
   isPublic: boolean = true
@@ -34,78 +34,72 @@ export async function submitOrUpdateReviewAction(
     return { error: 'Unauthorized. Please sign in to submit feedback.' };
   }
 
-  if (!rating || rating < 1 || rating > 5) {
+  if (!rating || !Number.isInteger(rating) || rating < 1 || rating > 5) {
     return { error: 'Please provide a rating between 1 and 5 stars.' };
   }
 
+  const cleanReviewText = (reviewText || '').trim();
+  if (cleanReviewText.length > 2000) {
+    return { error: 'Comment must not exceed 2000 characters.' };
+  }
+
   // Rate Limiting: max 5 review submissions per user per 5 minutes
-  const rl = checkRateLimit(`submitReview:${user.id}`, 5, 300000);
+  const rl = checkRateLimit(`submitSheetReview:${user.id}`, 5, 300000);
   if (!rl.success) {
     return { error: rl.error };
   }
 
-  // Check enrollment or course ownership authorization
-  const { data: course } = await supabase.from('courses').select('created_by').eq('id', courseId).single();
-  const isCourseOwner = course?.created_by === user.id;
-
-  const { data: enrollment } = await supabase
-    .from('enrollments')
-    .select('status')
-    .eq('course_id', courseId)
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  const isEnrolled = enrollment?.status === 'approved';
-
-  if (!isEnrolled && !isCourseOwner) {
-    return { error: 'Only enrolled students can submit feedback for this course.' };
+  // Check sheet existence
+  const { data: sheet } = await supabase.from('coding_sheets').select('id').eq('id', sheetId).single();
+  if (!sheet) {
+    return { error: 'Practice sheet not found.' };
   }
 
   // Check if review already exists
   const { data: existingReview } = await supabase
-    .from('course_reviews')
+    .from('sheet_reviews')
     .select('id')
-    .eq('course_id', courseId)
+    .eq('sheet_id', sheetId)
     .eq('user_id', user.id)
     .maybeSingle();
 
   const adminSb = await createAdminClient();
-  const cleanReviewText = (reviewText || '').trim();
 
   const { error } = await adminSb
-    .from('course_reviews')
+    .from('sheet_reviews')
     .upsert({
-      course_id: courseId,
+      sheet_id: sheetId,
       user_id: user.id,
       rating,
       review_text: cleanReviewText || null,
       is_public: isPublic,
       status: 'published',
       updated_at: new Date().toISOString()
-    }, { onConflict: 'course_id,user_id' });
+    }, { onConflict: 'sheet_id,user_id' });
 
   if (error) {
-    console.error('Error submitting course review:', error);
+    console.error('Error submitting sheet review:', error);
     return { error: error.message };
   }
 
-  // Award 25 XP for first-time course feedback
+  // Award 15 XP for first-time practice sheet review
   if (!existingReview) {
     try {
-      await awardXP(user.id, 25, 'Submitted Course Review', 'course_review', courseId);
+      await awardXP(user.id, 15, 'Submitted Sheet Review', 'sheet_review', sheetId);
     } catch (e) {
-      console.error('Failed to award review XP:', e);
+      console.error('Failed to award sheet review XP:', e);
     }
   }
 
-  revalidatePath(`/courses/${courseId}`);
+  revalidatePath(`/code-arena/sheets/${sheetId}`);
+  revalidatePath(`/code-arena/sheets`);
   return { success: true };
 }
 
 /**
- * Delete a course review (Author or Instructor/Admin)
+ * Delete a sheet review (Author or Instructor/Admin)
  */
-export async function deleteReviewAction(reviewId: string, courseId: string) {
+export async function deleteSheetReviewAction(reviewId: string, sheetId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -114,8 +108,8 @@ export async function deleteReviewAction(reviewId: string, courseId: string) {
   }
 
   const { data: review } = await supabase
-    .from('course_reviews')
-    .select('user_id, course_id')
+    .from('sheet_reviews')
+    .select('user_id, sheet_id')
     .eq('id', reviewId)
     .single();
 
@@ -133,25 +127,26 @@ export async function deleteReviewAction(reviewId: string, courseId: string) {
 
   const adminSb = await createAdminClient();
   const { error } = await adminSb
-    .from('course_reviews')
+    .from('sheet_reviews')
     .delete()
     .eq('id', reviewId);
 
   if (error) {
-    console.error('Error deleting course review:', error);
+    console.error('Error deleting sheet review:', error);
     return { error: error.message };
   }
 
-  revalidatePath(`/courses/${courseId}`);
+  revalidatePath(`/code-arena/sheets/${sheetId}`);
+  revalidatePath(`/code-arena/sheets`);
   return { success: true };
 }
 
 /**
- * Moderate review status (Instructor / Admin function)
+ * Moderate sheet review status (Instructor / Admin function)
  */
-export async function moderateReviewStatusAction(
+export async function moderateSheetReviewStatusAction(
   reviewId: string, 
-  courseId: string, 
+  sheetId: string, 
   status: 'published' | 'hidden' | 'flagged'
 ) {
   const supabase = await createClient();
@@ -162,50 +157,47 @@ export async function moderateReviewStatusAction(
   }
 
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-  const { data: course } = await supabase.from('courses').select('created_by').eq('id', courseId).single();
-
   const isStaff = profile && ['admin', 'instructor', 'developer'].includes(profile.role);
-  const isCourseOwner = course?.created_by === user.id;
 
-  if (!isStaff && !isCourseOwner) {
-    return { error: 'Only course instructors or admins can moderate reviews.' };
+  if (!isStaff) {
+    return { error: 'Only instructors or admins can moderate reviews.' };
   }
 
   const adminSb = await createAdminClient();
   const { error } = await adminSb
-    .from('course_reviews')
+    .from('sheet_reviews')
     .update({ status })
     .eq('id', reviewId);
 
   if (error) {
-    console.error('Error moderating course review:', error);
+    console.error('Error moderating sheet review:', error);
     return { error: error.message };
   }
 
-  revalidatePath(`/courses/${courseId}`);
+  revalidatePath(`/code-arena/sheets/${sheetId}`);
+  revalidatePath(`/code-arena/sheets`);
   return { success: true };
 }
 
 /**
- * Get course review statistics & public reviews list
+ * Get sheet review statistics & public reviews list
  */
-export async function getCourseReviewsData(courseId: string, currentUserId?: string) {
+export async function getSheetReviewsData(sheetId: string, currentUserId?: string) {
   const adminSb = await createAdminClient();
 
-  // Fetch all reviews for this course with reviewer profile details
   const { data: reviewsData, error } = await adminSb
-    .from('course_reviews')
+    .from('sheet_reviews')
     .select('*, profile:profiles(id, name, avatar_url, role, institute_id)')
-    .eq('course_id', courseId)
+    .eq('sheet_id', sheetId)
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching course reviews:', error);
+    console.error('Error fetching sheet reviews:', error);
   }
 
-  const allReviews: CourseReview[] = (reviewsData || []).map((r: any) => ({
+  const allReviews: SheetReview[] = (reviewsData || []).map((r: any) => ({
     id: r.id,
-    course_id: r.course_id,
+    sheet_id: r.sheet_id,
     user_id: r.user_id,
     rating: r.rating,
     review_text: r.review_text,
@@ -222,7 +214,6 @@ export async function getCourseReviewsData(courseId: string, currentUserId?: str
     } : null
   }));
 
-  // Aggregate Stats
   const publishedReviews = allReviews.filter(r => r.status === 'published' && r.is_public);
   const totalReviews = publishedReviews.length;
 
@@ -237,8 +228,6 @@ export async function getCourseReviewsData(courseId: string, currentUserId?: str
   });
 
   const averageRating = totalReviews > 0 ? parseFloat((sumRating / totalReviews).toFixed(1)) : 0;
-
-  // Filter reviews visible to user based on status & current user identity
   const userReview = currentUserId ? allReviews.find(r => r.user_id === currentUserId) : null;
 
   return {
@@ -254,16 +243,16 @@ export async function getCourseReviewsData(courseId: string, currentUserId?: str
 }
 
 /**
- * Batch fetch course review aggregate stats for listing pages (Course Catalog, Dashboard, Landing preview)
+ * Batch fetch sheet review aggregate stats for sheet listing grid
  */
-export async function getBatchCourseRatingStats(courseIds: string[]): Promise<Record<string, { averageRating: number; totalReviews: number }>> {
-  if (!courseIds || courseIds.length === 0) return {};
+export async function getBatchSheetRatingStats(sheetIds: string[]): Promise<Record<string, { averageRating: number; totalReviews: number }>> {
+  if (!sheetIds || sheetIds.length === 0) return {};
 
   const adminSb = await createAdminClient();
   const { data, error } = await adminSb
-    .from('course_reviews')
-    .select('course_id, rating')
-    .in('course_id', courseIds)
+    .from('sheet_reviews')
+    .select('sheet_id, rating')
+    .in('sheet_id', sheetIds)
     .eq('status', 'published')
     .eq('is_public', true);
 
@@ -272,14 +261,14 @@ export async function getBatchCourseRatingStats(courseIds: string[]): Promise<Re
   }
 
   const aggregates: Record<string, { sum: number; count: number }> = {};
-  courseIds.forEach(id => {
+  sheetIds.forEach(id => {
     aggregates[id] = { sum: 0, count: 0 };
   });
 
   data.forEach((r: any) => {
-    if (aggregates[r.course_id]) {
-      aggregates[r.course_id].sum += r.rating;
-      aggregates[r.course_id].count += 1;
+    if (aggregates[r.sheet_id]) {
+      aggregates[r.sheet_id].sum += r.rating;
+      aggregates[r.sheet_id].count += 1;
     }
   });
 

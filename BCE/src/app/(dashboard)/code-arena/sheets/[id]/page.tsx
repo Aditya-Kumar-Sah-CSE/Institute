@@ -4,6 +4,7 @@ import { getCodeArenaActor } from '@/features/code-arena/server';
 import SheetDetailClient from '@/features/code-arena/components/SheetDetailClient';
 import { createClient as createRawClient } from '@supabase/supabase-js';
 import { getSolvedStatusMap } from '@/lib/coding-platforms/solved-matcher';
+import { getSheetReviewsData } from '@/features/code-arena/actions/sheet-reviews';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -159,6 +160,8 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
   const totalEnrolledSolvers = Math.max(enrollmentsCount || 0, uniqueSolversCount);
   const avgQuestionsSolved = uniqueSolversCount > 0 ? (totalSolvedSum / uniqueSolversCount).toFixed(1) : '0';
 
+  const sheetReviewsData = await getSheetReviewsData(sheet.id, user.id);
+
   return (
     <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading Sheet Details…</div>}>
       <SheetDetailClient
@@ -175,6 +178,7 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
         enrolledStudents={enrolledStudents}
         enrollmentAccess={sheet.enrollment_access || 'public'}
         isEnrolled={isEnrolled}
+        reviewsData={sheetReviewsData}
       />
     </Suspense>
   );

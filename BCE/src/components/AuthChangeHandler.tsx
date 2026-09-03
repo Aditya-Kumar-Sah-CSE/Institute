@@ -7,11 +7,24 @@ import { clearOfflineCache } from '@/lib/cache/offlineDb';
 if (typeof window !== 'undefined') {
   const originalError = console.error;
   console.error = (...args: any[]) => {
-    const msg = args[0];
+    const fullText = args
+      .map((a) => {
+        if (!a) return '';
+        if (typeof a === 'string') return a;
+        if (a instanceof Error) return `${a.message} ${a.stack || ''}`;
+        try {
+          return typeof a === 'object' ? JSON.stringify(a) : String(a);
+        } catch {
+          return String(a);
+        }
+      })
+      .join(' ');
+
     if (
-      typeof msg === 'string' &&
-      (msg.includes('We are cleaning up async info that was not on the parent Suspense boundary') ||
-       msg.includes('removePreviousSuspendedBy'))
+      fullText.includes('We are cleaning up async info that was not on the parent Suspense boundary') ||
+      fullText.includes('removePreviousSuspendedBy') ||
+      fullText.includes('fdprocessedid') ||
+      fullText.includes('hydration mismatch')
     ) {
       return;
     }

@@ -1,17 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Trophy, ArrowLeft, BookOpen, Plus, Search, 
   ChevronRight, Trash2, CheckCircle2, Award, X,
-  Globe, Shield, Lock, Share2, Check, UserPlus, Loader2
+  Globe, Shield, Lock, Share2, Check, UserPlus, Loader2, Star
 } from 'lucide-react';
 import CreateSheetWizard from './CreateSheetWizard';
 import MobileCodeArenaToggle from './MobileCodeArenaToggle';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
+import { getBatchSheetRatingStats } from '../actions/sheet-reviews';
 import './CodeArena.css';
 
 type CodingSheet = {
@@ -40,6 +41,18 @@ export default function SheetsListClient({
   const [searchQuery, setSearchQuery] = useState('');
   const [showWizard, setShowWizard] = useState(false);
   const [copiedSheetId, setCopiedSheetId] = useState<string | null>(null);
+
+  // Sheet ratings state
+  const [sheetRatings, setSheetRatings] = useState<Record<string, { averageRating: number; totalReviews: number }>>({});
+
+  useEffect(() => {
+    const ids = initialSheets.map(s => s.id);
+    if (ids.length > 0) {
+      getBatchSheetRatingStats(ids).then(stats => {
+        if (stats) setSheetRatings(stats);
+      });
+    }
+  }, [initialSheets]);
 
   // Enrollment state
   const [enrolledIds, setEnrolledIds] = useState<string[]>(initialEnrolledIds);
@@ -261,14 +274,25 @@ export default function SheetsListClient({
                     </div>
                   )}
 
-                  {/* Problem count for unenrolled */}
-                  {showEnroll && totalProblems > 0 && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                  {/* Metadata Row: Problem count & Rating badge */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '8px' }}>
+                    {totalProblems > 0 ? (
                       <span style={{ fontSize: '11px', fontWeight: 700, color: '#06b6d4', background: 'rgba(6,182,212,0.1)', padding: '2px 8px', borderRadius: '8px' }}>
                         {totalProblems} problems
                       </span>
+                    ) : <div />}
+
+                    {/* Rating Badge */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px', background: 'rgba(245, 158, 11, 0.08)', padding: '2px 8px', borderRadius: '8px', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+                      <Star size={11} style={{ color: '#f59e0b', fill: '#f59e0b' }} />
+                      <span style={{ fontSize: '11px', fontWeight: 800, color: '#fbbf24' }}>
+                        {sheetRatings[sheet.id]?.totalReviews > 0 ? sheetRatings[sheet.id].averageRating.toFixed(1) : 'New'}
+                      </span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                        ({sheetRatings[sheet.id]?.totalReviews || 0})
+                      </span>
                     </div>
-                  )}
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>

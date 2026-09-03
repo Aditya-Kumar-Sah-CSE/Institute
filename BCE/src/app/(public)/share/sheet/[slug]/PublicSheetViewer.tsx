@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   Trophy, BookOpen, Share2, Search, ExternalLink, Play, Video, 
-  FileText, Check, Shield, Globe, Lock, ArrowRight, Code2, Sparkles, ChevronRight,
+  FileText, Check, Shield, Globe, Lock, ArrowRight, Code2, Sparkles, ChevronRight, ChevronLeft,
   UserPlus, CheckCircle2, Loader2, Image
 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
@@ -56,6 +56,14 @@ export default function PublicSheetViewer({
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('ALL');
   const [copied, setCopied] = useState(false);
   const [currentUser, setCurrentUser] = useState<any | null>(null);
+
+  // 5 problems per page pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const PROBLEMS_PER_PAGE = 5;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedDifficulty]);
 
   // Enroll state
   const [showEnrollConfirm, setShowEnrollConfirm] = useState(false);
@@ -546,189 +554,274 @@ export default function PublicSheetViewer({
               <div style={{ fontSize: '14px', fontWeight: 700 }}>No matching problems found</div>
               <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>Try adjusting your search query or filter settings.</div>
             </div>
-          ) : (
-            filteredProblems.map((problem, idx) => {
-              const diffClass = (problem.difficulty || 'EASY').toUpperCase();
-              const diffColor = diffClass === 'EASY' ? '#4ade80' : diffClass === 'MEDIUM' ? '#facc15' : '#f87171';
+          ) : (() => {
+            const totalPages = Math.max(1, Math.ceil(filteredProblems.length / PROBLEMS_PER_PAGE));
+            const startIdx = (currentPage - 1) * PROBLEMS_PER_PAGE;
+            const pagedFilteredProblems = filteredProblems.slice(startIdx, startIdx + PROBLEMS_PER_PAGE);
 
-              return (
-                <div
-                  key={problem.id}
-                  className="practice-row-item"
-                  style={{
-                    borderRadius: '12px',
-                    background: 'rgba(30, 41, 59, 0.4)',
-                    border: '1px solid rgba(255, 255, 255, 0.07)',
-                    transition: 'all 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(30, 41, 59, 0.7)';
-                    e.currentTarget.style.borderColor = 'rgba(6, 182, 212, 0.3)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(30, 41, 59, 0.4)';
-                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.07)';
-                  }}
-                >
-                  <div className="row-item-left" style={{ gap: '14px' }}>
-                    <span style={{ fontSize: '13px', fontWeight: 800, color: '#64748b', width: '24px' }}>
-                      {idx + 1}.
-                    </span>
+            return (
+              <>
+                {pagedFilteredProblems.map((problem, idx) => {
+                  const overallIndex = startIdx + idx + 1;
+                  const diffClass = (problem.difficulty || 'EASY').toUpperCase();
+                  const diffColor = diffClass === 'EASY' ? '#4ade80' : diffClass === 'MEDIUM' ? '#facc15' : '#f87171';
 
-                    <div className="row-problem-meta">
-                      <div className="row-problem-title" style={{ fontSize: '14px', fontWeight: 700, color: '#f8fafc' }}>
-                        {problem.title}
-                      </div>
-
-                      <div className="row-tags-group" style={{ marginTop: '4px' }}>
-                        <span
-                          style={{
-                            fontSize: '9px',
-                            fontWeight: 800,
-                            color: '#06b6d4',
-                            background: 'rgba(6, 182, 212, 0.1)',
-                            padding: '1px 6px',
-                            borderRadius: '4px',
-                          }}
-                        >
-                          {problem.source_type || 'CODEFORCES'}
+                  return (
+                    <div
+                      key={problem.id}
+                      className="practice-row-item"
+                      style={{
+                        borderRadius: '12px',
+                        background: 'rgba(30, 41, 59, 0.4)',
+                        border: '1px solid rgba(255, 255, 255, 0.07)',
+                        transition: 'all 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(30, 41, 59, 0.7)';
+                        e.currentTarget.style.borderColor = 'rgba(6, 182, 212, 0.3)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(30, 41, 59, 0.4)';
+                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.07)';
+                      }}
+                    >
+                      <div className="row-item-left" style={{ gap: '14px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 800, color: '#64748b', width: '24px' }}>
+                          {overallIndex}.
                         </span>
 
-                        {(problem.tags || []).slice(0, 3).map((tag) => (
-                          <span key={tag} style={{ fontSize: '9px', color: '#94a3b8' }}>
-                            #{tag}
-                          </span>
-                        ))}
+                        <div className="row-problem-meta">
+                          <div className="row-problem-title" style={{ fontSize: '14px', fontWeight: 700, color: '#f8fafc' }}>
+                            {problem.title}
+                          </div>
+
+                          <div className="row-tags-group" style={{ marginTop: '4px' }}>
+                            <span
+                              style={{
+                                fontSize: '9px',
+                                fontWeight: 800,
+                                color: '#06b6d4',
+                                background: 'rgba(6, 182, 212, 0.1)',
+                                padding: '1px 6px',
+                                borderRadius: '4px',
+                              }}
+                            >
+                              {problem.source_type || 'CODEFORCES'}
+                            </span>
+
+                            {(problem.tags || []).slice(0, 3).map((tag) => (
+                              <span key={tag} style={{ fontSize: '9px', color: '#94a3b8' }}>
+                                #{tag}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="row-item-right" style={{ gap: '10px' }}>
+                        <span
+                          style={{
+                            fontSize: '10px',
+                            fontWeight: 800,
+                            color: diffColor,
+                            background: `${diffColor}15`,
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          {problem.difficulty}
+                        </span>
+
+                        {/* Ask YT Button */}
+                        <a
+                          href={`https://www.youtube.com/results?search_query=${encodeURIComponent(problem.title || problem.id)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Ask YT - Search on YouTube"
+                          style={{
+                            display: 'grid',
+                            placeItems: 'center',
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '6px',
+                            background: 'rgba(239, 68, 68, 0.05)',
+                            border: '1px solid rgba(239, 68, 68, 0.2)',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                            textDecoration: 'none'
+                          }}
+                        >
+                          <Search size={14} />
+                        </a>
+
+                        {/* Solution Video button if available */}
+                        {problem.youtube_url && (
+                          <button
+                            type="button"
+                            onClick={() => setActiveVideoProblem(problem)}
+                            title="Watch Video Solution"
+                            style={{
+                              display: 'grid',
+                              placeItems: 'center',
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '6px',
+                              background: 'rgba(239, 68, 68, 0.1)',
+                              border: '1px solid rgba(239, 68, 68, 0.3)',
+                              color: '#ef4444',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <Video size={14} />
+                          </button>
+                        )}
+
+                        {/* Text Solution button if available */}
+                        {problem.text_solution && (
+                          <button
+                            type="button"
+                            onClick={() => setActiveSolutionProblem(problem)}
+                            title="Read Text Solution"
+                            style={{
+                              display: 'grid',
+                              placeItems: 'center',
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '6px',
+                              background: 'rgba(168, 85, 247, 0.1)',
+                              border: '1px solid rgba(168, 85, 247, 0.3)',
+                              color: '#a855f7',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <FileText size={14} />
+                          </button>
+                        )}
+
+                        {/* External statement link if present */}
+                        {problem.external_url && (
+                          <a
+                            href={problem.external_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="Official Statement"
+                            style={{
+                              display: 'grid',
+                              placeItems: 'center',
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '6px',
+                              background: 'rgba(255, 255, 255, 0.04)',
+                              border: '1px solid rgba(255, 255, 255, 0.1)',
+                              color: '#94a3b8',
+                            }}
+                          >
+                            <ExternalLink size={14} />
+                          </a>
+                        )}
+
+                        {/* Action button */}
+                        <Link
+                          href={getSolveProblemUrl(problem.id)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            background: 'linear-gradient(135deg, #06b6d4, #3b82f6)',
+                            color: 'white',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            textDecoration: 'none',
+                          }}
+                        >
+                          <Play size={11} fill="currentColor" /> Solve
+                        </Link>
                       </div>
                     </div>
-                  </div>
+                  );
+                })}
 
-                  <div className="row-item-right" style={{ gap: '10px' }}>
-                    <span
-                      style={{
-                        fontSize: '10px',
-                        fontWeight: 800,
-                        color: diffColor,
-                        background: `${diffColor}15`,
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        textTransform: 'uppercase',
-                      }}
-                    >
-                      {problem.difficulty}
-                    </span>
+                {/* 5-Problems Per Page Pagination Bar */}
+                {totalPages > 1 && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginTop: '16px', padding: '12px 16px', background: 'rgba(30, 41, 59, 0.4)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                    <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>
+                      Showing <strong style={{ color: '#ffffff' }}>{startIdx + 1}–{Math.min(startIdx + PROBLEMS_PER_PAGE, filteredProblems.length)}</strong> of <strong style={{ color: '#06b6d4' }}>{filteredProblems.length}</strong> problems
+                    </div>
 
-                    {/* Ask YT Button */}
-                    <a
-                      href={`https://www.youtube.com/results?search_query=${encodeURIComponent(problem.title || problem.id)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="Ask YT - Search on YouTube"
-                      style={{
-                        display: 'grid',
-                        placeItems: 'center',
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '6px',
-                        background: 'rgba(239, 68, 68, 0.05)',
-                        border: '1px solid rgba(239, 68, 68, 0.2)',
-                        color: '#ef4444',
-                        cursor: 'pointer',
-                        textDecoration: 'none'
-                      }}
-                    >
-                      <Search size={14} />
-                    </a>
-
-                    {/* Solution Video button if available */}
-                    {problem.youtube_url && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <button
                         type="button"
-                        onClick={() => setActiveVideoProblem(problem)}
-                        title="Watch Video Solution"
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
                         style={{
-                          display: 'grid',
-                          placeItems: 'center',
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '6px',
-                          background: 'rgba(239, 68, 68, 0.1)',
-                          border: '1px solid rgba(239, 68, 68, 0.3)',
-                          color: '#ef4444',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <Video size={14} />
-                      </button>
-                    )}
-
-                    {/* Text Solution button if available */}
-                    {problem.text_solution && (
-                      <button
-                        type="button"
-                        onClick={() => setActiveSolutionProblem(problem)}
-                        title="Read Text Solution"
-                        style={{
-                          display: 'grid',
-                          placeItems: 'center',
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '6px',
-                          background: 'rgba(168, 85, 247, 0.1)',
-                          border: '1px solid rgba(168, 85, 247, 0.3)',
-                          color: '#a855f7',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <FileText size={14} />
-                      </button>
-                    )}
-
-                    {/* External statement link if present */}
-                    {problem.external_url && (
-                      <a
-                        href={problem.external_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        title="Official Statement"
-                        style={{
-                          display: 'grid',
-                          placeItems: 'center',
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '6px',
-                          background: 'rgba(255, 255, 255, 0.04)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          background: currentPage === 1 ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
                           border: '1px solid rgba(255, 255, 255, 0.1)',
-                          color: '#94a3b8',
+                          color: currentPage === 1 ? '#64748b' : '#f8fafc',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                          opacity: currentPage === 1 ? 0.5 : 1,
                         }}
                       >
-                        <ExternalLink size={14} />
-                      </a>
-                    )}
+                        <ChevronLeft size={14} /> Previous
+                      </button>
 
-                    {/* Action button */}
-                    <Link
-                      href={getSolveProblemUrl(problem.id)}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '6px 12px',
-                        borderRadius: '6px',
-                        background: 'linear-gradient(135deg, #06b6d4, #3b82f6)',
-                        color: 'white',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        textDecoration: 'none',
-                      }}
-                    >
-                      <Play size={11} fill="currentColor" /> Solve
-                    </Link>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                        <button
+                          key={pageNum}
+                          type="button"
+                          onClick={() => setCurrentPage(pageNum)}
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '8px',
+                            background: currentPage === pageNum ? 'linear-gradient(135deg, #06b6d4, #3b82f6)' : 'rgba(255,255,255,0.04)',
+                            border: currentPage === pageNum ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+                            color: currentPage === pageNum ? '#000000' : '#94a3b8',
+                            fontSize: '12px',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {pageNum}
+                        </button>
+                      ))}
+
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          background: currentPage === totalPages ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          color: currentPage === totalPages ? '#64748b' : '#f8fafc',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                          opacity: currentPage === totalPages ? 0.5 : 1,
+                        }}
+                      >
+                        Next <ChevronRight size={14} />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              );
-            })
-          )}
+                )}
+              </>
+            );
+          })()}
         </section>
 
         {/* Footer Callout */}

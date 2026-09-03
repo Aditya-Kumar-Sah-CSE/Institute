@@ -6,7 +6,7 @@ import {
   Trophy, ArrowLeft, BookOpen, CheckCircle2, Circle, 
   ExternalLink, Code2, ArrowRight, Award, Play, Pencil, Users,
   Lock, Shield, Globe, KeyRound, AlertCircle, Video, FileText, Share2, Check, BarChart2, Search, Image,
-  RefreshCw, RotateCcw, Eye, Copy
+  RefreshCw, RotateCcw, Eye, Copy, ChevronLeft, ChevronRight, Star, Edit3
 } from 'lucide-react';
 import MobileCodeArenaToggle from './MobileCodeArenaToggle';
 import Card from '@/components/ui/Card';
@@ -15,6 +15,7 @@ import CreateSheetWizard from './CreateSheetWizard';
 import Modal from '@/components/ui/Modal';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import SolutionEditor from './SolutionEditor';
+import SheetReviewsSection from './SheetReviewsSection';
 import { calculateMotivationalAnalytics } from '../lib/motivational-engine';
 import { SolvedStatusMap } from '@/lib/coding-platforms/solved-matcher';
 import './CodeArena.css';
@@ -68,6 +69,7 @@ export default function SheetDetailClient({
   enrolledStudents = [],
   enrollmentAccess = 'public',
   isEnrolled: initialIsEnrolled = false,
+  reviewsData,
 }: {
   sheet: Sheet;
   solvedProblemIds: string[];
@@ -82,6 +84,7 @@ export default function SheetDetailClient({
   enrolledStudents?: { id: string; name: string; avatar_url?: string | null; email: string; enrolled_at?: string }[];
   enrollmentAccess?: string;
   isEnrolled?: boolean;
+  reviewsData?: any;
 }) {
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
@@ -95,6 +98,10 @@ export default function SheetDetailClient({
   const [solverSearch, setSolverSearch] = useState('');
   const [showEnrolledModal, setShowEnrolledModal] = useState(false);
   const [enrolledSearch, setEnrolledSearch] = useState('');
+
+  // 5 problems per page pagination
+  const [currentProblemPage, setCurrentProblemPage] = useState(1);
+  const PROBLEMS_PER_PAGE = 5;
 
   const filteredSolvers = solversLeaderboard.filter(s =>
     s.name.toLowerCase().includes(solverSearch.toLowerCase())
@@ -332,6 +339,13 @@ export default function SheetDetailClient({
       setEnrollError('Network error. Please try again.');
     } finally {
       setEnrolling(false);
+    }
+  };
+
+  const handleScrollToReviews = () => {
+    const section = document.getElementById('sheet-reviews-section');
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
@@ -612,6 +626,76 @@ export default function SheetDetailClient({
           </div>
         </div>
 
+        {/* Rating & Review Now Header Card — Red Box Area */}
+        <div 
+          style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'flex-end', 
+            gap: '10px', 
+            padding: '16px 20px', 
+            background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.85) 100%)', 
+            borderRadius: '16px', 
+            border: '1px solid rgba(245, 158, 11, 0.3)', 
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+            backdropFilter: 'blur(12px)',
+            minWidth: '210px'
+          }}
+        >
+          <div 
+            onClick={handleScrollToReviews}
+            style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', transition: 'transform 0.2s ease' }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+            title="Click to view all sheet ratings and student feedback"
+          >
+            <Star size={24} style={{ color: '#f59e0b', fill: '#f59e0b', filter: 'drop-shadow(0 0 8px rgba(245, 158, 11, 0.7))' }} />
+            <div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ffffff' }}>
+                  {reviewsData?.stats?.averageRating ? reviewsData.stats.averageRating : '5.0'}
+                </span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>/ 5.0</span>
+              </div>
+              <div style={{ fontSize: '11px', color: '#f59e0b', fontWeight: 700 }}>
+                {reviewsData?.stats?.totalReviews ? `${reviewsData.stats.totalReviews} ${reviewsData.stats.totalReviews === 1 ? 'review' : 'reviews'}` : 'New Sheet'}
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleScrollToReviews}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              width: '100%',
+              padding: '8px 16px',
+              borderRadius: '10px',
+              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+              color: '#000000',
+              fontSize: '12px',
+              fontWeight: 800,
+              border: 'none',
+              cursor: 'pointer',
+              boxShadow: '0 0 16px rgba(245, 158, 11, 0.35)',
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={(e) => { 
+              e.currentTarget.style.transform = 'translateY(-1px)'; 
+              e.currentTarget.style.boxShadow = '0 0 22px rgba(245, 158, 11, 0.5)'; 
+            }}
+            onMouseLeave={(e) => { 
+              e.currentTarget.style.transform = 'translateY(0)'; 
+              e.currentTarget.style.boxShadow = '0 0 16px rgba(245, 158, 11, 0.35)'; 
+            }}
+          >
+            <Edit3 size={14} /> {reviewsData?.userReview ? 'Edit Your Review' : 'Review Now'}
+          </button>
+        </div>
+
         {hasAccess && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '10px', flex: '1 1 260px', minWidth: 0 }}>
             {analytics ? (
@@ -796,228 +880,328 @@ export default function SheetDetailClient({
       )}
 
       {/* Problems Checklist — only shown when user has access */}
-      {hasAccess && (
-        <section className="arena-problems-section" style={{ marginTop: '8px' }}>
-          <h3 className="split-sect-title" style={{ fontSize: 'var(--text-md)', fontWeight: 800, marginBottom: '16px' }}>
-            Problems List ({totalProblems})
-          </h3>
+      {hasAccess && (() => {
+        const totalProblemPages = Math.max(1, Math.ceil(problems.length / PROBLEMS_PER_PAGE));
+        const startProblemIdx = (currentProblemPage - 1) * PROBLEMS_PER_PAGE;
+        const pagedProblems = problems.slice(startProblemIdx, startProblemIdx + PROBLEMS_PER_PAGE);
 
-          <div className="practice-rows-list">
-            {problems.map((problem, idx) => {
-              const status = solvedStatusMap[problem.id];
-              const isSolved = status ? status.isSolved : solvedProblemIds.includes(problem.id);
-              const sources = status?.sources || (isSolved ? ['ARENA'] : []);
+        return (
+          <section className="arena-problems-section" style={{ marginTop: '8px' }}>
+            <h3 className="split-sect-title" style={{ fontSize: 'var(--text-md)', fontWeight: 800, marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>Problems List ({totalProblems})</span>
+              {totalProblemPages > 1 && (
+                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                  Page {currentProblemPage} of {totalProblemPages}
+                </span>
+              )}
+            </h3>
 
-              return (
-                <div 
-                  key={problem.id}
-                  className="practice-row-item"
-                  style={{ 
-                    textDecoration: 'none', 
-                    cursor: 'default',
-                    border: isSolved ? '1px solid rgba(6, 182, 212, 0.25)' : '1px solid var(--glass-border)',
-                    background: isSolved ? 'rgba(6, 182, 212, 0.03)' : 'rgba(255,255,255,0.01)',
-                  }}
-                >
-                  <div className="row-item-left">
-                    {/* Solved Status Indicator */}
-                    <div className="solve-status-box" style={{ cursor: 'pointer' }}>
-                      {isSolved ? (
-                        <CheckCircle2 size={18} className="text-neon-cyan" />
-                      ) : (
-                        <Circle size={18} className="text-muted" />
-                      )}
-                    </div>
+            <div className="practice-rows-list">
+              {pagedProblems.map((problem, idx) => {
+                const overallIndex = startProblemIdx + idx + 1;
+                const status = solvedStatusMap[problem.id];
+                const isSolved = status ? status.isSolved : solvedProblemIds.includes(problem.id);
+                const sources = status?.sources || (isSolved ? ['ARENA'] : []);
 
-                    <div className="row-problem-meta" style={{ marginLeft: '4px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        <span className="row-problem-title" style={{ fontWeight: 700, fontSize: '13px' }}>
-                          {idx + 1}. {problem.title}
-                        </span>
-
-                        {/* Solved Platform Badges */}
-                        {isSolved && (
-                          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                            {sources.includes('LEETCODE') && (
-                              <span style={{ fontSize: '9px', fontWeight: 700, color: '#f97316', background: 'rgba(249, 115, 22, 0.12)', border: '1px solid rgba(249, 115, 22, 0.3)', padding: '1px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                                <Check size={10} /> Solved on LeetCode
-                              </span>
-                            )}
-                            {sources.includes('CODEFORCES') && (
-                              <span style={{ fontSize: '9px', fontWeight: 700, color: '#3b82f6', background: 'rgba(59, 130, 246, 0.12)', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '1px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                                <Check size={10} /> Solved on Codeforces
-                              </span>
-                            )}
-                            {sources.includes('ARENA') && (
-                              <span style={{ fontSize: '9px', fontWeight: 700, color: '#10b981', background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '1px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                                <Check size={10} /> Solved in Arena
-                              </span>
-                            )}
-                            {sources.length === 0 && (
-                              <span style={{ fontSize: '9px', fontWeight: 700, color: '#10b981', background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '1px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                                <Check size={10} /> Solved
-                              </span>
-                            )}
-                          </div>
+                return (
+                  <div 
+                    key={problem.id}
+                    className="practice-row-item"
+                    style={{ 
+                      textDecoration: 'none', 
+                      cursor: 'default',
+                      border: isSolved ? '1px solid rgba(6, 182, 212, 0.25)' : '1px solid var(--glass-border)',
+                      background: isSolved ? 'rgba(6, 182, 212, 0.03)' : 'rgba(255,255,255,0.01)',
+                    }}
+                  >
+                    <div className="row-item-left">
+                      {/* Solved Status Indicator */}
+                      <div className="solve-status-box" style={{ cursor: 'pointer' }}>
+                        {isSolved ? (
+                          <CheckCircle2 size={18} className="text-neon-cyan" />
+                        ) : (
+                          <Circle size={18} className="text-muted" />
                         )}
                       </div>
 
-                      <div className="row-tags-group">
-                        <span className="source-label" style={{ fontSize: '9px', padding: '1px 6px' }}>
-                          {problem.source_type}
-                        </span>
-                        {problem.tags?.slice(0, 3).map((tag: string) => (
-                          <span key={tag} className="tag-pill" style={{ fontSize: '9px' }}>#{tag}</span>
-                        ))}
+                      <div className="row-problem-meta" style={{ marginLeft: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <span className="row-problem-title" style={{ fontWeight: 700, fontSize: '13px' }}>
+                            {overallIndex}. {problem.title}
+                          </span>
+
+                          {/* Solved Platform Badges */}
+                          {isSolved && (
+                            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                              {sources.includes('LEETCODE') && (
+                                <span style={{ fontSize: '9px', fontWeight: 700, color: '#f97316', background: 'rgba(249, 115, 22, 0.12)', border: '1px solid rgba(249, 115, 22, 0.3)', padding: '1px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                  <Check size={10} /> Solved on LeetCode
+                                </span>
+                              )}
+                              {sources.includes('CODEFORCES') && (
+                                <span style={{ fontSize: '9px', fontWeight: 700, color: '#3b82f6', background: 'rgba(59, 130, 246, 0.12)', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '1px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                  <Check size={10} /> Solved on Codeforces
+                                </span>
+                              )}
+                              {sources.includes('ARENA') && (
+                                <span style={{ fontSize: '9px', fontWeight: 700, color: '#10b981', background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '1px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                  <Check size={10} /> Solved in Arena
+                                </span>
+                              )}
+                              {sources.length === 0 && (
+                                <span style={{ fontSize: '9px', fontWeight: 700, color: '#10b981', background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '1px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                  <Check size={10} /> Solved
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="row-tags-group">
+                          <span className="source-label" style={{ fontSize: '9px', padding: '1px 6px' }}>
+                            {problem.source_type}
+                          </span>
+                          {problem.tags?.slice(0, 3).map((tag: string) => (
+                            <span key={tag} className="tag-pill" style={{ fontSize: '9px' }}>#{tag}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="row-item-right" style={{ gap: '10px' }}>
+                      <span suppressHydrationWarning className={`difficulty-badge-styled difficulty-${problem.difficulty}`} style={{ fontSize: '9px' }}>
+                        {problem.difficulty}
+                      </span>
+
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        {/* View Last Solution Button for Solved Problems */}
+                        {isSolved && (
+                          <button
+                            type="button"
+                            onClick={() => handleViewLastSolution(problem)}
+                            className="oj-icon-btn"
+                            title="View Last Submitted Solution"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '4px 8px',
+                              background: 'rgba(6, 182, 212, 0.1)',
+                              border: '1px solid rgba(6, 182, 212, 0.3)',
+                              borderRadius: '6px',
+                              color: 'var(--neon-cyan)',
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <Eye size={12} /> Last Sol
+                          </button>
+                        )}
+
+                        {/* Ask YT Button */}
+                        <a
+                          href={`https://www.youtube.com/results?search_query=${encodeURIComponent(problem.title || problem.id)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="oj-icon-btn"
+                          title="Ask YT - Search on YouTube"
+                          style={{ display: 'grid', placeItems: 'center', width: '32px', height: '32px', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '6px', color: '#ef4444', cursor: 'pointer', textDecoration: 'none' }}
+                        >
+                          <Search size={13} />
+                        </a>
+
+                        {/* Video Solution button if present */}
+                        {problem.youtube_url && (
+                          <button
+                            type="button"
+                            onClick={() => handleWatchVideo(problem)}
+                            className="oj-icon-btn"
+                            title="Watch Video Solution"
+                            style={{ display: 'grid', placeItems: 'center', width: '32px', height: '32px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '6px', color: '#ef4444', cursor: 'pointer' }}
+                          >
+                            <Video size={13} />
+                          </button>
+                        )}
+
+                        {/* Text Solution button if present */}
+                        {problem.text_solution && (
+                          <button
+                            type="button"
+                            onClick={() => handleReadSolution(problem)}
+                            className="oj-icon-btn"
+                            title="Read Text Solution"
+                            style={{ display: 'grid', placeItems: 'center', width: '32px', height: '32px', background: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.3)', borderRadius: '6px', color: '#a855f7', cursor: 'pointer' }}
+                          >
+                            <FileText size={13} />
+                          </button>
+                        )}
+
+                        {/* Instructor Edit Solution button */}
+                        {canEdit && (
+                          <button
+                            type="button"
+                            onClick={() => handleEditSolution(problem)}
+                            className="oj-icon-btn"
+                            title="Manage Solution & Video"
+                            style={{ display: 'grid', placeItems: 'center', width: '32px', height: '32px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', borderRadius: '6px', color: 'var(--text-muted)', cursor: 'pointer' }}
+                          >
+                            <Pencil size={12} />
+                          </button>
+                        )}
+
+                        {/* Official External Link if present */}
+                        {problem.external_url && (
+                          <a 
+                            href={problem.external_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="oj-icon-btn"
+                            title="View Official Statement"
+                            style={{ display: 'grid', placeItems: 'center', width: '32px', height: '32px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', borderRadius: '6px', color: 'var(--text-muted)' }}
+                          >
+                            <ExternalLink size={13} />
+                          </a>
+                        )}
+
+                        {/* Reattempt / Solve Button */}
+                        {isSolved ? (
+                          <Link
+                            href={`/code-arena/problems/${problem.id}?sheet=${sheet.id}&reattempt=true`}
+                            style={{ 
+                              display: 'inline-flex', 
+                              alignItems: 'center', 
+                              gap: '4px', 
+                              padding: '6px 12px', 
+                              borderRadius: '6px', 
+                              fontSize: '11px', 
+                              fontWeight: 'bold',
+                              height: '32px',
+                              background: 'rgba(255, 255, 255, 0.05)',
+                              border: '1px solid var(--glass-border)',
+                              color: 'var(--text-main)',
+                              textDecoration: 'none',
+                            }}
+                            title="Solve clean starter code again"
+                          >
+                            <RotateCcw size={12} /> Reattempt
+                          </Link>
+                        ) : (
+                          <Link
+                            href={`/code-arena/problems/${problem.id}?sheet=${sheet.id}`}
+                            className="btn-battle-action action-live"
+                            style={{ 
+                              display: 'inline-flex', 
+                              alignItems: 'center', 
+                              gap: '6px', 
+                              padding: '6px 14px', 
+                              borderRadius: '6px', 
+                              fontSize: '11px', 
+                              fontWeight: 'bold',
+                              height: '32px',
+                              textDecoration: 'none'
+                            }}
+                          >
+                            <Play size={12} fill="currentColor" /> Solve in Arena
+                          </Link>
+                        )}
                       </div>
                     </div>
                   </div>
+                );
+              })}
+            </div>
 
-                  <div className="row-item-right" style={{ gap: '10px' }}>
-                    <span suppressHydrationWarning className={`difficulty-badge-styled difficulty-${problem.difficulty}`} style={{ fontSize: '9px' }}>
-                      {problem.difficulty}
-                    </span>
-
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                      {/* View Last Solution Button for Solved Problems */}
-                      {isSolved && (
-                        <button
-                          type="button"
-                          onClick={() => handleViewLastSolution(problem)}
-                          className="oj-icon-btn"
-                          title="View Last Submitted Solution"
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            padding: '4px 8px',
-                            background: 'rgba(6, 182, 212, 0.1)',
-                            border: '1px solid rgba(6, 182, 212, 0.3)',
-                            borderRadius: '6px',
-                            color: 'var(--neon-cyan)',
-                            fontSize: '10px',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          <Eye size={12} /> Last Sol
-                        </button>
-                      )}
-
-                      {/* Ask YT Button */}
-                      <a
-                        href={`https://www.youtube.com/results?search_query=${encodeURIComponent(problem.title || problem.id)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="oj-icon-btn"
-                        title="Ask YT - Search on YouTube"
-                        style={{ display: 'grid', placeItems: 'center', width: '32px', height: '32px', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '6px', color: '#ef4444', cursor: 'pointer', textDecoration: 'none' }}
-                      >
-                        <Search size={13} />
-                      </a>
-
-                      {/* Video Solution button if present */}
-                      {problem.youtube_url && (
-                        <button
-                          type="button"
-                          onClick={() => handleWatchVideo(problem)}
-                          className="oj-icon-btn"
-                          title="Watch Video Solution"
-                          style={{ display: 'grid', placeItems: 'center', width: '32px', height: '32px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '6px', color: '#ef4444', cursor: 'pointer' }}
-                        >
-                          <Video size={13} />
-                        </button>
-                      )}
-
-                      {/* Text Solution button if present */}
-                      {problem.text_solution && (
-                        <button
-                          type="button"
-                          onClick={() => handleReadSolution(problem)}
-                          className="oj-icon-btn"
-                          title="Read Text Solution"
-                          style={{ display: 'grid', placeItems: 'center', width: '32px', height: '32px', background: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.3)', borderRadius: '6px', color: '#a855f7', cursor: 'pointer' }}
-                        >
-                          <FileText size={13} />
-                        </button>
-                      )}
-
-                      {/* Instructor Edit Solution button */}
-                      {canEdit && (
-                        <button
-                          type="button"
-                          onClick={() => handleEditSolution(problem)}
-                          className="oj-icon-btn"
-                          title="Manage Solution & Video"
-                          style={{ display: 'grid', placeItems: 'center', width: '32px', height: '32px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', borderRadius: '6px', color: 'var(--text-muted)', cursor: 'pointer' }}
-                        >
-                          <Pencil size={12} />
-                        </button>
-                      )}
-
-                      {/* Official External Link if present */}
-                      {problem.external_url && (
-                        <a 
-                          href={problem.external_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="oj-icon-btn"
-                          title="View Official Statement"
-                          style={{ display: 'grid', placeItems: 'center', width: '32px', height: '32px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', borderRadius: '6px', color: 'var(--text-muted)' }}
-                        >
-                          <ExternalLink size={13} />
-                        </a>
-                      )}
-
-                      {/* Reattempt / Solve Button */}
-                      {isSolved ? (
-                        <Link
-                          href={`/code-arena/problems/${problem.id}?sheet=${sheet.id}&reattempt=true`}
-                          style={{ 
-                            display: 'inline-flex', 
-                            alignItems: 'center', 
-                            gap: '4px', 
-                            padding: '6px 12px', 
-                            borderRadius: '6px', 
-                            fontSize: '11px', 
-                            fontWeight: 'bold',
-                            height: '32px',
-                            background: 'rgba(255, 255, 255, 0.05)',
-                            border: '1px solid var(--glass-border)',
-                            color: 'var(--text-main)',
-                            textDecoration: 'none',
-                          }}
-                          title="Solve clean starter code again"
-                        >
-                          <RotateCcw size={12} /> Reattempt
-                        </Link>
-                      ) : (
-                        <Link
-                          href={`/code-arena/problems/${problem.id}?sheet=${sheet.id}`}
-                          className="btn-battle-action action-live"
-                          style={{ 
-                            display: 'inline-flex', 
-                            alignItems: 'center', 
-                            gap: '6px', 
-                            padding: '6px 14px', 
-                            borderRadius: '6px', 
-                            fontSize: '11px', 
-                            fontWeight: 'bold',
-                            height: '32px',
-                            textDecoration: 'none'
-                          }}
-                        >
-                          <Play size={12} fill="currentColor" /> Solve in Arena
-                        </Link>
-                      )}
-                    </div>
-                  </div>
+            {/* 5-Problems Per Page Pagination Bar */}
+            {totalProblemPages > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginTop: '16px', padding: '12px 16px', background: 'rgba(20, 20, 25, 0.4)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                  Showing <strong style={{ color: 'var(--text-main)' }}>{startProblemIdx + 1}–{Math.min(startProblemIdx + PROBLEMS_PER_PAGE, problems.length)}</strong> of <strong style={{ color: 'var(--neon-cyan)' }}>{problems.length}</strong> problems
                 </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentProblemPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentProblemPage === 1}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      background: currentProblemPage === 1 ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
+                      border: '1px solid var(--glass-border)',
+                      color: currentProblemPage === 1 ? 'var(--text-muted)' : 'var(--text-main)',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: currentProblemPage === 1 ? 'not-allowed' : 'pointer',
+                      opacity: currentProblemPage === 1 ? 0.5 : 1,
+                    }}
+                  >
+                    <ChevronLeft size={14} /> Previous
+                  </button>
+
+                  {Array.from({ length: totalProblemPages }, (_, i) => i + 1).map((pageNum) => (
+                    <button
+                      key={pageNum}
+                      type="button"
+                      onClick={() => setCurrentProblemPage(pageNum)}
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        background: currentProblemPage === pageNum ? 'linear-gradient(135deg, var(--neon-cyan), #3b82f6)' : 'rgba(255,255,255,0.04)',
+                        border: currentProblemPage === pageNum ? 'none' : '1px solid var(--glass-border)',
+                        color: currentProblemPage === pageNum ? '#000' : 'var(--text-secondary)',
+                        fontSize: '12px',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
+
+                  <button
+                    type="button"
+                    onClick={() => setCurrentProblemPage(prev => Math.min(prev + 1, totalProblemPages))}
+                    disabled={currentProblemPage === totalProblemPages}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      background: currentProblemPage === totalProblemPages ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
+                      border: '1px solid var(--glass-border)',
+                      color: currentProblemPage === totalProblemPages ? 'var(--text-muted)' : 'var(--text-main)',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: currentProblemPage === totalProblemPages ? 'not-allowed' : 'pointer',
+                      opacity: currentProblemPage === totalProblemPages ? 0.5 : 1,
+                    }}
+                  >
+                    Next <ChevronRight size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </section>
+        );
+      })()}
+
+      {/* Practice Sheet Reviews Section */}
+      <div id="sheet-reviews-section" style={{ marginTop: 'var(--space-lg)' }}>
+        <SheetReviewsSection
+          sheetId={sheet.id}
+          currentUserId={currentUser?.id}
+          isStaff={Boolean(isInstructor)}
+          reviews={reviewsData?.reviews || []}
+          userReview={reviewsData?.userReview || null}
+          stats={reviewsData?.stats || { averageRating: 0, totalReviews: 0, breakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } }}
+        />
+      </div>
 
       {isEditing && (
         <CreateSheetWizard 

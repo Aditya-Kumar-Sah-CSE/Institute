@@ -7,9 +7,10 @@ import { useRouter } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
-import { BadgeCheck, Share2 } from 'lucide-react';
+import { BadgeCheck, Share2, Star } from 'lucide-react';
 import { getDifficultyColor } from '@/lib/utils';
 import { enrollInCourse, getTopEnrolledStudents } from '@/features/courses/actions/enroll';
+import { getCourseReviewsData } from '@/features/courses/actions/reviews';
 import type { Course } from '@/types';
 import './CourseCard.css';
 
@@ -29,15 +30,17 @@ interface CourseCardProps {
   progress?: number; // 0 to 1
   status?: string;
   certificateId?: string | null;
+  initialRatingStats?: { averageRating: number; totalReviews: number };
 }
 
-export default function CourseCard({ course, progress, status, certificateId }: CourseCardProps) {
+export default function CourseCard({ course, progress, status, certificateId, initialRatingStats }: CourseCardProps) {
   const difficultyColor = getDifficultyColor(course.difficulty);
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [isStudentsModalOpen, setIsStudentsModalOpen] = useState(false);
   const [enrolledStudents, setEnrolledStudents] = useState<any[]>([]);
   const [totalEnrolled, setTotalEnrolled] = useState(0);
+  const [ratingStats, setRatingStats] = useState<{ averageRating: number; totalReviews: number } | null>(initialRatingStats || null);
   const router = useRouter();
 
   useEffect(() => {
@@ -45,7 +48,15 @@ export default function CourseCard({ course, progress, status, certificateId }: 
       setEnrolledStudents(res.students);
       setTotalEnrolled(res.total);
     });
-  }, [course.id]);
+
+    if (!initialRatingStats) {
+      getCourseReviewsData(course.id).then(res => {
+        if (res?.stats) {
+          setRatingStats(res.stats);
+        }
+      });
+    }
+  }, [course.id, initialRatingStats]);
 
   const handleEnroll = async (e: React.MouseEvent) => {
     e.preventDefault(); // Stop link navigation
@@ -88,10 +99,21 @@ export default function CourseCard({ course, progress, status, certificateId }: 
               </div>
             </div>
             {course.profiles?.name && (
-              <p className="course-instructor" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 'var(--space-sm)' }}>
+              <p className="course-instructor" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
                 By {course.profiles.name} <BadgeCheck size={14} style={{ color: 'var(--neon-cyan)' }} />
               </p>
             )}
+
+            {/* Rating Badge */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: 'var(--space-sm)' }}>
+              <Star size={13} style={{ color: '#f59e0b', fill: '#f59e0b', filter: 'drop-shadow(0 0 4px rgba(245, 158, 11, 0.4))' }} />
+              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                {ratingStats && ratingStats.totalReviews > 0 ? ratingStats.averageRating.toFixed(1) : 'New'}
+              </span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                ({ratingStats?.totalReviews || 0})
+              </span>
+            </div>
             <p className="course-desc">
               {course.description ? (
                 course.description.length > 80 

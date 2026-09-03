@@ -3,7 +3,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Lock, BookOpen, Layers } from 'lucide-react';
+import { Lock, BookOpen, Layers, Star } from 'lucide-react';
 import { getPreviewCourses } from './LandingPreviewActions';
 
 export default function LandingCourseClient({ 
@@ -285,17 +285,28 @@ export default function LandingCourseClient({
                   {course.description || 'Curated premium course designed to boost your skills and knowledge.'}
                 </p>
 
-                {/* Modules Metadata */}
+                {/* Modules Metadata & Rating Badge */}
                 <div style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
-                  gap: '6px', 
+                  justifyContent: 'space-between',
                   marginBottom: '20px', 
                   fontSize: '13px', 
                   color: 'var(--text-muted)',
                   fontWeight: 500
                 }}>
-                  <Layers size={14} color="#818cf8" /> {course.lesson_count || 0} Modules
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Layers size={14} color="#818cf8" /> {course.lesson_count || 0} Modules
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(245, 158, 11, 0.1)', padding: '2px 8px', borderRadius: '12px', border: '1px solid rgba(245, 158, 11, 0.25)' }}>
+                    <Star size={12} style={{ color: '#f59e0b', fill: '#f59e0b' }} />
+                    <span style={{ color: '#fbbf24', fontWeight: 800, fontSize: '12px' }}>
+                      {course.totalReviews > 0 ? course.averageRating.toFixed(1) : 'New'}
+                    </span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
+                      ({course.totalReviews || 0})
+                    </span>
+                  </div>
                 </div>
 
                 {/* CTA Button */}

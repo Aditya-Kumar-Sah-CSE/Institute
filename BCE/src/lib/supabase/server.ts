@@ -28,9 +28,14 @@ export async function createClient() {
 }
 
 export const getUser = cache(async () => {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
+  try {
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error) return null;
+    return user;
+  } catch {
+    return null;
+  }
 });
 
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';

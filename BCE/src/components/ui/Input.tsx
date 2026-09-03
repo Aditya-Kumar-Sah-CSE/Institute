@@ -36,6 +36,7 @@ export default function Input({
         <input
           id={inputId}
           type={inputType}
+          suppressHydrationWarning
           className={`input-field ${icon ? 'has-icon' : ''} ${isPassword ? 'has-password-toggle' : ''}`}
           style={isPassword ? { paddingRight: '2.5rem' } : undefined}
           {...props}
@@ -43,6 +44,7 @@ export default function Input({
         {isPassword && (
           <button
             type="button"
+            suppressHydrationWarning
             onClick={() => setShowPassword(!showPassword)}
             className="password-toggle-btn"
             style={{
@@ -93,6 +95,7 @@ export function TextArea({
       )}
       <textarea
         id={textareaId}
+        suppressHydrationWarning
         className="input-field textarea-field"
         {...props}
       />
@@ -124,7 +127,7 @@ export function Select({
           {label}
         </label>
       )}
-      <select id={selectId} className="input-field select-field" {...props}>
+      <select id={selectId} suppressHydrationWarning className="input-field select-field" {...props}>
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
             {opt.label}

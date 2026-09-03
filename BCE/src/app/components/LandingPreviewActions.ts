@@ -19,11 +19,46 @@ export async function getPreviewCourses(page = 0, limit = 6, category = 'All Cat
 
   query = query.range(page * limit, (page + 1) * limit - 1);
   const { data, error } = await query;
-  if (error) {
+  if (error || !data) {
     console.error('Error fetching courses:', error);
-    return { data: [], error: error.message };
+    return { data: [], error: error?.message || 'Error' };
   }
-  return { data: data || [], error: null };
+
+  // Fetch rating stats for these courses
+  const courseIds = data.map(c => c.id);
+  let ratingMap: Record<string, { averageRating: number; totalReviews: number }> = {};
+  if (courseIds.length > 0) {
+    const { data: reviews } = await supabase
+      .from('course_reviews')
+      .select('course_id, rating')
+      .in('course_id', courseIds)
+      .eq('status', 'published')
+      .eq('is_public', true);
+
+    if (reviews) {
+      const aggregates: Record<string, { sum: number; count: number }> = {};
+      reviews.forEach((r: any) => {
+        if (!aggregates[r.course_id]) aggregates[r.course_id] = { sum: 0, count: 0 };
+        aggregates[r.course_id].sum += r.rating;
+        aggregates[r.course_id].count += 1;
+      });
+      Object.keys(aggregates).forEach(id => {
+        const { sum, count } = aggregates[id];
+        ratingMap[id] = {
+          averageRating: count > 0 ? parseFloat((sum / count).toFixed(1)) : 0,
+          totalReviews: count
+        };
+      });
+    }
+  }
+
+  const enrichedData = data.map(c => ({
+    ...c,
+    averageRating: ratingMap[c.id]?.averageRating || 0,
+    totalReviews: ratingMap[c.id]?.totalReviews || 0
+  }));
+
+  return { data: enrichedData, error: null };
 }
 
 export async function getCourseCategories() {
@@ -57,9 +92,44 @@ export async function getPreviewDSASheets(page = 0, limit = 6) {
     .order('created_at', { ascending: false })
     .range(page * limit, (page + 1) * limit - 1);
 
-  if (error) {
+  if (error || !data) {
     console.error('Error fetching DSA sheets:', error);
-    return { data: [], error: error.message };
+    return { data: [], error: error?.message || 'Error' };
   }
-  return { data: data || [], error: null };
+
+  // Fetch rating stats for these sheets
+  const sheetIds = data.map(s => s.id);
+  let sheetRatingMap: Record<string, { averageRating: number; totalReviews: number }> = {};
+  if (sheetIds.length > 0) {
+    const { data: reviews } = await supabase
+      .from('sheet_reviews')
+      .select('sheet_id, rating')
+      .in('sheet_id', sheetIds)
+      .eq('status', 'published')
+      .eq('is_public', true);
+
+    if (reviews) {
+      const aggregates: Record<string, { sum: number; count: number }> = {};
+      reviews.forEach((r: any) => {
+        if (!aggregates[r.sheet_id]) aggregates[r.sheet_id] = { sum: 0, count: 0 };
+        aggregates[r.sheet_id].sum += r.rating;
+        aggregates[r.sheet_id].count += 1;
+      });
+      Object.keys(aggregates).forEach(id => {
+        const { sum, count } = aggregates[id];
+        sheetRatingMap[id] = {
+          averageRating: count > 0 ? parseFloat((sum / count).toFixed(1)) : 0,
+          totalReviews: count
+        };
+      });
+    }
+  }
+
+  const enrichedData = data.map(s => ({
+    ...s,
+    averageRating: sheetRatingMap[s.id]?.averageRating || 0,
+    totalReviews: sheetRatingMap[s.id]?.totalReviews || 0
+  }));
+
+  return { data: enrichedData, error: null };
 }

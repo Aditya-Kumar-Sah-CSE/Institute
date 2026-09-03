@@ -1,22 +1,21 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CourseReview } from '@/types/database';
-import { submitOrUpdateReviewAction, deleteReviewAction, moderateReviewStatusAction } from '../actions/reviews';
-import StarRatingInput from './StarRatingInput';
+import { SheetReview } from '@/types/database';
+import { submitOrUpdateSheetReviewAction, deleteSheetReviewAction, moderateSheetReviewStatusAction } from '../actions/sheet-reviews';
+import StarRatingInput from '@/features/courses/components/StarRatingInput';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import UserAvatar from '@/components/shared/UserAvatar';
-import { Star, MessageSquare, ShieldAlert, Eye, EyeOff, Trash2, Edit3, CheckCircle, Sparkles, Filter, ChevronUp, ChevronDown } from 'lucide-react';
+import { Star, MessageSquare, ShieldAlert, Eye, EyeOff, Trash2, Edit3, Filter, ChevronUp, ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-interface CourseReviewsSectionProps {
-  courseId: string;
+interface SheetReviewsSectionProps {
+  sheetId: string;
   currentUserId?: string;
-  isEnrolled: boolean;
   isStaff: boolean;
-  reviews: CourseReview[];
-  userReview: CourseReview | null;
+  reviews: SheetReview[];
+  userReview: SheetReview | null;
   stats: {
     averageRating: number;
     totalReviews: number;
@@ -24,17 +23,16 @@ interface CourseReviewsSectionProps {
   };
 }
 
-export default function CourseReviewsSection({
-  courseId,
+export default function SheetReviewsSection({
+  sheetId,
   currentUserId,
-  isEnrolled,
   isStaff,
   reviews,
   userReview: initialUserReview,
   stats
-}: CourseReviewsSectionProps) {
+}: SheetReviewsSectionProps) {
   const router = useRouter();
-  const [userReview, setUserReview] = useState<CourseReview | null>(initialUserReview);
+  const [userReview, setUserReview] = useState<SheetReview | null>(initialUserReview);
   
   // Review form state
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -46,9 +44,13 @@ export default function CourseReviewsSection({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const handleOpenForm = () => {
+    if (!currentUserId) {
+      router.push('/login');
+      return;
+    }
     setRating(userReview?.rating || 5);
     setReviewText(userReview?.review_text || '');
     setIsPublic(userReview ? userReview.is_public : true);
@@ -66,13 +68,13 @@ export default function CourseReviewsSection({
     setError('');
     setSuccessMsg('');
 
-    const res = await submitOrUpdateReviewAction(courseId, rating, reviewText, isPublic);
+    const res = await submitOrUpdateSheetReviewAction(sheetId, rating, reviewText, isPublic);
     setIsLoading(false);
 
     if (res.error) {
       setError(res.error);
     } else {
-      setSuccessMsg(userReview ? 'Your review has been updated!' : 'Thank you! Your course review has been published.');
+      setSuccessMsg(userReview ? 'Your review has been updated!' : 'Thank you! Your practice sheet review has been published.');
       setIsFormOpen(false);
       router.refresh();
     }
@@ -82,7 +84,7 @@ export default function CourseReviewsSection({
     if (!confirm('Are you sure you want to delete this review?')) return;
 
     setIsLoading(true);
-    const res = await deleteReviewAction(reviewId, courseId);
+    const res = await deleteSheetReviewAction(reviewId, sheetId);
     setIsLoading(false);
 
     if (res.error) {
@@ -97,7 +99,7 @@ export default function CourseReviewsSection({
 
   const handleModerateStatus = async (reviewId: string, newStatus: 'published' | 'hidden' | 'flagged') => {
     setIsLoading(true);
-    const res = await moderateReviewStatusAction(reviewId, courseId, newStatus);
+    const res = await moderateSheetReviewStatusAction(reviewId, sheetId, newStatus);
     setIsLoading(false);
 
     if (res.error) {
@@ -123,29 +125,23 @@ export default function CourseReviewsSection({
   const pagedReviews = displayedReviews.slice(0, visibleCount);
 
   return (
-    <Card variant="glass" className="course-reviews-section" style={{ padding: 'var(--space-xl)', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.7), rgba(11, 15, 25, 0.8))', border: '1px solid rgba(255, 215, 0, 0.15)', boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)' }}>
+    <Card variant="glass" className="sheet-reviews-section" style={{ padding: 'var(--space-xl)', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.7), rgba(11, 15, 25, 0.8))', border: '1px solid rgba(6, 182, 212, 0.2)', boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
           <div>
             <h2 className="section-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-              <Star size={26} style={{ color: '#f59e0b', fill: '#f59e0b', filter: 'drop-shadow(0 0 8px rgba(245, 158, 11, 0.6))' }} /> Course Feedback & Student Reviews
+              <Star size={26} style={{ color: '#f59e0b', fill: '#f59e0b', filter: 'drop-shadow(0 0 8px rgba(245, 158, 11, 0.6))' }} /> Sheet Ratings & Feedback
             </h2>
             <p style={{ margin: '4px 0 0 0', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
-              Real reviews and ratings from verified enrolled students
+              Community ratings and reviews for this practice coding sheet
             </p>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {isEnrolled ? (
-              <Button onClick={handleOpenForm} style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#000', fontWeight: 800, border: 'none', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 0 16px rgba(245, 158, 11, 0.3)' }}>
-                <Edit3 size={16} /> {userReview ? 'Edit Your Review' : 'Write a Review'}
-              </Button>
-            ) : (
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', background: 'rgba(255, 255, 255, 0.04)', padding: '6px 14px', borderRadius: '20px', border: '1px solid var(--glass-border)' }}>
-                Enroll in course to leave a review
-              </div>
-            )}
+            <Button onClick={handleOpenForm} style={{ background: 'linear-gradient(135deg, #06b6d4, #3b82f6)', color: '#fff', fontWeight: 800, border: 'none', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 0 16px rgba(6, 182, 212, 0.3)' }}>
+              <Edit3 size={16} /> {userReview ? 'Edit Your Review' : 'Write a Review'}
+            </Button>
 
             <button
               type="button"
@@ -183,17 +179,17 @@ export default function CourseReviewsSection({
             onSubmit={handleSubmitReview}
             style={{
               padding: 'var(--space-lg)',
-              background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(6, 182, 212, 0.08) 100%)',
+              background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(147, 51, 234, 0.08) 100%)',
               borderRadius: 'var(--radius-lg)',
-              border: '1px solid rgba(245, 158, 11, 0.35)',
-              boxShadow: '0 0 25px rgba(245, 158, 11, 0.12)',
+              border: '1px solid rgba(6, 182, 212, 0.35)',
+              boxShadow: '0 0 25px rgba(6, 182, 212, 0.12)',
               display: 'flex',
               flexDirection: 'column',
               gap: 'var(--space-md)'
             }}
           >
-            <h3 style={{ margin: 0, fontSize: 'var(--text-md)', color: '#f59e0b', fontWeight: 800 }}>
-              {userReview ? 'Edit Your Course Review' : 'Leave Course Rating & Feedback'}
+            <h3 style={{ margin: 0, fontSize: 'var(--text-md)', color: 'var(--neon-cyan)', fontWeight: 800 }}>
+              {userReview ? 'Edit Your Sheet Review' : 'Rate & Feedback this Practice Sheet'}
             </h3>
 
             <div>
@@ -208,7 +204,7 @@ export default function CourseReviewsSection({
                 Written Review & Feedback (Optional, max 2000 chars):
               </label>
               <textarea
-                placeholder="Share your learning experience, course content quality, instructor clarity, and key takeaways..."
+                placeholder="Share your thoughts on question quality, difficulty curve, and solutions..."
                 value={reviewText}
                 onChange={e => setReviewText(e.target.value)}
                 disabled={isLoading}
@@ -219,7 +215,7 @@ export default function CourseReviewsSection({
                   padding: '12px',
                   borderRadius: 'var(--radius-md)',
                   background: 'rgba(0, 0, 0, 0.4)',
-                  border: '1px solid rgba(245, 158, 11, 0.25)',
+                  border: '1px solid rgba(6, 182, 212, 0.25)',
                   color: 'var(--text-primary)',
                   fontFamily: 'inherit',
                   fontSize: 'var(--text-sm)',
@@ -240,7 +236,7 @@ export default function CourseReviewsSection({
               </label>
 
               <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
-                <Button type="submit" isLoading={isLoading} style={{ background: '#f59e0b', color: '#000', fontWeight: 800 }}>
+                <Button type="submit" isLoading={isLoading} style={{ background: 'linear-gradient(135deg, #06b6d4, #3b82f6)', color: '#fff', fontWeight: 800 }}>
                   Submit Review
                 </Button>
                 <Button type="button" variant="ghost" onClick={() => setIsFormOpen(false)} disabled={isLoading}>
@@ -265,14 +261,14 @@ export default function CourseReviewsSection({
         >
           {/* Average Rating Block */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', borderRight: '1px solid rgba(255, 255, 255, 0.08)', paddingRight: 'var(--space-lg)' }}>
-            <div style={{ fontSize: '3.2rem', fontWeight: 900, background: 'linear-gradient(135deg, #ffffff 0%, #f59e0b 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', lineHeight: 1 }}>
+            <div style={{ fontSize: '3.2rem', fontWeight: 900, background: 'linear-gradient(135deg, #ffffff 0%, #06b6d4 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', lineHeight: 1 }}>
               {stats.averageRating > 0 ? stats.averageRating : '—'}
             </div>
             <div style={{ margin: '8px 0' }}>
               <StarRatingInput value={Math.round(stats.averageRating)} readOnly size={22} />
             </div>
             <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', fontWeight: 600 }}>
-              Based on {stats.totalReviews} student {stats.totalReviews === 1 ? 'review' : 'reviews'}
+              Based on {stats.totalReviews} user {stats.totalReviews === 1 ? 'review' : 'reviews'}
             </div>
           </div>
 
@@ -287,7 +283,7 @@ export default function CourseReviewsSection({
                     {starNum} <Star size={11} fill="#f59e0b" color="#f59e0b" />
                   </span>
                   <div style={{ flex: 1, height: '8px', borderRadius: '4px', background: 'rgba(255, 255, 255, 0.06)', overflow: 'hidden' }}>
-                    <div style={{ width: `${pct}%`, height: '100%', background: 'linear-gradient(90deg, #f59e0b, #fbbf24)', borderRadius: '4px', transition: 'width 0.5s ease' }} />
+                    <div style={{ width: `${pct}%`, height: '100%', background: 'linear-gradient(90deg, #06b6d4, #3b82f6)', borderRadius: '4px', transition: 'width 0.5s ease' }} />
                   </div>
                   <span style={{ width: '38px', textAlign: 'right', color: 'var(--text-muted)', fontWeight: 600 }}>{pct}%</span>
                 </div>
@@ -347,7 +343,7 @@ export default function CourseReviewsSection({
             <div style={{ textAlign: 'center', padding: '3rem 2rem', background: 'rgba(255, 255, 255, 0.015)', borderRadius: '16px', border: '1px dashed rgba(255, 255, 255, 0.1)' }}>
               <MessageSquare size={36} style={{ color: 'var(--text-muted)', marginBottom: '10px' }} />
               <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', fontWeight: 500 }}>
-                No public reviews match your filter yet.
+                No reviews match your filter yet. Be the first to leave a review!
               </p>
             </div>
           ) : (
@@ -379,21 +375,21 @@ export default function CourseReviewsSection({
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <UserAvatar 
                           url={r.is_public ? r.profile?.avatar_url : undefined} 
-                          name={r.is_public ? (r.profile?.name || 'Verified Student') : 'Enrolled Student'} 
+                          name={r.is_public ? (r.profile?.name || 'Verified Coder') : 'Verified Coder'} 
                           size={42} 
                         />
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span style={{ fontWeight: 800, fontSize: '14px', color: '#ffffff' }}>
-                              {r.is_public ? (r.profile?.name || 'Verified Student') : 'Enrolled Student'}
+                              {r.is_public ? (r.profile?.name || 'Verified Coder') : 'Verified Coder'}
                             </span>
                             {r.profile?.role === 'instructor' || r.profile?.role === 'admin' ? (
                               <span style={{ fontSize: '10px', background: 'rgba(176, 38, 255, 0.2)', color: 'var(--neon-purple)', padding: '2px 8px', borderRadius: '10px', fontWeight: 800, border: '1px solid rgba(176, 38, 255, 0.3)' }}>
                                 FACULTY
                               </span>
                             ) : (
-                              <span style={{ fontSize: '10px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '2px 8px', borderRadius: '10px', fontWeight: 800, border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-                                VERIFIED STUDENT
+                              <span style={{ fontSize: '10px', background: 'rgba(6, 182, 212, 0.15)', color: 'var(--neon-cyan)', padding: '2px 8px', borderRadius: '10px', fontWeight: 800, border: '1px solid rgba(6, 182, 212, 0.3)' }}>
+                                CODER
                               </span>
                             )}
                           </div>
@@ -407,7 +403,7 @@ export default function CourseReviewsSection({
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <StarRatingInput value={r.rating} readOnly size={18} />
                         
-                        {/* Moderation Controls for Instructor / Admin */}
+                        {/* Moderation Controls */}
                         {(isStaff || isOwner) && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(0, 0, 0, 0.3)', padding: '2px 6px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
                             {isStaff && (
@@ -452,7 +448,7 @@ export default function CourseReviewsSection({
 
                     {/* Review Text */}
                     {r.review_text && (
-                      <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#cbd5e1', lineHeight: 1.6, whiteSpace: 'pre-line', background: 'rgba(0, 0, 0, 0.25)', padding: '10px 14px', borderRadius: '10px', borderLeft: '3px solid #f59e0b' }}>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#cbd5e1', lineHeight: 1.6, whiteSpace: 'pre-line', background: 'rgba(0, 0, 0, 0.25)', padding: '10px 14px', borderRadius: '10px', borderLeft: '3px solid #06b6d4' }}>
                         "{r.review_text}"
                       </p>
                     )}
@@ -460,7 +456,7 @@ export default function CourseReviewsSection({
                     {/* Moderation Status Banner if hidden */}
                     {isHidden && (
                       <div style={{ fontSize: '11px', color: 'var(--neon-red)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
-                        <ShieldAlert size={12} /> This review is hidden by course moderation.
+                        <ShieldAlert size={12} /> This review is hidden by moderation.
                       </div>
                     )}
                   </div>

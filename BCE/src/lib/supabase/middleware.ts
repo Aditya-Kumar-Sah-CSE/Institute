@@ -96,7 +96,19 @@ export async function updateSession(request: NextRequest) {
 
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser();
+
+  // If there's an auth error (e.g. invalid refresh token) or user is not logged in,
+  // clear stale auth cookies so the browser doesn't send broken tokens repeatedly.
+  if (authError || !user) {
+    const reqCookies = request.cookies.getAll();
+    reqCookies.forEach((c) => {
+      if (c.name.startsWith('sb-') || c.name.includes('auth-token') || c.name.startsWith('supabase-')) {
+        supabaseResponse.cookies.set(c.name, '', { maxAge: 0, path: '/' });
+      }
+    });
+  }
 
   // Public routes that don't require auth
   const publicRoutes = ['/', '/login', '/signup', '/apply-instructor', '/forgot-password', '/reset-password', '/privacy', '/terms', '/pwa-start'];
