@@ -170,7 +170,6 @@ small, .caption {
 
 .neon-text {
   color: var(--accent-primary);
-  /* The glow now only applies in data-theme=dark inherently, or if we define glow */
   text-shadow: 0 0 10px var(--interactive-selected);
 }
 
@@ -310,7 +309,7 @@ small, .caption {
   position: absolute !important;
   inset: 0 !important;
   border-radius: inherit !important;
-  padding: 2px !important; /* Border thickness */
+  padding: 2px !important;
   pointer-events: none !important;
   z-index: 99999 !important;
   overflow: hidden !important;
@@ -346,3 +345,133 @@ small, .caption {
   }
 }
 
+/* === PWA Install Prompt Styles === */
+.pwa-prompt-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md);
+  backdrop-filter: blur(4px);
+}
+
+.pwa-prompt-modal {
+  background: var(--bg-primary);
+  border: 1px solid var(--neon-cyan);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 10px 25px rgba(0, 240, 255, 0.2);
+  animation: pwaSlideUp 0.3s ease-out;
+}
+
+@keyframes pwaSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.pwa-prompt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+
+.pwa-prompt-header h3 {
+  margin: 0;
+  font-size: var(--text-xl);
+  color: var(--text-primary);
+}
+
+.pwa-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: var(--text-2xl);
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+
+.pwa-close-btn:hover {
+  color: var(--neon-purple);
+}
+
+.pwa-prompt-body p {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-md);
+  line-height: var(--leading-relaxed);
+}
+
+.ios-instructions {
+  background-color: var(--bg-secondary);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-md);
+  border: 1px solid var(--neon-cyan);
+}
+
+.ios-instructions p {
+  margin-bottom: var(--space-xs);
+  color: var(--text-primary);
+  font-weight: var(--weight-medium);
+}
+
+.ios-instructions ol {
+  margin: 0;
+  padding-left: var(--space-lg);
+  color: var(--text-secondary);
+}
+
+.ios-instructions li {
+  margin-bottom: var(--space-xs);
+}
+
+.pwa-prompt-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+}
+
+.pwa-btn-secondary {
+  background: transparent;
+  border: 1px solid var(--text-secondary);
+  color: var(--text-secondary);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-weight: var(--weight-medium);
+  transition: all var(--transition-fast);
+}
+
+.pwa-btn-secondary:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--text-primary);
+}
+
+.pwa-btn-primary {
+  background: var(--neon-cyan);
+  border: none;
+  color: var(--bg-primary);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-weight: var(--weight-bold);
+  transition: all var(--transition-fast);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+}
+
+.pwa-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.6);
+  background: var(--neon-purple);
+  color: white;
+}
