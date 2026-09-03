@@ -745,80 +745,103 @@ export default function PublicSheetViewer({
                 })}
 
                 {/* 5-Problems Per Page Pagination Bar */}
-                {totalPages > 1 && (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginTop: '16px', padding: '12px 16px', background: 'rgba(30, 41, 59, 0.4)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                    <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>
-                      Showing <strong style={{ color: '#ffffff' }}>{startIdx + 1}–{Math.min(startIdx + PROBLEMS_PER_PAGE, filteredProblems.length)}</strong> of <strong style={{ color: '#06b6d4' }}>{filteredProblems.length}</strong> problems
-                    </div>
+                {totalPages > 1 && (() => {
+                  const getVisiblePageNumbers = (current: number, total: number) => {
+                    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+                    if (current <= 3) return [1, 2, 3, 4, '...', total];
+                    if (current >= total - 2) return [1, '...', total - 3, total - 2, total - 1, total];
+                    return [1, '...', current - 1, current, current + 1, '...', total];
+                  };
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <button
-                        type="button"
-                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                        disabled={currentPage === 1}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          padding: '6px 12px',
-                          borderRadius: '8px',
-                          background: currentPage === 1 ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
-                          border: '1px solid rgba(255, 255, 255, 0.1)',
-                          color: currentPage === 1 ? '#64748b' : '#f8fafc',
-                          fontSize: '12px',
-                          fontWeight: 700,
-                          cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                          opacity: currentPage === 1 ? 0.5 : 1,
-                        }}
-                      >
-                        <ChevronLeft size={14} /> Previous
-                      </button>
+                  const pageNumbers = getVisiblePageNumbers(currentPage, totalPages);
 
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginTop: '16px', padding: '12px 16px', background: 'rgba(30, 41, 59, 0.4)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.08)', maxWidth: '100%' }}>
+                      <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>
+                        Showing <strong style={{ color: '#ffffff' }}>{startIdx + 1}–{Math.min(startIdx + PROBLEMS_PER_PAGE, filteredProblems.length)}</strong> of <strong style={{ color: '#06b6d4' }}>{filteredProblems.length}</strong> problems
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', maxWidth: '100%', overflowX: 'auto' }}>
                         <button
-                          key={pageNum}
                           type="button"
-                          onClick={() => setCurrentPage(pageNum)}
+                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                          disabled={currentPage === 1}
                           style={{
-                            width: '32px',
-                            height: '32px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '6px 12px',
                             borderRadius: '8px',
-                            background: currentPage === pageNum ? 'linear-gradient(135deg, #06b6d4, #3b82f6)' : 'rgba(255,255,255,0.04)',
-                            border: currentPage === pageNum ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
-                            color: currentPage === pageNum ? '#000000' : '#94a3b8',
+                            background: currentPage === 1 ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            color: currentPage === 1 ? '#64748b' : '#f8fafc',
                             fontSize: '12px',
-                            fontWeight: 800,
-                            cursor: 'pointer',
+                            fontWeight: 700,
+                            cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                            opacity: currentPage === 1 ? 0.5 : 1,
                           }}
                         >
-                          {pageNum}
+                          <ChevronLeft size={14} /> Previous
                         </button>
-                      ))}
 
-                      <button
-                        type="button"
-                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                        disabled={currentPage === totalPages}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          padding: '6px 12px',
-                          borderRadius: '8px',
-                          background: currentPage === totalPages ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
-                          border: '1px solid rgba(255, 255, 255, 0.1)',
-                          color: currentPage === totalPages ? '#64748b' : '#f8fafc',
-                          fontSize: '12px',
-                          fontWeight: 700,
-                          cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                          opacity: currentPage === totalPages ? 0.5 : 1,
-                        }}
-                      >
-                        Next <ChevronRight size={14} />
-                      </button>
+                        {pageNumbers.map((pageNum, idx) => {
+                          if (pageNum === '...') {
+                            return (
+                              <span key={`dots-${idx}`} style={{ padding: '0 4px', color: '#64748b', fontSize: '12px', fontWeight: 700 }}>
+                                ...
+                              </span>
+                            );
+                          }
+
+                          const pNum = pageNum as number;
+                          return (
+                            <button
+                              key={pNum}
+                              type="button"
+                              onClick={() => setCurrentPage(pNum)}
+                              style={{
+                                minWidth: '32px',
+                                height: '32px',
+                                padding: '0 6px',
+                                borderRadius: '8px',
+                                background: currentPage === pNum ? 'linear-gradient(135deg, #06b6d4, #3b82f6)' : 'rgba(255,255,255,0.04)',
+                                border: currentPage === pNum ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+                                color: currentPage === pNum ? '#000000' : '#94a3b8',
+                                fontSize: '12px',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {pNum}
+                            </button>
+                          );
+                        })}
+
+                        <button
+                          type="button"
+                          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                          disabled={currentPage === totalPages}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '6px 12px',
+                            borderRadius: '8px',
+                            background: currentPage === totalPages ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            color: currentPage === totalPages ? '#64748b' : '#f8fafc',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                            opacity: currentPage === totalPages ? 0.5 : 1,
+                          }}
+                        >
+                          Next <ChevronRight size={14} />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </>
             );
           })()}

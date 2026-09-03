@@ -1113,80 +1113,103 @@ export default function SheetDetailClient({
             </div>
 
             {/* 5-Problems Per Page Pagination Bar */}
-            {totalProblemPages > 1 && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginTop: '16px', padding: '12px 16px', background: 'rgba(20, 20, 25, 0.4)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                  Showing <strong style={{ color: 'var(--text-main)' }}>{startProblemIdx + 1}–{Math.min(startProblemIdx + PROBLEMS_PER_PAGE, problems.length)}</strong> of <strong style={{ color: 'var(--neon-cyan)' }}>{problems.length}</strong> problems
-                </div>
+            {totalProblemPages > 1 && (() => {
+              const getVisiblePageNumbers = (current: number, total: number) => {
+                if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+                if (current <= 3) return [1, 2, 3, 4, '...', total];
+                if (current >= total - 2) return [1, '...', total - 3, total - 2, total - 1, total];
+                return [1, '...', current - 1, current, current + 1, '...', total];
+              };
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setCurrentProblemPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentProblemPage === 1}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      padding: '6px 12px',
-                      borderRadius: '8px',
-                      background: currentProblemPage === 1 ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
-                      border: '1px solid var(--glass-border)',
-                      color: currentProblemPage === 1 ? 'var(--text-muted)' : 'var(--text-main)',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      cursor: currentProblemPage === 1 ? 'not-allowed' : 'pointer',
-                      opacity: currentProblemPage === 1 ? 0.5 : 1,
-                    }}
-                  >
-                    <ChevronLeft size={14} /> Previous
-                  </button>
+              const pageNumbers = getVisiblePageNumbers(currentProblemPage, totalProblemPages);
 
-                  {Array.from({ length: totalProblemPages }, (_, i) => i + 1).map((pageNum) => (
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginTop: '16px', padding: '12px 16px', background: 'rgba(20, 20, 25, 0.4)', borderRadius: '12px', border: '1px solid var(--glass-border)', maxWidth: '100%' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    Showing <strong style={{ color: 'var(--text-main)' }}>{startProblemIdx + 1}–{Math.min(startProblemIdx + PROBLEMS_PER_PAGE, problems.length)}</strong> of <strong style={{ color: 'var(--neon-cyan)' }}>{problems.length}</strong> problems
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', maxWidth: '100%', overflowX: 'auto' }}>
                     <button
-                      key={pageNum}
                       type="button"
-                      onClick={() => setCurrentProblemPage(pageNum)}
+                      onClick={() => setCurrentProblemPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentProblemPage === 1}
                       style={{
-                        width: '32px',
-                        height: '32px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '6px 12px',
                         borderRadius: '8px',
-                        background: currentProblemPage === pageNum ? 'linear-gradient(135deg, var(--neon-cyan), #3b82f6)' : 'rgba(255,255,255,0.04)',
-                        border: currentProblemPage === pageNum ? 'none' : '1px solid var(--glass-border)',
-                        color: currentProblemPage === pageNum ? '#000' : 'var(--text-secondary)',
+                        background: currentProblemPage === 1 ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
+                        border: '1px solid var(--glass-border)',
+                        color: currentProblemPage === 1 ? 'var(--text-muted)' : 'var(--text-main)',
                         fontSize: '12px',
-                        fontWeight: 800,
-                        cursor: 'pointer',
+                        fontWeight: 700,
+                        cursor: currentProblemPage === 1 ? 'not-allowed' : 'pointer',
+                        opacity: currentProblemPage === 1 ? 0.5 : 1,
                       }}
                     >
-                      {pageNum}
+                      <ChevronLeft size={14} /> Previous
                     </button>
-                  ))}
 
-                  <button
-                    type="button"
-                    onClick={() => setCurrentProblemPage(prev => Math.min(prev + 1, totalProblemPages))}
-                    disabled={currentProblemPage === totalProblemPages}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      padding: '6px 12px',
-                      borderRadius: '8px',
-                      background: currentProblemPage === totalProblemPages ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
-                      border: '1px solid var(--glass-border)',
-                      color: currentProblemPage === totalProblemPages ? 'var(--text-muted)' : 'var(--text-main)',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      cursor: currentProblemPage === totalProblemPages ? 'not-allowed' : 'pointer',
-                      opacity: currentProblemPage === totalProblemPages ? 0.5 : 1,
-                    }}
-                  >
-                    Next <ChevronRight size={14} />
-                  </button>
+                    {pageNumbers.map((pageNum, idx) => {
+                      if (pageNum === '...') {
+                        return (
+                          <span key={`dots-${idx}`} style={{ padding: '0 4px', color: 'var(--text-muted)', fontSize: '12px', fontWeight: 700 }}>
+                            ...
+                          </span>
+                        );
+                      }
+
+                      const pNum = pageNum as number;
+                      return (
+                        <button
+                          key={pNum}
+                          type="button"
+                          onClick={() => setCurrentProblemPage(pNum)}
+                          style={{
+                            minWidth: '32px',
+                            height: '32px',
+                            padding: '0 6px',
+                            borderRadius: '8px',
+                            background: currentProblemPage === pNum ? 'linear-gradient(135deg, var(--neon-cyan), #3b82f6)' : 'rgba(255,255,255,0.04)',
+                            border: currentProblemPage === pNum ? 'none' : '1px solid var(--glass-border)',
+                            color: currentProblemPage === pNum ? '#000' : 'var(--text-secondary)',
+                            fontSize: '12px',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {pNum}
+                        </button>
+                      );
+                    })}
+
+                    <button
+                      type="button"
+                      onClick={() => setCurrentProblemPage(prev => Math.min(prev + 1, totalProblemPages))}
+                      disabled={currentProblemPage === totalProblemPages}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        background: currentProblemPage === totalProblemPages ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
+                        border: '1px solid var(--glass-border)',
+                        color: currentProblemPage === totalProblemPages ? 'var(--text-muted)' : 'var(--text-main)',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: currentProblemPage === totalProblemPages ? 'not-allowed' : 'pointer',
+                        opacity: currentProblemPage === totalProblemPages ? 0.5 : 1,
+                      }}
+                    >
+                      Next <ChevronRight size={14} />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </section>
         );
       })()}
