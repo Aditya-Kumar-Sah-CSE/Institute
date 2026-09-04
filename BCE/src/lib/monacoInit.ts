@@ -2,19 +2,14 @@
 
 import { loader } from '@monaco-editor/react';
 
-// Configure Monaco Environment & NPM monaco-editor package ONLY on client side
-// This prevents Next.js SSR "window is not defined" error while eliminating third-party CDN requests
+// Configure @monaco-editor/react to load clean static assets from Cloudflare CDN (cdnjs).
+// cdnjs does NOT set cookies or request local storage, eliminating browser Tracking-Prevention warnings
+// while avoiding heavy server-side bundler/Turbopack chunk factory instantiation errors.
 if (typeof window !== 'undefined') {
-  if (!(window as any).MonacoEnvironment) {
-    (window as any).MonacoEnvironment = {
-      getWorkerUrl() {
-        return '';
-      },
-    };
-  }
-
-  import('monaco-editor').then((monaco) => {
-    loader.config({ monaco });
+  loader.config({
+    paths: {
+      vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs',
+    },
   });
 }
 
