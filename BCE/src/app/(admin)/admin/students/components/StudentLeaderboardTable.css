@@ -1,27 +1,47 @@
 .table-responsive-wrapper {
+  width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-md);
 }
 
 .responsive-table {
   width: 100%;
-  min-width: 800px;
+  border-collapse: collapse;
+  text-align: left;
+  min-width: 750px;
 }
 
 .leaderboard-row:hover {
   background: rgba(255, 255, 255, 0.03);
 }
+
 .hover-underline {
   color: var(--text-primary);
 }
+
 .leaderboard-row:hover .hover-underline {
   color: var(--neon-cyan);
   text-decoration: underline;
 }
 
+.role-filter-group {
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.user-action-buttons-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  margin-top: 12px;
+}
+
 @media (max-width: 768px) {
   .table-responsive-wrapper {
-    overflow-x: hidden;
+    overflow-x: visible;
   }
   
   .responsive-table {
@@ -34,100 +54,88 @@
   }
   
   .responsive-table tbody {
-    display: block;
-    width: 100%;
-  }
-  
-  .responsive-table tr {
     display: flex;
     flex-direction: column;
-    border: 1px solid var(--glass-border) !important;
-    border-radius: var(--radius-lg);
-    margin-bottom: 8px;
-    background: rgba(255, 255, 255, 0.02);
-    padding: 2px;
-    position: relative;
-  }
-  
-  /* Hide all cells except Name and Email */
-  .responsive-table td:not([data-label="Name"]):not([data-label="Email"]) {
-    display: none !important;
-  }
-  
-  .responsive-table td[data-label="Name"] {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: none !important;
-    padding: 6px 8px !important;
+    gap: 12px;
     width: 100%;
-    box-sizing: border-box;
-    text-align: left;
-    font-size: var(--text-md) !important;
-    padding-right: 120px !important; /* Ensure name doesn't overlap absolute email */
   }
   
-  /* Remove the "Name" text label prefix on mobile */
-  .responsive-table td[data-label="Name"]::before {
-    display: none;
+  .responsive-table tr.leaderboard-row {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.12)) !important;
+    border-radius: var(--radius-lg, 12px);
+    background: rgba(15, 23, 42, 0.6);
+    padding: 14px;
+    gap: 8px;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   }
 
-  /* Force exactly 12 character truncation for name in mobile view */
-  .responsive-table td[data-label="Name"] .hover-underline {
-    max-width: 12ch !important;
+  .responsive-table tr.leaderboard-row:hover {
+    background: rgba(30, 41, 59, 0.85);
+    border-color: rgba(0, 242, 254, 0.4) !important;
   }
 
-  /* Add '...' click indicator */
-  .responsive-table td[data-label="Name"]::after {
-    content: '...';
-    color: var(--text-muted);
-    font-size: 1.25rem;
-    line-height: 1;
-    position: absolute;
-    right: var(--space-md);
-    top: var(--space-md);
-    letter-spacing: 1px;
-  }
-  
-  /* Email positioning on top right */
-  .responsive-table td[data-label="Email"] {
-    display: flex !important;
-    position: absolute;
-    right: 48px; /* space for the '...' */
-    top: var(--space-md);
-    border: none !important;
+  .responsive-table td {
     padding: 0 !important;
-    font-size: 0.75rem !important;
-    max-width: 16ch !important; 
-    height: auto;
+    border: none !important;
+    display: block !important;
+    width: 100% !important;
   }
-  
-  .responsive-table td[data-label="Email"]::before {
-    display: none;
+
+  .responsive-table td[data-label="Name"] .td-content {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100%;
+  }
+
+  .responsive-table td[data-label="Name"] .hover-underline {
+    max-width: 20ch !important;
   }
 
   .responsive-table td[data-label="Email"] .td-content {
-    justify-content: flex-end;
-    align-items: center;
-    color: var(--text-muted);
-    text-align: right;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    font-size: 0.8rem;
   }
 
-  .td-content {
-    justify-content: flex-start;
-    align-items: flex-start;
-    text-align: left;
-    flex: 1;
-    min-width: 0;
+  .mobile-card-row-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+    margin: 2px 0;
+  }
+
+  .mobile-stats-row {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .user-action-buttons-group button {
+    flex: 1 1 calc(50% - 6px);
+    min-width: 120px;
+    font-size: 0.825rem;
+    padding: 8px 10px;
   }
 }
 
 .search-container {
   width: 100%;
-  max-width: 400px;
 }
+
 @media (max-width: 480px) {
   .search-container {
     max-width: 100%;
+  }
+  
+  .user-action-buttons-group button {
+    flex: 1 1 100%;
+    width: 100%;
   }
 }

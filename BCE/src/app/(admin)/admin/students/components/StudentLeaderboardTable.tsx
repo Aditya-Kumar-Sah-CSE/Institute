@@ -7,7 +7,7 @@ import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import LevelBadge from '@/components/shared/LevelBadge';
 import { formatDistanceToNow } from 'date-fns';
-import { Search } from 'lucide-react';
+import { Search, ShieldAlert, Code, CheckCircle, UserCheck, Shield } from 'lucide-react';
 import { deleteStudent, deleteEnrollment, makeAdmin, makeFaculty, makeStudent, makeDeveloper } from '@/features/admin/actions/adminActions';
 import type { LevelName } from '@/types';
 
@@ -49,24 +49,31 @@ import './StudentLeaderboardTable.css';
 
 export default function StudentLeaderboardTable({ students, isInstructor, currentUserId, currentUserEmail, superAdminEmail }: StudentLeaderboardTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'student' | 'instructor' | 'admin'>('all');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'student' | 'instructor' | 'admin' | 'developer'>('all');
   const [enrollmentFilter, setEnrollmentFilter] = useState<'all' | 'enrolled'>('all');
   const [visibleCount, setVisibleCount] = useState(5);
   const [selectedStudent, setSelectedStudent] = useState<StudentDetail | null>(null);
+  
   const [adminPromotionTarget, setAdminPromotionTarget] = useState<{ id: string, name: string } | null>(null);
   const [makeFacultyTarget, setMakeFacultyTarget] = useState<{ id: string, name: string } | null>(null);
   const [makeStudentTarget, setMakeStudentTarget] = useState<{ id: string, name: string } | null>(null);
   const [makeDeveloperTarget, setMakeDeveloperTarget] = useState<{ id: string, name: string } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string, name: string, role: string } | null>(null);
+  
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
+  const [actionError, setActionError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // Local state for dynamically modified student roles
+  const [modifiedRoles, setModifiedRoles] = useState<Record<string, string>>({});
 
   // Search and Role filter logic
   const filteredStudents = students.filter(student => {
     if (deletedIds.has(student.id)) return false;
+    const effectiveRole = modifiedRoles[student.id] || student.role;
     const matchesSearch = student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           student.email?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === 'all' || student.role === roleFilter;
+    const matchesRole = roleFilter === 'all' || effectiveRole === roleFilter;
     
     let matchesEnrollment = true;
     if (enrollmentFilter === 'enrolled' && currentUserId) {
@@ -84,16 +91,18 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
   }, [searchTerm, roleFilter, enrollmentFilter]);
 
   const handleDeleteStudentClick = (studentId: string, studentName: string, role: string) => {
+    setActionError(null);
     setDeleteTarget({ id: studentId, name: studentName, role });
   };
 
   const confirmDeleteStudent = async () => {
     if (!deleteTarget) return;
+    setActionError(null);
     startTransition(async () => {
       try {
         const result = await deleteStudent(deleteTarget.id);
         if (result.error) {
-          alert(`Error deleting user: ${result.error}`);
+          setActionError(`Error deleting user: ${result.error}`);
         } else {
           setDeletedIds(prev => new Set(prev).add(deleteTarget.id));
           setSelectedStudent(null);
@@ -101,7 +110,7 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
         }
       } catch (err) {
         console.error(err);
-        alert('An unexpected error occurred.');
+        setActionError('An unexpected error occurred deleting the user.');
       }
     });
   };
@@ -114,7 +123,6 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
           if (result.error) {
             alert(`Error deleting enrollment: ${result.error}`);
           } else {
-            // Update selected student enrollments locally so modal updates instantly
             if (selectedStudent) {
               const updatedEnrollments = selectedStudent.enrollments?.filter(e => e.id !== enrollmentId) || [];
               setSelectedStudent({
@@ -132,104 +140,140 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
   };
 
   const handleMakeAdminClick = (userId: string, userName: string) => {
+    setActionError(null);
     setAdminPromotionTarget({ id: userId, name: userName });
   };
 
   const confirmMakeAdmin = async () => {
     if (!adminPromotionTarget) return;
-    
+    setActionError(null);
     startTransition(async () => {
       try {
         const result = await makeAdmin(adminPromotionTarget.id);
         if (result.error) {
-          alert(`Error making admin: ${result.error}`);
+          setActionError(result.error);
         } else {
-          setSelectedStudent(null);
+          setModifiedRoles(prev => ({ ...prev, [adminPromotionTarget.id]: 'admin' }));
+          if (selectedStudent?.id === adminPromotionTarget.id) {
+            setSelectedStudent(prev => prev ? { ...prev, role: 'admin' } : null);
+          }
           setAdminPromotionTarget(null);
         }
       } catch (err) {
         console.error(err);
-        alert('An unexpected error occurred.');
+        setActionError('An unexpected error occurred upgrading to Admin.');
       }
     });
   };
 
   const handleMakeFacultyClick = (userId: string, userName: string) => {
+    setActionError(null);
     setMakeFacultyTarget({ id: userId, name: userName });
   };
 
   const confirmMakeFaculty = async () => {
     if (!makeFacultyTarget) return;
-    
+    setActionError(null);
     startTransition(async () => {
       try {
         const result = await makeFaculty(makeFacultyTarget.id);
         if (result.error) {
-          alert(`Error making faculty: ${result.error}`);
+          setActionError(result.error);
         } else {
-          setSelectedStudent(null);
+          setModifiedRoles(prev => ({ ...prev, [makeFacultyTarget.id]: 'instructor' }));
+          if (selectedStudent?.id === makeFacultyTarget.id) {
+            setSelectedStudent(prev => prev ? { ...prev, role: 'instructor' } : null);
+          }
           setMakeFacultyTarget(null);
         }
       } catch (err) {
         console.error(err);
-        alert('An unexpected error occurred.');
+        setActionError('An unexpected error occurred assigning Faculty role.');
       }
     });
   };
 
   const handleMakeStudentClick = (userId: string, userName: string) => {
+    setActionError(null);
     setMakeStudentTarget({ id: userId, name: userName });
   };
 
   const confirmMakeStudent = async () => {
     if (!makeStudentTarget) return;
-    
+    setActionError(null);
     startTransition(async () => {
       try {
         const result = await makeStudent(makeStudentTarget.id);
         if (result.error) {
-          alert(`Error making student: ${result.error}`);
+          setActionError(result.error);
         } else {
-          setSelectedStudent(null);
+          setModifiedRoles(prev => ({ ...prev, [makeStudentTarget.id]: 'student' }));
+          if (selectedStudent?.id === makeStudentTarget.id) {
+            setSelectedStudent(prev => prev ? { ...prev, role: 'student' } : null);
+          }
           setMakeStudentTarget(null);
         }
       } catch (err) {
         console.error(err);
-        alert('An unexpected error occurred.');
+        setActionError('An unexpected error occurred setting Student role.');
       }
     });
   };
 
   const handleMakeDeveloperClick = (userId: string, userName: string) => {
-
+    setActionError(null);
     setMakeDeveloperTarget({ id: userId, name: userName });
   };
 
   const confirmMakeDeveloper = async () => {
     if (!makeDeveloperTarget) return;
-    
+    setActionError(null);
     startTransition(async () => {
       try {
         const result = await makeDeveloper(makeDeveloperTarget.id);
         if (result.error) {
-          alert(`Error making developer: ${result.error}`);
+          setActionError(result.error);
         } else {
-          setSelectedStudent(null);
+          setModifiedRoles(prev => ({ ...prev, [makeDeveloperTarget.id]: 'developer' }));
+          if (selectedStudent?.id === makeDeveloperTarget.id) {
+            setSelectedStudent(prev => prev ? { ...prev, role: 'developer' } : null);
+          }
           setMakeDeveloperTarget(null);
         }
       } catch (err) {
         console.error(err);
-        alert('An unexpected error occurred.');
+        setActionError('An unexpected error occurred assigning Developer role.');
       }
     });
   };
 
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-      {/* Search Input */}
-      <div className="search-container" style={{ marginBottom: 'var(--space-md)', display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap', alignItems: 'center' }}>
-        <div style={{ flex: 1, minWidth: '250px' }}>
+      
+      {/* Global Error Banner if any */}
+      {actionError && (
+        <div style={{ 
+          background: 'rgba(255, 71, 87, 0.15)', 
+          border: '1px solid rgba(255, 71, 87, 0.4)', 
+          color: '#ff4757', 
+          padding: '12px 16px', 
+          borderRadius: 'var(--radius-md)', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          fontSize: 'var(--text-sm)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <ShieldAlert size={18} />
+            <span>{actionError}</span>
+          </div>
+          <button onClick={() => setActionError(null)} style={{ background: 'none', border: 'none', color: '#ff4757', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
+        </div>
+      )}
+
+      {/* Search & Filter Controls */}
+      <div className="search-container" style={{ marginBottom: 'var(--space-sm)', display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ flex: 1, minWidth: '220px' }}>
           <Input 
             placeholder="Search users by name or email..." 
             value={searchTerm}
@@ -237,7 +281,8 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
             icon={<Search size={18} style={{ color: 'var(--text-muted)' }} />}
           />
         </div>
-        <div style={{ display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
+
+        <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap', alignItems: 'center' }}>
           {/* Enrollment Filter Toggle */}
           <div style={{ display: 'flex', background: 'var(--bg-input)', padding: '4px', borderRadius: 'var(--radius-sm)', gap: '4px' }}>
             <button 
@@ -256,42 +301,51 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
             </button>
           </div>
 
-          {/* Role Filters */}
-          <div style={{ display: 'flex', gap: 'var(--space-xs)' }}>
-          <Button 
-            variant={roleFilter === 'all' ? 'primary' : 'secondary'} 
-            onClick={() => setRoleFilter('all')}
-            size="sm"
-          >
-            ALL
-          </Button>
-          <Button 
-            variant={roleFilter === 'student' ? 'primary' : 'secondary'} 
-            onClick={() => setRoleFilter('student')}
-            size="sm"
-          >
-            Students
-          </Button>
-          <Button 
-            variant={roleFilter === 'instructor' ? 'primary' : 'secondary'} 
-            onClick={() => setRoleFilter('instructor')}
-            size="sm"
-          >
-            Faculty
-          </Button>
-          <Button 
-            variant={roleFilter === 'admin' ? 'primary' : 'secondary'} 
-            onClick={() => setRoleFilter('admin')}
-            size="sm"
-          >
-            Admin
-          </Button>
+          {/* Role Filter Buttons */}
+          <div className="role-filter-group">
+            <Button 
+              variant={roleFilter === 'all' ? 'primary' : 'secondary'} 
+              onClick={() => setRoleFilter('all')}
+              size="sm"
+            >
+              ALL
+            </Button>
+            <Button 
+              variant={roleFilter === 'student' ? 'primary' : 'secondary'} 
+              onClick={() => setRoleFilter('student')}
+              size="sm"
+            >
+              Students
+            </Button>
+            <Button 
+              variant={roleFilter === 'instructor' ? 'primary' : 'secondary'} 
+              onClick={() => setRoleFilter('instructor')}
+              size="sm"
+            >
+              Faculty
+            </Button>
+            <Button 
+              variant={roleFilter === 'admin' ? 'primary' : 'secondary'} 
+              onClick={() => setRoleFilter('admin')}
+              size="sm"
+            >
+              Admin
+            </Button>
+            <Button 
+              variant={roleFilter === 'developer' ? 'primary' : 'secondary'} 
+              onClick={() => setRoleFilter('developer')}
+              size="sm"
+              style={roleFilter === 'developer' ? { background: '#00f2fe', color: '#000', borderColor: '#00f2fe' } : {}}
+            >
+              Developer
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
 
+      {/* Users Table */}
       <div className="table-responsive-wrapper">
-        <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <table className="responsive-table">
           <thead>
             <tr style={{ borderBottom: '1px solid var(--glass-border)', color: 'var(--text-secondary)' }}>
               <th style={{ padding: 'var(--space-md) var(--space-sm)' }}>Name & Role</th>
@@ -305,6 +359,16 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
           </thead>
           <tbody>
             {paginatedStudents.map(student => {
+              const effectiveRole = modifiedRoles[student.id] || student.role;
+              const isDeveloper = effectiveRole === 'developer' || student.email?.toLowerCase() === superAdminEmail?.toLowerCase();
+              const isAdmin = effectiveRole === 'admin';
+              const isInstructorRole = effectiveRole === 'instructor';
+              
+              const roleDisplayLabel = isDeveloper ? 'developer' : effectiveRole;
+              const roleBadgeBg = isDeveloper ? 'rgba(0, 242, 254, 0.15)' : isAdmin ? 'rgba(177, 78, 255, 0.15)' : isInstructorRole ? 'rgba(255, 165, 2, 0.15)' : 'rgba(46, 213, 115, 0.15)';
+              const roleBadgeColor = isDeveloper ? '#00f2fe' : isAdmin ? 'var(--neon-purple)' : isInstructorRole ? '#ffa502' : '#2ed573';
+              const roleBorder = isDeveloper ? '1px solid rgba(0, 242, 254, 0.3)' : isAdmin ? '1px solid rgba(177, 78, 255, 0.3)' : isInstructorRole ? '1px solid rgba(255, 165, 2, 0.3)' : '1px solid rgba(46, 213, 115, 0.3)';
+
               let studentProgress = 0;
               if (student.enrollments && student.enrollments.length > 0) {
                 const sum = student.enrollments.reduce((acc: number, curr: EnrollmentDetail) => acc + (curr.progress || 0), 0);
@@ -320,42 +384,52 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
                     transition: 'background 0.2s ease'
                   }}
                   className="leaderboard-row"
-                  onClick={() => setSelectedStudent(student)}
+                  onClick={() => setSelectedStudent({ ...student, role: effectiveRole })}
                 >
                   <td data-label="Name" style={{ padding: 'var(--space-md) var(--space-sm)', fontWeight: 'var(--weight-semibold)' }}>
                     <div className="td-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: '100%', overflow: 'hidden' }}>
                       <span className="hover-underline" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', display: 'block' }}>{student.name}</span>
                       <span style={{ 
                         fontSize: '0.65rem', 
-                        padding: '2px 6px', 
+                        padding: '2px 8px', 
                         borderRadius: '4px', 
                         marginTop: '4px',
-                        background: student.email === superAdminEmail ? 'rgba(177, 78, 255, 0.2)' : student.role === 'instructor' ? 'rgba(255, 165, 2, 0.2)' : 'rgba(46, 213, 115, 0.2)',
-                        color: student.email === superAdminEmail ? 'var(--neon-purple)' : student.role === 'instructor' ? '#ffa502' : '#2ed573',
-                        textTransform: 'uppercase'
+                        background: roleBadgeBg,
+                        color: roleBadgeColor,
+                        border: roleBorder,
+                        textTransform: 'uppercase',
+                        fontWeight: '600',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
                       }}>
-                        {student.email === superAdminEmail ? 'developer' : student.role}
+                        {isDeveloper && <Code size={10} />}
+                        {roleDisplayLabel}
                       </span>
                     </div>
                   </td>
+
                   <td data-label="Email" style={{ padding: 'var(--space-md) var(--space-sm)', color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
                     <div className="td-content" style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{student.email.replace(/@gmail\.com$/, '@...')}</div>
-                      {student.role === 'student' && student.graduation_period && (
+                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{student.email}</div>
+                      {effectiveRole === 'student' && student.graduation_period && (
                         <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '2px', textTransform: 'uppercase' }}>{student.graduation_period} BATCH</div>
                       )}
                     </div>
                   </td>
+
                   <td data-label="Level" style={{ padding: 'var(--space-md) var(--space-sm)' }} onClick={(e) => e.stopPropagation()}>
                     <div className="td-content">
                       <LevelBadge level={student.level} size="sm" />
                     </div>
                   </td>
+
                   <td data-label="XP" style={{ padding: 'var(--space-md) var(--space-sm)', color: 'var(--neon-cyan)', fontWeight: 'var(--weight-bold)' }}>
                     <div className="td-content">
-                      {student.xp}
+                      ⚡ {student.xp}
                     </div>
                   </td>
+
                   <td data-label="Overall Progress" style={{ padding: 'var(--space-md) var(--space-sm)' }}>
                     <div className="td-content progress-container" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', width: '100%' }}>
                       <div style={{ flex: 1, height: '6px', background: 'var(--bg-input)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
@@ -364,22 +438,24 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
                       <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>{Math.round(studentProgress * 100)}%</span>
                     </div>
                   </td>
+
                   <td data-label="Last Active" style={{ padding: 'var(--space-md) var(--space-sm)', color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
                     <div suppressHydrationWarning className="td-content" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {student.last_active_at ? formatDistanceToNow(new Date(student.last_active_at), { addSuffix: true }) : 'Never'}
                     </div>
                   </td>
+
                   <td data-label="Actions" style={{ padding: 'var(--space-md) var(--space-sm)' }} onClick={(e) => e.stopPropagation()}>
                     <div className="td-content">
                       {isInstructor ? (
                         <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Restricted</span>
-                      ) : student.email === superAdminEmail ? (
-                        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--neon-purple)', fontWeight: 'bold' }}>Developer</span>
+                      ) : isDeveloper ? (
+                        <span style={{ fontSize: 'var(--text-xs)', color: '#00f2fe', fontWeight: 'bold' }}>Developer</span>
                       ) : (
                         <Button 
                           variant="danger" 
                           size="sm" 
-                          onClick={() => handleDeleteStudentClick(student.id, student.name, student.role)}
+                          onClick={() => handleDeleteStudentClick(student.id, student.name, effectiveRole)}
                           disabled={isPending}
                         >
                           Delete
@@ -400,9 +476,9 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
         )}
       </div>
 
-      {/* Show More / Less Controls */}
+      {/* Pagination Controls */}
       {filteredStudents.length > 5 && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--space-md)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--space-md)', flexWrap: 'wrap', gap: 'var(--space-sm)' }}>
           <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
             Showing {paginatedStudents.length} of {filteredStudents.length} entries
           </div>
@@ -429,20 +505,33 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
         </div>
       )}
 
-      {/* Student Details Modal */}
+      {/* Selected User Details Modal */}
       {selectedStudent && (
         <Modal 
           isOpen={true} 
           onClose={() => setSelectedStudent(null)} 
-          title={selectedStudent.role === 'admin' ? "Admin Profile Details" : selectedStudent.role === 'instructor' ? "Faculty Profile Details" : "Student Profile Details"}
+          title={`${(modifiedRoles[selectedStudent.id] || selectedStudent.role).toUpperCase()} Profile Details`}
           size="lg"
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
             
             {/* Header info */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
               <div>
-                <h3 style={{ margin: '0 0 var(--space-xs) 0', fontSize: 'var(--text-xl)' }}>{selectedStudent.name}</h3>
+                <h3 style={{ margin: '0 0 var(--space-xs) 0', fontSize: 'var(--text-xl)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {selectedStudent.name}
+                  <span style={{ 
+                    fontSize: '0.7rem', 
+                    padding: '2px 8px', 
+                    borderRadius: '4px', 
+                    background: (modifiedRoles[selectedStudent.id] || selectedStudent.role) === 'developer' ? 'rgba(0, 242, 254, 0.2)' : (modifiedRoles[selectedStudent.id] || selectedStudent.role) === 'admin' ? 'rgba(177, 78, 255, 0.2)' : (modifiedRoles[selectedStudent.id] || selectedStudent.role) === 'instructor' ? 'rgba(255, 165, 2, 0.2)' : 'rgba(46, 213, 115, 0.2)',
+                    color: (modifiedRoles[selectedStudent.id] || selectedStudent.role) === 'developer' ? '#00f2fe' : (modifiedRoles[selectedStudent.id] || selectedStudent.role) === 'admin' ? 'var(--neon-purple)' : (modifiedRoles[selectedStudent.id] || selectedStudent.role) === 'instructor' ? '#ffa502' : '#2ed573',
+                    textTransform: 'uppercase',
+                    fontWeight: 'bold'
+                  }}>
+                    {modifiedRoles[selectedStudent.id] || selectedStudent.role}
+                  </span>
+                </h3>
                 <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>{selectedStudent.email}</p>
                 {selectedStudent.institute_id && (
                   <p style={{ margin: 'var(--space-xs) 0 0 0', color: 'var(--text-primary)', fontSize: 'var(--text-sm)' }}>
@@ -453,11 +542,12 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
                   Joined: {new Date(selectedStudent.created_at).toLocaleDateString()} | Active: {selectedStudent.last_active_at ? new Date(selectedStudent.last_active_at).toLocaleString() : 'Never'}
                 </p>
               </div>
+
               <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'center' }}>
                 <LevelBadge level={selectedStudent.level} size="lg" />
                 <div style={{ background: 'rgba(0, 242, 254, 0.1)', border: '1px solid var(--neon-cyan)', padding: 'var(--space-sm) var(--space-md)', borderRadius: 'var(--radius-md)' }}>
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Current XP</div>
-                  <div style={{ fontSize: 'var(--text-lg)', fontWeight: 'bold', color: 'var(--neon-cyan)' }}>{selectedStudent.xp}</div>
+                  <div style={{ fontSize: 'var(--text-lg)', fontWeight: 'bold', color: 'var(--neon-cyan)' }}>⚡ {selectedStudent.xp}</div>
                 </div>
               </div>
             </div>
@@ -487,7 +577,7 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
 
               {!selectedStudent.enrollments || selectedStudent.enrollments.length === 0 ? (
                 <Card variant="glass" style={{ padding: 'var(--space-lg)', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  This student is not enrolled in any courses.
+                  This user is not enrolled in any courses.
                 </Card>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
@@ -505,7 +595,7 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
                         gap: 'var(--space-sm)'
                       }}
                     >
-                      <div style={{ flex: 1, minWidth: '200px', paddingRight: 'var(--space-md)' }}>
+                      <div style={{ flex: 1, minWidth: '180px', paddingRight: 'var(--space-md)' }}>
                         <div style={{ fontWeight: 'var(--weight-semibold)', color: 'var(--text-primary)', marginBottom: 'var(--space-xs)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {enr.courses?.title || 'Unknown Course'}
                         </div>
@@ -521,8 +611,7 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
                             {enr.status}
                           </span>
                           
-                          {/* Progress bar */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xs)', flex: 1, minWidth: '150px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xs)', flex: 1, minWidth: '120px' }}>
                             <div style={{ flex: 1, height: '4px', background: 'var(--bg-input)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
                               <div style={{ height: '100%', width: `${Math.round(enr.progress * 100)}%`, background: 'var(--gradient-xp)' }} />
                             </div>
@@ -531,7 +620,7 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
                         </div>
                       </div>
 
-                      <div style={{ marginTop: 'var(--space-sm)' }}>
+                      <div>
                         {isInstructor ? (
                           <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Locked</span>
                         ) : (
@@ -553,74 +642,64 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
               )}
             </div>
 
-            {/* Modal Actions */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--space-md)' }}>
-              {!isInstructor && selectedStudent.email !== superAdminEmail ? (
-                <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
-                  {selectedStudent.role === 'admin' ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
-                      <Button 
-                        variant="primary" 
-                        onClick={() => handleMakeFacultyClick(selectedStudent.id, selectedStudent.name)}
-                        disabled={isPending}
-                        style={{ background: 'var(--neon-gold)', borderColor: 'var(--neon-gold)', color: '#000' }}
-                      >
-                        Make Faculty
-                      </Button>
-                      {currentUserEmail === superAdminEmail && (
-                        <Button 
-                          variant="primary" 
-                          onClick={() => handleMakeDeveloperClick(selectedStudent.id, selectedStudent.name)}
-                          disabled={isPending}
-                          style={{ background: '#00f2fe', borderColor: '#00f2fe', color: '#000' }}
-                        >
-                          Make Developer
-                        </Button>
-                      )}
-                    </div>
-                  ) : selectedStudent.role === 'instructor' ? (
-                    <>
-                      <Button 
-                        variant="primary" 
-                        onClick={() => handleMakeStudentClick(selectedStudent.id, selectedStudent.name)}
-                        disabled={isPending}
-                        style={{ background: 'var(--neon-cyan)', borderColor: 'var(--neon-cyan)', color: '#000' }}
-                      >
-                        Make Student
-                      </Button>
-                      <Button 
-                        variant="primary" 
-                        onClick={() => handleMakeAdminClick(selectedStudent.id, selectedStudent.name)}
-                        disabled={isPending}
-                        style={{ background: 'var(--neon-purple)', borderColor: 'var(--neon-purple)', color: '#fff' }}
-                      >
-                        Make Admin
-                      </Button>
-                      {currentUserEmail === superAdminEmail && (
-                        <Button 
-                          variant="primary" 
-                          onClick={() => handleMakeDeveloperClick(selectedStudent.id, selectedStudent.name)}
-                          disabled={isPending}
-                          style={{ background: '#00f2fe', borderColor: '#00f2fe', color: '#000', marginTop: 'var(--space-xs)' }}
-                        >
-                          Make Developer
-                        </Button>
-                      )}
-                    </>
-                  ) : (
+            {/* Modal Role Actions */}
+            {!isInstructor && selectedStudent.email !== superAdminEmail && (
+              <div style={{ marginTop: 'var(--space-md)' }}>
+                <h4 style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>User Role Management</h4>
+                <div className="user-action-buttons-group">
+                  {(modifiedRoles[selectedStudent.id] || selectedStudent.role) !== 'student' && (
                     <Button 
-                      variant="danger" 
-                      onClick={() => handleDeleteStudentClick(selectedStudent.id, selectedStudent.name, selectedStudent.role)}
+                      variant="secondary" 
+                      onClick={() => handleMakeStudentClick(selectedStudent.id, selectedStudent.name)}
                       disabled={isPending}
                     >
-                      Delete Student Account
+                      🎓 Make Student
                     </Button>
                   )}
+
+                  {(modifiedRoles[selectedStudent.id] || selectedStudent.role) !== 'instructor' && (
+                    <Button 
+                      variant="secondary" 
+                      onClick={() => handleMakeFacultyClick(selectedStudent.id, selectedStudent.name)}
+                      disabled={isPending}
+                      style={{ color: '#ffa502', borderColor: 'rgba(255, 165, 2, 0.4)' }}
+                    >
+                      👨‍🏫 Make Faculty
+                    </Button>
+                  )}
+
+                  {(modifiedRoles[selectedStudent.id] || selectedStudent.role) !== 'admin' && (
+                    <Button 
+                      variant="secondary" 
+                      onClick={() => handleMakeAdminClick(selectedStudent.id, selectedStudent.name)}
+                      disabled={isPending}
+                      style={{ color: 'var(--neon-purple)', borderColor: 'rgba(177, 78, 255, 0.4)' }}
+                    >
+                      👑 Make Admin
+                    </Button>
+                  )}
+
+                  {(modifiedRoles[selectedStudent.id] || selectedStudent.role) !== 'developer' && (
+                    <Button 
+                      variant="secondary" 
+                      onClick={() => handleMakeDeveloperClick(selectedStudent.id, selectedStudent.name)}
+                      disabled={isPending}
+                      style={{ color: '#00f2fe', borderColor: 'rgba(0, 242, 254, 0.4)' }}
+                    >
+                      👨‍💻 Make Developer
+                    </Button>
+                  )}
+
+                  <Button 
+                    variant="danger" 
+                    onClick={() => handleDeleteStudentClick(selectedStudent.id, selectedStudent.name, (modifiedRoles[selectedStudent.id] || selectedStudent.role))}
+                    disabled={isPending}
+                  >
+                    🗑️ Delete Account
+                  </Button>
                 </div>
-              ) : (
-                <div />
-              )}
-            </div>
+              </div>
+            )}
 
           </div>
         </Modal>
@@ -639,13 +718,13 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
               <div style={{ fontSize: '2rem', padding: 'var(--space-sm)', background: 'rgba(177, 78, 255, 0.1)', borderRadius: 'var(--radius-md)', color: 'var(--neon-purple)' }}>
                 👑
               </div>
-              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '1.1rem', lineHeight: 1.5 }}>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '1rem', lineHeight: 1.5 }}>
                 Are you sure you want to promote <strong>{adminPromotionTarget.name}</strong> to Admin? 
-                They will have full access to manage students, faculty, and system settings.
+                They will receive administrative access to manage students, faculty, and content.
               </p>
             </div>
             
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
               <Button 
                 variant="secondary" 
                 onClick={() => setAdminPromotionTarget(null)}
@@ -671,7 +750,7 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
         <Modal 
           isOpen={true} 
           onClose={() => setMakeFacultyTarget(null)} 
-          title="Demote to Faculty"
+          title="Assign Faculty Role"
           size="md"
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
@@ -679,13 +758,13 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
               <div style={{ fontSize: '2rem', padding: 'var(--space-sm)', background: 'rgba(255, 165, 2, 0.1)', borderRadius: 'var(--radius-md)', color: 'var(--neon-gold)' }}>
                 👨‍🏫
               </div>
-              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '1.1rem', lineHeight: 1.5 }}>
-                Are you sure you want to change <strong>{makeFacultyTarget.name}</strong> from Admin to Faculty? 
-                They will lose access to administrative features.
+              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '1rem', lineHeight: 1.5 }}>
+                Are you sure you want to assign <strong>{makeFacultyTarget.name}</strong> to Faculty? 
+                They will have permission to manage courses and evaluations.
               </p>
             </div>
             
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
               <Button 
                 variant="secondary" 
                 onClick={() => setMakeFacultyTarget(null)}
@@ -711,7 +790,7 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
         <Modal 
           isOpen={true} 
           onClose={() => setMakeStudentTarget(null)} 
-          title="Demote to Student"
+          title="Set Student Role"
           size="md"
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
@@ -719,13 +798,12 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
               <div style={{ fontSize: '2rem', padding: 'var(--space-sm)', background: 'rgba(0, 242, 254, 0.1)', borderRadius: 'var(--radius-md)', color: 'var(--neon-cyan)' }}>
                 🎓
               </div>
-              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '1.1rem', lineHeight: 1.5 }}>
-                Are you sure you want to change <strong>{makeStudentTarget.name}</strong> from Faculty to a Student? 
-                They will lose access to instructor courses, grading, and dashboards.
+              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '1rem', lineHeight: 1.5 }}>
+                Are you sure you want to change <strong>{makeStudentTarget.name}</strong> to Student role? 
               </p>
             </div>
             
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
               <Button 
                 variant="secondary" 
                 onClick={() => setMakeStudentTarget(null)}
@@ -759,13 +837,13 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
               <div style={{ fontSize: '2rem', padding: 'var(--space-sm)', background: 'rgba(0, 242, 254, 0.1)', borderRadius: 'var(--radius-md)', color: '#00f2fe' }}>
                 👨‍💻
               </div>
-              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '1.1rem', lineHeight: 1.5 }}>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '1rem', lineHeight: 1.5 }}>
                 Are you sure you want to promote <strong>{makeDeveloperTarget.name}</strong> to Developer? 
-                This will grant them unrestricted access similar to an Admin but under the Developer role label.
+                This will grant them Developer role permissions.
               </p>
             </div>
             
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
               <Button 
                 variant="secondary" 
                 onClick={() => setMakeDeveloperTarget(null)}
@@ -799,13 +877,13 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
               <div style={{ fontSize: '2rem', padding: 'var(--space-sm)', background: 'rgba(255, 71, 87, 0.1)', borderRadius: 'var(--radius-md)', color: 'var(--neon-pink)' }}>
                 ⚠️
               </div>
-              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '1.1rem', lineHeight: 1.5 }}>
-                Are you sure you want to permanently delete {deleteTarget.role === 'instructor' ? 'faculty member' : 'student'} <strong>{deleteTarget.name}</strong>? 
-                This action cannot be undone and will erase all their progress and data.
+              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '1rem', lineHeight: 1.5 }}>
+                Are you sure you want to permanently delete user account <strong>{deleteTarget.name}</strong>? 
+                This action cannot be undone.
               </p>
             </div>
             
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
               <Button 
                 variant="secondary" 
                 onClick={() => setDeleteTarget(null)}

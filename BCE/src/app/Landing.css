@@ -1278,7 +1278,7 @@
     scroll-snap-type: x mandatory !important;
     scroll-behavior: smooth;
     gap: 16px !important;
-    padding-top: 8px;
+    padding-top: 12px;
     padding-bottom: 24px; /* Space for shadows */
     padding-left: 24px !important;
     padding-right: 24px !important;
@@ -1288,8 +1288,8 @@
     -webkit-overflow-scrolling: touch !important;
     scrollbar-width: none !important;
     touch-action: pan-x;
+    overscroll-behavior-x: contain;
     box-sizing: border-box;
-    /* Snap position accounts for padding so cards don't clip */
     scroll-padding-inline: 24px !important;
   }
   .mobile-carousel::-webkit-scrollbar {
@@ -1298,20 +1298,23 @@
   .mobile-carousel > div {
     flex: 0 0 85vw !important;
     width: 85vw !important;
-    max-width: 85vw !important;
-    scroll-snap-align: start !important;
+    max-width: 350px !important;
+    scroll-snap-align: center !important;
     scroll-snap-stop: normal;
     margin: 0 !important;
     box-sizing: border-box;
+    will-change: transform;
   }
   /* Reduce card height for mobile */
   .mobile-carousel .preview-course-card {
     min-height: 330px !important;
     padding: 20px !important;
+    max-width: 350px !important;
   }
   .mobile-carousel .preview-dsa-card {
-    min-height: 320px !important;
+    min-height: 330px !important;
     padding: 20px !important;
+    max-width: 350px !important;
   }
   .mobile-carousel > div:first-child {
     margin-left: 0 !important;
@@ -1355,21 +1358,28 @@
   .carousel-pagination {
     display: flex;
     justify-content: center;
-    gap: 8px;
+    align-items: center;
+    gap: 6px;
     margin-top: 1rem;
+    flex-wrap: wrap;
+    max-width: 90vw;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 4px 0;
   }
   .carousel-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.25);
     transition: all 0.3s ease;
     cursor: pointer;
+    flex-shrink: 0;
   }
   .carousel-dot.active {
-    width: 16px;
+    width: 18px;
     border-radius: 4px;
     background: #06b6d4;
-    box-shadow: 0 0 8px rgba(6, 182, 212, 0.4);
+    box-shadow: 0 0 8px rgba(6, 182, 212, 0.5);
   }
 }

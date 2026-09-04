@@ -3,7 +3,7 @@ import LandingCourseClient from './LandingCourseClient';
 import { getPreviewCourses, getCourseCategories } from './LandingPreviewActions';
 
 export default async function LandingCoursePreview() {
-  const { data: initialCourses } = await getPreviewCourses(0, 6, 'All Categories');
+  const { data: initialCourses } = await getPreviewCourses(0, 100, 'All Categories');
   const categories = await getCourseCategories();
 
   return (

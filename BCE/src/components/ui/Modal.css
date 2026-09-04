@@ -30,6 +30,30 @@
 .modal-md { max-width: 580px; }
 .modal-lg { max-width: 760px; }
 
+@media (max-width: 640px) {
+  .modal-backdrop {
+    padding: 12px 8px;
+  }
+  
+  .modal-content {
+    max-height: 92vh;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
+  }
+
+  .modal-header {
+    padding: 14px 14px 10px 14px;
+  }
+
+  .modal-body {
+    padding: 14px;
+  }
+  
+  .modal-title {
+    font-size: 1.05rem;
+  }
+}
+
 .modal-header {
   display: flex;
   align-items: center;
@@ -86,3 +110,4 @@
     transform: scale(1) translateY(0);
   }
 }
+

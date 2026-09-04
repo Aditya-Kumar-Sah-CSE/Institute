@@ -13,7 +13,7 @@ export default function LandingDSAClient({
   const [sheets, setSheets] = useState(initialSheets);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(initialSheets.length === 6);
+  const [hasMore, setHasMore] = useState(initialSheets.length === 100);
   const [activeIndex, setActiveIndex] = useState(0);
   
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -27,14 +27,37 @@ export default function LandingDSAClient({
   const scrollLeftRef = useRef(0);
   const isMounted = useRef(false);
   
-  // Mount sync effect — force initial scroll position to 0
+  // Handle scroll active index calculation
+  const handleScroll = useCallback(() => {
+    if (!isMounted.current || !carouselRef.current || sheets.length === 0) return;
+    const container = carouselRef.current;
+    if (container.scrollLeft <= 10) {
+      if (activeIndex !== 0) setActiveIndex(0);
+      return;
+    }
+    const firstChild = container.children[0] as HTMLElement;
+    const secondChild = container.children[1] as HTMLElement;
+    if (!firstChild) return;
+    
+    const cardWidthExact = secondChild ? (secondChild.offsetLeft - firstChild.offsetLeft) : (firstChild.offsetWidth + 16);
+    if (cardWidthExact <= 0) return;
+
+    const calculatedIndex = Math.round(container.scrollLeft / cardWidthExact);
+    const clampedIndex = Math.max(0, Math.min(sheets.length - 1, calculatedIndex));
+    if (clampedIndex !== activeIndex && !isNaN(clampedIndex)) {
+      setActiveIndex(clampedIndex);
+    }
+  }, [sheets.length, activeIndex]);
+
+  // Mount sync effect — force initial scroll position to 0 and sync active state
   React.useEffect(() => {
     isMounted.current = true;
     if (carouselRef.current) {
       carouselRef.current.scrollLeft = 0;
     }
     setActiveIndex(0);
-  }, []);
+    handleScroll();
+  }, [handleScroll]);
 
   const loadMore = useCallback(async (currentPage: number) => {
     if (loadingRef.current) return;
@@ -43,14 +66,14 @@ export default function LandingDSAClient({
     
     try {
       const nextPage = currentPage + 1;
-      const { data } = await getPreviewDSASheets(nextPage, 6);
+      const { data } = await getPreviewDSASheets(nextPage, 100);
       if (data && data.length > 0) {
         setSheets(prev => {
           const newSheets = data.filter((d: any) => !prev.some(p => p.id === d.id));
           return [...prev, ...newSheets];
         });
         setPage(nextPage);
-        if (data.length < 6) setHasMore(false);
+        if (data.length < 100) setHasMore(false);
       } else {
         setHasMore(false);
       }
@@ -75,27 +98,6 @@ export default function LandingDSAClient({
     
     if (node) observerRef.current.observe(node);
   }, [hasMore, page, loadMore]);
-
-  const handleScroll = useCallback(() => {
-    if (!isMounted.current || !carouselRef.current || sheets.length === 0) return;
-    const container = carouselRef.current;
-    if (container.scrollLeft <= 10) {
-      if (activeIndex !== 0) setActiveIndex(0);
-      return;
-    }
-    const firstChild = container.children[0] as HTMLElement;
-    const secondChild = container.children[1] as HTMLElement;
-    if (!firstChild) return;
-    
-    const cardWidthExact = secondChild ? (secondChild.offsetLeft - firstChild.offsetLeft) : (firstChild.offsetWidth + 16);
-    if (cardWidthExact <= 0) return;
-
-    const calculatedIndex = Math.round(container.scrollLeft / cardWidthExact);
-    const clampedIndex = Math.max(0, Math.min(sheets.length - 1, calculatedIndex));
-    if (clampedIndex !== activeIndex && !isNaN(clampedIndex)) {
-      setActiveIndex(clampedIndex);
-    }
-  }, [sheets.length, activeIndex]);
 
   // Mouse drag handlers for desktop/tablet
   const onMouseDown = (e: React.MouseEvent) => {
@@ -161,7 +163,7 @@ export default function LandingDSAClient({
                   display: 'flex',
                   flexDirection: 'column',
                   minHeight: '370px',
-                  maxWidth: '320px',
+                  maxWidth: '350px',
                   width: '100%',
                   cursor: 'default'
                 }}

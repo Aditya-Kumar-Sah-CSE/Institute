@@ -17,8 +17,9 @@ export default function LandingCourseClient({
   const [activeCategory, setActiveCategory] = useState('All Categories');
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(initialCourses.length === 6);
+  const [hasMore, setHasMore] = useState(initialCourses.length === 100);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isSwapping, setIsSwapping] = useState(false);
   
   const observerRef = useRef<IntersectionObserver | null>(null);
   const carouselRef = useRef<HTMLDivElement | null>(null);
@@ -30,13 +31,39 @@ export default function LandingCourseClient({
   const startX = useRef(0);
   const scrollLeftRef = useRef(0);
   const isMounted = useRef(false);
-  
+
+  // Handle scroll active index calculation
+  const handleScroll = useCallback(() => {
+    if (!isMounted.current || !carouselRef.current || courses.length === 0) return;
+    const container = carouselRef.current;
+    if (container.scrollLeft <= 10) {
+      if (activeIndex !== 0) setActiveIndex(0);
+      return;
+    }
+    const firstChild = container.children[0] as HTMLElement;
+    const secondChild = container.children[1] as HTMLElement;
+    if (!firstChild) return;
+    
+    const cardWidthExact = secondChild ? (secondChild.offsetLeft - firstChild.offsetLeft) : (firstChild.offsetWidth + 16);
+    if (cardWidthExact <= 0) return;
+
+    const calculatedIndex = Math.round(container.scrollLeft / cardWidthExact);
+    const clampedIndex = Math.max(0, Math.min(courses.length - 1, calculatedIndex));
+    if (clampedIndex !== activeIndex && !isNaN(clampedIndex)) {
+      setActiveIndex(clampedIndex);
+    }
+  }, [courses.length, activeIndex]);
+
   // Mount sync effect
   React.useEffect(() => {
     isMounted.current = true;
-    handleScroll(); // Sync active state based on any browser-restored scroll position AFTER hydration
-  }, []);
-  
+    if (carouselRef.current) {
+      carouselRef.current.scrollLeft = 0;
+    }
+    setActiveIndex(0);
+    handleScroll();
+  }, [handleScroll]);
+
   const loadMore = useCallback(async (currentPage: number, currentCategory: string) => {
     if (loadingRef.current) return;
     loadingRef.current = true;
@@ -44,14 +71,14 @@ export default function LandingCourseClient({
     
     try {
       const nextPage = currentPage + 1;
-      const { data } = await getPreviewCourses(nextPage, 6, currentCategory);
+      const { data } = await getPreviewCourses(nextPage, 100, currentCategory);
       if (data && data.length > 0) {
         setCourses(prev => {
           const newCourses = data.filter((d: any) => !prev.some(p => p.id === d.id));
           return [...prev, ...newCourses];
         });
         setPage(nextPage);
-        if (data.length < 6) setHasMore(false);
+        if (data.length < 100) setHasMore(false);
       } else {
         setHasMore(false);
       }
@@ -77,8 +104,6 @@ export default function LandingCourseClient({
     if (node) observerRef.current.observe(node);
   }, [hasMore, page, activeCategory, loadMore]);
 
-  const [isSwapping, setIsSwapping] = useState(false);
-
   const handleCategoryChange = async (cat: string) => {
     if (cat === activeCategory) return;
     setActiveCategory(cat);
@@ -86,11 +111,10 @@ export default function LandingCourseClient({
     setLoading(true);
     setPage(0);
     setActiveIndex(0);
-    const { data } = await getPreviewCourses(0, 6, cat);
+    const { data } = await getPreviewCourses(0, 100, cat);
     setCourses(data || []);
-    setHasMore(data && data.length === 6);
+    setHasMore(data && data.length === 100);
     setLoading(false);
-    // Small delay for fade-in animation
     requestAnimationFrame(() => {
       requestAnimationFrame(() => setIsSwapping(false));
     });
@@ -98,27 +122,6 @@ export default function LandingCourseClient({
       carouselRef.current.scrollTo({ left: 0, behavior: 'smooth' });
     }
   };
-
-  const handleScroll = useCallback(() => {
-    if (!isMounted.current || !carouselRef.current || courses.length === 0) return;
-    const container = carouselRef.current;
-    if (container.scrollLeft <= 10) {
-      if (activeIndex !== 0) setActiveIndex(0);
-      return;
-    }
-    const firstChild = container.children[0] as HTMLElement;
-    const secondChild = container.children[1] as HTMLElement;
-    if (!firstChild) return;
-    
-    const cardWidthExact = secondChild ? (secondChild.offsetLeft - firstChild.offsetLeft) : (firstChild.offsetWidth + 16);
-    if (cardWidthExact <= 0) return;
-
-    const calculatedIndex = Math.round(container.scrollLeft / cardWidthExact);
-    const clampedIndex = Math.max(0, Math.min(courses.length - 1, calculatedIndex));
-    if (clampedIndex !== activeIndex && !isNaN(clampedIndex)) {
-      setActiveIndex(clampedIndex);
-    }
-  }, [courses.length, activeIndex]);
 
   // Mouse drag handlers for desktop/tablet
   const onMouseDown = (e: React.MouseEvent) => {
@@ -202,7 +205,7 @@ export default function LandingCourseClient({
                   display: 'flex',
                   flexDirection: 'column',
                   minHeight: '380px',
-                  maxWidth: '360px',
+                  maxWidth: '350px',
                   width: '100%',
                   cursor: 'default'
                 }}

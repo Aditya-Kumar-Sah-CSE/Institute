@@ -3,7 +3,7 @@ import LandingDSAClient from './LandingDSAClient';
 import { getPreviewDSASheets } from './LandingPreviewActions';
 
 export default async function LandingDSAPreview() {
-  const { data: initialSheets } = await getPreviewDSASheets(0, 6);
+  const { data: initialSheets } = await getPreviewDSASheets(0, 100);
 
   return (
     <section id="landing-dsa" className="landing-section" style={{ background: 'var(--bg-secondary)', position: 'relative', zIndex: 1, padding: '3rem 24px' }}>

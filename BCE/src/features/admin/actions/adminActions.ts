@@ -286,8 +286,14 @@ export async function makeDeveloper(userId: string) {
       return { error: 'Not authenticated' };
     }
 
-    if (user.email !== SUPER_ADMIN_EMAIL) {
-      return { error: 'Unauthorized. Only the Superadmin can assign the Developer role.' };
+    const { data: profile } = await supabaseUser
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (user.email?.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase() && profile?.role !== 'admin' && profile?.role !== 'developer') {
+      return { error: 'Unauthorized. Only admins or developers can assign the Developer role.' };
     }
 
     // Update user role to developer

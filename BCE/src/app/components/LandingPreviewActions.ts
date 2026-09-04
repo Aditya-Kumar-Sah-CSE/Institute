@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 
-export async function getPreviewCourses(page = 0, limit = 6, category = 'All Categories') {
+export async function getPreviewCourses(page = 0, limit = 100, category = 'All Categories') {
   const supabase = await createClient();
   
   let query = supabase
@@ -84,7 +84,7 @@ export async function getCourseCategories() {
   return Array.from(categoriesSet).sort();
 }
 
-export async function getPreviewDSASheets(page = 0, limit = 6) {
+export async function getPreviewDSASheets(page = 0, limit = 100) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('coding_sheets')
