@@ -243,36 +243,23 @@ export const judgeService: JudgeService = {
 
     const compiler = WANDBOX_COMPILERS[language] || 'gcc-head';
 
-    // Run testcases cleanly and concurrently for accurate evaluation
-    const tc1 = testCases[0];
-    const res1 = await runSingleTestCase(compiler, sourceCode, tc1.input, tc1.expectedOutput, language, signature);
+    // Execute ALL test cases concurrently in parallel for maximum execution speed
+    const allResults = await Promise.all(
+      testCases.map((tc) =>
+        runSingleTestCase(compiler, sourceCode, tc.input, tc.expectedOutput, language, signature)
+      )
+    );
 
-    if (res1.status === 'COMPILATION_ERROR') {
-      const allResults: SingleTestResult[] = testCases.map((tc, idx) => {
-        if (idx === 0) return res1;
-        return {
-          status: 'COMPILATION_ERROR',
-          input: tc.input,
-          expectedOutput: tc.expectedOutput,
-          actualOutput: '',
-          passed: false,
-        };
-      });
+    const firstCompileError = allResults.find((r) => r.status === 'COMPILATION_ERROR');
+    if (firstCompileError) {
       return {
         status: 'COMPILATION_ERROR',
         passedTests: 0,
         totalTests: testCases.length,
-        compilerOutput: res1.stderr,
+        compilerOutput: firstCompileError.stderr,
         runtimeOutput: JSON.stringify(allResults),
       };
     }
-
-    const restPromises = testCases.slice(1).map((tc) =>
-      runSingleTestCase(compiler, sourceCode, tc.input, tc.expectedOutput, language, signature)
-    );
-    const restResults = await Promise.all(restPromises);
-
-    const allResults = [res1, ...restResults];
     const passedCount = allResults.filter(r => r.status === 'PASSED').length;
 
     let overallStatus: SubmissionStatus = 'ACCEPTED';

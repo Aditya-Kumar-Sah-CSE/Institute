@@ -176,126 +176,129 @@ export async function POST(request: Request) {
       .single();
 
     if (!error && data && data.status === 'ACCEPTED') {
-      try {
-        const { createAdminClient } = await import('@/lib/supabase/server');
-        const adminClient = await createAdminClient();
+      // Fire-and-forget post-submission processing asynchronously so HTTP response is instant
+      (async () => {
+        try {
+          const { createAdminClient } = await import('@/lib/supabase/server');
+          const adminClient = await createAdminClient();
 
-        // 1. Check if already solved
-        const { data: alreadySolved } = await adminClient
-          .from('student_completed_problems')
-          .select('id')
-          .eq('student_id', user.id)
-          .eq('platform', 'SMART_LEARN')
-          .eq('problem_id', problemId)
-          .maybeSingle();
+          // 1. Check if already solved
+          const { data: alreadySolved } = await adminClient
+            .from('student_completed_problems')
+            .select('id')
+            .eq('student_id', user.id)
+            .eq('platform', 'SMART_LEARN')
+            .eq('problem_id', problemId)
+            .maybeSingle();
 
-        const isNewSolve = !alreadySolved;
+          const isNewSolve = !alreadySolved;
 
-        // 2. Perform parallelized activity & completion updates
-        const formatter = new Intl.DateTimeFormat('en-CA', {
-          timeZone: 'Asia/Kolkata',
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit'
-        });
-        const today = formatter.format(new Date());
+          // 2. Perform parallelized activity & completion updates
+          const formatter = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Asia/Kolkata',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+          });
+          const today = formatter.format(new Date());
 
-        const tasks: Promise<any>[] = [];
+          const tasks: Promise<any>[] = [];
 
-        if (isNewSolve) {
-          const updateActivityTask = (async () => {
-            const { data: profile } = await adminClient.from('profiles').select('institution_id').eq('id', user.id).single();
-            const { data: currentActivity } = await adminClient
-              .from('daily_coding_activity')
-              .select('problems_solved')
-              .eq('user_id', user.id)
-              .eq('date', today)
-              .maybeSingle();
+          if (isNewSolve) {
+            const updateActivityTask = (async () => {
+              const { data: profile } = await adminClient.from('profiles').select('institution_id').eq('id', user.id).single();
+              const { data: currentActivity } = await adminClient
+                .from('daily_coding_activity')
+                .select('problems_solved')
+                .eq('user_id', user.id)
+                .eq('date', today)
+                .maybeSingle();
 
-            if (currentActivity) {
-              await adminClient.from('daily_coding_activity')
-                .update({ problems_solved: currentActivity.problems_solved + 1, updated_at: new Date().toISOString() })
-                .eq('user_id', user.id).eq('date', today);
-            } else {
-              await adminClient.from('daily_coding_activity')
-                .insert({ user_id: user.id, institution_id: profile?.institution_id || null, date: today, problems_solved: 1 });
+              if (currentActivity) {
+                await adminClient.from('daily_coding_activity')
+                  .update({ problems_solved: currentActivity.problems_solved + 1, updated_at: new Date().toISOString() })
+                  .eq('user_id', user.id).eq('date', today);
+              } else {
+                await adminClient.from('daily_coding_activity')
+                  .insert({ user_id: user.id, institution_id: profile?.institution_id || null, date: today, problems_solved: 1 });
+              }
+            })();
+            tasks.push(updateActivityTask);
+
+            const awardXpTask = (async () => {
+               const { awardXP } = await import('@/features/auth/actions/auth');
+               await awardXP(user.id, 20, 'Solved Coding Problem', 'code_arena', problemId);
+            })();
+            tasks.push(awardXpTask);
+          }
+
+          const updateSolvedTask = (async () => {
+            await adminClient
+              .from('student_completed_problems')
+              .upsert({
+                student_id: user.id,
+                platform: 'SMART_LEARN',
+                problem_id: problemId,
+                solved_at: new Date().toISOString(),
+              }, { onConflict: 'student_id,platform,problem_id' });
+          })();
+          tasks.push(updateSolvedTask);
+
+          const triggerBadgesTask = (async () => {
+            try {
+              const { checkBadges } = await import('@/features/gamification/actions/gamification');
+              await checkBadges(user.id);
+            } catch (badgeErr) {
+              console.error('[BADGES] Failed to trigger checkBadges:', badgeErr);
             }
           })();
-          tasks.push(updateActivityTask);
+          tasks.push(triggerBadgesTask);
 
-          const awardXpTask = (async () => {
-             const { awardXP } = await import('@/features/auth/actions/auth');
-             await awardXP(user.id, 20, 'Solved Coding Problem', 'code_arena', problemId);
-          })();
-          tasks.push(awardXpTask);
-        }
+          await Promise.allSettled(tasks);
 
-        const updateSolvedTask = (async () => {
-          await adminClient
-            .from('student_completed_problems')
-            .upsert({
-              student_id: user.id,
-              platform: 'SMART_LEARN',
-              problem_id: problemId,
-              solved_at: new Date().toISOString(),
-            }, { onConflict: 'student_id,platform,problem_id' });
-        })();
-        tasks.push(updateSolvedTask);
-
-        const triggerBadgesTask = (async () => {
-          try {
-            const { checkBadges } = await import('@/features/gamification/actions/gamification');
-            await checkBadges(user.id);
-          } catch (badgeErr) {
-            console.error('[BADGES] Failed to trigger checkBadges:', badgeErr);
+          // Targeted Revalidation
+          if (isNewSolve) {
+            const { revalidatePath } = await import('next/cache');
+            revalidatePath('/leaderboard');
+            revalidatePath('/code-arena/profile');
+            revalidatePath('/code-arena');
           }
-        })();
-        tasks.push(triggerBadgesTask);
 
-        await Promise.allSettled(tasks);
+          // Handle battle score if applicable
+          if (finalBattleId) {
+            const { data: prevSolved } = await adminClient
+              .from('coding_submissions')
+              .select('problem_id')
+              .eq('student_id', user.id)
+              .eq('battle_id', finalBattleId)
+              .eq('status', 'ACCEPTED');
 
-        // Targeted Revalidation
-        if (isNewSolve) {
-          const { revalidatePath } = await import('next/cache');
-          revalidatePath('/leaderboard');
-          revalidatePath('/code-arena/profile');
-          revalidatePath('/code-arena');
+            const solvedIds = Array.from(new Set([
+              problemId,
+              ...(prevSolved || []).map((s: any) => s.problem_id)
+            ]));
+
+            const { data: battleProblems } = await adminClient
+              .from('coding_battle_problems')
+              .select('problem_id, points')
+              .eq('battle_id', finalBattleId)
+              .in('problem_id', solvedIds);
+
+            const totalScore = (battleProblems || []).reduce((sum: number, bp: any) => sum + (bp.points || 0), 0);
+
+            await adminClient
+              .from('coding_battle_participants')
+              .update({
+                score: totalScore,
+                finished_at: new Date(data.created_at).toISOString()
+              })
+              .eq('battle_id', finalBattleId)
+              .eq('student_id', user.id);
+          }
+        } catch (postErr) {
+          console.error('Failed post-submission tasks:', postErr);
         }
-
-        // Handle battle score if applicable
-        if (finalBattleId) {
-          const { data: prevSolved } = await adminClient
-            .from('coding_submissions')
-            .select('problem_id')
-            .eq('student_id', user.id)
-            .eq('battle_id', finalBattleId)
-            .eq('status', 'ACCEPTED');
-
-          const solvedIds = Array.from(new Set([
-            problemId,
-            ...(prevSolved || []).map((s: any) => s.problem_id)
-          ]));
-
-          const { data: battleProblems } = await adminClient
-            .from('coding_battle_problems')
-            .select('problem_id, points')
-            .eq('battle_id', finalBattleId)
-            .in('problem_id', solvedIds);
-
-          const totalScore = (battleProblems || []).reduce((sum: number, bp: any) => sum + (bp.points || 0), 0);
-
-          await adminClient
-            .from('coding_battle_participants')
-            .update({
-              score: totalScore,
-              finished_at: new Date(data.created_at).toISOString()
-            })
-            .eq('battle_id', finalBattleId)
-            .eq('student_id', user.id);
-        }
-      } catch (postErr) {
-        console.error('Failed to update activity/score:', postErr);
-      }
+      })();
     }
 
     return error
