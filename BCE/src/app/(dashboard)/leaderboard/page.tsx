@@ -72,7 +72,7 @@ export default async function LeaderboardPage({
       .eq('is_verified', true)
       .not('last_login_at', 'is', null)
       .order('xp', { ascending: false })
-      .limit(50);
+      .limit(100);
   } else {
     const adminClient = await createAdminClient();
     enrollmentsQuery = adminClient
@@ -84,7 +84,7 @@ export default async function LeaderboardPage({
       .eq('profiles.is_verified', true)
       .not('profiles.last_login_at', 'is', null)
       .order('progress', { ascending: false })
-      .limit(50);
+      .limit(100);
   }
 
   const facultyQuery = supabase
