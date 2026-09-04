@@ -471,10 +471,12 @@ export default function CodeEditor({
   const [activeResultCaseIdx, setActiveResultCaseIdx] = useState(0);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Vertical Resizable Splitter State (Editor vs Console)
+  // Vertical Resizable Splitter State (Editor vs Console Section)
   const [editorHeightPct, setEditorHeightPct] = useState<number>(55);
   const [isResizingVertical, setIsResizingVertical] = useState<boolean>(false);
   const workspaceSectionRef = useRef<HTMLElement>(null);
+  const editorHeightPctRef = useRef(editorHeightPct);
+  editorHeightPctRef.current = editorHeightPct;
 
   useEffect(() => {
     const saved = localStorage.getItem('bce:code-editor-vertical-height');
@@ -505,7 +507,7 @@ export default function CodeEditor({
     const handleMouseUp = () => {
       if (isResizingVertical) {
         setIsResizingVertical(false);
-        localStorage.setItem('bce:code-editor-vertical-height', editorHeightPct.toFixed(2));
+        localStorage.setItem('bce:code-editor-vertical-height', editorHeightPctRef.current.toFixed(2));
       }
     };
 
@@ -517,7 +519,57 @@ export default function CodeEditor({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isResizingVertical, editorHeightPct]);
+  }, [isResizingVertical]);
+
+  // Resizable Splitter State between Console Results & Testcases Panel
+  const [consoleVsTestcasesSplit, setConsoleVsTestcasesSplit] = useState<number>(50);
+  const [isResizingConsoleVsTestcases, setIsResizingConsoleVsTestcases] = useState<boolean>(false);
+  const consoleParentContainerRef = useRef<HTMLDivElement>(null);
+  const consoleVsTestcasesSplitRef = useRef(consoleVsTestcasesSplit);
+  consoleVsTestcasesSplitRef.current = consoleVsTestcasesSplit;
+
+  useEffect(() => {
+    const saved = localStorage.getItem('bce:code-editor-console-testcase-split');
+    if (saved) {
+      const parsed = parseFloat(saved);
+      if (!isNaN(parsed) && parsed >= 15 && parsed <= 85) {
+        setConsoleVsTestcasesSplit(parsed);
+      }
+    }
+  }, []);
+
+  const handleConsoleVsTestcasesMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizingConsoleVsTestcases(true);
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizingConsoleVsTestcases || !consoleParentContainerRef.current) return;
+      const rect = consoleParentContainerRef.current.getBoundingClientRect();
+      const relativeY = e.clientY - rect.top;
+      const percentage = (relativeY / rect.height) * 100;
+      if (percentage >= 15 && percentage <= 85) {
+        setConsoleVsTestcasesSplit(percentage);
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (isResizingConsoleVsTestcases) {
+        setIsResizingConsoleVsTestcases(false);
+        localStorage.setItem('bce:code-editor-console-testcase-split', consoleVsTestcasesSplitRef.current.toFixed(2));
+      }
+    };
+
+    if (isResizingConsoleVsTestcases) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizingConsoleVsTestcases]);
 
   useEffect(() => {
     if (!editorRef.current || !monacoRef.current) return;
@@ -876,712 +928,751 @@ export default function CodeEditor({
         </div>
       )}
 
-      {/* Console & Test Results Tabbed Section */}
-      <div
-        className="oj-console-wrapper"
+      {/* Console & Testcases Split Container */}
+      <div 
+        ref={consoleParentContainerRef}
+        className="console-testcases-container"
         style={{
           flex: isFullscreen ? '0 0 0' : `1 1 calc(${100 - editorHeightPct}% - 10px)`,
           height: isFullscreen ? '0' : `calc(${100 - editorHeightPct}% - 10px)`,
-          minHeight: 0
+          minHeight: 0,
+          display: isFullscreen ? 'none' : 'flex',
+          flexDirection: 'column',
+          gap: 0,
+          overflow: 'hidden'
         }}
       >
-        <div className="oj-output-header">
-          <div className="oj-title-group">
-            <span className="oj-output-title">Console & Judge Results</span>
-          </div>
+        {/* Console & Test Results Tabbed Section */}
+        <div
+          className="oj-console-wrapper"
+          style={{
+            flex: `0 0 calc(${consoleVsTestcasesSplit}% - 5px)`,
+            height: `calc(${consoleVsTestcasesSplit}% - 5px)`,
+            minHeight: '60px',
+            overflowY: 'auto'
+          }}
+        >
+          <div className="oj-output-header">
+            <div className="oj-title-group">
+              <span className="oj-output-title">Console & Judge Results</span>
+            </div>
 
-          <div className="oj-control-btns">
-            <button
-              type="button"
-              className="btn-run-secondary"
-              disabled={running || submitting}
-              onClick={runCode}
-            >
-              {running ? <LoaderCircle size={15} className="animate-spin" /> : <Play size={15} />}
-              {running ? 'Running...' : 'Run Code'}
-            </button>
-
-            {problem.source_type === 'CODEFORCES' && (
+            <div className="oj-control-btns">
               <button
                 type="button"
-                className="btn-submit-cf"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: 'linear-gradient(135deg, #7c3aed, #db2777)',
-                  border: 'none',
-                  color: 'white',
-                  fontSize: '13px',
-                  padding: '10px 20px',
-                  borderRadius: 'var(--radius-md)',
-                  fontWeight: 750,
-                  cursor: 'pointer',
-                  boxShadow: '0 0 16px rgba(124, 58, 237, 0.35)',
-                  transition: 'all 0.2s ease',
-                  letterSpacing: '0.25px',
-                }}
-                onClick={() => {
-                  navigator.clipboard.writeText(code);
-                  setShowCFModal(true);
-                  const cfId = problem.external_problem_id || problem.externalId || '';
-                  const match = cfId.match(/^(\d+)([A-Z]\d*)$/i);
-                  let submitUrl = problem.external_url || `https://codeforces.com/problemset/problem/${cfId}`;
-                  if (match) {
-                    submitUrl = `https://codeforces.com/contest/${match[1]}/submit?problemIndex=${match[2].toUpperCase()}`;
-                  }
-                  window.open(submitUrl, '_blank');
-                }}
+                className="btn-run-secondary"
+                disabled={running || submitting}
+                onClick={runCode}
               >
-                <Zap size={14} /> Submit to Codeforces
+                {running ? <LoaderCircle size={15} className="animate-spin" /> : <Play size={15} />}
+                {running ? 'Running...' : 'Run Code'}
               </button>
-            )}
 
-            {problem.source_type === 'LEETCODE' && (
+              {problem.source_type === 'CODEFORCES' && (
+                <button
+                  type="button"
+                  className="btn-submit-cf"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: 'linear-gradient(135deg, #7c3aed, #db2777)',
+                    border: 'none',
+                    color: 'white',
+                    fontSize: '13px',
+                    padding: '10px 20px',
+                    borderRadius: 'var(--radius-md)',
+                    fontWeight: 750,
+                    cursor: 'pointer',
+                    boxShadow: '0 0 16px rgba(124, 58, 237, 0.35)',
+                    transition: 'all 0.2s ease',
+                    letterSpacing: '0.25px',
+                  }}
+                  onClick={() => {
+                    navigator.clipboard.writeText(code);
+                    setShowCFModal(true);
+                    const cfId = problem.external_problem_id || problem.externalId || '';
+                    const match = cfId.match(/^(\d+)([A-Z]\d*)$/i);
+                    let submitUrl = problem.external_url || `https://codeforces.com/problemset/problem/${cfId}`;
+                    if (match) {
+                      submitUrl = `https://codeforces.com/contest/${match[1]}/submit?problemIndex=${match[2].toUpperCase()}`;
+                    }
+                    window.open(submitUrl, '_blank');
+                  }}
+                >
+                  <Zap size={14} /> Submit to Codeforces
+                </button>
+              )}
+
+              {problem.source_type === 'LEETCODE' && (
+                <button
+                  type="button"
+                  className="btn-submit-lc"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: 'linear-gradient(135deg, #ffa116, #f77f00)',
+                    border: 'none',
+                    color: 'black',
+                    fontSize: '13px',
+                    padding: '10px 20px',
+                    borderRadius: 'var(--radius-md)',
+                    fontWeight: 750,
+                    cursor: 'pointer',
+                    boxShadow: '0 0 16px rgba(255, 161, 22, 0.35)',
+                    transition: 'all 0.2s ease',
+                    letterSpacing: '0.25px',
+                  }}
+                  onClick={() => {
+                    navigator.clipboard.writeText(code);
+                    setShowLCModal(true);
+                    const submitUrl = problem.external_url || problem.sourceUrl || 'https://leetcode.com/problems';
+                    window.open(submitUrl, '_blank');
+                  }}
+                >
+                  <Zap size={14} /> Submit to LeetCode
+                </button>
+              )}
+
               <button
                 type="button"
-                className="btn-submit-lc"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: 'linear-gradient(135deg, #ffa116, #f77f00)',
-                  border: 'none',
-                  color: 'black',
-                  fontSize: '13px',
-                  padding: '10px 20px',
-                  borderRadius: 'var(--radius-md)',
-                  fontWeight: 750,
-                  cursor: 'pointer',
-                  boxShadow: '0 0 16px rgba(255, 161, 22, 0.35)',
-                  transition: 'all 0.2s ease',
-                  letterSpacing: '0.25px',
-                }}
-                onClick={() => {
-                  navigator.clipboard.writeText(code);
-                  setShowLCModal(true);
-                  const submitUrl = problem.external_url || problem.sourceUrl || 'https://leetcode.com/problems';
-                  window.open(submitUrl, '_blank');
-                }}
+                className="btn-submit-primary"
+                disabled={running || submitting}
+                onClick={submitCode}
               >
-                <Zap size={14} /> Submit to LeetCode
+                {submitting ? <LoaderCircle size={15} className="animate-spin" /> : <Send size={15} />}
+                {submitting ? 'Judging...' : 'Submit Solution'}
               </button>
-            )}
+            </div>
+          </div>
 
+          {/* Tab Navigation */}
+          <div className="oj-tabs-bar">
             <button
               type="button"
-              className="btn-submit-primary"
-              disabled={running || submitting}
-              onClick={submitCode}
+              className={`oj-tab ${activeTab === 'output' ? 'active' : ''}`}
+              onClick={() => setActiveTab('output')}
             >
-              {submitting ? <LoaderCircle size={15} className="animate-spin" /> : <Send size={15} />}
-              {submitting ? 'Judging...' : 'Submit Solution'}
+              Output
+            </button>
+            <button
+              type="button"
+              className={`oj-tab ${activeTab === 'error' ? 'active' : ''}`}
+              onClick={() => setActiveTab('error')}
+            >
+              Error {errorCount > 0 && <span className="oj-err-badge">{errorCount}</span>}
+            </button>
+            <button
+              type="button"
+              className={`oj-tab ${activeTab === 'input' ? 'active' : ''}`}
+              onClick={() => setActiveTab('input')}
+            >
+              Input
+            </button>
+            <button
+              type="button"
+              className={`oj-tab ${activeTab === 'tests' ? 'active' : ''}`}
+              onClick={() => setActiveTab('tests')}
+            >
+              Tests
             </button>
           </div>
-        </div>
 
-        {/* Tab Navigation */}
-        <div className="oj-tabs-bar">
-          <button
-            type="button"
-            className={`oj-tab ${activeTab === 'output' ? 'active' : ''}`}
-            onClick={() => setActiveTab('output')}
-          >
-            Output
-          </button>
-          <button
-            type="button"
-            className={`oj-tab ${activeTab === 'error' ? 'active' : ''}`}
-            onClick={() => setActiveTab('error')}
-          >
-            Error {errorCount > 0 && <span className="oj-err-badge">{errorCount}</span>}
-          </button>
-          <button
-            type="button"
-            className={`oj-tab ${activeTab === 'input' ? 'active' : ''}`}
-            onClick={() => setActiveTab('input')}
-          >
-            Input
-          </button>
-          <button
-            type="button"
-            className={`oj-tab ${activeTab === 'tests' ? 'active' : ''}`}
-            onClick={() => setActiveTab('tests')}
-          >
-            Tests
-          </button>
-        </div>
-
-        {/* Console Display Body */}
-        <div className="oj-console-body">
-          {activeTab === 'output' && (
-            isLeetCodeType && batchResult ? (
-              batchResult.status === 'COMPILATION_ERROR' ? (
-                <div>
-                  <div className="oj-status-banner oj-status-COMPILATION_ERROR">
-                    ● Compilation Error
+          {/* Console Display Body */}
+          <div className="oj-console-body">
+            {activeTab === 'output' && (
+              isLeetCodeType && batchResult ? (
+                batchResult.status === 'COMPILATION_ERROR' ? (
+                  <div>
+                    <div className="oj-status-banner oj-status-COMPILATION_ERROR">
+                      ● Compilation Error
+                    </div>
+                    <pre className="oj-code-block oj-code-error">
+                      {batchResult.compilerOutput || 'Compilation error details not returned.'}
+                    </pre>
                   </div>
-                  <pre className="oj-code-block oj-code-error">
-                    {batchResult.compilerOutput || 'Compilation error details not returned.'}
-                  </pre>
-                </div>
-              ) : (
-                <div>
-                  <div className={`oj-status-banner oj-status-${batchResult.status}`}>
-                    {batchResult.status === 'ACCEPTED' ? '✓ Accepted — All Cases Passed' : `● ${batchResult.status}`}
-                  </div>
-                  
-                  {/* Results case tabs */}
-                  {(() => {
-                    let evaluatedCases: any[] = [];
-                    try {
-                      if (batchResult.runtimeOutput) {
-                        evaluatedCases = typeof batchResult.runtimeOutput === 'string'
-                          ? JSON.parse(batchResult.runtimeOutput)
-                          : batchResult.runtimeOutput;
-                      }
-                    } catch (e) {}
-
-                    if (evaluatedCases.length === 0) return <p>No case output available.</p>;
+                ) : (
+                  <div>
+                    <div className={`oj-status-banner oj-status-${batchResult.status}`}>
+                      {batchResult.status === 'ACCEPTED' ? '✓ Accepted — All Cases Passed' : `● ${batchResult.status}`}
+                    </div>
                     
-                    const activeRes = evaluatedCases[activeResultCaseIdx] || evaluatedCases[0];
-                    const isCasePassed = activeRes?.passed || activeRes?.status === 'PASSED';
-                    
-                    return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
-                        <div style={{ display: 'flex', gap: '6px', borderBottom: '1px solid var(--glass-border)', paddingBottom: '6px' }}>
-                          {evaluatedCases.map((tc, idx) => {
-                            const passed = tc.passed || tc.status === 'PASSED';
-                            return (
-                              <button
-                                key={idx}
-                                type="button"
-                                style={{
-                                  background: activeResultCaseIdx === idx ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
-                                  border: 'none',
-                                  color: passed ? 'var(--neon-green)' : '#f87171',
-                                  fontSize: '11px',
-                                  fontWeight: 'bold',
-                                  padding: '4px 10px',
-                                  borderRadius: '4px',
-                                  cursor: 'pointer'
-                                }}
-                                onClick={() => setActiveResultCaseIdx(idx)}
-                              >
-                                {passed ? '✓' : '✗'} Case {idx + 1}
-                              </button>
-                            );
-                          })}
-                        </div>
+                    {/* Results case tabs */}
+                    {(() => {
+                      let evaluatedCases: any[] = [];
+                      try {
+                        if (batchResult.runtimeOutput) {
+                          evaluatedCases = typeof batchResult.runtimeOutput === 'string'
+                            ? JSON.parse(batchResult.runtimeOutput)
+                            : batchResult.runtimeOutput;
+                        }
+                      } catch (e) {}
 
-                        {activeRes && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
-                              <div>
-                                <div style={{ fontSize: '9px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>Input</div>
-                                <pre style={{ margin: '2px 0 0 0', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', borderRadius: '4px', padding: '6px', fontSize: '11px', fontFamily: 'monospace', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
-                                  {activeRes.input || 'N/A'}
-                                </pre>
-                              </div>
-                              <div>
-                                <div style={{ fontSize: '9px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>Your Output</div>
-                                <pre style={{ margin: '2px 0 0 0', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', borderRadius: '4px', padding: '6px', fontSize: '11px', fontFamily: 'monospace', color: isCasePassed ? 'var(--neon-green)' : '#f87171', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
-                                  {activeRes.actualOutput || (activeRes.status === 'TIME_LIMIT_EXCEEDED' ? 'Time Limit Exceeded' : 'N/A')}
-                                </pre>
-                              </div>
-                              {activeRes.expectedOutput && (
+                      if (evaluatedCases.length === 0) return <p>No case output available.</p>;
+                      
+                      const activeRes = evaluatedCases[activeResultCaseIdx] || evaluatedCases[0];
+                      const isCasePassed = activeRes?.passed || activeRes?.status === 'PASSED';
+                      
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
+                          <div style={{ display: 'flex', gap: '6px', borderBottom: '1px solid var(--glass-border)', paddingBottom: '6px' }}>
+                            {evaluatedCases.map((tc, idx) => {
+                              const passed = tc.passed || tc.status === 'PASSED';
+                              return (
+                                <button
+                                  key={idx}
+                                  type="button"
+                                  style={{
+                                    background: activeResultCaseIdx === idx ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+                                    border: 'none',
+                                    color: passed ? 'var(--neon-green)' : '#f87171',
+                                    fontSize: '11px',
+                                    fontWeight: 'bold',
+                                    padding: '4px 10px',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer'
+                                  }}
+                                  onClick={() => setActiveResultCaseIdx(idx)}
+                                >
+                                  {passed ? '✓' : '✗'} Case {idx + 1}
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          {activeRes && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
                                 <div>
-                                  <div style={{ fontSize: '9px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>Expected Output</div>
-                                  <pre style={{ margin: '2px 0 0 0', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', borderRadius: '4px', padding: '6px', fontSize: '11px', fontFamily: 'monospace', color: 'var(--text-main)', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
-                                    {activeRes.expectedOutput}
+                                  <div style={{ fontSize: '9px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>Input</div>
+                                  <pre style={{ margin: '2px 0 0 0', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', borderRadius: '4px', padding: '6px', fontSize: '11px', fontFamily: 'monospace', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+                                    {activeRes.input || 'N/A'}
+                                  </pre>
+                                </div>
+                                <div>
+                                  <div style={{ fontSize: '9px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>Your Output</div>
+                                  <pre style={{ margin: '2px 0 0 0', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', borderRadius: '4px', padding: '6px', fontSize: '11px', fontFamily: 'monospace', color: isCasePassed ? 'var(--neon-green)' : '#f87171', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+                                    {activeRes.actualOutput || (activeRes.status === 'TIME_LIMIT_EXCEEDED' ? 'Time Limit Exceeded' : 'N/A')}
+                                  </pre>
+                                </div>
+                                {activeRes.expectedOutput && (
+                                  <div>
+                                    <div style={{ fontSize: '9px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>Expected Output</div>
+                                    <pre style={{ margin: '2px 0 0 0', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', borderRadius: '4px', padding: '6px', fontSize: '11px', fontFamily: 'monospace', color: 'var(--text-main)', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+                                      {activeRes.expectedOutput}
+                                    </pre>
+                                  </div>
+                                )}
+                              </div>
+
+                              {!isCasePassed && activeRes.mismatchInfo && (
+                                <div style={{ color: '#f87171', fontSize: '11px', marginTop: '2px' }}>
+                                  <div style={{ fontWeight: 700 }}>✗ Mismatch Details:</div>
+                                  <pre style={{ margin: '2px 0 0 0', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '4px', padding: '6px', fontFamily: 'monospace' }}>
+                                    {activeRes.mismatchInfo}
+                                  </pre>
+                                </div>
+                              )}
+
+                              {!isCasePassed && activeRes.stderr && (
+                                <div style={{ color: '#f87171', fontSize: '11px', marginTop: '2px' }}>
+                                  <div style={{ fontWeight: 700 }}>Runtime Stderr:</div>
+                                  <pre style={{ margin: '2px 0 0 0', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '4px', padding: '6px', fontFamily: 'monospace', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+                                    {activeRes.stderr}
                                   </pre>
                                 </div>
                               )}
                             </div>
-
-                            {!isCasePassed && activeRes.mismatchInfo && (
-                              <div style={{ color: '#f87171', fontSize: '11px', marginTop: '2px' }}>
-                                <div style={{ fontWeight: 700 }}>✗ Mismatch Details:</div>
-                                <pre style={{ margin: '2px 0 0 0', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '4px', padding: '6px', fontFamily: 'monospace' }}>
-                                  {activeRes.mismatchInfo}
-                                </pre>
-                              </div>
-                            )}
-
-                            {!isCasePassed && activeRes.stderr && (
-                              <div style={{ color: '#f87171', fontSize: '11px', marginTop: '2px' }}>
-                                <div style={{ fontWeight: 700 }}>Runtime Stderr:</div>
-                                <pre style={{ margin: '2px 0 0 0', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '4px', padding: '6px', fontFamily: 'monospace', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
-                                  {activeRes.stderr}
-                                </pre>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
-              )
-            ) : !execResult && !submissionResult ? (
-              <div className="oj-empty-state">
-                <div className="oj-terminal-icon-box">
-                  <Terminal size={22} />
-                  <span className="oj-check-badge">
-                    <CheckCircle2 size={12} />
-                  </span>
-                </div>
-                <p className="oj-empty-title">Console ready</p>
-                <p className="oj-empty-sub">Click “Run Code” or “Submit Solution” to inspect output and judge evaluation results.</p>
-              </div>
-            ) : execResult ? (
-              <div>
-                <div className={`oj-status-banner oj-status-${execResult.status}`}>
-                  {execResult.status === 'SUCCESS' ? '✓ Program Executed Successfully' : `● ${execResult.status}`}
-                </div>
-                <pre className="oj-code-block">
-                  {execResult.stdout ? execResult.stdout : <span className="text-secondary">Program executed cleanly with no stdout output.</span>}
-                </pre>
-              </div>
-            ) : submissionResult ? (
-              <div>
-                <div className={`oj-status-banner oj-status-${submissionResult.status || 'SUCCESS'}`}>
-                  {submissionResult.status === 'ACCEPTED' ? '✓ Accepted' : `● ${submissionResult.status || 'Processed'}`}
-                </div>
-                <p style={{ fontSize: '12px', color: 'var(--text-main)', margin: '4px 0' }}>
-                  Submission ID: <strong style={{ fontFamily: 'monospace' }}>{submissionResult.id || 'N/A'}</strong>
-                </p>
-                <LeetCodeSubmissionGraph 
-                  runtimeMs={submissionResult.execution_time_ms || 4} 
-                  memoryMb={submissionResult.memory_used_mb || 10.8}
-                  language={language}
-                />
-              </div>
-            ) : null
-          )}
-
-          {activeTab === 'error' && (
-            isLeetCodeType && batchResult ? (
-              (batchResult.status === 'COMPILATION_ERROR' || batchResult.status === 'SYSTEM_ERROR' || batchResult.status === 'RUNTIME_ERROR' || (batchResult.compilerOutput && batchResult.compilerOutput.trim())) ? (
-                <div>
-                  <div className={`oj-status-banner oj-status-${batchResult.status}`}>
-                    {batchResult.status === 'COMPILATION_ERROR'
-                      ? '● Compilation Error'
-                      : batchResult.status === 'SYSTEM_ERROR'
-                      ? '⚠ Execution Server Unavailable'
-                      : '● Diagnostics Output'}
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
-                  <pre className="oj-code-block oj-code-error">
-                    {batchResult.compilerOutput || 'Compilation or runtime error occurred.'}
-                  </pre>
-                </div>
-              ) : (
-                <div>
-                  <div className="oj-status-banner oj-status-SUCCESS">
-                    ✓ Clean Build — No Errors
+                )
+              ) : !execResult && !submissionResult ? (
+                <div className="oj-empty-state">
+                  <div className="oj-terminal-icon-box">
+                    <Terminal size={22} />
+                    <span className="oj-check-badge">
+                      <CheckCircle2 size={12} />
+                    </span>
                   </div>
-                  <pre className="oj-code-block" style={{ color: '#34d399', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
-                    ✓ No compilation or runtime errors detected.
-                  </pre>
+                  <p className="oj-empty-title">Console ready</p>
+                  <p className="oj-empty-sub">Click “Run Code” or “Submit Solution” to inspect output and judge evaluation results.</p>
                 </div>
-              )
-            ) : execResult ? (
-              (execResult.status === 'COMPILATION_ERROR' || execResult.status === 'SYSTEM_ERROR' || execResult.status === 'RUNTIME_ERROR' || execResult.compileStderr || execResult.stderr) ? (
+              ) : execResult ? (
                 <div>
                   <div className={`oj-status-banner oj-status-${execResult.status}`}>
-                    {execResult.status === 'COMPILATION_ERROR'
-                      ? '● Compilation Error'
-                      : execResult.status === 'SYSTEM_ERROR'
-                      ? '⚠ Execution Server Unavailable'
-                      : '● Error Output'}
+                    {execResult.status === 'SUCCESS' ? '✓ Program Executed Successfully' : `● ${execResult.status}`}
                   </div>
-                  <pre className="oj-code-block oj-code-error">
-                    {execResult.compileStderr || execResult.stderr || execResult.message || 'Execution error occurred.'}
+                  <pre className="oj-code-block">
+                    {execResult.stdout ? execResult.stdout : <span className="text-secondary">Program executed cleanly with no stdout output.</span>}
                   </pre>
+                </div>
+              ) : submissionResult ? (
+                <div>
+                  <div className={`oj-status-banner oj-status-${submissionResult.status || 'SUCCESS'}`}>
+                    {submissionResult.status === 'ACCEPTED' ? '✓ Accepted' : `● ${submissionResult.status || 'Processed'}`}
+                  </div>
+                  <p style={{ fontSize: '12px', color: 'var(--text-main)', margin: '4px 0' }}>
+                    Submission ID: <strong style={{ fontFamily: 'monospace' }}>{submissionResult.id || 'N/A'}</strong>
+                  </p>
+                  <LeetCodeSubmissionGraph 
+                    runtimeMs={submissionResult.execution_time_ms || 4} 
+                    memoryMb={submissionResult.memory_used_mb || 10.8}
+                    language={language}
+                  />
+                </div>
+              ) : null
+            )}
+
+            {activeTab === 'error' && (
+              isLeetCodeType && batchResult ? (
+                (batchResult.status === 'COMPILATION_ERROR' || batchResult.status === 'SYSTEM_ERROR' || batchResult.status === 'RUNTIME_ERROR' || (batchResult.compilerOutput && batchResult.compilerOutput.trim())) ? (
+                  <div>
+                    <div className={`oj-status-banner oj-status-${batchResult.status}`}>
+                      {batchResult.status === 'COMPILATION_ERROR'
+                        ? '● Compilation Error'
+                        : batchResult.status === 'SYSTEM_ERROR'
+                        ? '⚠ Execution Server Unavailable'
+                        : '● Diagnostics Output'}
+                    </div>
+                    <pre className="oj-code-block oj-code-error">
+                      {batchResult.compilerOutput || 'Compilation or runtime error occurred.'}
+                    </pre>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="oj-status-banner oj-status-SUCCESS">
+                      ✓ Clean Build — No Errors
+                    </div>
+                    <pre className="oj-code-block" style={{ color: '#34d399', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+                      ✓ No compilation or runtime errors detected.
+                    </pre>
+                  </div>
+                )
+              ) : execResult ? (
+                (execResult.status === 'COMPILATION_ERROR' || execResult.status === 'SYSTEM_ERROR' || execResult.status === 'RUNTIME_ERROR' || execResult.compileStderr || execResult.stderr) ? (
+                  <div>
+                    <div className={`oj-status-banner oj-status-${execResult.status}`}>
+                      {execResult.status === 'COMPILATION_ERROR'
+                        ? '● Compilation Error'
+                        : execResult.status === 'SYSTEM_ERROR'
+                        ? '⚠ Execution Server Unavailable'
+                        : '● Error Output'}
+                    </div>
+                    <pre className="oj-code-block oj-code-error">
+                      {execResult.compileStderr || execResult.stderr || execResult.message || 'Execution error occurred.'}
+                    </pre>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="oj-status-banner oj-status-SUCCESS">
+                      ✓ Clean Build — No Errors
+                    </div>
+                    <pre className="oj-code-block" style={{ color: '#34d399', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+                      ✓ No compilation or runtime errors detected.
+                    </pre>
+                  </div>
+                )
+              ) : submissionResult?.error ? (
+                <div>
+                  <div className="oj-status-banner oj-status-SYSTEM_ERROR">
+                    ● Submission Error
+                  </div>
+                  <pre className="oj-code-block oj-code-error">{submissionResult.error}</pre>
                 </div>
               ) : (
-                <div>
-                  <div className="oj-status-banner oj-status-SUCCESS">
-                    ✓ Clean Build — No Errors
-                  </div>
-                  <pre className="oj-code-block" style={{ color: '#34d399', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
-                    ✓ No compilation or runtime errors detected.
-                  </pre>
+                <div className="oj-empty-state">
+                  <p className="oj-empty-sub">No errors recorded.</p>
                 </div>
               )
-            ) : submissionResult?.error ? (
-              <div>
-                <div className="oj-status-banner oj-status-SYSTEM_ERROR">
-                  ● Submission Error
+            )}
+
+            {activeTab === 'input' && (
+              isLeetCodeType ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {testCases.map((tc, idx) => (
+                    <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 'bold' }}>{tc.name}</span>
+                      <pre className="oj-code-block">{tc.input || '(Empty)'}</pre>
+                    </div>
+                  ))}
                 </div>
-                <pre className="oj-code-block oj-code-error">{submissionResult.error}</pre>
-              </div>
-            ) : (
-              <div className="oj-empty-state">
-                <p className="oj-empty-sub">No errors recorded.</p>
-              </div>
-            )
-          )}
+              ) : (
+                <pre className="oj-code-block">
+                  {customInput ? customInput : <span className="text-secondary">No custom stdin input provided.</span>}
+                </pre>
+              )
+            )}
 
-          {activeTab === 'input' && (
-            isLeetCodeType ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {testCases.map((tc, idx) => (
-                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 'bold' }}>{tc.name}</span>
-                    <pre className="oj-code-block">{tc.input || '(Empty)'}</pre>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <pre className="oj-code-block">
-                {customInput ? customInput : <span className="text-secondary">No custom stdin input provided.</span>}
-              </pre>
-            )
-          )}
-
-          {activeTab === 'tests' && (
-            submissionResult ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div className={`oj-status-banner oj-status-${submissionResult.status || 'SUCCESS'}`}>
-                  {submissionResult.status === 'ACCEPTED'
-                    ? '✓ Accepted — All Tests Passed'
-                    : submissionResult.status === 'WRONG_ANSWER'
-                    ? '● Wrong Answer'
-                    : submissionResult.status === 'COMPILATION_ERROR'
-                    ? '● Compilation Error'
-                    : submissionResult.status === 'RUNTIME_ERROR'
-                    ? '● Runtime Error'
-                    : submissionResult.status === 'TIME_LIMIT_EXCEEDED'
-                    ? '● Time Limit Exceeded'
-                    : `● ${submissionResult.status}`}
-                </div>
-
-                <div className="oj-testcases-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div className="oj-testcases-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px' }}>
-                    <span style={{ fontWeight: 650, fontSize: '13px' }}>Test Cases Evaluated</span>
-                    <strong style={{ fontSize: '13px', color: submissionResult.status === 'ACCEPTED' ? 'var(--neon-green)' : '#f87171' }}>
-                      {submissionResult.passed_tests || 0} / {submissionResult.total_tests || (samples ? samples.length : 1)} Passed
-                    </strong>
+            {activeTab === 'tests' && (
+              submissionResult ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div className={`oj-status-banner oj-status-${submissionResult.status || 'SUCCESS'}`}>
+                    {submissionResult.status === 'ACCEPTED'
+                      ? '✓ Accepted — All Tests Passed'
+                      : submissionResult.status === 'WRONG_ANSWER'
+                      ? '● Wrong Answer'
+                      : submissionResult.status === 'COMPILATION_ERROR'
+                      ? '● Compilation Error'
+                      : submissionResult.status === 'RUNTIME_ERROR'
+                      ? '● Runtime Error'
+                      : submissionResult.status === 'TIME_LIMIT_EXCEEDED'
+                      ? '● Time Limit Exceeded'
+                      : `● ${submissionResult.status}`}
                   </div>
 
-                  {(() => {
-                    let evaluatedCases: any[] = [];
-                    try {
-                      if (submissionResult.runtime_output) {
-                        evaluatedCases = typeof submissionResult.runtime_output === 'string'
-                          ? JSON.parse(submissionResult.runtime_output)
-                          : submissionResult.runtime_output;
+                  <div className="oj-testcases-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div className="oj-testcases-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px' }}>
+                      <span style={{ fontWeight: 650, fontSize: '13px' }}>Test Cases Evaluated</span>
+                      <strong style={{ fontSize: '13px', color: submissionResult.status === 'ACCEPTED' ? 'var(--neon-green)' : '#f87171' }}>
+                        {submissionResult.passed_tests || 0} / {submissionResult.total_tests || (samples ? samples.length : 1)} Passed
+                      </strong>
+                    </div>
+
+                    {(() => {
+                      let evaluatedCases: any[] = [];
+                      try {
+                        if (submissionResult.runtime_output) {
+                          evaluatedCases = typeof submissionResult.runtime_output === 'string'
+                            ? JSON.parse(submissionResult.runtime_output)
+                            : submissionResult.runtime_output;
+                        }
+                      } catch (e) {
+                        console.error("Failed to parse runtime_output:", e);
                       }
-                    } catch (e) {
-                      console.error("Failed to parse runtime_output:", e);
-                    }
 
-                    if (evaluatedCases && evaluatedCases.length > 0) {
-                      return evaluatedCases.map((tc, idx) => {
-                        const isPassed = tc.passed || tc.status === 'PASSED';
-                        return (
-                          <div 
-                            key={idx} 
-                            style={{ 
-                              background: 'rgba(255, 255, 255, 0.01)', 
-                              border: '1px solid var(--glass-border)', 
-                              borderRadius: '8px', 
-                              padding: '12px',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '8px'
-                            }}
-                          >
-                            {/* Header */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontWeight: 700, fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                Test Case #{idx + 1}
-                              </span>
-                              <span style={{ 
-                                fontSize: '11px', 
-                                fontWeight: 700, 
-                                color: isPassed ? 'var(--neon-green)' : '#f87171',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px'
-                              }}>
-                                {isPassed ? '✓ Passed' : `✗ ${tc.status}`}
-                              </span>
-                            </div>
+                      if (evaluatedCases && evaluatedCases.length > 0) {
+                        return evaluatedCases.map((tc, idx) => {
+                          const isPassed = tc.passed || tc.status === 'PASSED';
+                          return (
+                            <div 
+                              key={idx} 
+                              style={{ 
+                                background: 'rgba(255, 255, 255, 0.01)', 
+                                border: '1px solid var(--glass-border)', 
+                                borderRadius: '8px', 
+                                padding: '12px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '8px'
+                              }}
+                            >
+                              {/* Header */}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontWeight: 700, fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                  Test Case #{idx + 1}
+                                </span>
+                                <span style={{ 
+                                  fontSize: '11px', 
+                                  fontWeight: 700, 
+                                  color: isPassed ? 'var(--neon-green)' : '#f87171',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px'
+                                }}>
+                                  {isPassed ? '✓ Passed' : `✗ ${tc.status}`}
+                                </span>
+                              </div>
 
-                            {/* Details Grid */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '4px' }}>
-                              <div>
-                                <div style={{ fontSize: '9px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>Input</div>
-                                <pre style={{ margin: '2px 0 0 0', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', borderRadius: '4px', padding: '6px', fontSize: '11px', fontFamily: 'monospace', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
-                                  {tc.input || 'N/A'}
-                                </pre>
-                              </div>
-                              <div>
-                                <div style={{ fontSize: '9px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>Your Output</div>
-                                <pre style={{ margin: '2px 0 0 0', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', borderRadius: '4px', padding: '6px', fontSize: '11px', fontFamily: 'monospace', color: isPassed ? 'var(--neon-green)' : '#f87171', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
-                                  {tc.actualOutput || (tc.status === 'TIME_LIMIT_EXCEEDED' ? 'Time Limit Exceeded' : 'N/A')}
-                                </pre>
-                              </div>
-                              <div>
-                                <div style={{ fontSize: '9px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>Expected Output</div>
-                                <pre style={{ margin: '2px 0 0 0', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', borderRadius: '4px', padding: '6px', fontSize: '11px', fontFamily: 'monospace', color: 'var(--text-main)', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
-                                  {tc.expectedOutput || 'N/A'}
-                                </pre>
-                              </div>
-                            </div>
-
-                            {/* Error / Mismatch Details */}
-                            {!isPassed && tc.mismatchInfo && (
-                              <div style={{ color: '#f87171', fontSize: '12px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                <div style={{ fontWeight: 700 }}>✗ Wrong Answer</div>
-                                <div style={{ background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '4px', padding: '6px', fontFamily: 'monospace', fontSize: '11px' }}>
-                                  {tc.mismatchInfo}
+                              {/* Details Grid */}
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '4px' }}>
+                                <div>
+                                  <div style={{ fontSize: '9px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>Input</div>
+                                  <pre style={{ margin: '2px 0 0 0', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', borderRadius: '4px', padding: '6px', fontSize: '11px', fontFamily: 'monospace', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+                                    {tc.input || 'N/A'}
+                                  </pre>
+                                </div>
+                                <div>
+                                  <div style={{ fontSize: '9px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>Your Output</div>
+                                  <pre style={{ margin: '2px 0 0 0', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', borderRadius: '4px', padding: '6px', fontSize: '11px', fontFamily: 'monospace', color: isPassed ? 'var(--neon-green)' : '#f87171', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+                                    {tc.actualOutput || (tc.status === 'TIME_LIMIT_EXCEEDED' ? 'Time Limit Exceeded' : 'N/A')}
+                                  </pre>
+                                </div>
+                                <div>
+                                  <div style={{ fontSize: '9px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>Expected Output</div>
+                                  <pre style={{ margin: '2px 0 0 0', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', borderRadius: '4px', padding: '6px', fontSize: '11px', fontFamily: 'monospace', color: 'var(--text-main)', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+                                    {tc.expectedOutput || 'N/A'}
+                                  </pre>
                                 </div>
                               </div>
-                            )}
-                            {!isPassed && tc.stderr && (
-                              <div style={{ color: '#f87171', fontSize: '12px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                <div style={{ fontWeight: 700 }}>Diagnostics / Error Output</div>
-                                <pre style={{ margin: '2px 0 0 0', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '4px', padding: '6px', fontFamily: 'monospace', fontSize: '11px', overflowX: 'auto', whiteSpace: 'pre-wrap', color: '#f87171' }}>
-                                  {tc.stderr}
-                                </pre>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      });
-                    }
 
-                    // Fallback to static sample view if no detailed results
-                    return samples.map((sample, idx) => (
-                      <div key={idx} className="oj-testcase-row" style={{ display: 'flex', justifyContent: 'space-between', border: '1px solid var(--glass-border)', borderRadius: '6px', padding: '8px 12px' }}>
-                        <span style={{ color: 'var(--text-muted)' }}>{sample.sample_name || `Sample Case #${idx + 1}`}</span>
-                        <span className="oj-testcase-passed" style={{ color: 'var(--neon-green)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <CheckCircle2 size={13} /> Passed
-                        </span>
-                      </div>
-                    ));
-                  })()}
+                              {!isPassed && tc.mismatchInfo && (
+                                <div style={{ color: '#f87171', fontSize: '12px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                  <div style={{ fontWeight: 700 }}>✗ Wrong Answer</div>
+                                  <div style={{ background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '4px', padding: '6px', fontFamily: 'monospace', fontSize: '11px' }}>
+                                    {tc.mismatchInfo}
+                                  </div>
+                                </div>
+                              )}
+                              {!isPassed && tc.stderr && (
+                                <div style={{ color: '#f87171', fontSize: '12px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                  <div style={{ fontWeight: 700 }}>Diagnostics / Error Output</div>
+                                  <pre style={{ margin: '2px 0 0 0', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '4px', padding: '6px', fontFamily: 'monospace', fontSize: '11px', overflowX: 'auto', whiteSpace: 'pre-wrap', color: '#f87171' }}>
+                                    {tc.stderr}
+                                  </pre>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        });
+                      }
+
+                      return samples.map((sample, idx) => (
+                        <div key={idx} className="oj-testcase-row" style={{ display: 'flex', justifyContent: 'space-between', border: '1px solid var(--glass-border)', borderRadius: '6px', padding: '8px 12px' }}>
+                          <span style={{ color: 'var(--text-muted)' }}>{sample.sample_name || `Sample Case #${idx + 1}`}</span>
+                          <span className="oj-testcase-passed" style={{ color: 'var(--neon-green)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <CheckCircle2 size={13} /> Passed
+                          </span>
+                        </div>
+                      ));
+                    })()}
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="oj-empty-state">
-                <p className="oj-empty-sub">Submit your solution to view test case pass/fail evaluations.</p>
-              </div>
-            )
-          )}
-        </div>
-      </div>
-
-      {/* Terminal Custom Input Card / Tabbed LeetCode Testcases */}
-      {isLeetCodeType ? (
-        <div className="oj-input-card leetcode-testcases-panel">
-          <div className="oj-input-header">
-            <span className="oj-input-title">
-              <Terminal size={14} style={{ color: 'var(--neon-cyan)' }} /> Testcases
-            </span>
-            <div className="oj-icon-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                style={{ fontSize: '11px', padding: '2px 10px', height: '26px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)', cursor: 'pointer', borderRadius: '4px', fontWeight: 'bold' }}
-                onClick={() => {
-                  if (confirm('Reset all test cases to default examples?')) {
-                    const reset = (samples || []).map((s, idx) => ({
-                      input: s.input,
-                      expectedOutput: (s as any).output || s.expected_output || '',
-                      name: s.sample_name || `Case ${idx + 1}`
-                    }));
-                    setTestCases(reset.length > 0 ? reset : [{ input: '', expectedOutput: '', name: 'Case 1' }]);
-                    setActiveTestCaseIdx(0);
-                  }
-                }}
-              >
-                Reset Cases
-              </button>
-            </div>
+              ) : (
+                <div className="oj-empty-state">
+                  <p className="oj-empty-sub">Submit your solution to view test case pass/fail evaluations.</p>
+                </div>
+              )
+            )}
           </div>
-          
-          {/* Tabs header for cases */}
-          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px', marginTop: '6px' }}>
-            {testCases.map((tc, idx) => (
-              <div 
-                key={idx}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  background: activeTestCaseIdx === idx ? 'rgba(6, 182, 212, 0.12)' : 'rgba(0, 0, 0, 0.2)',
-                  border: activeTestCaseIdx === idx ? '1px solid rgba(6, 182, 212, 0.3)' : '1px solid var(--glass-border)',
-                  borderRadius: '6px',
-                  padding: '4px 10px'
-                }}
-              >
+        </div>
+
+        {/* Horizontal Drag Slider between Console Results & Testcases Panel */}
+        <div
+          className={`console-testcase-resizer-slider ${isResizingConsoleVsTestcases ? 'active' : ''}`}
+          onMouseDown={handleConsoleVsTestcasesMouseDown}
+          title="Drag up or down to resize Console Results & Testcases panels"
+        >
+          <div className="slider-handle-pill" />
+        </div>
+
+        {/* Terminal Custom Input Card / Tabbed LeetCode Testcases */}
+        {isLeetCodeType ? (
+          <div 
+            className="oj-input-card leetcode-testcases-panel"
+            style={{
+              flex: `0 0 calc(${100 - consoleVsTestcasesSplit}% - 5px)`,
+              height: `calc(${100 - consoleVsTestcasesSplit}% - 5px)`,
+              minHeight: '60px',
+              overflowY: 'auto'
+            }}
+          >
+            <div className="oj-input-header">
+              <span className="oj-input-title">
+                <Terminal size={14} style={{ color: 'var(--neon-cyan)' }} /> Testcases
+              </span>
+              <div className="oj-icon-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <button
                   type="button"
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: activeTestCaseIdx === idx ? 'var(--neon-cyan)' : 'var(--text-secondary)',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    outline: 'none'
+                  className="btn btn-secondary"
+                  style={{ fontSize: '11px', padding: '2px 10px', height: '26px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)', cursor: 'pointer', borderRadius: '4px', fontWeight: 'bold' }}
+                  onClick={() => {
+                    if (confirm('Reset all test cases to default examples?')) {
+                      const reset = (samples || []).map((s, idx) => ({
+                        input: s.input,
+                        expectedOutput: (s as any).output || s.expected_output || '',
+                        name: s.sample_name || `Case ${idx + 1}`
+                      }));
+                      setTestCases(reset.length > 0 ? reset : [{ input: '', expectedOutput: '', name: 'Case 1' }]);
+                      setActiveTestCaseIdx(0);
+                    }
                   }}
-                  onClick={() => setActiveTestCaseIdx(idx)}
                 >
-                  {tc.name}
+                  Reset Cases
                 </button>
-                {testCases.length > 1 && (
+              </div>
+            </div>
+            
+            {/* Tabs header for cases */}
+            <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px', marginTop: '6px' }}>
+              {testCases.map((tc, idx) => (
+                <div 
+                  key={idx}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: activeTestCaseIdx === idx ? 'rgba(6, 182, 212, 0.12)' : 'rgba(0, 0, 0, 0.2)',
+                    border: activeTestCaseIdx === idx ? '1px solid rgba(6, 182, 212, 0.3)' : '1px solid var(--glass-border)',
+                    borderRadius: '6px',
+                    padding: '4px 10px'
+                  }}
+                >
                   <button
                     type="button"
                     style={{
                       background: 'none',
                       border: 'none',
-                      color: 'var(--text-muted)',
-                      cursor: 'pointer',
+                      color: activeTestCaseIdx === idx ? 'var(--neon-cyan)' : 'var(--text-secondary)',
                       fontSize: '12px',
-                      padding: '0 2px',
-                      lineHeight: 1
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      outline: 'none'
                     }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const updated = testCases.filter((_, i) => i !== idx);
-                      setTestCases(updated);
-                      setActiveTestCaseIdx(prev => Math.min(prev, updated.length - 1));
-                    }}
+                    onClick={() => setActiveTestCaseIdx(idx)}
                   >
-                    ×
+                    {tc.name}
                   </button>
-                )}
-              </div>
-            ))}
-            <button
-              type="button"
-              style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid var(--glass-border)',
-                borderRadius: '6px',
-                color: 'var(--neon-cyan)',
-                fontSize: '12px',
-                padding: '4px 12px',
-                cursor: 'pointer',
-                fontWeight: 'bold'
-              }}
-              onClick={() => {
-                const nextIdx = testCases.length + 1;
-                setTestCases([...testCases, { input: '', expectedOutput: '', name: `Case ${nextIdx}` }]);
-                setActiveTestCaseIdx(testCases.length);
-              }}
-            >
-              + Add Case
-            </button>
-          </div>
-
-          {/* Tab content */}
-          {testCases[activeTestCaseIdx] && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minHeight: 0, marginTop: '4px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minHeight: 0 }}>
-                <span style={{ fontSize: '10px', fontWeight: 650, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Input</span>
-                <textarea
-                  className="oj-input-textarea"
-                  style={{ flex: 1, minHeight: '60px', fontFamily: 'monospace' }}
-                  value={testCases[activeTestCaseIdx].input}
-                  onChange={(e) => {
-                    const updated = [...testCases];
-                    updated[activeTestCaseIdx].input = e.target.value;
-                    setTestCases(updated);
-                  }}
-                  placeholder="LeetCode inputs (arguments separated by lines, e.g. [2,7,11,15]\n9)"
-                />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minHeight: 0 }}>
-                <span style={{ fontSize: '10px', fontWeight: 650, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Expected Output (Optional)</span>
-                <textarea
-                  className="oj-input-textarea"
-                  style={{ flex: 1, minHeight: '40px', fontFamily: 'monospace' }}
-                  value={testCases[activeTestCaseIdx].expectedOutput}
-                  onChange={(e) => {
-                    const updated = [...testCases];
-                    updated[activeTestCaseIdx].expectedOutput = e.target.value;
-                    setTestCases(updated);
-                  }}
-                  placeholder="Expected output (e.g. [0,1])"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="oj-input-card">
-          <div className="oj-input-header">
-            <span className="oj-input-title">
-              <Terminal size={14} style={{ color: 'var(--neon-cyan)' }} /> Custom Stdin Input
-            </span>
-            <div className="oj-icon-actions" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              {samples && samples.length > 0 && (
-                <select
-                  aria-label="Select sample input example"
-                  style={{
-                    background: 'var(--bg-elevated)',
-                    border: '1px solid var(--glass-border)',
-                    color: 'var(--neon-cyan)',
-                    fontSize: '11px',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                  }}
-                  onChange={(e) => {
-                    const idx = parseInt(e.target.value, 10);
-                    if (!isNaN(idx) && samples[idx]) {
-                      setCustomInput(samples[idx].input);
-                      setActiveTab('input');
-                    }
-                  }}
-                  defaultValue=""
-                >
-                  <option value="" disabled>
-                    Use Example...
-                  </option>
-                  {samples.map((s, idx) => (
-                    <option key={idx} value={idx}>
-                      {s.sample_name || `Example ${idx + 1}`}
-                    </option>
-                  ))}
-                </select>
-              )}
+                  {testCases.length > 1 && (
+                    <button
+                      type="button"
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-muted)',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        padding: '0 2px',
+                        lineHeight: 1
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const updated = testCases.filter((_, i) => i !== idx);
+                        setTestCases(updated);
+                        setActiveTestCaseIdx(prev => Math.min(prev, updated.length - 1));
+                      }}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              ))}
               <button
                 type="button"
-                className="oj-icon-btn"
-                aria-label="Clear input content"
-                title="Clear custom input"
-                onClick={() => setCustomInput('')}
-              >
-                <Trash2 size={13} />
-              </button>
-              <button
-                type="button"
-                className="oj-icon-btn"
-                aria-label="Copy custom input"
-                title="Copy input"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid var(--glass-border)',
+                  borderRadius: '6px',
+                  color: 'var(--neon-cyan)',
+                  fontSize: '12px',
+                  padding: '4px 12px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold'
+                }}
                 onClick={() => {
-                  if (customInput) navigator.clipboard.writeText(customInput);
+                  const nextIdx = testCases.length + 1;
+                  setTestCases([...testCases, { input: '', expectedOutput: '', name: `Case ${nextIdx}` }]);
+                  setActiveTestCaseIdx(testCases.length);
                 }}
               >
-                <Copy size={13} />
+                + Add Case
               </button>
             </div>
+
+            {/* Tab content */}
+            {testCases[activeTestCaseIdx] && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minHeight: 0, marginTop: '4px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minHeight: 0 }}>
+                  <span style={{ fontSize: '10px', fontWeight: 650, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Input</span>
+                  <textarea
+                    className="oj-input-textarea"
+                    style={{ flex: 1, minHeight: '60px', fontFamily: 'monospace' }}
+                    value={testCases[activeTestCaseIdx].input}
+                    onChange={(e) => {
+                      const updated = [...testCases];
+                      updated[activeTestCaseIdx].input = e.target.value;
+                      setTestCases(updated);
+                    }}
+                    placeholder="LeetCode inputs (arguments separated by lines, e.g. [2,7,11,15]\n9)"
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minHeight: 0 }}>
+                  <span style={{ fontSize: '10px', fontWeight: 650, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Expected Output (Optional)</span>
+                  <textarea
+                    className="oj-input-textarea"
+                    style={{ flex: 1, minHeight: '40px', fontFamily: 'monospace' }}
+                    value={testCases[activeTestCaseIdx].expectedOutput}
+                    onChange={(e) => {
+                      const updated = [...testCases];
+                      updated[activeTestCaseIdx].expectedOutput = e.target.value;
+                      setTestCases(updated);
+                    }}
+                    placeholder="Expected output (e.g. [0,1])"
+                  />
+                </div>
+              </div>
+            )}
           </div>
-          <textarea
-            className="oj-input-textarea"
-            value={customInput}
-            placeholder="Paste or enter custom test stdin input here..."
-            onChange={(e) => setCustomInput(e.target.value)}
-          />
-        </div>
-      )}
+        ) : (
+          <div 
+            className="oj-input-card"
+            style={{
+              flex: `0 0 calc(${100 - consoleVsTestcasesSplit}% - 5px)`,
+              height: `calc(${100 - consoleVsTestcasesSplit}% - 5px)`,
+              minHeight: '60px',
+              overflowY: 'auto'
+            }}
+          >
+            <div className="oj-input-header">
+              <span className="oj-input-title">
+                <Terminal size={14} style={{ color: 'var(--neon-cyan)' }} /> Custom Stdin Input
+              </span>
+              <div className="oj-icon-actions" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {samples && samples.length > 0 && (
+                  <select
+                    aria-label="Select sample input example"
+                    style={{
+                      background: 'var(--bg-elevated)',
+                      border: '1px solid var(--glass-border)',
+                      color: 'var(--neon-cyan)',
+                      fontSize: '11px',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                    }}
+                    onChange={(e) => {
+                      const idx = parseInt(e.target.value, 10);
+                      if (!isNaN(idx) && samples[idx]) {
+                        setCustomInput(samples[idx].input);
+                        setActiveTab('input');
+                      }
+                    }}
+                    defaultValue=""
+                  >
+                    <option value="" disabled>
+                      Use Example...
+                    </option>
+                    {samples.map((s, idx) => (
+                      <option key={idx} value={idx}>
+                        {s.sample_name || `Example ${idx + 1}`}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <button
+                  type="button"
+                  className="oj-icon-btn"
+                  aria-label="Clear input content"
+                  title="Clear custom input"
+                  onClick={() => setCustomInput('')}
+                >
+                  <Trash2 size={13} />
+                </button>
+                <button
+                  type="button"
+                  className="oj-icon-btn"
+                  aria-label="Copy custom input"
+                  title="Copy input"
+                  onClick={() => {
+                    if (customInput) navigator.clipboard.writeText(customInput);
+                  }}
+                >
+                  <Copy size={13} />
+                </button>
+              </div>
+            </div>
+            <textarea
+              className="oj-input-textarea"
+              value={customInput}
+              placeholder="Paste or enter custom test stdin input here..."
+              onChange={(e) => setCustomInput(e.target.value)}
+            />
+          </div>
+        )}
+      </div>
 
       {showCFModal && (
         <div style={{
