@@ -7,7 +7,7 @@ export async function getPreviewCourses(page = 0, limit = 100, category = 'All C
   
   let query = supabase
     .from('courses')
-    .select('id, title, description, thumbnail_url, difficulty, tags, lesson_count, instructor_name, co_instructors, profiles:created_by(name)')
+    .select('id, title, description, thumbnail_url, difficulty, tags, lesson_count, instructor_name, co_instructors, created_by, profiles!courses_created_by_fkey(name)')
     .eq('is_published', true)
     .eq('is_deleted', false)
     .order('created_at', { ascending: false });
@@ -18,14 +18,58 @@ export async function getPreviewCourses(page = 0, limit = 100, category = 'All C
   }
 
   query = query.range(page * limit, (page + 1) * limit - 1);
-  const { data, error } = await query;
-  if (error || !data) {
-    console.error('Error fetching courses:', error);
-    return { data: [], error: error?.message || 'Error' };
+  const { data: rawData, error } = await query;
+  let coursesList: any[] = (rawData as any[]) || [];
+  
+  if (error || coursesList.length === 0) {
+    // Fallback: Query without join in case foreign key relationship alias cache fails
+    let fallbackQuery = supabase
+      .from('courses')
+      .select('id, title, description, thumbnail_url, difficulty, tags, lesson_count, instructor_name, co_instructors, created_by')
+      .eq('is_published', true)
+      .eq('is_deleted', false)
+      .order('created_at', { ascending: false });
+
+    if (category !== 'All Categories') {
+      fallbackQuery = fallbackQuery.eq('difficulty', category);
+    }
+    fallbackQuery = fallbackQuery.range(page * limit, (page + 1) * limit - 1);
+    
+    const fallbackRes = await fallbackQuery;
+    if (fallbackRes.error && coursesList.length === 0) {
+      console.error('Error fetching courses:', error || fallbackRes.error);
+      return { data: [], error: fallbackRes.error?.message || error?.message || 'Error' };
+    }
+    if (fallbackRes.data && fallbackRes.data.length > 0) {
+      coursesList = fallbackRes.data;
+    }
+  }
+
+  // Hydrate missing profile names via created_by if needed
+  const missingUserIds = Array.from(new Set(
+    coursesList
+      .filter((c: any) => !c.instructor_name && (!c.profiles || !c.profiles.name) && c.created_by)
+      .map((c: any) => c.created_by)
+  ));
+
+  if (missingUserIds.length > 0) {
+    const { data: profs } = await supabase
+      .from('profiles')
+      .select('id, name')
+      .in('id', missingUserIds);
+
+    if (profs) {
+      const profMap = new Map(profs.map(p => [p.id, p.name]));
+      coursesList.forEach((c: any) => {
+        if (!c.profiles?.name && c.created_by && profMap.has(c.created_by)) {
+          c.profiles = { name: profMap.get(c.created_by)! };
+        }
+      });
+    }
   }
 
   // Fetch rating stats for these courses
-  const courseIds = data.map(c => c.id);
+  const courseIds = coursesList.map(c => c.id);
   let ratingMap: Record<string, { averageRating: number; totalReviews: number }> = {};
   if (courseIds.length > 0) {
     const { data: reviews } = await supabase
@@ -52,7 +96,7 @@ export async function getPreviewCourses(page = 0, limit = 100, category = 'All C
     }
   }
 
-  const enrichedData = data.map(c => ({
+  const enrichedData = coursesList.map(c => ({
     ...c,
     averageRating: ratingMap[c.id]?.averageRating || 0,
     totalReviews: ratingMap[c.id]?.totalReviews || 0
