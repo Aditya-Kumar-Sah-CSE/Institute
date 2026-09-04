@@ -7,7 +7,7 @@ import Input, { TextArea } from '@/components/ui/Input';
 import { 
   Rocket, Link as LinkIcon, Smartphone, FileText, 
   CheckCircle, XCircle, Clock, Trash2, ShieldCheck, 
-  ExternalLink, Upload, AlertCircle, Sparkles, ChevronDown, ChevronUp
+  ExternalLink, Upload, AlertCircle, Sparkles, ChevronDown, ChevronUp, Eye
 } from 'lucide-react';
 import { 
   submitStudentApp, approveStudentApp, rejectStudentApp, deleteStudentApp 
@@ -262,7 +262,7 @@ export default function StudentAppShowcase({
         <>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
             gap: 'var(--space-md)'
           }}>
             {visibleApps.map((app: any) => (
@@ -273,56 +273,90 @@ export default function StudentAppShowcase({
                 style={{ 
                   display: 'flex', 
                   flexDirection: 'column', 
-                  gap: '12px', 
-                  padding: '16px', 
+                  alignItems: 'center',
+                  textAlign: 'center',
+                  padding: '16px 12px', 
                   cursor: 'pointer', 
-                  background: 'rgba(30, 41, 59, 0.25)', 
+                  background: 'rgba(15, 23, 42, 0.45)', 
                   border: '1px solid var(--glass-border)',
-                  borderRadius: 'var(--radius-md)',
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                  borderRadius: 'var(--radius-lg)',
+                  transition: 'all 0.25s ease',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  minHeight: '230px',
+                  justifyContent: 'space-between'
                 }}
                 onClick={() => setSelectedApp(app)}
               >
-                {/* Medium Size App Logo & Name */}
-                <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-                  <div style={{ position: 'relative', width: 56, height: 56, borderRadius: '14px', overflow: 'hidden', flexShrink: 0, border: '1px solid rgba(255, 255, 255, 0.1)', boxShadow: '0 4px 14px rgba(0, 0, 0, 0.3)' }}>
-                    <img src={app.app_logo_url} alt={app.app_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  </div>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text-primary)', letterSpacing: '-0.2px' }}>
-                      {app.app_name}
-                    </h3>
-                    <p style={{ margin: '3px 0 0 0', fontSize: '12px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      By {app.student_name}
-                    </p>
-                  </div>
+                {/* Top Center: App Icon */}
+                <div style={{ position: 'relative', width: 60, height: 60, marginTop: '4px', borderRadius: '16px', overflow: 'hidden', flexShrink: 0, border: '1.5px solid rgba(0, 240, 255, 0.4)', boxShadow: '0 6px 18px rgba(0, 240, 255, 0.15)' }}>
+                  <img src={app.app_logo_url} alt={app.app_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
 
-                {/* Card Footer Actions */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                  <span style={{ fontSize: '11px', color: 'var(--neon-cyan)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    <Sparkles size={11} /> Learn More
-                  </span>
+                {/* Middle: App Name & Author */}
+                <div style={{ width: '100%', padding: '6px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+                  <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.25, letterSpacing: '-0.2px' }}>
+                    {app.app_name}
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
+                    By {app.student_name}
+                  </p>
+                </div>
+
+                {/* Bottom: See & Open Action Buttons */}
+                <div style={{ display: 'flex', width: '100%', gap: '6px', marginTop: 'auto', paddingTop: '8px' }} onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedApp(app)}
+                    style={{
+                      flex: 1,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px',
+                      padding: '6px 0',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'rgba(0, 240, 255, 0.08)',
+                      border: '1px solid rgba(0, 240, 255, 0.25)',
+                      color: 'var(--neon-cyan)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(0, 240, 255, 0.2)'; }}
+                    onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(0, 240, 255, 0.08)'; }}
+                    title="See details"
+                  >
+                    <Eye size={12} /> See
+                  </button>
                   
                   <a 
                     href={app.working_url} 
                     target="_blank" 
                     rel="noopener noreferrer" 
-                    className="btn btn-secondary btn-sm"
                     style={{ 
+                      flex: 1,
                       display: 'inline-flex', 
                       alignItems: 'center', 
+                      justifyContent: 'center',
                       gap: '4px', 
-                      padding: '4px 12px', 
+                      padding: '6px 0', 
                       fontSize: '11px', 
-                      height: '28px',
+                      fontWeight: 700,
                       borderRadius: 'var(--radius-sm)',
-                      background: 'rgba(255,255,255,0.06)',
-                      border: '1px solid var(--glass-border)'
+                      background: 'linear-gradient(135deg, var(--neon-cyan), #00c9db)',
+                      border: 'none',
+                      color: '#000',
+                      textDecoration: 'none',
+                      boxShadow: '0 2px 10px rgba(0, 240, 255, 0.3)',
+                      transition: 'all 0.2s ease'
                     }}
-                    onClick={(e) => e.stopPropagation()}
+                    onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                    onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+                    title="Open application"
                   >
-                    Launch <ExternalLink size={10} />
+                    Open <ExternalLink size={11} />
                   </a>
                 </div>
               </Card>
