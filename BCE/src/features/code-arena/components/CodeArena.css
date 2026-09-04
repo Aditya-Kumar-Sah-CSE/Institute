@@ -236,6 +236,10 @@
   .code-workspace-panel.show-editor .vertical-resizer-slider {
     display: none !important;
   }
+  .code-workspace-panel.show-editor .code-monaco-wrapper {
+    flex: 1 1 100% !important;
+    height: 100% !important;
+  }
 
   /* When showing results only, hide editor. Show console-testcases container */
   .code-workspace-panel.show-results .code-monaco-wrapper,

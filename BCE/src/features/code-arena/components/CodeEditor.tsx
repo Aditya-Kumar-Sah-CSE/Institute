@@ -767,8 +767,8 @@ export default function CodeEditor({
       <div 
         className={`code-monaco-wrapper ${isFullscreen ? 'code-editor-fullscreen' : ''}`}
         style={{
-          flex: isFullscreen ? '1 1 100%' : `0 0 ${editorHeightPct}%`,
-          height: isFullscreen ? '100%' : `${editorHeightPct}%`
+          flex: (isFullscreen || activeRightTab === 'editor') ? '1 1 100%' : `0 0 ${editorHeightPct}%`,
+          height: (isFullscreen || activeRightTab === 'editor') ? '100%' : `${editorHeightPct}%`
         }}
         {...practiceAndBattleClipboardProps}
       >
