@@ -129,6 +129,8 @@ export interface Course {
   enrollment_restriction?: 'any' | 'approval';
   created_by: string | null;
   created_at: string;
+  instructor_name?: string | null;
+  co_instructors?: any;
   profiles?: { name: string } | null;
 }
 

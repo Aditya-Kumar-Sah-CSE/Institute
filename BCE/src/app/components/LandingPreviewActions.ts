@@ -7,7 +7,7 @@ export async function getPreviewCourses(page = 0, limit = 100, category = 'All C
   
   let query = supabase
     .from('courses')
-    .select('id, title, description, thumbnail_url, difficulty, tags, lesson_count')
+    .select('id, title, description, thumbnail_url, difficulty, tags, lesson_count, instructor_name, co_instructors, profiles:created_by(name)')
     .eq('is_published', true)
     .eq('is_deleted', false)
     .order('created_at', { ascending: false });

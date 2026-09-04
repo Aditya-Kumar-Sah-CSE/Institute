@@ -1212,6 +1212,13 @@
   pointer-events: none;
 }
 
+/* Hide swap buttons on desktop screens (> 768px) */
+@media (min-width: 769px) {
+  .card-swap-btn {
+    display: none !important;
+  }
+}
+
 @media (max-width: 768px) {
   .card-swap-btn-left {
     left: 4px;

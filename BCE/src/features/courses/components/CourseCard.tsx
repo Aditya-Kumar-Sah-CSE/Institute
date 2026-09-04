@@ -98,12 +98,6 @@ export default function CourseCard({ course, progress, status, certificateId, in
                 {course.difficulty}
               </div>
             </div>
-            {course.profiles?.name && (
-              <p className="course-instructor" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-                By {course.profiles.name} <BadgeCheck size={14} style={{ color: 'var(--neon-cyan)' }} />
-              </p>
-            )}
-
             {/* Rating Badge */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: 'var(--space-sm)' }}>
               <Star size={13} style={{ color: '#f59e0b', fill: '#f59e0b', filter: 'drop-shadow(0 0 4px rgba(245, 158, 11, 0.4))' }} />
@@ -121,6 +115,36 @@ export default function CourseCard({ course, progress, status, certificateId, in
                   : course.description
               ) : 'No description provided.'}
             </p>
+
+            {(() => {
+              const names: string[] = [];
+              const main = course.instructor_name || (Array.isArray(course.profiles) ? (course.profiles as any)[0]?.name : course.profiles?.name);
+              if (main && typeof main === 'string' && main.trim()) names.push(main.trim());
+              if (course.co_instructors) {
+                let coList: any[] = [];
+                if (Array.isArray(course.co_instructors)) coList = course.co_instructors;
+                else if (typeof course.co_instructors === 'string') {
+                  try {
+                    const p = JSON.parse(course.co_instructors);
+                    if (Array.isArray(p)) coList = p;
+                    else coList = course.co_instructors.split(',');
+                  } catch { coList = course.co_instructors.split(','); }
+                }
+                coList.forEach((ci: any) => {
+                  const n = typeof ci === 'string' ? ci.trim() : ci?.name?.trim();
+                  if (n && !names.includes(n)) names.push(n);
+                });
+              }
+              if (names.length === 0) return null;
+              return (
+                <p className="course-instructor" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '6px', marginBottom: '8px' }}>
+                  <BadgeCheck size={14} style={{ color: 'var(--neon-cyan)', flexShrink: 0 }} />
+                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {names.length === 1 ? 'Instructor: ' : 'Instructors: '}{names.join(', ')}
+                  </span>
+                </p>
+              );
+            })()}
 
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-md)', marginTop: 'auto', paddingTop: 'var(--space-md)' }}>

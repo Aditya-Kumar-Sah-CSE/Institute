@@ -2,9 +2,38 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { Lock, BookOpen, Layers, Star, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Lock, BookOpen, Layers, Star, ChevronLeft, ChevronRight, User } from 'lucide-react';
 import { getPreviewCourses } from './LandingPreviewActions';
+
+function getInstructorNames(course: any): string[] {
+  const names: string[] = [];
+  const primary = course.instructor_name || (Array.isArray(course.profiles) ? course.profiles[0]?.name : course.profiles?.name);
+  if (primary && typeof primary === 'string' && primary.trim()) {
+    names.push(primary.trim());
+  }
+
+  if (course.co_instructors) {
+    let coList: any[] = [];
+    if (Array.isArray(course.co_instructors)) {
+      coList = course.co_instructors;
+    } else if (typeof course.co_instructors === 'string') {
+      try {
+        const parsed = JSON.parse(course.co_instructors);
+        if (Array.isArray(parsed)) coList = parsed;
+        else coList = course.co_instructors.split(',');
+      } catch {
+        coList = course.co_instructors.split(',');
+      }
+    }
+    coList.forEach((ci: any) => {
+      const name = typeof ci === 'string' ? ci.trim() : ci?.name?.trim();
+      if (name && !names.includes(name)) {
+        names.push(name);
+      }
+    });
+  }
+  return names;
+}
 
 export default function LandingCourseClient({ 
   initialCourses, 
@@ -215,14 +244,12 @@ export default function LandingCourseClient({
             {courses.map((course, index) => {
               const isLast = index === courses.length - 1;
               const isActive = index === activeIndex;
+              const instructorNames = getInstructorNames(course);
               return (
                 <div 
                   key={course.id}
                   suppressHydrationWarning
                   ref={isLast ? lastElementRef : null}
-                  onMouseEnter={() => {
-                     setActiveIndex(index);
-                  }}
                   className={`preview-course-card coverflow-card ${isActive ? 'coverflow-active' : 'coverflow-inactive'}`}
                 style={{ 
                   background: 'var(--bg-card)', 
@@ -270,27 +297,6 @@ export default function LandingCourseClient({
                   </div>
                 </div>
 
-                {/* Thumbnail / Icon Container */}
-                <div style={{ 
-                  width: '72px', 
-                  height: '72px', 
-                  borderRadius: '16px',
-                  background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(59, 130, 246, 0.1))',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: '20px',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  flexShrink: 0
-                }}>
-                  {course.thumbnail_url ? (
-                    <Image src={course.thumbnail_url} alt={course.title} fill sizes="72px" style={{ objectFit: 'cover' }} />
-                  ) : (
-                    <BookOpen size={32} color="#818cf8" />
-                  )}
-                </div>
-
                 {/* Text Content */}
                 <h3 style={{ 
                   fontSize: '18px', 
@@ -311,7 +317,7 @@ export default function LandingCourseClient({
                   color: 'var(--text-secondary)', 
                   fontSize: '14px', 
                   lineHeight: 1.5,
-                  marginBottom: '20px', 
+                  marginBottom: '12px', 
                   flex: 1, 
                   display: '-webkit-box', 
                   WebkitLineClamp: 3, 
@@ -321,6 +327,31 @@ export default function LandingCourseClient({
                 }}>
                   {course.description || 'Curated premium course designed to boost your skills and knowledge.'}
                 </p>
+
+                {/* Instructor Name(s) */}
+                {instructorNames.length > 0 && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: '#818cf8',
+                    marginBottom: '16px'
+                  }}>
+                    <User size={14} style={{ flexShrink: 0 }} />
+                    <span style={{ 
+                      whiteSpace: 'nowrap', 
+                      overflow: 'hidden', 
+                      textOverflow: 'ellipsis' 
+                    }}>
+                      {instructorNames.length === 1 ? 'Instructor: ' : 'Instructors: '}
+                      <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+                        {instructorNames.join(', ')}
+                      </span>
+                    </span>
+                  </div>
+                )}
 
                 {/* Modules Metadata & Rating Badge */}
                 <div style={{ 
