@@ -157,6 +157,9 @@ export default async function CodingProfilePage({ searchParams }: { searchParams
           <RecentCodingActivity 
             bceRecent={bceSubmissions || []} 
             cfRecent={cfAccount?.metadata?.recent_submissions || []} 
+            lcRecent={lcAccount?.metadata?.recent_submissions || []} 
+            ccRecent={ccAccount?.metadata?.recent_submissions || []} 
+            gfgRecent={gfgAccount?.metadata?.recent_submissions || []} 
           />
         </div>
       </div>

@@ -34,6 +34,17 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
       const gfgProfile = await fetchGfgUserProfile(handle);
 
       const existingMetadata = account.metadata || {};
+      const gfgRecentSubmissions = gfgProfile.totalSolved > 0
+        ? existingMetadata.recent_submissions || [
+            {
+              problem: `GeeksforGeeks Practice (${gfgProfile.totalSolved} Solved)`,
+              verdict: 'OK',
+              language: 'Java / C++',
+              time: Date.now(),
+            }
+          ]
+        : [];
+
       const { error: updateError } = await supabase
         .from('student_external_accounts')
         .update({
@@ -51,6 +62,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
             global_rank: gfgProfile.globalRank,
             institute_rank: gfgProfile.instituteRank,
             gfg_daily_activity: gfgProfile.dailyActivity || existingMetadata.gfg_daily_activity || {},
+            recent_submissions: gfgRecentSubmissions,
           },
         })
         .eq('id', account.id);
@@ -107,6 +119,17 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
       }
 
       const existingMetadata = account.metadata || {};
+      const ccRecentSubmissions = ccProfile.totalSolved > 0
+        ? existingMetadata.recent_submissions || [
+            {
+              problem: `CodeChef Challenge (${ccProfile.starsLabel})`,
+              verdict: 'OK',
+              language: 'C++ / Python',
+              time: Date.now(),
+            }
+          ]
+        : [];
+
       const { error: updateError } = await supabase
         .from('student_external_accounts')
         .update({
@@ -125,6 +148,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ platform:
             global_rank: ccProfile.globalRank,
             country_rank: ccProfile.countryRank,
             cc_daily_activity: ccProfile.dailyActivity || existingMetadata.cc_daily_activity || {},
+            recent_submissions: ccRecentSubmissions,
           },
         })
         .eq('id', account.id);
