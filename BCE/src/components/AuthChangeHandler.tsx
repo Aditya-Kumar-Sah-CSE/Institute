@@ -24,12 +24,30 @@ if (typeof window !== 'undefined') {
       fullText.includes('We are cleaning up async info that was not on the parent Suspense boundary') ||
       fullText.includes('removePreviousSuspendedBy') ||
       fullText.includes('fdprocessedid') ||
-      fullText.includes('hydration mismatch')
+      fullText.includes('hydration mismatch') ||
+      fullText.includes('ERR Canceled') ||
+      fullText.includes('Canceled: Canceled') ||
+      fullText.includes('Operation Canceled') ||
+      fullText.includes('The user aborted a request')
     ) {
       return;
     }
     originalError(...args);
   };
+
+  window.addEventListener('unhandledrejection', (event) => {
+    const reason = event.reason;
+    const msg = typeof reason === 'string' ? reason : reason?.message || String(reason || '');
+    const name = reason?.name || '';
+    if (
+      msg.includes('Canceled') ||
+      msg.includes('ERR Canceled') ||
+      name === 'Canceled' ||
+      name === 'AbortError'
+    ) {
+      event.preventDefault();
+    }
+  });
 }
 
 export default function AuthChangeHandler() {
