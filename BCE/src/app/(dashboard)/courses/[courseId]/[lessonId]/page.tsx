@@ -5,7 +5,6 @@ import LessonView from '@/features/courses/components/LessonView';
 import { awardXP } from '@/features/auth/actions/auth';
 import { revalidatePath } from 'next/cache';
 import type { Submission } from '@/types';
-import LessonPageClient from './components/LessonPageClient';
 
 export default async function LessonPage({ params }: { params: Promise<{ courseId: string; lessonId: string }> }) {
   const { courseId, lessonId } = await params;
@@ -254,19 +253,16 @@ export default async function LessonPage({ params }: { params: Promise<{ courseI
           lesson={lesson} 
           isCompleted={isCompleted}
           onComplete={completeLesson}
+          assignments={assignments || []}
+          submissions={submissions}
+          allSubmissions={allSubmissions}
+          submitAssignment={submitAssignment}
+          doubts={showDoubts ? doubts : []}
+          courseId={courseId}
+          lessonId={lessonId}
+          showDoubts={showDoubts}
         />
       </div>
-
-      <LessonPageClient
-        assignments={assignments || []}
-        submissions={submissions}
-        allSubmissions={allSubmissions}
-        submitAssignment={submitAssignment}
-        doubts={showDoubts ? doubts : []}
-        courseId={courseId}
-        lessonId={lessonId}
-        showDoubts={showDoubts}
-      />
     </div>
   );
 }
