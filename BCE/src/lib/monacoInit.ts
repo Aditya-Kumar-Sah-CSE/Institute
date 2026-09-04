@@ -1,9 +1,9 @@
 'use client';
 
 import { loader } from '@monaco-editor/react';
-import * as monaco from 'monaco-editor';
 
-// Configure Monaco Environment to prevent any external worker CDN downloads
+// Configure Monaco Environment & NPM monaco-editor package ONLY on client side
+// This prevents Next.js SSR "window is not defined" error while eliminating third-party CDN requests
 if (typeof window !== 'undefined') {
   if (!(window as any).MonacoEnvironment) {
     (window as any).MonacoEnvironment = {
@@ -12,10 +12,10 @@ if (typeof window !== 'undefined') {
       },
     };
   }
+
+  import('monaco-editor').then((monaco) => {
+    loader.config({ monaco });
+  });
 }
 
-// Configure @monaco-editor/react to use local installed npm 'monaco-editor' package
-// This completely eliminates third-party jsDelivr CDN requests and Tracking-Prevention browser warnings.
-loader.config({ monaco });
-
-export { loader, monaco };
+export { loader };
