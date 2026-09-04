@@ -173,6 +173,31 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
         })()}
       </div>
 
+      {/* End of Course Feedback Prompt */}
+      {isEnrolled && isCourseCompleted && (
+        <div style={{ marginTop: 'var(--space-2xl)' }}>
+          <EndOfCourseReviewCard 
+            courseId={courseId} 
+            courseTitle={course.title} 
+            existingRating={reviewsData.userReview?.rating} 
+            existingFeedback={reviewsData.userReview?.review_text || ''} 
+          />
+        </div>
+      )}
+
+      {/* Course Public Reviews Section */}
+      <div style={{ marginTop: 'var(--space-2xl)' }}>
+        <CourseReviewsSection 
+          courseId={courseId} 
+          currentUserId={user.id} 
+          isEnrolled={isEnrolled} 
+          isStaff={Boolean(isStaffUser || course.created_by === user.id)} 
+          reviews={reviewsData.reviews} 
+          userReview={reviewsData.userReview || null} 
+          stats={reviewsData.stats} 
+        />
+      </div>
+
       <div style={{ marginTop: 'var(--space-2xl)' }}>
         <CourseDoubtsSection 
           courseId={courseId} 
@@ -330,31 +355,6 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
           enrollments={enrolledStudents || []} 
           currentUserId={user.id} 
           isStaff={Boolean(isStaffUser || course.created_by === user.id)} 
-        />
-      </div>
-
-      {/* End of Course Feedback Prompt */}
-      {isEnrolled && isCourseCompleted && (
-        <div style={{ marginTop: 'var(--space-2xl)' }}>
-          <EndOfCourseReviewCard 
-            courseId={courseId} 
-            courseTitle={course.title} 
-            existingRating={reviewsData.userReview?.rating} 
-            existingFeedback={reviewsData.userReview?.review_text || ''} 
-          />
-        </div>
-      )}
-
-      {/* Course Public Reviews Section */}
-      <div style={{ marginTop: 'var(--space-2xl)' }}>
-        <CourseReviewsSection 
-          courseId={courseId} 
-          currentUserId={user.id} 
-          isEnrolled={isEnrolled} 
-          isStaff={Boolean(isStaffUser || course.created_by === user.id)} 
-          reviews={reviewsData.reviews} 
-          userReview={reviewsData.userReview || null} 
-          stats={reviewsData.stats} 
         />
       </div>
     </div>
