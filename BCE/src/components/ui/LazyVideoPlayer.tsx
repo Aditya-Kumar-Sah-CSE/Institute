@@ -45,7 +45,7 @@ export default function LazyVideoPlayer({ embedUrl, title }: LazyVideoPlayerProp
       ) : !isPlaying ? (
         <div 
           className="lazy-video-thumbnail-wrapper" 
-          style={{ position: 'relative' }}
+          style={{ position: 'absolute', inset: 0 }}
           onClick={() => setIsPlaying(true)}
           role="button"
           tabIndex={0}
