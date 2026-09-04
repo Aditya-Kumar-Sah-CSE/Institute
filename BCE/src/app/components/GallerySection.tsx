@@ -308,47 +308,50 @@ export default function GallerySection({ items }: { items: GalleryItem[] }) {
           }}
           onClick={() => setPreviewIndex(null)}
         >
-          {/* Top Bar Header with Rich Colorful Text */}
+          {/* Top Bar Header with Full-Width Rich Colorful Text */}
           <div 
             className="gallery-modal-header"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="gallery-modal-header-top-controls">
-              <span className="gallery-modal-counter">
-                {previewIndex! + 1} / {items.length}
-              </span>
-              
-              <a 
-                href={activeItem.image_url} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                download
-                className="gallery-modal-action-btn"
-                title="Open/Download original image"
-              >
-                <Download size={18} />
-              </a>
+            <div className="gallery-modal-top-row">
+              <h3 className="gallery-modal-title">{activeItem.title}</h3>
 
-              <button 
-                className="gallery-modal-action-btn"
-                onClick={() => setPreviewIndex(null)}
-                aria-label="Close image preview"
-              >
-                <X size={20} />
-              </button>
+              <div className="gallery-modal-header-top-controls">
+                <span className="gallery-modal-counter">
+                  {previewIndex! + 1} / {items.length}
+                </span>
+                
+                <a 
+                  href={activeItem.image_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  download
+                  className="gallery-modal-action-btn"
+                  title="Open/Download original image"
+                >
+                  <Download size={18} />
+                </a>
+
+                <button 
+                  className="gallery-modal-action-btn"
+                  onClick={() => setPreviewIndex(null)}
+                  aria-label="Close image preview"
+                >
+                  <X size={20} />
+                </button>
+              </div>
             </div>
 
-            <div className="gallery-modal-text-content">
-              <h3 className="gallery-modal-title">{activeItem.title}</h3>
-              {activeItem.description && (
+            {activeItem.description && (
+              <div className="gallery-modal-text-content">
                 <FormattedColorfulText 
                   text={activeItem.description} 
                   isExpanded={true} 
                   onToggleExpand={() => {}} 
                   alwaysFull
                 />
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Main Image Container */}
