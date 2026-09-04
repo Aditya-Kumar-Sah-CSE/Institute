@@ -214,7 +214,7 @@ export default async function LeaderboardPage({
             {developers.map(dev => {
               const isSuperAdmin = SUPER_ADMIN_EMAIL && dev.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
               const roleDisplay = isSuperAdmin 
-                ? 'Super Admin & Lead Developer' 
+                ? 'Lead Developer' 
                 : (dev.role === 'developer' ? 'Developer' : dev.role);
 
               return (
