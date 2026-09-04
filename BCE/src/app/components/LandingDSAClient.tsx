@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { Lock, Code, Shield, FolderGit2, Star } from 'lucide-react';
+import { Lock, Code, Shield, FolderGit2, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getPreviewDSASheets } from './LandingPreviewActions';
 
 export default function LandingDSAClient({ 
@@ -22,10 +22,26 @@ export default function LandingDSAClient({
   
   // Drag states
   const isDragging = useRef(false);
-  const isHovered = useRef(false);
   const startX = useRef(0);
   const scrollLeftRef = useRef(0);
   const isMounted = useRef(false);
+
+  // Scroll to target card index smoothly
+  const scrollToCard = useCallback((targetIndex: number) => {
+    if (!carouselRef.current || sheets.length === 0) return;
+    const container = carouselRef.current;
+    const clampedIndex = Math.max(0, Math.min(sheets.length - 1, targetIndex));
+    const children = Array.from(container.children) as HTMLElement[];
+    if (children[clampedIndex]) {
+      const targetCard = children[clampedIndex];
+      const scrollPosition = targetCard.offsetLeft - (container.offsetWidth - targetCard.offsetWidth) / 2;
+      container.scrollTo({
+        left: Math.max(0, scrollPosition),
+        behavior: 'smooth'
+      });
+      setActiveIndex(clampedIndex);
+    }
+  }, [sheets.length]);
   
   // Handle scroll active index calculation
   const handleScroll = useCallback(() => {
@@ -126,21 +142,40 @@ export default function LandingDSAClient({
         </div>
       ) : (
         <>
-          <div 
-            className="preview-grid mobile-carousel"
-            ref={carouselRef}
-            onScroll={handleScroll}
-            onMouseDown={onMouseDown}
-            onMouseLeave={(e) => {
-               onMouseLeave();
-               isHovered.current = false;
-            }}
-            onMouseUp={onMouseUp}
-            onMouseMove={onMouseMove}
-            onMouseEnter={() => isHovered.current = true}
-            onTouchStart={() => isHovered.current = true}
-            onTouchEnd={() => isHovered.current = false}
-          >
+          <div className="card-slider-wrapper" style={{ position: 'relative', width: '100%' }}>
+            {sheets.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => scrollToCard(activeIndex - 1)}
+                  disabled={activeIndex <= 0}
+                  aria-label="Previous Sheet"
+                  className="card-swap-btn card-swap-btn-left"
+                >
+                  <ChevronLeft size={22} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => scrollToCard(activeIndex + 1)}
+                  disabled={activeIndex >= sheets.length - 1}
+                  aria-label="Next Sheet"
+                  className="card-swap-btn card-swap-btn-right"
+                >
+                  <ChevronRight size={22} />
+                </button>
+              </>
+            )}
+
+            <div 
+              className="preview-grid mobile-carousel"
+              ref={carouselRef}
+              onScroll={handleScroll}
+              onMouseDown={onMouseDown}
+              onMouseLeave={onMouseLeave}
+              onMouseUp={onMouseUp}
+              onMouseMove={onMouseMove}
+            >
             {sheets.map((sheet, index) => {
               const problemsCount = sheet.coding_sheet_problems?.length || 0;
               const isLast = index === sheets.length - 1;
@@ -151,7 +186,6 @@ export default function LandingDSAClient({
                   suppressHydrationWarning
                   ref={isLast ? lastElementRef : null}
                   onMouseEnter={() => {
-                     isHovered.current = true;
                      setActiveIndex(index);
                   }}
                   className={`preview-dsa-card coverflow-card ${isActive ? 'coverflow-active' : 'coverflow-inactive'}`}
@@ -294,6 +328,7 @@ export default function LandingDSAClient({
             );
           })}
         </div>
+      </div>
 
         {sheets.length > 0 && (
           <div className="carousel-pagination">
@@ -301,19 +336,7 @@ export default function LandingDSAClient({
               <div 
                 key={i} 
                 className={`carousel-dot ${i === activeIndex ? 'active' : ''}`}
-                onClick={() => {
-                   if (!carouselRef.current) return;
-                   const targetIndex = Math.max(0, Math.min(sheets.length - 1, i));
-                   if (targetIndex === 0) {
-                     carouselRef.current.scrollTo({ left: 0, behavior: 'smooth' });
-                   } else {
-                     const firstChild = carouselRef.current.children[0] as HTMLElement;
-                     const secondChild = carouselRef.current.children[1] as HTMLElement;
-                     const cardWidth = secondChild ? (secondChild.offsetLeft - firstChild.offsetLeft) : (firstChild.offsetWidth + 16);
-                     carouselRef.current.scrollTo({ left: targetIndex * cardWidth, behavior: 'smooth' });
-                   }
-                   setActiveIndex(targetIndex);
-                }}
+                onClick={() => scrollToCard(i)}
               />
             ))}
           </div>

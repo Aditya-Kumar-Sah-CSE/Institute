@@ -3,7 +3,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Lock, BookOpen, Layers, Star } from 'lucide-react';
+import { Lock, BookOpen, Layers, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getPreviewCourses } from './LandingPreviewActions';
 
 export default function LandingCourseClient({ 
@@ -19,7 +19,6 @@ export default function LandingCourseClient({
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(initialCourses.length === 100);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [isSwapping, setIsSwapping] = useState(false);
   
   const observerRef = useRef<IntersectionObserver | null>(null);
   const carouselRef = useRef<HTMLDivElement | null>(null);
@@ -27,10 +26,26 @@ export default function LandingCourseClient({
   
   // Drag states
   const isDragging = useRef(false);
-  const isHovered = useRef(false);
   const startX = useRef(0);
   const scrollLeftRef = useRef(0);
   const isMounted = useRef(false);
+
+  // Scroll to target card index smoothly
+  const scrollToCard = useCallback((targetIndex: number) => {
+    if (!carouselRef.current || courses.length === 0) return;
+    const container = carouselRef.current;
+    const clampedIndex = Math.max(0, Math.min(courses.length - 1, targetIndex));
+    const children = Array.from(container.children) as HTMLElement[];
+    if (children[clampedIndex]) {
+      const targetCard = children[clampedIndex];
+      const scrollPosition = targetCard.offsetLeft - (container.offsetWidth - targetCard.offsetWidth) / 2;
+      container.scrollTo({
+        left: Math.max(0, scrollPosition),
+        behavior: 'smooth'
+      });
+      setActiveIndex(clampedIndex);
+    }
+  }, [courses.length]);
 
   // Handle scroll active index calculation
   const handleScroll = useCallback(() => {
@@ -107,7 +122,6 @@ export default function LandingCourseClient({
   const handleCategoryChange = async (cat: string) => {
     if (cat === activeCategory) return;
     setActiveCategory(cat);
-    setIsSwapping(true);
     setLoading(true);
     setPage(0);
     setActiveIndex(0);
@@ -115,9 +129,6 @@ export default function LandingCourseClient({
     setCourses(data || []);
     setHasMore(data && data.length === 100);
     setLoading(false);
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => setIsSwapping(false));
-    });
     if (carouselRef.current) {
       carouselRef.current.scrollTo({ left: 0, behavior: 'smooth' });
     }
@@ -164,26 +175,40 @@ export default function LandingCourseClient({
         </div>
       ) : (
         <>
-          <div 
-            className="preview-grid mobile-carousel"
-            ref={carouselRef}
-            onScroll={handleScroll}
-            onMouseDown={onMouseDown}
-            onMouseLeave={(e) => {
-               onMouseLeave();
-               isHovered.current = false;
-            }}
-            onMouseUp={onMouseUp}
-            onMouseMove={onMouseMove}
-            onMouseEnter={() => isHovered.current = true}
-            onTouchStart={() => isHovered.current = true}
-            onTouchEnd={() => isHovered.current = false}
-            style={{ 
-              opacity: isSwapping ? 0 : 1, 
-              transform: isSwapping ? 'translateY(12px)' : 'translateY(0)',
-              transition: 'opacity 0.35s ease, transform 0.35s ease'
-            }}
-          >
+          <div className="card-slider-wrapper" style={{ position: 'relative', width: '100%' }}>
+            {courses.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => scrollToCard(activeIndex - 1)}
+                  disabled={activeIndex <= 0}
+                  aria-label="Previous Course"
+                  className="card-swap-btn card-swap-btn-left"
+                >
+                  <ChevronLeft size={22} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => scrollToCard(activeIndex + 1)}
+                  disabled={activeIndex >= courses.length - 1}
+                  aria-label="Next Course"
+                  className="card-swap-btn card-swap-btn-right"
+                >
+                  <ChevronRight size={22} />
+                </button>
+              </>
+            )}
+
+            <div 
+              className="preview-grid mobile-carousel"
+              ref={carouselRef}
+              onScroll={handleScroll}
+              onMouseDown={onMouseDown}
+              onMouseLeave={onMouseLeave}
+              onMouseUp={onMouseUp}
+              onMouseMove={onMouseMove}
+            >
             {courses.map((course, index) => {
               const isLast = index === courses.length - 1;
               const isActive = index === activeIndex;
@@ -193,7 +218,6 @@ export default function LandingCourseClient({
                   suppressHydrationWarning
                   ref={isLast ? lastElementRef : null}
                   onMouseEnter={() => {
-                     isHovered.current = true;
                      setActiveIndex(index);
                   }}
                   className={`preview-course-card coverflow-card ${isActive ? 'coverflow-active' : 'coverflow-inactive'}`}
@@ -343,6 +367,7 @@ export default function LandingCourseClient({
             );
           })}
         </div>
+      </div>
         
         {courses.length > 0 && (
           <div className="carousel-pagination">
@@ -350,19 +375,7 @@ export default function LandingCourseClient({
               <div 
                 key={i} 
                 className={`carousel-dot ${i === activeIndex ? 'active' : ''}`}
-                onClick={() => {
-                   if (!carouselRef.current) return;
-                   const targetIndex = Math.max(0, Math.min(courses.length - 1, i));
-                   if (targetIndex === 0) {
-                     carouselRef.current.scrollTo({ left: 0, behavior: 'smooth' });
-                   } else {
-                     const firstChild = carouselRef.current.children[0] as HTMLElement;
-                     const secondChild = carouselRef.current.children[1] as HTMLElement;
-                     const cardWidth = secondChild ? (secondChild.offsetLeft - firstChild.offsetLeft) : (firstChild.offsetWidth + 16);
-                     carouselRef.current.scrollTo({ left: targetIndex * cardWidth, behavior: 'smooth' });
-                   }
-                   setActiveIndex(targetIndex);
-                }}
+                onClick={() => scrollToCard(i)}
               />
             ))}
           </div>
