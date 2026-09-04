@@ -99,9 +99,9 @@ export default function SheetDetailClient({
   const [showEnrolledModal, setShowEnrolledModal] = useState(false);
   const [enrolledSearch, setEnrolledSearch] = useState('');
 
-  // 5 problems per page pagination
+  // 10 problems per page pagination
   const [currentProblemPage, setCurrentProblemPage] = useState(1);
-  const PROBLEMS_PER_PAGE = 5;
+  const PROBLEMS_PER_PAGE = 10;
 
   const filteredSolvers = solversLeaderboard.filter(s =>
     s.name.toLowerCase().includes(solverSearch.toLowerCase())
@@ -1112,7 +1112,7 @@ export default function SheetDetailClient({
               })}
             </div>
 
-            {/* 5-Problems Per Page Pagination Bar */}
+            {/* 10-Problems Per Page Pagination Bar */}
             {totalProblemPages > 1 && (() => {
               const getVisiblePageNumbers = (current: number, total: number) => {
                 if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);

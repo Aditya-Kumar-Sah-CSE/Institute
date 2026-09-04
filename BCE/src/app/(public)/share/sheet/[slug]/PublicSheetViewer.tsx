@@ -57,9 +57,9 @@ export default function PublicSheetViewer({
   const [copied, setCopied] = useState(false);
   const [currentUser, setCurrentUser] = useState<any | null>(null);
 
-  // 5 problems per page pagination state
+  // 10 problems per page pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const PROBLEMS_PER_PAGE = 5;
+  const PROBLEMS_PER_PAGE = 10;
 
   useEffect(() => {
     setCurrentPage(1);
@@ -744,7 +744,7 @@ export default function PublicSheetViewer({
                   );
                 })}
 
-                {/* 5-Problems Per Page Pagination Bar */}
+                {/* 10-Problems Per Page Pagination Bar */}
                 {totalPages > 1 && (() => {
                   const getVisiblePageNumbers = (current: number, total: number) => {
                     if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
