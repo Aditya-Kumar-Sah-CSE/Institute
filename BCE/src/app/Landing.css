@@ -721,6 +721,19 @@
   overflow: hidden;
 }
 
+.gallery-card-img:hover .gallery-card-hover-overlay {
+  opacity: 1 !important;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
 .gallery-card-img img {
   transition: transform 0.4s ease;
 }
