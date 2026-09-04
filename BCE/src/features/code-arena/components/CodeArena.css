@@ -1769,7 +1769,8 @@
   border-radius: var(--radius-lg);
   backdrop-filter: blur(16px);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
+  z-index: 3;
   min-height: 160px;
 }
 
@@ -1779,12 +1780,14 @@
   gap: 8px;
   background: rgba(255, 255, 255, 0.01);
   border: 1px solid rgba(255, 255, 255, 0.05);
-  padding: 12px 16px;
+  padding: 24px 16px 12px 16px;
   border-radius: var(--radius-lg);
   max-width: 750px;
   width: 100%;
   margin: 0 20px;
-  overflow-x: auto;
+  position: relative;
+  z-index: 3;
+  overflow: visible;
 }
 
 /* Floating gradient orbs */

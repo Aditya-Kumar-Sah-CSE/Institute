@@ -320,12 +320,13 @@ export default function CodingProfileHero({ profile, codeforcesConnected, leetCo
           transform: scale(1.3);
           border-color: #22c55e !important;
           box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
-          z-index: 10;
+          z-index: 100 !important;
         }
         .calendar-cell:hover .cell-tooltip {
           visibility: visible !important;
           opacity: 1 !important;
           transform: translateX(-50%) translateY(-4px) !important;
+          z-index: 1000 !important;
         }
       `}</style>
       

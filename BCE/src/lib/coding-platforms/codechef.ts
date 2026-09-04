@@ -103,18 +103,18 @@ export async function fetchCodeChefUserProfile(handle: string): Promise<CodeChef
   const mediumSolved = Math.floor(totalSolved * 0.35);
   const hardSolved = Math.max(0, totalSolved - easySolved - mediumSolved);
 
-  // Parse submission activity heatmap if embedded in script/attributes
+  // Parse submission activity heatmap and rating dates from script/attributes
   const dailyActivity: Record<string, number> = {};
   try {
-    const heatmapMatch = htmlContent.match(/var\s+(?:userSubmissionHeatmap|submissionHeatmap|user_daily_activity)\s*=\s*(\[[\s\S]*?\]);/i) ||
+    const heatmapMatch = htmlContent.match(/var\s+(?:userDailySubmissionsStats|userSubmissionHeatmap|submissionHeatmap|user_daily_activity)\s*=\s*(\[[\s\S]*?\]);/i) ||
                          htmlContent.match(/id=["']heat-map["'][^>]*data-submissions=['"]([^'"]+)['"]/i);
     if (heatmapMatch && heatmapMatch[1]) {
       const rawData = JSON.parse(heatmapMatch[1]);
       if (Array.isArray(rawData)) {
         rawData.forEach((item: any) => {
-          if (item && item.date) {
-            const dateStr = String(item.date).trim();
-            if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+          if (item) {
+            const dateStr = item.date ? String(item.date).trim() : null;
+            if (dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
               const count = Number(item.value || item.count || item.submissions || 1);
               dailyActivity[dateStr] = (dailyActivity[dateStr] || 0) + count;
             }
@@ -124,6 +124,37 @@ export async function fetchCodeChefUserProfile(handle: string): Promise<CodeChef
     }
   } catch (e) {
     console.warn('[CODECHEF] Daily activity parsing warning:', e);
+  }
+
+  // Fallback: parse getyear / getmonth / getday objects in HTML
+  try {
+    const getDayRegex = /"getyear"\s*:\s*"(\d{4})"\s*,\s*"getmonth"\s*:\s*"(\d{1,2})"\s*,\s*"getday"\s*:\s*"(\d{1,2})"/g;
+    let match;
+    while ((match = getDayRegex.exec(htmlContent)) !== null) {
+      const y = match[1];
+      const m = match[2].padStart(2, '0');
+      const d = match[3].padStart(2, '0');
+      const dateStr = `${y}-${m}-${d}`;
+      if (!dailyActivity[dateStr]) {
+        dailyActivity[dateStr] = 1;
+      }
+    }
+  } catch (e) {
+    console.warn('[CODECHEF] getDay parsing warning:', e);
+  }
+
+  // Fallback: parse end_date strings in HTML
+  try {
+    const endDateRegex = /"end_date"\s*:\s*"(\d{4})-(\d{2})-(\d{2})\s+\d{2}:\d{2}:\d{2}"/g;
+    let match;
+    while ((match = endDateRegex.exec(htmlContent)) !== null) {
+      const dateStr = `${match[1]}-${match[2]}-${match[3]}`;
+      if (!dailyActivity[dateStr]) {
+        dailyActivity[dateStr] = 1;
+      }
+    }
+  } catch (e) {
+    console.warn('[CODECHEF] end_date parsing warning:', e);
   }
 
   return {
