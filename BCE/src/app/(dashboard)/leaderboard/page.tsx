@@ -101,26 +101,36 @@ export default async function LeaderboardPage({
   ]);
 
   const rawAdmins = facultyRes.data || [];
-  let developer = rawAdmins.find(fac => 
-    fac.role === 'developer' || 
-    (SUPER_ADMIN_EMAIL && fac.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase())
+  
+  let superAdminProfile = rawAdmins.find(
+    fac => SUPER_ADMIN_EMAIL && fac.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()
   );
 
-  if (!developer && SUPER_ADMIN_EMAIL) {
-    const { data: devProfile } = await supabase
+  if (!superAdminProfile && SUPER_ADMIN_EMAIL) {
+    const { data: saProfile } = await supabase
       .from('profiles')
       .select('id, name, avatar_url, role, institute_id, email')
       .eq('email', SUPER_ADMIN_EMAIL)
       .maybeSingle();
-    if (devProfile) {
-      developer = devProfile;
+    if (saProfile) {
+      superAdminProfile = saProfile;
     }
   }
 
-  const faculty = rawAdmins.filter(fac => 
-    fac.role !== 'developer' && 
-    (!SUPER_ADMIN_EMAIL || fac.email?.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase())
-  );
+  const devMap = new Map<string, any>();
+  if (superAdminProfile) {
+    devMap.set(superAdminProfile.id, superAdminProfile);
+  }
+  rawAdmins.forEach(fac => {
+    if (fac.role === 'developer') {
+      devMap.set(fac.id, fac);
+    }
+  });
+
+  const developers = Array.from(devMap.values());
+  const devIds = new Set(developers.map(d => d.id));
+
+  const faculty = rawAdmins.filter(fac => !devIds.has(fac.id));
 
   const courses = coursesRes.data;
   let entries: LeaderboardEntry[] = [];
@@ -191,28 +201,51 @@ export default async function LeaderboardPage({
 
       <LeaderboardTable entries={entries} currentUserId={user?.id} />
 
-      {developer && (
+      {developers.length > 0 && (
         <div style={{ marginBottom: 'var(--space-md)', marginTop: 'var(--space-2xl)' }}>
-          <h2 style={{ fontSize: 'var(--text-2xl)', margin: 0, marginBottom: 'var(--space-lg)' }}>Meet Developer</h2>
-          <a href="https://portfolio-two-ashen-zseywond41.vercel.app/" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-            <Card variant="glass" padding="md" className="hover-lift" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', textAlign: 'left', gap: 'var(--space-md)', width: '100%', maxWidth: '350px' }}>
-              <div style={{ position: 'relative', width: 64, height: 64, borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--glass-border)', flexShrink: 0 }}>
-                {developer.avatar_url ? (
-                  <img src={developer.avatar_url} alt={developer.name || 'Developer'} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
-                ) : (
-                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', background: 'var(--bg-elevated)', color: 'var(--neon-cyan)' }}>
-                    <User size={24} opacity={0.5} />
-                  </div>
-                )}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1, minWidth: 0 }}>
-                <h3 style={{ fontSize: 'var(--text-lg)', margin: 0, color: 'var(--text-primary)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{developer.name || 'Aditya Kumar Sah'}</h3>
-                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--neon-cyan)', textTransform: 'capitalize', marginTop: '2px' }}>
-                  Full Stack Developer
-                </p>
-              </div>
-            </Card>
-          </a>
+          <h2 style={{ fontSize: 'var(--text-2xl)', margin: 0, marginBottom: 'var(--space-lg)' }}>
+            {developers.length > 1 ? 'Meet Developers' : 'Meet Developer'}
+          </h2>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
+            gap: 'var(--space-lg)' 
+          }}>
+            {developers.map(dev => {
+              const isSuperAdmin = SUPER_ADMIN_EMAIL && dev.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+              const roleDisplay = isSuperAdmin 
+                ? 'Super Admin & Lead Developer' 
+                : (dev.role === 'developer' ? 'Developer' : dev.role);
+
+              return (
+                <a 
+                  key={dev.id}
+                  href={isSuperAdmin ? "https://portfolio-two-ashen-zseywond41.vercel.app/" : `/users/${dev.id}`} 
+                  target={isSuperAdmin ? "_blank" : "_self"} 
+                  rel="noopener noreferrer" 
+                  style={{ textDecoration: 'none' }}
+                >
+                  <Card variant="glass" padding="md" className="hover-lift" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', textAlign: 'left', gap: 'var(--space-md)', width: '100%' }}>
+                    <div style={{ position: 'relative', width: 64, height: 64, borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--glass-border)', flexShrink: 0 }}>
+                      {dev.avatar_url ? (
+                        <img src={dev.avatar_url} alt={dev.name || 'Developer'} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                      ) : (
+                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', background: 'var(--bg-elevated)', color: 'var(--neon-cyan)' }}>
+                          <User size={24} opacity={0.5} />
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1, minWidth: 0 }}>
+                      <h3 style={{ fontSize: 'var(--text-lg)', margin: 0, color: 'var(--text-primary)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dev.name || 'Developer'}</h3>
+                      <p style={{ fontSize: 'var(--text-sm)', color: 'var(--neon-cyan)', textTransform: 'capitalize', marginTop: '2px' }}>
+                        {roleDisplay}
+                      </p>
+                    </div>
+                  </Card>
+                </a>
+              );
+            })}
+          </div>
         </div>
       )}
 
