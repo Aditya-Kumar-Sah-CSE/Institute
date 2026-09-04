@@ -90,7 +90,7 @@ export default async function LeaderboardPage({
   const facultyQuery = supabase
     .from('profiles')
     .select('id, name, avatar_url, role, institute_id, email')
-    .in('role', ['instructor', 'admin'])
+    .in('role', ['instructor', 'admin', 'developer'])
     .order('name', { ascending: true });
 
   const [coursesRes, profilesRes, enrollmentsRes, facultyRes] = await Promise.all([
@@ -101,9 +101,25 @@ export default async function LeaderboardPage({
   ]);
 
   const rawAdmins = facultyRes.data || [];
-  const developer = rawAdmins.find(fac => fac.email === SUPER_ADMIN_EMAIL && SUPER_ADMIN_EMAIL !== '');
-  const faculty = rawAdmins.filter(
-    fac => fac.email !== SUPER_ADMIN_EMAIL || SUPER_ADMIN_EMAIL === ''
+  let developer = rawAdmins.find(fac => 
+    fac.role === 'developer' || 
+    (SUPER_ADMIN_EMAIL && fac.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase())
+  );
+
+  if (!developer && SUPER_ADMIN_EMAIL) {
+    const { data: devProfile } = await supabase
+      .from('profiles')
+      .select('id, name, avatar_url, role, institute_id, email')
+      .eq('email', SUPER_ADMIN_EMAIL)
+      .maybeSingle();
+    if (devProfile) {
+      developer = devProfile;
+    }
+  }
+
+  const faculty = rawAdmins.filter(fac => 
+    fac.role !== 'developer' && 
+    (!SUPER_ADMIN_EMAIL || fac.email?.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase())
   );
 
   const courses = coursesRes.data;
