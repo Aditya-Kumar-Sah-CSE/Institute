@@ -18,6 +18,7 @@
  * - Tab/Enter acceptance
  */
 
+import '@/lib/monacoInit';
 import type { Monaco } from '@monaco-editor/react';
 
 // ─── Guard: only register once ────────────────────────────────────────────────

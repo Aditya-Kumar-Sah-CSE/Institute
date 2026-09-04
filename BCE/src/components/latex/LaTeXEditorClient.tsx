@@ -1,5 +1,6 @@
 'use client';
 
+import '@/lib/monacoInit';
 import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import Editor from '@monaco-editor/react';
 import { 

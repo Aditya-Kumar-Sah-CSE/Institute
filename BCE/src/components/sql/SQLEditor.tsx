@@ -1,5 +1,6 @@
 'use client';
 
+import '@/lib/monacoInit';
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import {
