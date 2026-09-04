@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Pause, Volume2, VolumeX, Heart, Music, Music2, RotateCcw, LayoutDashboard, Trophy, Sparkles, Maximize2, Minimize2 } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Heart, Music, Music2, RotateCcw, LayoutDashboard, Trophy, Sparkles, Maximize2, Minimize2, RotateCw, Smartphone } from 'lucide-react';
 import Link from 'next/link';
 import './BrickBreakerGame.css';
 
@@ -70,6 +70,9 @@ export default function BrickBreakerGame() {
   const [musicEnabled, setMusicEnabled] = useState<boolean>(true);
   const [isClient, setIsClient] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [isPortrait, setIsPortrait] = useState<boolean>(false);
+  const [isMobileDevice, setIsMobileDevice] = useState<boolean>(false);
+  const [mobileStartPopup, setMobileStartPopup] = useState<boolean>(false);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -321,6 +324,32 @@ export default function BrickBreakerGame() {
     }
   }, []);
 
+  // Mobile orientation detector & start popup trigger
+  useEffect(() => {
+    const handleCheckOrientation = () => {
+      if (typeof window === 'undefined') return;
+      const isTouchOrMobile = window.innerWidth <= 820 || 'ontouchstart' in window;
+      setIsMobileDevice(isTouchOrMobile);
+
+      const portraitMode = isTouchOrMobile && window.innerHeight > window.innerWidth;
+      
+      setIsPortrait((prevPortrait) => {
+        if (prevPortrait && !portraitMode && isTouchOrMobile) {
+          setMobileStartPopup(true);
+        }
+        return portraitMode;
+      });
+    };
+
+    handleCheckOrientation();
+    window.addEventListener('resize', handleCheckOrientation);
+    window.addEventListener('orientationchange', handleCheckOrientation);
+    return () => {
+      window.removeEventListener('resize', handleCheckOrientation);
+      window.removeEventListener('orientationchange', handleCheckOrientation);
+    };
+  }, []);
+
   // Update High Score helper
   const checkAndSaveHighScore = useCallback((newScore: number) => {
     setHighScore((prev) => {
@@ -438,6 +467,8 @@ export default function BrickBreakerGame() {
 
   // Launch Ball Action
   const handleLaunchBall = useCallback(() => {
+    if (isPortrait) return;
+    setMobileStartPopup(false);
     initAudio();
     if (gameState === 'READY') {
       setGameState('PLAYING');
@@ -445,7 +476,7 @@ export default function BrickBreakerGame() {
       handleFullReset();
       setGameState('PLAYING');
     }
-  }, [gameState, handleFullReset, initAudio]);
+  }, [gameState, handleFullReset, initAudio, isPortrait]);
 
   // Pause / Resume Toggle
   const handleTogglePause = useCallback(() => {
@@ -506,6 +537,11 @@ export default function BrickBreakerGame() {
   };
 
   const handlePointerDown = () => {
+    if (isPortrait) return;
+    if (isMobileDevice && (mobileStartPopup || gameState === 'READY')) {
+      // Require explicit tap on Start Game button before playing on mobile
+      return;
+    }
     initAudio();
     if (gameState === 'READY' || gameState === 'GAME_OVER' || gameState === 'VICTORY') {
       handleLaunchBall();
@@ -959,7 +995,40 @@ export default function BrickBreakerGame() {
           />
 
           {/* Game Overlays */}
-          {gameState === 'READY' && (
+          {isPortrait ? (
+            <div className="game-overlay mobile-rotate-overlay">
+              <div className="rotate-icon-wrapper">
+                <RotateCw size={36} className="rotate-icon-spin" />
+              </div>
+              <span className="overlay-badge" style={{ color: '#00f0ff', borderColor: 'rgba(6, 182, 212, 0.4)' }}>
+                <Smartphone size={12} style={{ display: 'inline', marginRight: '4px' }} /> ORIENTATION NOTICE
+              </span>
+              <h3 className="overlay-title">Rotate Your Device</h3>
+              <p className="overlay-sub">
+                Please turn your phone to <strong>Landscape Mode 🔄</strong> for the best arcade gaming experience!
+              </p>
+            </div>
+          ) : (isMobileDevice && (mobileStartPopup || gameState === 'READY')) ? (
+            <div className="game-overlay mobile-start-popup">
+              <span className="overlay-badge">
+                <Sparkles size={12} style={{ display: 'inline', marginRight: '4px' }} /> 404 ARCADE MINI-GAME
+              </span>
+              <h3 className="overlay-title">Device Rotated!</h3>
+              <p className="overlay-sub">
+                Drag paddle left & right to move. Tap the button below when you are ready to start playing!
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileStartPopup(false);
+                  handleLaunchBall();
+                }}
+                className="overlay-btn start-game-pulse-btn"
+              >
+                <Play size={16} style={{ display: 'inline', marginRight: '6px', verticalAlign: 'middle' }} /> Start Game
+              </button>
+            </div>
+          ) : gameState === 'READY' ? (
             <div className="game-overlay">
               <span className="overlay-badge">
                 <Sparkles size={12} style={{ display: 'inline', marginRight: '4px' }} /> 404 ARCADE MINI-GAME
@@ -970,7 +1039,7 @@ export default function BrickBreakerGame() {
                 Launch Ball (Space)
               </button>
             </div>
-          )}
+          ) : null}
 
           {gameState === 'PAUSED' && (
             <div className="game-overlay">
