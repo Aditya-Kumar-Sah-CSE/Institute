@@ -85,12 +85,22 @@
   padding: 10px 16px;
   border-radius: var(--radius-md);
   backdrop-filter: blur(12px);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .code-arena-header-left {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+}
+
+.code-arena-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  max-width: 100%;
 }
 
 .code-arena-logo-box {
@@ -4156,16 +4166,58 @@
   }
 }
 
-/* Resizable IDE Splitter overrides */
+/* Resizable IDE Splitter overrides for Mobile and Tablet (< 900px) */
 @media (max-width: 900px) {
+  .dashboard-layout:has(.code-arena-page.ide-mode) .dashboard-content {
+    height: auto !important;
+    overflow-y: auto !important;
+    padding: var(--space-xs) !important;
+  }
+
+  .code-arena-page.ide-mode {
+    height: auto !important;
+    min-height: 100% !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .code-arena-workspace-container {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  .code-arena-ide-layout.resizable-ide,
   .resizable-ide {
+    display: flex !important;
     flex-direction: column !important;
     height: auto !important;
+    width: 100% !important;
+    overflow: visible !important;
+    gap: 16px !important;
   }
-  .resizable-ide .code-statement-panel,
+
+  .code-statement-panel,
+  .resizable-ide .code-statement-panel {
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow-y: visible !important;
+    margin-bottom: 0 !important;
+    padding: 12px !important;
+  }
+
+  .code-editor-resizable-wrapper,
   .resizable-ide .code-editor-resizable-wrapper {
     width: 100% !important;
+    height: auto !important;
+    min-height: 520px !important;
+    margin-top: 0 !important;
   }
+
+  .ide-resizer-bar,
   .resizable-ide .ide-resizer-bar {
     display: none !important;
   }
@@ -4217,31 +4269,27 @@
     box-sizing: border-box !important;
     justify-content: flex-start !important;
   }
-}
 
-/* ===== RESIZABLE IDE WORKSPACE RESPONSIVENESS ===== */
-@media (max-width: 767px) {
-  .code-arena-ide-layout.resizable-ide {
-    flex-direction: column !important;
-    height: auto !important;
-    overflow-y: auto !important;
+  .code-arena-header-compact {
+    padding: 8px 10px !important;
+    gap: 8px !important;
   }
-  .code-statement-panel {
+
+  .code-arena-header-controls {
+    gap: 6px !important;
     width: 100% !important;
-    height: auto !important;
-    overflow-y: visible !important;
+    justify-content: space-between !important;
   }
-  .code-editor-resizable-wrapper {
-    width: 100% !important;
-    height: 600px !important;
-    margin-top: 20px !important;
-  }
-  .ide-resizer-bar {
+
+  .desktop-only {
     display: none !important;
   }
 }
-@media (min-width: 768px) {
-  .code-arena-ide-layout.resizable-ide {
+
+/* ===== RESIZABLE IDE WORKSPACE DESKTOP (> 900px) ===== */
+@media (min-width: 901px) {
+  .code-arena-ide-layout.resizable-ide,
+  .resizable-ide {
     flex-direction: row !important;
     height: 100% !important;
     overflow-y: hidden !important;

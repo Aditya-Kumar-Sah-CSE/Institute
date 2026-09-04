@@ -354,27 +354,29 @@ export default async function CodeProblemPage({ params, searchParams }: { params
     <div className="code-arena-page ide-mode">
       {/* Compact IDE Header Bar */}
       <header className="code-arena-header-compact">
+        <div className="code-arena-header-left">
+          <div className="code-arena-logo-box">
+            <Trophy size={18} />
+          </div>
+          <h1 className="code-arena-header-title">
+            Practice Arena
+            <span className="code-arena-badge-sub">Code Arena</span>
+          </h1>
+        </div>
 
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="code-arena-header-controls">
           <SpotifyConnect />
           <FocusTimer />
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--neon-cyan)', background: 'rgba(6,182,212,0.1)', padding: '4px 10px', borderRadius: '12px', fontWeight: 600 }}>
-            <Trophy size={13} /> Practice Arena
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)' }}>
-            <Link
-              href="/profile"
-              className="oj-icon-btn"
-              style={{ overflow: 'hidden', position: 'relative', width: '30px', height: '30px', borderRadius: '50%' }}
-              title={`View Profile: ${profileName}`}
-              aria-label="View Profile"
-            >
-              <UserAvatar url={profileAvatar} name={profileName} size={30} />
-            </Link>
-          </div>
+          <Link
+            href="/profile"
+            className="oj-icon-btn profile-avatar-btn"
+            style={{ overflow: 'hidden', position: 'relative', width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0 }}
+            title={`View Profile: ${profileName}`}
+            aria-label="View Profile"
+          >
+            <UserAvatar url={profileAvatar} name={profileName} size={32} />
+          </Link>
         </div>
       </header>
 
