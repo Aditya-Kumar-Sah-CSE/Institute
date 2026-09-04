@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'smartlearn-v11';
+const CACHE_VERSION = 'smartlearn-v12';
 const CACHE_STATIC = `smartlearn-static-${CACHE_VERSION}`;
 const CACHE_COURSE = `smartlearn-course-${CACHE_VERSION}`;
 const CACHE_MEDIA = `smartlearn-media-${CACHE_VERSION}`;
@@ -95,8 +95,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 5. Next.js Static Chunks (_next/static/) -> Cache-First
+  // 5. Next.js Static Chunks (_next/static/) -> Cache-First for JS (bypass for CSS to let immutable browser HTTP cache handle preloads without Chrome cross-world SW warnings)
   if (url.pathname.startsWith('/_next/static/')) {
+    if (url.pathname.endsWith('.css') || event.request.destination === 'style') {
+      return;
+    }
     event.respondWith(
       caches.match(event.request).then((cached) => {
         if (cached) return cached;

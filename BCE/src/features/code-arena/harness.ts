@@ -597,8 +597,8 @@ namespace HarnessParser {
     void printValue(float x) { cout << x << endl; }
     void printValue(double x) { cout << x << endl; }
     void printValue(bool x) { cout << (x ? "true" : "false") << endl; }
-    void printValue(char c) { cout << "'" << c << "'" << endl; }
-    void printValue(const string& s) { cout << "\"" << s << "\"" << endl; }
+    void printValue(char c) { cout << char(39) << c << char(39) << endl; }
+    void printValue(const string& s) { cout << '"' << s << '"' << endl; }
     
     template<typename T>
     void printValue(const vector<T>& v) {
@@ -666,8 +666,8 @@ namespace HarnessParser {
     string serializeValue(float x) { return to_string(x); }
     string serializeValue(double x) { return to_string(x); }
     string serializeValue(bool x) { return x ? "true" : "false"; }
-    string serializeValue(char c) { return string("\"") + c + "\""; }
-    string serializeValue(const string& s) { return string("\"") + s + "\""; }
+    string serializeValue(char c) { return string(1, '"') + c + string(1, '"'); }
+    string serializeValue(const string& s) { return string(1, '"') + s + string(1, '"'); }
     
     template<typename T>
     string serializeValue(const vector<T>& v) {

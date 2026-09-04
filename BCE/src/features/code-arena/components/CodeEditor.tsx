@@ -470,6 +470,54 @@ export default function CodeEditor({
   const [activeResultCaseIdx, setActiveResultCaseIdx] = useState(0);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Vertical Resizable Splitter State (Editor vs Console)
+  const [editorHeightPct, setEditorHeightPct] = useState<number>(55);
+  const [isResizingVertical, setIsResizingVertical] = useState<boolean>(false);
+  const workspaceSectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('bce:code-editor-vertical-height');
+    if (saved) {
+      const parsed = parseFloat(saved);
+      if (!isNaN(parsed) && parsed >= 20 && parsed <= 80) {
+        setEditorHeightPct(parsed);
+      }
+    }
+  }, []);
+
+  const handleVerticalMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizingVertical(true);
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizingVertical || !workspaceSectionRef.current) return;
+      const rect = workspaceSectionRef.current.getBoundingClientRect();
+      const relativeY = e.clientY - rect.top;
+      const percentage = (relativeY / rect.height) * 100;
+      if (percentage >= 20 && percentage <= 80) {
+        setEditorHeightPct(percentage);
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (isResizingVertical) {
+        setIsResizingVertical(false);
+        localStorage.setItem('bce:code-editor-vertical-height', editorHeightPct.toFixed(2));
+      }
+    };
+
+    if (isResizingVertical) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizingVertical, editorHeightPct]);
+
   useEffect(() => {
     if (!editorRef.current || !monacoRef.current) return;
 
@@ -644,7 +692,7 @@ export default function CodeEditor({
       : 0;
 
   return (
-    <section className={`code-workspace-panel ${activeRightTab === 'editor' ? 'show-editor' : 'show-results'}`} aria-label="Coding Workspace">
+    <section ref={workspaceSectionRef} className={`code-workspace-panel ${activeRightTab === 'editor' ? 'show-editor' : 'show-results'}`} aria-label="Coding Workspace">
       {/* Right panel view toggle */}
       <div className="right-panel-view-toggle">
         <button 
@@ -665,6 +713,10 @@ export default function CodeEditor({
       {/* Monaco Container with Fullscreen Toggle and Event Captures */}
       <div 
         className={`code-monaco-wrapper ${isFullscreen ? 'code-editor-fullscreen' : ''}`}
+        style={{
+          flex: isFullscreen ? '1 1 100%' : `0 0 ${editorHeightPct}%`,
+          height: isFullscreen ? '100%' : `${editorHeightPct}%`
+        }}
         {...practiceAndBattleClipboardProps}
       >
         {/* Editor Toolbar */}
@@ -812,8 +864,26 @@ export default function CodeEditor({
         </div>
       </div>
 
+      {/* Vertical Resizer Drag Slider */}
+      {!isFullscreen && (
+        <div
+          className={`vertical-resizer-slider ${isResizingVertical ? 'active' : ''}`}
+          onMouseDown={handleVerticalMouseDown}
+          title="Drag up or down to resize Code Editor & Testcases Console"
+        >
+          <div className="slider-handle-pill" />
+        </div>
+      )}
+
       {/* Console & Test Results Tabbed Section */}
-      <div className="oj-console-wrapper">
+      <div
+        className="oj-console-wrapper"
+        style={{
+          flex: isFullscreen ? '0 0 0' : `1 1 calc(${100 - editorHeightPct}% - 10px)`,
+          height: isFullscreen ? '0' : `calc(${100 - editorHeightPct}% - 10px)`,
+          minHeight: 0
+        }}
+      >
         <div className="oj-output-header">
           <div className="oj-title-group">
             <span className="oj-output-title">Console & Judge Results</span>
