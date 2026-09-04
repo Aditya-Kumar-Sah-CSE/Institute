@@ -132,6 +132,14 @@ export default function LandingDSAClient({
     carouselRef.current.scrollLeft = scrollLeftRef.current - walk;
   };
 
+  // Mouse wheel handler for desktop horizontal scroll
+  const handleWheel = (e: React.WheelEvent) => {
+    if (!carouselRef.current) return;
+    if (e.deltaY !== 0) {
+      carouselRef.current.scrollLeft += e.deltaY * 1.2;
+    }
+  };
+
   return (
     <>
       {(!sheets || sheets.length === 0) ? (
@@ -171,6 +179,7 @@ export default function LandingDSAClient({
               className="preview-grid mobile-carousel"
               ref={carouselRef}
               onScroll={handleScroll}
+              onWheel={handleWheel}
               onMouseDown={onMouseDown}
               onMouseLeave={onMouseLeave}
               onMouseUp={onMouseUp}
