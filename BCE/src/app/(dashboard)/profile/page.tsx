@@ -49,7 +49,7 @@ export default async function ProfilePage() {
     getOrCreateProfile(user),
     supabase.from('badges').select('*').order('created_at', { ascending: true }),
     supabase.from('user_badges').select('*, badge:badges(*)').eq('user_id', user.id),
-    supabase.from('xp_log').select('id, action, xp_amount, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5),
+    supabase.from('xp_log').select('id, action, xp_amount, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(15),
     supabase.from('company_settings').select('company_name').single(),
     adminSb.from('instructor_applications').select('status').eq('user_id', user.id).order('submitted_at', { ascending: false }).limit(1).maybeSingle(),
     getPastMonthlyRewards(user.id)

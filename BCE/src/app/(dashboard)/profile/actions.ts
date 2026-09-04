@@ -37,7 +37,7 @@ export async function updateBasicProfile(formData: FormData) {
   return { success: true };
 }
 
-export async function fetchMoreActivityLogs(userId: string, offset: number, limit = 5) {
+export async function fetchMoreActivityLogs(userId: string, offset: number, limit = 15) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 

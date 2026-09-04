@@ -21,10 +21,10 @@ export default function RecentCodingActivity({
   gfgRecent = [],
 }: RecentCodingActivityProps) {
   const [filter, setFilter] = useState<PlatformFilter>('ALL');
-  const [visibleCount, setVisibleCount] = useState(6);
+  const [visibleCount, setVisibleCount] = useState(15);
 
   useEffect(() => {
-    setVisibleCount(6);
+    setVisibleCount(15);
   }, [filter]);
 
   const normalizedBCE = useMemo(() => {
@@ -237,7 +237,7 @@ export default function RecentCodingActivity({
             {filteredActivity.length > visibleCount && (
               <button
                 type="button"
-                onClick={() => setVisibleCount((prev) => prev + 6)}
+                onClick={() => setVisibleCount((prev) => prev + 15)}
                 className="activity-show-more-btn"
                 style={{
                   width: '100%',

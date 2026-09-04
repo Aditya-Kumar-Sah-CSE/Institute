@@ -19,16 +19,16 @@ interface RecentActivityProps {
 export default function RecentActivity({ logs: initialLogs, userId }: RecentActivityProps) {
   const [logs, setLogs] = useState<ActivityLog[]>(initialLogs);
   const [isLoading, setIsLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(initialLogs.length === 5);
+  const [hasMore, setHasMore] = useState(initialLogs.length >= 15);
 
   const handleShowMore = async () => {
     setIsLoading(true);
     try {
-      const moreLogs = await fetchMoreActivityLogs(userId, logs.length, 5);
+      const moreLogs = await fetchMoreActivityLogs(userId, logs.length, 15);
       if (moreLogs.length > 0) {
         setLogs(prev => [...prev, ...moreLogs]);
       }
-      if (moreLogs.length < 5) {
+      if (moreLogs.length < 15) {
         setHasMore(false);
       }
     } catch (error) {
@@ -64,7 +64,7 @@ export default function RecentActivity({ logs: initialLogs, userId }: RecentActi
           {isLoading ? 'Loading...' : 'Show More'}
         </Button>
       ) : (
-        logs.length > 5 && (
+        logs.length > 15 && (
           <p className="text-muted" style={{ textAlign: 'center', fontSize: '0.875rem' }}>No more activity</p>
         )
       )}
