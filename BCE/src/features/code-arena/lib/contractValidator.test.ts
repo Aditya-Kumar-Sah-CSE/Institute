@@ -52,6 +52,26 @@ function runTests() {
     'Remove Element: actual output contains k = 5'
   );
 
+  const removeElementWildcardResult = validateContract(
+    removeElementSig,
+    {
+      returnValue: 2,
+      afterState: { nums: [2, 2], val: 3 },
+    },
+    'k = 2, nums = [2,2,_,_]'
+  );
+
+  assert(
+    removeElementWildcardResult.passed,
+    'Remove Element: wildcard expected format [2,2,_,_] passes with user output [2,2]',
+    removeElementWildcardResult.mismatchInfo
+  );
+
+  assert(
+    removeElementWildcardResult.expectedFormatted.includes('[2,2]'),
+    'Remove Element: expectedFormatted is cleanly sliced to first k elements [2,2]'
+  );
+
   const removeElementWrongVal = validateContract(
     removeElementSig,
     {

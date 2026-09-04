@@ -23,6 +23,39 @@ export interface ValidationResult {
 }
 
 /**
+ * Safely parses JSON or string representations of arrays/values,
+ * including array representations with unquoted wildcards e.g. [2,2,_,_] or [0,1,4,0,3,_,_,_].
+ */
+export function safeParseValue(raw: any): any {
+  if (raw === undefined || raw === null) return raw;
+  if (typeof raw !== 'string') return raw;
+  const str = raw.trim();
+  if (!str) return str;
+
+  // 1. Standard JSON Parse
+  try {
+    return JSON.parse(str);
+  } catch {}
+
+  // 2. Array with unquoted wildcards or placeholders e.g. "[2,2,_,_]"
+  if (str.startsWith('[') && str.endsWith(']')) {
+    try {
+      const sanitized = str
+        .replace(/\b_\b/g, '"_"')
+        .replace(/\b\*\b/g, '"*"');
+      return JSON.parse(sanitized);
+    } catch {}
+  }
+
+  // 3. String numbers
+  if (!isNaN(Number(str)) && str !== '') {
+    return Number(str);
+  }
+
+  return str;
+}
+
+/**
  * Resolves or auto-infers the OutputContract for a problem.
  */
 export function resolveContract(signature: ProblemSignature | null | undefined, expectedRaw: string): OutputContract {
@@ -43,8 +76,8 @@ export function resolveContract(signature: ProblemSignature | null | undefined, 
     };
   }
 
-  // Rule 2: Explicit pattern match in expectedRaw (e.g. "5, nums = [0,1,4,0,3]" or "k = 2, nums = [2,2]")
-  const commaEqualsMatch = expectedRaw && expectedRaw.match(/^(?:(?:k\s*=\s*)?([^,]+))\s*,\s*([a-zA-Z0-9_]+)\s*=\s*([\s\S]+)$/);
+  // Rule 2: Explicit pattern match in expectedRaw (e.g. "5, nums = [0,1,4,0,3]" or "k = 2, nums = [2,2,_,_]")
+  const commaEqualsMatch = expectedRaw && expectedRaw.match(/^(?:k\s*=\s*)?([^\s,\[\{]+)\s*,\s*([a-zA-Z0-9_]+)\s*=\s*([\s\S]+)$/);
   if (commaEqualsMatch) {
     const isUnordered = funcName.includes('removeelement') || funcName.includes('remove_element');
     return {
@@ -110,27 +143,24 @@ export function parseExpectedOutput(expectedRaw: string): ParsedExpected {
     try {
       const obj = JSON.parse(str);
       const retKey = Object.keys(obj).find((k) => ['return', 'k', 'ret', 'returnValue'].includes(k));
-      const expectedReturn = retKey ? obj[retKey] : undefined;
+      const expectedReturn = retKey ? safeParseValue(obj[retKey]) : undefined;
       const expectedParams: Record<string, any> = {};
       for (const [k, v] of Object.entries(obj)) {
-        if (k !== retKey) expectedParams[k] = v;
+        if (k !== retKey) expectedParams[k] = safeParseValue(v);
       }
       return { expectedReturn, expectedParams, raw: str };
     } catch {}
   }
 
-  // Pattern: "5, nums = [0,1,4,0,3]" or "k = 5, nums = [0,1,4,0,3]"
-  const commaEqualsMatch = str.match(/^(?:(?:k\s*=\s*)?([^,]+))\s*,\s*([a-zA-Z0-9_]+)\s*=\s*([\s\S]+)$/);
+  // Pattern 1: "5, nums = [0,1,4,0,3]" or "k = 2, nums = [2,2,_,_]"
+  const commaEqualsMatch = str.match(/^(?:k\s*=\s*)?([^\s,\[\{]+)\s*,\s*([a-zA-Z0-9_]+)\s*=\s*([\s\S]+)$/);
   if (commaEqualsMatch) {
     const rawRet = commaEqualsMatch[1].trim();
     const paramName = commaEqualsMatch[2].trim();
     const rawParamVal = commaEqualsMatch[3].trim();
 
-    let expectedReturn: any = rawRet;
-    try { expectedReturn = JSON.parse(rawRet); } catch {}
-
-    let expectedParamVal: any = rawParamVal;
-    try { expectedParamVal = JSON.parse(rawParamVal); } catch {}
+    const expectedReturn = safeParseValue(rawRet);
+    const expectedParamVal = safeParseValue(rawParamVal);
 
     return {
       expectedReturn,
@@ -144,9 +174,28 @@ export function parseExpectedOutput(expectedRaw: string): ParsedExpected {
     };
   }
 
+  // Pattern 2: "2, [2,2,_,_]" or "5, [0,1,4,0,3]"
+  const commaArrayMatch = str.match(/^(?:k\s*=\s*)?([^\s,\[\{]+)\s*,\s*(\[\s*[\s\S]*\])$/);
+  if (commaArrayMatch) {
+    const rawRet = commaArrayMatch[1].trim();
+    const rawParamVal = commaArrayMatch[2].trim();
+
+    const expectedReturn = safeParseValue(rawRet);
+    const expectedParamVal = safeParseValue(rawParamVal);
+
+    return {
+      expectedReturn,
+      expectedParams: {
+        nums: expectedParamVal,
+        param0: expectedParamVal,
+        arg0: expectedParamVal,
+      },
+      raw: str,
+    };
+  }
+
   // Single value
-  let expectedReturn: any = str;
-  try { expectedReturn = JSON.parse(str); } catch {}
+  const expectedReturn = safeParseValue(str);
 
   return { expectedReturn, raw: str };
 }
@@ -161,8 +210,8 @@ export function compareValues(
 ): boolean {
   const { ordering = 'exact', floatTolerance, length } = options;
 
-  let act = actual;
-  let exp = expected;
+  let act = safeParseValue(actual);
+  let exp = safeParseValue(expected);
 
   // Slicing arrays if length constraint applies (e.g. first k elements)
   if (Array.isArray(act) && typeof length === 'number' && length >= 0) {
@@ -191,8 +240,11 @@ export function compareValues(
     if (act.length !== exp.length) return false;
 
     if (ordering === 'unordered') {
-      const sortedAct = [...act].sort(canonicalSort);
-      const sortedExp = [...exp].sort(canonicalSort);
+      const actFiltered = act.filter((x: any) => x !== '_' && x !== '*');
+      const expFiltered = exp.filter((x: any) => x !== '_' && x !== '*');
+      if (actFiltered.length !== expFiltered.length) return false;
+      const sortedAct = [...actFiltered].sort(canonicalSort);
+      const sortedExp = [...expFiltered].sort(canonicalSort);
       return compareValues(sortedAct, sortedExp, { ordering: 'exact', floatTolerance });
     }
 
@@ -203,6 +255,7 @@ export function compareValues(
     }
 
     for (let i = 0; i < act.length; i++) {
+      if (exp[i] === '_' || exp[i] === '*') continue; // Wildcard match
       if (!compareValues(act[i], exp[i], { ordering: 'exact', floatTolerance })) {
         return false;
       }
@@ -283,10 +336,12 @@ export function validateContract(
 
   // Case 2: Mutated Parameter Only (e.g. Move Zeroes, Rotate Array)
   if (type === 'mutated_parameter') {
-    const passed = compareValues(actualParamVal, expectedParamVal, { ordering, floatTolerance });
+    const normActualParamVal = safeParseValue(actualParamVal);
+    const normExpectedParamVal = safeParseValue(expectedParamVal);
+    const passed = compareValues(normActualParamVal, normExpectedParamVal, { ordering, floatTolerance });
     const paramLabel = String(targetParam || 'nums');
-    const actualFormatted = `${paramLabel} = ${formatVal(actualParamVal)}`;
-    const expectedFormatted = `${paramLabel} = ${formatVal(expectedParamVal ?? parsedExp.raw)}`;
+    const actualFormatted = `${paramLabel} = ${formatVal(normActualParamVal)}`;
+    const expectedFormatted = `${paramLabel} = ${formatVal(normExpectedParamVal ?? parsedExp.raw)}`;
 
     return {
       passed,
@@ -298,15 +353,24 @@ export function validateContract(
 
   // Case 3: Return Value AND Mutated Parameter (e.g. Remove Element, Remove Duplicates)
   if (type === 'return_and_mutation') {
-    const actualReturn = captured.returnValue;
-    const expectedReturn = parsedExp.expectedReturn;
+    const actualReturn = safeParseValue(captured.returnValue);
+    const expectedReturn = safeParseValue(parsedExp.expectedReturn);
 
     // Validate return integer k first
     const returnPassed = compareValues(actualReturn, expectedReturn, { floatTolerance });
 
+    // Relevant slice length (first k elements)
+    const sliceLen = typeof actualReturn === 'number' && actualReturn >= 0
+      ? actualReturn
+      : typeof expectedReturn === 'number' && expectedReturn >= 0
+      ? expectedReturn
+      : undefined;
+
+    const normActualParamVal = safeParseValue(actualParamVal);
+    const normExpectedParamVal = safeParseValue(expectedParamVal);
+
     // Validate first k elements of mutated parameter
-    const sliceLen = typeof actualReturn === 'number' && actualReturn >= 0 ? actualReturn : undefined;
-    const mutationPassed = compareValues(actualParamVal, expectedParamVal, {
+    const mutationPassed = compareValues(normActualParamVal, normExpectedParamVal, {
       ordering,
       floatTolerance,
       length: sliceLen,
@@ -315,8 +379,12 @@ export function validateContract(
     const passed = returnPassed && mutationPassed;
 
     const paramLabel = String(targetParam || 'nums');
-    const slicedActual = Array.isArray(actualParamVal) && typeof sliceLen === 'number' ? actualParamVal.slice(0, sliceLen) : actualParamVal;
-    const slicedExpected = Array.isArray(expectedParamVal) && typeof sliceLen === 'number' ? expectedParamVal.slice(0, sliceLen) : expectedParamVal;
+    const slicedActual = Array.isArray(normActualParamVal) && typeof sliceLen === 'number'
+      ? normActualParamVal.slice(0, sliceLen)
+      : normActualParamVal;
+    const slicedExpected = Array.isArray(normExpectedParamVal) && typeof sliceLen === 'number'
+      ? normExpectedParamVal.slice(0, sliceLen)
+      : normExpectedParamVal;
 
     const actualFormatted = `k = ${formatVal(actualReturn)}, ${paramLabel} = ${formatVal(slicedActual)}`;
     const expectedFormatted = `k = ${formatVal(expectedReturn)}, ${paramLabel} = ${formatVal(slicedExpected)}`;
