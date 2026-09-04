@@ -7,7 +7,7 @@ export async function getPreviewCourses(page = 0, limit = 100, category = 'All C
   
   let query = supabase
     .from('courses')
-    .select('id, title, description, thumbnail_url, difficulty, tags, lesson_count, instructor_name, co_instructors, created_by, profiles!courses_created_by_fkey(name)')
+    .select('id, title, description, thumbnail_url, difficulty, tags, lesson_count, created_by, profiles!courses_created_by_fkey(name)')
     .eq('is_published', true)
     .eq('is_deleted', false)
     .order('created_at', { ascending: false });
@@ -25,7 +25,7 @@ export async function getPreviewCourses(page = 0, limit = 100, category = 'All C
     // Fallback: Query without join in case foreign key relationship alias cache fails
     let fallbackQuery = supabase
       .from('courses')
-      .select('id, title, description, thumbnail_url, difficulty, tags, lesson_count, instructor_name, co_instructors, created_by')
+      .select('id, title, description, thumbnail_url, difficulty, tags, lesson_count, created_by')
       .eq('is_published', true)
       .eq('is_deleted', false)
       .order('created_at', { ascending: false });
@@ -48,7 +48,7 @@ export async function getPreviewCourses(page = 0, limit = 100, category = 'All C
   // Hydrate missing profile names via created_by if needed
   const missingUserIds = Array.from(new Set(
     coursesList
-      .filter((c: any) => !c.instructor_name && (!c.profiles || !c.profiles.name) && c.created_by)
+      .filter((c: any) => (!c.profiles || !c.profiles.name) && c.created_by)
       .map((c: any) => c.created_by)
   ));
 
