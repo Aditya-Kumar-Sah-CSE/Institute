@@ -159,6 +159,7 @@ export async function POST(request: Request) {
           stars_label: ccProfile.starsLabel,
           global_rank: ccProfile.globalRank,
           country_rank: ccProfile.countryRank,
+          cc_daily_activity: ccProfile.dailyActivity || {},
         },
       };
 
@@ -193,6 +194,7 @@ export async function POST(request: Request) {
           coding_score: gfgProfile.codingScore,
           global_rank: gfgProfile.globalRank,
           institute_rank: gfgProfile.instituteRank,
+          gfg_daily_activity: gfgProfile.dailyActivity || {},
         },
       };
 

@@ -25,6 +25,7 @@ export interface GfgUserProfile {
   globalRank: number | null;
   instituteRank: number | null;
   profileUrl: string;
+  dailyActivity?: Record<string, number>;
 }
 
 /**
@@ -155,6 +156,21 @@ export async function fetchGfgUserProfile(handle: string): Promise<GfgUserProfil
     console.warn('[GFG] Error parsing profile HTML details:', err);
   }
 
+  // Extract daily activity heatmap if present in API/HTML
+  const dailyActivity: Record<string, number> = {};
+  try {
+    const htmlCalMatches = htmlContent.matchAll(/["'](\d{4}-\d{2}-\d{2})["']\s*:\s*(\d+)/gi);
+    for (const m of htmlCalMatches) {
+      const dateStr = m[1];
+      const count = parseInt(m[2], 10);
+      if (count > 0 && count < 500) {
+        dailyActivity[dateStr] = count;
+      }
+    }
+  } catch (e) {
+    console.warn('[GFG] Error parsing heatmap daily activity:', e);
+  }
+
   return {
     handle: trimmed,
     codingScore,
@@ -165,6 +181,7 @@ export async function fetchGfgUserProfile(handle: string): Promise<GfgUserProfil
     globalRank,
     instituteRank,
     profileUrl,
+    dailyActivity,
   };
 }
 

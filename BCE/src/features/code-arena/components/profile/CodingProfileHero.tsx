@@ -13,7 +13,7 @@ interface CodingProfileHeroProps {
   codechefConnected?: boolean;
   gfgConnected?: boolean;
   isOwnProfile?: boolean;
-  dailyActivity?: Record<string, { bce: number; cf: number; lc: number; total: number }>;
+  dailyActivity?: Record<string, { bce: number; cf: number; lc: number; cc?: number; gfg?: number; total: number }>;
 }
 
 export default function CodingProfileHero({ profile, codeforcesConnected, leetCodeConnected, codechefConnected = false, gfgConnected = false, isOwnProfile = true, dailyActivity }: CodingProfileHeroProps) {
@@ -39,7 +39,7 @@ export default function CodingProfileHero({ profile, codeforcesConnected, leetCo
 
   // Generate cells based on selectedPeriod (either sliding last12 months or full calendar year)
   const weeks = React.useMemo(() => {
-    const cells: { dateStr: string; dateObj: Date; dayOfWeek: number; weekIdx: number; activity: { bce: number; cf: number; lc: number; total: number } }[] = [];
+    const cells: { dateStr: string; dateObj: Date; dayOfWeek: number; weekIdx: number; activity: { bce: number; cf: number; lc: number; cc?: number; gfg?: number; total: number } }[] = [];
     const today = new Date();
     
     let startDate = new Date();
@@ -77,7 +77,7 @@ export default function CodingProfileHero({ profile, codeforcesConnected, leetCo
         dateObj: new Date(current),
         dayOfWeek,
         weekIdx,
-        activity: dailyActivity?.[dateStr] || { bce: 0, cf: 0, lc: 0, total: 0 },
+        activity: dailyActivity?.[dateStr] || { bce: 0, cf: 0, lc: 0, cc: 0, gfg: 0, total: 0 },
       });
 
       current.setDate(current.getDate() + 1);
@@ -202,13 +202,17 @@ export default function CodingProfileHero({ profile, codeforcesConnected, leetCo
               ))}
             </select>
           </span>
-          <div style={{ display: 'flex', gap: '6px', fontSize: '9px', color: 'var(--text-muted)', fontWeight: 600 }}>
+          <div style={{ display: 'flex', gap: '6px', fontSize: '9px', color: 'var(--text-muted)', fontWeight: 600, alignItems: 'center', flexWrap: 'wrap' }}>
             <span>SL</span>
             <span style={{ color: 'var(--neon-cyan)' }}>■</span>
             <span>CF</span>
             <span style={{ color: '#ee5b5b' }}>■</span>
             <span>LC</span>
             <span style={{ color: '#ffa116' }}>■</span>
+            <span>CC</span>
+            <span style={{ color: '#f59e0b' }}>■</span>
+            <span>GFG</span>
+            <span style={{ color: '#22c55e' }}>■</span>
           </div>
         </div>
 
@@ -291,10 +295,12 @@ export default function CodingProfileHero({ profile, codeforcesConnected, leetCo
                       }}>
                         <div style={{ fontWeight: 700, marginBottom: '2px' }}>{new Date(cell.dateStr).toLocaleDateString(undefined, { dateStyle: 'medium' })}</div>
                         <div style={{ color: 'var(--neon-emerald)', fontWeight: 800 }}>Total: {total} solved</div>
-                        <div style={{ display: 'flex', gap: '8px', color: 'var(--text-muted)', fontSize: '9px', marginTop: '2px' }}>
+                        <div style={{ display: 'flex', gap: '6px', color: 'var(--text-muted)', fontSize: '9px', marginTop: '2px', flexWrap: 'wrap' }}>
                           <span>SL: {cell.activity.bce}</span>
                           <span>CF: {cell.activity.cf}</span>
                           <span>LC: {cell.activity.lc}</span>
+                          <span>CC: {cell.activity.cc || 0}</span>
+                          <span>GFG: {cell.activity.gfg || 0}</span>
                         </div>
                       </div>
                     </div>

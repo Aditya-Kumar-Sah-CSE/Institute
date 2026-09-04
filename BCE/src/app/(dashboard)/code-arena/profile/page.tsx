@@ -80,24 +80,32 @@ export default async function CodingProfilePage({ searchParams }: { searchParams
   // Extract external platform activity maps
   const cfDaily = cfAccount?.metadata?.cf_daily_activity || {};
   const lcDaily = lcAccount?.metadata?.lc_daily_activity || {};
+  const ccDaily = ccAccount?.metadata?.cc_daily_activity || {};
+  const gfgDaily = gfgAccount?.metadata?.gfg_daily_activity || {};
 
   // Build unified daily activity map for the last 365 days
-  const dailyActivity: Record<string, { bce: number; cf: number; lc: number; total: number }> = {};
+  const dailyActivity: Record<string, { bce: number; cf: number; lc: number; cc: number; gfg: number; total: number }> = {};
   const allDates = new Set<string>([
     ...Object.keys(bceDaily),
     ...Object.keys(cfDaily),
     ...Object.keys(lcDaily),
+    ...Object.keys(ccDaily),
+    ...Object.keys(gfgDaily),
   ]);
 
   allDates.forEach((dateStr) => {
     const bceCount = bceDaily[dateStr] || 0;
     const cfCount = cfDaily[dateStr] || 0;
     const lcCount = lcDaily[dateStr] || 0;
+    const ccCount = ccDaily[dateStr] || 0;
+    const gfgCount = gfgDaily[dateStr] || 0;
     dailyActivity[dateStr] = {
       bce: bceCount,
       cf: cfCount,
       lc: lcCount,
-      total: bceCount + cfCount + lcCount,
+      cc: ccCount,
+      gfg: gfgCount,
+      total: bceCount + cfCount + lcCount + ccCount + gfgCount,
     };
   });
 
