@@ -1,5 +1,6 @@
-import type { CodeExecutionRequest, CodeExecutionResult, SubmissionStatus } from './types';
+import type { CodeExecutionRequest, CodeExecutionResult, SubmissionStatus, ProblemSignature } from './types';
 import { wrapCodeWithHarness, hasMainFunction } from './harness';
+import { validateContract, ExecutionCapturedState } from './lib/contractValidator';
 
 const WANDBOX_COMPILERS: Record<string, string> = {
   cpp17: 'gcc-head',
@@ -45,36 +46,31 @@ export function setCachedHiddenTests(problemId: string, tests: any[]) {
   hiddenTestsCache.set(problemId, { data: tests, timestamp: Date.now() });
 }
 
-function normalizeOutput(str: string): string {
-  if (!str) return '';
-  return str
-    .replace(/\r\n/g, '\n') // Normalize newlines
-    .split('\n')
-    .map(line => line.trimEnd()) // Trim trailing spaces per line
-    .join('\n')
-    .trim(); // Trim starting/trailing newlines
-}
-
-function getMismatchInfo(expected: string, actual: string): string | null {
-  const normExpected = normalizeOutput(expected);
-  const normActual = normalizeOutput(actual);
-  if (normExpected === normActual) return null;
-
-  const expTokens = normExpected.split(/\s+/).filter(Boolean);
-  const actTokens = normActual.split(/\s+/).filter(Boolean);
-
-  const maxLen = Math.max(expTokens.length, actTokens.length);
-  for (let i = 0; i < maxLen; i++) {
-    const exp = expTokens[i];
-    const act = actTokens[i];
-    if (exp !== act) {
-      const pos = i + 1; // 1-based token position
-      const expectedStr = exp !== undefined ? exp : '<EOF>';
-      const actualStr = act !== undefined ? act : '<EOF>';
-      return `Mismatch at position ${pos}: expected ${expectedStr}, got ${actualStr}`;
+function parseHarnessCapturedState(stdout: string): ExecutionCapturedState {
+  if (!stdout) {
+    return { returnValue: '', afterState: {}, rawStdout: '' };
+  }
+  const lines = stdout.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i];
+    if (line.startsWith('{') && line.endsWith('}')) {
+      try {
+        const parsed = JSON.parse(line);
+        if (parsed && typeof parsed === 'object' && ('ret' in parsed || 'params' in parsed)) {
+          return {
+            returnValue: parsed.ret,
+            afterState: parsed.params || {},
+            rawStdout: stdout,
+          };
+        }
+      } catch {}
     }
   }
-  return 'Wrong Answer';
+  return {
+    returnValue: stdout.trim(),
+    afterState: {},
+    rawStdout: stdout,
+  };
 }
 
 export interface SingleTestResult {
@@ -92,7 +88,8 @@ async function runSingleTestCase(
   code: string,
   input: string,
   expected: string,
-  language: string
+  language: string,
+  signature?: ProblemSignature | null
 ): Promise<SingleTestResult> {
   let codeToSend = code;
   if (language === 'java') {
@@ -156,24 +153,26 @@ async function runSingleTestCase(
       };
     }
 
-    // 4. Compare Outputs
-    const mismatch = getMismatchInfo(expected, stdout);
-    if (mismatch === null) {
+    // 4. Universal Output Contract Validation
+    const capturedState = parseHarnessCapturedState(stdout);
+    const validation = validateContract(signature, capturedState, expected);
+
+    if (validation.passed) {
       return {
         status: 'PASSED',
         input,
-        expectedOutput: expected,
-        actualOutput: stdout,
+        expectedOutput: validation.expectedFormatted,
+        actualOutput: validation.actualFormatted,
         passed: true,
       };
     } else {
       return {
         status: 'WRONG_ANSWER',
         input,
-        expectedOutput: expected,
-        actualOutput: stdout,
+        expectedOutput: validation.expectedFormatted,
+        actualOutput: validation.actualFormatted,
         passed: false,
-        mismatchInfo: mismatch,
+        mismatchInfo: validation.mismatchInfo || `Expected ${validation.expectedFormatted}, got ${validation.actualFormatted}`,
       };
     }
   } catch (err: any) {
@@ -208,10 +207,11 @@ export const judgeService: JudgeService = {
 
     let mode: 'leetcode_function' | 'custom_program' = 'custom_program';
     let signatureLookupTime = 0;
+    let signature: ProblemSignature | null = null;
 
     if (problemId) {
       const sigStart = Date.now();
-      let signature = getCachedProblemSignature(problemId);
+      signature = getCachedProblemSignature(problemId);
       if (!signature) {
         try {
           const { createAdminClient } = await import('@/lib/supabase/server');
@@ -245,7 +245,7 @@ export const judgeService: JudgeService = {
 
     // Run testcases cleanly and concurrently for accurate evaluation
     const tc1 = testCases[0];
-    const res1 = await runSingleTestCase(compiler, sourceCode, tc1.input, tc1.expectedOutput, language);
+    const res1 = await runSingleTestCase(compiler, sourceCode, tc1.input, tc1.expectedOutput, language, signature);
 
     if (res1.status === 'COMPILATION_ERROR') {
       const allResults: SingleTestResult[] = testCases.map((tc, idx) => {
@@ -267,8 +267,8 @@ export const judgeService: JudgeService = {
       };
     }
 
-    const restPromises = testCases.slice(1).map(tc =>
-      runSingleTestCase(compiler, sourceCode, tc.input, tc.expectedOutput, language)
+    const restPromises = testCases.slice(1).map((tc) =>
+      runSingleTestCase(compiler, sourceCode, tc.input, tc.expectedOutput, language, signature)
     );
     const restResults = await Promise.all(restPromises);
 

@@ -33,6 +33,8 @@ import {
   VersionTracker,
 } from '../lib/saveManager';
 import { practiceAndBattleClipboardProps } from '../lib/clipboardPolicy';
+import { highlightErrorInMonaco } from '../lib/errorHighlighter';
+
 
 const Editor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
@@ -225,7 +227,12 @@ export default function CodeEditor({
   const [loadingPastSolution, setLoadingPastSolution] = useState(false);
   const [isReattemptMode, setIsReattemptMode] = useState(false);
 
+  const editorRef = useRef<any>(null);
+  const monacoRef = useRef<any>(null);
+  const decorationsRef = useRef<string[]>([]);
+
   // Fetch current user and load initial saved code
+
   useEffect(() => {
     async function loadUserAndCode() {
       try {
@@ -462,6 +469,22 @@ export default function CodeEditor({
   const [batchResult, setBatchResult] = useState<any | null>(null);
   const [activeResultCaseIdx, setActiveResultCaseIdx] = useState(0);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (!editorRef.current || !monacoRef.current) return;
+
+    let errText: string | null = null;
+    if (batchResult && (batchResult.status === 'COMPILATION_ERROR' || batchResult.status === 'SYSTEM_ERROR' || batchResult.status === 'RUNTIME_ERROR')) {
+      errText = batchResult.compilerOutput || (typeof batchResult.runtimeOutput === 'string' ? batchResult.runtimeOutput : null) || batchResult.status;
+    } else if (execResult && (execResult.status === 'COMPILATION_ERROR' || execResult.status === 'RUNTIME_ERROR' || execResult.status === 'SYSTEM_ERROR')) {
+      errText = execResult.compileStderr || execResult.stderr || execResult.message || null;
+    } else if (submissionResult && (submissionResult.status === 'COMPILATION_ERROR' || submissionResult.status === 'RUNTIME_ERROR' || submissionResult.error)) {
+      errText = submissionResult.compilerOutput || submissionResult.error || null;
+    }
+
+    highlightErrorInMonaco(editorRef.current, monacoRef.current, errText, code, decorationsRef);
+  }, [execResult, batchResult, submissionResult, code]);
+
 
   const runCode = async () => {
     if (running || submitting) return;
@@ -768,6 +791,10 @@ export default function CodeEditor({
               value={code}
               onChange={(v) => handleCodeChange(v || '')}
               beforeMount={registerMonacoIntelliSense}
+              onMount={(editor, monaco) => {
+                editorRef.current = editor;
+                monacoRef.current = monaco;
+              }}
               options={{
                 minimap: { enabled: false },
                 fontSize: 14,
@@ -777,220 +804,13 @@ export default function CodeEditor({
                 renderLineHighlight: 'all',
                 padding: { top: 10, bottom: 10 },
                 contextmenu: false,
+                glyphMargin: true,
                 ...intelliSenseEditorOptions,
               }}
             />
           </Suspense>
         </div>
       </div>
-
-      {/* Terminal Custom Input Card / Tabbed LeetCode Testcases */}
-      {isLeetCodeType ? (
-        <div className="oj-input-card leetcode-testcases-panel">
-          <div className="oj-input-header">
-            <span className="oj-input-title">
-              <Terminal size={14} style={{ color: 'var(--neon-cyan)' }} /> Testcases
-            </span>
-            <div className="oj-icon-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                style={{ fontSize: '11px', padding: '2px 10px', height: '26px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)', cursor: 'pointer', borderRadius: '4px', fontWeight: 'bold' }}
-                onClick={() => {
-                  if (confirm('Reset all test cases to default examples?')) {
-                    const reset = (samples || []).map((s, idx) => ({
-                      input: s.input,
-                      expectedOutput: (s as any).output || s.expected_output || '',
-                      name: s.sample_name || `Case ${idx + 1}`
-                    }));
-                    setTestCases(reset.length > 0 ? reset : [{ input: '', expectedOutput: '', name: 'Case 1' }]);
-                    setActiveTestCaseIdx(0);
-                  }
-                }}
-              >
-                Reset Cases
-              </button>
-            </div>
-          </div>
-          
-          {/* Tabs header for cases */}
-          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px', marginTop: '6px' }}>
-            {testCases.map((tc, idx) => (
-              <div 
-                key={idx}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  background: activeTestCaseIdx === idx ? 'rgba(6, 182, 212, 0.12)' : 'rgba(0, 0, 0, 0.2)',
-                  border: activeTestCaseIdx === idx ? '1px solid rgba(6, 182, 212, 0.3)' : '1px solid var(--glass-border)',
-                  borderRadius: '6px',
-                  padding: '4px 10px'
-                }}
-              >
-                <button
-                  type="button"
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: activeTestCaseIdx === idx ? 'var(--neon-cyan)' : 'var(--text-secondary)',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    outline: 'none'
-                  }}
-                  onClick={() => setActiveTestCaseIdx(idx)}
-                >
-                  {tc.name}
-                </button>
-                {testCases.length > 1 && (
-                  <button
-                    type="button"
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: 'var(--text-muted)',
-                      cursor: 'pointer',
-                      fontSize: '12px',
-                      padding: '0 2px',
-                      lineHeight: 1
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const updated = testCases.filter((_, i) => i !== idx);
-                      setTestCases(updated);
-                      setActiveTestCaseIdx(prev => Math.min(prev, updated.length - 1));
-                    }}
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            ))}
-            <button
-              type="button"
-              style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid var(--glass-border)',
-                borderRadius: '6px',
-                color: 'var(--neon-cyan)',
-                fontSize: '12px',
-                padding: '4px 12px',
-                cursor: 'pointer',
-                fontWeight: 'bold'
-              }}
-              onClick={() => {
-                const nextIdx = testCases.length + 1;
-                setTestCases([...testCases, { input: '', expectedOutput: '', name: `Case ${nextIdx}` }]);
-                setActiveTestCaseIdx(testCases.length);
-              }}
-            >
-              + Add Case
-            </button>
-          </div>
-
-          {/* Tab content */}
-          {testCases[activeTestCaseIdx] && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minHeight: 0, marginTop: '4px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minHeight: 0 }}>
-                <span style={{ fontSize: '10px', fontWeight: 650, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Input</span>
-                <textarea
-                  className="oj-input-textarea"
-                  style={{ flex: 1, minHeight: '60px', fontFamily: 'monospace' }}
-                  value={testCases[activeTestCaseIdx].input}
-                  onChange={(e) => {
-                    const updated = [...testCases];
-                    updated[activeTestCaseIdx].input = e.target.value;
-                    setTestCases(updated);
-                  }}
-                  placeholder="LeetCode inputs (arguments separated by lines, e.g. [2,7,11,15]\n9)"
-                />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minHeight: 0 }}>
-                <span style={{ fontSize: '10px', fontWeight: 650, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Expected Output (Optional)</span>
-                <textarea
-                  className="oj-input-textarea"
-                  style={{ flex: 1, minHeight: '40px', fontFamily: 'monospace' }}
-                  value={testCases[activeTestCaseIdx].expectedOutput}
-                  onChange={(e) => {
-                    const updated = [...testCases];
-                    updated[activeTestCaseIdx].expectedOutput = e.target.value;
-                    setTestCases(updated);
-                  }}
-                  placeholder="Expected output (e.g. [0,1])"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="oj-input-card">
-          <div className="oj-input-header">
-            <span className="oj-input-title">
-              <Terminal size={14} style={{ color: 'var(--neon-cyan)' }} /> Custom Stdin Input
-            </span>
-            <div className="oj-icon-actions" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              {samples && samples.length > 0 && (
-                <select
-                  aria-label="Select sample input example"
-                  style={{
-                    background: 'var(--bg-elevated)',
-                    border: '1px solid var(--glass-border)',
-                    color: 'var(--neon-cyan)',
-                    fontSize: '11px',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                  }}
-                  onChange={(e) => {
-                    const idx = parseInt(e.target.value, 10);
-                    if (!isNaN(idx) && samples[idx]) {
-                      setCustomInput(samples[idx].input);
-                      setActiveTab('input');
-                    }
-                  }}
-                  defaultValue=""
-                >
-                  <option value="" disabled>
-                    Use Example...
-                  </option>
-                  {samples.map((s, idx) => (
-                    <option key={idx} value={idx}>
-                      {s.sample_name || `Example ${idx + 1}`}
-                    </option>
-                  ))}
-                </select>
-              )}
-              <button
-                type="button"
-                className="oj-icon-btn"
-                aria-label="Clear input content"
-                title="Clear custom input"
-                onClick={() => setCustomInput('')}
-              >
-                <Trash2 size={13} />
-              </button>
-              <button
-                type="button"
-                className="oj-icon-btn"
-                aria-label="Copy custom input"
-                title="Copy input"
-                onClick={() => {
-                  if (customInput) navigator.clipboard.writeText(customInput);
-                }}
-              >
-                <Copy size={13} />
-              </button>
-            </div>
-          </div>
-          <textarea
-            className="oj-input-textarea"
-            value={customInput}
-            placeholder="Paste or enter custom test stdin input here..."
-            onChange={(e) => setCustomInput(e.target.value)}
-          />
-        </div>
-      )}
 
       {/* Console & Test Results Tabbed Section */}
       <div className="oj-console-wrapper">
@@ -1271,35 +1091,53 @@ export default function CodeEditor({
 
           {activeTab === 'error' && (
             isLeetCodeType && batchResult ? (
-              <div>
-                <div className={`oj-status-banner oj-status-${batchResult.status}`}>
-                  {batchResult.status === 'COMPILATION_ERROR'
-                    ? '● Compilation Error'
-                    : batchResult.status === 'SYSTEM_ERROR'
-                    ? '⚠ Execution Server Unavailable'
-                    : '● Diagnostics Output'}
+              (batchResult.status === 'COMPILATION_ERROR' || batchResult.status === 'SYSTEM_ERROR' || batchResult.status === 'RUNTIME_ERROR' || (batchResult.compilerOutput && batchResult.compilerOutput.trim())) ? (
+                <div>
+                  <div className={`oj-status-banner oj-status-${batchResult.status}`}>
+                    {batchResult.status === 'COMPILATION_ERROR'
+                      ? '● Compilation Error'
+                      : batchResult.status === 'SYSTEM_ERROR'
+                      ? '⚠ Execution Server Unavailable'
+                      : '● Diagnostics Output'}
+                  </div>
+                  <pre className="oj-code-block oj-code-error">
+                    {batchResult.compilerOutput || 'Compilation or runtime error occurred.'}
+                  </pre>
                 </div>
-                <pre className="oj-code-block oj-code-error">
-                  {batchResult.compilerOutput || 'No compilation/runtime error details returned.'}
-                </pre>
-              </div>
-            ) : !execResult && !submissionResult ? (
-              <div className="oj-empty-state">
-                <p className="oj-empty-sub">No errors recorded.</p>
-              </div>
+              ) : (
+                <div>
+                  <div className="oj-status-banner oj-status-SUCCESS">
+                    ✓ Clean Build — No Errors
+                  </div>
+                  <pre className="oj-code-block" style={{ color: '#34d399', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+                    ✓ No compilation or runtime errors detected.
+                  </pre>
+                </div>
+              )
             ) : execResult ? (
-              <div>
-                <div className={`oj-status-banner oj-status-${execResult.status}`}>
-                  {execResult.status === 'COMPILATION_ERROR'
-                    ? '● Compilation Error'
-                    : execResult.status === 'SYSTEM_ERROR'
-                    ? '⚠ Execution Server Unavailable'
-                    : '● Error Output'}
+              (execResult.status === 'COMPILATION_ERROR' || execResult.status === 'SYSTEM_ERROR' || execResult.status === 'RUNTIME_ERROR' || execResult.compileStderr || execResult.stderr) ? (
+                <div>
+                  <div className={`oj-status-banner oj-status-${execResult.status}`}>
+                    {execResult.status === 'COMPILATION_ERROR'
+                      ? '● Compilation Error'
+                      : execResult.status === 'SYSTEM_ERROR'
+                      ? '⚠ Execution Server Unavailable'
+                      : '● Error Output'}
+                  </div>
+                  <pre className="oj-code-block oj-code-error">
+                    {execResult.compileStderr || execResult.stderr || execResult.message || 'Execution error occurred.'}
+                  </pre>
                 </div>
-                <pre className="oj-code-block oj-code-error">
-                  {execResult.compileStderr || execResult.stderr || execResult.message || 'No compilation/runtime error details returned.'}
-                </pre>
-              </div>
+              ) : (
+                <div>
+                  <div className="oj-status-banner oj-status-SUCCESS">
+                    ✓ Clean Build — No Errors
+                  </div>
+                  <pre className="oj-code-block" style={{ color: '#34d399', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+                    ✓ No compilation or runtime errors detected.
+                  </pre>
+                </div>
+              )
             ) : submissionResult?.error ? (
               <div>
                 <div className="oj-status-banner oj-status-SYSTEM_ERROR">
@@ -1307,7 +1145,11 @@ export default function CodeEditor({
                 </div>
                 <pre className="oj-code-block oj-code-error">{submissionResult.error}</pre>
               </div>
-            ) : null
+            ) : (
+              <div className="oj-empty-state">
+                <p className="oj-empty-sub">No errors recorded.</p>
+              </div>
+            )
           )}
 
           {activeTab === 'input' && (
@@ -1461,6 +1303,214 @@ export default function CodeEditor({
           )}
         </div>
       </div>
+
+      {/* Terminal Custom Input Card / Tabbed LeetCode Testcases */}
+      {isLeetCodeType ? (
+        <div className="oj-input-card leetcode-testcases-panel">
+          <div className="oj-input-header">
+            <span className="oj-input-title">
+              <Terminal size={14} style={{ color: 'var(--neon-cyan)' }} /> Testcases
+            </span>
+            <div className="oj-icon-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ fontSize: '11px', padding: '2px 10px', height: '26px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)', cursor: 'pointer', borderRadius: '4px', fontWeight: 'bold' }}
+                onClick={() => {
+                  if (confirm('Reset all test cases to default examples?')) {
+                    const reset = (samples || []).map((s, idx) => ({
+                      input: s.input,
+                      expectedOutput: (s as any).output || s.expected_output || '',
+                      name: s.sample_name || `Case ${idx + 1}`
+                    }));
+                    setTestCases(reset.length > 0 ? reset : [{ input: '', expectedOutput: '', name: 'Case 1' }]);
+                    setActiveTestCaseIdx(0);
+                  }
+                }}
+              >
+                Reset Cases
+              </button>
+            </div>
+          </div>
+          
+          {/* Tabs header for cases */}
+          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px', marginTop: '6px' }}>
+            {testCases.map((tc, idx) => (
+              <div 
+                key={idx}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  background: activeTestCaseIdx === idx ? 'rgba(6, 182, 212, 0.12)' : 'rgba(0, 0, 0, 0.2)',
+                  border: activeTestCaseIdx === idx ? '1px solid rgba(6, 182, 212, 0.3)' : '1px solid var(--glass-border)',
+                  borderRadius: '6px',
+                  padding: '4px 10px'
+                }}
+              >
+                <button
+                  type="button"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: activeTestCaseIdx === idx ? 'var(--neon-cyan)' : 'var(--text-secondary)',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    outline: 'none'
+                  }}
+                  onClick={() => setActiveTestCaseIdx(idx)}
+                >
+                  {tc.name}
+                </button>
+                {testCases.length > 1 && (
+                  <button
+                    type="button"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-muted)',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      padding: '0 2px',
+                      lineHeight: 1
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const updated = testCases.filter((_, i) => i !== idx);
+                      setTestCases(updated);
+                      setActiveTestCaseIdx(prev => Math.min(prev, updated.length - 1));
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid var(--glass-border)',
+                borderRadius: '6px',
+                color: 'var(--neon-cyan)',
+                fontSize: '12px',
+                padding: '4px 12px',
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}
+              onClick={() => {
+                const nextIdx = testCases.length + 1;
+                setTestCases([...testCases, { input: '', expectedOutput: '', name: `Case ${nextIdx}` }]);
+                setActiveTestCaseIdx(testCases.length);
+              }}
+            >
+              + Add Case
+            </button>
+          </div>
+
+          {/* Tab content */}
+          {testCases[activeTestCaseIdx] && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minHeight: 0, marginTop: '4px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minHeight: 0 }}>
+                <span style={{ fontSize: '10px', fontWeight: 650, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Input</span>
+                <textarea
+                  className="oj-input-textarea"
+                  style={{ flex: 1, minHeight: '60px', fontFamily: 'monospace' }}
+                  value={testCases[activeTestCaseIdx].input}
+                  onChange={(e) => {
+                    const updated = [...testCases];
+                    updated[activeTestCaseIdx].input = e.target.value;
+                    setTestCases(updated);
+                  }}
+                  placeholder="LeetCode inputs (arguments separated by lines, e.g. [2,7,11,15]\n9)"
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minHeight: 0 }}>
+                <span style={{ fontSize: '10px', fontWeight: 650, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Expected Output (Optional)</span>
+                <textarea
+                  className="oj-input-textarea"
+                  style={{ flex: 1, minHeight: '40px', fontFamily: 'monospace' }}
+                  value={testCases[activeTestCaseIdx].expectedOutput}
+                  onChange={(e) => {
+                    const updated = [...testCases];
+                    updated[activeTestCaseIdx].expectedOutput = e.target.value;
+                    setTestCases(updated);
+                  }}
+                  placeholder="Expected output (e.g. [0,1])"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="oj-input-card">
+          <div className="oj-input-header">
+            <span className="oj-input-title">
+              <Terminal size={14} style={{ color: 'var(--neon-cyan)' }} /> Custom Stdin Input
+            </span>
+            <div className="oj-icon-actions" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {samples && samples.length > 0 && (
+                <select
+                  aria-label="Select sample input example"
+                  style={{
+                    background: 'var(--bg-elevated)',
+                    border: '1px solid var(--glass-border)',
+                    color: 'var(--neon-cyan)',
+                    fontSize: '11px',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                  }}
+                  onChange={(e) => {
+                    const idx = parseInt(e.target.value, 10);
+                    if (!isNaN(idx) && samples[idx]) {
+                      setCustomInput(samples[idx].input);
+                      setActiveTab('input');
+                    }
+                  }}
+                  defaultValue=""
+                >
+                  <option value="" disabled>
+                    Use Example...
+                  </option>
+                  {samples.map((s, idx) => (
+                    <option key={idx} value={idx}>
+                      {s.sample_name || `Example ${idx + 1}`}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <button
+                type="button"
+                className="oj-icon-btn"
+                aria-label="Clear input content"
+                title="Clear custom input"
+                onClick={() => setCustomInput('')}
+              >
+                <Trash2 size={13} />
+              </button>
+              <button
+                type="button"
+                className="oj-icon-btn"
+                aria-label="Copy custom input"
+                title="Copy input"
+                onClick={() => {
+                  if (customInput) navigator.clipboard.writeText(customInput);
+                }}
+              >
+                <Copy size={13} />
+              </button>
+            </div>
+          </div>
+          <textarea
+            className="oj-input-textarea"
+            value={customInput}
+            placeholder="Paste or enter custom test stdin input here..."
+            onChange={(e) => setCustomInput(e.target.value)}
+          />
+        </div>
+      )}
 
       {showCFModal && (
         <div style={{

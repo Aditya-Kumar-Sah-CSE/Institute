@@ -52,3 +52,33 @@ export interface CodeExecutionResult {
   compilerOutput?: string;
   runtimeOutput?: string;
 }
+
+export type ContractType =
+  | 'return_value'
+  | 'mutated_parameter'
+  | 'return_and_mutation'
+  | 'custom_evaluator';
+
+export type OrderingRequirement = 'exact' | 'unordered' | 'sorted' | 'unordered_groups';
+
+export interface OutputContract {
+  type: ContractType;
+  targetParam?: string | number;
+  lengthRef?: 'return_value' | number | string;
+  ordering?: OrderingRequirement;
+  floatTolerance?: number;
+}
+
+export interface ProblemSignature {
+  name: string;
+  params: {
+    name: string;
+    type: string;
+    mutated?: boolean;
+  }[];
+  return: {
+    type: string;
+  };
+  outputContract?: OutputContract;
+}
+

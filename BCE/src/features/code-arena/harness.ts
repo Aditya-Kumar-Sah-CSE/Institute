@@ -598,7 +598,7 @@ namespace HarnessParser {
     void printValue(double x) { cout << x << endl; }
     void printValue(bool x) { cout << (x ? "true" : "false") << endl; }
     void printValue(char c) { cout << "'" << c << "'" << endl; }
-    void printValue(const string& s) { cout << "\\"" << s << "\\"" << endl; }
+    void printValue(const string& s) { cout << "\"" << s << "\"" << endl; }
     
     template<typename T>
     void printValue(const vector<T>& v) {
@@ -660,6 +660,70 @@ namespace HarnessParser {
         }
         cout << "]" << endl;
     }
+
+    string serializeValue(int x) { return to_string(x); }
+    string serializeValue(long long x) { return to_string(x); }
+    string serializeValue(float x) { return to_string(x); }
+    string serializeValue(double x) { return to_string(x); }
+    string serializeValue(bool x) { return x ? "true" : "false"; }
+    string serializeValue(char c) { return string("\"") + c + "\""; }
+    string serializeValue(const string& s) { return string("\"") + s + "\""; }
+    
+    template<typename T>
+    string serializeValue(const vector<T>& v) {
+        string s = "[";
+        for (size_t i = 0; i < v.size(); ++i) {
+            s += serializeValue(v[i]) + (i + 1 < v.size() ? "," : "");
+        }
+        s += "]";
+        return s;
+    }
+
+    template<typename T>
+    string serializeValue(const vector<vector<T>>& m) {
+        string s = "[";
+        for (size_t i = 0; i < m.size(); ++i) {
+            s += serializeValue(m[i]) + (i + 1 < m.size() ? "," : "");
+        }
+        s += "]";
+        return s;
+    }
+
+    string serializeValue(ListNode* head) {
+        string s = "[";
+        ListNode* curr = head;
+        while (curr) {
+            s += to_string(curr->val) + (curr->next ? "," : "");
+            curr = curr->next;
+        }
+        s += "]";
+        return s;
+    }
+
+    string serializeValue(TreeNode* root) {
+        if (!root) return "[]";
+        vector<string> res;
+        queue<TreeNode*> q;
+        q.push(root);
+        while (!q.empty()) {
+            TreeNode* curr = q.front();
+            q.pop();
+            if (curr) {
+                res.push_back(to_string(curr->val));
+                q.push(curr->left);
+                q.push(curr->right);
+            } else {
+                res.push_back("null");
+            }
+        }
+        while (!res.empty() && res.back() == "null") res.pop_back();
+        string s = "[";
+        for (size_t i = 0; i < res.size(); ++i) {
+            s += res[i] + (i + 1 < res.size() ? "," : "");
+        }
+        s += "]";
+        return s;
+    }
 }
 `;
 
@@ -670,8 +734,10 @@ int main() {
     Solution sol;
     while (HarnessParser::peekNextChar(cin) != '\\0') {
 ${parseLines.join('\n')}
-        auto res = sol.${funcName}(${argsList});
-        HarnessParser::printValue(res);
+        ${retType !== 'void' ? `auto res = sol.${funcName}(${argsList}); string retStr = HarnessParser::serializeValue(res);` : `sol.${funcName}(${argsList}); string retStr = "null";`}
+        cout << "{\\"ret\\":" << retStr << ",\\"params\\":{";
+        ${params.map((p, idx) => `cout << "\\"${p.name}\\":" << HarnessParser::serializeValue(arg${idx}) << ",\\"param${idx}\\":" << HarnessParser::serializeValue(arg${idx}) << ",\\"arg${idx}\\":" << HarnessParser::serializeValue(arg${idx})${idx + 1 < params.length ? ' << ","' : ''};`).join('\n        ')}
+        cout << "}}" << endl;
     }
     return 0;
 }
@@ -679,8 +745,6 @@ ${parseLines.join('\n')}
 }
 
 function generatePythonHarness(studentCode: string, funcName: string, params: any[], retType: string): string {
-  const normRet = retType.toLowerCase().replace(/\s+/g, '');
-  
   const parseLines = params.map((p, idx) => {
     const norm = p.type.toLowerCase().replace(/\s+/g, '');
     let parseExpr = `parse_input_val(lines[idx], "${norm}")`;
@@ -691,15 +755,10 @@ function generatePythonHarness(studentCode: string, funcName: string, params: an
   });
   const argsList = params.map((_, idx) => `arg${idx}`).join(', ');
 
-  let serializeCall = `res`;
-  if (normRet === 'listnode') serializeCall = `linkedListToList(res)`;
-  if (normRet === 'treenode') serializeCall = `treeToList(res)`;
-
   const pythonLibrary = `
 import sys
 import json
 
-# Definitions
 class ListNode:
     def __init__(self, val=0, next=None):
         self.val = val
@@ -772,10 +831,13 @@ def parse_input_val(line, expected_type):
     except:
         return line
 
-def serialize_output_val(val):
-    if val is None: return "null"
-    if isinstance(val, bool): return str(val).lower()
-    return json.dumps(val, separators=(',', ':'))
+def serialize_val(v):
+    if v is None: return None
+    if isinstance(v, bool): return v
+    if isinstance(v, (int, float, str, list, dict)): return v
+    if isinstance(v, ListNode): return linkedListToList(v)
+    if isinstance(v, TreeNode): return treeToList(v)
+    return str(v)
 `;
 
   return `${pythonLibrary}
@@ -791,8 +853,16 @@ def run_harness():
     while idx < len(lines):
         try:
 ${parseLines.join('\n')}
-            res = sol.${funcName}(${argsList})
-            print(serialize_output_val(${serializeCall}))
+            ${retType !== 'void' ? `res = sol.${funcName}(${argsList})` : `sol.${funcName}(${argsList})\n            res = None`}
+            params_dict = {}
+${params.map((p, idx) => `            params_dict["${p.name}"] = serialize_val(arg${idx})
+            params_dict["arg${idx}"] = serialize_val(arg${idx})
+            params_dict["param${idx}"] = serialize_val(arg${idx})`).join('\n')}
+            output_obj = {
+                "ret": serialize_val(res),
+                "params": params_dict
+            }
+            print(json.dumps(output_obj))
         except Exception as e:
             sys.stderr.write(f"Runtime Exception: {str(e)}\\n")
             sys.exit(1)
@@ -803,8 +873,6 @@ if __name__ == '__main__':
 }
 
 function generateJsHarness(studentCode: string, funcName: string, params: any[], retType: string): string {
-  const normRet = retType.toLowerCase().replace(/\s+/g, '');
-
   const parseLines = params.map((p, idx) => {
     const norm = p.type.toLowerCase().replace(/\s+/g, '');
     let parseExpr = `parseInputVal(lines[idx++])`;
@@ -813,10 +881,6 @@ function generateJsHarness(studentCode: string, funcName: string, params: any[],
     return `            let arg${idx} = ${parseExpr};`;
   });
   const argsList = params.map((_, idx) => `arg${idx}`).join(', ');
-
-  let serializeCall = `res`;
-  if (normRet === 'listnode') serializeCall = `linkedListToList(res)`;
-  if (normRet === 'treenode') serializeCall = `treeToList(res)`;
 
   const jsLibrary = `
 const fs = require('fs');
@@ -908,6 +972,13 @@ function treeToList(root) {
     }
     return res;
 }
+
+function serializeVal(v) {
+    if (v === undefined || v === null) return null;
+    if (v instanceof ListNode) return linkedListToList(v);
+    if (v instanceof TreeNode) return treeToList(v);
+    return v;
+}
 `;
 
   return `${jsLibrary}
@@ -923,8 +994,15 @@ function runHarness() {
     while (idx < lines.length) {
         try {
 ${parseLines.join('\n')}
-            let res = sol.${funcName}(${argsList});
-            console.log(JSON.stringify(${serializeCall}));
+            ${retType !== 'void' ? `let res = sol.${funcName}(${argsList});` : `sol.${funcName}(${argsList}); let res = null;`}
+            let paramsObj = {};
+${params.map((p, idx) => `            paramsObj["${p.name}"] = serializeVal(arg${idx});
+            paramsObj["arg${idx}"] = serializeVal(arg${idx});
+            paramsObj["param${idx}"] = serializeVal(arg${idx});`).join('\n')}
+            console.log(JSON.stringify({
+                ret: serializeVal(res),
+                params: paramsObj
+            }));
         } catch (e) {
             console.error("Runtime Exception:", e);
             process.exit(1);

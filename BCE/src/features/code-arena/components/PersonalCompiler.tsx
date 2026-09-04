@@ -46,6 +46,8 @@ import {
   restoreBackupIfNewer,
   VersionTracker,
 } from '../lib/saveManager';
+import { highlightErrorInMonaco } from '../lib/errorHighlighter';
+
 
 const Editor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
@@ -448,9 +450,24 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const isInitialMountRef = useRef(true);
 
+  const editorRef = useRef<any>(null);
+  const monacoRef = useRef<any>(null);
+  const decorationsRef = useRef<string[]>([]);
+
+
+  useEffect(() => {
+    if (!editorRef.current || !monacoRef.current) return;
+    let errText: string | null = null;
+    if (result && (result.status === 'COMPILATION_ERROR' || result.status === 'RUNTIME_ERROR' || result.status === 'SYSTEM_ERROR')) {
+      errText = result.compileStderr || result.stderr || result.message || null;
+    }
+    highlightErrorInMonaco(editorRef.current, monacoRef.current, errText, code, decorationsRef);
+  }, [result, code]);
+
   useEffect(() => {
     codeRef.current = code;
   }, [code]);
+
 
   useEffect(() => {
     async function fetchUser() {
@@ -989,7 +1006,11 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
   const handleCodeChange = (newCode: string) => {
     setCode(newCode);
     codeRef.current = newCode;
+    if (editorRef.current && monacoRef.current) {
+      highlightErrorInMonaco(editorRef.current, monacoRef.current, null, newCode, decorationsRef);
+    }
     if (!activeFile) return;
+
 
     if (newCode === lastSavedCodeRef.current && activeFile.path === lastSavedPathRef.current) {
       setSaveStatus('Saved locally');
@@ -2021,10 +2042,15 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
             value={code}
             onChange={(v) => handleCodeChange(v || '')}
             beforeMount={registerMonacoIntelliSense}
+            onMount={(editor, monaco) => {
+              editorRef.current = editor;
+              monacoRef.current = monaco;
+            }}
             options={{
               automaticLayout: true,
               minimap: { enabled: false },
               fontSize: 14,
+              glyphMargin: true,
               ...intelliSenseEditorOptions,
             }}
           />
@@ -2363,10 +2389,22 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
                     <Play size={24} style={{ color: 'var(--text-muted)' }} />
                     <p style={{ margin: '8px 0 0 0' }}>Compiler stderr errors and diagnostics will be shown here.</p>
                   </div>
+                ) : (result.compileStderr || result.stderr || (result.status !== 'SUCCESS')) ? (
+                  <div>
+                    <div className="oj-status-banner oj-status-COMPILATION_ERROR">
+                      ● Error Diagnostics
+                    </div>
+                    <pre className="oj-code-block oj-code-error">
+                      {result.compileStderr || result.stderr || result.message || 'Execution error occurred.'}
+                    </pre>
+                  </div>
                 ) : (
                   <div>
-                    <pre className="oj-code-block oj-code-error">
-                      {result.compileStderr || result.stderr || result.message || 'No errors.'}
+                    <div className="oj-status-banner oj-status-SUCCESS">
+                      ✓ Clean Build — No Errors
+                    </div>
+                    <pre className="oj-code-block" style={{ color: '#34d399', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+                      ✓ No compilation or runtime errors detected.
                     </pre>
                   </div>
                 )
