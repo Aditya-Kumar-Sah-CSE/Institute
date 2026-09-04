@@ -49,7 +49,7 @@ function FormattedColorfulText({
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.6rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.6rem', width: '100%', boxSizing: 'border-box' }}>
       {paragraphs.map((paragraph, index) => {
         const theme = palette[index % palette.length];
         return (
@@ -65,6 +65,9 @@ function FormattedColorfulText({
               color: 'var(--text-secondary, #cbd5e1)',
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
+              overflowWrap: 'break-word',
+              width: '100%',
+              boxSizing: 'border-box',
               transition: 'all 0.2s ease'
             }}
           >
@@ -307,34 +310,11 @@ export default function GallerySection({ items }: { items: GalleryItem[] }) {
         >
           {/* Top Bar Header with Rich Colorful Text */}
           <div 
-            style={{ 
-              width: '100%', 
-              maxHeight: '35vh',
-              overflowY: 'auto',
-              padding: '1.25rem 2rem', 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'flex-start', 
-              background: 'linear-gradient(to bottom, rgba(5, 7, 15, 0.96) 80%, transparent)',
-              zIndex: 10,
-              gap: '1.5rem'
-            }}
+            className="gallery-modal-header"
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, maxWidth: '850px' }}>
-              <span style={{ color: '#ffffff', fontWeight: 700, fontSize: '1.2rem' }}>{activeItem.title}</span>
-              {activeItem.description && (
-                <FormattedColorfulText 
-                  text={activeItem.description} 
-                  isExpanded={true} 
-                  onToggleExpand={() => {}} 
-                  alwaysFull
-                />
-              )}
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexShrink: 0 }}>
-              <span style={{ color: '#94a3b8', fontSize: '0.9rem', fontWeight: 500, background: 'rgba(255,255,255,0.1)', padding: '4px 12px', borderRadius: '20px' }}>
+            <div className="gallery-modal-header-top-controls">
+              <span className="gallery-modal-counter">
                 {previewIndex! + 1} / {items.length}
               </span>
               
@@ -343,19 +323,31 @@ export default function GallerySection({ items }: { items: GalleryItem[] }) {
                 target="_blank" 
                 rel="noopener noreferrer" 
                 download
-                style={{ color: '#ffffff', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background 0.2s' }}
+                className="gallery-modal-action-btn"
                 title="Open/Download original image"
               >
-                <Download size={20} />
+                <Download size={18} />
               </a>
 
               <button 
-                style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', cursor: 'pointer', padding: '0.5rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s ease' }}
+                className="gallery-modal-action-btn"
                 onClick={() => setPreviewIndex(null)}
                 aria-label="Close image preview"
               >
-                <X size={24} />
+                <X size={20} />
               </button>
+            </div>
+
+            <div className="gallery-modal-text-content">
+              <h3 className="gallery-modal-title">{activeItem.title}</h3>
+              {activeItem.description && (
+                <FormattedColorfulText 
+                  text={activeItem.description} 
+                  isExpanded={true} 
+                  onToggleExpand={() => {}} 
+                  alwaysFull
+                />
+              )}
             </div>
           </div>
 
