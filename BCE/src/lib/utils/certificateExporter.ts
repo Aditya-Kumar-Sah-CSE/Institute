@@ -104,7 +104,10 @@ export async function downloadSvgAsImage(
 
     await new Promise<void>((resolve, reject) => {
       img.onload = () => resolve();
-      img.onerror = (err) => reject(new Error('SVG image load failed for canvas draw: ' + err));
+      img.onerror = (err) => {
+        const detail = err instanceof Error ? err.message : (err as ErrorEvent)?.message || 'Image load error';
+        reject(new Error(`SVG rasterization image load failed: ${detail}`));
+      };
       img.src = dataUri;
     });
 
