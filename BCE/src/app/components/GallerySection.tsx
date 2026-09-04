@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { ChevronLeft, ChevronRight, X, Maximize2, Loader2, Download } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Maximize2, Loader2, Download, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface GalleryItem {
   id: string;
@@ -11,10 +11,109 @@ interface GalleryItem {
   sort_order: number;
 }
 
+function FormattedColorfulText({ 
+  text, 
+  isExpanded, 
+  onToggleExpand, 
+  alwaysFull = false 
+}: { 
+  text: string; 
+  isExpanded: boolean; 
+  onToggleExpand: () => void;
+  alwaysFull?: boolean;
+}) {
+  if (!text) return null;
+
+  const words = text.trim().split(/\s+/);
+  const totalWords = words.length;
+  const isLong = totalWords > 30;
+
+  let textToDisplay = text;
+  if (isLong && !isExpanded && !alwaysFull) {
+    textToDisplay = words.slice(0, 30).join(' ') + '...';
+  }
+
+  // Split text by newlines to preserve user formatting & paragraphs
+  const paragraphs = textToDisplay
+    .split(/\r?\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  const palette = [
+    { bg: 'rgba(99, 102, 241, 0.08)', border: '#6366f1' },   // Indigo
+    { bg: 'rgba(6, 182, 212, 0.08)', border: '#06b6d4' },    // Cyan
+    { bg: 'rgba(168, 85, 247, 0.08)', border: '#a855f7' },   // Purple
+    { bg: 'rgba(16, 185, 129, 0.08)', border: '#10b981' },   // Emerald
+    { bg: 'rgba(244, 63, 94, 0.08)', border: '#f43f5e' },    // Rose
+    { bg: 'rgba(245, 158, 11, 0.08)', border: '#f59e0b' }    // Amber
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.6rem' }}>
+      {paragraphs.map((paragraph, index) => {
+        const theme = palette[index % palette.length];
+        return (
+          <div
+            key={index}
+            style={{
+              background: theme.bg,
+              borderLeft: `3px solid ${theme.border}`,
+              padding: '0.6rem 0.85rem',
+              borderRadius: '0 8px 8px 0',
+              fontSize: '0.88rem',
+              lineHeight: '1.55',
+              color: 'var(--text-secondary, #cbd5e1)',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            {paragraph}
+          </div>
+        );
+      })}
+
+      {isLong && !alwaysFull && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleExpand();
+          }}
+          style={{
+            alignSelf: 'flex-start',
+            marginTop: '0.35rem',
+            background: 'rgba(99, 102, 241, 0.12)',
+            border: '1px solid rgba(99, 102, 241, 0.3)',
+            borderRadius: '20px',
+            color: 'var(--human-primary, #818cf8)',
+            fontSize: '0.8rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            padding: '4px 14px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
+            transition: 'all 0.2s ease'
+          }}
+          title={isExpanded ? 'Collapse description' : 'Expand full description'}
+        >
+          {isExpanded ? (
+            <>Read less <ChevronUp size={14} /></>
+          ) : (
+            <>Read more ({totalWords} words) <ChevronDown size={14} /></>
+          )}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function GallerySection({ items }: { items: GalleryItem[] }) {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [isModalLoading, setIsModalLoading] = useState<boolean>(true);
   const [cardImageLoaded, setCardImageLoaded] = useState<Record<string, boolean>>({});
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
   const trackRef = useRef<HTMLDivElement>(null);
 
   const scrollTrack = (direction: 'left' | 'right') => {
@@ -96,6 +195,7 @@ export default function GallerySection({ items }: { items: GalleryItem[] }) {
         {items.map((item, idx) => {
           const isRemote = !!(item.image_url && (item.image_url.startsWith('http://') || item.image_url.startsWith('https://')));
           const isLoaded = cardImageLoaded[item.id];
+          const isExpanded = !!expandedCards[item.id];
 
           return (
             <div key={item.id} className="gallery-card why-huge-card" style={{ scrollSnapAlign: 'start' }}>
@@ -163,7 +263,13 @@ export default function GallerySection({ items }: { items: GalleryItem[] }) {
               </div>
               <div className="gallery-card-info">
                 <h3>{item.title}</h3>
-                {item.description && <p>{item.description}</p>}
+                {item.description && (
+                  <FormattedColorfulText 
+                    text={item.description}
+                    isExpanded={isExpanded}
+                    onToggleExpand={() => setExpandedCards((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
+                  />
+                )}
               </div>
             </div>
           );
@@ -179,7 +285,7 @@ export default function GallerySection({ items }: { items: GalleryItem[] }) {
         </button>
       </div>
 
-      {/* Fullscreen Image Preview Modal with Optimized Loading */}
+      {/* Fullscreen Image Preview Modal with Optimized Loading & Rich Format */}
       {activeItem && (
         <div 
           style={{ 
@@ -188,7 +294,7 @@ export default function GallerySection({ items }: { items: GalleryItem[] }) {
             left: 0, 
             width: '100vw', 
             height: '100vh', 
-            backgroundColor: 'rgba(5, 7, 15, 0.92)', 
+            backgroundColor: 'rgba(5, 7, 15, 0.94)', 
             zIndex: 99999, 
             display: 'flex', 
             flexDirection: 'column',
@@ -199,27 +305,35 @@ export default function GallerySection({ items }: { items: GalleryItem[] }) {
           }}
           onClick={() => setPreviewIndex(null)}
         >
-          {/* Top Bar Header */}
+          {/* Top Bar Header with Rich Colorful Text */}
           <div 
             style={{ 
               width: '100%', 
+              maxHeight: '35vh',
+              overflowY: 'auto',
               padding: '1.25rem 2rem', 
               display: 'flex', 
               justifyContent: 'space-between', 
-              alignItems: 'center', 
-              background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)',
-              zIndex: 10
+              alignItems: 'flex-start', 
+              background: 'linear-gradient(to bottom, rgba(5, 7, 15, 0.96) 80%, transparent)',
+              zIndex: 10,
+              gap: '1.5rem'
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ color: '#ffffff', fontWeight: 600, fontSize: '1.1rem' }}>{activeItem.title}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, maxWidth: '850px' }}>
+              <span style={{ color: '#ffffff', fontWeight: 700, fontSize: '1.2rem' }}>{activeItem.title}</span>
               {activeItem.description && (
-                <span style={{ color: '#94a3b8', fontSize: '0.85rem', maxWidth: '600px' }}>{activeItem.description}</span>
+                <FormattedColorfulText 
+                  text={activeItem.description} 
+                  isExpanded={true} 
+                  onToggleExpand={() => {}} 
+                  alwaysFull
+                />
               )}
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexShrink: 0 }}>
               <span style={{ color: '#94a3b8', fontSize: '0.9rem', fontWeight: 500, background: 'rgba(255,255,255,0.1)', padding: '4px 12px', borderRadius: '20px' }}>
                 {previewIndex! + 1} / {items.length}
               </span>
@@ -250,7 +364,7 @@ export default function GallerySection({ items }: { items: GalleryItem[] }) {
             style={{ 
               position: 'relative', 
               width: '92vw', 
-              height: 'calc(85vh - 80px)', 
+              height: 'calc(75vh - 60px)', 
               display: 'flex', 
               justifyContent: 'center', 
               alignItems: 'center' 
@@ -375,4 +489,7 @@ export default function GallerySection({ items }: { items: GalleryItem[] }) {
     </section>
   );
 }
+
+
+
 
