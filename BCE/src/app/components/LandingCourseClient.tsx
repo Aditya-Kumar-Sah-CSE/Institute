@@ -51,21 +51,24 @@ export default function LandingCourseClient({
   const handleScroll = useCallback(() => {
     if (!isMounted.current || !carouselRef.current || courses.length === 0) return;
     const container = carouselRef.current;
-    if (container.scrollLeft <= 10) {
-      if (activeIndex !== 0) setActiveIndex(0);
-      return;
-    }
-    const firstChild = container.children[0] as HTMLElement;
-    const secondChild = container.children[1] as HTMLElement;
-    if (!firstChild) return;
-    
-    const cardWidthExact = secondChild ? (secondChild.offsetLeft - firstChild.offsetLeft) : (firstChild.offsetWidth + 16);
-    if (cardWidthExact <= 0) return;
+    const children = Array.from(container.children) as HTMLElement[];
+    if (children.length === 0) return;
 
-    const calculatedIndex = Math.round(container.scrollLeft / cardWidthExact);
-    const clampedIndex = Math.max(0, Math.min(courses.length - 1, calculatedIndex));
-    if (clampedIndex !== activeIndex && !isNaN(clampedIndex)) {
-      setActiveIndex(clampedIndex);
+    const containerCenter = container.scrollLeft + container.offsetWidth / 2;
+    let closestIndex = 0;
+    let minDistance = Infinity;
+
+    children.forEach((child, idx) => {
+      const childCenter = child.offsetLeft + child.offsetWidth / 2;
+      const distance = Math.abs(containerCenter - childCenter);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestIndex = idx;
+      }
+    });
+
+    if (closestIndex !== activeIndex) {
+      setActiveIndex(closestIndex);
     }
   }, [courses.length, activeIndex]);
 

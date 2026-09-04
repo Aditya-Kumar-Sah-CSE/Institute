@@ -101,34 +101,36 @@ export default function LeaderboardTable({ entries, currentUserId }: Leaderboard
                 <div 
                   className={`leaderboard-row ${isCurrentUser ? 'current-user' : ''} ${isTop3 ? `top-${entry.rank}` : ''}`}
                 >
-                  <div className="col-rank" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div className="col-rank">
                     <button 
                       className="mobile-accordion-btn"
                       onClick={(e) => toggleRow(entry.id, e)}
-                      style={{ background: 'transparent', border: 'none', color: 'var(--neon-cyan)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
+                      title={expandedRows[entry.id] ? "Collapse details" : "Expand details"}
                     >
                       {expandedRows[entry.id] ? <ChevronDown size={18} /> : <ChevronLeft size={18} />}
                     </button>
+
+                    <span className="rank-num-badge">
+                      {entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : `#${entry.rank}`}
+                    </span>
+
                     {!isCurrentUser && (
                       <button 
                         onClick={(e) => { e.stopPropagation(); e.preventDefault(); startChat(entry.id); }}
                         disabled={isSpawningChat === entry.id}
-                        style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', color: isSpawningChat === entry.id ? 'var(--text-muted)' : 'var(--neon-cyan)', cursor: isSpawningChat === entry.id ? 'not-allowed' : 'pointer', padding: '4px', borderRadius: '50%', display: 'flex', alignItems: 'center', transition: 'all 0.2s', boxShadow: '0 0 5px rgba(0,240,255,0.1)' }}
-                        onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
-                        onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+                        className="rank-chat-btn"
                         title="Direct Message"
                       >
-                        {isSpawningChat === entry.id ? <Loader2 size={16} className="animate-spin" /> : <MessageSquare size={16} />}
+                        {isSpawningChat === entry.id ? <Loader2 size={14} className="animate-spin" /> : <MessageSquare size={14} />}
                       </button>
                     )}
-                    <span>{entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : `#${entry.rank}`}</span>
                   </div>
                   
-                  <Link href={isCurrentUser ? '/profile' : `/users/${entry.id}`} className="col-user" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+                  <Link href={isCurrentUser ? '/profile' : `/users/${entry.id}`} className="col-user" style={{ textDecoration: 'none', color: 'inherit' }}>
                     <div className="user-avatar-sm">
                       <UserAvatar url={entry.avatar_url} name={entry.name} size={32} />
                     </div>
-                    <span className="user-name" style={{ transition: 'color 0.2s', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--neon-cyan)'} onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}>
+                    <span className="user-name">
                       {entry.name || 'Anonymous User'} {isCurrentUser && '(You)'}
                     </span>
                   </Link>

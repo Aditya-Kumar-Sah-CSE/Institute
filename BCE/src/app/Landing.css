@@ -1317,10 +1317,30 @@
 }
 
 .preview-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  display: flex !important;
+  overflow-x: auto !important;
+  scroll-behavior: smooth;
   gap: 24px;
-  justify-content: center;
+  padding: 12px 4px 28px 4px;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.preview-grid::-webkit-scrollbar {
+  display: none !important;
+}
+
+.preview-grid > div {
+  flex: 0 0 340px !important;
+  width: 340px !important;
+  max-width: 350px !important;
+  scroll-snap-align: center !important;
+  box-sizing: border-box;
 }
 
 @media (max-width: 768px) {
@@ -1339,23 +1359,12 @@
     -webkit-overflow-scrolling: touch;
   }
   .mobile-carousel {
-    display: flex !important;
-    overflow-x: auto !important;
-    scroll-snap-type: x mandatory !important;
-    scroll-behavior: smooth;
     gap: 16px !important;
-    padding-top: 12px;
-    padding-bottom: 24px; /* Space for shadows */
     padding-left: 24px !important;
     padding-right: 24px !important;
     margin-left: -24px !important;
     margin-right: -24px !important;
     width: calc(100% + 48px) !important;
-    -webkit-overflow-scrolling: touch !important;
-    scrollbar-width: none !important;
-    touch-action: pan-x;
-    overscroll-behavior-x: contain;
-    box-sizing: border-box;
     scroll-padding-inline: 24px !important;
   }
   .mobile-carousel::-webkit-scrollbar {
