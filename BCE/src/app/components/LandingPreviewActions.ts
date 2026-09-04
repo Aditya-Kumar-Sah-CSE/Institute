@@ -2,6 +2,12 @@
 
 import { createClient } from '@/lib/supabase/server';
 
+function formatError(err: any): string {
+  if (!err) return 'Unknown error';
+  if (typeof err === 'string') return err;
+  return err.message || err.details || err.hint || (typeof err === 'object' ? JSON.stringify(err) : String(err));
+}
+
 export async function getPreviewCourses(page = 0, limit = 100, category = 'All Categories') {
   const supabase = await createClient();
   
@@ -37,8 +43,8 @@ export async function getPreviewCourses(page = 0, limit = 100, category = 'All C
     
     const fallbackRes = await fallbackQuery;
     if (fallbackRes.error && coursesList.length === 0) {
-      console.error('Error fetching courses:', error || fallbackRes.error);
-      return { data: [], error: fallbackRes.error?.message || error?.message || 'Error' };
+      console.error('Error fetching courses:', formatError(fallbackRes.error || error));
+      return { data: [], error: 'Failed to fetch courses' };
     }
     if (fallbackRes.data && fallbackRes.data.length > 0) {
       coursesList = fallbackRes.data;
@@ -137,8 +143,8 @@ export async function getPreviewDSASheets(page = 0, limit = 100) {
     .range(page * limit, (page + 1) * limit - 1);
 
   if (error || !data) {
-    console.error('Error fetching DSA sheets:', error);
-    return { data: [], error: error?.message || 'Error' };
+    console.error('Error fetching DSA sheets:', formatError(error));
+    return { data: [], error: 'Failed to fetch DSA sheets' };
   }
 
   // Fetch rating stats for these sheets

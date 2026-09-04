@@ -63,10 +63,8 @@ export default function LandingDSAClient({
       }
     });
 
-    if (closestIndex !== activeIndex) {
-      setActiveIndex(closestIndex);
-    }
-  }, [sheets.length, activeIndex]);
+    setActiveIndex(prev => (prev === closestIndex ? prev : closestIndex));
+  }, [sheets.length]);
 
   // Mount sync effect — force initial scroll position to 0 and sync active state
   React.useEffect(() => {
@@ -75,8 +73,7 @@ export default function LandingDSAClient({
       carouselRef.current.scrollLeft = 0;
     }
     setActiveIndex(0);
-    handleScroll();
-  }, [handleScroll]);
+  }, []);
 
   const loadMore = useCallback(async (currentPage: number) => {
     if (loadingRef.current) return;
@@ -188,9 +185,6 @@ export default function LandingDSAClient({
                   key={sheet.id}
                   suppressHydrationWarning
                   ref={isLast ? lastElementRef : null}
-                  onMouseEnter={() => {
-                     setActiveIndex(index);
-                  }}
                   className={`preview-dsa-card coverflow-card ${isActive ? 'coverflow-active' : 'coverflow-inactive'}`}
                 style={{ 
                   background: 'var(--bg-card)', 

@@ -96,10 +96,8 @@ export default function LandingCourseClient({
       }
     });
 
-    if (closestIndex !== activeIndex) {
-      setActiveIndex(closestIndex);
-    }
-  }, [courses.length, activeIndex]);
+    setActiveIndex(prev => (prev === closestIndex ? prev : closestIndex));
+  }, [courses.length]);
 
   // Mount sync effect
   React.useEffect(() => {
@@ -108,8 +106,7 @@ export default function LandingCourseClient({
       carouselRef.current.scrollLeft = 0;
     }
     setActiveIndex(0);
-    handleScroll();
-  }, [handleScroll]);
+  }, []);
 
   const loadMore = useCallback(async (currentPage: number, currentCategory: string) => {
     if (loadingRef.current) return;
