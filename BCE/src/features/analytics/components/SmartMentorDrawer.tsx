@@ -45,21 +45,6 @@ export default function SmartMentorDrawer({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  useEffect(() => {
-    if (isOpen) {
-      scrollToBottom();
-      if (initialPrompt) {
-        handleSendPrompt(initialPrompt);
-      }
-    }
-  }, [isOpen, initialPrompt]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, isLoading]);
-
-  if (!isOpen) return null;
-
   const handleSendPrompt = async (textToSend?: string) => {
     const promptText = (textToSend || inputVal).trim();
     if (!promptText || isLoading) return;
@@ -119,6 +104,21 @@ export default function SmartMentorDrawer({
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (isOpen) {
+      scrollToBottom();
+      if (initialPrompt) {
+        handleSendPrompt(initialPrompt);
+      }
+    }
+  }, [isOpen, initialPrompt]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isLoading]);
+
+  if (!isOpen) return null;
 
   return (
     <div 

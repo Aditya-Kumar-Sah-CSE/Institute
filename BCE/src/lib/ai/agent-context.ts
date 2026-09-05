@@ -1,4 +1,5 @@
 import { Student360Profile } from '@/features/analytics/services/student-intelligence';
+import { LivePageContext } from './live-page-context';
 
 export interface AgentPageContext {
   route?: string;
@@ -7,6 +8,7 @@ export interface AgentPageContext {
   courseId?: string;
   courseTitle?: string;
   certificateId?: string;
+  liveContext?: LivePageContext;
 }
 
 export function buildAgentContext(
@@ -38,7 +40,8 @@ export function buildAgentContext(
       problemTitle: pageContext?.problemTitle || null,
       courseId: pageContext?.courseId || null,
       courseTitle: pageContext?.courseTitle || null,
-      certificateId: pageContext?.certificateId || null
+      certificateId: pageContext?.certificateId || null,
+      liveContext: pageContext?.liveContext || null
     }
   };
 }

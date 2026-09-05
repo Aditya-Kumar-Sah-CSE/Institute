@@ -28,9 +28,7 @@ const NptelAssignmentsWidget = dynamic(() => import('@/features/nptel/components
 const ActivityFeed = dynamic(() => import('@/features/activity/components/ActivityFeed'), { 
   loading: () => <div className="skeleton-dash" style={{ height: '300px', borderRadius: '12px' }}></div> 
 });
-const LearningIntelligenceSection = dynamic(() => import('@/features/analytics/components/LearningIntelligenceSection'), { 
-  loading: () => <div className="skeleton-dash" style={{ height: '320px', borderRadius: '12px' }}></div> 
-});
+import LearningIntelligenceSection from '@/features/analytics/components/LearningIntelligenceSection';
 const FloatingMentorButton = dynamic(() => import('@/features/analytics/components/FloatingMentorButton'));
 
 interface DashboardEnrollment {

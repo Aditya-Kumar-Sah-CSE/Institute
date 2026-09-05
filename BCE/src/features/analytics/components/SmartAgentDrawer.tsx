@@ -1,12 +1,18 @@
-'use client';
-
 import React, { useState, useEffect, useRef } from 'react';
 import Button from '@/components/ui/Button';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { askSmartAgentAction } from '../actions/agent';
 import { AudioRecorder, transcribeAudioFile } from '@/lib/ai/speech-recorder';
-import { X, Send, Mic, MicOff, Sparkles, Bot, User, ArrowRight, RefreshCw, ExternalLink, AlertTriangle, Terminal, HelpCircle, Loader2 } from 'lucide-react';
+import { 
+  speakAssistantResponse, 
+  stopAssistantSpeech, 
+  isSpeechSynthesisSupported 
+} from '@/lib/ai/speech-synthesizer';
+import { 
+  X, Send, Mic, MicOff, Sparkles, Bot, User, ArrowRight, RefreshCw, 
+  ExternalLink, AlertTriangle, Terminal, HelpCircle, Loader2, Volume2, VolumeX, Square 
+} from 'lucide-react';
 
 interface SmartAgentMessage {
   role: 'user' | 'assistant';
@@ -43,6 +49,8 @@ const QUICK_COMMANDS = [
   '• What should I learn next?'
 ];
 
+import { useLivePageContext } from '@/features/analytics/context/LivePageContext';
+
 export default function SmartAgentDrawer({
   isOpen,
   onClose,
@@ -51,6 +59,7 @@ export default function SmartAgentDrawer({
 }: SmartAgentDrawerProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { liveContext } = useLivePageContext();
 
   const [messages, setMessages] = useState<SmartAgentMessage[]>([
     {
@@ -68,7 +77,10 @@ export default function SmartAgentDrawer({
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isVoiceMode, setIsVoiceMode] = useState(true);
   const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const audioRecorderRef = useRef<AudioRecorder | null>(null);
   const isProcessingRef = useRef<boolean>(false);
@@ -77,24 +89,23 @@ export default function SmartAgentDrawer({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  useEffect(() => {
-    if (isOpen) {
-      scrollToBottom();
-      if (initialPrompt) {
-        handleSendPrompt(initialPrompt);
-      }
-    } else {
-      stopVoiceRecording();
-    }
-  }, [isOpen, initialPrompt]);
+  const [executionState, setExecutionState] = useState<
+    'IDLE' | 'UNDERSTANDING' | 'EXECUTING' | 'VERIFYING' | 'NAVIGATING' | 'SPEAKING'
+  >('IDLE');
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, isLoading, isListening, isTranscribing]);
-
-  if (!isOpen) return null;
+  const [activeContext, setActiveContext] = useState({
+    problemId: pageContext?.problemId,
+    problemTitle: pageContext?.problemTitle,
+    courseId: pageContext?.courseId,
+    courseTitle: pageContext?.courseTitle
+  });
 
   const getDynamicLoadingText = () => {
+    if (executionState === 'UNDERSTANDING') return 'Understanding intent...';
+    if (executionState === 'EXECUTING') return 'Executing tool...';
+    if (executionState === 'VERIFYING') return 'Verifying result...';
+    if (executionState === 'NAVIGATING') return 'Opening page...';
+
     const t = currentPromptText.toLowerCase();
     if (t.includes('search') || t.includes('youtube') || t.includes('yt') || t.includes('gpt') || t.includes('seat') || t.includes('bsc')) {
       return 'Searching Smart Learn & External Sources...';
@@ -102,15 +113,18 @@ export default function SmartAgentDrawer({
     if (t.includes('open') || t.includes('kholo') || t.includes('dsa') || t.includes('course') || t.includes('problem') || t.includes('sheet')) {
       return 'Opening page...';
     }
-    if (t.includes('weak') || t.includes('intelligence') || t.includes('plan') || t.includes('recommend') || t.includes('kya karu')) {
-      return 'Checking your learning intelligence...';
-    }
     return 'Processing your command...';
   };
 
-  const handleSendPrompt = async (textToSend?: string, confirmedTool?: { toolName: string; args: any }) => {
+  const handleSendPrompt = async (textToSend?: string, confirmedTool?: { toolName: string; args: any }, isVoiceTrigger = false) => {
     const promptText = (textToSend || inputVal).trim();
-    if ((!promptText && !confirmedTool) || isLoading) return;
+    if ((!promptText && !confirmedTool) || isLoading || isProcessingRef.current) return;
+
+    isProcessingRef.current = true;
+
+    // Interrupt any active assistant speech when new prompt is sent
+    stopAssistantSpeech();
+    setIsSpeaking(false);
 
     setCurrentPromptText(promptText);
 
@@ -125,6 +139,7 @@ export default function SmartAgentDrawer({
     }
 
     setIsLoading(true);
+    setExecutionState('UNDERSTANDING');
 
     try {
       const historyForAction = messages.map(m => ({
@@ -132,15 +147,20 @@ export default function SmartAgentDrawer({
         content: m.content
       }));
 
+      setExecutionState('EXECUTING');
+
       const res = await askSmartAgentAction({
         prompt: promptText || 'Execute confirmed tool',
         history: historyForAction,
         pageContext: {
           route: pathname,
-          ...pageContext
+          ...activeContext,
+          liveContext
         },
         confirmedTool
       });
+
+      setExecutionState('VERIFYING');
 
       if (res.message) {
         const assistantMsg: SmartAgentMessage = {
@@ -153,18 +173,63 @@ export default function SmartAgentDrawer({
         };
         setMessages(prev => [...prev, assistantMsg]);
 
-        // Auto-navigate if action provided and low-risk single internal route returned
-        if (res.actions && res.actions.length === 1 && !res.actions[0].isExternal) {
+        // Dynamically update conversation memory activeContext from tool execution
+        if (res.success && res.actions && res.actions.length > 0) {
+          const actionUrl = res.actions[0].url || '';
+          const probMatch = actionUrl.match(/\/code-arena\/problems\/([^\/]+)/);
+          const courseMatch = actionUrl.match(/\/courses\/([^\/]+)/);
+
+          if (probMatch) {
+            setActiveContext(prev => ({
+              ...prev,
+              problemId: probMatch[1],
+              problemTitle: res.message.includes('Problem') ? res.message.split('open')[0].replace(/^Problem\s*/i, '').trim() : prev.problemTitle
+            }));
+          } else if (courseMatch) {
+            setActiveContext(prev => ({
+              ...prev,
+              courseId: courseMatch[1],
+              courseTitle: res.message.includes('Course') ? res.message.split('open')[0].trim() : prev.courseTitle
+            }));
+          }
+        }
+
+        // Auto-navigate ONLY IF result was successful and internal route action returned
+        if (res.success && res.actions && res.actions.length === 1 && !res.actions[0].isExternal) {
           const targetUrl = res.actions[0].url;
           if (targetUrl && targetUrl !== pathname) {
+            setExecutionState('NAVIGATING');
             setTimeout(() => {
               onClose();
               router.push(targetUrl);
-            }, 600);
+            }, 800);
           }
+        }
+
+        // Auto-speak response if Voice Mode is active OR voice command was used
+        if (isVoiceMode || isVoiceTrigger) {
+          setExecutionState('SPEAKING');
+          const spoke = speakAssistantResponse(res.message, {
+            onStart: () => setIsSpeaking(true),
+            onEnd: () => {
+              setIsSpeaking(false);
+              setExecutionState('IDLE');
+            },
+            onError: () => {
+              setIsSpeaking(false);
+              setExecutionState('IDLE');
+            }
+          });
+          if (!spoke && !isSpeechSynthesisSupported()) {
+            setVoiceNotice('The response is ready, but voice playback is unavailable on this browser.');
+            setExecutionState('IDLE');
+          }
+        } else {
+          setExecutionState('IDLE');
         }
       }
     } catch (err) {
+      setExecutionState('IDLE');
       setMessages(prev => [
         ...prev,
         {
@@ -175,6 +240,7 @@ export default function SmartAgentDrawer({
       ]);
     } finally {
       setIsLoading(false);
+      isProcessingRef.current = false;
     }
   };
 
@@ -192,9 +258,9 @@ export default function SmartAgentDrawer({
 
       if (sttRes.success && sttRes.transcript) {
         setInputVal(sttRes.transcript);
-        handleSendPrompt(sttRes.transcript);
+        handleSendPrompt(sttRes.transcript, undefined, true);
       } else {
-        setVoiceNotice(sttRes.message || 'Speech recognition failed.');
+        setVoiceNotice(sttRes.message || 'Voice input abhi available nahi hai. Aap type bhi kar sakte ho.');
       }
     } catch (err: any) {
       setIsTranscribing(false);
@@ -206,13 +272,19 @@ export default function SmartAgentDrawer({
     if (isLoading || isTranscribing || isProcessingRef.current) return;
     setVoiceNotice(null);
 
+    // INTERRUPT SPEECH: If assistant is speaking when mic is clicked, stop speech immediately
+    if (isSpeaking) {
+      stopAssistantSpeech();
+      setIsSpeaking(false);
+    }
+
     // If currently recording, stop recording and send to STT
     if (isListening) {
       await stopVoiceRecording();
       return;
     }
 
-    // Try Web Speech API fast path first if available in browser
+    // Fast path: Try Web Speech API in browser
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
     if (SpeechRecognition) {
@@ -233,13 +305,12 @@ export default function SmartAgentDrawer({
             isFinalHandled = true;
             setIsListening(false);
             setInputVal(transcript);
-            handleSendPrompt(transcript);
+            handleSendPrompt(transcript, undefined, true);
           }
         };
 
         recognition.onerror = async () => {
           setIsListening(false);
-          // If Web Speech API fails in browser, seamlessly fall back to production MediaRecorder pipeline
           await startMediaRecorderPipeline();
         };
 
@@ -250,11 +321,10 @@ export default function SmartAgentDrawer({
         recognition.start();
         return;
       } catch (err) {
-        // Fall through to MediaRecorder
+        // Fall back to MediaRecorder
       }
     }
 
-    // Production MediaRecorder Pipeline
     await startMediaRecorderPipeline();
   };
 
@@ -266,7 +336,7 @@ export default function SmartAgentDrawer({
 
       if (!res.success) {
         audioRecorderRef.current = null;
-        setVoiceNotice(res.message || 'Microphone error.');
+        setVoiceNotice(res.message || 'Microphone permission allow karo, phir try karo.');
         return;
       }
 
@@ -276,6 +346,30 @@ export default function SmartAgentDrawer({
       setVoiceNotice(err.message || 'Could not start recording.');
     }
   };
+
+  const handleStopSpeech = () => {
+    stopAssistantSpeech();
+    setIsSpeaking(false);
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      scrollToBottom();
+      if (initialPrompt) {
+        handleSendPrompt(initialPrompt);
+      }
+    } else {
+      stopVoiceRecording();
+      stopAssistantSpeech();
+      setIsSpeaking(false);
+    }
+  }, [isOpen, initialPrompt]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isLoading, isListening, isTranscribing, isSpeaking]);
+
+  if (!isOpen) return null;
 
   return (
     <div 
@@ -322,18 +416,47 @@ export default function SmartAgentDrawer({
                 ✦ Smart Learn Agent
               </h3>
               <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-secondary)' }}>
-                Control Smart Learn using natural language or voice
+                Two-Way Voice & Action Assistant
               </p>
             </div>
           </div>
 
-          <button 
-            onClick={onClose}
-            style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}
-            title="Close Agent"
-          >
-            <X size={22} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* VOICE MODE TOGGLE BUTTON */}
+            <button
+              type="button"
+              onClick={() => {
+                const nextMode = !isVoiceMode;
+                setIsVoiceMode(nextMode);
+                if (!nextMode) handleStopSpeech();
+              }}
+              style={{
+                fontSize: '11px',
+                fontWeight: 'bold',
+                padding: '4px 10px',
+                borderRadius: '12px',
+                background: isVoiceMode ? 'rgba(0, 229, 255, 0.15)' : 'rgba(255, 255, 255, 0.06)',
+                color: isVoiceMode ? 'var(--neon-cyan)' : 'var(--text-muted)',
+                border: isVoiceMode ? '1px solid rgba(0, 229, 255, 0.4)' : '1px solid var(--glass-border)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+              title={isVoiceMode ? "Voice Mode ON (Assistant speaks responses)" : "Voice Mode OFF (Silent response text)"}
+            >
+              {isVoiceMode ? <Volume2 size={13} /> : <VolumeX size={13} />}
+              <span>Voice: {isVoiceMode ? 'ON' : 'OFF'}</span>
+            </button>
+
+            <button 
+              onClick={onClose}
+              style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}
+              title="Close Agent"
+            >
+              <X size={22} />
+            </button>
+          </div>
         </div>
 
         {/* VOICE NOTICE TOAST IF UNSUPPORTED */}
@@ -485,11 +608,40 @@ export default function SmartAgentDrawer({
             </div>
           )}
 
+          {/* SPEAKING VOICE STATE */}
+          {isSpeaking && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--neon-cyan)', fontSize: 'var(--text-xs)', padding: '8px 12px', background: 'rgba(0, 229, 255, 0.12)', border: '1px solid rgba(0, 229, 255, 0.3)', borderRadius: 'var(--radius-sm)', width: '100%' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Volume2 size={14} style={{ animation: 'pulse 0.8s infinite alternate' }} />
+                <span>🔊 Speaking response... Click mic to interrupt or stop.</span>
+              </span>
+              <button
+                type="button"
+                onClick={handleStopSpeech}
+                style={{
+                  background: 'rgba(255, 68, 68, 0.2)',
+                  border: '1px solid rgba(255, 68, 68, 0.4)',
+                  color: '#ff6666',
+                  borderRadius: '4px',
+                  padding: '2px 8px',
+                  fontSize: '11px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <Square size={10} /> Stop
+              </button>
+            </div>
+          )}
+
           {/* TRANSCRIBING AUDIO STATE */}
           {isTranscribing && (
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: 'var(--neon-cyan)', fontSize: 'var(--text-xs)', padding: '8px 12px', background: 'rgba(0, 229, 255, 0.12)', border: '1px solid rgba(0, 229, 255, 0.3)', borderRadius: 'var(--radius-sm)', width: 'fit-content' }}>
               <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-              <span>⏳ Transcribing audio...</span>
+              <span>⏳ Understanding audio...</span>
             </div>
           )}
 

@@ -13,6 +13,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import { getBatchSheetRatingStats } from '../actions/sheet-reviews';
+import { useLivePageContext } from '@/features/analytics/context/LivePageContext';
 import './CodeArena.css';
 
 type CodingSheet = {
@@ -41,9 +42,9 @@ export default function SheetsListClient({
   const [searchQuery, setSearchQuery] = useState('');
   const [showWizard, setShowWizard] = useState(false);
   const [copiedSheetId, setCopiedSheetId] = useState<string | null>(null);
-
-  // Sheet ratings state
+  // Sheet ratings & Live Context state
   const [sheetRatings, setSheetRatings] = useState<Record<string, { averageRating: number; totalReviews: number }>>({});
+  const { setLiveContext } = useLivePageContext();
 
   useEffect(() => {
     const ids = initialSheets.map(s => s.id);
@@ -52,7 +53,34 @@ export default function SheetsListClient({
         if (stats) setSheetRatings(stats);
       });
     }
-  }, [initialSheets]);
+
+    const visibleSheets = initialSheets.map(s => {
+      const problemsList = s.coding_sheet_problems || [];
+      const totalProblems = problemsList.length;
+      const solvedProblems = problemsList.filter(p => solvedProblemIds.includes(p.problem_id)).length;
+      const progressPct = totalProblems > 0 ? Math.round((solvedProblems / totalProblems) * 100) : 0;
+      return {
+        id: s.id,
+        slug: s.slug,
+        title: s.title,
+        description: s.description,
+        totalProblems,
+        solvedProblems,
+        progress: progressPct,
+        requiresPasscode: s.enrollment_access === 'restricted'
+      };
+    });
+
+    setLiveContext({
+      route: '/code-arena/sheets',
+      pageType: 'dsa_sheets',
+      pageTitle: 'DSA Practice Sheets',
+      visibleEntities: {
+        sheets: visibleSheets
+      },
+      availableActions: ['open_sheet', 'search_sheet', 'filter_sheets']
+    });
+  }, [initialSheets, solvedProblemIds, setLiveContext]);
 
   // Enrollment state
   const [enrolledIds, setEnrolledIds] = useState<string[]>(initialEnrolledIds);

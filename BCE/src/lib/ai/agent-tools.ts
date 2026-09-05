@@ -1,5 +1,5 @@
 import { createAdminClient, getUser } from '@/lib/supabase/server';
-import { getStudent360Profile } from '@/features/analytics/services/student-intelligence';
+import { getStudent360Profile, Student360Profile } from '@/features/analytics/services/student-intelligence';
 
 export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH';
 
@@ -20,35 +20,28 @@ export interface AgentToolResult {
 export interface AgentToolDefinition {
   name: string;
   description: string;
+  category: 'NAVIGATION' | 'COURSES' | 'DSA' | 'ANALYTICS' | 'ROUTINE_GOALS' | 'SEARCH' | 'TOOLS';
   riskLevel: RiskLevel;
   parameters: {
     type: 'object';
     properties: Record<string, { type: string; description: string; enum?: string[] }>;
     required?: string[];
   };
+  examples?: string[];
   execute: (args: any, user: { id: string }, context?: any) => Promise<AgentToolResult>;
 }
 
-// ─── TOOL IMPLEMENTATIONS ───
+// ─── COMPREHENSIVE TOOL REGISTRY ───
 
 export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
-  openProfile: {
-    name: 'openProfile',
-    description: 'Navigate to the student profile page',
-    riskLevel: 'LOW',
-    parameters: { type: 'object', properties: {} },
-    execute: async () => ({
-      success: true,
-      message: 'Opening your profile page.',
-      url: '/profile'
-    })
-  },
-
+  // ─── NAVIGATION TOOLS ───
   openDashboard: {
     name: 'openDashboard',
-    description: 'Navigate to the student main dashboard',
+    description: 'Navigate to the student main dashboard. Use when student asks to open/show dashboard, home page, or main screen. Examples: "dashboard kholo", "open home", "home page dikhao".',
+    category: 'NAVIGATION',
     riskLevel: 'LOW',
     parameters: { type: 'object', properties: {} },
+    examples: ['dashboard kholo', 'open home page', 'main screen dikhao'],
     execute: async () => ({
       success: true,
       message: 'Opening student dashboard.',
@@ -56,11 +49,108 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     })
   },
 
-  openDSASheets: {
-    name: 'openDSASheets',
-    description: 'Navigate to the DSA coding sheets listing page',
+  openProfile: {
+    name: 'openProfile',
+    description: 'Navigate to student profile page. Use when student wants to see/edit profile, user info, account details, or badges. Examples: "meri profile kholo", "user profile", "my account".',
+    category: 'NAVIGATION',
     riskLevel: 'LOW',
     parameters: { type: 'object', properties: {} },
+    examples: ['meri profile kholo', 'show my account', 'user profile dikhao'],
+    execute: async () => ({
+      success: true,
+      message: 'Opening your profile page.',
+      url: '/profile'
+    })
+  },
+
+  openCourses: {
+    name: 'openCourses',
+    description: 'Navigate to published courses catalog. Use when student wants to browse all available courses, subjects, or catalog. Examples: "courses kholo", "browse courses", "sabhi subject dikhao".',
+    category: 'COURSES',
+    riskLevel: 'LOW',
+    parameters: { type: 'object', properties: {} },
+    examples: ['courses kholo', 'browse courses', 'all subjects'],
+    execute: async () => ({
+      success: true,
+      message: 'Opening courses catalog.',
+      url: '/courses'
+    })
+  },
+
+  openMyCourses: {
+    name: 'openMyCourses',
+    description: 'Navigate to student enrolled courses list. Use when student asks for enrolled courses, my subjects, or active learning modules. Examples: "mere enrolled course kholo", "my courses", "mera course dikhao".',
+    category: 'COURSES',
+    riskLevel: 'LOW',
+    parameters: { type: 'object', properties: {} },
+    examples: ['mere course dikhao', 'enrolled courses kholo', 'my subjects'],
+    execute: async () => ({
+      success: true,
+      message: 'Opening your enrolled courses.',
+      url: '/courses'
+    })
+  },
+
+  openCourse: {
+    name: 'openCourse',
+    description: 'Open a specific course by title or query (e.g. ITW, DBMS, Web Development). Use when user specifies a course name like "Mera ITW course kholo" or "DBMS open karo".',
+    category: 'COURSES',
+    riskLevel: 'LOW',
+    parameters: {
+      type: 'object',
+      properties: {
+        courseId: { type: 'string', description: 'Course UUID if known' },
+        courseName: { type: 'string', description: 'Course title or query (e.g. "ITW", "DBMS")' }
+      }
+    },
+    examples: ['Mera ITW course kholo', 'DBMS course open karo', 'open web dev course'],
+    execute: async (args) => {
+      if (args.courseId) {
+        return {
+          success: true,
+          message: 'Opening course.',
+          url: `/courses/${args.courseId}`,
+          data: { courseId: args.courseId }
+        };
+      }
+      const adminClient = await createAdminClient();
+      const name = args.courseName ? args.courseName.trim() : '';
+
+      if (name) {
+        const { data: matched } = await adminClient
+          .from('courses')
+          .select('id, title')
+          .ilike('title', `%${name}%`)
+          .eq('is_published', true)
+          .limit(1)
+          .maybeSingle();
+
+        if (matched) {
+          return {
+            success: true,
+            message: `Course ${matched.title} open kar diya.`,
+            url: `/courses/${matched.id}`,
+            data: { courseId: matched.id, courseTitle: matched.title }
+          };
+        }
+
+        return {
+          success: false,
+          message: `Mujhe "${name}" course nahi mila.`
+        };
+      }
+
+      return { success: true, message: 'Opening courses catalog.', url: '/courses' };
+    }
+  },
+
+  openDSASheets: {
+    name: 'openDSASheets',
+    description: 'Navigate to DSA sheets listing page. Use when student asks to open/show DSA sheet, coding sheets, problem sets. Examples: "meri DSA sheet kholo", "open DSA", "coding sheet dikhao".',
+    category: 'DSA',
+    riskLevel: 'LOW',
+    parameters: { type: 'object', properties: {} },
+    examples: ['meri DSA sheet kholo', 'open DSA sheets', 'dsa dikha'],
     execute: async () => ({
       success: true,
       message: 'Opening DSA sheets.',
@@ -70,18 +160,20 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
 
   openDSASheet: {
     name: 'openDSASheet',
-    description: 'Open a specific DSA coding sheet by sheet ID or title',
+    description: 'Open a specific DSA sheet by ID or title query. Examples: "Blind 75 sheet kholo", "Striver A2Z sheet open karo".',
+    category: 'DSA',
     riskLevel: 'LOW',
     parameters: {
       type: 'object',
       properties: {
-        sheetId: { type: 'string', description: 'ID of the DSA sheet if known' },
-        titleQuery: { type: 'string', description: 'Name or title query of the DSA sheet' }
+        sheetId: { type: 'string', description: 'Sheet UUID if known' },
+        titleQuery: { type: 'string', description: 'Name of the sheet e.g. "Blind 75", "Striver"' }
       }
     },
+    examples: ['Blind 75 sheet kholo', 'Striver sheet dikhao'],
     execute: async (args) => {
       if (args.sheetId) {
-        return { success: true, message: `Opening DSA sheet.`, url: `/code-arena/sheets/${args.sheetId}` };
+        return { success: true, message: 'Opening DSA sheet.', url: `/code-arena/sheets/${args.sheetId}` };
       }
       const adminClient = await createAdminClient();
       if (args.titleQuery) {
@@ -102,25 +194,70 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
 
   openDSAProblem: {
     name: 'openDSAProblem',
-    description: 'Open a specific DSA problem by problem ID, title, or index number (e.g. Problem 4)',
+    description: 'Open a specific DSA problem by problem ID, title, or index number e.g. "Problem 4 kholo", "Two Sum open karo", "problem 4". Resolves Problem N as N-th problem in currently active sheet.',
+    category: 'DSA',
     riskLevel: 'LOW',
     parameters: {
       type: 'object',
       properties: {
-        problemId: { type: 'string', description: 'Problem UUID or slug if available' },
-        query: { type: 'string', description: 'Problem title or query (e.g. "Problem 4", "Two Sum")' }
+        problemId: { type: 'string', description: 'Problem UUID or slug' },
+        query: { type: 'string', description: 'Problem query or number (e.g. "Problem 4", "Two Sum")' },
+        problemIndex: { type: 'number', description: 'Problem order index e.g. 4 for Problem 4' }
       }
     },
-    execute: async (args) => {
+    examples: ['Problem 4 kholo', 'problem 4', 'Two Sum open karo'],
+    execute: async (args, _, context) => {
       const adminClient = await createAdminClient();
 
       if (args.problemId) {
-        return { success: true, message: `Opening DSA problem.`, url: `/code-arena/problems/${args.problemId}` };
+        return {
+          success: true,
+          message: 'Opening DSA problem.',
+          url: `/code-arena/problems/${args.problemId}`,
+          data: { problemId: args.problemId }
+        };
       }
 
       const q = args.query ? args.query.trim() : '';
+      const numMatch = q.match(/\b\d+\b/);
+      const targetNum = args.problemIndex || (numMatch ? parseInt(numMatch[0], 10) : null);
+
+      // SERVER VERIFICATION FOR PROBLEM N IN ACTIVE SHEET
+      const activeSheetId = context?.currentEntity?.id || context?.activeSheet?.id;
+      if (targetNum && activeSheetId) {
+        const { data: sheetProblems } = await adminClient
+          .from('coding_sheet_problems')
+          .select('order_index, coding_problems(id, title, difficulty)')
+          .eq('sheet_id', activeSheetId)
+          .order('order_index', { ascending: true });
+
+        if (sheetProblems && sheetProblems.length >= targetNum) {
+          const matchedItem = sheetProblems[targetNum - 1]?.coding_problems as any;
+          if (matchedItem) {
+            return {
+              success: true,
+              message: `Problem ${targetNum} (${matchedItem.title}) open kar diya.`,
+              url: `/code-arena/problems/${matchedItem.id}`,
+              data: { problemId: matchedItem.id, problemTitle: matchedItem.title, number: targetNum }
+            };
+          }
+        }
+      }
+
+      // Check visibleEntities problems list from live context as fallback hint
+      if (targetNum && context?.liveContext?.visibleEntities?.problems) {
+        const visibleProb = context.liveContext.visibleEntities.problems.find((p: any) => p.number === targetNum);
+        if (visibleProb) {
+          return {
+            success: true,
+            message: `Problem ${targetNum} (${visibleProb.title}) open kar diya.`,
+            url: `/code-arena/problems/${visibleProb.id}`,
+            data: { problemId: visibleProb.id, problemTitle: visibleProb.title, number: targetNum }
+          };
+        }
+      }
+
       if (q) {
-        // Search by exact ID or title or slug
         const { data: matched } = await adminClient
           .from('coding_problems')
           .select('id, title, slug')
@@ -129,11 +266,20 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
           .maybeSingle();
 
         if (matched) {
-          return { success: true, message: `Opening problem: ${matched.title}`, url: `/code-arena/problems/${matched.id}` };
+          return {
+            success: true,
+            message: `Problem ${matched.title} open kar diya.`,
+            url: `/code-arena/problems/${matched.id}`,
+            data: { problemId: matched.id, problemTitle: matched.title }
+          };
         }
+
+        return {
+          success: false,
+          message: `Mujhe "${q}" problem nahi mila.`
+        };
       }
 
-      // Default fallback: fetch latest problem
       const { data: latest } = await adminClient
         .from('coding_problems')
         .select('id, title')
@@ -142,22 +288,72 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
         .maybeSingle();
 
       if (latest) {
-        return { success: true, message: `Opening DSA problem: ${latest.title}`, url: `/code-arena/problems/${latest.id}` };
+        return {
+          success: true,
+          message: `Opening DSA problem: ${latest.title}`,
+          url: `/code-arena/problems/${latest.id}`,
+          data: { problemId: latest.id, problemTitle: latest.title }
+        };
       }
 
       return { success: true, message: 'Opening DSA problems.', url: '/code-arena/problems' };
     }
   },
 
+  queryLivePage: {
+    name: 'queryLivePage',
+    description: 'Answer questions about visible screen content, sheets count, problem counts, or available options. Use when student asks "Kaunsi sheets available hain?", "Is sheet me kitne problems hain?", "Yahan kya kya hai?". Strictly non-hallucinating.',
+    category: 'ANALYTICS',
+    riskLevel: 'LOW',
+    parameters: {
+      type: 'object',
+      properties: {
+        question: { type: 'string', description: 'Question about visible screen content' }
+      }
+    },
+    examples: ['Kaunsi sheets available hain?', 'Is sheet me kitne problems hain?', 'Yahan kya kya hai?'],
+    execute: async (args, _, context) => {
+      const live = context?.liveContext;
+      const q = (args.question || '').toLowerCase();
+
+      if (q.includes('sheet') && (q.includes('available') || q.includes('kaunsi') || q.includes('kitni') || q.includes('list') || q.includes('yahan'))) {
+        if (live?.visibleEntities?.sheets && live.visibleEntities.sheets.length > 0) {
+          const list = live.visibleEntities.sheets.map((s: any) => `${s.title} (${s.totalProblems || 0} problems)`).join(', ');
+          return {
+            success: true,
+            message: `Abhi ${live.visibleEntities.sheets.length} DSA sheets available hain: ${list}.`,
+            url: '/code-arena/sheets'
+          };
+        }
+      }
+
+      if ((q.includes('problem') || q.includes('sawal')) && (q.includes('kitne') || q.includes('count') || q.includes('list'))) {
+        if (live?.currentEntity?.type === 'sheet' && live?.currentEntity?.metadata?.totalProblems !== undefined) {
+          return {
+            success: true,
+            message: `${live.currentEntity.title} me total ${live.currentEntity.metadata.totalProblems} problems hain (solved: ${live.currentEntity.metadata.solvedProblems || 0}).`
+          };
+        }
+      }
+
+      return {
+        success: true,
+        message: 'Ye information abhi Smart Learn me available nahi hai.'
+      };
+    }
+  },
+
   openWeakestDSAProblem: {
     name: 'openWeakestDSAProblem',
-    description: 'Find and open a DSA problem related to the student weakest topic or skill gap',
+    description: 'Find student weakest topic using Student360 analytics and open a matching DSA problem. Examples: "meri weakest DSA problem kholo", "open problem for weak topic".',
+    category: 'DSA',
     riskLevel: 'LOW',
     parameters: { type: 'object', properties: {} },
+    examples: ['meri weakest DSA problem kholo', 'open weak topic problem'],
     execute: async (_, user) => {
       const profile = await getStudent360Profile(user.id);
       const weakTopic = profile.weakAreas[0] || 'DSA';
-      
+
       const adminClient = await createAdminClient();
       const { data: matchedProblem } = await adminClient
         .from('coding_problems')
@@ -169,7 +365,8 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
         return {
           success: true,
           message: `Your weak area is ${weakTopic}. Opened matching problem: ${matchedProblem.title}.`,
-          url: `/code-arena/problems/${matchedProblem.id}`
+          url: `/code-arena/problems/${matchedProblem.id}`,
+          data: { problemId: matchedProblem.id, problemTitle: matchedProblem.title }
         };
       }
 
@@ -181,76 +378,27 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     }
   },
 
-  openCourse: {
-    name: 'openCourse',
-    description: 'Open a specific course by course ID or course title (e.g. ITW, DBMS, Web Dev)',
-    riskLevel: 'LOW',
-    parameters: {
-      type: 'object',
-      properties: {
-        courseId: { type: 'string', description: 'Course UUID if known' },
-        courseName: { type: 'string', description: 'Title or abbreviation of course (e.g. "ITW", "DBMS")' }
-      }
-    },
-    execute: async (args) => {
-      if (args.courseId) {
-        return { success: true, message: 'Opening course.', url: `/courses/${args.courseId}` };
-      }
-      const adminClient = await createAdminClient();
-      const name = args.courseName ? args.courseName.trim() : '';
-
-      if (name) {
-        const { data: matched } = await adminClient
-          .from('courses')
-          .select('id, title')
-          .ilike('title', `%${name}%`)
-          .eq('is_published', true)
-          .limit(1)
-          .maybeSingle();
-
-        if (matched) {
-          return { success: true, message: `Opening course: ${matched.title}`, url: `/courses/${matched.id}` };
-        }
-      }
-
-      return { success: true, message: 'Opening courses catalog.', url: '/courses' };
-    }
-  },
-
-  openMyCourses: {
-    name: 'openMyCourses',
-    description: 'Navigate to student enrolled courses',
+  openCodingArena: {
+    name: 'openCodingArena',
+    description: 'Navigate to Code Arena main workspace. Use when user asks for coding arena, compiler, IDE, or arena home.',
+    category: 'DSA',
     riskLevel: 'LOW',
     parameters: { type: 'object', properties: {} },
+    examples: ['code arena kholo', 'open compiler', 'coding arena dikha'],
     execute: async () => ({
       success: true,
-      message: 'Opening your courses.',
-      url: '/courses'
-    })
-  },
-
-  openCertificate: {
-    name: 'openCertificate',
-    description: 'Open student certificates page or specific certificate',
-    riskLevel: 'LOW',
-    parameters: {
-      type: 'object',
-      properties: {
-        certificateId: { type: 'string', description: 'Certificate ID if known' }
-      }
-    },
-    execute: async () => ({
-      success: true,
-      message: 'Opening your certificates.',
-      url: '/certificates'
+      message: 'Opening Code Arena.',
+      url: '/code-arena'
     })
   },
 
   openCodingProfile: {
     name: 'openCodingProfile',
-    description: 'Open student Code Arena profile and activity stats',
+    description: 'Navigate to student Code Arena stats and profile. Use when student wants to see coding rating, solved counts, or streaks.',
+    category: 'DSA',
     riskLevel: 'LOW',
     parameters: { type: 'object', properties: {} },
+    examples: ['coding stats dikhao', 'dsa profile kholo', 'coding rank dikho'],
     execute: async () => ({
       success: true,
       message: 'Opening coding profile.',
@@ -258,16 +406,79 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     })
   },
 
-  openLatexEditor: {
-    name: 'openLatexEditor',
-    description: 'Open the LaTeX equation and document editor',
+  openRoutine: {
+    name: 'openRoutine',
+    description: 'Navigate to student daily routine schedule. Use when user says "meri routine dikhao", "timetable kholo", "routine check karo".',
+    category: 'ROUTINE_GOALS',
+    riskLevel: 'LOW',
+    parameters: { type: 'object', properties: {} },
+    examples: ['meri routine dikhao', 'timetable kholo', 'show daily schedule'],
+    execute: async () => ({
+      success: true,
+      message: 'Opening daily routine schedule.',
+      url: '/dashboard'
+    })
+  },
+
+  openGoals: {
+    name: 'openGoals',
+    description: 'Navigate to student target goals tracker. Use when user asks for active goals, targets, or study goals.',
+    category: 'ROUTINE_GOALS',
+    riskLevel: 'LOW',
+    parameters: { type: 'object', properties: {} },
+    examples: ['mera goal dikhao', 'open targets', 'goals tracker kholo'],
+    execute: async () => ({
+      success: true,
+      message: 'Opening goals and targets.',
+      url: '/dashboard'
+    })
+  },
+
+  openCertificate: {
+    name: 'openCertificate',
+    description: 'Navigate to student certificates page. Use when student asks for degree, certificates, earned credentials.',
+    category: 'NAVIGATION',
     riskLevel: 'LOW',
     parameters: {
       type: 'object',
       properties: {
-        problemId: { type: 'string', description: 'Optional current problem ID' }
+        certificateId: { type: 'string', description: 'Optional certificate UUID' }
       }
     },
+    examples: ['meri certificates dikhao', 'show my certificates', 'earned degrees'],
+    execute: async () => ({
+      success: true,
+      message: 'Opening your certificates.',
+      url: '/certificates'
+    })
+  },
+
+  openBadges: {
+    name: 'openBadges',
+    description: 'Navigate to student badges & achievements section in profile.',
+    category: 'NAVIGATION',
+    riskLevel: 'LOW',
+    parameters: { type: 'object', properties: {} },
+    examples: ['mere badges dikhao', 'show achievements'],
+    execute: async () => ({
+      success: true,
+      message: 'Opening your profile achievements and badges.',
+      url: '/profile'
+    })
+  },
+
+  openLatexEditor: {
+    name: 'openLatexEditor',
+    description: 'Open LaTeX equation & math formula editor. Use when user asks for latex editor, math formula, equation builder.',
+    category: 'TOOLS',
+    riskLevel: 'LOW',
+    parameters: {
+      type: 'object',
+      properties: {
+        problemId: { type: 'string', description: 'Optional problem ID' }
+      }
+    },
+    examples: ['latex editor kholo', 'open math formula editor', 'latex equation dikhao'],
     execute: async (args) => {
       const targetUrl = args.problemId ? `/latex-editor?problemId=${args.problemId}` : '/latex-editor';
       return {
@@ -278,35 +489,13 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     }
   },
 
-  openGoals: {
-    name: 'openGoals',
-    description: 'Open student target tracker / goals section',
-    riskLevel: 'LOW',
-    parameters: { type: 'object', properties: {} },
-    execute: async () => ({
-      success: true,
-      message: 'Opening goals and targets.',
-      url: '/dashboard'
-    })
-  },
-
-  openRoutine: {
-    name: 'openRoutine',
-    description: 'Open student daily routine schedule',
-    riskLevel: 'LOW',
-    parameters: { type: 'object', properties: {} },
-    execute: async () => ({
-      success: true,
-      message: 'Opening daily routine schedule.',
-      url: '/dashboard'
-    })
-  },
-
   openNotifications: {
     name: 'openNotifications',
-    description: 'Open student notices and notifications',
+    description: 'Navigate to student notices & announcements page.',
+    category: 'NAVIGATION',
     riskLevel: 'LOW',
     parameters: { type: 'object', properties: {} },
+    examples: ['notices dikhao', 'notifications kholo', 'announcements open karo'],
     execute: async () => ({
       success: true,
       message: 'Opening notices and notifications.',
@@ -316,9 +505,11 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
 
   openLeaderboard: {
     name: 'openLeaderboard',
-    description: 'Open student leaderboard and rankings',
+    description: 'Navigate to student rank leaderboard.',
+    category: 'NAVIGATION',
     riskLevel: 'LOW',
     parameters: { type: 'object', properties: {} },
+    examples: ['leaderboard kholo', 'show my rank', 'class rankings dikha'],
     execute: async () => ({
       success: true,
       message: 'Opening leaderboard.',
@@ -328,9 +519,11 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
 
   openDoubts: {
     name: 'openDoubts',
-    description: 'Open student doubt discussion hub',
+    description: 'Navigate to doubt discussion forum.',
+    category: 'NAVIGATION',
     riskLevel: 'LOW',
     parameters: { type: 'object', properties: {} },
+    examples: ['doubts kholo', 'ask doubt', 'doubts forum open karo'],
     execute: async () => ({
       success: true,
       message: 'Opening doubt discussions.',
@@ -338,28 +531,91 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     })
   },
 
-  openCodingArena: {
-    name: 'openCodingArena',
-    description: 'Open Code Arena main page',
-    riskLevel: 'LOW',
-    parameters: { type: 'object', properties: {} },
-    execute: async () => ({
-      success: true,
-      message: 'Opening Code Arena.',
-      url: '/code-arena'
-    })
-  },
-
-  searchProgramSeats: {
-    name: 'searchProgramSeats',
-    description: 'Query seat availability or program details for degrees like B.Sc, B.Tech, MCA, etc.',
+  // ─── SEARCH TOOLS ───
+  searchYouTube: {
+    name: 'searchYouTube',
+    description: 'Search YouTube for a specific problem title, topic, or video explanation. Use when student says "isko YouTube pe search karo" or "search YT for array solution".',
+    category: 'SEARCH',
     riskLevel: 'LOW',
     parameters: {
       type: 'object',
       properties: {
-        programName: { type: 'string', description: 'Degree or program name e.g. B.Sc, B.Tech' }
+        query: { type: 'string', description: 'Search term or problem title' }
+      },
+      required: ['query']
+    },
+    examples: ['isko YouTube pe search karo', 'search YouTube for binary trees', 'yt pe search kar'],
+    execute: async (args, _, context) => {
+      const q = args.query || context?.problemTitle || 'DSA problem explanation';
+      const encoded = encodeURIComponent(q);
+      return {
+        success: true,
+        message: `Searching YouTube for "${q}".`,
+        externalUrl: `https://www.youtube.com/results?search_query=${encoded}`
+      };
+    }
+  },
+
+  searchWeb: {
+    name: 'searchWeb',
+    description: 'Search Google for any general query.',
+    category: 'SEARCH',
+    riskLevel: 'LOW',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Search query' }
+      },
+      required: ['query']
+    },
+    examples: ['google pe search karo', 'search web for react hooks'],
+    execute: async (args) => {
+      const q = args.query || 'Smart Learn';
+      const encoded = encodeURIComponent(q);
+      return {
+        success: true,
+        message: `Searching Google for "${q}".`,
+        externalUrl: `https://www.google.com/search?q=${encoded}`
+      };
+    }
+  },
+
+  searchGPT: {
+    name: 'searchGPT',
+    description: 'Open external ChatGPT search for complex topic explanations.',
+    category: 'SEARCH',
+    riskLevel: 'LOW',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Query for ChatGPT' }
+      },
+      required: ['query']
+    },
+    examples: ['chatgpt pe kholo', 'open gpt for recursion explanation'],
+    execute: async (args) => {
+      const q = args.query || 'Explain DSA concept';
+      const encoded = encodeURIComponent(q);
+      return {
+        success: true,
+        message: `Opening ChatGPT search for "${q}".`,
+        externalUrl: `https://chatgpt.com/?q=${encoded}`
+      };
+    }
+  },
+
+  searchProgramSeats: {
+    name: 'searchProgramSeats',
+    description: 'Query seat availability or program details for degrees like B.Sc, B.Tech, MCA in Smart Learn. Never invent fake seat numbers.',
+    category: 'COURSES',
+    riskLevel: 'LOW',
+    parameters: {
+      type: 'object',
+      properties: {
+        programName: { type: 'string', description: 'Program name e.g. B.Sc, B.Tech' }
       }
     },
+    examples: ['BSc me kitni seats hai', 'BTech seat availability'],
     execute: async (args) => {
       const adminClient = await createAdminClient();
       const prog = args.programName || 'B.Sc';
@@ -385,116 +641,61 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     }
   },
 
-  // ─── SEARCH TOOLS ───
-
-  searchYouTube: {
-    name: 'searchYouTube',
-    description: 'Search YouTube for a topic, problem, or explanation',
-    riskLevel: 'LOW',
-    parameters: {
-      type: 'object',
-      properties: {
-        query: { type: 'string', description: 'Search term or problem title' }
-      },
-      required: ['query']
-    },
-    execute: async (args, _, context) => {
-      const q = args.query || context?.problemTitle || 'DSA problem explanation';
-      const encoded = encodeURIComponent(q);
-      return {
-        success: true,
-        message: `Searching YouTube for "${q}".`,
-        externalUrl: `https://www.youtube.com/results?search_query=${encoded}`
-      };
-    }
-  },
-
-  searchWeb: {
-    name: 'searchWeb',
-    description: 'Perform a web search for a topic',
-    riskLevel: 'LOW',
-    parameters: {
-      type: 'object',
-      properties: {
-        query: { type: 'string', description: 'Search query' }
-      },
-      required: ['query']
-    },
-    execute: async (args) => {
-      const q = args.query || 'Smart Learn';
-      const encoded = encodeURIComponent(q);
-      return {
-        success: true,
-        message: `Searching Google for "${q}".`,
-        externalUrl: `https://www.google.com/search?q=${encoded}`
-      };
-    }
-  },
-
-  searchGPT: {
-    name: 'searchGPT',
-    description: 'Open external AI search/GPT with a query',
-    riskLevel: 'LOW',
-    parameters: {
-      type: 'object',
-      properties: {
-        query: { type: 'string', description: 'Query for GPT' }
-      },
-      required: ['query']
-    },
-    execute: async (args) => {
-      const q = args.query || 'Explain DSA problem';
-      const encoded = encodeURIComponent(q);
-      return {
-        success: true,
-        message: `Opening ChatGPT search for "${q}".`,
-        externalUrl: `https://chatgpt.com/?q=${encoded}`
-      };
-    }
-  },
-
-  // ─── LEARNING & ANALYTICS ───
-
-  getMyLearningIntelligence: {
-    name: 'getMyLearningIntelligence',
-    description: 'Get high-level Student 360 readiness scores, strengths, and weak areas',
+  // ─── ANALYTICS & STUDENT 360 TOOLS ───
+  getStudent360: {
+    name: 'getStudent360',
+    description: 'Fetch full 360 degree learning analytics summary for the student.',
+    category: 'ANALYTICS',
     riskLevel: 'LOW',
     parameters: { type: 'object', properties: {} },
+    examples: ['mera 360 profile dikhao', 'analyze my overall progress'],
     execute: async (_, user) => {
       const profile = await getStudent360Profile(user.id);
       return {
         success: true,
-        message: `Learning Readiness: ${profile.overallLearningScore}/100. Strengths: ${profile.strengths.join(', ')}. Weak Areas: ${profile.weakAreas.join(', ')}.`,
+        message: `Overall Score: ${profile.overallLearningScore}/100. Academic: ${profile.academicScore}%, Coding: ${profile.codingScore}%, Assessment: ${profile.assessmentScore}%.`,
         data: profile
       };
     }
   },
 
-  getMyWeakAreas: {
-    name: 'getMyWeakAreas',
-    description: 'Get list of student weak areas and identified skill gaps',
+  getWeakAreas: {
+    name: 'getWeakAreas',
+    description: 'Fetch student weak areas and identified skill gaps from Student360 analytics. Use when student asks "meri weakest skill kya hai?", "weak topics dikhao", "where am I lacking?".',
+    category: 'ANALYTICS',
     riskLevel: 'LOW',
     parameters: { type: 'object', properties: {} },
+    examples: ['meri weakest skill kya hai?', 'weak areas dikhao', 'skill gaps kya hain'],
     execute: async (_, user) => {
       const profile = await getStudent360Profile(user.id);
+      const weakList = profile.weakAreas.length > 0 ? profile.weakAreas.join(', ') : 'DBMS, DSA Problem Solving';
       return {
         success: true,
-        message: `Weak Areas: ${profile.weakAreas.join(', ') || 'None identified yet.'}`,
+        message: `Tumhara biggest gap ${weakList} hai. Is par focus karke accuracy improve kar sakte ho.`,
         data: profile.weakAreas
       };
     }
   },
 
-  getMyRecommendations: {
-    name: 'getMyRecommendations',
-    description: 'Get top deterministic recommendations for student',
+  getRecommendations: {
+    name: 'getRecommendations',
+    description: 'Fetch deterministic learning recommendations for student. Use when user asks "main next kya karun?", "what should I study next?".',
+    category: 'ANALYTICS',
     riskLevel: 'LOW',
     parameters: { type: 'object', properties: {} },
+    examples: ['main next kya karun?', 'kaunsa course karun?', 'what to study next'],
     execute: async (_, user) => {
       const profile = await getStudent360Profile(user.id);
+      const topRec = profile.recommendations[0];
+      const weak = profile.weakAreas[0] || 'DBMS';
+      const msg = topRec
+        ? `Based on your profile, your main focus area is ${weak}. Recommended Next Action: ${topRec.title}.`
+        : `Tumhara focus ${weak} hai. Practice questions and courses complete karo.`;
+
       return {
         success: true,
-        message: profile.nextBestAction ? `Next Action: ${profile.nextBestAction.title}` : 'No active recommendations.',
+        message: msg,
+        url: topRec?.actionUrl || '/courses',
         data: profile.recommendations
       };
     }
@@ -502,9 +703,11 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
 
   getMyDSAProgress: {
     name: 'getMyDSAProgress',
-    description: 'Get student DSA problem solving statistics and score',
+    description: 'Fetch student DSA solved count, coding XP, and score.',
+    category: 'DSA',
     riskLevel: 'LOW',
     parameters: { type: 'object', properties: {} },
+    examples: ['mera DSA progress dikhao', 'how many DSA problems solved'],
     execute: async (_, user) => {
       const profile = await getStudent360Profile(user.id);
       return {
@@ -515,28 +718,14 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     }
   },
 
-  getMyCourseProgress: {
-    name: 'getMyCourseProgress',
-    description: 'Get enrolled courses and completion progress',
-    riskLevel: 'LOW',
-    parameters: { type: 'object', properties: {} },
-    execute: async (_, user) => {
-      const profile = await getStudent360Profile(user.id);
-      return {
-        success: true,
-        message: `Enrolled Courses: ${profile.enrolledCoursesData.map(c => `${c.title} (${c.progress}%)`).join(', ') || 'None'}`,
-        data: profile.enrolledCoursesData
-      };
-    }
-  },
-
-  // ─── ROUTINE & GOALS CRUD ───
-
+  // ─── DYNAMIC ROUTINE & GOALS GENERATOR ───
   getMyRoutine: {
     name: 'getMyRoutine',
-    description: 'Fetch current daily routine schedule of the student',
+    description: 'Fetch student current daily routine schedule.',
+    category: 'ROUTINE_GOALS',
     riskLevel: 'LOW',
     parameters: { type: 'object', properties: {} },
+    examples: ['meri routine dikhao', 'get my routine'],
     execute: async (_, user) => {
       const adminClient = await createAdminClient();
       const { data } = await adminClient
@@ -546,7 +735,7 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
         .order('sort_order', { ascending: true });
 
       const routines = data || [];
-      const msg = routines.length > 0 
+      const msg = routines.length > 0
         ? `Routine: ${routines.map((r: any) => `${r.time_slot}: ${r.task_name}`).join(', ')}`
         : 'No routine set yet.';
 
@@ -554,18 +743,77 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     }
   },
 
+  generateTomorrowRoutine: {
+    name: 'generateTomorrowRoutine',
+    description: 'Dynamically generate and save a personalized daily routine for tomorrow based on existing routine items, active goals, Student360 weak areas, and enrolled courses. Use when student asks "kal meri routine bana do" or "generate tomorrow routine".',
+    category: 'ROUTINE_GOALS',
+    riskLevel: 'MEDIUM',
+    parameters: { type: 'object', properties: {} },
+    examples: ['kal meri routine bana do', 'generate tomorrow routine', 'kal ka timetable banao'],
+    execute: async (_, user) => {
+      const profile = await getStudent360Profile(user.id);
+      const adminClient = await createAdminClient();
+
+      const weakTopic = profile.weakAreas[0] || 'DSA Graphs & Trees';
+      const activeGoalText = profile.activeGoals[0]?.goal_text || 'Solve DSA problems';
+      const courseTitle = profile.enrolledCoursesData[0]?.title || 'ITW Course Revision';
+
+      // Smart dynamic slot allocation avoiding conflict with existing slots
+      const existingSlots = new Set(profile.dailyRoutines.map(r => r.time_slot));
+
+      const candidateSlots = [
+        { slot: '08:00 AM', task: `DSA Weak Area Practice: ${weakTopic}` },
+        { slot: '02:00 PM', task: `Enrolled Course Study: ${courseTitle}` },
+        { slot: '06:00 PM', task: `Goal Focus: ${activeGoalText}` },
+        { slot: '09:00 PM', task: `Daily Revision & Quiz` }
+      ];
+
+      const slotsToInsert = candidateSlots.filter(c => !existingSlots.has(c.slot));
+      if (slotsToInsert.length === 0) {
+        slotsToInsert.push({ slot: '10:00 PM', task: `Night Review: ${weakTopic}` });
+      }
+
+      let currentSort = profile.dailyRoutines.length;
+      const inserts = slotsToInsert.map(s => {
+        currentSort++;
+        return {
+          user_id: user.id,
+          time_slot: s.slot,
+          task_name: s.task,
+          sort_order: currentSort
+        };
+      });
+
+      const { error } = await adminClient.from('daily_routines').insert(inserts);
+
+      if (error) {
+        return { success: false, message: `Failed to save routine: ${error.message}` };
+      }
+
+      const generatedSummary = slotsToInsert.map(s => `${s.slot} - ${s.task}`).join('; ');
+      return {
+        success: true,
+        message: `Kal ki personalized routine set kar di hai: ${generatedSummary}`,
+        url: '/dashboard',
+        data: slotsToInsert
+      };
+    }
+  },
+
   createRoutine: {
     name: 'createRoutine',
-    description: 'Add a new time slot / task to student daily routine',
+    description: 'Add a specific single task/slot to daily routine.',
+    category: 'ROUTINE_GOALS',
     riskLevel: 'MEDIUM',
     parameters: {
       type: 'object',
       properties: {
-        time_slot: { type: 'string', description: 'Time slot e.g. "08:00", "18:00"' },
-        task_name: { type: 'string', description: 'Task description e.g. "DSA Practice"' }
+        time_slot: { type: 'string', description: 'Time slot e.g. "08:00 AM"' },
+        task_name: { type: 'string', description: 'Task name e.g. "DSA Practice"' }
       },
       required: ['time_slot', 'task_name']
     },
+    examples: ['add routine 08:00 AM DSA Practice'],
     execute: async (args, user) => {
       const adminClient = await createAdminClient();
       const { data: existing } = await adminClient.from('daily_routines').select('sort_order').eq('user_id', user.id);
@@ -581,56 +829,24 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
         });
 
       if (error) {
-        return { success: false, message: `Failed to create routine: ${error.message}` };
+        return { success: false, message: `Failed to add routine: ${error.message}` };
       }
 
       return {
         success: true,
-        message: `Added routine: ${args.time_slot} - ${args.task_name}.`,
+        message: `Added routine slot: ${args.time_slot} - ${args.task_name}.`,
         url: '/dashboard'
       };
     }
   },
 
-  deleteRoutine: {
-    name: 'deleteRoutine',
-    description: 'Delete student daily routine schedule',
-    riskLevel: 'HIGH',
-    parameters: {
-      type: 'object',
-      properties: {
-        confirm: { type: 'string', description: 'Explicit confirmation flag' }
-      }
-    },
-    execute: async (args, user) => {
-      if (args.confirm !== 'true') {
-        return {
-          success: false,
-          message: 'Confirmation required before deleting routine.',
-          requiresConfirmation: {
-            toolName: 'deleteRoutine',
-            args: { confirm: 'true' },
-            promptMessage: 'Are you sure you want to clear your daily routine schedule?'
-          }
-        };
-      }
-
-      const adminClient = await createAdminClient();
-      const { error } = await adminClient.from('daily_routines').delete().eq('user_id', user.id);
-
-      if (error) {
-        return { success: false, message: `Failed to delete routine: ${error.message}` };
-      }
-
-      return { success: true, message: 'Daily routine successfully deleted.', url: '/dashboard' };
-    }
-  },
-
   getMyGoals: {
     name: 'getMyGoals',
-    description: 'Fetch student active targets and goals',
+    description: 'Fetch student active goals and targets.',
+    category: 'ROUTINE_GOALS',
     riskLevel: 'LOW',
     parameters: { type: 'object', properties: {} },
+    examples: ['mera goal dikhao', 'get my goals'],
     execute: async (_, user) => {
       const adminClient = await createAdminClient();
       const { data } = await adminClient
@@ -640,31 +856,28 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
         .eq('status', 'active');
 
       const goals = data || [];
-      const msg = goals.length > 0
-        ? `Active Goal: ${goals[0].goal_text}`
-        : 'No active goals set.';
-
+      const msg = goals.length > 0 ? `Active Goal: ${goals[0].goal_text}` : 'No active goals set.';
       return { success: true, message: msg, data: goals };
     }
   },
 
   createGoal: {
     name: 'createGoal',
-    description: 'Create a new active learning goal for student',
+    description: 'Create a new active learning goal for student.',
+    category: 'ROUTINE_GOALS',
     riskLevel: 'MEDIUM',
     parameters: {
       type: 'object',
       properties: {
-        goal_text: { type: 'string', description: 'Goal text e.g. "Solve 50 DSA problems in 30 days"' },
-        duration_mins: { type: 'number', description: 'Target daily duration in minutes' },
-        routine: { type: 'boolean', description: 'Link as daily routine goal' }
+        goal_text: { type: 'string', description: 'Goal text' },
+        duration_mins: { type: 'number', description: 'Daily duration mins' }
       },
       required: ['goal_text']
     },
+    examples: ['nayi goal banao solve 30 dsa problems'],
     execute: async (args, user) => {
       const adminClient = await createAdminClient();
 
-      // Archive previous active goals
       await adminClient
         .from('student_goals')
         .update({ status: 'archived' })
@@ -677,7 +890,7 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
           user_id: user.id,
           goal_text: args.goal_text,
           duration_mins: args.duration_mins || 30,
-          routine: Boolean(args.routine),
+          routine: true,
           status: 'active'
         })
         .select()
@@ -693,43 +906,65 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
         url: '/dashboard'
       };
     }
-  },
-
-  deleteGoal: {
-    name: 'deleteGoal',
-    description: 'Delete or archive an active student goal',
-    riskLevel: 'HIGH',
-    parameters: {
-      type: 'object',
-      properties: {
-        confirm: { type: 'string', description: 'Explicit confirmation flag' }
-      }
-    },
-    execute: async (args, user) => {
-      if (args.confirm !== 'true') {
-        return {
-          success: false,
-          message: 'Confirmation required before deleting active goal.',
-          requiresConfirmation: {
-            toolName: 'deleteGoal',
-            args: { confirm: 'true' },
-            promptMessage: 'Are you sure you want to remove your active goal?'
-          }
-        };
-      }
-
-      const adminClient = await createAdminClient();
-      const { error } = await adminClient
-        .from('student_goals')
-        .update({ status: 'archived' })
-        .eq('user_id', user.id)
-        .eq('status', 'active');
-
-      if (error) {
-        return { success: false, message: `Failed to remove goal: ${error.message}` };
-      }
-
-      return { success: true, message: 'Goal removed.', url: '/dashboard' };
-    }
   }
 };
+
+// ─── DYNAMIC TOOL FILTERING (Intent & Context Based Selection) ───
+
+export function selectRelevantTools(userPrompt: string, pageContext?: any): AgentToolDefinition[] {
+  const p = userPrompt.toLowerCase();
+  const selectedCategories = new Set<string>();
+
+  // Determine relevant categories based on keywords
+  if (p.includes('dsa') || p.includes('problem') || p.includes('sheet') || p.includes('code') || p.includes('sawal') || /problem\s*\d+/i.test(p)) {
+    selectedCategories.add('DSA');
+    selectedCategories.add('SEARCH');
+    selectedCategories.add('NAVIGATION');
+  }
+
+  if (p.includes('course') || p.includes('subject') || p.includes('itw') || p.includes('dbms') || p.includes('seat') || p.includes('bsc')) {
+    selectedCategories.add('COURSES');
+    selectedCategories.add('NAVIGATION');
+  }
+
+  if (p.includes('weak') || p.includes('skill') || p.includes('next') || p.includes('360') || p.includes('analyze') || p.includes('plan') || p.includes('recommend')) {
+    selectedCategories.add('ANALYTICS');
+    selectedCategories.add('ROUTINE_GOALS');
+    selectedCategories.add('COURSES');
+    selectedCategories.add('DSA');
+  }
+
+  if (p.includes('routine') || p.includes('schedule') || p.includes('timetable') || p.includes('kal') || p.includes('goal') || p.includes('target')) {
+    selectedCategories.add('ROUTINE_GOALS');
+    selectedCategories.add('ANALYTICS');
+    selectedCategories.add('NAVIGATION');
+  }
+
+  if (p.includes('youtube') || p.includes('yt') || p.includes('video') || p.includes('gpt') || p.includes('search') || p.includes('google')) {
+    selectedCategories.add('SEARCH');
+    selectedCategories.add('TOOLS');
+  }
+
+  if (p.includes('latex') || p.includes('equation') || p.includes('formula')) {
+    selectedCategories.add('TOOLS');
+    selectedCategories.add('NAVIGATION');
+  }
+
+  if (p.includes('certificate') || p.includes('badge') || p.includes('profile') || p.includes('rank') || p.includes('leaderboard') || p.includes('notice') || p.includes('doubt')) {
+    selectedCategories.add('NAVIGATION');
+  }
+
+  // Fallback: If no specific category matched, include core NAVIGATION, DSA, COURSES, and ANALYTICS
+  if (selectedCategories.size === 0) {
+    selectedCategories.add('NAVIGATION');
+    selectedCategories.add('DSA');
+    selectedCategories.add('COURSES');
+    selectedCategories.add('ANALYTICS');
+  }
+
+  const allTools = Object.values(AGENT_TOOLS);
+  const filtered = allTools.filter(t => selectedCategories.has(t.category));
+
+  // Cap at 15 tools max to keep Groq prompt lean and fast
+  return filtered.slice(0, 15);
+}

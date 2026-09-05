@@ -1,0 +1,59 @@
+# Two-Way Personal Voice Assistant Upgrade Plan
+
+Upgrade the Smart Learn AI Agent into a complete human-like two-way personal voice assistant that not only receives voice input, but also speaks its response back to the user naturally (`LISTEN → UNDERSTAND → DECIDE → ACT → SPEAK`).
+
+## Proposed Architecture & Flow
+
+```mermaid
+flowchart TD
+    UserVoice[User Speaks] --> STT[Speech-to-Text / WebSpeech & MediaRecorder]
+    STT --> Agent[Smart Learn AI Agent Server Action]
+    Agent --> Tools[Tool Executor / Student360 Analytics]
+    Tools --> ResponseText[AI Response Text]
+    ResponseText --> MarkdownCleaner[Markdown & Clean Speech Sanitizer]
+    MarkdownCleaner --> TTS[Text-to-Speech Engine / SpeechSynthesizer]
+    TTS --> Speaker[Agent Speaks Back Aloud]
+```
+
+## Key Requirements & Components
+
+### 1. TTS Abstraction Layer
+#### `[NEW] src/lib/ai/speech-synthesizer.ts`
+- **Clean Speech Sanitizer**: Strips markdown formatting (`**`, `*`, `_`, `#`), JSON buttons (`[ACTION_BUTTONS...]`), bullet points, and raw URLs so spoken output is smooth and human-like.
+- **Language & Voice Selection**: Detects Hindi/Hinglish vs English phrasing to select standard clear voices (e.g. `hi-IN`, `en-IN`, or browser native natural voice).
+- **Interruptible Speech Control**: Provides `stopAssistantSpeech()` to immediately cut off speech when the user speaks or clicks a control.
+- **Lifecycle Callbacks**: Provides `onStart`, `onEnd`, and `onError` handlers to drive UI state transitions (`SPEAKING` -> `DONE`/`IDLE`).
+
+### 2. Voice Assistant State Machine & UI
+#### `[MODIFY] src/features/analytics/components/SmartAgentDrawer.tsx`
+- **Voice Mode Toggle**: `[ 🎤 Voice Mode: ON / OFF ]` button and status badge.
+- **Full Voice State Indicators**:
+  - `IDLE`: `🎤 Ready`
+  - `LISTENING`: `🔴 Listening...`
+  - `TRANSCRIBING`: `⏳ Understanding...`
+  - `THINKING`: `✦ Thinking...`
+  - `SPEAKING`: `🔊 Speaking...` (with `[ ⏹ Stop Speaking ]` button)
+  - `DONE`: `🎤 Ready`
+- **Auto-Speak in Voice Mode**: Automatically invokes `speakAssistantResponse()` when an agent response arrives if Voice Mode is enabled or input was given via voice.
+- **Barge-in / Interruption**: When the user presses the microphone while the assistant is speaking, it immediately cancels active speech via `stopAssistantSpeech()` and transitions state to `LISTENING`.
+
+### 3. Server / Security Integrity & Text Mode Compatibility
+- No changes to server security: `GROQ_API_KEY` remains strictly server-side.
+- Typed chat and voice mode share the exact same tool execution pipeline (`askSmartAgentAction`).
+- Typed chat continues working seamlessly without forced auto-speech if Voice Mode is turned OFF.
+
+---
+
+## Verification Plan
+
+### Automated Tests & Type Checking
+- Run `npx tsc --noEmit` to verify 100% zero TypeScript errors.
+- Run `npm run build` to confirm production build compilation.
+
+### Runtime Verification
+- Start production server: `npx next start -p 3005`.
+- Test Voice Mode toggle (`ON` / `OFF`).
+- Test spoken queries (e.g. *"Meri DSA sheet kholo"*, *"Problem 4 open karo"*, *"What should I learn next?"*).
+- Verify tool execution occurs AND assistant speaks back the response aloud.
+- Verify speech interruption works when starting a new command while speaking.
+- Verify typed text chat still functions as expected.

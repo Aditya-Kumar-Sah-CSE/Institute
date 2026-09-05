@@ -18,6 +18,7 @@ import SolutionEditor from './SolutionEditor';
 import SheetReviewsSection from './SheetReviewsSection';
 import { calculateMotivationalAnalytics } from '../lib/motivational-engine';
 import { SolvedStatusMap } from '@/lib/coding-platforms/solved-matcher';
+import { useLivePageContext } from '@/features/analytics/context/LivePageContext';
 import './CodeArena.css';
 
 type Problem = {
@@ -112,9 +113,44 @@ export default function SheetDetailClient({
     s.email.toLowerCase().includes(enrolledSearch.toLowerCase())
   );
 
+  const { setLiveContext } = useLivePageContext();
+
   useEffect(() => {
     setIsMounted(true);
-  }, []);
+
+    const visibleProblems = (sheet.problems || []).map((p, idx) => ({
+      id: p.id,
+      number: p.order_index || (idx + 1),
+      title: p.title,
+      topic: p.tags?.[0] || p.source_type || 'DSA',
+      difficulty: p.difficulty || 'Medium',
+      solved: solvedProblemIds.includes(p.id)
+    }));
+
+    const totalProbs = sheet.problems?.length || 0;
+    const solvedProbs = solvedProblemIds.length;
+    const pct = totalProbs > 0 ? Math.round((solvedProbs / totalProbs) * 100) : 0;
+
+    setLiveContext({
+      route: `/code-arena/sheets/${sheet.id}`,
+      pageType: 'dsa_sheet_detail',
+      pageTitle: sheet.title,
+      currentEntity: {
+        type: 'sheet',
+        id: sheet.id,
+        title: sheet.title,
+        metadata: {
+          totalProblems: totalProbs,
+          solvedProblems: solvedProbs,
+          progress: pct
+        }
+      },
+      visibleEntities: {
+        problems: visibleProblems
+      },
+      availableActions: ['open_problem', 'search_youtube', 'open_latex', 'filter_problems']
+    });
+  }, [sheet, solvedProblemIds, setLiveContext]);
 
   const handleCopyShareLink = async () => {
     const shareUrl = `${window.location.origin}/share/sheet/${sheet.slug || sheet.id}`;

@@ -17,6 +17,8 @@ import dynamic from 'next/dynamic';
 
 const FloatingAgentButton = dynamic(() => import('@/features/analytics/components/FloatingAgentButton'));
 
+import { LivePageContextProvider } from '@/features/analytics/context/LivePageContext';
+
 export default async function DashboardLayout({
   children,
 }: {
@@ -66,30 +68,30 @@ export default async function DashboardLayout({
     updateStreak(user.id).catch(console.error);
   }
 
-  // Settings are fetched concurrently with profile above
-
   return (
-    <div className="dashboard-layout">
-      <Sidebar key="student" profile={profile} roleView="student" isSuperAdmin={profile.email === SUPER_ADMIN_EMAIL} />
-      <div className="dashboard-main">
-        <Navbar 
-          companyName={settings?.company_name} 
-          companyLogo={settings?.logo_url} 
-          profile={profile}
-          currentView="student"
-        />
-        <main className="dashboard-content">
-          {children}
-        </main>
-      </div>
+    <LivePageContextProvider>
+      <div className="dashboard-layout">
+        <Sidebar key="student" profile={profile} roleView="student" isSuperAdmin={profile.email === SUPER_ADMIN_EMAIL} />
+        <div className="dashboard-main">
+          <Navbar 
+            companyName={settings?.company_name} 
+            companyLogo={settings?.logo_url} 
+            profile={profile}
+            currentView="student"
+          />
+          <main className="dashboard-content">
+            {children}
+          </main>
+        </div>
 
-      <PwaRegister />
-      <PwaUpdateToast />
-      <PWAInstallPrompt />
-      <XpCelebrator />
-      <FeedbackWidget />
-      <FloatingAgentButton />
-      <Analytics />
-    </div>
+        <PwaRegister />
+        <PwaUpdateToast />
+        <PWAInstallPrompt />
+        <XpCelebrator />
+        <FeedbackWidget />
+        <FloatingAgentButton />
+        <Analytics />
+      </div>
+    </LivePageContextProvider>
   );
 }
