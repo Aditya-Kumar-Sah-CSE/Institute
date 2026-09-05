@@ -315,12 +315,12 @@ export default function MessageBubble({
             borderRadius: '16px',
             background: isMine 
               ? '#1976d2' 
-              : '#222538',
+              : 'var(--bg-elevated)',
             backdropFilter: 'blur(20px)',
-            color: '#ffffff',
+            color: isMine ? '#ffffff' : 'var(--text-primary)',
             borderBottomRightRadius: isMine ? '4px' : '16px',
             borderBottomLeftRadius: isMine ? '16px' : '4px',
-            border: isMine ? 'none' : '1px solid rgba(255, 255, 255, 0.06)',
+            border: isMine ? 'none' : '1px solid var(--border-default)',
             boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
             position: 'relative'
           }}
@@ -499,7 +499,7 @@ export default function MessageBubble({
                 lineHeight: 1.45, 
                 wordBreak: 'break-word', 
                 textAlign: 'left',
-                color: '#ffffff',
+                color: isMine ? '#ffffff' : 'var(--text-primary)',
                 paddingBottom: '4px'
               }}>
                 {renderFormattedText(msg.content)}

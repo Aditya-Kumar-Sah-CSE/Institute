@@ -250,13 +250,13 @@ export default function UpcomingContestsAlert({ initialExpand = false }: Upcomin
 
   return (
     <div className="upcoming-contests-alert-card" style={{
-      background: 'rgba(15, 23, 42, 0.75)',
+      background: 'var(--bg-card)',
       backdropFilter: 'blur(12px)',
-      border: '1px solid var(--glass-border)',
+      border: '1px solid var(--border-default)',
       borderRadius: 'var(--radius-md)',
       padding: '14px 18px',
       marginBottom: '20px',
-      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+      boxShadow: 'var(--shadow-md)',
       transition: 'all 0.3s ease',
     }}>
       <div 
@@ -388,10 +388,10 @@ export default function UpcomingContestsAlert({ initialExpand = false }: Upcomin
             display: 'flex',
             flexWrap: 'wrap',
             gap: '6px',
-            background: 'rgba(0, 0, 0, 0.3)',
+            background: 'var(--bg-secondary)',
             padding: '6px',
             borderRadius: '8px',
-            border: '1px solid var(--glass-border)',
+            border: '1px solid var(--border-default)',
             marginBottom: '14px',
           }}>
             {(['ALL', 'CODECHEF', 'CODEFORCES', 'LEETCODE', 'GEEKSFORGEEKS'] as const).map((plt) => (
@@ -450,8 +450,8 @@ export default function UpcomingContestsAlert({ initialExpand = false }: Upcomin
                   <div
                     key={c.id}
                     style={{
-                      background: isLive ? 'rgba(239, 68, 68, 0.08)' : 'rgba(255, 255, 255, 0.03)',
-                      border: isLive ? '1px solid rgba(239, 68, 68, 0.4)' : isStartingSoon ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid var(--glass-border)',
+                      background: isLive ? 'rgba(239, 68, 68, 0.08)' : 'var(--bg-elevated)',
+                      border: isLive ? '1px solid rgba(239, 68, 68, 0.4)' : isStartingSoon ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid var(--border-default)',
                       borderRadius: '10px',
                       padding: '14px',
                       display: 'flex',

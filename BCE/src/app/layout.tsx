@@ -21,10 +21,10 @@ import AuthChangeHandler from '@/components/AuthChangeHandler';
 import GlobalButtonLoadingHandler from '@/components/GlobalButtonLoadingHandler';
 
 export const viewport: Viewport = {
-  themeColor: '#0b0f19',
-  colorScheme: 'dark',
+  themeColor: '#ffffff',
+  colorScheme: 'light',
 };
-
+ 
 export const metadata: Metadata = {
   title: 'Smart Hybrid Learning | Student Engagement Platform',
   description: "To transform traditional classrooms into intelligent, data-driven learning environments where every student receives continuous guidance, every teacher gains actionable insights, and every institute can deliver a more engaging and effective educational experience.",
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'black-translucent',
+    statusBarStyle: 'default',
     title: 'Smart Hybrid Learning',
   },
   formatDetection: {
@@ -62,7 +62,7 @@ export default function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning className={`${outfit.variable} ${jetbrainsMono.variable}`}>
       <body suppressHydrationWarning className={`${outfit.variable} ${jetbrainsMono.variable}`}>
-        <ThemeProvider attribute="data-theme" defaultTheme="dark" enableSystem={false} disableTransitionOnChange={false}>
+        <ThemeProvider attribute="data-theme" defaultTheme="light" enableSystem={false} disableTransitionOnChange={false}>
           <AuthChangeHandler />
           <GlobalButtonLoadingHandler />
           <PwaRegister />

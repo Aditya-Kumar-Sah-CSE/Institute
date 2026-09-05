@@ -123,7 +123,7 @@ export default function CourseReviewsSection({
   const pagedReviews = displayedReviews.slice(0, visibleCount);
 
   return (
-    <Card variant="glass" className="course-reviews-section" style={{ padding: 'var(--space-xl)', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.7), rgba(11, 15, 25, 0.8))', border: '1px solid rgba(255, 215, 0, 0.15)', boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)' }}>
+    <Card variant="glass" className="course-reviews-section" style={{ padding: 'var(--space-xl)', background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-md)' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
@@ -258,9 +258,9 @@ export default function CourseReviewsSection({
             gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
             gap: 'var(--space-lg)',
             padding: 'var(--space-lg)',
-            background: 'rgba(0, 0, 0, 0.35)',
+            background: 'var(--bg-secondary)',
             borderRadius: '16px',
-            border: '1px solid rgba(255, 255, 255, 0.08)'
+            border: '1px solid var(--border-default)'
           }}
         >
           {/* Average Rating Block */}
@@ -363,10 +363,10 @@ export default function CourseReviewsSection({
                       padding: '18px 20px',
                       background: isHidden 
                         ? 'rgba(239, 68, 68, 0.05)' 
-                        : 'linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.65) 100%)',
+                        : 'var(--bg-elevated)',
                       borderRadius: '16px',
-                      border: isHidden ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(255, 255, 255, 0.09)',
-                      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+                      border: isHidden ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid var(--border-default)',
+                      boxShadow: 'var(--shadow-sm)',
                       backdropFilter: 'blur(12px)',
                       display: 'flex',
                       flexDirection: 'column',
@@ -384,7 +384,7 @@ export default function CourseReviewsSection({
                         />
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontWeight: 800, fontSize: '14px', color: '#ffffff' }}>
+                            <span style={{ fontWeight: 800, fontSize: '14px', color: 'var(--text-primary)' }}>
                               {r.is_public ? (r.profile?.name || 'Verified Student') : 'Enrolled Student'}
                             </span>
                             {r.profile?.role === 'instructor' || r.profile?.role === 'admin' ? (
@@ -397,7 +397,7 @@ export default function CourseReviewsSection({
                               </span>
                             )}
                           </div>
-                          <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
                             {new Date(r.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                           </div>
                         </div>
@@ -452,7 +452,7 @@ export default function CourseReviewsSection({
 
                     {/* Review Text */}
                     {r.review_text && (
-                      <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#cbd5e1', lineHeight: 1.6, whiteSpace: 'pre-line', background: 'rgba(0, 0, 0, 0.25)', padding: '10px 14px', borderRadius: '10px', borderLeft: '3px solid #f59e0b' }}>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-primary)', lineHeight: 1.6, whiteSpace: 'pre-line', background: 'var(--bg-secondary)', padding: '10px 14px', borderRadius: '10px', borderLeft: '3px solid #f59e0b' }}>
                         "{r.review_text}"
                       </p>
                     )}

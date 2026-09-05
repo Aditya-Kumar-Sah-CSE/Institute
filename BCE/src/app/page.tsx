@@ -184,13 +184,6 @@ export default async function LandingPage() {
           </div>
           <div className="footer-links">
             <div className="link-group">
-              <h4>Platform</h4>
-              <Link href="/courses">Courses</Link>
-              <Link href="/leaderboard">Leaderboard</Link>
-              <Link href="/login">Student Login</Link>
-              <Link href="/apply-instructor">Faculty Apply</Link>
-            </div>
-            <div className="link-group">
               <h4>Connect</h4>
               <a href="https://portfolio-two-ashen-zseywond41.vercel.app/" target="_blank" rel="noopener noreferrer">Meet Developer</a>
               <a href="mailto:iambestadi@gmail.com">Contact Support</a>
