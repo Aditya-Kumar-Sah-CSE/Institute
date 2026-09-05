@@ -9,12 +9,7 @@ import {
   stopAssistantSpeech, 
   isSpeechSynthesisSupported 
 } from '@/lib/ai/speech-synthesizer';
-import { 
-  AudioSegmentRecorder, 
-  transcribeAudioFile, 
-  getSupportedMimeType,
-  AudioRecorder 
-} from '@/lib/ai/speech-recorder';
+import { GeminiLiveSession } from '@/lib/ai/gemini-live-session';
 
 export interface SmartAgentMessage {
   role: 'user' | 'assistant';
@@ -125,7 +120,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
   const [messages, setMessages] = useState<SmartAgentMessage[]>([
     {
       role: 'assistant',
-      content: `Hi! I'm **Smart Learn AI Agent** ✦\n\nI can execute actions, open courses, launch DSA sheets, search YouTube/GPT, open LaTeX editor, and manage your routine or goals using natural language or voice commands.\n\nTry speaking to me!`,
+      content: `Hi! I'm **Smart Learn AI Agent** ✦\n\nPowered by Gemini Live realtime streaming voice. I understand natural English, Hindi, and Hinglish!\n\nClick the mic button once to talk hands-free continuously.`,
       actions: [
         { label: 'Open DSA Sheets', url: '/code-arena/sheets' },
         { label: 'Explore Courses', url: '/courses' }
@@ -145,22 +140,9 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
 
   const [pendingVerification, setPendingVerification] = useState<PendingVerification | null>(null);
 
-  // ─── STATE REFS FOR ASYNC CALLBACK & SESSION VALIDATION ───
-  const isProcessingRef = useRef<boolean>(false);
-  const segmentRecorderRef = useRef<AudioSegmentRecorder | null>(null);
+  // Gemini Live Session Ref
+  const geminiLiveSessionRef = useRef<GeminiLiveSession | null>(null);
   const voiceStateRef = useRef<RealtimeVoiceState>('IDLE');
-  const voiceSessionIdRef = useRef<number>(0);
-  const restartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const sttAbortControllerRef = useRef<AbortController | null>(null);
-  const agentAbortControllerRef = useRef<AbortController | null>(null);
-
-  // VAD Monitoring Loop Refs
-  const vadAnimFrameRef = useRef<number | null>(null);
-  const ambientSamplesRef = useRef<number[]>([]);
-  const speechStartTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const bargeInTimerRef = useRef<NodeJS.Timeout | null>(null);
-
   const isVoiceModeRef = useRef<boolean>(isVoiceMode);
   const isOpenRef = useRef<boolean>(isOpen);
 
@@ -176,55 +158,29 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
     }
   }, [isOpen]);
 
-  // Update voice state ref helper
+  // Update voice state helper
   const setVoiceState = (nextState: RealtimeVoiceState) => {
     voiceStateRef.current = nextState;
     setRealtimeVoiceState(nextState);
 
-    // Sync boolean flags for backward compatibility
     setIsListening(nextState === 'LISTENING' || nextState === 'HEARING' || nextState === 'FINALIZING');
     setIsTranscribing(nextState === 'TRANSCRIBING');
     setIsSpeaking(nextState === 'SPEAKING_AI');
   };
 
-  // Clean up recording, VAD timers, and speech on Provider unmount
+  // Clean up on Provider unmount
   useEffect(() => {
     return () => {
       stopVoiceSession();
     };
   }, []);
 
-  // Helper to clear pending restart timer explicitly
-  const clearRestartTimeout = () => {
-    if (restartTimeoutRef.current) {
-      clearTimeout(restartTimeoutRef.current);
-      restartTimeoutRef.current = null;
-    }
-  };
-
-  const clearVADTimers = () => {
-    if (speechStartTimerRef.current) {
-      clearTimeout(speechStartTimerRef.current);
-      speechStartTimerRef.current = null;
-    }
-    if (silenceTimerRef.current) {
-      clearTimeout(silenceTimerRef.current);
-      silenceTimerRef.current = null;
-    }
-    if (bargeInTimerRef.current) {
-      clearTimeout(bargeInTimerRef.current);
-      bargeInTimerRef.current = null;
-    }
-    if (vadAnimFrameRef.current !== null) {
-      cancelAnimationFrame(vadAnimFrameRef.current);
-      vadAnimFrameRef.current = null;
-    }
-  };
-
   // ─── VOICE SESSION CONTROLLER FUNCTIONS ───
 
   const stopSpeech = () => {
-    clearRestartTimeout();
+    if (geminiLiveSessionRef.current) {
+      geminiLiveSessionRef.current.stop();
+    }
     stopAssistantSpeech();
     if (voiceStateRef.current === 'SPEAKING_AI') {
       setVoiceState('IDLE');
@@ -232,243 +188,94 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
   };
 
   const stopVoiceSession = () => {
-    clearRestartTimeout();
-    clearVADTimers();
-
-    // Abort pending STT and Agent network requests
-    if (sttAbortControllerRef.current) {
-      try { sttAbortControllerRef.current.abort(); } catch (e) {}
-      sttAbortControllerRef.current = null;
+    if (geminiLiveSessionRef.current) {
+      geminiLiveSessionRef.current.stop();
+      geminiLiveSessionRef.current = null;
     }
-    if (agentAbortControllerRef.current) {
-      try { agentAbortControllerRef.current.abort(); } catch (e) {}
-      agentAbortControllerRef.current = null;
-    }
-
-    // Invalidate session ID to block all pending async callbacks / TTS loops
-    voiceSessionIdRef.current++;
-
-    // Stop TTS speech playback
     stopAssistantSpeech();
-
-    // Dispose persistent segment recorder and MediaStream tracks
-    if (segmentRecorderRef.current) {
-      try {
-        segmentRecorderRef.current.dispose();
-      } catch (e) {}
-      segmentRecorderRef.current = null;
-    }
-
-    ambientSamplesRef.current = [];
     setVoiceState('STOPPED');
   };
 
-  // ─── REAL-TIME VAD LOOP ENGINE ───
-  const startVADLoop = () => {
-    clearVADTimers();
-
-    const loop = () => {
-      if (!isOpenRef.current || !isVoiceModeRef.current || !segmentRecorderRef.current || !segmentRecorderRef.current.analyzer) {
-        return;
-      }
-
-      const analyzer = segmentRecorderRef.current.analyzer;
-      const rms = analyzer.getRMS();
-
-      // Ambient Noise Calibration Phase (First 15 samples)
-      if (ambientSamplesRef.current.length < 15) {
-        ambientSamplesRef.current.push(rms);
-        analyzer.calibrate(ambientSamplesRef.current);
-      }
-
-      const state = voiceStateRef.current;
-
-      // STATE 1: LISTENING (Waiting for speech entry)
-      if (state === 'LISTENING') {
-        if (rms > analyzer.speechThreshold) {
-          if (!speechStartTimerRef.current) {
-            speechStartTimerRef.current = setTimeout(() => {
-              speechStartTimerRef.current = null;
-              if (voiceStateRef.current === 'LISTENING' && isOpenRef.current && isVoiceModeRef.current) {
-                // Speech confirmed! Start segment recording
-                setVoiceState('HEARING');
-                if (segmentRecorderRef.current) {
-                  segmentRecorderRef.current.startSegmentRecording();
-                }
-              }
-            }, 150); // 150ms speech start stability window
-          }
-        } else {
-          if (speechStartTimerRef.current) {
-            clearTimeout(speechStartTimerRef.current);
-            speechStartTimerRef.current = null;
-          }
-        }
-      }
-
-      // STATE 2: HEARING (Capturing user speech turn)
-      else if (state === 'HEARING') {
-        if (rms < analyzer.silenceThreshold) {
-          if (!silenceTimerRef.current) {
-            silenceTimerRef.current = setTimeout(() => {
-              silenceTimerRef.current = null;
-              if (voiceStateRef.current === 'HEARING' && isOpenRef.current && isVoiceModeRef.current) {
-                // Silence window confirmed (750ms)! Finalize segment & process STT
-                setVoiceState('FINALIZING');
-                processSpeechSegment();
-              }
-            }, 750); // 750ms silence window (600-900ms range)
-          }
-        } else {
-          // Reset silence timer if user continues speaking
-          if (silenceTimerRef.current) {
-            clearTimeout(silenceTimerRef.current);
-            silenceTimerRef.current = null;
-          }
-        }
-      }
-
-      // STATE 3: SPEAKING_AI (Barge-In Interruption Monitoring)
-      else if (state === 'SPEAKING_AI') {
-        // Monitor for high energy user speech exceeding bargeInThreshold
-        if (rms > analyzer.bargeInThreshold) {
-          if (!bargeInTimerRef.current) {
-            bargeInTimerRef.current = setTimeout(() => {
-              bargeInTimerRef.current = null;
-              if (voiceStateRef.current === 'SPEAKING_AI' && isOpenRef.current && isVoiceModeRef.current) {
-                // BARGE-IN DETECTED!
-                if (process.env.NODE_ENV === 'development') {
-                  console.log('[VAD BARGE-IN DETECTED] User interrupted AI speech!');
-                }
-                // Stop speech and abort active agent network requests immediately
-                stopSpeech();
-                if (agentAbortControllerRef.current) {
-                  try { agentAbortControllerRef.current.abort(); } catch (e) {}
-                  agentAbortControllerRef.current = null;
-                }
-                // Transition state to HEARING to capture user's new command
-                setVoiceState('HEARING');
-                if (segmentRecorderRef.current) {
-                  segmentRecorderRef.current.startSegmentRecording();
-                }
-              }
-            }, 200); // 200ms barge-in confirmation window
-          }
-        } else {
-          if (bargeInTimerRef.current) {
-            clearTimeout(bargeInTimerRef.current);
-            bargeInTimerRef.current = null;
-          }
-        }
-      }
-
-      vadAnimFrameRef.current = requestAnimationFrame(loop);
-    };
-
-    vadAnimFrameRef.current = requestAnimationFrame(loop);
-  };
-
   const startVoiceListening = async () => {
-    clearRestartTimeout();
     if (isLoading) return;
 
-    stopSpeech();
+    stopVoiceSession();
     setVoiceNotice(null);
 
-    const currentSessionId = ++voiceSessionIdRef.current;
-
-    if (!segmentRecorderRef.current) {
-      segmentRecorderRef.current = new AudioSegmentRecorder();
-    }
-
-    const res = await segmentRecorderRef.current.acquirePersistentStream();
-
-    if (voiceSessionIdRef.current !== currentSessionId || !isOpenRef.current || !isVoiceModeRef.current) {
-      if (segmentRecorderRef.current) segmentRecorderRef.current.dispose();
-      segmentRecorderRef.current = null;
-      setVoiceState('STOPPED');
-      return;
-    }
-
-    if (!res.success) {
-      if (segmentRecorderRef.current) segmentRecorderRef.current.dispose();
-      segmentRecorderRef.current = null;
-      setVoiceState('STOPPED');
-      setVoiceNotice(res.message || 'Microphone access error.');
-      return;
-    }
-
-    setVoiceState('LISTENING');
-    startVADLoop();
-  };
-
-  // ─── PROCESS FINALIZED SPEECH SEGMENT ───
-  const processSpeechSegment = async () => {
-    if (!segmentRecorderRef.current) return;
-    const currentSessionId = voiceSessionIdRef.current;
-
-    setVoiceState('TRANSCRIBING');
-
-    try {
-      const blob = await segmentRecorderRef.current.stopSegmentRecording();
-
-      if (voiceSessionIdRef.current !== currentSessionId || !isOpenRef.current) {
-        setVoiceState('LISTENING');
-        return;
-      }
-
-      // Ignore silent / empty audio blobs (under 300 bytes)
-      if (!blob || blob.size < 300) {
-        setVoiceState('LISTENING');
-        startVADLoop();
-        return;
-      }
-
-      // Create STT AbortController
-      sttAbortControllerRef.current = new AbortController();
-
-      const sttRes = await transcribeAudioFile(
-        blob, 
-        getSupportedMimeType(), 
-        sttAbortControllerRef.current.signal
-      );
-
-      sttAbortControllerRef.current = null;
-
-      if (voiceSessionIdRef.current !== currentSessionId || !isOpenRef.current) {
-        setVoiceState('LISTENING');
-        return;
-      }
-
-      if (sttRes.success && sttRes.transcript) {
-        setVoiceState('THINKING');
-        setInputVal(sttRes.transcript);
-        await handleSendPrompt(sttRes.transcript, undefined, true);
-      } else {
-        if (sttRes.errorCode !== 'TRANSCRIPTION_FAILED') {
-          setVoiceNotice(sttRes.message || 'Could not understand speech.');
+    const session = new GeminiLiveSession(
+      {
+        onStateChange: (state) => {
+          setVoiceState(state as RealtimeVoiceState);
+        },
+        onAssistantTextChunk: (chunk) => {
+          setMessages((prev) => {
+            const lastMsg = prev[prev.length - 1];
+            if (lastMsg && lastMsg.role === 'assistant' && (lastMsg as any).isStreaming) {
+              return [
+                ...prev.slice(0, -1),
+                { ...lastMsg, content: lastMsg.content + chunk }
+              ];
+            } else {
+              return [
+                ...prev,
+                { role: 'assistant', content: chunk, isStreaming: true } as any
+              ];
+            }
+          });
+        },
+        onAssistantTextComplete: (fullText) => {
+          setMessages((prev) => {
+            const lastMsg = prev[prev.length - 1];
+            if (lastMsg && lastMsg.role === 'assistant' && (lastMsg as any).isStreaming) {
+              return [
+                ...prev.slice(0, -1),
+                { ...lastMsg, content: fullText, isStreaming: false } as any
+              ];
+            }
+            return prev;
+          });
+        },
+        onToolExecuted: (toolName, result) => {
+          if (result.url) {
+            router.push(result.url);
+          }
+          if (result.pendingNavigation && result.navigationId) {
+            setPendingVerification({
+              navigationId: result.navigationId,
+              expectedRoute: result.expectedRoute || result.url,
+              expectedEntity: result.expectedEntity,
+              successMessage: result.successMessage || 'Navigation complete.',
+              voiceTriggered: true,
+              timestamp: Date.now()
+            });
+          }
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: 'assistant',
+              content: result.message || `Executed ${toolName}`,
+              toolExecuted: toolName,
+              actions: result.url ? [{ label: `Open ${toolName}`, url: result.url }] : undefined
+            }
+          ]);
+        },
+        onError: (errMsg) => {
+          setVoiceNotice(errMsg);
+          setVoiceState('STOPPED');
         }
-        setVoiceState('LISTENING');
-        startVADLoop();
-      }
-    } catch (err: any) {
-      sttAbortControllerRef.current = null;
-      if (voiceSessionIdRef.current === currentSessionId && isOpenRef.current) {
-        setVoiceState('LISTENING');
-        startVADLoop();
-      }
-    }
+      },
+      liveContext
+    );
+
+    geminiLiveSessionRef.current = session;
+    await session.start();
   };
 
   const stopVoiceRecordingAndSend = async () => {
-    if (voiceStateRef.current === 'HEARING') {
-      setVoiceState('FINALIZING');
-      await processSpeechSegment();
-    }
+    stopVoiceSession();
   };
 
   const toggleVoiceRecording = async () => {
-    clearRestartTimeout();
     if (isLoading) return;
 
     if (realtimeVoiceState === 'STOPPED' || realtimeVoiceState === 'IDLE') {
@@ -508,15 +315,6 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
     setExecutionState('IDLE');
   };
 
-  const handleSetVoiceMode = (val: boolean) => {
-    setIsVoiceMode(val);
-    if (!val) {
-      stopVoiceSession();
-    } else {
-      startVoiceListening();
-    }
-  };
-
   const getDynamicLoadingText = () => {
     if (executionState === 'UNDERSTANDING') return 'Understanding intent...';
     if (executionState === 'EXECUTING') return 'Executing tool...';
@@ -533,336 +331,148 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
     return 'Processing your command...';
   };
 
-  // Helper function to trigger speech with continuous conversation loop
-  const triggerSpeechWithLoop = (text: string, voiceTriggered = false) => {
-    clearRestartTimeout();
-
-    if (!isVoiceModeRef.current && !voiceTriggered) {
-      setExecutionState('IDLE');
-      setVoiceState('LISTENING');
-      startVADLoop();
-      return;
-    }
-
-    const promptSessionId = voiceSessionIdRef.current;
-    setExecutionState('SPEAKING');
-    setVoiceState('SPEAKING_AI');
-
-    const spoke = speakAssistantResponse(text, {
-      onStart: () => setIsSpeaking(true),
-      onEnd: () => {
-        setIsSpeaking(false);
-        clearRestartTimeout();
-
-        // CONTINUOUS VOICE AGENT LOOP: Automatically transition back to LISTENING
-        if (
-          voiceSessionIdRef.current === promptSessionId &&
-          isVoiceModeRef.current &&
-          isOpenRef.current
-        ) {
-          setExecutionState('IDLE');
-          setVoiceState('LISTENING');
-          startVADLoop();
-        } else {
-          setExecutionState('IDLE');
-          setVoiceState('STOPPED');
-        }
-      },
-      onError: () => {
-        setIsSpeaking(false);
-        clearRestartTimeout();
-        setExecutionState('IDLE');
-        setVoiceState('LISTENING');
-        startVADLoop();
-      }
-    });
-
-    if (!spoke && !isSpeechSynthesisSupported()) {
-      setVoiceNotice('Response is ready, but voice playback is unavailable on this browser.');
-      setExecutionState('IDLE');
-      setVoiceState('LISTENING');
-      startVADLoop();
-    }
-  };
-
   // ─── POST-NAVIGATION HANDSHAKE VERIFICATION EFFECT ───
   useEffect(() => {
     if (!pendingVerification) return;
 
     const { navigationId, expectedRoute, expectedEntity, successMessage, voiceTriggered, timestamp } = pendingVerification;
 
-    // Timeout safety check (8s)
     const timeoutTimer = setTimeout(() => {
       if (pendingVerification) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[SMART AGENT DEBUG - VERIFICATION TIMEOUT]', {
-            navigationId,
-            expectedRoute,
-            timeElapsedMs: Date.now() - timestamp
-          });
-        }
         setPendingVerification(null);
-        setExecutionState('FAILED');
-        const failMsg = `Requested page navigation verification timed out. Please check your connection.`;
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: failMsg,
-          navigationState: 'FAILED',
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }]);
-
-        triggerSpeechWithLoop(failMsg, voiceTriggered);
+        setExecutionState('IDLE');
+        setMessages((prev) => 
+          prev.map((msg) => 
+            msg.navigationState === 'NAVIGATING'
+              ? { 
+                  ...msg, 
+                  navigationState: 'FAILED',
+                  content: `${msg.content}\n\n⚠️ Verification failed: Navigation to ${expectedRoute} timed out.`
+                }
+              : msg
+          )
+        );
       }
     }, 8000);
 
-    // Read liveContext for verification update
-    if (liveContext) {
-      const loadState = liveContext.loadState || 'ready';
-      const actualRoute = liveContext.route;
-      const actualEntity = liveContext.currentEntity;
+    const checkState = () => {
+      const currentRoute = pathname;
+      let routeMatches = currentRoute === expectedRoute || currentRoute.startsWith(expectedRoute);
+      let entityMatches = true;
 
-      // Case A: 404 / Not Found
-      if (loadState === 'not-found') {
+      if (expectedEntity && liveContext?.currentEntity) {
+        entityMatches = liveContext.currentEntity.type === expectedEntity.type && liveContext.currentEntity.id === expectedEntity.id;
+      }
+
+      if (routeMatches && entityMatches) {
         clearTimeout(timeoutTimer);
         setPendingVerification(null);
-        setExecutionState('FAILED');
-        const notFoundText = expectedEntity?.title 
-          ? `"${expectedEntity.title}" page nahi mila.` 
-          : `Ye page nahi mila.`;
-        
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: notFoundText,
-          navigationState: 'NOT_FOUND',
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }]);
+        setExecutionState('IDLE');
 
-        triggerSpeechWithLoop(notFoundText, voiceTriggered);
-        return;
+        setMessages((prev) => 
+          prev.map((msg) => 
+            msg.navigationState === 'NAVIGATING'
+              ? { 
+                  ...msg, 
+                  navigationState: 'VERIFIED',
+                  content: `${msg.content}\n\n✅ Verified: ${successMessage}`
+                }
+              : msg
+          )
+        );
       }
+    };
 
-      // Case B: Error or Unauthorized
-      if (loadState === 'error' || loadState === 'unauthorized') {
-        clearTimeout(timeoutTimer);
-        setPendingVerification(null);
-        setExecutionState('FAILED');
-        const errText = loadState === 'unauthorized'
-          ? `Aapko is page ka access nahi hai.`
-          : `Page load karne me problem aayi.`;
+    checkState();
 
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: errText,
-          navigationState: loadState === 'unauthorized' ? 'UNAUTHORIZED' : 'FAILED',
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }]);
+    return () => {
+      clearTimeout(timeoutTimer);
+    };
+  }, [pathname, liveContext, pendingVerification]);
 
-        triggerSpeechWithLoop(errText, voiceTriggered);
-        return;
-      }
-
-      // Case C: Page is Ready! Perform Target Entity Comparison
-      if (loadState === 'ready') {
-        if (expectedEntity) {
-          const typeMatches = actualEntity?.type === expectedEntity.type;
-          const idMatches = actualEntity?.id === expectedEntity.id;
-          const titleMatches = actualEntity?.title && expectedEntity.title
-            ? actualEntity.title.toLowerCase().includes(expectedEntity.title.toLowerCase()) || expectedEntity.title.toLowerCase().includes(actualEntity.title.toLowerCase())
-            : false;
-
-          if (typeMatches && (idMatches || titleMatches)) {
-            clearTimeout(timeoutTimer);
-            setPendingVerification(null);
-
-            if (expectedEntity.type === 'sheet') {
-              setActiveContext(prev => ({
-                ...prev,
-                sheetId: actualEntity?.id || expectedEntity.id,
-                sheetTitle: actualEntity?.title || expectedEntity.title
-              }));
-            } else if (expectedEntity.type === 'problem') {
-              setActiveContext(prev => ({
-                ...prev,
-                problemId: actualEntity?.id || expectedEntity.id,
-                problemTitle: actualEntity?.title || expectedEntity.title
-              }));
-            } else if (expectedEntity.type === 'course') {
-              setActiveContext(prev => ({
-                ...prev,
-                courseId: actualEntity?.id || expectedEntity.id,
-                courseTitle: actualEntity?.title || expectedEntity.title
-              }));
-            }
-
-            setMessages(prev => [...prev, {
-              role: 'assistant',
-              content: successMessage,
-              navigationState: 'VERIFIED',
-              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            }]);
-
-            triggerSpeechWithLoop(successMessage, voiceTriggered);
-            return;
-          } else {
-            clearTimeout(timeoutTimer);
-            setPendingVerification(null);
-            setExecutionState('FAILED');
-            const mismatchText = `Requested ${expectedEntity.type} open nahi ho paayi.`;
-            
-            setMessages(prev => [...prev, {
-              role: 'assistant',
-              content: mismatchText,
-              navigationState: 'FAILED',
-              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            }]);
-
-            triggerSpeechWithLoop(mismatchText, voiceTriggered);
-            return;
-          }
-        } else {
-          clearTimeout(timeoutTimer);
-          setPendingVerification(null);
-
-          setMessages(prev => [...prev, {
-            role: 'assistant',
-            content: successMessage,
-            navigationState: 'VERIFIED',
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          }]);
-
-          triggerSpeechWithLoop(successMessage, voiceTriggered);
-        }
-      }
-    }
-
-    return () => clearTimeout(timeoutTimer);
-  }, [liveContext, pendingVerification, isVoiceMode]);
-
-  // ─── PROMPT SUBMISSION HANDLER ───
+  // ─── MAIN TEXT CHAT PROMPT HANDLER (GROQ AGENT FALLBACK / TEXT INPUT) ───
   const handleSendPrompt = async (
     textToSend?: string, 
-    confirmedTool?: { toolName: string; args: any }, 
+    confirmedTool?: { toolName: string; args: any },
     isVoiceTrigger = false
   ) => {
-    const promptText = (textToSend || inputVal).trim();
-    if ((!promptText && !confirmedTool) || isLoading || isProcessingRef.current) return;
+    const promptText = textToSend || inputVal;
+    if (!promptText.trim() && !confirmedTool) return;
 
-    isProcessingRef.current = true;
     stopSpeech();
-
+    setInputVal('');
     setCurrentPromptText(promptText);
+    setIsLoading(true);
+    setVoiceNotice(null);
+    setExecutionState('UNDERSTANDING');
 
-    if (!confirmedTool) {
-      const userMsg: SmartAgentMessage = {
-        role: 'user',
-        content: promptText,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      setMessages(prev => [...prev, userMsg]);
-      setInputVal('');
+    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    if (promptText.trim()) {
+      setMessages((prev) => [
+        ...prev,
+        { role: 'user', content: promptText, timestamp }
+      ]);
     }
 
-    setIsLoading(true);
-    setExecutionState('UNDERSTANDING');
-    setVoiceState('THINKING');
-
-    // Create Agent AbortController
-    agentAbortControllerRef.current = new AbortController();
-
     try {
-      const historyForAction = messages.map(m => ({
+      const formattedHistory = messages.map(m => ({
         role: m.role,
         content: m.content
       }));
 
-      setExecutionState('EXECUTING');
-
-      const res = await askSmartAgentAction({
-        prompt: promptText || 'Execute confirmed tool',
-        history: historyForAction,
-        pageContext: {
-          route: pathname,
-          ...activeContext,
-          liveContext
-        },
+      const response = await askSmartAgentAction({
+        prompt: promptText,
+        history: formattedHistory,
+        pageContext: liveContext as any,
         confirmedTool
       });
 
-      agentAbortControllerRef.current = null;
+      if (!response.success) {
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', content: `Sorry, ${response.message || 'I encountered an issue processing that.'}` }
+        ]);
+        setExecutionState('FAILED');
+        setIsLoading(false);
+        return;
+      }
 
-      // Check if navigation handshake is required
-      if (res.success && res.pendingNavigation && res.expectedRoute) {
-        setExecutionState('NAVIGATING');
+      setExecutionState('EXECUTING');
 
-        const navId = res.navigationId || `nav_${Date.now()}`;
-        const targetUrl = res.actions?.[0]?.url || res.expectedRoute;
-        const succMsg = res.successMessage || res.message;
+      const nextMsg: SmartAgentMessage = {
+        role: 'assistant',
+        content: response.message,
+        actions: response.actions,
+        requiresConfirmation: response.requiresConfirmation,
+        toolExecuted: response.toolExecuted,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
 
+      if (response.pendingNavigation && response.navigationId && response.expectedRoute) {
+        nextMsg.navigationState = 'NAVIGATING';
         setPendingVerification({
-          navigationId: navId,
-          expectedRoute: res.expectedRoute,
-          expectedEntity: res.expectedEntity,
-          successMessage: succMsg,
+          navigationId: response.navigationId,
+          expectedRoute: response.expectedRoute,
+          expectedEntity: response.expectedEntity,
+          successMessage: response.successMessage || response.message,
           voiceTriggered: isVoiceTrigger,
           timestamp: Date.now()
         });
-
-        if (targetUrl && targetUrl !== pathname) {
-          router.push(targetUrl);
-        } else {
-          setExecutionState('VERIFYING');
-        }
-      } else {
-        setExecutionState('VERIFYING');
-
-        if (res.message) {
-          const assistantMsg: SmartAgentMessage = {
-            role: 'assistant',
-            content: res.message,
-            actions: res.actions,
-            requiresConfirmation: res.requiresConfirmation,
-            toolExecuted: res.toolExecuted,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          };
-          setMessages(prev => [...prev, assistantMsg]);
-
-          if (res.success && res.actions && res.actions.length > 0) {
-            const actionUrl = res.actions[0].url || '';
-            const probMatch = actionUrl.match(/\/code-arena\/problems\/([^\/]+)/);
-            const courseMatch = actionUrl.match(/\/courses\/([^\/]+)/);
-
-            if (probMatch) {
-              setActiveContext(prev => ({
-                ...prev,
-                problemId: probMatch[1]
-              }));
-            } else if (courseMatch) {
-              setActiveContext(prev => ({
-                ...prev,
-                courseId: courseMatch[1]
-              }));
-            }
-          }
-
-          triggerSpeechWithLoop(res.message, isVoiceTrigger);
-        }
       }
-    } catch (err: any) {
-      agentAbortControllerRef.current = null;
+
+      setMessages((prev) => [...prev, nextMsg]);
+
       setExecutionState('IDLE');
-      if (err.name !== 'AbortError') {
-        setMessages(prev => [
-          ...prev,
-          {
-            role: 'assistant',
-            content: 'An error occurred while executing the command. Please try again.',
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          }
-        ]);
-      }
-    } finally {
       setIsLoading(false);
-      isProcessingRef.current = false;
+    } catch (err: any) {
+      console.error('[SmartAgentSessionContext Error]:', err);
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: 'An unexpected error occurred. Please try again.' }
+      ]);
+      setExecutionState('FAILED');
+      setIsLoading(false);
     }
   };
 
@@ -888,7 +498,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         setIsTranscribing,
         isSpeaking,
         isVoiceMode,
-        setIsVoiceMode: handleSetVoiceMode,
+        setIsVoiceMode,
         voiceNotice,
         setVoiceNotice,
         handleSendPrompt,
@@ -907,9 +517,9 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
 }
 
 export function useSmartAgentSession() {
-  const ctx = useContext(SmartAgentSessionContext);
-  if (!ctx) {
+  const context = useContext(SmartAgentSessionContext);
+  if (!context) {
     throw new Error('useSmartAgentSession must be used within a SmartAgentSessionProvider');
   }
-  return ctx;
+  return context;
 }

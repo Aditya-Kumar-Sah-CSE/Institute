@@ -1,0 +1,112 @@
+# Implementation Plan - True Real-Time Conversational VAD Voice Agent
+
+Transform the Smart Learn Voice Agent from push-to-talk into a true real-time conversational agent powered by Web Audio Voice Activity Detection (VAD), automatic speech boundary detection (speech start & silence window detection), continuous segment recording, barge-in interruption, network `AbortController` cancellation, and zero manual clicks between turns.
+
+## Proposed Architecture & State Machine
+
+```
+               ┌────────────────────────────────────────────────────────┐
+               │                      VOICE MODE ON                     │
+               └───────────────────────────┬────────────────────────────┘
+                                           │
+                                           ▼
+┌─────────────────┐      Speech Start     ┌─────────────────┐
+│    LISTENING    ├──────────────────────►│    HEARING      │
+│ (VAD Monitoring)│                       │(Capturing Chunks)│
+└────────▲────────┘                       └────────┬────────┘
+         │                                         │ Silence Window (600-900ms)
+         │                                         ▼
+         │                                ┌─────────────────┐
+         │                                │   FINALIZING    │
+         │                                └────────┬────────┘
+         │                                         │
+         │                                         ▼
+         │                                ┌─────────────────┐
+         │                                │   TRANSCRIBING  │
+         │                                │  (/api/ai/trans)│
+         │                                └────────┬────────┘
+         │                                         │ Valid Transcript
+         │                                         ▼
+         │                                ┌─────────────────┐
+         │                                │    THINKING     │
+         │                                │ (Smart AI Agent)│
+         │                                └────────┬────────┘
+         │                                         │
+         │                                         ▼
+         │       TTS Completed            ┌─────────────────┐
+         └────────────────────────────────┤   SPEAKING_AI   │
+             (Or Barge-In Interrupt)      │(TTS Assistant)  │
+                                          └─────────────────┘
+```
+
+---
+
+## Proposed Changes
+
+### 1. Web Audio VAD & Segment Recorder Engine
+
+#### [MODIFY] [speech-recorder.ts](file:///d:/Institute/BCE/src/lib/ai/speech-recorder.ts)
+
+- Add `WebAudioVAD` & `AudioEnergyAnalyzer`:
+  - Create `AudioContext` and `AnalyserNode` connected to active `MediaStream`.
+  - Calculate real-time RMS energy level of incoming audio frames.
+  - Implement configurable thresholds:
+    - `SPEECH_ENERGY_THRESHOLD = 0.018`
+    - `SILENCE_WINDOW_MS = 750ms` (configurable 600-900ms range)
+    - `MIN_SPEECH_DURATION_MS = 300ms`
+- Enhance `AudioRecorder`:
+  - Request constraints: `audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }`.
+  - Support segment-based recording: keep the underlying `MediaStream` active while creating fresh `MediaRecorder` segments per speech turn.
+  - Support `AbortController` signal for STT network requests (`transcribeAudioFile(blob, mimeType, abortSignal)`).
+
+---
+
+### 2. Voice Context & Real-Time Conversation Loop
+
+#### [MODIFY] [SmartAgentSessionContext.tsx](file:///d:/Institute/BCE/src/features/analytics/context/SmartAgentSessionContext.tsx)
+
+- Refactor `SmartAgentSessionContext`:
+  - Introduce explicit state enum: `IDLE`, `LISTENING`, `HEARING`, `FINALIZING`, `TRANSCRIBING`, `THINKING`, `SPEAKING_AI`, `STOPPED`.
+  - Implement Web Audio VAD monitoring loop in context:
+    - `LISTENING` -> `HEARING`: Triggered automatically when speech energy crosses `SPEECH_ENERGY_THRESHOLD`.
+    - `HEARING` -> `FINALIZING`: Triggered automatically when silence is detected for `750ms`.
+    - `FINALIZING` -> `TRANSCRIBING`: Automatically extracts speech segment blob and posts to `/api/ai/transcribe` with `sttAbortControllerRef`.
+    - `TRANSCRIBING` -> `THINKING`: Posts transcript to `askSmartAgentAction` with `agentAbortControllerRef`.
+    - `THINKING` -> `SPEAKING_AI`: Triggers `speakAssistantResponse`.
+    - `SPEAKING_AI` -> `LISTENING`: Upon TTS completion (`onEnd`), automatically transitions back to `LISTENING`.
+  - **Barge-in / AI Speech Interruption**:
+    - During `SPEAKING_AI`, monitor VAD for user speech.
+    - If user speech energy exceeds barge-in threshold for >250ms, immediately call `stopAssistantSpeech()`, abort pending requests, and switch to `HEARING` to capture the new command!
+  - **Self-Feedback Suppression**: Suppress mic processing during AI speaker output unless user speech crosses high barge-in threshold.
+  - **AbortController Management**: Maintain `sttAbortControllerRef` and `agentAbortControllerRef`. Abort pending requests when session changes, Voice is turned OFF, Stop is clicked, or drawer is closed.
+
+---
+
+### 3. User Interface & Dynamic Status Indicators
+
+#### [MODIFY] [SmartAgentDrawer.tsx](file:///d:/Institute/BCE/src/features/analytics/components/SmartAgentDrawer.tsx)
+
+- Update status indicator rendering:
+  - Remove all references to "Click mic again to stop & send".
+  - Render dynamic status badges matching current state:
+    - `LISTENING` → `● Listening…`
+    - `HEARING` → `● Hearing you…`
+    - `TRANSCRIBING` → `⏳ Understanding…`
+    - `THINKING` → `✦ Thinking…`
+    - `SPEAKING_AI` → `🔊 Speaking…`
+- Mic button functions as a simple `Voice ON / Voice OFF` toggle.
+- Maintain existing drawer layout, input form, and chat panel completely intact.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- Run `npx tsc --noEmit` to verify 0 TypeScript errors across the refactored VAD engine and context.
+
+### Manual & Real-Time Voice Verification
+1. **Zero-Click Hands-Free Flow**: Turn Voice ON, speak 10 consecutive commands naturally without touching the mic button once. Verify continuous state progression.
+2. **Automatic Silence Finalization**: Speak a sentence, stop talking. Verify speech is automatically finalized after 750ms silence window and sent to STT.
+3. **Barge-In Interruption**: While assistant is speaking a response, speak "Stop, open DSA sheet". Verify TTS immediately halts and user's new command is captured.
+4. **Silence / Noise Filter**: Keep Voice ON in quiet room for 30s. Verify no STT API calls or empty prompts are submitted.
+5. **Stop-Priority**: Turn Voice OFF, press Stop, or close drawer during any state (`HEARING`, `TRANSCRIBING`, `THINKING`, `SPEAKING_AI`). Verify MediaStream tracks, VAD loop, MediaRecorder, TTS, and network requests abort cleanly with zero stale callbacks.
