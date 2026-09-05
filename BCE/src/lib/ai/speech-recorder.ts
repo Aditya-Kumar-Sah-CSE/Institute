@@ -127,8 +127,9 @@ export class AudioEnergyAnalyzer {
 export class AudioSegmentRecorder {
   private persistentStream: MediaStream | null = null;
   private mediaRecorder: MediaRecorder | null = null;
-  private preRollBuffer: Blob[] = [];
-  private currentSegmentChunks: Blob[] = [];
+  private headerChunk: Blob | null = null;
+  private recentChunks: Blob[] = [];
+  private segmentStartIndex: number | null = null;
   private isInitializing: boolean = false;
   public analyzer: AudioEnergyAnalyzer | null = null;
 
@@ -141,7 +142,7 @@ export class AudioSegmentRecorder {
   }
 
   async acquirePersistentStream(): Promise<{ success: boolean; errorCode?: string; message?: string }> {
-    if (this.persistentStream && this.persistentStream.active) {
+    if (this.persistentStream && this.persistentStream.active && this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       return { success: true };
     }
 
@@ -197,6 +198,30 @@ export class AudioSegmentRecorder {
 
       this.persistentStream = acquiredStream;
       this.analyzer = new AudioEnergyAnalyzer(this.persistentStream);
+
+      // Initialize continuous MediaRecorder
+      const mimeType = getSupportedMimeType();
+      this.mediaRecorder = new MediaRecorder(this.persistentStream, { mimeType });
+      this.headerChunk = null;
+      this.recentChunks = [];
+      this.segmentStartIndex = null;
+
+      this.mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          if (!this.headerChunk) {
+            this.headerChunk = e.data;
+          }
+          this.recentChunks.push(e.data);
+          if (this.recentChunks.length > 60) {
+            this.recentChunks.shift();
+            if (this.segmentStartIndex !== null && this.segmentStartIndex > 0) {
+              this.segmentStartIndex--;
+            }
+          }
+        }
+      };
+
+      this.mediaRecorder.start(100);
       this.isInitializing = false;
       return { success: true };
     } catch (err: any) {
@@ -224,63 +249,32 @@ export class AudioSegmentRecorder {
   }
 
   startSegmentRecording() {
-    if (!this.persistentStream) return;
-
-    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
-      try { this.mediaRecorder.stop(); } catch (e) {}
-    }
-
-    this.currentSegmentChunks = [...this.preRollBuffer];
-    this.preRollBuffer = [];
-    const mimeType = getSupportedMimeType();
-
-    try {
-      this.mediaRecorder = new MediaRecorder(this.persistentStream, { mimeType });
-
-      this.mediaRecorder.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) {
-          this.currentSegmentChunks.push(e.data);
-          this.preRollBuffer.push(e.data);
-          if (this.preRollBuffer.length > 3) {
-            this.preRollBuffer.shift();
-          }
-        }
-      };
-
-      this.mediaRecorder.start(100);
-    } catch (e) {
-      console.warn('[SegmentRecorder Start Warning]', e);
-    }
+    // Capture pre-roll (~300ms = 3 chunks prior to current end)
+    const preRollCount = 3;
+    this.segmentStartIndex = Math.max(0, this.recentChunks.length - preRollCount);
   }
 
   stopSegmentRecording(): Promise<Blob | null> {
     return new Promise((resolve) => {
-      if (!this.mediaRecorder) {
+      if (this.segmentStartIndex === null || this.recentChunks.length === 0) {
+        this.segmentStartIndex = null;
         return resolve(null);
       }
 
       const mimeType = getSupportedMimeType();
+      const rawSegment = this.recentChunks.slice(this.segmentStartIndex);
+      this.segmentStartIndex = null;
 
-      this.mediaRecorder.onstop = () => {
-        const blob = new Blob(this.currentSegmentChunks, { type: mimeType });
-        this.currentSegmentChunks = [];
-        this.mediaRecorder = null;
-        resolve(blob.size > 100 ? blob : null);
-      };
-
-      try {
-        if (this.mediaRecorder.state !== 'inactive') {
-          this.mediaRecorder.stop();
-        } else {
-          const blob = new Blob(this.currentSegmentChunks, { type: mimeType });
-          this.currentSegmentChunks = [];
-          this.mediaRecorder = null;
-          resolve(blob.size > 100 ? blob : null);
-        }
-      } catch (e) {
-        this.mediaRecorder = null;
-        resolve(null);
+      if (rawSegment.length === 0) {
+        return resolve(null);
       }
+
+      // Ensure headerChunk is at index 0 for valid WebM container metadata
+      const speechBody = (this.headerChunk && rawSegment[0] === this.headerChunk) ? rawSegment.slice(1) : rawSegment;
+      const finalChunks = this.headerChunk ? [this.headerChunk, ...speechBody] : rawSegment;
+      const blob = new Blob(finalChunks, { type: mimeType });
+
+      resolve(blob.size > 100 ? blob : null);
     });
   }
 
@@ -306,8 +300,9 @@ export class AudioSegmentRecorder {
       this.analyzer = null;
     }
 
-    this.preRollBuffer = [];
-    this.currentSegmentChunks = [];
+    this.headerChunk = null;
+    this.recentChunks = [];
+    this.segmentStartIndex = null;
     this.isInitializing = false;
   }
 }
