@@ -117,6 +117,9 @@ export default function ShareUploadForm({
         if (!selectedLesson) return alert('Please select an existing lesson.');
         if (!newAssignmentTitle) return alert('Please provide an assignment title.');
 
+        const defaultDueDate = new Date();
+        defaultDueDate.setMonth(defaultDueDate.getMonth() + 3);
+
         const { error } = await supabase.from('assignments').insert({
           lesson_id: selectedLesson,
           type: 'any',
@@ -124,7 +127,8 @@ export default function ShareUploadForm({
           description: `Review the attached file(s) for this assignment: ${localAttachments.map(a => a.url).join(', ')}`,
           xp_reward: 20,
           requires_github: false,
-          requires_deploy: false
+          requires_deploy: false,
+          due_date: defaultDueDate.toISOString()
         });
         if (error) throw error;
       }

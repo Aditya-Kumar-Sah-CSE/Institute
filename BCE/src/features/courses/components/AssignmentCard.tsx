@@ -102,6 +102,21 @@ export default function AssignmentCard({ assignment, submission, communitySubmis
         </div>
         <div className="assignment-meta">
           <span className="assignment-xp text-gradient">+{assignment.xp_reward} XP</span>
+          {assignment.due_date && (() => {
+            const isPastDue = new Date(assignment.due_date) < new Date() && !isCompleted;
+            return (
+              <span 
+                className={`status-badge ${isPastDue ? 'rejected' : 'pending'}`}
+                style={{ 
+                  background: isPastDue ? 'rgba(255, 69, 58, 0.15)' : 'rgba(0, 229, 255, 0.1)', 
+                  color: isPastDue ? '#ff453a' : 'var(--neon-cyan)',
+                  border: isPastDue ? '1px solid #ff453a' : '1px solid rgba(0, 229, 255, 0.3)'
+                }}
+              >
+                📅 {isPastDue ? 'Expired: ' : 'Due: '}{new Date(assignment.due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+              </span>
+            );
+          })()}
           {isCompleted && <span className="status-badge approved">Approved</span>}
           {isPending && <span className="status-badge pending">In Review</span>}
           {submission?.status === 'rejected' && <span className="status-badge rejected">Needs Work</span>}

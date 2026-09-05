@@ -158,6 +158,7 @@ export interface Assignment {
   xp_reward: number;
   requires_github: boolean;
   requires_deploy: boolean;
+  due_date?: string | null;
   created_at: string;
 }
 
@@ -432,4 +433,43 @@ export interface ActivityFeedItem {
   
   profile?: Profile;
 }
+
+// ==============================
+// COURSE MCQs & ATTEMPTS
+// ==============================
+
+export type MCQSourceType = 'image' | 'scratch';
+
+export interface CourseMCQ {
+  id: string;
+  course_id: string;
+  question_text: string | null;
+  question_image_url: string | null;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  correct_option?: string; // e.g. 'A' or 'A,C' (stripped on server for students)
+  source_type: MCQSourceType;
+  display_order: number;
+  is_active: boolean;
+  competency_id?: string | null;
+  topic_id?: string | null;
+  difficulty?: string;
+  marks?: number;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CourseMCQAttempt {
+  id: string;
+  course_id: string;
+  user_id: string;
+  score: number;
+  total: number;
+  answers: Record<string, string>;
+  submitted_at: string;
+}
+
 

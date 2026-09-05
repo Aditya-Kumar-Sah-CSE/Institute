@@ -33,6 +33,7 @@ interface EditingItem {
   expected_output?: string | null;
   requires_github?: boolean;
   requires_deploy?: boolean;
+  due_date?: string | null;
 }
 
 async function uploadFileWithProgress(file: File, signedUrl: string, onProgress: (pct: number, loaded: number, total: number) => void): Promise<boolean> {
@@ -130,6 +131,13 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
     setModalType('lesson');
   };
 
+  const getDefault3MonthsDate = () => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 3);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
   const openAssignmentModal = (lessonId: string, assignment?: Assignment) => {
     setParentLessonId(lessonId);
     setEditingItem(assignment || null);
@@ -137,12 +145,25 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
     const isCodingAssignment = assignment?.description && /leetcode\.com|codeforces\.com/i.test(assignment.description);
     const mode = isCodingAssignment ? 'coding' : 'normal';
     setAssignmentMode(mode);
+
+    const formatDueDate = (dateStr?: string | null) => {
+      if (!dateStr) return getDefault3MonthsDate();
+      try {
+        const d = new Date(dateStr);
+        const pad = (n: number) => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      } catch {
+        return getDefault3MonthsDate();
+      }
+    };
+
     setAssignmentFormData({
       title: assignment?.title || '',
       type: assignment?.type || 'any',
       xp_reward: assignment?.xp_reward || (mode === 'coding' ? 50 : 20),
       description: assignment?.description || '',
       problem_url: isCodingAssignment ? assignment?.description : '',
+      due_date: formatDueDate(assignment?.due_date),
       requires_github: 'false',
       requires_deploy: 'false'
     });
@@ -527,6 +548,7 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                                   <div style={{ display: 'flex', flexWrap: 'wrap', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', gap: '8px', marginTop: '2px' }}>
                                     <span>Type: {assign.type}</span>
                                     <span>| ⭐ {assign.xp_reward} XP</span>
+                                    {assign.due_date && <span style={{ color: 'var(--neon-gold)' }}>| 📅 Due: {new Date(assign.due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>}
                                     {assign.requires_github && <span style={{ color: 'var(--neon-gold)' }}>| 🐙 GitHub</span>}
                                     {assign.requires_deploy && <span style={{ color: 'var(--neon-magenta)' }}>| 🚀 Deploy</span>}
                                   </div>
@@ -889,6 +911,17 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                 />
 
                 <Input name="xp_reward" type="number" label="XP Reward upon approval" value={assignmentFormData.xp_reward || ''} onChange={handleAssignmentChange} required />
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
+                  <Input 
+                    name="due_date" 
+                    type="datetime-local" 
+                    label="Deadline / Due Date" 
+                    value={assignmentFormData.due_date || ''} 
+                    onChange={handleAssignmentChange} 
+                  />
+                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '-8px' }}>Default is set to 3 months from creation date.</p>
+                </div>
 
                 <div style={{ display: 'flex', gap: 'var(--space-md)', justifyContent: 'flex-end', marginTop: 'var(--space-md)' }}>
                   <Button type="button" variant="ghost" onClick={closeModal}>Cancel</Button>

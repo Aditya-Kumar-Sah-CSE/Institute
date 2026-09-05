@@ -14,18 +14,18 @@ export default function CourseHeroCard({
   children,
   courseTitle,
   instructorName,
-  initialCollapsed = true,
+  initialCollapsed = false,
 }: CourseHeroCardProps) {
   const [isCollapsed, setIsCollapsed] = useState(initialCollapsed);
 
   return (
-    <div className="course-hero glass-card" style={{ position: 'relative', transition: 'all 0.3s ease' }}>
+    <div className="course-hero glass-card" style={{ position: 'relative', transition: 'all 0.3s ease', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-lg)' }}>
       <button
         type="button"
         onClick={() => setIsCollapsed(prev => !prev)}
         style={{
           position: 'absolute',
-          top: '14px',
+          top: '16px',
           right: '16px',
           zIndex: 10,
           display: 'inline-flex',
@@ -49,7 +49,20 @@ export default function CourseHeroCard({
       </button>
 
       {!isCollapsed ? (
-        children
+        <div style={{ width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: 'var(--space-lg)', paddingBottom: 'var(--space-sm)', borderBottom: '1px solid var(--glass-border)', paddingRight: '50px', flexWrap: 'wrap' }}>
+            <BookOpen size={22} style={{ color: 'var(--neon-cyan)' }} />
+            <h2 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 800 }}>
+              Course Details: <span className="text-gradient" style={{ marginLeft: '4px' }}>{courseTitle || 'Overview'}</span>
+            </h2>
+            {instructorName && (
+              <span style={{ fontSize: '0.8rem', color: 'var(--neon-cyan)', fontWeight: 600, background: 'rgba(6, 182, 212, 0.1)', padding: '3px 10px', borderRadius: '12px', border: '1px solid rgba(6, 182, 212, 0.25)' }}>
+                Instructor: {instructorName}
+              </span>
+            )}
+          </div>
+          {children}
+        </div>
       ) : (
         <div 
           onClick={() => setIsCollapsed(false)}
@@ -57,7 +70,7 @@ export default function CourseHeroCard({
             display: 'flex', 
             alignItems: 'center', 
             gap: '12px', 
-            padding: '16px 20px', 
+            padding: '4px 8px', 
             cursor: 'pointer',
             userSelect: 'none',
             flexWrap: 'wrap',

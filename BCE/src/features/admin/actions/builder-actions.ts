@@ -299,9 +299,20 @@ export async function addAssignment(lessonId: string, courseId: string, formData
   const xp_reward = parseInt(formData.get('xp_reward') as string || '50');
   const requires_github = formData.get('requires_github') === 'true';
   const requires_deploy = formData.get('requires_deploy') === 'true';
+  const due_date_str = formData.get('due_date') as string | null;
   const expected_output_files = formData.getAll('expected_output_file') as File[];
 
   if (!title) return { error: 'Assignment title is required' };
+
+  // Calculate default due_date: 3 months from now if not provided
+  let due_date: string;
+  if (due_date_str) {
+    due_date = new Date(due_date_str).toISOString();
+  } else {
+    const defaultDate = new Date();
+    defaultDate.setMonth(defaultDate.getMonth() + 3);
+    due_date = defaultDate.toISOString();
+  }
 
   let expected_output = null;
   const validFiles = expected_output_files.filter(file => file instanceof File && file.size > 0);
@@ -336,6 +347,7 @@ export async function addAssignment(lessonId: string, courseId: string, formData
     xp_reward,
     requires_github,
     requires_deploy,
+    due_date,
     expected_output: expected_output,
   });
 
@@ -374,6 +386,7 @@ export async function updateAssignment(assignmentId: string, courseId: string, f
   const xp_reward = parseInt(formData.get('xp_reward') as string || '50');
   const requires_github = formData.get('requires_github') === 'true';
   const requires_deploy = formData.get('requires_deploy') === 'true';
+  const due_date_str = formData.get('due_date') as string | null;
   const expected_output_files = formData.getAll('expected_output_file') as File[];
   const clearAttachment = formData.get('clear_attachment') === 'on';
 
@@ -385,6 +398,10 @@ export async function updateAssignment(assignmentId: string, courseId: string, f
     requires_github,
     requires_deploy,
   };
+
+  if (due_date_str !== null && due_date_str !== undefined) {
+    updateData.due_date = due_date_str ? new Date(due_date_str).toISOString() : null;
+  }
 
   if (clearAttachment) {
     updateData.expected_output = null;
