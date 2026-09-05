@@ -100,6 +100,9 @@ function buildSystemPrompt(profile: Student360Profile): string {
     assessmentScore: profile.assessmentScore,
     confidenceLevel: profile.confidenceLevel,
     coverage: profile.dataCoverage,
+    dailyRoutines: profile.dailyRoutines,
+    activeGoals: profile.activeGoals,
+    enrolledCourses: profile.enrolledCoursesData,
     strengths: profile.strengths,
     weakAreas: profile.weakAreas,
     skillGaps: profile.skillGaps,
@@ -119,16 +122,52 @@ Here is the student's REAL 360° Learning Profile JSON computed from Smart Learn
 ${JSON.stringify(compactContext, null, 2)}
 
 STRICT RULES & CONSTRAINTS:
-1. You MUST NEVER calculate, guess, or invent marks, CGPA, DSA counts, course completion %, test scores, or certificates. Use ONLY the facts provided in the profile JSON above.
-2. If data is missing or user has insufficient data, explicitly state: "I don't have enough data recorded yet for that area."
-3. When providing learning recommendations or answering questions, structure your answers clearly with these 3 sections when applicable:
-   - **WHY?** (Explain evidence from profile JSON)
-   - **WHAT TO DO?** (Actionable advice)
-   - **NEXT STEP?** (Single clear next action)
-4. Format valid action buttons at the VERY END of your message using this exact syntax:
-   [ACTION_BUTTONS: [{"label": "Explore Course", "url": "/courses"}, {"label": "Solve DSA Sheet", "url": "/code-arena/sheets"}]]
-   ONLY use valid existing Smart Learn routes: /courses, /courses/[id], /code-arena/sheets, /code-arena/sheets/[id], /profile, /certificates.
-5. Provide helpful, encouraging, concise responses in friendly Hinglish/English. Keep answers crisp and focused.`;
+1. You MUST NEVER calculate, guess, or invent marks, CGPA, DSA counts, course completion %, test scores, certificates, routines, or goals. Use ONLY the facts provided in the profile JSON above.
+2. If data is missing or user has insufficient data for a request, explicitly state: "I don't have enough data recorded yet for that area."
+
+SPECIAL 30-DAY PLAN INSTRUCTIONS:
+When the student asks: "Make my 30 day plan" or asks for a 30-day plan/roadmap:
+1. First analyze student's REAL data: dailyRoutines, activeGoals, weakAreas, strengths, enrolledCourses, DSA progress.
+2. If routine or goals data is empty/insufficient (e.g. dailyRoutines is [] AND activeGoals is []):
+   Output ONLY:
+   "I don't have enough routine or goal data yet. Add your routine/goals first."
+
+3. If routine/goals data is available:
+   Generate a SIMPLE and REALISTIC 30-day plan. Respect existing routine timings, fill empty study slots, prioritize weak areas and active goals.
+   Keep response SHORT, simple, and formatted EXACTLY like this:
+
+30-Day Plan
+
+Week 1
+• Focus: [Focus topic from real weak area or active goal/course]
+• Daily: [Daily workload matching routine timing]
+• Goal: [Weekly target, e.g. complete X% of current course]
+
+Week 2
+• Focus: [Focus topic]
+• Daily: [Daily workload]
+• Goal: [Weekly target]
+
+Week 3
+• Focus: [DSA weak topic or practice focus]
+• Daily: [Daily workload]
+• Goal: [Weekly target]
+
+Week 4
+• Focus: Revision + assessment
+• Goal: reassess weak areas
+
+Today's Task:
+[short task]
+
+Why:
+[1 simple sentence based on actual student data]
+
+GENERAL RESPONSE RULES:
+- Format valid action buttons at the VERY END of your message using this exact syntax:
+  [ACTION_BUTTONS: [{"label": "Explore Course", "url": "/courses"}, {"label": "Solve DSA Sheet", "url": "/code-arena/sheets"}]]
+  ONLY use valid existing Smart Learn routes: /courses, /courses/[id], /code-arena/sheets, /code-arena/sheets/[id], /profile, /certificates.
+- Provide helpful, encouraging, concise responses. Keep answers crisp and focused.`;
 }
 
 function parseMentorReply(rawReply: string, profile: Student360Profile) {
@@ -158,42 +197,55 @@ function parseMentorReply(rawReply: string, profile: Student360Profile) {
 
 function generateRuleBasedMentorReply(prompt: string, profile: Student360Profile) {
   const p = prompt.toLowerCase();
-  const { dataCoverage, overallLearningScore, strengths, weakAreas, skillGaps, nextBestAction, recommendations } = profile;
+  const { dataCoverage, overallLearningScore, strengths, weakAreas, skillGaps, nextBestAction, recommendations, dailyRoutines, activeGoals, enrolledCoursesData } = profile;
 
   // 1. 30-Day Plan Request
   if (p.includes('30 day') || p.includes('30-day') || p.includes('plan') || p.includes('roadmap')) {
+    const hasRoutines = dailyRoutines && dailyRoutines.length > 0;
+    const hasGoals = activeGoals && activeGoals.length > 0;
+
+    if (!hasRoutines && !hasGoals) {
+      return {
+        reply: "I don't have enough routine or goal data yet. Add your routine/goals first.",
+        actionButtons: [
+          { label: 'Set Goals & Routine', url: '/dashboard' }
+        ]
+      };
+    }
+
     const mainWeakness = weakAreas[0] || 'Core Skills';
-    const topRec = recommendations[0];
-    const recUrl = topRec ? topRec.actionUrl : '/courses';
+    const currentCourse = enrolledCoursesData[0]?.title || 'Enrolled Course';
+    const currentProgress = enrolledCoursesData[0]?.progress || 0;
 
     return {
-      reply: `Here is your **Personalized 30-Day Learning Plan** based on your Smart Learn profile gaps:
+      reply: `30-Day Plan
 
-**Week 1: Focus & Foundation**
-- Complete your current enrolled course modules in **${mainWeakness}**.
-- Aim for 1 hour of focused daily reading/videos.
+Week 1
+• Focus: ${mainWeakness} basics (${currentCourse})
+• Daily: 1 study session + 20 MCQs
+• Goal: complete ${Math.min(100, currentProgress + 20)}% of current course
 
-**Week 2: Targeted Practice**
-- Solve 5 problem sets in DSA / Code Arena.
-- Target topic accuracy of 75%+.
+Week 2
+• Focus: ${mainWeakness} Practice
+• Daily: 30 min practice
+• Goal: finish selected modules
 
-**Week 3: Assessment & Evaluation**
-- Attempt course MCQ tests to test concept retention.
-- Review weak questions immediately after submission.
+Week 3
+• Focus: DSA weak topic
+• Daily: 2 problems
+• Goal: improve accuracy
 
-**Week 4: Revision & Benchmark**
-- Re-attempt quizzes and complete your milestone project/certificate.
+Week 4
+• Focus: Revision + assessment
+• Goal: reassess weak areas
 
-**WHY?**
-Based on your current Learning Readiness score of **${overallLearningScore}/100** and identified gap in **${mainWeakness}**.
+Today's Task:
+Complete 20 MCQs and study 30 mins of ${mainWeakness}.
 
-**WHAT TO DO?**
-Follow the weekly plan consistently to boost your Readiness score by 15+ points.
-
-**NEXT STEP?**
-Start with your top recommended item below:`,
+Why:
+Based on your current ${currentCourse} progress of ${currentProgress}% and recorded gap in ${mainWeakness}.`,
       actionButtons: [
-        { label: topRec ? topRec.actionText : 'Explore Courses', url: recUrl },
+        { label: nextBestAction ? nextBestAction.actionText : 'Explore Courses', url: nextBestAction ? nextBestAction.actionUrl : '/courses' },
         { label: 'Solve DSA Sheets', url: '/code-arena/sheets' }
       ]
     };

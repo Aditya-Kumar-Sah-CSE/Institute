@@ -25,8 +25,15 @@ export interface Student360Profile {
     dsaSolvedCount: number;
     certificatesCount: number;
     badgesCount: number;
+    routinesCount: number;
+    activeGoalsCount: number;
   };
   lastUpdatedAt: string;
+
+  // Routine & Goals Data
+  dailyRoutines: Array<{ time_slot: string; task_name: string; sort_order: number }>;
+  activeGoals: Array<{ id: string; goal_text: string; duration_mins: number; routine: boolean; status: string }>;
+  enrolledCoursesData: Array<{ title: string; progress: number }>;
 
   // Insights
   strengths: string[];
@@ -55,7 +62,9 @@ export async function getStudent360Profile(userId: string): Promise<Student360Pr
     { data: certificates },
     { data: badges },
     { data: availableCourses },
-    { data: availableSheets }
+    { data: availableSheets },
+    { data: dailyRoutines },
+    { data: studentGoals }
   ] = await Promise.all([
     adminClient.from('profiles').select('*').eq('id', userId).single(),
     adminClient.from('enrollments').select('*, courses(*)').eq('user_id', userId),
@@ -64,7 +73,9 @@ export async function getStudent360Profile(userId: string): Promise<Student360Pr
     adminClient.from('certificates').select('id, course_id').eq('user_id', userId),
     adminClient.from('user_badges').select('id').eq('user_id', userId),
     adminClient.from('courses').select('id, title, description, tags, difficulty, total_xp').eq('is_published', true).eq('is_deleted', false),
-    adminClient.from('coding_sheets').select('id, title, description').eq('is_public', true)
+    adminClient.from('coding_sheets').select('id, title, description').eq('is_public', true),
+    adminClient.from('daily_routines').select('time_slot, task_name, sort_order').eq('user_id', userId).order('sort_order', { ascending: true }),
+    adminClient.from('student_goals').select('id, goal_text, duration_mins, routine, status').eq('user_id', userId).eq('status', 'active')
   ]);
 
   // 2. Data Counts & Data Coverage Calculation
@@ -245,9 +256,27 @@ export async function getStudent360Profile(userId: string): Promise<Student360Pr
       coursesCount,
       dsaSolvedCount,
       certificatesCount,
-      badgesCount
+      badgesCount,
+      routinesCount: dailyRoutines?.length || 0,
+      activeGoalsCount: studentGoals?.length || 0
     },
     lastUpdatedAt: new Date().toISOString(),
+    dailyRoutines: (dailyRoutines || []).map((r: any) => ({
+      time_slot: r.time_slot,
+      task_name: r.task_name,
+      sort_order: r.sort_order
+    })),
+    activeGoals: (studentGoals || []).map((g: any) => ({
+      id: g.id,
+      goal_text: g.goal_text,
+      duration_mins: g.duration_mins,
+      routine: Boolean(g.routine),
+      status: g.status
+    })),
+    enrolledCoursesData: (enrollments || []).map((e: any) => ({
+      title: e.courses?.title || 'Enrolled Course',
+      progress: Math.round((e.progress || 0) * 100)
+    })),
     strengths,
     weakAreas,
     skillGaps,
