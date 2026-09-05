@@ -25,6 +25,7 @@ export default function SmartAgentDrawer() {
     closeDrawer,
     messages,
     executionState,
+    realtimeVoiceState,
     inputVal,
     setInputVal,
     isLoading,
@@ -306,7 +307,7 @@ export default function SmartAgentDrawer() {
         ))}
 
         {/* LOADING & NAVIGATION HANDSHAKE VERIFICATION STATUS */}
-        {isLoading && (
+        {isLoading && !isVoiceMode && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: 'var(--neon-cyan)', fontSize: 'var(--text-xs)', padding: '8px 12px', background: 'rgba(0, 229, 255, 0.08)', borderRadius: 'var(--radius-sm)', width: 'fit-content' }}>
             <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />
             <span>{getDynamicLoadingText()}</span>
@@ -320,12 +321,40 @@ export default function SmartAgentDrawer() {
           </div>
         )}
 
-        {/* SPEAKING VOICE STATE */}
-        {isSpeaking && (
+        {/* REALTIME VOICE STATES */}
+        {realtimeVoiceState === 'LISTENING' && (
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: '#00e5ff', fontSize: 'var(--text-xs)', padding: '8px 12px', background: 'rgba(0, 229, 255, 0.12)', border: '1px solid rgba(0, 229, 255, 0.3)', borderRadius: 'var(--radius-sm)', width: 'fit-content' }}>
+            <Mic size={14} style={{ animation: 'pulse 1s infinite alternate' }} />
+            <span>● Listening…</span>
+          </div>
+        )}
+
+        {(realtimeVoiceState === 'HEARING' || realtimeVoiceState === 'FINALIZING') && (
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: '#00ff88', fontSize: 'var(--text-xs)', padding: '8px 12px', background: 'rgba(0, 255, 136, 0.12)', border: '1px solid rgba(0, 255, 136, 0.3)', borderRadius: 'var(--radius-sm)', width: 'fit-content' }}>
+            <Mic size={14} style={{ animation: 'pulse 0.5s infinite alternate' }} />
+            <span>● Hearing you…</span>
+          </div>
+        )}
+
+        {realtimeVoiceState === 'TRANSCRIBING' && (
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: 'var(--neon-cyan)', fontSize: 'var(--text-xs)', padding: '8px 12px', background: 'rgba(0, 229, 255, 0.12)', border: '1px solid rgba(0, 229, 255, 0.3)', borderRadius: 'var(--radius-sm)', width: 'fit-content' }}>
+            <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+            <span>⏳ Understanding…</span>
+          </div>
+        )}
+
+        {realtimeVoiceState === 'THINKING' && (
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: 'var(--neon-cyan)', fontSize: 'var(--text-xs)', padding: '8px 12px', background: 'rgba(0, 229, 255, 0.12)', border: '1px solid rgba(0, 229, 255, 0.3)', borderRadius: 'var(--radius-sm)', width: 'fit-content' }}>
+            <Sparkles size={14} style={{ animation: 'pulse 1s infinite alternate' }} />
+            <span>✦ Thinking…</span>
+          </div>
+        )}
+
+        {realtimeVoiceState === 'SPEAKING_AI' && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--neon-cyan)', fontSize: 'var(--text-xs)', padding: '8px 12px', background: 'rgba(0, 229, 255, 0.12)', border: '1px solid rgba(0, 229, 255, 0.3)', borderRadius: 'var(--radius-sm)', width: '100%' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Volume2 size={14} style={{ animation: 'pulse 0.8s infinite alternate' }} />
-              <span>🔊 Speaking response... Click mic to interrupt.</span>
+              <span>🔊 Speaking…</span>
             </span>
             <button
               type="button"
@@ -346,22 +375,6 @@ export default function SmartAgentDrawer() {
             >
               <Square size={10} /> Stop
             </button>
-          </div>
-        )}
-
-        {/* TRANSCRIBING AUDIO STATE */}
-        {isTranscribing && (
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: 'var(--neon-cyan)', fontSize: 'var(--text-xs)', padding: '8px 12px', background: 'rgba(0, 229, 255, 0.12)', border: '1px solid rgba(0, 229, 255, 0.3)', borderRadius: 'var(--radius-sm)', width: 'fit-content' }}>
-            <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-            <span>⏳ Understanding audio...</span>
-          </div>
-        )}
-
-        {/* LISTENING VOICE STATE */}
-        {isListening && (
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: '#ff4444', fontSize: 'var(--text-xs)', padding: '8px 12px', background: 'rgba(255, 68, 68, 0.12)', border: '1px solid rgba(255, 68, 68, 0.3)', borderRadius: 'var(--radius-sm)', width: 'fit-content' }}>
-            <Mic size={14} style={{ animation: 'pulse 1s infinite alternate' }} />
-            <span>🔴 Listening... Click mic again to stop & send.</span>
           </div>
         )}
 
@@ -437,18 +450,18 @@ export default function SmartAgentDrawer() {
           variant="secondary"
           size="sm"
           onClick={toggleVoiceRecording}
-          disabled={isLoading || isTranscribing}
-          title={isListening ? "Stop & Send Audio" : "Speak Command (Microphone)"}
-          style={{ padding: '0 12px', color: isListening ? '#ff4444' : 'var(--neon-cyan)', borderColor: isListening ? '#ff4444' : 'var(--glass-border)' }}
+          disabled={isLoading && !isVoiceMode}
+          title={isVoiceMode ? "Turn Voice OFF" : "Turn Voice Mode ON"}
+          style={{ padding: '0 12px', color: isVoiceMode ? 'var(--neon-cyan)' : 'var(--text-muted)', borderColor: isVoiceMode ? 'rgba(0, 229, 255, 0.4)' : 'var(--glass-border)' }}
         >
-          {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+          {isVoiceMode ? <Mic size={16} /> : <MicOff size={16} />}
         </Button>
 
         <Button 
           type="submit" 
           variant="primary" 
           size="sm" 
-          disabled={isLoading || isListening || !inputVal.trim()}
+          disabled={(isLoading && !isVoiceMode) || !inputVal.trim()}
           style={{ padding: '0 16px' }}
         >
           <Send size={16} />

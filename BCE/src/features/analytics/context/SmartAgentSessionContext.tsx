@@ -9,7 +9,12 @@ import {
   stopAssistantSpeech, 
   isSpeechSynthesisSupported 
 } from '@/lib/ai/speech-synthesizer';
-import { AudioRecorder, transcribeAudioFile } from '@/lib/ai/speech-recorder';
+import { 
+  AudioSegmentRecorder, 
+  transcribeAudioFile, 
+  getSupportedMimeType,
+  AudioRecorder 
+} from '@/lib/ai/speech-recorder';
 
 export interface SmartAgentMessage {
   role: 'user' | 'assistant';
@@ -57,6 +62,16 @@ export type AgentExecutionState =
   | 'SPEAKING' 
   | 'FAILED';
 
+export type RealtimeVoiceState = 
+  | 'IDLE' 
+  | 'LISTENING' 
+  | 'HEARING' 
+  | 'FINALIZING' 
+  | 'TRANSCRIBING' 
+  | 'THINKING' 
+  | 'SPEAKING_AI' 
+  | 'STOPPED';
+
 interface SmartAgentSessionContextValue {
   isOpen: boolean;
   toggleDrawer: () => void;
@@ -70,6 +85,7 @@ interface SmartAgentSessionContextValue {
   setActiveContext: React.Dispatch<React.SetStateAction<ActiveContext>>;
   
   executionState: AgentExecutionState;
+  realtimeVoiceState: RealtimeVoiceState;
   inputVal: string;
   setInputVal: (val: string) => void;
   
@@ -109,7 +125,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
   const [messages, setMessages] = useState<SmartAgentMessage[]>([
     {
       role: 'assistant',
-      content: `Hi! I'm **Smart Learn AI Agent** ✦\n\nI can execute actions, open courses, launch DSA sheets, search YouTube/GPT, open LaTeX editor, and manage your routine or goals using natural language or voice commands.\n\nTry one of the commands below!`,
+      content: `Hi! I'm **Smart Learn AI Agent** ✦\n\nI can execute actions, open courses, launch DSA sheets, search YouTube/GPT, open LaTeX editor, and manage your routine or goals using natural language or voice commands.\n\nTry speaking to me!`,
       actions: [
         { label: 'Open DSA Sheets', url: '/code-arena/sheets' },
         { label: 'Explore Courses', url: '/courses' }
@@ -119,6 +135,8 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
 
   const [activeContext, setActiveContext] = useState<ActiveContext>({});
   const [executionState, setExecutionState] = useState<AgentExecutionState>('IDLE');
+  const [realtimeVoiceState, setRealtimeVoiceState] = useState<RealtimeVoiceState>('IDLE');
+
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -129,12 +147,24 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
 
   // ─── STATE REFS FOR ASYNC CALLBACK & SESSION VALIDATION ───
   const isProcessingRef = useRef<boolean>(false);
-  const audioRecorderRef = useRef<AudioRecorder | null>(null);
+  const segmentRecorderRef = useRef<AudioSegmentRecorder | null>(null);
+  const voiceStateRef = useRef<RealtimeVoiceState>('IDLE');
   const voiceSessionIdRef = useRef<number>(0);
   const restartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const sttAbortControllerRef = useRef<AbortController | null>(null);
+  const agentAbortControllerRef = useRef<AbortController | null>(null);
+
+  // VAD Monitoring Loop Refs
+  const vadAnimFrameRef = useRef<number | null>(null);
+  const ambientSamplesRef = useRef<number[]>([]);
+  const speechStartTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const bargeInTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   const isVoiceModeRef = useRef<boolean>(isVoiceMode);
   const isOpenRef = useRef<boolean>(isOpen);
 
+  // Synchronize state refs
   useEffect(() => {
     isVoiceModeRef.current = isVoiceMode;
   }, [isVoiceMode]);
@@ -146,7 +176,18 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
     }
   }, [isOpen]);
 
-  // Clean up recording, timeouts, and speech on Provider unmount
+  // Update voice state ref helper
+  const setVoiceState = (nextState: RealtimeVoiceState) => {
+    voiceStateRef.current = nextState;
+    setRealtimeVoiceState(nextState);
+
+    // Sync boolean flags for backward compatibility
+    setIsListening(nextState === 'LISTENING' || nextState === 'HEARING' || nextState === 'FINALIZING');
+    setIsTranscribing(nextState === 'TRANSCRIBING');
+    setIsSpeaking(nextState === 'SPEAKING_AI');
+  };
+
+  // Clean up recording, VAD timers, and speech on Provider unmount
   useEffect(() => {
     return () => {
       stopVoiceSession();
@@ -161,132 +202,279 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
     }
   };
 
+  const clearVADTimers = () => {
+    if (speechStartTimerRef.current) {
+      clearTimeout(speechStartTimerRef.current);
+      speechStartTimerRef.current = null;
+    }
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+    if (bargeInTimerRef.current) {
+      clearTimeout(bargeInTimerRef.current);
+      bargeInTimerRef.current = null;
+    }
+    if (vadAnimFrameRef.current !== null) {
+      cancelAnimationFrame(vadAnimFrameRef.current);
+      vadAnimFrameRef.current = null;
+    }
+  };
+
   // ─── VOICE SESSION CONTROLLER FUNCTIONS ───
 
   const stopSpeech = () => {
     clearRestartTimeout();
     stopAssistantSpeech();
-    setIsSpeaking(false);
-    if (executionState === 'SPEAKING') {
-      setExecutionState('IDLE');
+    if (voiceStateRef.current === 'SPEAKING_AI') {
+      setVoiceState('IDLE');
     }
   };
 
   const stopVoiceSession = () => {
-    // 1. Explicitly clear any pending restart timer first
     clearRestartTimeout();
+    clearVADTimers();
 
-    // 2. Invalidate session ID to block all pending async callbacks / TTS loops
+    // Abort pending STT and Agent network requests
+    if (sttAbortControllerRef.current) {
+      try { sttAbortControllerRef.current.abort(); } catch (e) {}
+      sttAbortControllerRef.current = null;
+    }
+    if (agentAbortControllerRef.current) {
+      try { agentAbortControllerRef.current.abort(); } catch (e) {}
+      agentAbortControllerRef.current = null;
+    }
+
+    // Invalidate session ID to block all pending async callbacks / TTS loops
     voiceSessionIdRef.current++;
 
-    // 3. Stop TTS speech playback
+    // Stop TTS speech playback
     stopAssistantSpeech();
-    setIsSpeaking(false);
-    setIsListening(false);
-    setIsTranscribing(false);
 
-    // 4. Stop MediaRecorder and release all MediaStream tracks
-    if (audioRecorderRef.current) {
+    // Dispose persistent segment recorder and MediaStream tracks
+    if (segmentRecorderRef.current) {
       try {
-        audioRecorderRef.current.cancel();
+        segmentRecorderRef.current.dispose();
       } catch (e) {}
-      audioRecorderRef.current = null;
+      segmentRecorderRef.current = null;
     }
 
-    if (executionState === 'SPEAKING') {
-      setExecutionState('IDLE');
-    }
+    ambientSamplesRef.current = [];
+    setVoiceState('STOPPED');
+  };
+
+  // ─── REAL-TIME VAD LOOP ENGINE ───
+  const startVADLoop = () => {
+    clearVADTimers();
+
+    const loop = () => {
+      if (!isOpenRef.current || !isVoiceModeRef.current || !segmentRecorderRef.current || !segmentRecorderRef.current.analyzer) {
+        return;
+      }
+
+      const analyzer = segmentRecorderRef.current.analyzer;
+      const rms = analyzer.getRMS();
+
+      // Ambient Noise Calibration Phase (First 15 samples)
+      if (ambientSamplesRef.current.length < 15) {
+        ambientSamplesRef.current.push(rms);
+        analyzer.calibrate(ambientSamplesRef.current);
+      }
+
+      const state = voiceStateRef.current;
+
+      // STATE 1: LISTENING (Waiting for speech entry)
+      if (state === 'LISTENING') {
+        if (rms > analyzer.speechThreshold) {
+          if (!speechStartTimerRef.current) {
+            speechStartTimerRef.current = setTimeout(() => {
+              speechStartTimerRef.current = null;
+              if (voiceStateRef.current === 'LISTENING' && isOpenRef.current && isVoiceModeRef.current) {
+                // Speech confirmed! Start segment recording
+                setVoiceState('HEARING');
+                if (segmentRecorderRef.current) {
+                  segmentRecorderRef.current.startSegmentRecording();
+                }
+              }
+            }, 150); // 150ms speech start stability window
+          }
+        } else {
+          if (speechStartTimerRef.current) {
+            clearTimeout(speechStartTimerRef.current);
+            speechStartTimerRef.current = null;
+          }
+        }
+      }
+
+      // STATE 2: HEARING (Capturing user speech turn)
+      else if (state === 'HEARING') {
+        if (rms < analyzer.silenceThreshold) {
+          if (!silenceTimerRef.current) {
+            silenceTimerRef.current = setTimeout(() => {
+              silenceTimerRef.current = null;
+              if (voiceStateRef.current === 'HEARING' && isOpenRef.current && isVoiceModeRef.current) {
+                // Silence window confirmed (750ms)! Finalize segment & process STT
+                setVoiceState('FINALIZING');
+                processSpeechSegment();
+              }
+            }, 750); // 750ms silence window (600-900ms range)
+          }
+        } else {
+          // Reset silence timer if user continues speaking
+          if (silenceTimerRef.current) {
+            clearTimeout(silenceTimerRef.current);
+            silenceTimerRef.current = null;
+          }
+        }
+      }
+
+      // STATE 3: SPEAKING_AI (Barge-In Interruption Monitoring)
+      else if (state === 'SPEAKING_AI') {
+        // Monitor for high energy user speech exceeding bargeInThreshold
+        if (rms > analyzer.bargeInThreshold) {
+          if (!bargeInTimerRef.current) {
+            bargeInTimerRef.current = setTimeout(() => {
+              bargeInTimerRef.current = null;
+              if (voiceStateRef.current === 'SPEAKING_AI' && isOpenRef.current && isVoiceModeRef.current) {
+                // BARGE-IN DETECTED!
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('[VAD BARGE-IN DETECTED] User interrupted AI speech!');
+                }
+                // Stop speech and abort active agent network requests immediately
+                stopSpeech();
+                if (agentAbortControllerRef.current) {
+                  try { agentAbortControllerRef.current.abort(); } catch (e) {}
+                  agentAbortControllerRef.current = null;
+                }
+                // Transition state to HEARING to capture user's new command
+                setVoiceState('HEARING');
+                if (segmentRecorderRef.current) {
+                  segmentRecorderRef.current.startSegmentRecording();
+                }
+              }
+            }, 200); // 200ms barge-in confirmation window
+          }
+        } else {
+          if (bargeInTimerRef.current) {
+            clearTimeout(bargeInTimerRef.current);
+            bargeInTimerRef.current = null;
+          }
+        }
+      }
+
+      vadAnimFrameRef.current = requestAnimationFrame(loop);
+    };
+
+    vadAnimFrameRef.current = requestAnimationFrame(loop);
   };
 
   const startVoiceListening = async () => {
     clearRestartTimeout();
-    if (isLoading || isTranscribing) return;
+    if (isLoading) return;
 
-    // Interrupt speech if playing
     stopSpeech();
     setVoiceNotice(null);
 
-    // Invalidate previous session and obtain new session ID
     const currentSessionId = ++voiceSessionIdRef.current;
 
-    if (audioRecorderRef.current) {
-      try {
-        audioRecorderRef.current.cancel();
-      } catch (e) {}
-      audioRecorderRef.current = null;
+    if (!segmentRecorderRef.current) {
+      segmentRecorderRef.current = new AudioSegmentRecorder();
     }
 
-    const recorder = new AudioRecorder();
-    audioRecorderRef.current = recorder;
+    const res = await segmentRecorderRef.current.acquirePersistentStream();
 
-    const res = await recorder.start();
-
-    // Verify session ID after async getUserMedia test
-    if (voiceSessionIdRef.current !== currentSessionId || !isOpenRef.current) {
-      recorder.cancel();
-      audioRecorderRef.current = null;
-      setIsListening(false);
+    if (voiceSessionIdRef.current !== currentSessionId || !isOpenRef.current || !isVoiceModeRef.current) {
+      if (segmentRecorderRef.current) segmentRecorderRef.current.dispose();
+      segmentRecorderRef.current = null;
+      setVoiceState('STOPPED');
       return;
     }
 
     if (!res.success) {
-      audioRecorderRef.current = null;
-      setIsListening(false);
+      if (segmentRecorderRef.current) segmentRecorderRef.current.dispose();
+      segmentRecorderRef.current = null;
+      setVoiceState('STOPPED');
       setVoiceNotice(res.message || 'Microphone access error.');
       return;
     }
 
-    setIsListening(true);
+    setVoiceState('LISTENING');
+    startVADLoop();
   };
 
-  const stopVoiceRecordingAndSend = async () => {
-    clearRestartTimeout();
-    if (!audioRecorderRef.current || !isListening) return;
+  // ─── PROCESS FINALIZED SPEECH SEGMENT ───
+  const processSpeechSegment = async () => {
+    if (!segmentRecorderRef.current) return;
     const currentSessionId = voiceSessionIdRef.current;
 
-    setIsListening(false);
-    setIsTranscribing(true);
+    setVoiceState('TRANSCRIBING');
 
     try {
-      const recorder = audioRecorderRef.current;
-      const { blob, mimeType } = await recorder.stop();
-      audioRecorderRef.current = null;
+      const blob = await segmentRecorderRef.current.stopSegmentRecording();
 
       if (voiceSessionIdRef.current !== currentSessionId || !isOpenRef.current) {
-        setIsTranscribing(false);
+        setVoiceState('LISTENING');
         return;
       }
 
-      const sttRes = await transcribeAudioFile(blob, mimeType);
-      setIsTranscribing(false);
+      // Ignore silent / empty audio blobs (under 300 bytes)
+      if (!blob || blob.size < 300) {
+        setVoiceState('LISTENING');
+        startVADLoop();
+        return;
+      }
+
+      // Create STT AbortController
+      sttAbortControllerRef.current = new AbortController();
+
+      const sttRes = await transcribeAudioFile(
+        blob, 
+        getSupportedMimeType(), 
+        sttAbortControllerRef.current.signal
+      );
+
+      sttAbortControllerRef.current = null;
 
       if (voiceSessionIdRef.current !== currentSessionId || !isOpenRef.current) {
+        setVoiceState('LISTENING');
         return;
       }
 
       if (sttRes.success && sttRes.transcript) {
+        setVoiceState('THINKING');
         setInputVal(sttRes.transcript);
-        handleSendPrompt(sttRes.transcript, undefined, true);
+        await handleSendPrompt(sttRes.transcript, undefined, true);
       } else {
-        setVoiceNotice(sttRes.message || 'Voice input is unavailable right now. You can type instead.');
+        if (sttRes.errorCode !== 'TRANSCRIPTION_FAILED') {
+          setVoiceNotice(sttRes.message || 'Could not understand speech.');
+        }
+        setVoiceState('LISTENING');
+        startVADLoop();
       }
     } catch (err: any) {
-      setIsTranscribing(false);
+      sttAbortControllerRef.current = null;
       if (voiceSessionIdRef.current === currentSessionId && isOpenRef.current) {
-        setVoiceNotice(err.message || 'Audio recording failed. Please try again.');
+        setVoiceState('LISTENING');
+        startVADLoop();
       }
+    }
+  };
+
+  const stopVoiceRecordingAndSend = async () => {
+    if (voiceStateRef.current === 'HEARING') {
+      setVoiceState('FINALIZING');
+      await processSpeechSegment();
     }
   };
 
   const toggleVoiceRecording = async () => {
     clearRestartTimeout();
-    if (isLoading || isTranscribing) return;
-    stopSpeech();
+    if (isLoading) return;
 
-    if (isListening) {
-      await stopVoiceRecordingAndSend();
-    } else {
+    if (realtimeVoiceState === 'STOPPED' || realtimeVoiceState === 'IDLE') {
       await startVoiceListening();
+    } else {
+      stopVoiceSession();
     }
   };
 
@@ -324,6 +512,8 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
     setIsVoiceMode(val);
     if (!val) {
       stopVoiceSession();
+    } else {
+      startVoiceListening();
     }
   };
 
@@ -349,11 +539,14 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
 
     if (!isVoiceModeRef.current && !voiceTriggered) {
       setExecutionState('IDLE');
+      setVoiceState('LISTENING');
+      startVADLoop();
       return;
     }
 
     const promptSessionId = voiceSessionIdRef.current;
     setExecutionState('SPEAKING');
+    setVoiceState('SPEAKING_AI');
 
     const spoke = speakAssistantResponse(text, {
       onStart: () => setIsSpeaking(true),
@@ -361,37 +554,34 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         setIsSpeaking(false);
         clearRestartTimeout();
 
-        // CONTINUOUS VOICE AGENT LOOP: Automatically listen again if voice mode is ON and drawer is open
+        // CONTINUOUS VOICE AGENT LOOP: Automatically transition back to LISTENING
         if (
           voiceSessionIdRef.current === promptSessionId &&
           isVoiceModeRef.current &&
-          isOpenRef.current &&
-          !isProcessingRef.current
+          isOpenRef.current
         ) {
-          restartTimeoutRef.current = setTimeout(() => {
-            restartTimeoutRef.current = null;
-            if (
-              voiceSessionIdRef.current === promptSessionId &&
-              isVoiceModeRef.current &&
-              isOpenRef.current
-            ) {
-              startVoiceListening();
-            }
-          }, 350);
+          setExecutionState('IDLE');
+          setVoiceState('LISTENING');
+          startVADLoop();
         } else {
           setExecutionState('IDLE');
+          setVoiceState('STOPPED');
         }
       },
       onError: () => {
         setIsSpeaking(false);
         clearRestartTimeout();
         setExecutionState('IDLE');
+        setVoiceState('LISTENING');
+        startVADLoop();
       }
     });
 
     if (!spoke && !isSpeechSynthesisSupported()) {
       setVoiceNotice('Response is ready, but voice playback is unavailable on this browser.');
       setExecutionState('IDLE');
+      setVoiceState('LISTENING');
+      startVADLoop();
     }
   };
 
@@ -430,17 +620,6 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
       const loadState = liveContext.loadState || 'ready';
       const actualRoute = liveContext.route;
       const actualEntity = liveContext.currentEntity;
-
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[SMART AGENT DEBUG - VERIFYING STEP]', {
-          navigationId,
-          expectedRoute,
-          actualRoute,
-          loadState,
-          expectedEntity,
-          actualEntity
-        });
-      }
 
       // Case A: 404 / Not Found
       if (loadState === 'not-found') {
@@ -492,7 +671,6 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
             : false;
 
           if (typeMatches && (idMatches || titleMatches)) {
-            // VERIFIED MATCH!
             clearTimeout(timeoutTimer);
             setPendingVerification(null);
 
@@ -526,7 +704,6 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
             triggerSpeechWithLoop(successMessage, voiceTriggered);
             return;
           } else {
-            // ENTITY MISMATCH DETECTED!
             clearTimeout(timeoutTimer);
             setPendingVerification(null);
             setExecutionState('FAILED');
@@ -543,7 +720,6 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
             return;
           }
         } else {
-          // General route without entity requirement
           clearTimeout(timeoutTimer);
           setPendingVerification(null);
 
@@ -588,6 +764,10 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
 
     setIsLoading(true);
     setExecutionState('UNDERSTANDING');
+    setVoiceState('THINKING');
+
+    // Create Agent AbortController
+    agentAbortControllerRef.current = new AbortController();
 
     try {
       const historyForAction = messages.map(m => ({
@@ -608,6 +788,8 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         confirmedTool
       });
 
+      agentAbortControllerRef.current = null;
+
       // Check if navigation handshake is required
       if (res.success && res.pendingNavigation && res.expectedRoute) {
         setExecutionState('NAVIGATING');
@@ -625,14 +807,12 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
           timestamp: Date.now()
         });
 
-        // Trigger router navigation
         if (targetUrl && targetUrl !== pathname) {
           router.push(targetUrl);
         } else {
           setExecutionState('VERIFYING');
         }
       } else {
-        // Non-navigation response
         setExecutionState('VERIFYING');
 
         if (res.message) {
@@ -667,16 +847,19 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
           triggerSpeechWithLoop(res.message, isVoiceTrigger);
         }
       }
-    } catch (err) {
+    } catch (err: any) {
+      agentAbortControllerRef.current = null;
       setExecutionState('IDLE');
-      setMessages(prev => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: 'An error occurred while executing the command. Please try again.',
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }
-      ]);
+      if (err.name !== 'AbortError') {
+        setMessages(prev => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: 'An error occurred while executing the command. Please try again.',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }
+        ]);
+      }
     } finally {
       setIsLoading(false);
       isProcessingRef.current = false;
@@ -695,6 +878,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         activeContext,
         setActiveContext,
         executionState,
+        realtimeVoiceState,
         inputVal,
         setInputVal,
         isLoading,

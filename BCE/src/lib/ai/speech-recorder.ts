@@ -44,78 +44,143 @@ export function getSupportedMimeType(): string {
   return 'audio/webm';
 }
 
-export class AudioRecorder {
-  private mediaRecorder: MediaRecorder | null = null;
-  private audioChunks: Blob[] = [];
-  private stream: MediaStream | null = null;
-  private isInitializing: boolean = false;
+/**
+ * Web Audio Real-Time Audio Energy & RMS Analyzer with Dynamic Noise Floor Calibration
+ */
+export class AudioEnergyAnalyzer {
+  private audioCtx: AudioContext | null = null;
+  private analyser: AnalyserNode | null = null;
+  private source: MediaStreamAudioSourceNode | null = null;
 
-  public get activeStream(): MediaStream | null {
-    return this.stream;
+  public noiseFloor: number = 0.005;
+  public speechThreshold: number = 0.018;
+  public silenceThreshold: number = 0.008;
+  public bargeInThreshold: number = 0.035;
+
+  constructor(stream: MediaStream) {
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContextClass) {
+        this.audioCtx = new AudioContextClass();
+        this.analyser = this.audioCtx.createAnalyser();
+        this.analyser.fftSize = 512;
+        this.analyser.smoothingTimeConstant = 0.3;
+
+        this.source = this.audioCtx.createMediaStreamSource(stream);
+        this.source.connect(this.analyser);
+      }
+    } catch (e) {
+      console.warn('[AudioEnergyAnalyzer Init Warning]', e);
+    }
+  }
+
+  public getRMS(): number {
+    if (!this.analyser) return 0;
+    const data = new Float32Array(this.analyser.fftSize);
+    this.analyser.getFloatTimeDomainData(data);
+    let sum = 0;
+    for (let i = 0; i < data.length; i++) {
+      sum += data[i] * data[i];
+    }
+    return Math.sqrt(sum / data.length);
+  }
+
+  public calibrate(ambientSamples: number[]) {
+    if (ambientSamples.length === 0) return;
+    const avg = ambientSamples.reduce((a, b) => a + b, 0) / ambientSamples.length;
+    this.noiseFloor = Math.max(0.003, avg);
+
+    // Dynamic Hysteresis Thresholds
+    this.speechThreshold = Math.max(0.015, this.noiseFloor * 2.5);
+    this.silenceThreshold = Math.max(0.007, this.noiseFloor * 1.3);
+    this.bargeInThreshold = Math.max(0.035, this.noiseFloor * 4.0);
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[VAD CALIBRATION]', {
+        noiseFloor: this.noiseFloor.toFixed(4),
+        speechThreshold: this.speechThreshold.toFixed(4),
+        silenceThreshold: this.silenceThreshold.toFixed(4),
+        bargeInThreshold: this.bargeInThreshold.toFixed(4)
+      });
+    }
+  }
+
+  public dispose() {
+    if (this.source) {
+      try { this.source.disconnect(); } catch (e) {}
+      this.source = null;
+    }
+    if (this.analyser) {
+      try { this.analyser.disconnect(); } catch (e) {}
+      this.analyser = null;
+    }
+    if (this.audioCtx) {
+      try { this.audioCtx.close(); } catch (e) {}
+      this.audioCtx = null;
+    }
+  }
+}
+
+/**
+ * Segment-Based Persistent Microphone Recorder
+ */
+export class AudioSegmentRecorder {
+  private persistentStream: MediaStream | null = null;
+  private mediaRecorder: MediaRecorder | null = null;
+  private preRollBuffer: Blob[] = [];
+  private currentSegmentChunks: Blob[] = [];
+  private isInitializing: boolean = false;
+  public analyzer: AudioEnergyAnalyzer | null = null;
+
+  public get stream(): MediaStream | null {
+    return this.persistentStream;
   }
 
   public get state(): string {
-    if (this.mediaRecorder) return this.mediaRecorder.state;
-    return 'inactive';
+    return this.mediaRecorder ? this.mediaRecorder.state : 'inactive';
   }
 
-  async start(): Promise<{ success: boolean; errorCode?: string; message?: string }> {
-    // 1. Prevent duplicate initializations if stream/recorder is already active
-    if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+  async acquirePersistentStream(): Promise<{ success: boolean; errorCode?: string; message?: string }> {
+    if (this.persistentStream && this.persistentStream.active) {
       return { success: true };
     }
 
     if (this.isInitializing) {
-      return { success: false, errorCode: 'MIC_BUSY', message: 'Microphone initialization is already in progress.' };
+      return { success: false, errorCode: 'MIC_BUSY', message: 'Microphone initialization in progress.' };
     }
 
     this.isInitializing = true;
 
-    // 2. Check browser API support
     if (typeof window === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       this.isInitializing = false;
-      return {
-        success: false,
-        errorCode: 'UNSUPPORTED_BROWSER',
-        message: 'Microphone access is not supported in this browser environment.'
-      };
+      return { success: false, errorCode: 'UNSUPPORTED_BROWSER', message: 'Microphone is not supported in this browser.' };
     }
 
-    // 3. Check secure context (HTTPS / localhost)
     const isSecure = window.isSecureContext || window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     if (!isSecure) {
       this.isInitializing = false;
-      return {
-        success: false,
-        errorCode: 'SECURITY_ERROR',
-        message: 'Microphone access requires a secure HTTPS context.'
-      };
+      return { success: false, errorCode: 'SECURITY_ERROR', message: 'Microphone access requires a secure HTTPS context.' };
     }
 
-    // 4. Check iframe feature policy if embedded
     const isIframe = window.self !== window.top;
     if (isIframe && (document as any).featurePolicy && typeof (document as any).featurePolicy.allowsFeature === 'function') {
       if (!(document as any).featurePolicy.allowsFeature('microphone')) {
         this.isInitializing = false;
-        return {
-          success: false,
-          errorCode: 'FEATURE_POLICY_DENIED',
-          message: 'Microphone access is blocked by the parent iframe policy.'
-        };
+        return { success: false, errorCode: 'FEATURE_POLICY_DENIED', message: 'Microphone access is blocked by the parent iframe policy.' };
       }
     }
 
-    // Ensure any previous stale stream or recorder is fully cleaned up first
-    this.cleanup();
-
-    let acquiredStream: MediaStream | null = null;
-
     try {
-      // Primary Microphone Access Test using getUserMedia
+      let acquiredStream: MediaStream | null = null;
       try {
-        acquiredStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        acquiredStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        });
       } catch (firstErr: any) {
-        // Retry with plain { audio: true } if initial call threw OverconstrainedError
         if (firstErr.name === 'OverconstrainedError') {
           acquiredStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         } else {
@@ -123,189 +188,169 @@ export class AudioRecorder {
         }
       }
 
-      // 5. Verify acquired stream: audio tracks must exist and state must be 'live'
       const audioTracks = acquiredStream.getAudioTracks();
       if (!audioTracks || audioTracks.length === 0 || audioTracks[0].readyState !== 'live') {
-        if (acquiredStream) {
-          acquiredStream.getTracks().forEach(t => t.stop());
-        }
+        acquiredStream.getTracks().forEach(t => t.stop());
         this.isInitializing = false;
-        return {
-          success: false,
-          errorCode: 'MIC_BUSY',
-          message: 'Microphone track is not live or available.'
-        };
+        return { success: false, errorCode: 'MIC_BUSY', message: 'Microphone audio track is inactive or unavailable.' };
       }
 
-      this.stream = acquiredStream;
-      this.audioChunks = [];
-      const mimeType = getSupportedMimeType();
-
-      this.mediaRecorder = new MediaRecorder(this.stream, { mimeType });
-
-      this.mediaRecorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          this.audioChunks.push(event.data);
-        }
-      };
-
-      this.mediaRecorder.start(100); // collect chunks every 100ms
+      this.persistentStream = acquiredStream;
+      this.analyzer = new AudioEnergyAnalyzer(this.persistentStream);
       this.isInitializing = false;
       return { success: true };
     } catch (err: any) {
-      this.cleanup();
+      this.dispose();
       this.isInitializing = false;
 
-      // Development-Only Diagnostic Logging
-      if (process.env.NODE_ENV === 'development') {
-        this.logDevDiagnostics(err, isSecure, isIframe);
-      }
-
-      // 6. Accurate Error Classification (NEVER map every error to permission blocked!)
       const errName = err.name || 'Error';
       const errMsg = err.message || 'Could not access microphone.';
 
       if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError') {
-        return {
-          success: false,
-          errorCode: 'MIC_PERMISSION_DENIED',
-          message: 'Microphone permission was blocked. Please allow microphone access in your browser settings and try again.'
-        };
+        return { success: false, errorCode: 'MIC_PERMISSION_DENIED', message: 'Microphone permission was blocked. Please allow microphone access in your browser settings and try again.' };
       }
-
       if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
-        return {
-          success: false,
-          errorCode: 'MIC_NOT_FOUND',
-          message: 'No microphone device was found.'
-        };
+        return { success: false, errorCode: 'MIC_NOT_FOUND', message: 'No microphone device was found.' };
       }
-
       if (errName === 'NotReadableError' || errName === 'TrackStartError') {
-        return {
-          success: false,
-          errorCode: 'MIC_BUSY',
-          message: 'Microphone is currently being used or unavailable.'
-        };
+        return { success: false, errorCode: 'MIC_BUSY', message: 'Microphone is currently being used or unavailable.' };
       }
-
       if (errName === 'SecurityError') {
-        return {
-          success: false,
-          errorCode: 'SECURITY_ERROR',
-          message: 'Microphone access requires a secure HTTPS context.'
-        };
+        return { success: false, errorCode: 'SECURITY_ERROR', message: 'Microphone access requires a secure HTTPS context.' };
       }
 
-      if (errName === 'OverconstrainedError') {
-        return {
-          success: false,
-          errorCode: 'OVERCONSTRAINED_ERROR',
-          message: 'Microphone device constraints could not be satisfied.'
-        };
-      }
-
-      // For all other unknown errors, display the exact error name and message
-      return {
-        success: false,
-        errorCode: 'MIC_ERROR',
-        message: `${errName}: ${errMsg}`
-      };
+      return { success: false, errorCode: 'MIC_ERROR', message: `${errName}: ${errMsg}` };
     }
   }
 
-  stop(): Promise<AudioRecordingResult> {
-    return new Promise((resolve, reject) => {
+  startSegmentRecording() {
+    if (!this.persistentStream) return;
+
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      try { this.mediaRecorder.stop(); } catch (e) {}
+    }
+
+    this.currentSegmentChunks = [...this.preRollBuffer];
+    this.preRollBuffer = [];
+    const mimeType = getSupportedMimeType();
+
+    try {
+      this.mediaRecorder = new MediaRecorder(this.persistentStream, { mimeType });
+
+      this.mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          this.currentSegmentChunks.push(e.data);
+          this.preRollBuffer.push(e.data);
+          if (this.preRollBuffer.length > 3) {
+            this.preRollBuffer.shift();
+          }
+        }
+      };
+
+      this.mediaRecorder.start(100);
+    } catch (e) {
+      console.warn('[SegmentRecorder Start Warning]', e);
+    }
+  }
+
+  stopSegmentRecording(): Promise<Blob | null> {
+    return new Promise((resolve) => {
       if (!this.mediaRecorder) {
-        this.cleanup();
-        return reject(new Error('Recorder not initialized'));
+        return resolve(null);
       }
 
+      const mimeType = getSupportedMimeType();
+
       this.mediaRecorder.onstop = () => {
-        const mimeType = getSupportedMimeType();
-        const blob = new Blob(this.audioChunks, { type: mimeType });
-        this.cleanup();
-        resolve({ blob, mimeType });
+        const blob = new Blob(this.currentSegmentChunks, { type: mimeType });
+        this.currentSegmentChunks = [];
+        this.mediaRecorder = null;
+        resolve(blob.size > 100 ? blob : null);
       };
 
       try {
         if (this.mediaRecorder.state !== 'inactive') {
           this.mediaRecorder.stop();
         } else {
-          const mimeType = getSupportedMimeType();
-          const blob = new Blob(this.audioChunks, { type: mimeType });
-          this.cleanup();
-          resolve({ blob, mimeType });
+          const blob = new Blob(this.currentSegmentChunks, { type: mimeType });
+          this.currentSegmentChunks = [];
+          this.mediaRecorder = null;
+          resolve(blob.size > 100 ? blob : null);
         }
-      } catch (err) {
-        this.cleanup();
-        reject(err);
+      } catch (e) {
+        this.mediaRecorder = null;
+        resolve(null);
       }
     });
   }
 
-  cancel() {
-    this.cleanup();
-  }
-
-  private cleanup() {
-    if (this.stream) {
-      try {
-        this.stream.getTracks().forEach((track) => track.stop());
-      } catch (e) {
-        // ignore track stop errors during cleanup
-      }
-      this.stream = null;
-    }
+  dispose() {
     if (this.mediaRecorder) {
       try {
         if (this.mediaRecorder.state !== 'inactive') {
           this.mediaRecorder.stop();
         }
-      } catch (e) {
-        // ignore recorder stop errors
-      }
+      } catch (e) {}
       this.mediaRecorder = null;
     }
-    this.audioChunks = [];
-    this.isInitializing = false;
-  }
 
-  private async logDevDiagnostics(err: any, isSecure: boolean, isIframe: boolean) {
-    try {
-      let permState: string | undefined = undefined;
-      if (navigator.permissions && typeof navigator.permissions.query === 'function') {
-        try {
-          const status = await navigator.permissions.query({ name: 'microphone' as PermissionName });
-          permState = status?.state;
-        } catch (pe) {
-          permState = 'query_unsupported';
-        }
-      }
-
-      let audioDevices: MediaDeviceInfo[] = [];
-      if (navigator.mediaDevices && typeof navigator.mediaDevices.enumerateDevices === 'function') {
-        try {
-          const devices = await navigator.mediaDevices.enumerateDevices();
-          audioDevices = devices.filter(d => d.kind === 'audioinput');
-        } catch (de) {}
-      }
-
-      console.error('[AudioRecorder Dev Diagnostic]', {
-        errorName: err.name,
-        errorMessage: err.message,
-        permissionState: permState,
-        isSecureContext: isSecure,
-        isIframe,
-        availableAudioInputs: audioDevices.map(d => ({ label: d.label, id: d.deviceId }))
-      });
-    } catch (logErr) {
-      console.error('[AudioRecorder Dev Diagnostic Error]', err);
+    if (this.persistentStream) {
+      try {
+        this.persistentStream.getTracks().forEach(t => t.stop());
+      } catch (e) {}
+      this.persistentStream = null;
     }
+
+    if (this.analyzer) {
+      this.analyzer.dispose();
+      this.analyzer = null;
+    }
+
+    this.preRollBuffer = [];
+    this.currentSegmentChunks = [];
+    this.isInitializing = false;
   }
 }
 
-export async function transcribeAudioFile(blob: Blob, mimeType: string): Promise<STTResponse> {
+/**
+ * Single-Session Audio Recorder (Backwards Compatibility Wrapper)
+ */
+export class AudioRecorder {
+  private segmentRecorder: AudioSegmentRecorder = new AudioSegmentRecorder();
+
+  public get activeStream(): MediaStream | null {
+    return this.segmentRecorder.stream;
+  }
+
+  public get state(): string {
+    return this.segmentRecorder.state;
+  }
+
+  async start(): Promise<{ success: boolean; errorCode?: string; message?: string }> {
+    const res = await this.segmentRecorder.acquirePersistentStream();
+    if (res.success) {
+      this.segmentRecorder.startSegmentRecording();
+    }
+    return res;
+  }
+
+  async stop(): Promise<AudioRecordingResult> {
+    const blob = await this.segmentRecorder.stopSegmentRecording();
+    const mimeType = getSupportedMimeType();
+    this.segmentRecorder.dispose();
+    return { blob: blob || new Blob([], { type: mimeType }), mimeType };
+  }
+
+  cancel() {
+    this.segmentRecorder.dispose();
+  }
+}
+
+export async function transcribeAudioFile(
+  blob: Blob, 
+  mimeType: string, 
+  abortSignal?: AbortSignal
+): Promise<STTResponse> {
   try {
     const formData = new FormData();
     const ext = mimeType.includes('mp4') ? 'mp4' : mimeType.includes('ogg') ? 'ogg' : 'webm';
@@ -313,12 +358,20 @@ export async function transcribeAudioFile(blob: Blob, mimeType: string): Promise
 
     const res = await fetch('/api/ai/transcribe', {
       method: 'POST',
-      body: formData
+      body: formData,
+      signal: abortSignal
     });
 
     const data = await res.json();
     return data;
   } catch (err: any) {
+    if (err.name === 'AbortError') {
+      return {
+        success: false,
+        errorCode: 'TRANSCRIPTION_FAILED',
+        message: 'Transcription request cancelled.'
+      };
+    }
     return {
       success: false,
       errorCode: 'TRANSCRIPTION_FAILED',
