@@ -325,7 +325,35 @@ Based on your current ${currentCourse} progress of ${currentProgress}% and gap i
     };
   }
 
-  // 8. Profile / Certificates
+  // 8. Program / Seat / Admission queries
+  if (p.includes('seat') || p.includes('bsc') || p.includes('b.sc') || p.includes('admission')) {
+    const prog = (p.includes('bsc') || p.includes('b.sc')) ? 'B.Sc' : '';
+    const res = await AGENT_TOOLS.searchProgramSeats.execute({ programName: prog }, user);
+    return {
+      success: true,
+      message: res.message,
+      actions: [{ label: 'Explore Courses', url: '/courses' }],
+      toolExecuted: 'searchProgramSeats'
+    };
+  }
+
+  // 9. Notifications / Leaderboard / Doubts
+  if (p.includes('notice') || p.includes('notification')) {
+    const res = await AGENT_TOOLS.openNotifications.execute({}, user);
+    return { success: true, message: isHinglish ? 'Notices section open kar raha hoon.' : res.message, actions: [{ label: 'View Notices', url: res.url! }], toolExecuted: 'openNotifications' };
+  }
+
+  if (p.includes('leaderboard') || p.includes('rank')) {
+    const res = await AGENT_TOOLS.openLeaderboard.execute({}, user);
+    return { success: true, message: isHinglish ? 'Leaderboard open kar raha hoon.' : res.message, actions: [{ label: 'View Leaderboard', url: res.url! }], toolExecuted: 'openLeaderboard' };
+  }
+
+  if (p.includes('doubt')) {
+    const res = await AGENT_TOOLS.openDoubts.execute({}, user);
+    return { success: true, message: isHinglish ? 'Doubts section open kar raha hoon.' : res.message, actions: [{ label: 'View Doubts', url: res.url! }], toolExecuted: 'openDoubts' };
+  }
+
+  // 10. Profile / Certificates
   if (p.includes('certificate') || p.includes('degree')) {
     const res = await AGENT_TOOLS.openCertificate.execute({}, user);
     return {
@@ -346,15 +374,11 @@ Based on your current ${currentCourse} progress of ${currentProgress}% and gap i
     };
   }
 
-  // Default natural response
+  // Direct factual response for unknown queries (NEVER return generic welcome greeting)
   return {
     success: true,
     message: isHinglish 
-      ? `Haanji! Main tumhara Smart Learn assistant hoon. DSA sheets, courses, YouTube search, ya routine manage karne me madad kar sakta hoon.`
-      : `Smart Learn Assistant active! I can open DSA sheets, search YouTube/GPT, launch LaTeX editor, or manage your routine and goals.`,
-    actions: [
-      { label: 'Open DSA Sheets', url: '/code-arena/sheets' },
-      { label: 'Explore Courses', url: '/courses' }
-    ]
+      ? `Smart Learn database me abhi is query ka specific data recorded nahi hai. Aap active courses ya DSA section check kar sakte hain.`
+      : `I don't have specific recorded data for that query in Smart Learn. You can explore the active courses or DSA section.`
   };
 }

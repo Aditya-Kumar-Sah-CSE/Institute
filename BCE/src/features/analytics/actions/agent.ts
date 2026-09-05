@@ -45,13 +45,24 @@ export async function askSmartAgentAction(input: {
 
     const studentProfile = await getStudent360Profile(user.id);
 
-    return await runSmartAgent({
+    const response = await runSmartAgent({
       user,
       studentProfile,
       prompt: input.prompt,
       history: input.history,
       pageContext: input.pageContext
     });
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[SMART AGENT DEBUG]', {
+        prompt: input.prompt,
+        toolExecuted: response.toolExecuted || 'NONE',
+        actionsCount: response.actions?.length || 0,
+        responseMsg: response.message
+      });
+    }
+
+    return response;
 
   } catch (error: any) {
     console.error('Error in askSmartAgentAction:', error);

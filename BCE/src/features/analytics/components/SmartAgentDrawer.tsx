@@ -62,11 +62,13 @@ export default function SmartAgentDrawer({
     }
   ]);
 
+  const [currentPromptText, setCurrentPromptText] = useState('');
   const [inputVal, setInputVal] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const isProcessingVoiceRef = useRef<boolean>(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -87,9 +89,25 @@ export default function SmartAgentDrawer({
 
   if (!isOpen) return null;
 
+  const getDynamicLoadingText = () => {
+    const t = currentPromptText.toLowerCase();
+    if (t.includes('search') || t.includes('youtube') || t.includes('yt') || t.includes('gpt') || t.includes('seat') || t.includes('bsc')) {
+      return 'Searching Smart Learn & External Sources...';
+    }
+    if (t.includes('open') || t.includes('kholo') || t.includes('dsa') || t.includes('course') || t.includes('problem') || t.includes('sheet')) {
+      return 'Opening page...';
+    }
+    if (t.includes('weak') || t.includes('intelligence') || t.includes('plan') || t.includes('recommend') || t.includes('kya karu')) {
+      return 'Checking your learning intelligence...';
+    }
+    return 'Processing your command...';
+  };
+
   const handleSendPrompt = async (textToSend?: string, confirmedTool?: { toolName: string; args: any }) => {
     const promptText = (textToSend || inputVal).trim();
     if ((!promptText && !confirmedTool) || isLoading) return;
+
+    setCurrentPromptText(promptText);
 
     if (!confirmedTool) {
       const userMsg: SmartAgentMessage = {
@@ -168,14 +186,17 @@ export default function SmartAgentDrawer({
       const recognition = new SpeechRecognition();
       recognition.lang = 'en-US';
       recognition.interimResults = false;
+      isProcessingVoiceRef.current = false;
 
       recognition.onstart = () => {
         setIsListening(true);
       };
 
       recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
+        if (isProcessingVoiceRef.current) return;
+        const transcript = event.results?.[0]?.[0]?.transcript;
         if (transcript) {
+          isProcessingVoiceRef.current = true;
           setInputVal(transcript);
           handleSendPrompt(transcript);
         }
@@ -401,7 +422,7 @@ export default function SmartAgentDrawer({
           {isLoading && (
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: 'var(--neon-cyan)', fontSize: 'var(--text-xs)', padding: '8px 12px', background: 'rgba(0, 229, 255, 0.08)', borderRadius: 'var(--radius-sm)', width: 'fit-content' }}>
               <RefreshCw size={14} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
-              <span>Agent selecting and executing tools...</span>
+              <span>{getDynamicLoadingText()}</span>
             </div>
           )}
 

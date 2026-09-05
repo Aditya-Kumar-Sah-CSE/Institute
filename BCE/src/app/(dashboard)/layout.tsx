@@ -13,6 +13,9 @@ import {
   DynamicXpCelebrator as XpCelebrator
 } from '@/components/DynamicWrappers';
 import { Analytics } from "@vercel/analytics/react";
+import dynamic from 'next/dynamic';
+
+const FloatingAgentButton = dynamic(() => import('@/features/analytics/components/FloatingAgentButton'));
 
 export default async function DashboardLayout({
   children,
@@ -85,6 +88,7 @@ export default async function DashboardLayout({
       <PWAInstallPrompt />
       <XpCelebrator />
       <FeedbackWidget />
+      <FloatingAgentButton />
       <Analytics />
     </div>
   );

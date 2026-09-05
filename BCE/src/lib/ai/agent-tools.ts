@@ -302,6 +302,89 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     })
   },
 
+  openNotifications: {
+    name: 'openNotifications',
+    description: 'Open student notices and notifications',
+    riskLevel: 'LOW',
+    parameters: { type: 'object', properties: {} },
+    execute: async () => ({
+      success: true,
+      message: 'Opening notices and notifications.',
+      url: '/notices'
+    })
+  },
+
+  openLeaderboard: {
+    name: 'openLeaderboard',
+    description: 'Open student leaderboard and rankings',
+    riskLevel: 'LOW',
+    parameters: { type: 'object', properties: {} },
+    execute: async () => ({
+      success: true,
+      message: 'Opening leaderboard.',
+      url: '/leaderboard'
+    })
+  },
+
+  openDoubts: {
+    name: 'openDoubts',
+    description: 'Open student doubt discussion hub',
+    riskLevel: 'LOW',
+    parameters: { type: 'object', properties: {} },
+    execute: async () => ({
+      success: true,
+      message: 'Opening doubt discussions.',
+      url: '/doubts'
+    })
+  },
+
+  openCodingArena: {
+    name: 'openCodingArena',
+    description: 'Open Code Arena main page',
+    riskLevel: 'LOW',
+    parameters: { type: 'object', properties: {} },
+    execute: async () => ({
+      success: true,
+      message: 'Opening Code Arena.',
+      url: '/code-arena'
+    })
+  },
+
+  searchProgramSeats: {
+    name: 'searchProgramSeats',
+    description: 'Query seat availability or program details for degrees like B.Sc, B.Tech, MCA, etc.',
+    riskLevel: 'LOW',
+    parameters: {
+      type: 'object',
+      properties: {
+        programName: { type: 'string', description: 'Degree or program name e.g. B.Sc, B.Tech' }
+      }
+    },
+    execute: async (args) => {
+      const adminClient = await createAdminClient();
+      const prog = args.programName || 'B.Sc';
+      const { data: matchedCourses } = await adminClient
+        .from('courses')
+        .select('id, title')
+        .ilike('title', `%${prog}%`)
+        .eq('is_published', true);
+
+      if (matchedCourses && matchedCourses.length > 0) {
+        return {
+          success: true,
+          message: `Smart Learn me ${prog} se related ${matchedCourses.length} active courses available hain: ${matchedCourses.map((c: any) => c.title).join(', ')}.`,
+          url: '/courses'
+        };
+      }
+
+      return {
+        success: true,
+        message: `Smart Learn me abhi ${prog} seat availability ka specific data available nahi hai. Aap active courses section me enrolled subjects dekh sakte hain.`,
+        url: '/courses'
+      };
+    }
+  },
+
   // ─── SEARCH TOOLS ───
 
   searchYouTube: {
