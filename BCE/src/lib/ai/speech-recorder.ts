@@ -17,6 +17,7 @@ export interface STTResponse {
     | 'AUDIO_RECORDING_FAILED'
     | 'TRANSCRIPTION_FAILED'
     | 'TRANSCRIPTION_EMPTY'
+    | 'TRANSCRIPTION_NOT_CONFIGURED'
     | 'MIC_ERROR';
   message?: string;
 }

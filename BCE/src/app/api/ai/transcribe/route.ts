@@ -11,22 +11,32 @@ export async function POST(request: Request) {
       );
     }
 
-    const groqApiKey = process.env.GROQ_API_KEY;
-    if (!groqApiKey) {
+    // 1. Check server-side STT API Key (GROQ_API_KEY or OPENAI_API_KEY)
+    const apiKey = process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY;
+
+    if (!apiKey) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[STT CONFIG CHECK] TRANSCRIPTION_API_KEY configured: false');
+      }
       return NextResponse.json(
         {
           success: false,
-          errorCode: 'TRANSCRIPTION_FAILED',
-          message: 'Speech transcription key unconfigured. Please type your command.'
+          errorCode: 'TRANSCRIPTION_NOT_CONFIGURED',
+          message: 'Voice transcription is not configured. Please contact the administrator.'
         },
         { status: 503 }
       );
     }
 
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[STT CONFIG CHECK] TRANSCRIPTION_API_KEY configured: true');
+    }
+
+    // 2. Extract audio blob from FormData
     const formData = await request.formData();
     const audioFile = formData.get('audio') as File | null;
 
-    if (!audioFile) {
+    if (!audioFile || audioFile.size === 0) {
       return NextResponse.json(
         { success: false, errorCode: 'TRANSCRIPTION_FAILED', message: 'No audio file provided' },
         { status: 400 }
@@ -36,38 +46,60 @@ export async function POST(request: Request) {
     // Limit audio file size to 10MB
     if (audioFile.size > 10 * 1024 * 1024) {
       return NextResponse.json(
-        { success: false, errorCode: 'TRANSCRIPTION_FAILED', message: 'Audio file too large' },
+        { success: false, errorCode: 'TRANSCRIPTION_FAILED', message: 'Audio file too large (max 10MB)' },
         { status: 400 }
       );
     }
 
-    // Send to Groq Whisper Speech-to-Text API
+    // 3. Prepare FormData for Groq Speech-to-Text (Whisper)
     const groqFormData = new FormData();
-    groqFormData.append('file', audioFile, audioFile.name || 'audio.webm');
+    groqFormData.append('file', audioFile, audioFile.name || 'recording.webm');
     groqFormData.append('model', 'whisper-large-v3-turbo');
     groqFormData.append('response_format', 'json');
 
-    const groqRes = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+    let groqRes = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${groqApiKey}`
+        Authorization: `Bearer ${apiKey}`
       },
       body: groqFormData
     });
 
+    // If whisper-large-v3-turbo fails, retry with fallback model whisper-large-v3
     if (!groqRes.ok) {
-      const errText = await groqRes.text();
-      console.error('[STT ERROR] Groq API returned:', errText);
-      return NextResponse.json(
-        {
-          success: false,
-          errorCode: 'TRANSCRIPTION_FAILED',
-          message: 'Voice transcription error. Please try typing your command.'
+      const firstErrText = await groqRes.text();
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[STT RETRY] Primary model whisper-large-v3-turbo failed, retrying with whisper-large-v3:', firstErrText);
+      }
+
+      const fallbackFormData = new FormData();
+      fallbackFormData.append('file', audioFile, audioFile.name || 'recording.webm');
+      fallbackFormData.append('model', 'whisper-large-v3');
+      fallbackFormData.append('response_format', 'json');
+
+      groqRes = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`
         },
-        { status: 500 }
-      );
+        body: fallbackFormData
+      });
+
+      if (!groqRes.ok) {
+        const finalErrText = await groqRes.text();
+        console.error('[STT ERROR] Groq API returned error:', finalErrText);
+        return NextResponse.json(
+          {
+            success: false,
+            errorCode: 'TRANSCRIPTION_FAILED',
+            message: 'Voice transcription service error. Please try again or type your command.'
+          },
+          { status: 500 }
+        );
+      }
     }
 
+    // 4. Parse Groq STT Transcript JSON
     const data = await groqRes.json();
     const transcript = (data.text || '').trim();
 
@@ -83,7 +115,7 @@ export async function POST(request: Request) {
     }
 
     if (process.env.NODE_ENV === 'development') {
-      console.log('[STT SUCCESS]', { userId: user.id, audioSize: audioFile.size, transcript });
+      console.log('[STT SUCCESS]', { userId: user.id, audioSize: audioFile.size, transcriptLength: transcript.length });
     }
 
     return NextResponse.json({
