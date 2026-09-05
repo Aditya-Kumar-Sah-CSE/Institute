@@ -450,11 +450,16 @@ export default function SmartAgentDrawer() {
           variant="secondary"
           size="sm"
           onClick={toggleVoiceRecording}
-          disabled={isLoading && !isVoiceMode}
-          title={isVoiceMode ? "Turn Voice OFF" : "Turn Voice Mode ON"}
-          style={{ padding: '0 12px', color: isVoiceMode ? 'var(--neon-cyan)' : 'var(--text-muted)', borderColor: isVoiceMode ? 'rgba(0, 229, 255, 0.4)' : 'var(--glass-border)' }}
+          disabled={isLoading}
+          title={isListening ? "Stop Voice Listening" : "Start Live Voice Assistant"}
+          style={{
+            padding: '0 12px',
+            color: isListening ? '#00ff88' : isVoiceMode ? 'var(--neon-cyan)' : 'var(--text-muted)',
+            borderColor: isListening ? 'rgba(0, 255, 136, 0.5)' : isVoiceMode ? 'rgba(0, 229, 255, 0.4)' : 'var(--glass-border)',
+            background: isListening ? 'rgba(0, 255, 136, 0.15)' : undefined
+          }}
         >
-          {isVoiceMode ? <Mic size={16} /> : <MicOff size={16} />}
+          {isListening ? <Square size={16} /> : isVoiceMode ? <Mic size={16} /> : <MicOff size={16} />}
         </Button>
 
         <Button 
