@@ -125,7 +125,7 @@ export default function SheetReviewsSection({
   const pagedReviews = displayedReviews.slice(0, visibleCount);
 
   return (
-    <Card variant="glass" className="sheet-reviews-section" style={{ padding: 'var(--space-xl)', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.7), rgba(11, 15, 25, 0.8))', border: '1px solid rgba(6, 182, 212, 0.2)', boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)' }}>
+    <Card variant="glass" className="sheet-reviews-section" style={{ padding: 'var(--space-xl)', background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-lg)' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
@@ -153,14 +153,14 @@ export default function SheetReviewsSection({
                 width: '36px',
                 height: '36px',
                 borderRadius: '10px',
-                background: 'rgba(255, 255, 255, 0.06)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
+                background: 'var(--interactive-hover)',
+                border: '1px solid var(--border-default)',
                 color: 'var(--text-main)',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'; }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--interactive-active)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--interactive-hover)'; }}
               title={isCollapsed ? 'Expand Reviews' : 'Collapse Reviews'}
             >
               {isCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
@@ -214,8 +214,8 @@ export default function SheetReviewsSection({
                   width: '100%',
                   padding: '12px',
                   borderRadius: 'var(--radius-md)',
-                  background: 'rgba(0, 0, 0, 0.4)',
-                  border: '1px solid rgba(6, 182, 212, 0.25)',
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-default)',
                   color: 'var(--text-primary)',
                   fontFamily: 'inherit',
                   fontSize: 'var(--text-sm)',
@@ -254,14 +254,14 @@ export default function SheetReviewsSection({
             gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
             gap: 'var(--space-lg)',
             padding: 'var(--space-lg)',
-            background: 'rgba(0, 0, 0, 0.35)',
+            background: 'var(--bg-secondary)',
             borderRadius: '16px',
-            border: '1px solid rgba(255, 255, 255, 0.08)'
+            border: '1px solid var(--border-default)'
           }}
         >
           {/* Average Rating Block */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', borderRight: '1px solid rgba(255, 255, 255, 0.08)', paddingRight: 'var(--space-lg)' }}>
-            <div style={{ fontSize: '3.2rem', fontWeight: 900, background: 'linear-gradient(135deg, #ffffff 0%, #06b6d4 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', lineHeight: 1 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', borderRight: '1px solid var(--border-default)', paddingRight: 'var(--space-lg)' }}>
+            <div style={{ fontSize: '3.2rem', fontWeight: 900, background: 'linear-gradient(135deg, var(--text-primary) 0%, #06b6d4 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', lineHeight: 1 }}>
               {stats.averageRating > 0 ? stats.averageRating : '—'}
             </div>
             <div style={{ margin: '8px 0' }}>
@@ -282,7 +282,7 @@ export default function SheetReviewsSection({
                   <span style={{ width: '45px', color: 'var(--text-secondary)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px' }}>
                     {starNum} <Star size={11} fill="#f59e0b" color="#f59e0b" />
                   </span>
-                  <div style={{ flex: 1, height: '8px', borderRadius: '4px', background: 'rgba(255, 255, 255, 0.06)', overflow: 'hidden' }}>
+                  <div style={{ flex: 1, height: '8px', borderRadius: '4px', background: 'var(--interactive-hover)', overflow: 'hidden' }}>
                     <div style={{ width: `${pct}%`, height: '100%', background: 'linear-gradient(90deg, #06b6d4, #3b82f6)', borderRadius: '4px', transition: 'width 0.5s ease' }} />
                   </div>
                   <span style={{ width: '38px', textAlign: 'right', color: 'var(--text-muted)', fontWeight: 600 }}>{pct}%</span>
@@ -304,9 +304,9 @@ export default function SheetReviewsSection({
               borderRadius: '20px',
               fontSize: '12px',
               fontWeight: 700,
-              background: filterStar === null ? 'linear-gradient(135deg, #06b6d4, #3b82f6)' : 'rgba(255, 255, 255, 0.05)',
+              background: filterStar === null ? 'linear-gradient(135deg, #06b6d4, #3b82f6)' : 'var(--bg-secondary)',
               color: filterStar === null ? '#fff' : 'var(--text-secondary)',
-              border: filterStar === null ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+              border: filterStar === null ? 'none' : '1px solid var(--border-default)',
               cursor: 'pointer',
               transition: 'all 0.2s ease'
             }}
@@ -322,9 +322,9 @@ export default function SheetReviewsSection({
                 borderRadius: '20px',
                 fontSize: '12px',
                 fontWeight: 700,
-                background: filterStar === s ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'rgba(255, 255, 255, 0.05)',
+                background: filterStar === s ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'var(--bg-secondary)',
                 color: filterStar === s ? '#000' : 'var(--text-secondary)',
-                border: filterStar === s ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+                border: filterStar === s ? 'none' : '1px solid var(--border-default)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -340,7 +340,7 @@ export default function SheetReviewsSection({
         {/* Reviews List */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
           {displayedReviews.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem 2rem', background: 'rgba(255, 255, 255, 0.015)', borderRadius: '16px', border: '1px dashed rgba(255, 255, 255, 0.1)' }}>
+            <div style={{ textAlign: 'center', padding: '3rem 2rem', background: 'var(--bg-secondary)', borderRadius: '16px', border: '1px dashed var(--border-default)' }}>
               <MessageSquare size={36} style={{ color: 'var(--text-muted)', marginBottom: '10px' }} />
               <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', fontWeight: 500 }}>
                 No reviews match your filter yet. Be the first to leave a review!
@@ -359,10 +359,10 @@ export default function SheetReviewsSection({
                       padding: '18px 20px',
                       background: isHidden 
                         ? 'rgba(239, 68, 68, 0.05)' 
-                        : 'linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.65) 100%)',
+                        : 'var(--bg-card)',
                       borderRadius: '16px',
-                      border: isHidden ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(255, 255, 255, 0.09)',
-                      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+                      border: isHidden ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid var(--border-default)',
+                      boxShadow: 'var(--shadow-md)',
                       backdropFilter: 'blur(12px)',
                       display: 'flex',
                       flexDirection: 'column',
@@ -380,7 +380,7 @@ export default function SheetReviewsSection({
                         />
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontWeight: 800, fontSize: '14px', color: '#ffffff' }}>
+                            <span style={{ fontWeight: 800, fontSize: '14px', color: 'var(--text-primary)' }}>
                               {r.is_public ? (r.profile?.name || 'Verified Coder') : 'Verified Coder'}
                             </span>
                             {r.profile?.role === 'instructor' || r.profile?.role === 'admin' ? (
@@ -393,7 +393,7 @@ export default function SheetReviewsSection({
                               </span>
                             )}
                           </div>
-                          <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
+                          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
                             {new Date(r.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                           </div>
                         </div>
@@ -405,7 +405,7 @@ export default function SheetReviewsSection({
                         
                         {/* Moderation Controls */}
                         {(isStaff || isOwner) && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(0, 0, 0, 0.3)', padding: '2px 6px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: '8px', border: '1px solid var(--border-default)' }}>
                             {isStaff && (
                               <>
                                 {r.status === 'published' ? (
@@ -448,7 +448,7 @@ export default function SheetReviewsSection({
 
                     {/* Review Text */}
                     {r.review_text && (
-                      <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#cbd5e1', lineHeight: 1.6, whiteSpace: 'pre-line', background: 'rgba(0, 0, 0, 0.25)', padding: '10px 14px', borderRadius: '10px', borderLeft: '3px solid #06b6d4' }}>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6, whiteSpace: 'pre-line', background: 'var(--bg-secondary)', padding: '10px 14px', borderRadius: '10px', borderLeft: '3px solid #06b6d4' }}>
                         "{r.review_text}"
                       </p>
                     )}

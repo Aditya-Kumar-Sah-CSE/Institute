@@ -634,10 +634,10 @@ export default function SheetDetailClient({
             alignItems: 'flex-end', 
             gap: '10px', 
             padding: '16px 20px', 
-            background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.85) 100%)', 
+            background: 'var(--bg-card)', 
             borderRadius: '16px', 
             border: '1px solid rgba(245, 158, 11, 0.3)', 
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+            boxShadow: 'var(--shadow-md)',
             backdropFilter: 'blur(12px)',
             minWidth: '210px'
           }}
@@ -652,7 +652,7 @@ export default function SheetDetailClient({
             <Star size={24} style={{ color: '#f59e0b', fill: '#f59e0b', filter: 'drop-shadow(0 0 8px rgba(245, 158, 11, 0.7))' }} />
             <div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ffffff' }}>
+                <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                   {reviewsData?.stats?.averageRating ? reviewsData.stats.averageRating : '5.0'}
                 </span>
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>/ 5.0</span>

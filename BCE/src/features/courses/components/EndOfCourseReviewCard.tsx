@@ -123,7 +123,7 @@ export default function EndOfCourseReviewCard({
                   width: '100%',
                   padding: 'var(--space-sm)',
                   borderRadius: 'var(--radius-md)',
-                  background: 'rgba(0, 0, 0, 0.3)',
+                  background: 'var(--bg-secondary)',
                   border: '1px solid var(--glass-border)',
                   color: 'var(--text-primary)',
                   fontFamily: 'inherit',

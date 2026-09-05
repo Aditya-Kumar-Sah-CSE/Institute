@@ -125,7 +125,7 @@ export default function StorageUsageIndicator({
       <div
         className={`storage-usage-indicator ${className}`}
         style={{
-          background: 'var(--bg-elevated, rgba(15, 23, 42, 0.65))',
+          background: 'var(--bg-elevated)',
           border: '1px solid rgba(0, 242, 254, 0.25)',
           borderRadius: 'var(--radius-lg, 12px)',
           padding: compact ? '14px 16px' : '18px 22px',
@@ -134,7 +134,7 @@ export default function StorageUsageIndicator({
           backdropFilter: 'blur(12px)',
           transition: 'all 0.3s ease',
           textAlign: 'left',
-          boxShadow: '0 4px 20px rgba(0, 242, 254, 0.08)',
+          boxShadow: 'var(--shadow-md)',
           ...style,
         }}
       >
@@ -157,10 +157,10 @@ export default function StorageUsageIndicator({
               <Cloud size={18} />
             </div>
             <div>
-              <div style={{ fontSize: '15px', fontWeight: '700', color: '#ffffff', letterSpacing: '0.2px' }}>
+              <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', letterSpacing: '0.2px' }}>
                 Google Drive Storage
               </div>
-              <div style={{ fontSize: '12px', color: '#94a3b8' }}>{email}</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{email}</div>
             </div>
           </div>
 
@@ -185,13 +185,13 @@ export default function StorageUsageIndicator({
         </div>
 
         {/* Usage Numbers */}
-        <div style={{ fontSize: '20px', fontWeight: '800', color: '#ffffff', marginBottom: '4px', letterSpacing: '-0.4px' }}>
-          {driveUsed} <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>/ {driveLimit}</span>
+        <div style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '4px', letterSpacing: '-0.4px' }}>
+          {driveUsed} <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500' }}>/ {driveLimit}</span>
         </div>
 
         {/* Subtext */}
-        <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '10px' }}>
-          Code Arena Files: <strong style={{ color: '#ffffff' }}>{fileCount} files</strong> ({appBytes})
+        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '10px' }}>
+          Code Arena Files: <strong style={{ color: 'var(--text-primary)' }}>{fileCount} files</strong> ({appBytes})
         </div>
 
         {/* Progress Bar Container */}
@@ -200,7 +200,7 @@ export default function StorageUsageIndicator({
             position: 'relative',
             width: '100%',
             height: '8px',
-            background: 'rgba(255, 255, 255, 0.08)',
+            background: 'var(--interactive-hover)',
             borderRadius: '4px',
             overflow: 'hidden',
             marginBottom: '14px',
@@ -249,9 +249,9 @@ export default function StorageUsageIndicator({
               gap: '6px',
               fontSize: '12px',
               fontWeight: '600',
-              color: '#cbd5e1',
-              background: 'rgba(255, 255, 255, 0.06)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
+              color: 'var(--text-secondary)',
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-default)',
               padding: '6px 12px',
               borderRadius: '8px',
               cursor: 'pointer',
@@ -296,8 +296,8 @@ export default function StorageUsageIndicator({
             }}
           >
             <div>
-              <div style={{ fontSize: '13px', fontWeight: '700', color: '#ffffff' }}>Move existing files to Google Drive?</div>
-              <div style={{ fontSize: '11px', color: '#94a3b8' }}>Safe migration directly to your Code Arena Drive folder.</div>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)' }}>Move existing files to Google Drive?</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Safe migration directly to your Code Arena Drive folder.</div>
             </div>
             <div style={{ display: 'flex', gap: '6px' }}>
               <button
@@ -320,7 +320,7 @@ export default function StorageUsageIndicator({
                 onClick={() => setShowMigrateModal(false)}
                 style={{
                   fontSize: '12px',
-                  color: '#64748b',
+                  color: 'var(--text-muted)',
                   background: 'transparent',
                   border: 'none',
                   cursor: 'pointer',
@@ -346,8 +346,8 @@ export default function StorageUsageIndicator({
     <div
       className={`storage-usage-indicator ${className}`}
       style={{
-        background: 'var(--bg-elevated, rgba(15, 23, 42, 0.6))',
-        border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+        background: 'var(--bg-elevated)',
+        border: '1px solid var(--border-default)',
         borderRadius: 'var(--radius-lg, 12px)',
         padding: compact ? '14px 16px' : '18px 22px',
         width: '100%',
@@ -360,28 +360,28 @@ export default function StorageUsageIndicator({
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Cloud size={18} style={{ color: '#00f2fe' }} />
-          <span style={{ fontSize: '14px', fontWeight: '700', color: '#ffffff' }}>Google Drive Storage</span>
+          <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)' }}>Google Drive Storage</span>
         </div>
         <span
           style={{
             fontSize: '11px',
             fontWeight: '600',
-            color: '#94a3b8',
-            background: 'rgba(255, 255, 255, 0.06)',
+            color: 'var(--text-muted)',
+            background: 'var(--bg-secondary)',
             padding: '2px 8px',
             borderRadius: '10px',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+            border: '1px solid var(--border-default)',
           }}
         >
           Disconnected
         </span>
       </div>
 
-      <div style={{ fontSize: '20px', fontWeight: '800', color: '#ffffff', marginBottom: '4px' }}>
+      <div style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '4px' }}>
         {loading ? '...' : dbData?.formattedTotal || '0 B'}
       </div>
 
-      <p style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '14px', lineHeight: '1.4' }}>
+      <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '14px', lineHeight: '1.4' }}>
         Connect your Google Drive to store files securely in your own Drive.
       </p>
 
