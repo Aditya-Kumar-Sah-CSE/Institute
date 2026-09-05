@@ -19,6 +19,13 @@ export class GeminiAudioPlayer {
   constructor(callbacks: GeminiAudioPlayerCallbacks = {}, sampleRate: number = 24000) {
     this.callbacks = callbacks;
     this.sampleRate = sampleRate;
+    if (typeof window !== 'undefined') {
+      this.initAudioContext();
+    }
+  }
+
+  public prepare() {
+    this.initAudioContext();
   }
 
   private initAudioContext() {
@@ -27,7 +34,9 @@ export class GeminiAudioPlayer {
       this.audioCtx = new AudioCtxClass({ sampleRate: this.sampleRate });
     }
     if (this.audioCtx.state === 'suspended') {
-      this.audioCtx.resume();
+      this.audioCtx.resume().catch((e) => {
+        console.warn('[GeminiAudioPlayer] AudioContext resume error:', e);
+      });
     }
   }
 

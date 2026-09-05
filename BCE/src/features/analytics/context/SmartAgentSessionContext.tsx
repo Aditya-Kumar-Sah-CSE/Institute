@@ -523,6 +523,13 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
 
       setMessages((prev) => [...prev, nextMsg]);
 
+      if (isVoiceModeRef.current && response.message) {
+        speakAssistantResponse(response.message, {
+          onStart: () => setVoiceState('SPEAKING_AI'),
+          onEnd: () => setVoiceState('IDLE')
+        });
+      }
+
       setExecutionState('IDLE');
       setIsLoading(false);
     } catch (err: any) {
