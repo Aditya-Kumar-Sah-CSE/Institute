@@ -5,7 +5,8 @@ import Button from '@/components/ui/Button';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { askSmartAgentAction } from '../actions/agent';
-import { X, Send, Mic, MicOff, Sparkles, Bot, User, ArrowRight, RefreshCw, ExternalLink, AlertTriangle, Terminal, HelpCircle } from 'lucide-react';
+import { AudioRecorder, transcribeAudioFile } from '@/lib/ai/speech-recorder';
+import { X, Send, Mic, MicOff, Sparkles, Bot, User, ArrowRight, RefreshCw, ExternalLink, AlertTriangle, Terminal, HelpCircle, Loader2 } from 'lucide-react';
 
 interface SmartAgentMessage {
   role: 'user' | 'assistant';
@@ -66,9 +67,11 @@ export default function SmartAgentDrawer({
   const [inputVal, setInputVal] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const isProcessingVoiceRef = useRef<boolean>(false);
+  const audioRecorderRef = useRef<AudioRecorder | null>(null);
+  const isProcessingRef = useRef<boolean>(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -80,12 +83,14 @@ export default function SmartAgentDrawer({
       if (initialPrompt) {
         handleSendPrompt(initialPrompt);
       }
+    } else {
+      stopVoiceRecording();
     }
   }, [isOpen, initialPrompt]);
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isLoading, isListening]);
+  }, [messages, isLoading, isListening, isTranscribing]);
 
   if (!isOpen) return null;
 
@@ -173,48 +178,102 @@ export default function SmartAgentDrawer({
     }
   };
 
-  const startVoiceRecognition = () => {
-    setVoiceNotice(null);
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+  const stopVoiceRecording = async () => {
+    if (!audioRecorderRef.current || !isListening) return;
+    setIsListening(false);
+    setIsTranscribing(true);
 
-    if (!SpeechRecognition) {
-      setVoiceNotice('Voice input is not supported in this browser. You can use text.');
+    try {
+      const { blob, mimeType } = await audioRecorderRef.current.stop();
+      audioRecorderRef.current = null;
+
+      const sttRes = await transcribeAudioFile(blob, mimeType);
+      setIsTranscribing(false);
+
+      if (sttRes.success && sttRes.transcript) {
+        setInputVal(sttRes.transcript);
+        handleSendPrompt(sttRes.transcript);
+      } else {
+        setVoiceNotice(sttRes.message || 'Speech recognition failed.');
+      }
+    } catch (err: any) {
+      setIsTranscribing(false);
+      setVoiceNotice('Audio recording failed. Please try again.');
+    }
+  };
+
+  const toggleVoiceRecording = async () => {
+    if (isLoading || isTranscribing || isProcessingRef.current) return;
+    setVoiceNotice(null);
+
+    // If currently recording, stop recording and send to STT
+    if (isListening) {
+      await stopVoiceRecording();
       return;
     }
 
+    // Try Web Speech API fast path first if available in browser
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (SpeechRecognition) {
+      try {
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        let isFinalHandled = false;
+
+        recognition.onstart = () => {
+          setIsListening(true);
+        };
+
+        recognition.onresult = (event: any) => {
+          if (isFinalHandled) return;
+          const transcript = event.results?.[0]?.[0]?.transcript;
+          if (transcript) {
+            isFinalHandled = true;
+            setIsListening(false);
+            setInputVal(transcript);
+            handleSendPrompt(transcript);
+          }
+        };
+
+        recognition.onerror = async () => {
+          setIsListening(false);
+          // If Web Speech API fails in browser, seamlessly fall back to production MediaRecorder pipeline
+          await startMediaRecorderPipeline();
+        };
+
+        recognition.onend = () => {
+          setIsListening(false);
+        };
+
+        recognition.start();
+        return;
+      } catch (err) {
+        // Fall through to MediaRecorder
+      }
+    }
+
+    // Production MediaRecorder Pipeline
+    await startMediaRecorderPipeline();
+  };
+
+  const startMediaRecorderPipeline = async () => {
     try {
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'en-US';
-      recognition.interimResults = false;
-      isProcessingVoiceRef.current = false;
+      const recorder = new AudioRecorder();
+      audioRecorderRef.current = recorder;
+      const res = await recorder.start();
 
-      recognition.onstart = () => {
-        setIsListening(true);
-      };
+      if (!res.success) {
+        audioRecorderRef.current = null;
+        setVoiceNotice(res.message || 'Microphone error.');
+        return;
+      }
 
-      recognition.onresult = (event: any) => {
-        if (isProcessingVoiceRef.current) return;
-        const transcript = event.results?.[0]?.[0]?.transcript;
-        if (transcript) {
-          isProcessingVoiceRef.current = true;
-          setInputVal(transcript);
-          handleSendPrompt(transcript);
-        }
-      };
-
-      recognition.onerror = () => {
-        setIsListening(false);
-        setVoiceNotice('Voice input error. Please try typing your command.');
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
-      recognition.start();
-    } catch (err) {
-      setIsListening(false);
-      setVoiceNotice('Could not start microphone.');
+      setIsListening(true);
+    } catch (err: any) {
+      audioRecorderRef.current = null;
+      setVoiceNotice(err.message || 'Could not start recording.');
     }
   };
 
@@ -426,11 +485,19 @@ export default function SmartAgentDrawer({
             </div>
           )}
 
+          {/* TRANSCRIBING AUDIO STATE */}
+          {isTranscribing && (
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: 'var(--neon-cyan)', fontSize: 'var(--text-xs)', padding: '8px 12px', background: 'rgba(0, 229, 255, 0.12)', border: '1px solid rgba(0, 229, 255, 0.3)', borderRadius: 'var(--radius-sm)', width: 'fit-content' }}>
+              <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+              <span>⏳ Transcribing audio...</span>
+            </div>
+          )}
+
           {/* LISTENING VOICE STATE */}
           {isListening && (
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: '#ff4444', fontSize: 'var(--text-xs)', padding: '8px 12px', background: 'rgba(255, 68, 68, 0.12)', border: '1px solid rgba(255, 68, 68, 0.3)', borderRadius: 'var(--radius-sm)', width: 'fit-content' }}>
               <Mic size={14} style={{ animation: 'pulse 1s infinite alternate' }} />
-              <span>Listening... Speak your command now.</span>
+              <span>🔴 Listening... Click mic again to stop & send.</span>
             </div>
           )}
 
@@ -448,7 +515,7 @@ export default function SmartAgentDrawer({
                 key={idx}
                 type="button"
                 onClick={() => handleSendPrompt(cmdText.replace(/^•\s*/, ''))}
-                disabled={isLoading || isListening}
+                disabled={isLoading || isListening || isTranscribing}
                 style={{
                   fontSize: '11px',
                   background: 'rgba(255, 255, 255, 0.04)',
@@ -488,7 +555,7 @@ export default function SmartAgentDrawer({
             value={inputVal}
             onChange={(e) => setInputVal(e.target.value)}
             placeholder="Ask Smart Learn anything..."
-            disabled={isLoading || isListening}
+            disabled={isLoading || isListening || isTranscribing}
             style={{
               flex: 1,
               padding: '10px 14px',
@@ -505,9 +572,9 @@ export default function SmartAgentDrawer({
             type="button"
             variant="secondary"
             size="sm"
-            onClick={startVoiceRecognition}
-            disabled={isLoading || isListening}
-            title="Speak Command (Microphone)"
+            onClick={toggleVoiceRecording}
+            disabled={isLoading || isTranscribing}
+            title={isListening ? "Stop & Send Audio" : "Speak Command (Microphone)"}
             style={{ padding: '0 12px', color: isListening ? '#ff4444' : 'var(--neon-cyan)', borderColor: isListening ? '#ff4444' : 'var(--glass-border)' }}
           >
             {isListening ? <MicOff size={16} /> : <Mic size={16} />}
