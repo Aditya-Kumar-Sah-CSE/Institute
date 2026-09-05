@@ -31,7 +31,7 @@ const ActivityFeed = dynamic(() => import('@/features/activity/components/Activi
 const LearningIntelligenceSection = dynamic(() => import('@/features/analytics/components/LearningIntelligenceSection'), { 
   loading: () => <div className="skeleton-dash" style={{ height: '320px', borderRadius: '12px' }}></div> 
 });
-const FloatingMentorButton = dynamic(() => import('@/features/analytics/components/FloatingMentorButton'), { ssr: false });
+const FloatingMentorButton = dynamic(() => import('@/features/analytics/components/FloatingMentorButton'));
 
 interface DashboardEnrollment {
   progress: number;
