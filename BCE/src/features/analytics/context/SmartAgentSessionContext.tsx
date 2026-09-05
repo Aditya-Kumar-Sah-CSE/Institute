@@ -231,12 +231,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
 
     stopVoiceSession();
     setVoiceNotice(null);
-
-    // Speak instant vocal greeting when mic is opened
-    speakAssistantResponse('Hi! Main Smart Learn AI Assistant hoon. Aaj main aapki kaise help karun?', {
-      onStart: () => setVoiceState('SPEAKING_AI'),
-      onEnd: () => setVoiceState('LISTENING')
-    });
+    setVoiceState('THINKING');
 
     const session = new GeminiLiveSession(
       {

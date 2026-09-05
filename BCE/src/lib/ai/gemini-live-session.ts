@@ -89,7 +89,11 @@ export class GeminiLiveSession {
             console.log('[GeminiLiveSession] WebSocket connection established.');
             if (!this.isStopped) {
               this.callbacks.onStateChange?.('LISTENING');
-              this.startMicrophoneStream();
+              setTimeout(() => {
+                if (!this.isStopped) {
+                  this.startMicrophoneStream();
+                }
+              }, 50);
             }
           },
           onmessage: (msg: any) => {
@@ -133,6 +137,9 @@ export class GeminiLiveSession {
 
       const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
       this.audioCtx = new AudioCtxClass();
+      if (this.audioCtx.state === 'suspended') {
+        await this.audioCtx.resume();
+      }
 
       // Load PCM AudioWorklet processor (inline Blob with static fallback)
       await this.loadPcmWorklet(this.audioCtx);
