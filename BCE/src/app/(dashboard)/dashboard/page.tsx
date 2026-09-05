@@ -32,6 +32,7 @@ const LearningIntelligenceSection = dynamic(() => import('@/features/analytics/c
   loading: () => <div className="skeleton-dash" style={{ height: '320px', borderRadius: '12px' }}></div> 
 });
 const FloatingMentorButton = dynamic(() => import('@/features/analytics/components/FloatingMentorButton'));
+const FloatingAgentButton = dynamic(() => import('@/features/analytics/components/FloatingAgentButton'));
 
 interface DashboardEnrollment {
   progress: number;
@@ -211,6 +212,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
         </div>
 
         <FloatingMentorButton />
+        <FloatingAgentButton />
       </div>
     </div>
   );

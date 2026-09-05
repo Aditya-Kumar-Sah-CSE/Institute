@@ -4,6 +4,7 @@ import Button from '@/components/ui/Button';
 import Link from 'next/link';
 import { getStudent360Profile } from '../services/student-intelligence';
 import AskMentorCardTrigger from './AskMentorCardTrigger';
+import AskAgentCardTrigger from './AskAgentCardTrigger';
 import { Zap, CheckCircle2, AlertTriangle, ArrowRight, ShieldCheck, Clock, Target, Compass, Award, BookOpen, Code, Brain } from 'lucide-react';
 
 interface LearningIntelligenceSectionProps {
@@ -112,6 +113,7 @@ export default async function LearningIntelligenceSection({ userId }: LearningIn
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
           <AskMentorCardTrigger />
+          <AskAgentCardTrigger />
 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
             {/* Confidence Badge */}

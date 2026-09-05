@@ -1,0 +1,44 @@
+import { Student360Profile } from '@/features/analytics/services/student-intelligence';
+
+export interface AgentPageContext {
+  route?: string;
+  problemId?: string;
+  problemTitle?: string;
+  courseId?: string;
+  courseTitle?: string;
+  certificateId?: string;
+}
+
+export function buildAgentContext(
+  profile: Student360Profile,
+  pageContext?: AgentPageContext
+) {
+  return {
+    student: {
+      userId: profile.userId,
+      hasSufficientData: profile.hasSufficientData,
+      overallLearningScore: profile.overallLearningScore,
+      academicScore: profile.academicScore,
+      codingScore: profile.codingScore,
+      learningScore: profile.learningScore,
+      assessmentScore: profile.assessmentScore,
+      confidenceLevel: profile.confidenceLevel,
+      coverage: profile.dataCoverage,
+      strengths: profile.strengths,
+      weakAreas: profile.weakAreas,
+      skillGaps: profile.skillGaps,
+      enrolledCourses: profile.enrolledCoursesData,
+      dailyRoutines: profile.dailyRoutines,
+      activeGoals: profile.activeGoals,
+      nextBestAction: profile.nextBestAction
+    },
+    currentPageContext: {
+      route: pageContext?.route || '/dashboard',
+      problemId: pageContext?.problemId || null,
+      problemTitle: pageContext?.problemTitle || null,
+      courseId: pageContext?.courseId || null,
+      courseTitle: pageContext?.courseTitle || null,
+      certificateId: pageContext?.certificateId || null
+    }
+  };
+}
