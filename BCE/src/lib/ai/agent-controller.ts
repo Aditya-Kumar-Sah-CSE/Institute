@@ -124,12 +124,7 @@ export class AgentController {
       pageContext: input.pageContext
     });
 
-    const response: AgentControllerResponse = {
-      ...llmResult,
-      status: llmResult.success ? 'success' : 'failed',
-      sessionState: activeState
-    };
-
+    const response = this.formatToolResult(llmResult.toolExecuted || 'agent', llmResult, activeState);
     actionLockMap.set(lockKey, { timestamp: Date.now(), result: response });
     return response;
   }
@@ -367,6 +362,17 @@ export class AgentController {
       if (result.data.problemId) sessionState.problemId = result.data.problemId;
       if (result.data.problemTitle) sessionState.problemTitle = result.data.problemTitle;
       if (result.data.number) sessionState.problemNumber = result.data.number;
+    }
+    if (result.expectedEntity) {
+      if (result.expectedEntity.type === 'problem') {
+        if (result.expectedEntity.id) sessionState.problemId = result.expectedEntity.id;
+        if (result.expectedEntity.title) sessionState.problemTitle = result.expectedEntity.title;
+        if (result.expectedEntity.number) sessionState.problemNumber = result.expectedEntity.number;
+      }
+      if (result.expectedEntity.type === 'sheet') {
+        if (result.expectedEntity.id) sessionState.sheetId = result.expectedEntity.id;
+        if (result.expectedEntity.title) sessionState.sheetTitle = result.expectedEntity.title;
+      }
     }
 
     const actions: Array<{ label: string; url: string; isExternal?: boolean }> = [];

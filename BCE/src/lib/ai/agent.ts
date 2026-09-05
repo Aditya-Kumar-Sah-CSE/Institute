@@ -29,6 +29,7 @@ export interface AgentResponse {
     number?: number;
   };
   successMessage?: string;
+  data?: any;
 }
 
 export async function runSmartAgent(params: {
@@ -172,7 +173,8 @@ HUMAN CONVERSATION PERSONA & RULES:
                 navigationId: result.navigationId,
                 expectedRoute: result.expectedRoute,
                 expectedEntity: result.expectedEntity,
-                successMessage: result.successMessage
+                successMessage: result.successMessage,
+                data: result.data
               };
             }
           }
