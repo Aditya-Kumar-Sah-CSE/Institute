@@ -1065,6 +1065,211 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
         url: '/dashboard'
       };
     }
+  },
+
+  createCodingSheet: {
+    name: 'createCodingSheet',
+    description: 'Create a new DSA coding sheet. Use when user says "Advanced Graph sheet banao", "create DSA sheet named DP", "ek naya sheet bana do".',
+    category: 'DSA',
+    riskLevel: 'MEDIUM',
+    parameters: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Title of the sheet e.g. "Advanced Graph", "Dynamic Programming"' },
+        description: { type: 'string', description: 'Optional description of the sheet' },
+        category: { type: 'string', description: 'Optional category e.g. "Graphs", "DP"' }
+      },
+      required: ['title']
+    },
+    examples: ['Advanced Graph sheet banao', 'create DSA sheet named DP', 'ek naya coding sheet bana do'],
+    execute: async (args, user) => {
+      const adminClient = await createAdminClient();
+      const title = (args.title || '').trim();
+      if (!title) return { success: false, message: 'Sheet title required hai.' };
+
+      const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `sheet-${Date.now()}`;
+      
+      const { data: newSheet, error } = await adminClient
+        .from('coding_sheets')
+        .insert({
+          title,
+          slug,
+          description: args.description || `DSA practice sheet for ${title}`,
+          is_public: true,
+          published_at: new Date().toISOString(),
+          created_by: user.id,
+          enrollment_access: 'public'
+        })
+        .select()
+        .single();
+
+      if (error) {
+        if (error.code === '23505') {
+          const { data: existing } = await adminClient.from('coding_sheets').select('id, title').eq('slug', slug).single();
+          if (existing) {
+            return {
+              success: true,
+              message: `DSA Sheet "${existing.title}" already exists. Opening sheet...`,
+              url: `/code-arena/sheets/${existing.id}`,
+              pendingNavigation: true,
+              navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+              expectedRoute: `/code-arena/sheets/${existing.id}`,
+              expectedEntity: { type: 'sheet', id: existing.id, title: existing.title },
+              successMessage: `DSA Sheet "${existing.title}" open kar di.`,
+              data: { sheetId: existing.id, sheetTitle: existing.title }
+            };
+          }
+        }
+        return { success: false, message: `Sheet create nahi ho paayi: ${error.message}` };
+      }
+
+      return {
+        success: true,
+        message: `DSA Sheet "${newSheet.title}" successfully create ho gayi! Opening sheet...`,
+        url: `/code-arena/sheets/${newSheet.id}`,
+        pendingNavigation: true,
+        navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+        expectedRoute: `/code-arena/sheets/${newSheet.id}`,
+        expectedEntity: { type: 'sheet', id: newSheet.id, title: newSheet.title },
+        successMessage: `DSA Sheet "${newSheet.title}" verified & created.`,
+        data: { sheetId: newSheet.id, sheetTitle: newSheet.title }
+      };
+    }
+  },
+
+  addProblemsToSheet: {
+    name: 'addProblemsToSheet',
+    description: 'Add problems matching a topic query (e.g. Binary Search, Arrays) or problem IDs to a DSA sheet. Use when user says "isme Binary Search ke problems add karo", "add binary search questions to this sheet".',
+    category: 'DSA',
+    riskLevel: 'MEDIUM',
+    parameters: {
+      type: 'object',
+      properties: {
+        sheetId: { type: 'string', description: 'Sheet UUID' },
+        sheetQuery: { type: 'string', description: 'Optional sheet name query if sheetId not specified' },
+        topicQuery: { type: 'string', description: 'Topic or problem search query e.g. "Binary Search", "Array"' },
+        limit: { type: 'number', description: 'Number of problems to add, default 5' }
+      }
+    },
+    examples: ['isme Binary Search ke problems add karo', 'add 5 binary search problems to sheet'],
+    execute: async (args, _, context) => {
+      const adminClient = await createAdminClient();
+      let targetSheetId = args.sheetId || context?.sheetId || context?.activeSheet?.id;
+
+      if (!targetSheetId && args.sheetQuery) {
+        const { data: sheet } = await adminClient.from('coding_sheets').select('id, title').ilike('title', `%${args.sheetQuery.trim()}%`).limit(1).maybeSingle();
+        if (sheet) targetSheetId = sheet.id;
+      }
+
+      if (!targetSheetId && context?.liveContext?.currentEntity?.type === 'sheet') {
+        targetSheetId = context.liveContext.currentEntity.id;
+      }
+
+      if (!targetSheetId) {
+        return { success: false, message: 'Kaunsi sheet me add karna hai? Pehle sheet open karo ya sheet name batao.' };
+      }
+
+      const topic = args.topicQuery || 'Binary Search';
+      const limit = args.limit || 5;
+
+      const { data: matchedProbs } = await adminClient
+        .from('coding_problems')
+        .select('id, title, tags')
+        .or(`title.ilike.%${topic}%,tags.cs.{${topic}}`)
+        .limit(limit);
+
+      const probsToAdd = matchedProbs && matchedProbs.length > 0 ? matchedProbs : [];
+
+      if (probsToAdd.length === 0) {
+        const { data: fallbackProbs } = await adminClient.from('coding_problems').select('id, title, tags').limit(limit);
+        if (fallbackProbs) probsToAdd.push(...fallbackProbs);
+      }
+
+      if (probsToAdd.length === 0) {
+        return { success: false, message: `No problems found to add.` };
+      }
+
+      const { data: existingLinks } = await adminClient
+        .from('coding_sheet_problems')
+        .select('order_index, problem_id')
+        .eq('sheet_id', targetSheetId);
+
+      const existingProblemIds = new Set((existingLinks || []).map(l => l.problem_id));
+      let currentOrder = (existingLinks || []).reduce((max, l) => Math.max(max, l.order_index || 0), 0);
+
+      const newLinks = [];
+      for (const p of probsToAdd) {
+        if (!existingProblemIds.has(p.id)) {
+          currentOrder++;
+          newLinks.push({
+            sheet_id: targetSheetId,
+            problem_id: p.id,
+            order_index: currentOrder
+          });
+        }
+      }
+
+      if (newLinks.length === 0) {
+        return {
+          success: true,
+          message: `Sheet me ye problems already added hain.`,
+          url: `/code-arena/sheets/${targetSheetId}`
+        };
+      }
+
+      const { error: insertErr } = await adminClient.from('coding_sheet_problems').insert(newLinks);
+
+      if (insertErr) {
+        return { success: false, message: `Problems add nahi ho paaye: ${insertErr.message}` };
+      }
+
+      return {
+        success: true,
+        message: `Sheet me ${newLinks.length} problems (${topic}) add kar diye gaye!`,
+        url: `/code-arena/sheets/${targetSheetId}`,
+        pendingNavigation: true,
+        navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+        expectedRoute: `/code-arena/sheets/${targetSheetId}`,
+        successMessage: `${newLinks.length} problems sheet me add hone ki verification success.`,
+        data: { sheetId: targetSheetId }
+      };
+    }
+  },
+
+  runSafeSQLQuery: {
+    name: 'runSafeSQLQuery',
+    description: 'Safely execute SQL queries in the sandboxed SQL Editor engine. Use when user says "SQL query run karo", "employees table ka average salary calculate karo", "test SQL query". Never executes against production DB admin.',
+    category: 'TOOLS',
+    riskLevel: 'LOW',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'SQL query to execute e.g. "SELECT * FROM employees LIMIT 10"' },
+        dataset: { type: 'string', description: 'Dataset key e.g. "employees_departments"' }
+      },
+      required: ['query']
+    },
+    examples: ['SQL query run karo', 'select average salary from employees'],
+    execute: async (args) => {
+      const { executeSQL, createDatabase } = await import('@/lib/sql');
+      const q = (args.query || 'SELECT 1;').trim();
+      try {
+        const db = createDatabase(args.dataset || 'employees_departments');
+        const res = executeSQL(q, db);
+        if (res.error) {
+          return { success: false, message: `SQL Query error: ${res.error.message}` };
+        }
+        const summary = `Query returned ${res.rowCount} rows in ${res.executionTimeMs}ms. Columns: ${res.columns.map(c=>c.name).join(', ')}`;
+        return {
+          success: true,
+          message: `SQL Query successfully executed!\n\n${summary}`,
+          url: '/dashboard/sql-editor',
+          data: { columns: res.columns, rows: res.rows, rowCount: res.rowCount }
+        };
+      } catch (err: any) {
+        return { success: false, message: `SQL Execution failed: ${err.message}` };
+      }
+    }
   }
 };
 

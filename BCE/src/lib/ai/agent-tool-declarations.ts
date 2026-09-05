@@ -175,5 +175,43 @@ export const GEMINI_TOOL_DECLARATIONS: ToolDeclaration[] = [
     name: 'getMyGoals',
     description: 'Fetch student current goals.',
     parameters: { type: 'object', properties: {} }
+  },
+  {
+    name: 'createCodingSheet',
+    description: 'Create a new DSA coding sheet. Examples: "Advanced Graph sheet banao", "create DSA sheet named DP".',
+    parameters: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Title of the new sheet e.g. "Advanced Graph", "Dynamic Programming"' },
+        description: { type: 'string', description: 'Optional description' },
+        category: { type: 'string', description: 'Optional category' }
+      },
+      required: ['title']
+    }
+  },
+  {
+    name: 'addProblemsToSheet',
+    description: 'Add problems matching a topic query (e.g. Binary Search, Arrays) to a DSA sheet.',
+    parameters: {
+      type: 'object',
+      properties: {
+        sheetId: { type: 'string', description: 'Sheet UUID' },
+        sheetQuery: { type: 'string', description: 'Optional sheet name query' },
+        topicQuery: { type: 'string', description: 'Topic or problem search query e.g. "Binary Search"' },
+        limit: { type: 'number', description: 'Number of problems to add, default 5' }
+      }
+    }
+  },
+  {
+    name: 'runSafeSQLQuery',
+    description: 'Safely execute SQL queries in the sandboxed SQL Editor engine.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'SQL query to execute e.g. "SELECT * FROM employees LIMIT 10"' },
+        dataset: { type: 'string', description: 'Dataset key e.g. "employees_departments"' }
+      },
+      required: ['query']
+    }
   }
 ];

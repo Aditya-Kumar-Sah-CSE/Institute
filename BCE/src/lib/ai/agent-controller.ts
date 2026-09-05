@@ -302,6 +302,62 @@ export class AgentController {
       }
     }
 
+    // G. Create Sheet ("Advanced Graph sheet banao", "create DSA sheet named DP")
+    const createSheetMatch = promptLower.match(/^(?:create|make|banao|bana\s+do)?\s*(.+?)\s+sheet(?:\s+banao|\s+bana\s+do|\s+create)?$/i) ||
+                             promptLower.match(/^(?:create\s+sheet|banao\s+sheet)\s+(.+)$/i);
+    if (createSheetMatch && (promptLower.includes('banao') || promptLower.includes('create') || promptLower.includes('make') || promptLower.includes('bana'))) {
+      const sheetName = createSheetMatch[1].replace(/^(create|make|banao|bana\s+do|dsa|coding)\s+/gi, '').trim();
+      if (sheetName) {
+        const res = await AGENT_TOOLS.createCodingSheet.execute({ title: sheetName }, user, pageContext);
+        if (res.success && res.data?.sheetId) {
+          sessionState.sheetId = res.data.sheetId;
+          sessionState.sheetTitle = res.data.sheetTitle || sheetName;
+        }
+        return this.formatToolResult('createCodingSheet', res, sessionState);
+      }
+    }
+
+    // H. Add Problems to Sheet ("isme Binary Search ke problems add karo", "add binary search questions")
+    const isAddProbIntent = (promptLower.includes('add') || promptLower.includes('daalo') || promptLower.includes('daal')) &&
+                            (promptLower.includes('problem') || promptLower.includes('sawal') || promptLower.includes('question'));
+    if (isAddProbIntent) {
+      const topicMatch = promptLower.match(/(?:binary search|arrays?|strings?|linked list|trees?|graphs?|dp|dynamic programming|sorting|math)/i);
+      const topicQuery = topicMatch ? topicMatch[0] : 'Binary Search';
+      const res = await AGENT_TOOLS.addProblemsToSheet.execute(
+        { sheetId: sessionState.sheetId, topicQuery },
+        user,
+        { ...pageContext, sheetId: sessionState.sheetId }
+      );
+      return this.formatToolResult('addProblemsToSheet', res, sessionState);
+    }
+
+    // I. Hint Request ("iska hint do", "give me a hint", "hint chahiye")
+    const isHintIntent = /\b(hint|hints|ishara|clue)\b/i.test(promptLower);
+    if (isHintIntent) {
+      const activeTitle = sessionState.problemTitle || pageContext?.problemTitle || (
+        pageContext?.liveContext?.currentEntity?.type === 'problem' ? pageContext?.liveContext?.currentEntity?.title : null
+      );
+      if (activeTitle) {
+        return {
+          success: true,
+          message: `💡 **Hint for ${activeTitle}**:\n\n1. Pehle input values aur constraints ko analyze karo.\n2. Brute force approach se $O(N^2)$ ho sakta hai, kya aap Hash Map ya Binary Search apply karke $O(N \\log N)$ ya $O(N)$ achieve kar sakte hain?\n3. Dry run with a small sample input before writing code.`,
+          actions: [
+            { label: 'Search YouTube Solution', url: `https://www.youtube.com/results?search_query=${encodeURIComponent(activeTitle + ' DSA hint')}`, isExternal: true }
+          ],
+          status: 'success',
+          sessionState
+        };
+      }
+    }
+
+    // J. Safe SQL Query Execution ("SQL query run karo", "select average salary from employees")
+    if (promptLower.includes('sql') && (promptLower.includes('run') || promptLower.includes('execute') || promptLower.includes('select') || promptLower.includes('query'))) {
+      const sqlMatch = promptRaw.match(/SELECT\s+[\s\S]+/i);
+      const queryStr = sqlMatch ? sqlMatch[0] : 'SELECT department, AVG(salary) FROM employees GROUP BY department;';
+      const res = await AGENT_TOOLS.runSafeSQLQuery.execute({ query: queryStr }, user, pageContext);
+      return this.formatToolResult('runSafeSQLQuery', res, sessionState);
+    }
+
     return null; // Not resolved by fast-path, delegate to LLM
   }
 
@@ -310,6 +366,14 @@ export class AgentController {
     result: AgentToolResult,
     sessionState: AgentSessionState
   ): AgentControllerResponse {
+    if (result.data) {
+      if (result.data.sheetId) sessionState.sheetId = result.data.sheetId;
+      if (result.data.sheetTitle) sessionState.sheetTitle = result.data.sheetTitle;
+      if (result.data.problemId) sessionState.problemId = result.data.problemId;
+      if (result.data.problemTitle) sessionState.problemTitle = result.data.problemTitle;
+      if (result.data.number) sessionState.problemNumber = result.data.number;
+    }
+
     const actions: Array<{ label: string; url: string; isExternal?: boolean }> = [];
     if (result.url) actions.push({ label: 'Open Page', url: result.url });
     if (result.externalUrl) actions.push({ label: 'View External Link', url: result.externalUrl, isExternal: true });
