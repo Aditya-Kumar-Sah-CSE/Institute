@@ -1,6 +1,7 @@
 import { AGENT_TOOLS, AgentToolResult, selectRelevantTools } from './agent-tools';
 import { buildAgentContext, AgentPageContext } from './agent-context';
 import { Student360Profile } from '@/features/analytics/services/student-intelligence';
+import { GoogleGenAI } from '@google/genai';
 
 export interface AgentChatMessage {
   role: 'user' | 'assistant';
@@ -42,7 +43,8 @@ export async function runSmartAgent(params: {
   const { user, studentProfile, prompt, history = [], pageContext } = params;
   const userPrompt = prompt.trim();
   const groqApiKey = process.env.GROQ_API_KEY;
-  const groqModel = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+  const groqModel = process.env.GROQ_MODEL || 'qwen/qwen3.6-27b';
 
   const agentContext = buildAgentContext(studentProfile, pageContext);
 
@@ -182,11 +184,97 @@ HUMAN CONVERSATION PERSONA & RULES:
         }
       }
     } catch (err) {
-      console.warn('Groq Agent API call failed, using deterministic fallback classifier:', err);
+      console.warn('Groq Agent API call failed, trying Gemini fallback:', err);
     }
   }
 
-  // 3. DETERMINISTIC RULE-BASED FALLBACK ENGINE (For offline / backup execution)
+  // 3. GEMINI 3.6 FLASH LLM FALLBACK PIPELINE
+  if (geminiApiKey) {
+    try {
+      const serverAi = new GoogleGenAI({ apiKey: geminiApiKey });
+      const functionDeclarations = relevantToolsList.map(tool => ({
+        name: tool.name,
+        description: tool.description,
+        parameters: tool.parameters
+      }));
+
+      const systemPrompt = `You are "Smart Learn Personal Assistant", a natural, friendly, human personal learning guide on Smart Learn.
+You pair-learn with the logged-in student and help them control Smart Learn using natural language and voice.
+
+REAL STUDENT 360° PROFILE & PAGE CONTEXT JSON:
+${JSON.stringify(agentContext, null, 2)}
+
+HUMAN CONVERSATION PERSONA & RULES:
+1. TALK LIKE A HELPFUL HUMAN ASSISTANT:
+   - Use short, natural, friendly replies (1-3 sentences max).
+   - Match the student's language naturally (Hinglish if user speaks Hinglish/Hindi like "bhai meri dsa kholo", English if English like "open my dsa").
+   - NEVER use robotic phrases or internal tool names in user conversation.
+
+2. CONTEXT & FOLLOW-UP MEMORY:
+   - Understand active problem (${pageContext?.problemTitle || 'none'}) and active route (${pageContext?.route || 'none'}).`;
+
+      const contents: any[] = [
+        ...history.slice(-6).map(h => ({
+          role: h.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: h.content }]
+        })),
+        { role: 'user', parts: [{ text: userPrompt }] }
+      ];
+
+      const geminiRes = await serverAi.models.generateContent({
+        model: 'gemini-3.6-flash',
+        contents,
+        config: {
+          systemInstruction: systemPrompt,
+          tools: [{ functionDeclarations: functionDeclarations as any }]
+        }
+      });
+
+      if (geminiRes.functionCalls && geminiRes.functionCalls.length > 0) {
+        const accumulatedActions: Array<{ label: string; url: string; isExternal?: boolean }> = [];
+        let lastExecutedTool: string | undefined = undefined;
+
+        for (const call of geminiRes.functionCalls) {
+          const toolName = call.name;
+          const parsedArgs = call.args || {};
+
+          if (toolName && AGENT_TOOLS[toolName]) {
+            lastExecutedTool = toolName;
+            const result: AgentToolResult = await AGENT_TOOLS[toolName].execute(parsedArgs, user, pageContext);
+
+            if (result.url) {
+              accumulatedActions.push({ label: 'Open Page', url: result.url });
+            }
+            if (result.externalUrl) {
+              accumulatedActions.push({ label: 'View External Link', url: result.externalUrl, isExternal: true });
+            }
+
+            return {
+              success: result.success,
+              message: result.message,
+              actions: accumulatedActions.length > 0 ? accumulatedActions : undefined,
+              requiresConfirmation: result.requiresConfirmation,
+              toolExecuted: lastExecutedTool,
+              pendingNavigation: result.pendingNavigation,
+              navigationId: result.navigationId,
+              expectedRoute: result.expectedRoute,
+              expectedEntity: result.expectedEntity,
+              successMessage: result.successMessage
+            };
+          }
+        }
+      } else if (geminiRes.text) {
+        return {
+          success: true,
+          message: geminiRes.text
+        };
+      }
+    } catch (geminiErr) {
+      console.warn('Gemini Agent API call failed, falling back to deterministic classifier:', geminiErr);
+    }
+  }
+
+  // 4. DETERMINISTIC RULE-BASED FALLBACK ENGINE (For offline / backup execution)
   return await resolveFallbackAgentCommand(userPrompt, user, studentProfile, pageContext, requestId, startTime);
 }
 

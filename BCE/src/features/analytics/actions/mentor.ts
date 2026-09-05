@@ -2,6 +2,7 @@
 
 import { getUser } from '@/lib/supabase/server';
 import { getStudent360Profile, Student360Profile } from '../services/student-intelligence';
+import { GoogleGenAI } from '@google/genai';
 
 export interface MentorChatMessage {
   role: 'user' | 'assistant';
@@ -29,6 +30,8 @@ export async function askSmartMentorAction(input: {
     const userPrompt = input.prompt.trim();
 
     const groqApiKey = process.env.GROQ_API_KEY;
+    const geminiApiKey = process.env.GEMINI_API_KEY;
+    const groqModel = process.env.GROQ_MODEL || 'qwen/qwen3.6-27b';
 
     if (groqApiKey) {
       try {
@@ -39,7 +42,7 @@ export async function askSmartMentorAction(input: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            model: 'llama-3.3-70b-versatile',
+            model: groqModel,
             messages: [
               {
                 role: 'system',
@@ -68,7 +71,36 @@ export async function askSmartMentorAction(input: {
           }
         }
       } catch (err) {
-        console.warn('Groq API call failed, using rule-based mentor fallback:', err);
+        console.warn('Groq API call failed, trying Gemini fallback:', err);
+      }
+    }
+
+    if (geminiApiKey) {
+      try {
+        const serverAi = new GoogleGenAI({ apiKey: geminiApiKey });
+        const systemPrompt = buildSystemPrompt(studentProfile);
+        const contents = [
+          ... (input.history || []).slice(-6).map(h => ({
+            role: h.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: h.content }]
+          })),
+          { role: 'user', parts: [{ text: userPrompt }] }
+        ];
+
+        const geminiRes = await serverAi.models.generateContent({
+          model: 'gemini-3.6-flash',
+          contents,
+          config: {
+            systemInstruction: systemPrompt
+          }
+        });
+
+        if (geminiRes.text) {
+          const { reply, actionButtons } = parseMentorReply(geminiRes.text, studentProfile);
+          return { success: true, reply, actionButtons };
+        }
+      } catch (geminiErr) {
+        console.warn('Gemini Mentor API call failed, using rule-based fallback:', geminiErr);
       }
     }
 
