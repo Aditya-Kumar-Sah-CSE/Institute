@@ -68,26 +68,32 @@ export function detectLanguage(text: string): 'hi-IN' | 'en-IN' {
   return matchCount >= 1 ? 'hi-IN' : 'en-IN';
 }
 
+// Global TTS session counter and references
+let currentTtsSessionId = 0;
 let currentUtterance: SpeechSynthesisUtterance | null = null;
 let activeEndCallback: (() => void) | null = null;
 
 /**
- * Stops any active Text-to-Speech playback immediately.
+ * Stops any active Text-to-Speech playback immediately without triggering stale callbacks.
  */
 export function stopAssistantSpeech() {
   if (typeof window === 'undefined' || !window.speechSynthesis) return;
 
-  try {
-    window.speechSynthesis.cancel();
-  } catch (err) {
-    console.warn('SpeechSynthesis cancel error:', err);
-  }
-
+  // Invalidate current TTS session so any pending utterance callbacks are safely ignored
+  currentTtsSessionId++;
   currentUtterance = null;
-  if (activeEndCallback) {
-    const cb = activeEndCallback;
-    activeEndCallback = null;
-    cb();
+  activeEndCallback = null;
+
+  try {
+    const synth = window.speechSynthesis;
+    // Only call cancel() if browser speech synthesis is actively speaking or pending
+    if (synth.speaking || synth.pending) {
+      synth.cancel();
+    }
+  } catch (err) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[TTS] SpeechSynthesis cancel notice:', err);
+    }
   }
 }
 
@@ -103,8 +109,9 @@ export function speakAssistantResponse(text: string, options: SpeakOptions = {})
     return false;
   }
 
-  // Cancel any ongoing speech first (Interruptible speech)
+  // Cancel any ongoing speech first and obtain fresh TTS session ID
   stopAssistantSpeech();
+  const activeSessionId = ++currentTtsSessionId;
 
   const spokenText = cleanTextForSpeech(text);
   if (!spokenText) {
@@ -117,14 +124,12 @@ export function speakAssistantResponse(text: string, options: SpeakOptions = {})
     currentUtterance = utterance;
     activeEndCallback = options.onEnd || null;
 
-    // Detect language or use provided lang option (defaulting to en-IN / hi-IN)
     const targetLang = options.lang || detectLanguage(spokenText);
     utterance.lang = targetLang;
-    utterance.rate = 0.95; // Slightly slower for clear, natural Indian speech cadence
+    utterance.rate = 0.95;
     utterance.pitch = 1.0;
     utterance.volume = 1.0;
 
-    // Attempt to pick best matching voice from available system voices (preferring en-IN / hi-IN)
     const voices = window.speechSynthesis.getVoices();
     if (voices && voices.length > 0) {
       const preferredVoice = voices.find(v => {
@@ -143,22 +148,51 @@ export function speakAssistantResponse(text: string, options: SpeakOptions = {})
     }
 
     utterance.onstart = () => {
+      if (activeSessionId !== currentTtsSessionId) return;
       if (options.onStart) options.onStart();
     };
 
     utterance.onend = () => {
-      currentUtterance = null;
-      if (activeEndCallback) {
-        const cb = activeEndCallback;
-        activeEndCallback = null;
-        cb();
+      // Ignore callback if session ID was invalidated by a stop or replacement
+      if (activeSessionId !== currentTtsSessionId) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[TTS] Ignored onend from invalidated session:', activeSessionId);
+        }
+        return;
       }
+
+      currentUtterance = null;
+      const cb = activeEndCallback;
+      activeEndCallback = null;
+      if (cb) cb();
     };
 
-    utterance.onerror = (event) => {
-      console.warn('Speech synthesis playback error:', event);
+    utterance.onerror = (event: any) => {
+      // Ignore error callback if session ID was invalidated
+      if (activeSessionId !== currentTtsSessionId) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[TTS] Ignored onerror from invalidated session:', activeSessionId);
+        }
+        return;
+      }
+
+      const errKind = event?.error || '';
       currentUtterance = null;
       activeEndCallback = null;
+
+      // Handle intentional interruptions/cancellations cleanly (NOT a real failure!)
+      if (errKind === 'interrupted' || errKind === 'canceled') {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[TTS] Utterance interrupted/cancelled safely.');
+        }
+        // Do NOT trigger onError callback or display playback errors for intentional cancellation
+        return;
+      }
+
+      // Handle genuine TTS playback failures only
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[TTS ERROR] Genuine SpeechSynthesis failure:', event);
+      }
       if (options.onError) {
         options.onError(event);
       }
@@ -167,7 +201,9 @@ export function speakAssistantResponse(text: string, options: SpeakOptions = {})
     window.speechSynthesis.speak(utterance);
     return true;
   } catch (err) {
-    console.warn('Failed to initialize SpeechSynthesisUtterance:', err);
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[TTS EXCEPTION] Failed to initialize SpeechSynthesisUtterance:', err);
+    }
     if (options.onError) {
       options.onError(err);
     }
