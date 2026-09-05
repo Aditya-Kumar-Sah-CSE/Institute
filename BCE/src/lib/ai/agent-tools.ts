@@ -286,11 +286,13 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
       type: 'object',
       properties: {
         problemId: { type: 'string', description: 'Problem UUID or slug' },
+        sheetId: { type: 'string', description: 'Associated sheet UUID' },
+        sheetQuery: { type: 'string', description: 'Associated sheet title e.g. "Binary Search", "Blind 75"' },
         query: { type: 'string', description: 'Problem query or number (e.g. "Problem 4", "Two Sum")' },
         problemIndex: { type: 'number', description: 'Problem order index e.g. 4 for Problem 4' }
       }
     },
-    examples: ['Problem 4 kholo', 'problem 4', 'Two Sum open karo'],
+    examples: ['Problem 4 kholo', 'problem 4', 'Two Sum open karo', 'Binary Search sheet ka Problem 5 kholo'],
     execute: async (args, _, context) => {
       const adminClient = await createAdminClient();
 
@@ -314,8 +316,40 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
       const numMatch = q.match(/\b\d+\b/);
       const targetNum = args.problemIndex || (numMatch ? parseInt(numMatch[0], 10) : null);
 
+      // Resolve sheet ID if provided in args or context
+      let activeSheetId = args.sheetId || context?.sheetId || context?.activeSheet?.id;
+
+      if (!activeSheetId && args.sheetQuery) {
+        const { data: sheetData } = await adminClient
+          .from('coding_sheets')
+          .select('id, title')
+          .ilike('title', `%${args.sheetQuery.trim()}%`)
+          .limit(1)
+          .maybeSingle();
+
+        if (sheetData) {
+          activeSheetId = sheetData.id;
+        }
+      }
+
+      // Auto-resolve activeSheetId from active problem if sheetId is missing
+      const currentProbId = args.problemId || context?.problemId || (
+        context?.liveContext?.currentEntity?.type === 'problem' ? context?.liveContext?.currentEntity?.id : null
+      );
+      if (!activeSheetId && currentProbId) {
+        const { data: linkData } = await adminClient
+          .from('coding_sheet_problems')
+          .select('sheet_id, order_index')
+          .eq('problem_id', currentProbId)
+          .limit(1)
+          .maybeSingle();
+
+        if (linkData?.sheet_id) {
+          activeSheetId = linkData.sheet_id;
+        }
+      }
+
       // SERVER VERIFICATION FOR PROBLEM N IN ACTIVE SHEET
-      const activeSheetId = context?.sheetId || context?.currentEntity?.id || context?.activeSheet?.id;
       if (targetNum && activeSheetId) {
         const { data: sheetProblems } = await adminClient
           .from('coding_sheet_problems')
@@ -335,7 +369,7 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
               expectedRoute: `/code-arena/problems/${matchedItem.id}`,
               expectedEntity: { type: 'problem', id: matchedItem.id, title: matchedItem.title, number: targetNum },
               successMessage: `Problem ${targetNum} (${matchedItem.title}) open kar diya.`,
-              data: { problemId: matchedItem.id, problemTitle: matchedItem.title, number: targetNum }
+              data: { problemId: matchedItem.id, problemTitle: matchedItem.title, number: targetNum, sheetId: activeSheetId }
             };
           }
         } else if (sheetProblems && sheetProblems.length < targetNum) {

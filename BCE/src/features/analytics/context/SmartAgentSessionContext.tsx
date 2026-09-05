@@ -10,6 +10,7 @@ import {
   isSpeechSynthesisSupported 
 } from '@/lib/ai/speech-synthesizer';
 import { GeminiLiveSession } from '@/lib/ai/gemini-live-session';
+import { AgentSessionState } from '@/lib/ai/agent-controller';
 
 export interface SmartAgentMessage {
   role: 'user' | 'assistant';
@@ -46,6 +47,7 @@ export interface PendingVerification {
   successMessage: string;
   voiceTriggered?: boolean;
   timestamp: number;
+  retried?: boolean;
 }
 
 export type AgentExecutionState = 
@@ -120,7 +122,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
   const [messages, setMessages] = useState<SmartAgentMessage[]>([
     {
       role: 'assistant',
-      content: `Hi! I'm **Smart Learn AI Agent** ✦\n\nPowered by Gemini Live realtime streaming voice. I understand natural English, Hindi, and Hinglish!\n\nClick the mic button once to talk hands-free continuously.`,
+      content: `Hi! I'm **Smart Learn AI Agent** ✦\n\nYour continuous learning mentor. Powered by real-time voice, live page awareness, and instant verification!\n\nClick the mic button once to talk hands-free continuously.`,
       actions: [
         { label: 'Open DSA Sheets', url: '/code-arena/sheets' },
         { label: 'Explore Courses', url: '/courses' }
@@ -140,11 +142,39 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
 
   const [pendingVerification, setPendingVerification] = useState<PendingVerification | null>(null);
 
+  // Single Authoritative Agent Session State Ref
+  const agentSessionStateRef = useRef<AgentSessionState>({
+    route: pathname || '/dashboard'
+  });
+
   // Gemini Live Session Ref
   const geminiLiveSessionRef = useRef<GeminiLiveSession | null>(null);
   const voiceStateRef = useRef<RealtimeVoiceState>('IDLE');
   const isVoiceModeRef = useRef<boolean>(isVoiceMode);
   const isOpenRef = useRef<boolean>(isOpen);
+
+  // Synchronize active session state with live application context & pathname
+  useEffect(() => {
+    if (pathname) {
+      agentSessionStateRef.current.route = pathname;
+    }
+    if (liveContext?.currentEntity) {
+      const entity = liveContext.currentEntity;
+      if (entity.type === 'sheet') {
+        agentSessionStateRef.current.sheetId = entity.id;
+        agentSessionStateRef.current.sheetTitle = entity.title;
+      } else if (entity.type === 'problem') {
+        agentSessionStateRef.current.problemId = entity.id;
+        agentSessionStateRef.current.problemTitle = entity.title;
+        if (entity.metadata?.number) {
+          agentSessionStateRef.current.problemNumber = entity.metadata.number;
+        }
+      } else if (entity.type === 'course') {
+        agentSessionStateRef.current.courseId = entity.id;
+        agentSessionStateRef.current.courseTitle = entity.title;
+      }
+    }
+  }, [pathname, liveContext]);
 
   // Synchronize state refs
   useEffect(() => {
@@ -236,6 +266,13 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
           });
         },
         onToolExecuted: (toolName, result) => {
+          if (result.data) {
+            if (result.data.sheetId) agentSessionStateRef.current.sheetId = result.data.sheetId;
+            if (result.data.problemId) agentSessionStateRef.current.problemId = result.data.problemId;
+            if (result.data.problemTitle) agentSessionStateRef.current.problemTitle = result.data.problemTitle;
+            if (result.data.number) agentSessionStateRef.current.problemNumber = result.data.number;
+          }
+
           if (result.url) {
             router.push(result.url);
           }
@@ -301,6 +338,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
 
   const clearConversation = () => {
     stopVoiceSession();
+    agentSessionStateRef.current = { route: pathname || '/dashboard' };
     setMessages([
       {
         role: 'assistant',
@@ -335,10 +373,20 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
   useEffect(() => {
     if (!pendingVerification) return;
 
-    const { navigationId, expectedRoute, expectedEntity, successMessage, voiceTriggered, timestamp } = pendingVerification;
+    const { navigationId, expectedRoute, expectedEntity, successMessage, voiceTriggered, timestamp, retried } = pendingVerification;
 
+    // Timeout safety check (8s)
     const timeoutTimer = setTimeout(() => {
       if (pendingVerification) {
+        if (!retried) {
+          // Attempt ONE automatic recovery retry
+          console.log('[UI Verification] Verification timed out, attempting 1 recovery retry to:', expectedRoute);
+          router.push(expectedRoute);
+          setPendingVerification(prev => prev ? { ...prev, retried: true, timestamp: Date.now() } : null);
+          return;
+        }
+
+        // Verification failed after retry -> Honest failure reporting (NO FALSE SUCCESS)
         setPendingVerification(null);
         setExecutionState('IDLE');
         setMessages((prev) => 
@@ -347,7 +395,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
               ? { 
                   ...msg, 
                   navigationState: 'FAILED',
-                  content: `${msg.content}\n\n⚠️ Verification failed: Navigation to ${expectedRoute} timed out.`
+                  content: `${msg.content}\n\n⚠️ Could not verify page state for ${expectedRoute}. Please try opening again.`
                 }
               : msg
           )
@@ -364,7 +412,10 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         entityMatches = liveContext.currentEntity.type === expectedEntity.type && liveContext.currentEntity.id === expectedEntity.id;
       }
 
-      if (routeMatches && entityMatches) {
+      // Ensure visible page load state is not an error or 404
+      const isPageError = liveContext?.loadState === 'error' || liveContext?.loadState === 'not-found';
+
+      if (routeMatches && entityMatches && !isPageError) {
         clearTimeout(timeoutTimer);
         setPendingVerification(null);
         setExecutionState('IDLE');
@@ -388,9 +439,9 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
     return () => {
       clearTimeout(timeoutTimer);
     };
-  }, [pathname, liveContext, pendingVerification]);
+  }, [pathname, liveContext, pendingVerification, router]);
 
-  // ─── MAIN TEXT CHAT PROMPT HANDLER (GROQ AGENT FALLBACK / TEXT INPUT) ───
+  // ─── MAIN TEXT CHAT PROMPT HANDLER (AGENT CONTROLLER DRIVEN) ───
   const handleSendPrompt = async (
     textToSend?: string, 
     confirmedTool?: { toolName: string; args: any },
@@ -425,8 +476,16 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         prompt: promptText,
         history: formattedHistory,
         pageContext: liveContext as any,
-        confirmedTool
+        confirmedTool,
+        sessionState: agentSessionStateRef.current
       });
+
+      if (response.sessionState) {
+        agentSessionStateRef.current = {
+          ...agentSessionStateRef.current,
+          ...response.sessionState
+        };
+      }
 
       if (!response.success) {
         setMessages((prev) => [
@@ -450,6 +509,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
       };
 
       if (response.pendingNavigation && response.navigationId && response.expectedRoute) {
+        router.push(response.expectedRoute);
         nextMsg.navigationState = 'NAVIGATING';
         setPendingVerification({
           navigationId: response.navigationId,
