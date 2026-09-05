@@ -402,12 +402,14 @@ export default function ChatInterface() {
 
         let initialPermState: 'granted' | 'prompt' | 'denied' = 'prompt';
         try {
-          const micStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
-          initialPermState = micStatus.state;
-          if (payload.callType === 'video') {
-            const camStatus = await navigator.permissions.query({ name: 'camera' as PermissionName });
-            if (camStatus.state === 'denied' || micStatus.state === 'denied') {
-              initialPermState = 'denied';
+          if (navigator.permissions && typeof navigator.permissions.query === 'function') {
+            const micStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+            initialPermState = micStatus?.state || 'prompt';
+            if (payload.callType === 'video') {
+              const camStatus = await navigator.permissions.query({ name: 'camera' as PermissionName });
+              if (camStatus?.state === 'denied' || micStatus?.state === 'denied') {
+                initialPermState = 'denied';
+              }
             }
           }
         } catch (e) {
@@ -593,22 +595,25 @@ export default function ChatInterface() {
     }
 
     try {
-      const micStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
-      let micState = micStatus.state;
+      if (navigator.permissions && typeof navigator.permissions.query === 'function') {
+        const micStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+        let micState = micStatus?.state || 'prompt';
 
-      let camState: PermissionState = 'granted';
-      if (type === 'video') {
-        const camStatus = await navigator.permissions.query({ name: 'camera' as PermissionName });
-        camState = camStatus.state;
-      }
+        let camState: PermissionState = 'granted';
+        if (type === 'video') {
+          const camStatus = await navigator.permissions.query({ name: 'camera' as PermissionName });
+          camState = camStatus?.state || 'granted';
+        }
 
-      if (micState === 'denied' || camState === 'denied') {
-        return 'denied';
+        if (micState === 'denied' || camState === 'denied') {
+          return 'denied';
+        }
+        if (micState === 'prompt' || camState === 'prompt') {
+          return 'prompt';
+        }
+        return 'granted';
       }
-      if (micState === 'prompt' || camState === 'prompt') {
-        return 'prompt';
-      }
-      return 'granted';
+      return 'prompt';
     } catch (e) {
       return 'prompt';
     }

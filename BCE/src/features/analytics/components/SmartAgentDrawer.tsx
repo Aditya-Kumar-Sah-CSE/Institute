@@ -3,7 +3,6 @@
 import React, { useEffect, useRef } from 'react';
 import Button from '@/components/ui/Button';
 import Link from 'next/link';
-import { AudioRecorder, transcribeAudioFile } from '@/lib/ai/speech-recorder';
 import { useSmartAgentSession } from '../context/SmartAgentSessionContext';
 import { 
   X, Send, Mic, MicOff, Sparkles, Bot, User, ArrowRight, RefreshCw, 
@@ -30,9 +29,7 @@ export default function SmartAgentDrawer() {
     setInputVal,
     isLoading,
     isListening,
-    setIsListening,
     isTranscribing,
-    setIsTranscribing,
     isSpeaking,
     isVoiceMode,
     setIsVoiceMode,
@@ -40,12 +37,13 @@ export default function SmartAgentDrawer() {
     setVoiceNotice,
     handleSendPrompt,
     stopSpeech,
+    stopVoiceSession,
+    toggleVoiceRecording,
     clearConversation,
     getDynamicLoadingText
   } = useSmartAgentSession();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const audioRecorderRef = useRef<AudioRecorder | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -57,107 +55,12 @@ export default function SmartAgentDrawer() {
     }
   }, [isOpen, messages, isLoading, isListening, isTranscribing, isSpeaking, executionState]);
 
-  const stopVoiceRecording = async () => {
-    if (!audioRecorderRef.current || !isListening) return;
-    setIsListening(false);
-    setIsTranscribing(true);
-
-    try {
-      const { blob, mimeType } = await audioRecorderRef.current.stop();
-      audioRecorderRef.current = null;
-
-      const sttRes = await transcribeAudioFile(blob, mimeType);
-      setIsTranscribing(false);
-
-      if (sttRes.success && sttRes.transcript) {
-        setInputVal(sttRes.transcript);
-        handleSendPrompt(sttRes.transcript, undefined, true);
-      } else {
-        setVoiceNotice(sttRes.message || 'Voice input abhi available nahi hai. Aap type bhi kar sakte ho.');
-      }
-    } catch (err: any) {
-      setIsTranscribing(false);
-      setVoiceNotice('Audio recording failed. Please try again.');
-    }
-  };
-
-  const toggleVoiceRecording = async () => {
-    if (isLoading || isTranscribing) return;
-    setVoiceNotice(null);
-
-    // INTERRUPT SPEECH: If assistant is speaking when mic is clicked, stop speech immediately
-    if (isSpeaking) {
-      stopSpeech();
-    }
-
-    // If currently recording, stop recording and send to STT
-    if (isListening) {
-      await stopVoiceRecording();
-      return;
-    }
-
-    // Fast path: Try Web Speech API in browser
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-
-    if (SpeechRecognition) {
-      try {
-        const recognition = new SpeechRecognition();
-        recognition.lang = 'en-US';
-        recognition.interimResults = false;
-        let isFinalHandled = false;
-
-        recognition.onstart = () => {
-          setIsListening(true);
-        };
-
-        recognition.onresult = (event: any) => {
-          if (isFinalHandled) return;
-          const transcript = event.results?.[0]?.[0]?.transcript;
-          if (transcript) {
-            isFinalHandled = true;
-            setIsListening(false);
-            setInputVal(transcript);
-            handleSendPrompt(transcript, undefined, true);
-          }
-        };
-
-        recognition.onerror = async () => {
-          setIsListening(false);
-          await startMediaRecorderPipeline();
-        };
-
-        recognition.onend = () => {
-          setIsListening(false);
-        };
-
-        recognition.start();
-        return;
-      } catch (err) {
-        // Fall back to MediaRecorder
-      }
-    }
-
-    await startMediaRecorderPipeline();
-  };
-
-  const startMediaRecorderPipeline = async () => {
-    try {
-      const recorder = new AudioRecorder();
-      audioRecorderRef.current = recorder;
-      const res = await recorder.start();
-
-      if (!res.success) {
-        audioRecorderRef.current = null;
-        setVoiceNotice(res.message || 'Microphone permission allow karo, phir try karo.');
-        return;
-      }
-
-      setIsListening(true);
-    } catch (err: any) {
-      audioRecorderRef.current = null;
-      setVoiceNotice(err.message || 'Could not start recording.');
-    }
-  };
+  // Clean up recording and speech when drawer component unmounts
+  useEffect(() => {
+    return () => {
+      stopVoiceSession();
+    };
+  }, []);
 
   if (!isOpen) return null;
 
@@ -211,7 +114,7 @@ export default function SmartAgentDrawer() {
             onClick={() => {
               const nextMode = !isVoiceMode;
               setIsVoiceMode(nextMode);
-              if (!nextMode) stopSpeech();
+              if (!nextMode) stopVoiceSession();
             }}
             style={{
               fontSize: '11px',
@@ -254,7 +157,7 @@ export default function SmartAgentDrawer() {
         </div>
       </div>
 
-      {/* VOICE NOTICE TOAST IF UNSUPPORTED */}
+      {/* VOICE NOTICE TOAST IF UNSUPPORTED OR ERROR */}
       {voiceNotice && (
         <div style={{ padding: '8px 14px', background: 'rgba(255, 170, 0, 0.15)', borderBottom: '1px solid rgba(255, 170, 0, 0.3)', color: '#ffcc00', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -426,7 +329,7 @@ export default function SmartAgentDrawer() {
             </span>
             <button
               type="button"
-              onClick={stopSpeech}
+              onClick={stopVoiceSession}
               style={{
                 background: 'rgba(255, 68, 68, 0.2)',
                 border: '1px solid rgba(255, 68, 68, 0.4)',

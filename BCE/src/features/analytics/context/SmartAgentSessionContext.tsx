@@ -9,6 +9,7 @@ import {
   stopAssistantSpeech, 
   isSpeechSynthesisSupported 
 } from '@/lib/ai/speech-synthesizer';
+import { AudioRecorder, transcribeAudioFile } from '@/lib/ai/speech-recorder';
 
 export interface SmartAgentMessage {
   role: 'user' | 'assistant';
@@ -85,6 +86,10 @@ interface SmartAgentSessionContextValue {
   
   handleSendPrompt: (textToSend?: string, confirmedTool?: { toolName: string; args: any }, isVoiceTrigger?: boolean) => Promise<void>;
   stopSpeech: () => void;
+  stopVoiceSession: () => void;
+  startVoiceListening: () => Promise<void>;
+  stopVoiceRecordingAndSend: () => Promise<void>;
+  toggleVoiceRecording: () => Promise<void>;
   clearConversation: () => void;
   getDynamicLoadingText: () => string;
 }
@@ -122,18 +127,44 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
 
   const [pendingVerification, setPendingVerification] = useState<PendingVerification | null>(null);
 
+  // ─── STATE REFS FOR ASYNC CALLBACK & SESSION VALIDATION ───
   const isProcessingRef = useRef<boolean>(false);
+  const audioRecorderRef = useRef<AudioRecorder | null>(null);
+  const voiceSessionIdRef = useRef<number>(0);
+  const restartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isVoiceModeRef = useRef<boolean>(isVoiceMode);
+  const isOpenRef = useRef<boolean>(isOpen);
 
-  const toggleDrawer = () => setIsOpen(prev => !prev);
-  const openDrawer = (initialPrompt?: string) => {
-    setIsOpen(true);
-    if (initialPrompt && initialPrompt.trim()) {
-      handleSendPrompt(initialPrompt);
+  useEffect(() => {
+    isVoiceModeRef.current = isVoiceMode;
+  }, [isVoiceMode]);
+
+  useEffect(() => {
+    isOpenRef.current = isOpen;
+    if (!isOpen) {
+      stopVoiceSession();
+    }
+  }, [isOpen]);
+
+  // Clean up recording, timeouts, and speech on Provider unmount
+  useEffect(() => {
+    return () => {
+      stopVoiceSession();
+    };
+  }, []);
+
+  // Helper to clear pending restart timer explicitly
+  const clearRestartTimeout = () => {
+    if (restartTimeoutRef.current) {
+      clearTimeout(restartTimeoutRef.current);
+      restartTimeoutRef.current = null;
     }
   };
-  const closeDrawer = () => setIsOpen(false);
+
+  // ─── VOICE SESSION CONTROLLER FUNCTIONS ───
 
   const stopSpeech = () => {
+    clearRestartTimeout();
     stopAssistantSpeech();
     setIsSpeaking(false);
     if (executionState === 'SPEAKING') {
@@ -141,8 +172,140 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
     }
   };
 
-  const clearConversation = () => {
+  const stopVoiceSession = () => {
+    // 1. Explicitly clear any pending restart timer first
+    clearRestartTimeout();
+
+    // 2. Invalidate session ID to block all pending async callbacks / TTS loops
+    voiceSessionIdRef.current++;
+
+    // 3. Stop TTS speech playback
+    stopAssistantSpeech();
+    setIsSpeaking(false);
+    setIsListening(false);
+    setIsTranscribing(false);
+
+    // 4. Stop MediaRecorder and release all MediaStream tracks
+    if (audioRecorderRef.current) {
+      try {
+        audioRecorderRef.current.cancel();
+      } catch (e) {}
+      audioRecorderRef.current = null;
+    }
+
+    if (executionState === 'SPEAKING') {
+      setExecutionState('IDLE');
+    }
+  };
+
+  const startVoiceListening = async () => {
+    clearRestartTimeout();
+    if (isLoading || isTranscribing) return;
+
+    // Interrupt speech if playing
     stopSpeech();
+    setVoiceNotice(null);
+
+    // Invalidate previous session and obtain new session ID
+    const currentSessionId = ++voiceSessionIdRef.current;
+
+    if (audioRecorderRef.current) {
+      try {
+        audioRecorderRef.current.cancel();
+      } catch (e) {}
+      audioRecorderRef.current = null;
+    }
+
+    const recorder = new AudioRecorder();
+    audioRecorderRef.current = recorder;
+
+    const res = await recorder.start();
+
+    // Verify session ID after async getUserMedia test
+    if (voiceSessionIdRef.current !== currentSessionId || !isOpenRef.current) {
+      recorder.cancel();
+      audioRecorderRef.current = null;
+      setIsListening(false);
+      return;
+    }
+
+    if (!res.success) {
+      audioRecorderRef.current = null;
+      setIsListening(false);
+      setVoiceNotice(res.message || 'Microphone access error.');
+      return;
+    }
+
+    setIsListening(true);
+  };
+
+  const stopVoiceRecordingAndSend = async () => {
+    clearRestartTimeout();
+    if (!audioRecorderRef.current || !isListening) return;
+    const currentSessionId = voiceSessionIdRef.current;
+
+    setIsListening(false);
+    setIsTranscribing(true);
+
+    try {
+      const recorder = audioRecorderRef.current;
+      const { blob, mimeType } = await recorder.stop();
+      audioRecorderRef.current = null;
+
+      if (voiceSessionIdRef.current !== currentSessionId || !isOpenRef.current) {
+        setIsTranscribing(false);
+        return;
+      }
+
+      const sttRes = await transcribeAudioFile(blob, mimeType);
+      setIsTranscribing(false);
+
+      if (voiceSessionIdRef.current !== currentSessionId || !isOpenRef.current) {
+        return;
+      }
+
+      if (sttRes.success && sttRes.transcript) {
+        setInputVal(sttRes.transcript);
+        handleSendPrompt(sttRes.transcript, undefined, true);
+      } else {
+        setVoiceNotice(sttRes.message || 'Voice input is unavailable right now. You can type instead.');
+      }
+    } catch (err: any) {
+      setIsTranscribing(false);
+      if (voiceSessionIdRef.current === currentSessionId && isOpenRef.current) {
+        setVoiceNotice(err.message || 'Audio recording failed. Please try again.');
+      }
+    }
+  };
+
+  const toggleVoiceRecording = async () => {
+    clearRestartTimeout();
+    if (isLoading || isTranscribing) return;
+    stopSpeech();
+
+    if (isListening) {
+      await stopVoiceRecordingAndSend();
+    } else {
+      await startVoiceListening();
+    }
+  };
+
+  const toggleDrawer = () => setIsOpen(prev => !prev);
+  
+  const openDrawer = (initialPrompt?: string) => {
+    setIsOpen(true);
+    if (initialPrompt && initialPrompt.trim()) {
+      handleSendPrompt(initialPrompt);
+    }
+  };
+
+  const closeDrawer = () => {
+    stopVoiceSession();
+    setIsOpen(false);
+  };
+
+  const clearConversation = () => {
+    stopVoiceSession();
     setMessages([
       {
         role: 'assistant',
@@ -155,6 +318,13 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
     ]);
     setActiveContext({});
     setExecutionState('IDLE');
+  };
+
+  const handleSetVoiceMode = (val: boolean) => {
+    setIsVoiceMode(val);
+    if (!val) {
+      stopVoiceSession();
+    }
   };
 
   const getDynamicLoadingText = () => {
@@ -171,6 +341,58 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
       return 'Opening page...';
     }
     return 'Processing your command...';
+  };
+
+  // Helper function to trigger speech with continuous conversation loop
+  const triggerSpeechWithLoop = (text: string, voiceTriggered = false) => {
+    clearRestartTimeout();
+
+    if (!isVoiceModeRef.current && !voiceTriggered) {
+      setExecutionState('IDLE');
+      return;
+    }
+
+    const promptSessionId = voiceSessionIdRef.current;
+    setExecutionState('SPEAKING');
+
+    const spoke = speakAssistantResponse(text, {
+      onStart: () => setIsSpeaking(true),
+      onEnd: () => {
+        setIsSpeaking(false);
+        clearRestartTimeout();
+
+        // CONTINUOUS VOICE AGENT LOOP: Automatically listen again if voice mode is ON and drawer is open
+        if (
+          voiceSessionIdRef.current === promptSessionId &&
+          isVoiceModeRef.current &&
+          isOpenRef.current &&
+          !isProcessingRef.current
+        ) {
+          restartTimeoutRef.current = setTimeout(() => {
+            restartTimeoutRef.current = null;
+            if (
+              voiceSessionIdRef.current === promptSessionId &&
+              isVoiceModeRef.current &&
+              isOpenRef.current
+            ) {
+              startVoiceListening();
+            }
+          }, 350);
+        } else {
+          setExecutionState('IDLE');
+        }
+      },
+      onError: () => {
+        setIsSpeaking(false);
+        clearRestartTimeout();
+        setExecutionState('IDLE');
+      }
+    });
+
+    if (!spoke && !isSpeechSynthesisSupported()) {
+      setVoiceNotice('Response is ready, but voice playback is unavailable on this browser.');
+      setExecutionState('IDLE');
+    }
   };
 
   // ─── POST-NAVIGATION HANDSHAKE VERIFICATION EFFECT ───
@@ -198,14 +420,8 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
           navigationState: 'FAILED',
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }]);
-        if (isVoiceMode || voiceTriggered) {
-          speakAssistantResponse(failMsg, {
-            onStart: () => setIsSpeaking(true),
-            onEnd: () => { setIsSpeaking(false); setExecutionState('IDLE'); }
-          });
-        } else {
-          setExecutionState('IDLE');
-        }
+
+        triggerSpeechWithLoop(failMsg, voiceTriggered);
       }
     }, 8000);
 
@@ -242,15 +458,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }]);
 
-        if (isVoiceMode || voiceTriggered) {
-          setExecutionState('SPEAKING');
-          speakAssistantResponse(notFoundText, {
-            onStart: () => setIsSpeaking(true),
-            onEnd: () => { setIsSpeaking(false); setExecutionState('IDLE'); }
-          });
-        } else {
-          setExecutionState('IDLE');
-        }
+        triggerSpeechWithLoop(notFoundText, voiceTriggered);
         return;
       }
 
@@ -270,21 +478,12 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }]);
 
-        if (isVoiceMode || voiceTriggered) {
-          setExecutionState('SPEAKING');
-          speakAssistantResponse(errText, {
-            onStart: () => setIsSpeaking(true),
-            onEnd: () => { setIsSpeaking(false); setExecutionState('IDLE'); }
-          });
-        } else {
-          setExecutionState('IDLE');
-        }
+        triggerSpeechWithLoop(errText, voiceTriggered);
         return;
       }
 
       // Case C: Page is Ready! Perform Target Entity Comparison
       if (loadState === 'ready') {
-        // If an expected entity was requested, verify match
         if (expectedEntity) {
           const typeMatches = actualEntity?.type === expectedEntity.type;
           const idMatches = actualEntity?.id === expectedEntity.id;
@@ -297,7 +496,6 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
             clearTimeout(timeoutTimer);
             setPendingVerification(null);
 
-            // Update persistent conversation activeContext
             if (expectedEntity.type === 'sheet') {
               setActiveContext(prev => ({
                 ...prev,
@@ -325,23 +523,14 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
               timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             }]);
 
-            if (isVoiceMode || voiceTriggered) {
-              setExecutionState('SPEAKING');
-              speakAssistantResponse(successMessage, {
-                onStart: () => setIsSpeaking(true),
-                onEnd: () => { setIsSpeaking(false); setExecutionState('IDLE'); }
-              });
-            } else {
-              setExecutionState('IDLE');
-            }
+            triggerSpeechWithLoop(successMessage, voiceTriggered);
             return;
           } else {
             // ENTITY MISMATCH DETECTED!
-            // E.g., user requested "Leetcode 100 Basics" but page opened "Codeforces 900"
             clearTimeout(timeoutTimer);
             setPendingVerification(null);
             setExecutionState('FAILED');
-            const mismatchText = `Requested ${expectedEntity.type} open nahi ho paayi, isliye main success nahi bol raha.`;
+            const mismatchText = `Requested ${expectedEntity.type} open nahi ho paayi.`;
             
             setMessages(prev => [...prev, {
               role: 'assistant',
@@ -350,19 +539,11 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
               timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             }]);
 
-            if (isVoiceMode || voiceTriggered) {
-              setExecutionState('SPEAKING');
-              speakAssistantResponse(mismatchText, {
-                onStart: () => setIsSpeaking(true),
-                onEnd: () => { setIsSpeaking(false); setExecutionState('IDLE'); }
-              });
-            } else {
-              setExecutionState('IDLE');
-            }
+            triggerSpeechWithLoop(mismatchText, voiceTriggered);
             return;
           }
         } else {
-          // General route without entity requirement (e.g. /code-arena/sheets listing)
+          // General route without entity requirement
           clearTimeout(timeoutTimer);
           setPendingVerification(null);
 
@@ -373,15 +554,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           }]);
 
-          if (isVoiceMode || voiceTriggered) {
-            setExecutionState('SPEAKING');
-            speakAssistantResponse(successMessage, {
-              onStart: () => setIsSpeaking(true),
-              onEnd: () => { setIsSpeaking(false); setExecutionState('IDLE'); }
-            });
-          } else {
-            setExecutionState('IDLE');
-          }
+          triggerSpeechWithLoop(successMessage, voiceTriggered);
         }
       }
     }
@@ -456,11 +629,10 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         if (targetUrl && targetUrl !== pathname) {
           router.push(targetUrl);
         } else {
-          // Already on target page, set state to VERIFYING
           setExecutionState('VERIFYING');
         }
       } else {
-        // Non-navigation response (Data tool / pure text)
+        // Non-navigation response
         setExecutionState('VERIFYING');
 
         if (res.message) {
@@ -474,7 +646,6 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
           };
           setMessages(prev => [...prev, assistantMsg]);
 
-          // Update activeContext for external or direct links
           if (res.success && res.actions && res.actions.length > 0) {
             const actionUrl = res.actions[0].url || '';
             const probMatch = actionUrl.match(/\/code-arena\/problems\/([^\/]+)/);
@@ -493,27 +664,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
             }
           }
 
-          // Auto-speak response if Voice Mode is active OR voice command was used
-          if (isVoiceMode || isVoiceTrigger) {
-            setExecutionState('SPEAKING');
-            const spoke = speakAssistantResponse(res.message, {
-              onStart: () => setIsSpeaking(true),
-              onEnd: () => {
-                setIsSpeaking(false);
-                setExecutionState('IDLE');
-              },
-              onError: () => {
-                setIsSpeaking(false);
-                setExecutionState('IDLE');
-              }
-            });
-            if (!spoke && !isSpeechSynthesisSupported()) {
-              setVoiceNotice('Response is ready, but voice playback is unavailable on this browser.');
-              setExecutionState('IDLE');
-            }
-          } else {
-            setExecutionState('IDLE');
-          }
+          triggerSpeechWithLoop(res.message, isVoiceTrigger);
         }
       }
     } catch (err) {
@@ -553,11 +704,15 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         setIsTranscribing,
         isSpeaking,
         isVoiceMode,
-        setIsVoiceMode,
+        setIsVoiceMode: handleSetVoiceMode,
         voiceNotice,
         setVoiceNotice,
         handleSendPrompt,
         stopSpeech,
+        stopVoiceSession,
+        startVoiceListening,
+        stopVoiceRecordingAndSend,
+        toggleVoiceRecording,
         clearConversation,
         getDynamicLoadingText
       }}

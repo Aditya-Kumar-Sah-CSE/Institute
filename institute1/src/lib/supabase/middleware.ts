@@ -264,7 +264,7 @@ export async function updateSession(request: NextRequest) {
   supabaseResponse.headers.set('X-Frame-Options', 'DENY');
   supabaseResponse.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   supabaseResponse.headers.set('X-XSS-Protection', '1; mode=block');
-  supabaseResponse.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  supabaseResponse.headers.set('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=()');
 
   // Scoped Cross-Origin Isolation headers for Terminal/WebContainer
   if (pathname === '/code-arena/compiler' || pathname.startsWith('/code-arena/compiler/')) {
