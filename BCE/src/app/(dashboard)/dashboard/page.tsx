@@ -28,6 +28,9 @@ const NptelAssignmentsWidget = dynamic(() => import('@/features/nptel/components
 const ActivityFeed = dynamic(() => import('@/features/activity/components/ActivityFeed'), { 
   loading: () => <div className="skeleton-dash" style={{ height: '300px', borderRadius: '12px' }}></div> 
 });
+const LearningIntelligenceSection = dynamic(() => import('@/features/analytics/components/LearningIntelligenceSection'), { 
+  loading: () => <div className="skeleton-dash" style={{ height: '320px', borderRadius: '12px' }}></div> 
+});
 
 interface DashboardEnrollment {
   progress: number;
@@ -136,6 +139,10 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
           <PinnedGoalAlert />
         </Suspense>
         
+        <Suspense fallback={<div className="skeleton-dash" style={{ height: '320px', borderRadius: '12px' }}></div>}>
+          <LearningIntelligenceSection userId={user.id} />
+        </Suspense>
+
         <Suspense fallback={<div className="skeleton-dash" style={{ height: '140px', borderRadius: '12px' }}></div>}>
           <UpcomingContestsAlert />
         </Suspense>
