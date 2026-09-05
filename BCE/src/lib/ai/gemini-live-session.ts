@@ -116,15 +116,18 @@ export class GeminiLiveSession {
 
   private async startMicrophoneStream() {
     try {
-      this.mediaStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          channelCount: 1,
-          sampleRate: 16000,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        }
-      });
+      try {
+        this.mediaStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        });
+      } catch (e) {
+        // Fallback for browsers that reject specialized audio constraints
+        this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
 
       if (this.isStopped) return;
 
@@ -170,7 +173,10 @@ export class GeminiLiveSession {
       this.workletNode.connect(this.audioCtx.destination);
     } catch (err: any) {
       console.error('[GeminiLiveSession] Mic stream start failed:', err);
-      this.callbacks.onError?.('Microphone access denied or audio recording failed.');
+      const errMsg = err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError'
+        ? 'Microphone permission denied. Please allow microphone access in your browser address bar settings.'
+        : `Microphone error (${err?.name || 'Error'}): ${err?.message || 'Failed to capture audio stream'}`;
+      this.callbacks.onError?.(errMsg);
     }
   }
 
