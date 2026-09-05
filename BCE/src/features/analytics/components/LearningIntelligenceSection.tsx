@@ -3,6 +3,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Link from 'next/link';
 import { getStudent360Profile } from '../services/student-intelligence';
+import AskMentorCardTrigger from './AskMentorCardTrigger';
 import { Zap, CheckCircle2, AlertTriangle, ArrowRight, ShieldCheck, Clock, Target, Compass, Award, BookOpen, Code, Brain } from 'lucide-react';
 
 interface LearningIntelligenceSectionProps {
@@ -93,8 +94,8 @@ export default async function LearningIntelligenceSection({ userId }: LearningIn
         gap: 'var(--space-lg)'
       }}
     >
-      {/* 1. HEADER ROW WITH TIMESTAMP & CONFIDENCE BADGE */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-md)', borderBottom: '1px solid var(--glass-border)', paddingBottom: 'var(--space-md)' }}>
+      {/* 1. HEADER ROW WITH TIMESTAMP, CONFIDENCE BADGE & ASK MENTOR CARD */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-md)', borderBottom: '1px solid var(--glass-border)', paddingBottom: 'var(--space-md)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ background: 'rgba(0, 229, 255, 0.12)', color: 'var(--neon-cyan)', padding: '10px', borderRadius: '12px', border: '1px solid rgba(0, 229, 255, 0.25)' }}>
             <Brain size={28} />
@@ -109,21 +110,25 @@ export default async function LearningIntelligenceSection({ userId }: LearningIn
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-          {/* Confidence Badge */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', background: 'rgba(255,255,255,0.04)', padding: '4px 10px', borderRadius: '12px', border: `1px solid ${confidenceColor}` }}>
-            <ShieldCheck size={14} style={{ color: confidenceColor }} />
-            <span style={{ color: 'var(--text-secondary)' }}>Analytics Confidence:</span>
-            <strong style={{ color: confidenceColor }}>{profile.confidenceLevel}</strong>
-          </div>
-          
-          {/* Data Coverage & Timestamp */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '11px', color: 'var(--text-muted)' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-              <Clock size={12} /> Updated just now
-            </span>
-            <span>•</span>
-            <span>Based on {dataCoverage.assessmentsCount} tests, {dataCoverage.coursesCount} courses, {dataCoverage.dsaSolvedCount} DSA problems</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
+          <AskMentorCardTrigger />
+
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+            {/* Confidence Badge */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', background: 'rgba(255,255,255,0.04)', padding: '4px 10px', borderRadius: '12px', border: `1px solid ${confidenceColor}` }}>
+              <ShieldCheck size={14} style={{ color: confidenceColor }} />
+              <span style={{ color: 'var(--text-secondary)' }}>Confidence:</span>
+              <strong style={{ color: confidenceColor }}>{profile.confidenceLevel}</strong>
+            </div>
+            
+            {/* Data Coverage & Timestamp */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                <Clock size={12} /> Updated just now
+              </span>
+              <span>•</span>
+              <span>{dataCoverage.assessmentsCount} tests • {dataCoverage.coursesCount} courses</span>
+            </div>
           </div>
         </div>
       </div>
