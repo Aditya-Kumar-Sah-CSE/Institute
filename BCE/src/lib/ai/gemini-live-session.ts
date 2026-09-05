@@ -19,6 +19,7 @@ export class GeminiLiveSession {
   private audioCtx: AudioContext | null = null;
   private workletNode: AudioWorkletNode | null = null;
   private sourceNode: MediaStreamAudioSourceNode | null = null;
+  private inputAnalyserNode: AnalyserNode | null = null;
   private isStopped: boolean = false;
   private currentAssistantText: string = '';
   private callbacks: GeminiLiveSessionCallbacks;
@@ -148,6 +149,12 @@ export class GeminiLiveSession {
 
       this.sourceNode = this.audioCtx.createMediaStreamSource(this.mediaStream);
       this.workletNode = new AudioWorkletNode(this.audioCtx, 'pcm-processor');
+
+      // Setup Web Audio API AnalyserNode for real-time microphone audio & pitch detection
+      this.inputAnalyserNode = this.audioCtx.createAnalyser();
+      this.inputAnalyserNode.fftSize = 64;
+      this.inputAnalyserNode.smoothingTimeConstant = 0.8;
+      this.sourceNode.connect(this.inputAnalyserNode);
 
       this.workletNode.port.onmessage = (event) => {
         if (this.isStopped || !this.session) return;
@@ -286,6 +293,14 @@ export class GeminiLiveSession {
     return avgEnergy > 2000;
   }
 
+  public getInputAnalyserNode(): AnalyserNode | null {
+    return this.inputAnalyserNode;
+  }
+
+  public getOutputAnalyserNode(): AnalyserNode | null {
+    return this.audioPlayer?.getAnalyserNode() || null;
+  }
+
   public stop() {
     if (this.isStopped) return;
     this.isStopped = true;
@@ -295,7 +310,15 @@ export class GeminiLiveSession {
     this.audioPlayer?.close();
     this.audioPlayer = null;
 
-    // 2. Disconnect & Close Media Stream & AudioWorklet
+    // 2. Disconnect & Close Media Stream & AudioWorklet & AnalyserNode
+    if (this.inputAnalyserNode) {
+      try {
+        this.inputAnalyserNode.disconnect();
+      } catch (e) {
+        // Ignore disconnect errors
+      }
+      this.inputAnalyserNode = null;
+    }
     if (this.mediaStream) {
       this.mediaStream.getTracks().forEach((track) => track.stop());
       this.mediaStream = null;

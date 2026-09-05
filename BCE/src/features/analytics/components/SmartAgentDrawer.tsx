@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from 'react';
 import Button from '@/components/ui/Button';
 import Link from 'next/link';
 import { useSmartAgentSession } from '../context/SmartAgentSessionContext';
+import DualAudioVisualizer from './DualAudioVisualizer';
 import { 
   X, Send, Mic, MicOff, Sparkles, Bot, User, ArrowRight, RefreshCw, 
   ExternalLink, AlertTriangle, Terminal, HelpCircle, Loader2, Volume2, VolumeX, Square, Trash2, CheckCircle2, AlertCircle
@@ -321,50 +322,24 @@ export default function SmartAgentDrawer() {
           </div>
         )}
 
-        {/* REALTIME VOICE STATES */}
-        {realtimeVoiceState === 'LISTENING' && (
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: '#00e5ff', fontSize: 'var(--text-xs)', padding: '8px 12px', background: 'rgba(0, 229, 255, 0.12)', border: '1px solid rgba(0, 229, 255, 0.3)', borderRadius: 'var(--radius-sm)', width: 'fit-content' }}>
-            <Mic size={14} style={{ animation: 'pulse 1s infinite alternate' }} />
-            <span>● Listening…</span>
-          </div>
-        )}
+        {/* REAL-TIME DUAL AUDIO ANALYZER BARS */}
+        <DualAudioVisualizer />
 
-        {(realtimeVoiceState === 'HEARING' || realtimeVoiceState === 'FINALIZING') && (
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: '#00ff88', fontSize: 'var(--text-xs)', padding: '8px 12px', background: 'rgba(0, 255, 136, 0.12)', border: '1px solid rgba(0, 255, 136, 0.3)', borderRadius: 'var(--radius-sm)', width: 'fit-content' }}>
-            <Mic size={14} style={{ animation: 'pulse 0.5s infinite alternate' }} />
-            <span>● Hearing you…</span>
-          </div>
-        )}
-
-        {realtimeVoiceState === 'TRANSCRIBING' && (
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: 'var(--neon-cyan)', fontSize: 'var(--text-xs)', padding: '8px 12px', background: 'rgba(0, 229, 255, 0.12)', border: '1px solid rgba(0, 229, 255, 0.3)', borderRadius: 'var(--radius-sm)', width: 'fit-content' }}>
-            <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-            <span>⏳ Understanding…</span>
-          </div>
-        )}
-
-        {realtimeVoiceState === 'THINKING' && (
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: 'var(--neon-cyan)', fontSize: 'var(--text-xs)', padding: '8px 12px', background: 'rgba(0, 229, 255, 0.12)', border: '1px solid rgba(0, 229, 255, 0.3)', borderRadius: 'var(--radius-sm)', width: 'fit-content' }}>
-            <Sparkles size={14} style={{ animation: 'pulse 1s infinite alternate' }} />
-            <span>✦ Thinking…</span>
-          </div>
-        )}
-
-        {realtimeVoiceState === 'SPEAKING_AI' && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--neon-cyan)', fontSize: 'var(--text-xs)', padding: '8px 12px', background: 'rgba(0, 229, 255, 0.12)', border: '1px solid rgba(0, 229, 255, 0.3)', borderRadius: 'var(--radius-sm)', width: '100%' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Volume2 size={14} style={{ animation: 'pulse 0.8s infinite alternate' }} />
-              <span>🔊 Speaking…</span>
+        {/* VOICE SESSION STOP BUTTON (WHEN ACTIVE) */}
+        {realtimeVoiceState !== 'STOPPED' && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 6px' }}>
+            <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+              Live Voice Session Active
             </span>
             <button
               type="button"
               onClick={stopVoiceSession}
               style={{
-                background: 'rgba(255, 68, 68, 0.2)',
+                background: 'rgba(255, 68, 68, 0.15)',
                 border: '1px solid rgba(255, 68, 68, 0.4)',
                 color: '#ff6666',
-                borderRadius: '4px',
-                padding: '2px 8px',
+                borderRadius: '6px',
+                padding: '4px 10px',
                 fontSize: '11px',
                 fontWeight: 'bold',
                 cursor: 'pointer',
@@ -373,7 +348,7 @@ export default function SmartAgentDrawer() {
                 gap: '4px'
               }}
             >
-              <Square size={10} /> Stop
+              <Square size={12} /> Stop Voice Session
             </button>
           </div>
         )}

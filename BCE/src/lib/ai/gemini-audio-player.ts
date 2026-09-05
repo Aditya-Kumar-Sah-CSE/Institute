@@ -10,6 +10,7 @@ export interface GeminiAudioPlayerCallbacks {
 
 export class GeminiAudioPlayer {
   private audioCtx: AudioContext | null = null;
+  private analyserNode: AnalyserNode | null = null;
   private nextStartTime: number = 0;
   private activeSources: Set<AudioBufferSourceNode> = new Set();
   private isPlaying: boolean = false;
@@ -32,6 +33,10 @@ export class GeminiAudioPlayer {
     if (!this.audioCtx || this.audioCtx.state === 'closed') {
       const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
       this.audioCtx = new AudioCtxClass({ sampleRate: this.sampleRate });
+      this.analyserNode = this.audioCtx.createAnalyser();
+      this.analyserNode.fftSize = 64;
+      this.analyserNode.smoothingTimeConstant = 0.8;
+      this.analyserNode.connect(this.audioCtx.destination);
     }
     if (this.audioCtx.state === 'suspended') {
       this.audioCtx.resume().catch((e) => {
@@ -40,13 +45,17 @@ export class GeminiAudioPlayer {
     }
   }
 
+  public getAnalyserNode(): AnalyserNode | null {
+    return this.analyserNode;
+  }
+
   /**
    * Enqueue a chunk of base64 16-bit PCM audio (24kHz mono) for playback.
    */
   public playChunk(base64Pcm: string) {
     try {
       this.initAudioContext();
-      if (!this.audioCtx) return;
+      if (!this.audioCtx || !this.analyserNode) return;
 
       const float32Data = this.base64ToFloat32(base64Pcm);
       if (float32Data.length === 0) return;
@@ -56,7 +65,7 @@ export class GeminiAudioPlayer {
 
       const source = this.audioCtx.createBufferSource();
       source.buffer = audioBuffer;
-      source.connect(this.audioCtx.destination);
+      source.connect(this.analyserNode);
 
       const currentTime = this.audioCtx.currentTime;
       // Schedule chunk continuously

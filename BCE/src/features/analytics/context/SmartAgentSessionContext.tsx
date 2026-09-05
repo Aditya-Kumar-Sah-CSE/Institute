@@ -105,6 +105,8 @@ interface SmartAgentSessionContextValue {
   toggleVoiceRecording: () => Promise<void>;
   clearConversation: () => void;
   getDynamicLoadingText: () => string;
+  getInputAnalyserNode: () => AnalyserNode | null;
+  getOutputAnalyserNode: () => AnalyserNode | null;
 }
 
 const SmartAgentSessionContext = createContext<SmartAgentSessionContextValue | undefined>(undefined);
@@ -582,7 +584,9 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         stopVoiceRecordingAndSend,
         toggleVoiceRecording,
         clearConversation,
-        getDynamicLoadingText
+        getDynamicLoadingText,
+        getInputAnalyserNode: () => geminiLiveSessionRef.current?.getInputAnalyserNode() || null,
+        getOutputAnalyserNode: () => geminiLiveSessionRef.current?.getOutputAnalyserNode() || null
       }}
     >
       {children}
