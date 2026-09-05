@@ -1,43 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+'use client';
+
+import React, { useEffect, useRef } from 'react';
 import Button from '@/components/ui/Button';
 import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
-import { askSmartAgentAction } from '../actions/agent';
 import { AudioRecorder, transcribeAudioFile } from '@/lib/ai/speech-recorder';
-import { 
-  speakAssistantResponse, 
-  stopAssistantSpeech, 
-  isSpeechSynthesisSupported 
-} from '@/lib/ai/speech-synthesizer';
+import { useSmartAgentSession } from '../context/SmartAgentSessionContext';
 import { 
   X, Send, Mic, MicOff, Sparkles, Bot, User, ArrowRight, RefreshCw, 
-  ExternalLink, AlertTriangle, Terminal, HelpCircle, Loader2, Volume2, VolumeX, Square 
+  ExternalLink, AlertTriangle, Terminal, HelpCircle, Loader2, Volume2, VolumeX, Square, Trash2, CheckCircle2, AlertCircle
 } from 'lucide-react';
-
-interface SmartAgentMessage {
-  role: 'user' | 'assistant';
-  content: string;
-  actions?: Array<{ label: string; url: string; isExternal?: boolean }>;
-  requiresConfirmation?: {
-    toolName: string;
-    args: any;
-    promptMessage: string;
-  };
-  toolExecuted?: string;
-  timestamp?: string;
-}
-
-interface SmartAgentDrawerProps {
-  isOpen: boolean;
-  onClose: () => void;
-  initialPrompt?: string;
-  pageContext?: {
-    problemId?: string;
-    problemTitle?: string;
-    courseId?: string;
-    courseTitle?: string;
-  };
-}
 
 const QUICK_COMMANDS = [
   '• Open my DSA sheet',
@@ -49,200 +20,42 @@ const QUICK_COMMANDS = [
   '• What should I learn next?'
 ];
 
-import { useLivePageContext } from '@/features/analytics/context/LivePageContext';
-
-export default function SmartAgentDrawer({
-  isOpen,
-  onClose,
-  initialPrompt,
-  pageContext
-}: SmartAgentDrawerProps) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const { liveContext } = useLivePageContext();
-
-  const [messages, setMessages] = useState<SmartAgentMessage[]>([
-    {
-      role: 'assistant',
-      content: `Hi! I'm **Smart Learn AI Agent** ✦\n\nI can execute actions, open courses, launch DSA sheets, search YouTube/GPT, open LaTeX editor, and manage your routine or goals using natural language or voice commands.\n\nTry one of the commands below!`,
-      actions: [
-        { label: 'Open DSA Sheets', url: '/code-arena/sheets' },
-        { label: 'Explore Courses', url: '/courses' }
-      ]
-    }
-  ]);
-
-  const [currentPromptText, setCurrentPromptText] = useState('');
-  const [inputVal, setInputVal] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const [isTranscribing, setIsTranscribing] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isVoiceMode, setIsVoiceMode] = useState(true);
-  const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
+export default function SmartAgentDrawer() {
+  const {
+    isOpen,
+    closeDrawer,
+    messages,
+    executionState,
+    inputVal,
+    setInputVal,
+    isLoading,
+    isListening,
+    setIsListening,
+    isTranscribing,
+    setIsTranscribing,
+    isSpeaking,
+    isVoiceMode,
+    setIsVoiceMode,
+    voiceNotice,
+    setVoiceNotice,
+    handleSendPrompt,
+    stopSpeech,
+    clearConversation,
+    getDynamicLoadingText
+  } = useSmartAgentSession();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const audioRecorderRef = useRef<AudioRecorder | null>(null);
-  const isProcessingRef = useRef<boolean>(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const [executionState, setExecutionState] = useState<
-    'IDLE' | 'UNDERSTANDING' | 'EXECUTING' | 'VERIFYING' | 'NAVIGATING' | 'SPEAKING'
-  >('IDLE');
-
-  const [activeContext, setActiveContext] = useState({
-    problemId: pageContext?.problemId,
-    problemTitle: pageContext?.problemTitle,
-    courseId: pageContext?.courseId,
-    courseTitle: pageContext?.courseTitle
-  });
-
-  const getDynamicLoadingText = () => {
-    if (executionState === 'UNDERSTANDING') return 'Understanding intent...';
-    if (executionState === 'EXECUTING') return 'Executing tool...';
-    if (executionState === 'VERIFYING') return 'Verifying result...';
-    if (executionState === 'NAVIGATING') return 'Opening page...';
-
-    const t = currentPromptText.toLowerCase();
-    if (t.includes('search') || t.includes('youtube') || t.includes('yt') || t.includes('gpt') || t.includes('seat') || t.includes('bsc')) {
-      return 'Searching Smart Learn & External Sources...';
+  useEffect(() => {
+    if (isOpen) {
+      scrollToBottom();
     }
-    if (t.includes('open') || t.includes('kholo') || t.includes('dsa') || t.includes('course') || t.includes('problem') || t.includes('sheet')) {
-      return 'Opening page...';
-    }
-    return 'Processing your command...';
-  };
-
-  const handleSendPrompt = async (textToSend?: string, confirmedTool?: { toolName: string; args: any }, isVoiceTrigger = false) => {
-    const promptText = (textToSend || inputVal).trim();
-    if ((!promptText && !confirmedTool) || isLoading || isProcessingRef.current) return;
-
-    isProcessingRef.current = true;
-
-    // Interrupt any active assistant speech when new prompt is sent
-    stopAssistantSpeech();
-    setIsSpeaking(false);
-
-    setCurrentPromptText(promptText);
-
-    if (!confirmedTool) {
-      const userMsg: SmartAgentMessage = {
-        role: 'user',
-        content: promptText,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      setMessages(prev => [...prev, userMsg]);
-      setInputVal('');
-    }
-
-    setIsLoading(true);
-    setExecutionState('UNDERSTANDING');
-
-    try {
-      const historyForAction = messages.map(m => ({
-        role: m.role,
-        content: m.content
-      }));
-
-      setExecutionState('EXECUTING');
-
-      const res = await askSmartAgentAction({
-        prompt: promptText || 'Execute confirmed tool',
-        history: historyForAction,
-        pageContext: {
-          route: pathname,
-          ...activeContext,
-          liveContext
-        },
-        confirmedTool
-      });
-
-      setExecutionState('VERIFYING');
-
-      if (res.message) {
-        const assistantMsg: SmartAgentMessage = {
-          role: 'assistant',
-          content: res.message,
-          actions: res.actions,
-          requiresConfirmation: res.requiresConfirmation,
-          toolExecuted: res.toolExecuted,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-        setMessages(prev => [...prev, assistantMsg]);
-
-        // Dynamically update conversation memory activeContext from tool execution
-        if (res.success && res.actions && res.actions.length > 0) {
-          const actionUrl = res.actions[0].url || '';
-          const probMatch = actionUrl.match(/\/code-arena\/problems\/([^\/]+)/);
-          const courseMatch = actionUrl.match(/\/courses\/([^\/]+)/);
-
-          if (probMatch) {
-            setActiveContext(prev => ({
-              ...prev,
-              problemId: probMatch[1],
-              problemTitle: res.message.includes('Problem') ? res.message.split('open')[0].replace(/^Problem\s*/i, '').trim() : prev.problemTitle
-            }));
-          } else if (courseMatch) {
-            setActiveContext(prev => ({
-              ...prev,
-              courseId: courseMatch[1],
-              courseTitle: res.message.includes('Course') ? res.message.split('open')[0].trim() : prev.courseTitle
-            }));
-          }
-        }
-
-        // Auto-navigate ONLY IF result was successful and internal route action returned
-        if (res.success && res.actions && res.actions.length === 1 && !res.actions[0].isExternal) {
-          const targetUrl = res.actions[0].url;
-          if (targetUrl && targetUrl !== pathname) {
-            setExecutionState('NAVIGATING');
-            setTimeout(() => {
-              onClose();
-              router.push(targetUrl);
-            }, 800);
-          }
-        }
-
-        // Auto-speak response if Voice Mode is active OR voice command was used
-        if (isVoiceMode || isVoiceTrigger) {
-          setExecutionState('SPEAKING');
-          const spoke = speakAssistantResponse(res.message, {
-            onStart: () => setIsSpeaking(true),
-            onEnd: () => {
-              setIsSpeaking(false);
-              setExecutionState('IDLE');
-            },
-            onError: () => {
-              setIsSpeaking(false);
-              setExecutionState('IDLE');
-            }
-          });
-          if (!spoke && !isSpeechSynthesisSupported()) {
-            setVoiceNotice('The response is ready, but voice playback is unavailable on this browser.');
-            setExecutionState('IDLE');
-          }
-        } else {
-          setExecutionState('IDLE');
-        }
-      }
-    } catch (err) {
-      setExecutionState('IDLE');
-      setMessages(prev => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: 'An error occurred while executing the command. Please try again.',
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }
-      ]);
-    } finally {
-      setIsLoading(false);
-      isProcessingRef.current = false;
-    }
-  };
+  }, [isOpen, messages, isLoading, isListening, isTranscribing, isSpeaking, executionState]);
 
   const stopVoiceRecording = async () => {
     if (!audioRecorderRef.current || !isListening) return;
@@ -269,13 +82,12 @@ export default function SmartAgentDrawer({
   };
 
   const toggleVoiceRecording = async () => {
-    if (isLoading || isTranscribing || isProcessingRef.current) return;
+    if (isLoading || isTranscribing) return;
     setVoiceNotice(null);
 
     // INTERRUPT SPEECH: If assistant is speaking when mic is clicked, stop speech immediately
     if (isSpeaking) {
-      stopAssistantSpeech();
-      setIsSpeaking(false);
+      stopSpeech();
     }
 
     // If currently recording, stop recording and send to STT
@@ -347,402 +159,398 @@ export default function SmartAgentDrawer({
     }
   };
 
-  const handleStopSpeech = () => {
-    stopAssistantSpeech();
-    setIsSpeaking(false);
-  };
-
-  useEffect(() => {
-    if (isOpen) {
-      scrollToBottom();
-      if (initialPrompt) {
-        handleSendPrompt(initialPrompt);
-      }
-    } else {
-      stopVoiceRecording();
-      stopAssistantSpeech();
-      setIsSpeaking(false);
-    }
-  }, [isOpen, initialPrompt]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, isLoading, isListening, isTranscribing, isSpeaking]);
-
   if (!isOpen) return null;
 
   return (
     <div 
       style={{
         position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.75)',
-        backdropFilter: 'blur(6px)',
-        zIndex: 100000,
+        top: 0,
+        right: 0,
+        bottom: 0,
+        width: '440px',
+        maxWidth: '100vw',
+        zIndex: 99999,
         display: 'flex',
-        justifyContent: 'flex-end',
-        alignItems: 'stretch'
+        flexDirection: 'column',
+        background: 'var(--bg-secondary)',
+        borderLeft: '1px solid var(--glass-border)',
+        boxShadow: '-8px 0 35px rgba(0,0,0,0.55)',
+        pointerEvents: 'auto'
       }}
     >
+      {/* HEADER */}
       <div 
         style={{
-          width: '100%',
-          maxWidth: '500px',
-          background: 'var(--bg-secondary)',
-          borderLeft: '1px solid var(--glass-border)',
+          padding: 'var(--space-md) var(--space-lg)',
+          background: 'var(--bg-primary)',
+          borderBottom: '1px solid var(--glass-border)',
           display: 'flex',
-          flexDirection: 'column',
-          boxShadow: '-12px 0 40px rgba(0,0,0,0.6)',
-          position: 'relative'
+          alignItems: 'center',
+          justifyContent: 'space-between'
         }}
       >
-        {/* HEADER */}
-        <div 
-          style={{
-            padding: 'var(--space-md) var(--space-lg)',
-            background: 'var(--bg-primary)',
-            borderBottom: '1px solid var(--glass-border)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ background: 'rgba(0, 229, 255, 0.15)', color: 'var(--neon-cyan)', padding: '8px', borderRadius: '10px', border: '1px solid rgba(0, 229, 255, 0.3)' }}>
-              <Sparkles size={22} />
-            </div>
-            <div>
-              <h3 style={{ margin: 0, fontSize: 'var(--text-md)', fontWeight: 'bold', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                ✦ Smart Learn Agent
-              </h3>
-              <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-secondary)' }}>
-                Two-Way Voice & Action Assistant
-              </p>
-            </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ background: 'rgba(0, 229, 255, 0.15)', color: 'var(--neon-cyan)', padding: '8px', borderRadius: '10px', border: '1px solid rgba(0, 229, 255, 0.3)' }}>
+            <Sparkles size={20} />
           </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: 'var(--text-md)', fontWeight: 'bold', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              ✦ Smart Learn Agent
+            </h3>
+            <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-secondary)' }}>
+              Non-Blocking AI Assistant
+            </p>
+          </div>
+        </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {/* VOICE MODE TOGGLE BUTTON */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* VOICE MODE TOGGLE BUTTON */}
+          <button
+            type="button"
+            onClick={() => {
+              const nextMode = !isVoiceMode;
+              setIsVoiceMode(nextMode);
+              if (!nextMode) stopSpeech();
+            }}
+            style={{
+              fontSize: '11px',
+              fontWeight: 'bold',
+              padding: '4px 10px',
+              borderRadius: '12px',
+              background: isVoiceMode ? 'rgba(0, 229, 255, 0.15)' : 'rgba(255, 255, 255, 0.06)',
+              color: isVoiceMode ? 'var(--neon-cyan)' : 'var(--text-muted)',
+              border: isVoiceMode ? '1px solid rgba(0, 229, 255, 0.4)' : '1px solid var(--glass-border)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+            title={isVoiceMode ? "Voice Mode ON (Assistant speaks responses)" : "Voice Mode OFF (Silent response text)"}
+          >
+            {isVoiceMode ? <Volume2 size={13} /> : <VolumeX size={13} />}
+            <span>Voice: {isVoiceMode ? 'ON' : 'OFF'}</span>
+          </button>
+
+          {/* RESET CONVERSATION BUTTON */}
+          <button 
+            type="button"
+            onClick={clearConversation}
+            style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+            title="Reset Conversation"
+          >
+            <Trash2 size={16} />
+          </button>
+
+          {/* CLOSE PANEL BUTTON */}
+          <button 
+            type="button"
+            onClick={closeDrawer}
+            style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}
+            title="Close Assistant Panel"
+          >
+            <X size={20} />
+          </button>
+        </div>
+      </div>
+
+      {/* VOICE NOTICE TOAST IF UNSUPPORTED */}
+      {voiceNotice && (
+        <div style={{ padding: '8px 14px', background: 'rgba(255, 170, 0, 0.15)', borderBottom: '1px solid rgba(255, 170, 0, 0.3)', color: '#ffcc00', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <AlertTriangle size={14} /> {voiceNotice}
+          </span>
+          <button onClick={() => setVoiceNotice(null)} style={{ background: 'none', border: 'none', color: '#ffcc00', cursor: 'pointer' }}>×</button>
+        </div>
+      )}
+
+      {/* MESSAGES LIST */}
+      <div 
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: 'var(--space-md)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--space-md)'
+        }}
+      >
+        {messages.map((msg, idx) => (
+          <div 
+            key={idx}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start',
+              gap: '4px'
+            }}
+          >
+            <div 
+              style={{
+                display: 'flex',
+                gap: '8px',
+                maxWidth: '92%',
+                alignItems: 'flex-start',
+                flexDirection: msg.role === 'user' ? 'row-reverse' : 'row'
+              }}
+            >
+              <div 
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  background: msg.role === 'user' ? 'var(--neon-cyan)' : 'rgba(0, 229, 255, 0.15)',
+                  color: msg.role === 'user' ? '#000' : 'var(--neon-cyan)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  border: msg.role === 'user' ? 'none' : '1px solid rgba(0, 229, 255, 0.3)'
+                }}
+              >
+                {msg.role === 'user' ? <User size={14} /> : <Bot size={16} />}
+              </div>
+
+              <div 
+                style={{
+                  background: msg.role === 'user' ? 'rgba(0, 229, 255, 0.15)' : 'var(--bg-input)',
+                  border: msg.role === 'user' ? '1px solid var(--neon-cyan)' : '1px solid var(--glass-border)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '10px 14px',
+                  color: 'var(--text-primary)',
+                  fontSize: 'var(--text-sm)',
+                  lineHeight: 1.5,
+                  whiteSpace: 'pre-wrap'
+                }}
+              >
+                {/* TOOL EXECUTION OR NAVIGATION STATE BADGE */}
+                {msg.navigationState === 'VERIFIED' && (
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#00ff88', background: 'rgba(0, 255, 136, 0.1)', padding: '2px 8px', borderRadius: '4px', marginBottom: '6px' }}>
+                    <CheckCircle2 size={10} /> Verified Page Navigation
+                  </div>
+                )}
+                {msg.navigationState === 'FAILED' && (
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#ff6666', background: 'rgba(255, 102, 102, 0.1)', padding: '2px 8px', borderRadius: '4px', marginBottom: '6px' }}>
+                    <AlertCircle size={10} /> Verification Failed
+                  </div>
+                )}
+                {msg.navigationState === 'NOT_FOUND' && (
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#ffcc00', background: 'rgba(255, 204, 0, 0.1)', padding: '2px 8px', borderRadius: '4px', marginBottom: '6px' }}>
+                    <AlertTriangle size={10} /> 404 Page Not Found
+                  </div>
+                )}
+                {!msg.navigationState && msg.toolExecuted && (
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'var(--neon-cyan)', background: 'rgba(0, 229, 255, 0.1)', padding: '2px 8px', borderRadius: '4px', marginBottom: '6px' }}>
+                    <Terminal size={10} /> Executed: {msg.toolExecuted}
+                  </div>
+                )}
+
+                {msg.content}
+
+                {/* ACTION BUTTONS */}
+                {msg.actions && msg.actions.length > 0 && (
+                  <div style={{ marginTop: '10px', display: 'flex', gap: '8px', flexWrap: 'wrap', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                    {msg.actions.map((act, aIdx) => (
+                      act.isExternal ? (
+                        <a key={aIdx} href={act.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                          <Button variant="secondary" size="sm" style={{ fontSize: '11px', padding: '4px 10px', height: 'auto', gap: '4px' }}>
+                            {act.label} <ExternalLink size={12} />
+                          </Button>
+                        </a>
+                      ) : (
+                        <Link key={aIdx} href={act.url} style={{ textDecoration: 'none' }}>
+                          <Button variant="primary" size="sm" style={{ fontSize: '11px', padding: '4px 10px', height: 'auto', gap: '4px' }}>
+                            {act.label} <ArrowRight size={12} />
+                          </Button>
+                        </Link>
+                      )
+                    ))}
+                  </div>
+                )}
+
+                {/* HIGH RISK CONFIRMATION BOX */}
+                {msg.requiresConfirmation && (
+                  <div style={{ marginTop: '12px', padding: '10px', background: 'rgba(255, 68, 68, 0.12)', border: '1px solid rgba(255, 68, 68, 0.3)', borderRadius: '8px' }}>
+                    <p style={{ margin: 0, fontSize: '12px', color: '#ff6666', fontWeight: 'bold', marginBottom: '8px' }}>
+                      ⚠️ {msg.requiresConfirmation.promptMessage}
+                    </p>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <Button 
+                        variant="danger" 
+                        size="sm" 
+                        style={{ fontSize: '11px', padding: '4px 12px' }}
+                        onClick={() => handleSendPrompt(undefined, {
+                          toolName: msg.requiresConfirmation!.toolName,
+                          args: msg.requiresConfirmation!.args
+                        })}
+                      >
+                        Confirm
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {msg.timestamp && (
+              <span style={{ fontSize: '10px', color: 'var(--text-muted)', padding: '0 4px' }}>
+                {msg.timestamp}
+              </span>
+            )}
+          </div>
+        ))}
+
+        {/* LOADING & NAVIGATION HANDSHAKE VERIFICATION STATUS */}
+        {isLoading && (
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: 'var(--neon-cyan)', fontSize: 'var(--text-xs)', padding: '8px 12px', background: 'rgba(0, 229, 255, 0.08)', borderRadius: 'var(--radius-sm)', width: 'fit-content' }}>
+            <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />
+            <span>{getDynamicLoadingText()}</span>
+          </div>
+        )}
+
+        {executionState === 'VERIFYING' && (
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: '#00ff88', fontSize: 'var(--text-xs)', padding: '8px 12px', background: 'rgba(0, 255, 136, 0.08)', border: '1px solid rgba(0, 255, 136, 0.3)', borderRadius: 'var(--radius-sm)', width: 'fit-content' }}>
+            <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+            <span>Checking destination page state...</span>
+          </div>
+        )}
+
+        {/* SPEAKING VOICE STATE */}
+        {isSpeaking && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--neon-cyan)', fontSize: 'var(--text-xs)', padding: '8px 12px', background: 'rgba(0, 229, 255, 0.12)', border: '1px solid rgba(0, 229, 255, 0.3)', borderRadius: 'var(--radius-sm)', width: '100%' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Volume2 size={14} style={{ animation: 'pulse 0.8s infinite alternate' }} />
+              <span>🔊 Speaking response... Click mic to interrupt.</span>
+            </span>
             <button
               type="button"
-              onClick={() => {
-                const nextMode = !isVoiceMode;
-                setIsVoiceMode(nextMode);
-                if (!nextMode) handleStopSpeech();
-              }}
+              onClick={stopSpeech}
               style={{
+                background: 'rgba(255, 68, 68, 0.2)',
+                border: '1px solid rgba(255, 68, 68, 0.4)',
+                color: '#ff6666',
+                borderRadius: '4px',
+                padding: '2px 8px',
                 fontSize: '11px',
                 fontWeight: 'bold',
-                padding: '4px 10px',
-                borderRadius: '12px',
-                background: isVoiceMode ? 'rgba(0, 229, 255, 0.15)' : 'rgba(255, 255, 255, 0.06)',
-                color: isVoiceMode ? 'var(--neon-cyan)' : 'var(--text-muted)',
-                border: isVoiceMode ? '1px solid rgba(0, 229, 255, 0.4)' : '1px solid var(--glass-border)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '4px'
               }}
-              title={isVoiceMode ? "Voice Mode ON (Assistant speaks responses)" : "Voice Mode OFF (Silent response text)"}
             >
-              {isVoiceMode ? <Volume2 size={13} /> : <VolumeX size={13} />}
-              <span>Voice: {isVoiceMode ? 'ON' : 'OFF'}</span>
+              <Square size={10} /> Stop
             </button>
-
-            <button 
-              onClick={onClose}
-              style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}
-              title="Close Agent"
-            >
-              <X size={22} />
-            </button>
-          </div>
-        </div>
-
-        {/* VOICE NOTICE TOAST IF UNSUPPORTED */}
-        {voiceNotice && (
-          <div style={{ padding: '8px 14px', background: 'rgba(255, 170, 0, 0.15)', borderBottom: '1px solid rgba(255, 170, 0, 0.3)', color: '#ffcc00', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <AlertTriangle size={14} /> {voiceNotice}
-            </span>
-            <button onClick={() => setVoiceNotice(null)} style={{ background: 'none', border: 'none', color: '#ffcc00', cursor: 'pointer' }}>×</button>
           </div>
         )}
 
-        {/* MESSAGES LIST */}
-        <div 
+        {/* TRANSCRIBING AUDIO STATE */}
+        {isTranscribing && (
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: 'var(--neon-cyan)', fontSize: 'var(--text-xs)', padding: '8px 12px', background: 'rgba(0, 229, 255, 0.12)', border: '1px solid rgba(0, 229, 255, 0.3)', borderRadius: 'var(--radius-sm)', width: 'fit-content' }}>
+            <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+            <span>⏳ Understanding audio...</span>
+          </div>
+        )}
+
+        {/* LISTENING VOICE STATE */}
+        {isListening && (
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: '#ff4444', fontSize: 'var(--text-xs)', padding: '8px 12px', background: 'rgba(255, 68, 68, 0.12)', border: '1px solid rgba(255, 68, 68, 0.3)', borderRadius: 'var(--radius-sm)', width: 'fit-content' }}>
+            <Mic size={14} style={{ animation: 'pulse 1s infinite alternate' }} />
+            <span>🔴 Listening... Click mic again to stop & send.</span>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* QUICK COMMANDS DISCOVERY CHIPS */}
+      <div style={{ padding: '8px 12px', background: 'var(--bg-primary)', borderTop: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <HelpCircle size={10} /> Things I can do:
+        </div>
+        <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
+          {QUICK_COMMANDS.map((cmdText, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => handleSendPrompt(cmdText.replace(/^•\s*/, ''))}
+              disabled={isLoading || isListening || isTranscribing}
+              style={{
+                fontSize: '11px',
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid var(--glass-border)',
+                color: 'var(--neon-cyan)',
+                padding: '4px 10px',
+                borderRadius: '12px',
+                whiteSpace: 'nowrap',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0, 229, 255, 0.12)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)'}
+            >
+              {cmdText}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* INPUT FORM */}
+      <form 
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSendPrompt();
+        }}
+        style={{
+          padding: 'var(--space-md)',
+          background: 'var(--bg-primary)',
+          borderTop: '1px solid var(--glass-border)',
+          display: 'flex',
+          gap: '8px'
+        }}
+      >
+        <input
+          type="text"
+          value={inputVal}
+          onChange={(e) => setInputVal(e.target.value)}
+          placeholder="Ask Smart Learn anything..."
+          disabled={isLoading || isListening || isTranscribing}
           style={{
             flex: 1,
-            overflowY: 'auto',
-            padding: 'var(--space-md)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 'var(--space-md)'
+            padding: '10px 14px',
+            background: 'var(--bg-input)',
+            border: '1px solid var(--glass-border)',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--text-primary)',
+            fontSize: 'var(--text-sm)',
+            outline: 'none'
           }}
+        />
+
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={toggleVoiceRecording}
+          disabled={isLoading || isTranscribing}
+          title={isListening ? "Stop & Send Audio" : "Speak Command (Microphone)"}
+          style={{ padding: '0 12px', color: isListening ? '#ff4444' : 'var(--neon-cyan)', borderColor: isListening ? '#ff4444' : 'var(--glass-border)' }}
         >
-          {messages.map((msg, idx) => (
-            <div 
-              key={idx}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                gap: '4px'
-              }}
-            >
-              <div 
-                style={{
-                  display: 'flex',
-                  gap: '8px',
-                  maxWidth: '92%',
-                  alignItems: 'flex-start',
-                  flexDirection: msg.role === 'user' ? 'row-reverse' : 'row'
-                }}
-              >
-                <div 
-                  style={{
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: '50%',
-                    background: msg.role === 'user' ? 'var(--neon-cyan)' : 'rgba(0, 229, 255, 0.15)',
-                    color: msg.role === 'user' ? '#000' : 'var(--neon-cyan)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    fontSize: '12px',
-                    fontWeight: 'bold',
-                    border: msg.role === 'user' ? 'none' : '1px solid rgba(0, 229, 255, 0.3)'
-                  }}
-                >
-                  {msg.role === 'user' ? <User size={14} /> : <Bot size={16} />}
-                </div>
+          {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+        </Button>
 
-                <div 
-                  style={{
-                    background: msg.role === 'user' ? 'rgba(0, 229, 255, 0.15)' : 'var(--bg-input)',
-                    border: msg.role === 'user' ? '1px solid var(--neon-cyan)' : '1px solid var(--glass-border)',
-                    borderRadius: 'var(--radius-md)',
-                    padding: '10px 14px',
-                    color: 'var(--text-primary)',
-                    fontSize: 'var(--text-sm)',
-                    lineHeight: 1.5,
-                    whiteSpace: 'pre-wrap'
-                  }}
-                >
-                  {/* TOOL EXECUTION BADGE */}
-                  {msg.toolExecuted && (
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'var(--neon-cyan)', background: 'rgba(0, 229, 255, 0.1)', padding: '2px 8px', borderRadius: '4px', marginBottom: '6px' }}>
-                      <Terminal size={10} /> Executed: {msg.toolExecuted}
-                    </div>
-                  )}
-
-                  {msg.content}
-
-                  {/* ACTION BUTTONS */}
-                  {msg.actions && msg.actions.length > 0 && (
-                    <div style={{ marginTop: '10px', display: 'flex', gap: '8px', flexWrap: 'wrap', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-                      {msg.actions.map((act, aIdx) => (
-                        act.isExternal ? (
-                          <a key={aIdx} href={act.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-                            <Button variant="secondary" size="sm" style={{ fontSize: '11px', padding: '4px 10px', height: 'auto', gap: '4px' }}>
-                              {act.label} <ExternalLink size={12} />
-                            </Button>
-                          </a>
-                        ) : (
-                          <Link key={aIdx} href={act.url} onClick={onClose} style={{ textDecoration: 'none' }}>
-                            <Button variant="primary" size="sm" style={{ fontSize: '11px', padding: '4px 10px', height: 'auto', gap: '4px' }}>
-                              {act.label} <ArrowRight size={12} />
-                            </Button>
-                          </Link>
-                        )
-                      ))}
-                    </div>
-                  )}
-
-                  {/* HIGH RISK CONFIRMATION BOX */}
-                  {msg.requiresConfirmation && (
-                    <div style={{ marginTop: '12px', padding: '10px', background: 'rgba(255, 68, 68, 0.12)', border: '1px solid rgba(255, 68, 68, 0.3)', borderRadius: '8px' }}>
-                      <p style={{ margin: 0, fontSize: '12px', color: '#ff6666', fontWeight: 'bold', marginBottom: '8px' }}>
-                        ⚠️ {msg.requiresConfirmation.promptMessage}
-                      </p>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <Button 
-                          variant="danger" 
-                          size="sm" 
-                          style={{ fontSize: '11px', padding: '4px 12px' }}
-                          onClick={() => handleSendPrompt(undefined, {
-                            toolName: msg.requiresConfirmation!.toolName,
-                            args: msg.requiresConfirmation!.args
-                          })}
-                        >
-                          Confirm
-                        </Button>
-                        <Button 
-                          variant="secondary" 
-                          size="sm" 
-                          style={{ fontSize: '11px', padding: '4px 12px' }}
-                          onClick={() => setMessages(prev => [...prev, { role: 'assistant', content: 'Action cancelled.' }])}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {msg.timestamp && (
-                <span style={{ fontSize: '10px', color: 'var(--text-muted)', padding: '0 4px' }}>
-                  {msg.timestamp}
-                </span>
-              )}
-            </div>
-          ))}
-
-          {/* LOADING STATE */}
-          {isLoading && (
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: 'var(--neon-cyan)', fontSize: 'var(--text-xs)', padding: '8px 12px', background: 'rgba(0, 229, 255, 0.08)', borderRadius: 'var(--radius-sm)', width: 'fit-content' }}>
-              <RefreshCw size={14} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
-              <span>{getDynamicLoadingText()}</span>
-            </div>
-          )}
-
-          {/* SPEAKING VOICE STATE */}
-          {isSpeaking && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--neon-cyan)', fontSize: 'var(--text-xs)', padding: '8px 12px', background: 'rgba(0, 229, 255, 0.12)', border: '1px solid rgba(0, 229, 255, 0.3)', borderRadius: 'var(--radius-sm)', width: '100%' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Volume2 size={14} style={{ animation: 'pulse 0.8s infinite alternate' }} />
-                <span>🔊 Speaking response... Click mic to interrupt or stop.</span>
-              </span>
-              <button
-                type="button"
-                onClick={handleStopSpeech}
-                style={{
-                  background: 'rgba(255, 68, 68, 0.2)',
-                  border: '1px solid rgba(255, 68, 68, 0.4)',
-                  color: '#ff6666',
-                  borderRadius: '4px',
-                  padding: '2px 8px',
-                  fontSize: '11px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-              >
-                <Square size={10} /> Stop
-              </button>
-            </div>
-          )}
-
-          {/* TRANSCRIBING AUDIO STATE */}
-          {isTranscribing && (
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: 'var(--neon-cyan)', fontSize: 'var(--text-xs)', padding: '8px 12px', background: 'rgba(0, 229, 255, 0.12)', border: '1px solid rgba(0, 229, 255, 0.3)', borderRadius: 'var(--radius-sm)', width: 'fit-content' }}>
-              <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-              <span>⏳ Understanding audio...</span>
-            </div>
-          )}
-
-          {/* LISTENING VOICE STATE */}
-          {isListening && (
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: '#ff4444', fontSize: 'var(--text-xs)', padding: '8px 12px', background: 'rgba(255, 68, 68, 0.12)', border: '1px solid rgba(255, 68, 68, 0.3)', borderRadius: 'var(--radius-sm)', width: 'fit-content' }}>
-              <Mic size={14} style={{ animation: 'pulse 1s infinite alternate' }} />
-              <span>🔴 Listening... Click mic again to stop & send.</span>
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* QUICK COMMANDS DISCOVERY CHIPS ("Things I can do") */}
-        <div style={{ padding: '8px 12px', background: 'var(--bg-primary)', borderTop: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <HelpCircle size={10} /> Things I can do:
-          </div>
-          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
-            {QUICK_COMMANDS.map((cmdText, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => handleSendPrompt(cmdText.replace(/^•\s*/, ''))}
-                disabled={isLoading || isListening || isTranscribing}
-                style={{
-                  fontSize: '11px',
-                  background: 'rgba(255, 255, 255, 0.04)',
-                  border: '1px solid var(--glass-border)',
-                  color: 'var(--neon-cyan)',
-                  padding: '4px 10px',
-                  borderRadius: '12px',
-                  whiteSpace: 'nowrap',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0, 229, 255, 0.12)'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)'}
-              >
-                {cmdText}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* INPUT FORM */}
-        <form 
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSendPrompt();
-          }}
-          style={{
-            padding: 'var(--space-md)',
-            background: 'var(--bg-primary)',
-            borderTop: '1px solid var(--glass-border)',
-            display: 'flex',
-            gap: '8px'
-          }}
+        <Button 
+          type="submit" 
+          variant="primary" 
+          size="sm" 
+          disabled={isLoading || isListening || !inputVal.trim()}
+          style={{ padding: '0 16px' }}
         >
-          <input
-            type="text"
-            value={inputVal}
-            onChange={(e) => setInputVal(e.target.value)}
-            placeholder="Ask Smart Learn anything..."
-            disabled={isLoading || isListening || isTranscribing}
-            style={{
-              flex: 1,
-              padding: '10px 14px',
-              background: 'var(--bg-input)',
-              border: '1px solid var(--glass-border)',
-              borderRadius: 'var(--radius-md)',
-              color: 'var(--text-primary)',
-              fontSize: 'var(--text-sm)',
-              outline: 'none'
-            }}
-          />
-
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={toggleVoiceRecording}
-            disabled={isLoading || isTranscribing}
-            title={isListening ? "Stop & Send Audio" : "Speak Command (Microphone)"}
-            style={{ padding: '0 12px', color: isListening ? '#ff4444' : 'var(--neon-cyan)', borderColor: isListening ? '#ff4444' : 'var(--glass-border)' }}
-          >
-            {isListening ? <MicOff size={16} /> : <Mic size={16} />}
-          </Button>
-
-          <Button 
-            type="submit" 
-            variant="primary" 
-            size="sm" 
-            disabled={isLoading || isListening || !inputVal.trim()}
-            style={{ padding: '0 16px' }}
-          >
-            <Send size={16} />
-          </Button>
-        </form>
-      </div>
+          <Send size={16} />
+        </Button>
+      </form>
 
       <style jsx global>{`
         @keyframes spin {

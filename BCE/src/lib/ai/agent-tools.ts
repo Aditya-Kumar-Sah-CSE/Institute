@@ -15,6 +15,16 @@ export interface AgentToolResult {
     promptMessage: string;
   };
   error?: string;
+  pendingNavigation?: boolean;
+  navigationId?: string;
+  expectedRoute?: string;
+  expectedEntity?: {
+    type: 'sheet' | 'problem' | 'course' | 'certificate';
+    id: string;
+    title?: string;
+    number?: number;
+  };
+  successMessage?: string;
 }
 
 export interface AgentToolDefinition {
@@ -44,8 +54,12 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     examples: ['dashboard kholo', 'open home page', 'main screen dikhao'],
     execute: async () => ({
       success: true,
-      message: 'Opening student dashboard.',
-      url: '/dashboard'
+      message: 'Opening student dashboard...',
+      url: '/dashboard',
+      pendingNavigation: true,
+      navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      expectedRoute: '/dashboard',
+      successMessage: 'Student dashboard open kar diya.'
     })
   },
 
@@ -58,8 +72,12 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     examples: ['meri profile kholo', 'show my account', 'user profile dikhao'],
     execute: async () => ({
       success: true,
-      message: 'Opening your profile page.',
-      url: '/profile'
+      message: 'Opening your profile page...',
+      url: '/profile',
+      pendingNavigation: true,
+      navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      expectedRoute: '/profile',
+      successMessage: 'Profile page open kar di.'
     })
   },
 
@@ -72,8 +90,12 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     examples: ['courses kholo', 'browse courses', 'all subjects'],
     execute: async () => ({
       success: true,
-      message: 'Opening courses catalog.',
-      url: '/courses'
+      message: 'Opening courses catalog...',
+      url: '/courses',
+      pendingNavigation: true,
+      navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      expectedRoute: '/courses',
+      successMessage: 'Courses catalog open kar diya.'
     })
   },
 
@@ -86,8 +108,12 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     examples: ['mere course dikhao', 'enrolled courses kholo', 'my subjects'],
     execute: async () => ({
       success: true,
-      message: 'Opening your enrolled courses.',
-      url: '/courses'
+      message: 'Opening your enrolled courses...',
+      url: '/courses',
+      pendingNavigation: true,
+      navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      expectedRoute: '/courses',
+      successMessage: 'Enrolled courses open kar diye.'
     })
   },
 
@@ -105,15 +131,23 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     },
     examples: ['Mera ITW course kholo', 'DBMS course open karo', 'open web dev course'],
     execute: async (args) => {
+      const adminClient = await createAdminClient();
       if (args.courseId) {
+        const { data: c } = await adminClient.from('courses').select('id, title').eq('id', args.courseId).maybeSingle();
+        const title = c?.title || 'Course';
         return {
           success: true,
-          message: 'Opening course.',
+          message: `Opening course: ${title}...`,
           url: `/courses/${args.courseId}`,
+          pendingNavigation: true,
+          navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+          expectedRoute: `/courses/${args.courseId}`,
+          expectedEntity: { type: 'course', id: args.courseId, title },
+          successMessage: `Course ${title} open kar diya.`,
           data: { courseId: args.courseId }
         };
       }
-      const adminClient = await createAdminClient();
+      
       const name = args.courseName ? args.courseName.trim() : '';
 
       if (name) {
@@ -128,8 +162,13 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
         if (matched) {
           return {
             success: true,
-            message: `Course ${matched.title} open kar diya.`,
+            message: `Opening Course ${matched.title}...`,
             url: `/courses/${matched.id}`,
+            pendingNavigation: true,
+            navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+            expectedRoute: `/courses/${matched.id}`,
+            expectedEntity: { type: 'course', id: matched.id, title: matched.title },
+            successMessage: `Course ${matched.title} open kar diya.`,
             data: { courseId: matched.id, courseTitle: matched.title }
           };
         }
@@ -140,7 +179,15 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
         };
       }
 
-      return { success: true, message: 'Opening courses catalog.', url: '/courses' };
+      return { 
+        success: true, 
+        message: 'Opening courses catalog...', 
+        url: '/courses',
+        pendingNavigation: true,
+        navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+        expectedRoute: '/courses',
+        successMessage: 'Courses catalog open kar diya.' 
+      };
     }
   },
 
@@ -153,42 +200,80 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     examples: ['meri DSA sheet kholo', 'open DSA sheets', 'dsa dikha'],
     execute: async () => ({
       success: true,
-      message: 'Opening DSA sheets.',
-      url: '/code-arena/sheets'
+      message: 'Opening DSA sheets...',
+      url: '/code-arena/sheets',
+      pendingNavigation: true,
+      navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      expectedRoute: '/code-arena/sheets',
+      successMessage: 'Tumhari DSA sheets open kar di.'
     })
   },
 
   openDSASheet: {
     name: 'openDSASheet',
-    description: 'Open a specific DSA sheet by ID or title query. Examples: "Blind 75 sheet kholo", "Striver A2Z sheet open karo".',
+    description: 'Open a specific DSA sheet by ID or title query. Examples: "Blind 75 sheet kholo", "Striver A2Z sheet open karo", "Leetcode 100 Basics kholo".',
     category: 'DSA',
     riskLevel: 'LOW',
     parameters: {
       type: 'object',
       properties: {
         sheetId: { type: 'string', description: 'Sheet UUID if known' },
-        titleQuery: { type: 'string', description: 'Name of the sheet e.g. "Blind 75", "Striver"' }
+        titleQuery: { type: 'string', description: 'Name of the sheet e.g. "Blind 75", "Striver", "Leetcode 100"' }
       }
     },
-    examples: ['Blind 75 sheet kholo', 'Striver sheet dikhao'],
+    examples: ['Blind 75 sheet kholo', 'Striver sheet dikhao', 'Leetcode 100 Basics kholo'],
     execute: async (args) => {
-      if (args.sheetId) {
-        return { success: true, message: 'Opening DSA sheet.', url: `/code-arena/sheets/${args.sheetId}` };
-      }
       const adminClient = await createAdminClient();
+      if (args.sheetId) {
+        const { data: s } = await adminClient.from('coding_sheets').select('id, title').eq('id', args.sheetId).maybeSingle();
+        const title = s?.title || 'DSA Sheet';
+        return { 
+          success: true, 
+          message: `Opening DSA Sheet: ${title}...`, 
+          url: `/code-arena/sheets/${args.sheetId}`,
+          pendingNavigation: true,
+          navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+          expectedRoute: `/code-arena/sheets/${args.sheetId}`,
+          expectedEntity: { type: 'sheet', id: args.sheetId, title },
+          successMessage: `DSA Sheet ${title} open kar di.`
+        };
+      }
+      
       if (args.titleQuery) {
         const { data } = await adminClient
           .from('coding_sheets')
           .select('id, title')
-          .ilike('title', `%${args.titleQuery}%`)
+          .ilike('title', `%${args.titleQuery.trim()}%`)
           .limit(1)
           .maybeSingle();
 
         if (data) {
-          return { success: true, message: `Opening DSA Sheet: ${data.title}`, url: `/code-arena/sheets/${data.id}` };
+          return { 
+            success: true, 
+            message: `Opening DSA Sheet: ${data.title}...`, 
+            url: `/code-arena/sheets/${data.id}`,
+            pendingNavigation: true,
+            navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+            expectedRoute: `/code-arena/sheets/${data.id}`,
+            expectedEntity: { type: 'sheet', id: data.id, title: data.title },
+            successMessage: `DSA Sheet ${data.title} open kar di.`
+          };
         }
+
+        return {
+          success: false,
+          message: `"${args.titleQuery}" DSA sheet nahi mili.`
+        };
       }
-      return { success: true, message: 'Opening DSA sheets list.', url: '/code-arena/sheets' };
+      return { 
+        success: true, 
+        message: 'Opening DSA sheets list...', 
+        url: '/code-arena/sheets',
+        pendingNavigation: true,
+        navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+        expectedRoute: '/code-arena/sheets',
+        successMessage: 'DSA sheets list open kar di.'
+      };
     }
   },
 
@@ -210,11 +295,18 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
       const adminClient = await createAdminClient();
 
       if (args.problemId) {
+        const { data: p } = await adminClient.from('coding_problems').select('id, title').eq('id', args.problemId).maybeSingle();
+        const title = p?.title || 'Problem';
         return {
           success: true,
-          message: 'Opening DSA problem.',
+          message: `Opening DSA problem: ${title}...`,
           url: `/code-arena/problems/${args.problemId}`,
-          data: { problemId: args.problemId }
+          pendingNavigation: true,
+          navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+          expectedRoute: `/code-arena/problems/${args.problemId}`,
+          expectedEntity: { type: 'problem', id: args.problemId, title },
+          successMessage: `Problem ${title} open kar diya.`,
+          data: { problemId: args.problemId, problemTitle: title }
         };
       }
 
@@ -223,7 +315,7 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
       const targetNum = args.problemIndex || (numMatch ? parseInt(numMatch[0], 10) : null);
 
       // SERVER VERIFICATION FOR PROBLEM N IN ACTIVE SHEET
-      const activeSheetId = context?.currentEntity?.id || context?.activeSheet?.id;
+      const activeSheetId = context?.sheetId || context?.currentEntity?.id || context?.activeSheet?.id;
       if (targetNum && activeSheetId) {
         const { data: sheetProblems } = await adminClient
           .from('coding_sheet_problems')
@@ -236,11 +328,21 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
           if (matchedItem) {
             return {
               success: true,
-              message: `Problem ${targetNum} (${matchedItem.title}) open kar diya.`,
+              message: `Opening Problem ${targetNum}: ${matchedItem.title}...`,
               url: `/code-arena/problems/${matchedItem.id}`,
+              pendingNavigation: true,
+              navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+              expectedRoute: `/code-arena/problems/${matchedItem.id}`,
+              expectedEntity: { type: 'problem', id: matchedItem.id, title: matchedItem.title, number: targetNum },
+              successMessage: `Problem ${targetNum} (${matchedItem.title}) open kar diya.`,
               data: { problemId: matchedItem.id, problemTitle: matchedItem.title, number: targetNum }
             };
           }
+        } else if (sheetProblems && sheetProblems.length < targetNum) {
+          return {
+            success: false,
+            message: `Is sheet me Problem ${targetNum} available nahi hai. Total ${sheetProblems.length} problems hain.`
+          };
         }
       }
 
@@ -250,8 +352,13 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
         if (visibleProb) {
           return {
             success: true,
-            message: `Problem ${targetNum} (${visibleProb.title}) open kar diya.`,
+            message: `Opening Problem ${targetNum}: ${visibleProb.title}...`,
             url: `/code-arena/problems/${visibleProb.id}`,
+            pendingNavigation: true,
+            navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+            expectedRoute: `/code-arena/problems/${visibleProb.id}`,
+            expectedEntity: { type: 'problem', id: visibleProb.id, title: visibleProb.title, number: targetNum },
+            successMessage: `Problem ${targetNum} (${visibleProb.title}) open kar diya.`,
             data: { problemId: visibleProb.id, problemTitle: visibleProb.title, number: targetNum }
           };
         }
@@ -268,8 +375,13 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
         if (matched) {
           return {
             success: true,
-            message: `Problem ${matched.title} open kar diya.`,
+            message: `Opening Problem ${matched.title}...`,
             url: `/code-arena/problems/${matched.id}`,
+            pendingNavigation: true,
+            navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+            expectedRoute: `/code-arena/problems/${matched.id}`,
+            expectedEntity: { type: 'problem', id: matched.id, title: matched.title },
+            successMessage: `Problem ${matched.title} open kar diya.`,
             data: { problemId: matched.id, problemTitle: matched.title }
           };
         }
@@ -290,13 +402,26 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
       if (latest) {
         return {
           success: true,
-          message: `Opening DSA problem: ${latest.title}`,
+          message: `Opening DSA problem: ${latest.title}...`,
           url: `/code-arena/problems/${latest.id}`,
+          pendingNavigation: true,
+          navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+          expectedRoute: `/code-arena/problems/${latest.id}`,
+          expectedEntity: { type: 'problem', id: latest.id, title: latest.title },
+          successMessage: `Problem ${latest.title} open kar diya.`,
           data: { problemId: latest.id, problemTitle: latest.title }
         };
       }
 
-      return { success: true, message: 'Opening DSA problems.', url: '/code-arena/problems' };
+      return { 
+        success: true, 
+        message: 'Opening DSA problems...', 
+        url: '/code-arena/problems',
+        pendingNavigation: true,
+        navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+        expectedRoute: '/code-arena/problems',
+        successMessage: 'DSA problems list open kar di.'
+      };
     }
   },
 

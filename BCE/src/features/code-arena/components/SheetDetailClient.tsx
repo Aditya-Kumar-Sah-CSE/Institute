@@ -135,6 +135,7 @@ export default function SheetDetailClient({
       route: `/code-arena/sheets/${sheet.id}`,
       pageType: 'dsa_sheet_detail',
       pageTitle: sheet.title,
+      loadState: 'ready',
       currentEntity: {
         type: 'sheet',
         id: sheet.id,

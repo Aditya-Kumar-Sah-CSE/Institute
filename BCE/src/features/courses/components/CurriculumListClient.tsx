@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
+import { useLivePageContext } from '@/features/analytics/context/LivePageContext';
 import './CurriculumListClient.css';
 
 interface Lesson {
@@ -24,7 +25,23 @@ interface CurriculumListClientProps {
 export default function CurriculumListClient({ courseId, groupedLessons, sortedDates, completedLessonIds, isApproved }: CurriculumListClientProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const completedSet = new Set(completedLessonIds);
-  
+  const { setLiveContext } = useLivePageContext();
+
+  useEffect(() => {
+    setLiveContext({
+      route: `/courses/${courseId}`,
+      pageType: 'course_detail',
+      pageTitle: 'Course Details',
+      loadState: 'ready',
+      currentEntity: {
+        type: 'course',
+        id: courseId,
+        title: 'Enrolled Course'
+      },
+      availableActions: ['start_lesson', 'view_assignments', 'post_doubt']
+    });
+  }, [courseId, setLiveContext]);
+
   if (sortedDates.length === 0) return null;
   
   const displayedDates = isExpanded ? sortedDates : sortedDates.slice(0, 1);

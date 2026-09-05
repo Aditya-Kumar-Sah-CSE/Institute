@@ -1,14 +1,34 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import ProblemStatementRenderer from './ProblemStatementRenderer';
+import ProblemStatementRenderer, { ProblemData } from './ProblemStatementRenderer';
 import CodeEditor from './CodeEditor';
-import type { ProblemData } from './ProblemStatementRenderer';
+import { useLivePageContext } from '@/features/analytics/context/LivePageContext';
 
 export default function ResizableIdeLayout({ problemData }: { problemData: ProblemData }) {
   const [leftWidth, setLeftWidth] = useState(40); // default 40%
   const [isResizing, setIsResizing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { setLiveContext } = useLivePageContext();
+
+  useEffect(() => {
+    setLiveContext({
+      route: `/code-arena/problems/${problemData.id}`,
+      pageType: 'dsa_problem',
+      pageTitle: problemData.title,
+      loadState: 'ready',
+      currentEntity: {
+        type: 'problem',
+        id: problemData.id,
+        title: problemData.title,
+        metadata: {
+          difficulty: problemData.difficulty,
+          topic: problemData.source_type || 'DSA'
+        }
+      },
+      availableActions: ['submit_code', 'run_tests', 'search_youtube', 'open_latex']
+    });
+  }, [problemData, setLiveContext]);
 
   useEffect(() => {
     const saved = localStorage.getItem('bce:ide-split-width');

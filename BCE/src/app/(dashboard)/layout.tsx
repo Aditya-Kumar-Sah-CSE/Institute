@@ -18,6 +18,7 @@ import dynamic from 'next/dynamic';
 const FloatingAgentButton = dynamic(() => import('@/features/analytics/components/FloatingAgentButton'));
 
 import { LivePageContextProvider } from '@/features/analytics/context/LivePageContext';
+import { SmartAgentSessionProvider } from '@/features/analytics/context/SmartAgentSessionContext';
 
 export default async function DashboardLayout({
   children,
@@ -70,28 +71,30 @@ export default async function DashboardLayout({
 
   return (
     <LivePageContextProvider>
-      <div className="dashboard-layout">
-        <Sidebar key="student" profile={profile} roleView="student" isSuperAdmin={profile.email === SUPER_ADMIN_EMAIL} />
-        <div className="dashboard-main">
-          <Navbar 
-            companyName={settings?.company_name} 
-            companyLogo={settings?.logo_url} 
-            profile={profile}
-            currentView="student"
-          />
-          <main className="dashboard-content">
-            {children}
-          </main>
-        </div>
+      <SmartAgentSessionProvider>
+        <div className="dashboard-layout">
+          <Sidebar key="student" profile={profile} roleView="student" isSuperAdmin={profile.email === SUPER_ADMIN_EMAIL} />
+          <div className="dashboard-main">
+            <Navbar 
+              companyName={settings?.company_name} 
+              companyLogo={settings?.logo_url} 
+              profile={profile}
+              currentView="student"
+            />
+            <main className="dashboard-content">
+              {children}
+            </main>
+          </div>
 
-        <PwaRegister />
-        <PwaUpdateToast />
-        <PWAInstallPrompt />
-        <XpCelebrator />
-        <FeedbackWidget />
-        <FloatingAgentButton />
-        <Analytics />
-      </div>
+          <PwaRegister />
+          <PwaUpdateToast />
+          <PWAInstallPrompt />
+          <XpCelebrator />
+          <FeedbackWidget />
+          <FloatingAgentButton />
+          <Analytics />
+        </div>
+      </SmartAgentSessionProvider>
     </LivePageContextProvider>
   );
 }

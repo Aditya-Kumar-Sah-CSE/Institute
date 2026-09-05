@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Button from '@/components/ui/Button';
 import SmartAgentDrawer from './SmartAgentDrawer';
-import { Sparkles, Terminal } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
+import { useSmartAgentSession } from '../context/SmartAgentSessionContext';
 
 export default function AskAgentCardTrigger() {
-  const [isOpen, setIsOpen] = useState(false);
+  const { openDrawer } = useSmartAgentSession();
 
   return (
     <>
@@ -40,17 +41,14 @@ export default function AskAgentCardTrigger() {
         <Button 
           variant="primary" 
           size="sm" 
-          onClick={() => setIsOpen(true)}
+          onClick={() => openDrawer()}
           style={{ gap: '6px', whiteSpace: 'nowrap' }}
         >
           <Sparkles size={14} /> Ask Smart Agent
         </Button>
       </div>
 
-      <SmartAgentDrawer 
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-      />
+      <SmartAgentDrawer />
     </>
   );
 }

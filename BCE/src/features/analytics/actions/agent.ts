@@ -38,7 +38,12 @@ export async function askSmartAgentAction(input: {
           success: result.success,
           message: result.message,
           actions: actions.length > 0 ? actions : undefined,
-          toolExecuted: toolName
+          toolExecuted: toolName,
+          pendingNavigation: result.pendingNavigation,
+          navigationId: result.navigationId,
+          expectedRoute: result.expectedRoute,
+          expectedEntity: result.expectedEntity,
+          successMessage: result.successMessage
         };
       }
     }

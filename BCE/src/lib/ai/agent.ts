@@ -18,6 +18,16 @@ export interface AgentResponse {
   };
   toolExecuted?: string;
   error?: string;
+  pendingNavigation?: boolean;
+  navigationId?: string;
+  expectedRoute?: string;
+  expectedEntity?: {
+    type: 'sheet' | 'problem' | 'course' | 'certificate';
+    id: string;
+    title?: string;
+    number?: number;
+  };
+  successMessage?: string;
 }
 
 export async function runSmartAgent(params: {
@@ -144,6 +154,8 @@ HUMAN CONVERSATION PERSONA & RULES:
                   toolName,
                   parsedArgs,
                   resultSuccess: result.success,
+                  pendingNavigation: result.pendingNavigation,
+                  expectedEntity: result.expectedEntity,
                   executionTimeMs: Date.now() - startTime
                 });
               }
@@ -153,7 +165,12 @@ HUMAN CONVERSATION PERSONA & RULES:
                 message: result.message,
                 actions: accumulatedActions.length > 0 ? accumulatedActions : undefined,
                 requiresConfirmation: result.requiresConfirmation,
-                toolExecuted: lastExecutedTool
+                toolExecuted: lastExecutedTool,
+                pendingNavigation: result.pendingNavigation,
+                navigationId: result.navigationId,
+                expectedRoute: result.expectedRoute,
+                expectedEntity: result.expectedEntity,
+                successMessage: result.successMessage
               };
             }
           }
@@ -302,7 +319,7 @@ Complete 20 MCQs and study 30 mins of ${mainWeakness}.`,
   if (p.includes('problem') || p.includes('question') || p.includes('sawal') || /^\s*problem\s*\d+\s*$/i.test(prompt)) {
     const matchNum = p.match(/\b\d+\b/);
     const queryStr = matchNum ? `Problem ${matchNum[0]}` : prompt.replace(/open|kholo|problem|question|sawal/gi, '').trim();
-    const res = await AGENT_TOOLS.openDSAProblem.execute({ query: queryStr }, user);
+    const res = await AGENT_TOOLS.openDSAProblem.execute({ query: queryStr }, user, pageContext);
 
     if (!res.success) {
       return {
@@ -314,27 +331,37 @@ Complete 20 MCQs and study 30 mins of ${mainWeakness}.`,
 
     return {
       success: true,
-      message: isHinglish ? `${res.data?.problemTitle || queryStr || 'Problem'} open kar diya.` : `Opening ${queryStr || 'problem'}.`,
+      message: res.message,
       actions: [{ label: 'Open Problem', url: res.url! }],
-      toolExecuted: 'openDSAProblem'
+      toolExecuted: 'openDSAProblem',
+      pendingNavigation: res.pendingNavigation,
+      navigationId: res.navigationId,
+      expectedRoute: res.expectedRoute,
+      expectedEntity: res.expectedEntity,
+      successMessage: res.successMessage || res.message
     };
   }
 
   // I. DSA SHEETS
   if (p.includes('dsa') || p.includes('sheet') || p.includes('coding')) {
-    const res = await AGENT_TOOLS.openDSASheets.execute({}, user);
+    const res = await AGENT_TOOLS.openDSASheets.execute({}, user, pageContext);
     return {
       success: true,
-      message: isHinglish ? 'Haan, tumhari DSA sheet open kar di.' : 'Opening your DSA sheets.',
+      message: res.message,
       actions: [{ label: 'Open DSA Sheets', url: res.url! }],
-      toolExecuted: 'openDSASheets'
+      toolExecuted: 'openDSASheets',
+      pendingNavigation: res.pendingNavigation,
+      navigationId: res.navigationId,
+      expectedRoute: res.expectedRoute,
+      expectedEntity: res.expectedEntity,
+      successMessage: res.successMessage || res.message
     };
   }
 
   // J. COURSES
   if (p.includes('course') || p.includes('subject') || p.includes('itw') || p.includes('dbms')) {
     const courseQuery = p.includes('itw') ? 'ITW' : p.includes('dbms') ? 'DBMS' : '';
-    const res = await AGENT_TOOLS.openCourse.execute({ courseName: courseQuery }, user);
+    const res = await AGENT_TOOLS.openCourse.execute({ courseName: courseQuery }, user, pageContext);
 
     if (!res.success) {
       return {
@@ -346,9 +373,14 @@ Complete 20 MCQs and study 30 mins of ${mainWeakness}.`,
 
     return {
       success: true,
-      message: isHinglish ? `${res.data?.courseTitle || courseQuery || 'Enrolled'} course open kar diya.` : res.message,
+      message: res.message,
       actions: [{ label: 'Open Course', url: res.url! }],
-      toolExecuted: 'openCourse'
+      toolExecuted: 'openCourse',
+      pendingNavigation: res.pendingNavigation,
+      navigationId: res.navigationId,
+      expectedRoute: res.expectedRoute,
+      expectedEntity: res.expectedEntity,
+      successMessage: res.successMessage || res.message
     };
   }
 

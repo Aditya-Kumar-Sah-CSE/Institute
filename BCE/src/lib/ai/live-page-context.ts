@@ -60,11 +60,15 @@ export interface LivePageContext {
   };
 
   availableActions?: string[];
+  loadState?: 'loading' | 'ready' | 'error' | 'not-found' | 'unauthorized';
+  navigationId?: string;
+  errorCode?: string;
 }
 
 export function buildDefaultLiveContext(route: string = '/dashboard'): LivePageContext {
   return {
     route,
+    loadState: 'ready',
     pageType: route.includes('/code-arena/sheets/') ? 'dsa_sheet_detail'
             : route.includes('/code-arena/sheets') ? 'dsa_sheets'
             : route.includes('/code-arena/problems/') ? 'dsa_problem'

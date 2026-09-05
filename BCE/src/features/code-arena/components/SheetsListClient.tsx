@@ -75,6 +75,7 @@ export default function SheetsListClient({
       route: '/code-arena/sheets',
       pageType: 'dsa_sheets',
       pageTitle: 'DSA Practice Sheets',
+      loadState: 'ready',
       visibleEntities: {
         sheets: visibleSheets
       },

@@ -1,17 +1,18 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import SmartAgentDrawer from './SmartAgentDrawer';
-import { Sparkles, Terminal } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
+import { useSmartAgentSession } from '../context/SmartAgentSessionContext';
 
 export default function FloatingAgentButton() {
-  const [isAgentOpen, setIsAgentOpen] = useState(false);
+  const { toggleDrawer } = useSmartAgentSession();
 
   return (
     <>
       <button
         type="button"
-        onClick={() => setIsAgentOpen(true)}
+        onClick={toggleDrawer}
         style={{
           position: 'fixed',
           bottom: '24px',
@@ -46,10 +47,7 @@ export default function FloatingAgentButton() {
         <span>✦ Smart Agent</span>
       </button>
 
-      <SmartAgentDrawer 
-        isOpen={isAgentOpen}
-        onClose={() => setIsAgentOpen(false)}
-      />
+      <SmartAgentDrawer />
     </>
   );
 }
