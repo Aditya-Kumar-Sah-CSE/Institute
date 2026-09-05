@@ -76,7 +76,7 @@ export class GeminiLiveSession {
       });
 
       this.session = await clientAi.live.connect({
-        model: 'gemini-3.6-flash',
+        model: 'gemini-2.5-flash-native-audio-latest',
         config: {
           responseModalities: [Modality.AUDIO],
           systemInstruction: {
