@@ -1,0 +1,89 @@
+/* Floating Agent & Mentor Action Buttons */
+.floating-agent-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 150px;
+  z-index: 9990;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 30px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--neon-cyan);
+  color: var(--neon-cyan);
+  font-weight: bold;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  box-shadow: 0 8px 25px rgba(0, 229, 255, 0.35);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+
+.floating-agent-btn:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 12px 30px rgba(0, 229, 255, 0.5);
+}
+
+.floating-mentor-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9990;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 30px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--neon-cyan);
+  color: var(--neon-cyan);
+  font-weight: bold;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  box-shadow: 0 8px 25px rgba(0, 229, 255, 0.35);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+
+.floating-mentor-btn:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 12px 30px rgba(0, 229, 255, 0.5);
+}
+
+/* Mobile Responsive Shift: Shift buttons above 72px mobile bottom navigation bar */
+@media (max-width: 768px) {
+  .floating-mentor-btn {
+    bottom: 84px;
+    right: 12px;
+    padding: 8px 14px;
+    font-size: 12px;
+    gap: 6px;
+  }
+
+  .floating-agent-btn {
+    bottom: 84px;
+    right: 122px;
+    padding: 8px 14px;
+    font-size: 12px;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 380px) {
+  .floating-mentor-btn {
+    bottom: 84px;
+    right: 8px;
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+
+  .floating-agent-btn {
+    bottom: 84px;
+    right: 104px;
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+}
