@@ -508,12 +508,18 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
 
-      if (response.pendingNavigation && response.navigationId && response.expectedRoute) {
-        router.push(response.expectedRoute);
+      const targetRoute = response.expectedRoute || (
+        response.actions && response.actions.length > 0 && !response.actions[0].isExternal
+          ? response.actions[0].url
+          : null
+      );
+
+      if (targetRoute) {
+        router.push(targetRoute);
         nextMsg.navigationState = 'NAVIGATING';
         setPendingVerification({
-          navigationId: response.navigationId,
-          expectedRoute: response.expectedRoute,
+          navigationId: response.navigationId || `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+          expectedRoute: targetRoute,
           expectedEntity: response.expectedEntity,
           successMessage: response.successMessage || response.message,
           voiceTriggered: isVoiceTrigger,

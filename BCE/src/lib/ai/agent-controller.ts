@@ -146,47 +146,42 @@ export class AgentController {
   ): Promise<AgentControllerResponse | null> {
 
     // A. Static Navigation Intents
-    if (/^(dashboard|home|main page|home page|dashboard kholo|open dashboard|open home)$/i.test(promptLower)) {
+    if (/\b(dashboard|home)\b/i.test(promptLower)) {
       const res = await AGENT_TOOLS.openDashboard.execute({}, user, pageContext);
       return this.formatToolResult('openDashboard', res, sessionState);
     }
 
-    if (/^(courses|courses catalog|all courses|courses kholo|browse courses|open courses|sabhi courses)$/i.test(promptLower)) {
-      const res = await AGENT_TOOLS.openCourses.execute({}, user, pageContext);
-      return this.formatToolResult('openCourses', res, sessionState);
-    }
-
-    if (/^(my courses|enrolled courses|mere courses|my course kholo)$/i.test(promptLower)) {
-      const res = await AGENT_TOOLS.openMyCourses.execute({}, user, pageContext);
-      return this.formatToolResult('openMyCourses', res, sessionState);
-    }
-
-    if (/^(dsa|dsa sheet|dsa sheets|coding sheets|dsa kholo|open dsa|dsa sheet kholo)$/i.test(promptLower)) {
+    if (/\b(dsa|sheet|sheets|coding sheet)\b/i.test(promptLower) && !promptLower.includes('problem') && !promptLower.includes('create') && !promptLower.includes('banao') && !promptLower.includes('add')) {
       const res = await AGENT_TOOLS.openDSASheets.execute({}, user, pageContext);
       return this.formatToolResult('openDSASheets', res, sessionState);
     }
 
-    if (/^(profile|my profile|user profile|meri profile|account|my account)$/i.test(promptLower)) {
+    if (/\b(courses|course|subject|subjects)\b/i.test(promptLower) && !promptLower.includes('itw') && !promptLower.includes('dbms')) {
+      const res = await AGENT_TOOLS.openCourses.execute({}, user, pageContext);
+      return this.formatToolResult('openCourses', res, sessionState);
+    }
+
+    if (/\b(profile|account)\b/i.test(promptLower)) {
       const res = await AGENT_TOOLS.openProfile.execute({}, user, pageContext);
       return this.formatToolResult('openProfile', res, sessionState);
     }
 
-    if (/^(routine|my routine|schedule|mera routine|routine kholo|kal ki routine)$/i.test(promptLower)) {
+    if (/\b(routine|schedule|timetable)\b/i.test(promptLower) && !promptLower.includes('bana')) {
       const res = await AGENT_TOOLS.openRoutine.execute({}, user, pageContext);
       return this.formatToolResult('openRoutine', res, sessionState);
     }
 
-    if (/^(goals|my goals|mere goals|goals kholo)$/i.test(promptLower)) {
+    if (/\b(goals|target|targets)\b/i.test(promptLower)) {
       const res = await AGENT_TOOLS.openGoals.execute({}, user, pageContext);
       return this.formatToolResult('openGoals', res, sessionState);
     }
 
-    if (/^(latex|latex editor|latex kholo|notes editor)$/i.test(promptLower)) {
+    if (/\b(latex|latex editor)\b/i.test(promptLower)) {
       const res = await AGENT_TOOLS.openLatexEditor.execute({ problemId: sessionState.problemId }, user, pageContext);
       return this.formatToolResult('openLatexEditor', res, sessionState);
     }
 
-    if (/^(leaderboard|rank|leaderboard kholo)$/i.test(promptLower)) {
+    if (/\b(leaderboard|rank|rankings)\b/i.test(promptLower)) {
       const res = await AGENT_TOOLS.openLeaderboard.execute({}, user, pageContext);
       return this.formatToolResult('openLeaderboard', res, sessionState);
     }
@@ -383,9 +378,9 @@ export class AgentController {
       message: result.message,
       actions: actions.length > 0 ? actions : undefined,
       toolExecuted: toolName,
-      pendingNavigation: result.pendingNavigation,
-      navigationId: result.navigationId,
-      expectedRoute: result.expectedRoute,
+      pendingNavigation: result.pendingNavigation ?? (result.url ? true : false),
+      navigationId: result.navigationId || (result.url ? `nav_${Date.now()}_${Math.random().toString(36).substring(7)}` : undefined),
+      expectedRoute: result.expectedRoute || result.url,
       expectedEntity: result.expectedEntity,
       successMessage: result.successMessage || result.message,
       status: result.success ? 'success' : 'failed',
