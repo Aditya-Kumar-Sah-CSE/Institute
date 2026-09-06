@@ -259,7 +259,7 @@ body.sidebar-is-collapsed .sidebar {
   display: block;
 }
 
-body:not(.sidebar-is-collapsed) .open-sidebar-btn {
+.open-sidebar-btn {
   display: flex !important;
 }
 
