@@ -207,5 +207,19 @@ export function resolveClientFastPath(
     };
   }
 
+  // 12. Recommendation & Learning Plan Queries
+  if (/\b(what\s+should\s+i\s+study|kya\s+padhun|recommendation|my\s+plan|learning\s+plan|weak\s+topics|weakness|falling\s+behind|which\s+course\s+to\s+enroll)\b/i.test(p)) {
+    return {
+      isMatch: true,
+      targetRoute: '/dashboard',
+      expectedHeading: 'Dashboard',
+      clientAction: 'navigate',
+      streamingMessage: 'Analyzing your learning profile & recommendations...',
+      successMessage: 'Personalized recommendations retrieved.',
+      allowed: true
+    };
+  }
+
   return { isMatch: false, allowed: true };
 }
+

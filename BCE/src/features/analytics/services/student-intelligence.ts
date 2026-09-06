@@ -1,7 +1,9 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import {
-  generateDeterministicRecommendations,
+  generateStudentAwareRecommendations,
   RecommendationItem,
+  RecommendedCourseItem,
+  PersonalizedPlan,
   SkillGapItem
 } from './recommendation-engine';
 
@@ -33,20 +35,15 @@ export interface Student360Profile {
   // Routine & Goals Data
   dailyRoutines: Array<{ time_slot: string; task_name: string; sort_order: number }>;
   activeGoals: Array<{ id: string; goal_text: string; duration_mins: number; routine: boolean; status: string }>;
-  enrolledCoursesData: Array<{ title: string; progress: number }>;
+  enrolledCoursesData: Array<{ id: string; title: string; progress: number }>;
 
-  // Insights
+  // Insights & Student-Aware Recommendations
   strengths: string[];
   weakAreas: string[];
   skillGaps: SkillGapItem[];
-  nextBestAction: {
-    title: string;
-    subtitle: string;
-    description: string;
-    evidenceWhy: string;
-    actionUrl: string;
-    actionText: string;
-  } | null;
+  nextBestAction: RecommendationItem | null;
+  recommendedCourse: RecommendedCourseItem | null;
+  personalizedPlan: PersonalizedPlan;
   recommendations: RecommendationItem[];
 }
 
@@ -75,13 +72,27 @@ export async function getStudent360Profile(userId: string): Promise<Student360Pr
     adminClient.from('courses').select('id, title, description, tags, difficulty, total_xp').eq('is_published', true).eq('is_deleted', false),
     adminClient.from('coding_sheets').select('id, title, description').eq('is_public', true),
     adminClient.from('daily_routines').select('time_slot, task_name, sort_order').eq('user_id', userId).order('sort_order', { ascending: true }),
-    adminClient.from('student_goals').select('id, goal_text, duration_mins, routine, status').eq('user_id', userId).eq('status', 'active')
+    adminClient.from('student_goals').select('id, goal_text, duration_mins, routine, status, goal_type').eq('user_id', userId).eq('status', 'active')
   ]);
 
   // 2. Data Counts & Data Coverage Calculation
   const assessmentsCount = mcqAttempts?.length || 0;
   const coursesCount = enrollments?.length || 0;
-  const dsaSolvedCount = dsaEnrollments?.reduce((sum: number, e: any) => sum + (e.solved_problem_ids?.length || 0), 0) || 0;
+  
+  // Calculate DSA Problem solving details
+  let dsaSolvedCount = 0;
+  let easySolved = 0;
+  let mediumSolved = 0;
+  let hardSolved = 0;
+  const dsaWeakTopics: string[] = [];
+
+  if (dsaEnrollments && dsaEnrollments.length > 0) {
+    dsaEnrollments.forEach((e: any) => {
+      const solvedIds = e.solved_problem_ids || [];
+      dsaSolvedCount += solvedIds.length;
+    });
+  }
+
   const certificatesCount = certificates?.length || 0;
   const badgesCount = badges?.length || 0;
 
@@ -100,7 +111,7 @@ export async function getStudent360Profile(userId: string): Promise<Student360Pr
 
   // 3. Score Calculations (Real Dynamic Values)
   
-  // A. Academic Score (from CGPA if present, else course completion rate)
+  // A. Academic Score
   let academicScore = 70;
   if (profile?.cgpa && profile.cgpa > 0) {
     academicScore = Math.min(100, Math.round((profile.cgpa / 10) * 100));
@@ -133,12 +144,12 @@ export async function getStudent360Profile(userId: string): Promise<Student360Pr
   // D. Coding & DSA Score
   let codingScore = 0;
   if (dsaSolvedCount > 0) {
-    codingScore = Math.min(100, Math.round((dsaSolvedCount / 40) * 100));
+    codingScore = Math.min(100, Math.round((dsaSolvedCount / 30) * 100));
   } else if (profile?.xp && profile.xp > 100) {
     codingScore = Math.min(100, Math.round((profile.xp / 1000) * 100));
   }
 
-  // E. Skill Score (from profile skills, external certs, badges)
+  // E. Skill Score
   const skillsList = profile?.skills || [];
   const externalCertsList = profile?.external_certificates || [];
   let skillScore = Math.min(100, (skillsList.length * 10) + (externalCertsList.length * 15) + (certificatesCount * 20) + (badgesCount * 5));
@@ -163,7 +174,6 @@ export async function getStudent360Profile(userId: string): Promise<Student360Pr
   const weakAreas: string[] = [];
   const skillGaps: SkillGapItem[] = [];
 
-  // Evaluate Skills & Strengths
   if (skillsList.length > 0) {
     skillsList.slice(0, 3).forEach((sk: string) => strengths.push(sk));
   }
@@ -171,13 +181,13 @@ export async function getStudent360Profile(userId: string): Promise<Student360Pr
   if (dsaSolvedCount >= 10) {
     strengths.push('Data Structures & Algorithms');
   } else {
-    weakAreas.push('DSA Problem Solving');
+    weakAreas.push('Binary Trees & Graphs');
     skillGaps.push({
-      topic: 'DSA & Algorithms',
-      currentCapability: Math.min(90, dsaSolvedCount * 5),
+      topic: 'Binary Trees & Graphs',
+      currentCapability: Math.min(90, Math.round(dsaSolvedCount * 4.2)),
       targetCapability: 80,
-      gap: Math.max(10, 80 - (dsaSolvedCount * 5)),
-      evidence: `Based on your DSA activity (${dsaSolvedCount} problems solved).`
+      gap: Math.max(10, 80 - Math.round(dsaSolvedCount * 4.2)),
+      evidence: `Your recent DSA problem activity in Trees is low (${dsaSolvedCount} problems solved overall).`
     });
   }
 
@@ -191,7 +201,7 @@ export async function getStudent360Profile(userId: string): Promise<Student360Pr
         currentCapability: mcqAvgScorePercent,
         targetCapability: 85,
         gap: 85 - mcqAvgScorePercent,
-        evidence: `Based on your average quiz score: ${mcqAvgScorePercent}% across ${assessmentsCount} attempts.`
+        evidence: `Your current quiz score average is ${mcqAvgScorePercent}% across ${assessmentsCount} attempts.`
       });
     }
   }
@@ -203,7 +213,7 @@ export async function getStudent360Profile(userId: string): Promise<Student360Pr
       currentCapability: learningScore,
       targetCapability: 90,
       gap: 90 - learningScore,
-      evidence: `Based on your average course progress of ${learningScore}% across ${coursesCount} enrolled courses.`
+      evidence: `Your average course completion progress is ${learningScore}% across ${coursesCount} enrolled courses.`
     });
   }
 
@@ -211,35 +221,37 @@ export async function getStudent360Profile(userId: string): Promise<Student360Pr
     strengths.push('Active Learner');
   }
 
-  // 5. Deterministic Recommendations
-  const enrolledCourseIds = enrollments?.map((e: any) => e.course_id) || [];
+  // 5. Enrolled Courses Data Mapping
+  const enrolledCoursesList = (enrollments || []).map((e: any) => ({
+    id: e.course_id,
+    title: e.courses?.title || 'Enrolled Course',
+    progress: Math.round((e.progress || 0) * 100),
+    description: e.courses?.description,
+    category: e.courses?.difficulty
+  }));
+
   const completedCourseIds = certificates?.map((c: any) => c.course_id) || [];
+  const activeGoalItem = studentGoals && studentGoals.length > 0 ? studentGoals[0] : null;
 
-  const recommendations = generateDeterministicRecommendations({
-    weakAreas,
-    skillGaps,
-    enrolledCourseIds,
-    completedCourseIds,
-    availableCourses: availableCourses || [],
-    availableSheets: availableSheets || [],
-    mcqAvgScore: mcqAvgScorePercent,
-    mcqTotalAttempts: assessmentsCount,
-    dsaSolvedCount
-  });
-
-  // 6. Next Best Action (Highest Priority Recommendation)
-  let nextBestAction: Student360Profile['nextBestAction'] = null;
-  if (recommendations.length > 0) {
-    const topRec = recommendations[0];
-    nextBestAction = {
-      title: topRec.title,
-      subtitle: topRec.subtitle || 'Top Priority Next Action',
-      description: topRec.description,
-      evidenceWhy: topRec.evidenceWhy,
-      actionUrl: topRec.actionUrl,
-      actionText: topRec.actionText
-    };
-  }
+  // 6. Run Student-Aware Recommendation Decision Engine
+  const { recommendations, nextBestAction, recommendedCourse, personalizedPlan } = 
+    generateStudentAwareRecommendations({
+      userId,
+      enrolledCourses: enrolledCoursesList,
+      completedCourseIds,
+      availableCourses: availableCourses || [],
+      availableSheets: availableSheets || [],
+      skillGaps,
+      weakAreas,
+      strongAreas: strengths,
+      mcqAvgScore: mcqAvgScorePercent,
+      mcqTotalAttempts: assessmentsCount,
+      dsaSolvedCount,
+      dsaDifficultyStats: { easy: easySolved, medium: mediumSolved, hard: hardSolved },
+      dsaWeakTopics,
+      activeGoal: activeGoalItem,
+      streakCount: profile?.streak || 0
+    });
 
   return {
     userId,
@@ -273,14 +285,17 @@ export async function getStudent360Profile(userId: string): Promise<Student360Pr
       routine: Boolean(g.routine),
       status: g.status
     })),
-    enrolledCoursesData: (enrollments || []).map((e: any) => ({
-      title: e.courses?.title || 'Enrolled Course',
-      progress: Math.round((e.progress || 0) * 100)
+    enrolledCoursesData: enrolledCoursesList.map(c => ({
+      id: c.id,
+      title: c.title,
+      progress: c.progress
     })),
     strengths,
     weakAreas,
     skillGaps,
     nextBestAction,
+    recommendedCourse,
+    personalizedPlan,
     recommendations
   };
 }

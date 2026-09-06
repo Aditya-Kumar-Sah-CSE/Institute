@@ -883,27 +883,46 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
 
   getRecommendations: {
     name: 'getRecommendations',
-    description: 'Fetch deterministic learning recommendations for student. Use when user asks "main next kya karun?", "what should I study next?".',
+    description: 'Fetch student-aware recommendations, weak areas, next best action, and 7-day learning plan. Use when user asks "what should I study?", "why are you recommending this?", "make me a 7-day plan".',
     category: 'ANALYTICS',
     riskLevel: 'LOW',
     parameters: { type: 'object', properties: {} },
-    examples: ['main next kya karun?', 'kaunsa course karun?', 'what to study next'],
+    examples: ['main next kya karun?', 'what should I study today?', 'why are you recommending this?', 'make me a 7-day learning plan'],
     execute: async (_, user) => {
       const profile = await getStudent360Profile(user.id);
-      const topRec = profile.recommendations[0];
-      const weak = profile.weakAreas[0] || 'DBMS';
-      const msg = topRec
-        ? `Based on your profile, your main focus area is ${weak}. Recommended Next Action: ${topRec.title}.`
-        : `Tumhara focus ${weak} hai. Practice questions and courses complete karo.`;
+      const nextAction = profile.nextBestAction;
+      const recCourse = profile.recommendedCourse;
+      const plan = profile.personalizedPlan;
+
+      let msg = `✦ **Personalized Recommendation Breakdown**:\n\n`;
+      if (nextAction) {
+        msg += `⚡ **NEXT BEST ACTION**: ${nextAction.title}\n• **Why**: ${nextAction.evidenceWhy.replace(/^Why\?\s*/i, '')}\n\n`;
+      }
+      if (recCourse) {
+        msg += `📘 **RECOMMENDED COURSE**: ${recCourse.title} (${recCourse.matchScore}% Match)\n• **Why**: ${recCourse.whyReason}\n\n`;
+      }
+      if (plan && plan.today && plan.today.length > 0) {
+        msg += `📅 **TODAY'S PLAN**:\n${plan.today.map(t => `• ${t.title}: ${t.detail}`).join('\n')}\n\n`;
+      }
+      msg += `Weak Areas: ${profile.weakAreas.join(', ') || 'None'}. Overall Readiness Score: ${profile.overallLearningScore}/100.`;
 
       return {
         success: true,
         message: msg,
-        url: topRec?.actionUrl || '/courses',
-        data: profile.recommendations
+        url: nextAction?.actionUrl || '/courses',
+        data: {
+          nextBestAction: nextAction,
+          recommendedCourse: recCourse,
+          personalizedPlan: plan,
+          weakAreas: profile.weakAreas,
+          strengths: profile.strengths,
+          skillGaps: profile.skillGaps,
+          overallLearningScore: profile.overallLearningScore
+        }
       };
     }
   },
+
 
   getMyDSAProgress: {
     name: 'getMyDSAProgress',

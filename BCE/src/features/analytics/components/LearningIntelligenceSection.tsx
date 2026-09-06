@@ -3,8 +3,24 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Link from 'next/link';
 import { getStudent360Profile } from '../services/student-intelligence';
-import AskAgentCardTrigger from './AskAgentCardTrigger';
-import { Zap, CheckCircle2, AlertTriangle, ArrowRight, ShieldCheck, Clock, Target, Compass, Award, BookOpen, Code, Brain } from 'lucide-react';
+import OpenAgentPlanButton from './OpenAgentPlanButton';
+import { 
+  Zap, 
+  CheckCircle2, 
+  AlertTriangle, 
+  ArrowRight, 
+  ShieldCheck, 
+  Clock, 
+  Target, 
+  Compass, 
+  BookOpen, 
+  Code, 
+  Brain,
+  Sparkles,
+  Calendar,
+  Layers,
+  CheckSquare
+} from 'lucide-react';
 
 interface LearningIntelligenceSectionProps {
   userId: string;
@@ -42,13 +58,13 @@ export default async function LearningIntelligenceSection({ userId }: LearningIn
           </div>
           <div>
             <h2 className="section-title" style={{ margin: 0, fontSize: 'var(--text-xl)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              Your Learning Intelligence
+              Student-Aware Learning Intelligence
               <span style={{ fontSize: '10px', background: 'rgba(0, 229, 255, 0.15)', color: 'var(--neon-cyan)', padding: '2px 8px', borderRadius: '10px', border: '1px solid rgba(0, 229, 255, 0.3)', fontWeight: 'bold' }}>
-                AI Ready
+                AI Engine
               </span>
             </h2>
             <p className="text-secondary" style={{ margin: '2px 0 0 0', fontSize: 'var(--text-xs)' }}>
-              Personalized insights based on your Smart Learn activity.
+              Personalized recommendations based on your real learning analytics.
             </p>
           </div>
         </div>
@@ -59,7 +75,7 @@ export default async function LearningIntelligenceSection({ userId }: LearningIn
             Welcome to Smart Learn Intelligence 🚀
           </h3>
           <p style={{ margin: '0 auto var(--space-lg) auto', maxWidth: '520px', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-            Complete your first course lesson, attempt an MCQ quiz, or solve a DSA problem to unlock your personalized 360° analytics profile, skill gap analysis, and evidence-backed recommendations.
+            Complete your first course lesson, attempt an MCQ quiz, or solve a DSA problem to unlock your personalized 360° analytics profile, skill gap analysis, and student-aware recommendations.
           </p>
           <div style={{ display: 'flex', gap: 'var(--space-md)', justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link href="/courses" style={{ textDecoration: 'none' }}>
@@ -78,7 +94,7 @@ export default async function LearningIntelligenceSection({ userId }: LearningIn
     );
   }
 
-  const { dataCoverage } = profile;
+  const { nextBestAction, recommendedCourse, personalizedPlan, dataCoverage } = profile;
 
   return (
     <Card
@@ -91,10 +107,10 @@ export default async function LearningIntelligenceSection({ userId }: LearningIn
         boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
         display: 'flex',
         flexDirection: 'column',
-        gap: 'var(--space-lg)'
+        gap: 'var(--space-xl)'
       }}
     >
-      {/* 1. HEADER ROW WITH TIMESTAMP, CONFIDENCE BADGE & ASK MENTOR CARD */}
+      {/* 1. HEADER ROW WITH METRICS & AI COACH CALL-TO-ACTION */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-md)', borderBottom: '1px solid var(--glass-border)', paddingBottom: 'var(--space-md)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ background: 'rgba(0, 229, 255, 0.12)', color: 'var(--neon-cyan)', padding: '10px', borderRadius: '12px', border: '1px solid rgba(0, 229, 255, 0.25)' }}>
@@ -102,29 +118,30 @@ export default async function LearningIntelligenceSection({ userId }: LearningIn
           </div>
           <div>
             <h2 className="section-title" style={{ margin: 0, fontSize: 'var(--text-xl)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              Your Learning Intelligence
+              Student-Aware Learning Intelligence
+              <span style={{ fontSize: '10px', background: 'rgba(57, 255, 20, 0.15)', color: 'var(--neon-lime)', padding: '2px 8px', borderRadius: '10px', border: '1px solid rgba(57, 255, 20, 0.3)', fontWeight: 'bold' }}>
+                Adaptive
+              </span>
             </h2>
             <p className="text-secondary" style={{ margin: '2px 0 0 0', fontSize: 'var(--text-xs)' }}>
-              Personalized insights calculated from your Smart Learn activity.
+              Personalized for your learning profile • Updated in real time
             </p>
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
-          <AskAgentCardTrigger />
+          <OpenAgentPlanButton />
 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-            {/* Confidence Badge */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', background: 'rgba(255,255,255,0.04)', padding: '4px 10px', borderRadius: '12px', border: `1px solid ${confidenceColor}` }}>
               <ShieldCheck size={14} style={{ color: confidenceColor }} />
               <span style={{ color: 'var(--text-secondary)' }}>Confidence:</span>
               <strong style={{ color: confidenceColor }}>{profile.confidenceLevel}</strong>
             </div>
             
-            {/* Data Coverage & Timestamp */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                <Clock size={12} /> Updated just now
+                <Clock size={12} /> Live Analytics
               </span>
               <span>•</span>
               <span>{dataCoverage.assessmentsCount} tests • {dataCoverage.coursesCount} courses</span>
@@ -133,238 +150,243 @@ export default async function LearningIntelligenceSection({ userId }: LearningIn
         </div>
       </div>
 
-      {/* 2. TOP SUMMARY GRID: OVERALL SCORE + STRENGTHS / WEAKNESSES */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-lg)' }}>
+      {/* 2. NEXT BEST ACTION & RECOMMENDED COURSE GRID */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 380px), 1fr))', gap: 'var(--space-lg)' }}>
         
-        {/* A. OVERALL PROFILE SCORE */}
-        <div style={{ background: 'var(--bg-primary)', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'bold', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Learning Readiness
-            </span>
-            <span style={{ fontSize: '11px', color: 'var(--neon-cyan)', background: 'rgba(0, 229, 255, 0.1)', padding: '2px 8px', borderRadius: '8px' }}>
-              360° Score
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div 
-              style={{ 
-                width: '72px', 
-                height: '72px', 
-                borderRadius: '50%', 
-                background: `conic-gradient(var(--neon-cyan) ${profile.overallLearningScore}%, rgba(255,255,255,0.08) 0%)`,
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                flexShrink: 0,
-                boxShadow: '0 0 15px rgba(0, 229, 255, 0.2)'
-              }}
-            >
-              <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: 'var(--neon-cyan)', lineHeight: 1 }}>{profile.overallLearningScore}</span>
-                <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>/ 100</span>
-              </div>
-            </div>
-
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {[
-                { label: 'Academic', value: profile.academicScore, color: 'var(--neon-cyan)' },
-                { label: 'Skills', value: profile.skillScore, color: 'var(--neon-lime)' },
-                { label: 'Coding', value: profile.codingScore, color: 'var(--neon-magenta)' },
-                { label: 'Assessment', value: profile.assessmentScore, color: '#f59e0b' }
-              ].map(item => (
-                <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px' }}>
-                  <span style={{ width: '70px', color: 'var(--text-secondary)' }}>{item.label}</span>
-                  <div style={{ flex: 1, height: '5px', background: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
-                    <div style={{ width: `${item.value}%`, height: '100%', background: item.color, borderRadius: '3px' }} />
-                  </div>
-                  <span style={{ width: '28px', textAlign: 'right', fontWeight: 'bold', color: item.color }}>{item.value}%</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* B. STRENGTHS & NEEDS IMPROVEMENT */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-          {/* STRENGTHS */}
-          <div style={{ background: 'rgba(57, 255, 20, 0.05)', border: '1px solid rgba(57, 255, 20, 0.2)', borderRadius: 'var(--radius-md)', padding: '10px 14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-              <CheckCircle2 size={15} style={{ color: 'var(--neon-lime)' }} />
-              <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'bold', color: 'var(--neon-lime)', textTransform: 'uppercase' }}>
-                Your Key Strengths
-              </span>
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-              {profile.strengths.map((str, i) => (
-                <span key={i} style={{ fontSize: '11px', background: 'rgba(57, 255, 20, 0.12)', color: 'var(--neon-lime)', padding: '3px 8px', borderRadius: '6px', border: '1px solid rgba(57, 255, 20, 0.25)', fontWeight: 500 }}>
-                  ✓ {str}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* NEEDS IMPROVEMENT */}
-          <div style={{ background: 'rgba(255, 69, 58, 0.05)', border: '1px solid rgba(255, 69, 58, 0.2)', borderRadius: 'var(--radius-md)', padding: '10px 14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-              <AlertTriangle size={15} style={{ color: '#ff4d4f' }} />
-              <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'bold', color: '#ff4d4f', textTransform: 'uppercase' }}>
-                Needs Improvement
-              </span>
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-              {profile.weakAreas.length > 0 ? (
-                profile.weakAreas.map((weak, i) => (
-                  <span key={i} style={{ fontSize: '11px', background: 'rgba(255, 69, 58, 0.12)', color: '#ff4d4f', padding: '3px 8px', borderRadius: '6px', border: '1px solid rgba(255, 69, 58, 0.25)', fontWeight: 500 }}>
-                    ⚠️ {weak}
-                  </span>
-                ))
-              ) : (
-                <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>No major weak areas detected. Keep up the great work!</span>
-              )}
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      {/* 3. NEXT BEST ACTION BANNER */}
-      {profile.nextBestAction && (
-        <div style={{ background: 'linear-gradient(135deg, rgba(0, 229, 255, 0.1) 0%, rgba(57, 255, 20, 0.08) 100%)', border: '1px solid var(--neon-cyan)', borderRadius: 'var(--radius-md)', padding: 'var(--space-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', flex: 1, minWidth: '260px' }}>
-            <div style={{ background: 'var(--neon-cyan)', color: '#000', padding: '8px', borderRadius: '8px', marginTop: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Zap size={20} />
-            </div>
+        {/* A. NEXT BEST ACTION CARD */}
+        {nextBestAction && (
+          <div style={{ 
+            background: 'linear-gradient(135deg, rgba(0, 229, 255, 0.08) 0%, rgba(57, 255, 20, 0.05) 100%)', 
+            border: '1px solid var(--neon-cyan)', 
+            borderRadius: 'var(--radius-md)', 
+            padding: 'var(--space-lg)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            gap: 'var(--space-md)',
+            boxShadow: '0 4px 20px rgba(0, 229, 255, 0.1)'
+          }}>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
-                <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--neon-cyan)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  ⚡ Next Best Action
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-xs)' }}>
+                <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--neon-cyan)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Zap size={15} /> NEXT BEST ACTION
                 </span>
-                <span style={{ fontSize: '10px', background: 'rgba(0,0,0,0.4)', color: 'var(--text-secondary)', padding: '1px 6px', borderRadius: '4px' }}>
-                  Recommended Focus
+                <span style={{ fontSize: '10px', background: 'rgba(0, 229, 255, 0.15)', color: 'var(--neon-cyan)', padding: '2px 8px', borderRadius: '6px', fontWeight: 'bold' }}>
+                  Match: {nextBestAction.relevanceScore}%
                 </span>
               </div>
-              <h4 style={{ margin: 0, fontSize: 'var(--text-md)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                {profile.nextBestAction.title}
-              </h4>
-              <p style={{ margin: '2px 0 6px 0', fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
-                {profile.nextBestAction.description}
+
+              <h3 style={{ margin: '0 0 6px 0', fontSize: 'var(--text-lg)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                {nextBestAction.title}
+              </h3>
+
+              <p style={{ margin: '0 0 var(--space-md) 0', fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                {nextBestAction.description}
               </p>
-              {/* Evidence "Why?" Badge */}
-              <div style={{ display: 'inline-block', fontSize: '11px', background: 'rgba(0, 229, 255, 0.15)', color: 'var(--neon-cyan)', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(0, 229, 255, 0.3)', fontWeight: 'bold' }}>
-                {profile.nextBestAction.evidenceWhy}
+
+              {/* Progress Level (If applicable) */}
+              {typeof nextBestAction.currentLevel === 'number' && typeof nextBestAction.targetLevel === 'number' && (
+                <div style={{ marginBottom: 'var(--space-md)', background: 'rgba(0,0,0,0.3)', padding: '10px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Current level: <strong style={{ color: 'var(--neon-cyan)' }}>{nextBestAction.currentLevel}%</strong></span>
+                    <span style={{ color: 'var(--text-secondary)' }}>Target: <strong style={{ color: 'var(--neon-lime)' }}>{nextBestAction.targetLevel}%</strong></span>
+                  </div>
+                  <div style={{ height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
+                    <div style={{ width: `${Math.min(100, (nextBestAction.currentLevel / nextBestAction.targetLevel) * 100)}%`, height: '100%', background: 'linear-gradient(90deg, var(--neon-cyan), var(--neon-lime))', borderRadius: '3px' }} />
+                  </div>
+                </div>
+              )}
+
+              {/* Evidence Why Badge */}
+              <div style={{ fontSize: '11px', background: 'rgba(0, 229, 255, 0.12)', color: 'var(--neon-cyan)', padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(0, 229, 255, 0.25)', fontWeight: 500, lineHeight: 1.4 }}>
+                <strong>Why this is recommended:</strong> "{nextBestAction.evidenceWhy.replace(/^Why\?\s*/i, '')}"
               </div>
             </div>
+
+            <Link href={nextBestAction.actionUrl} style={{ textDecoration: 'none', marginTop: 'var(--space-xs)' }}>
+              <Button variant="primary" size="sm" style={{ width: '100%', justifyContent: 'center', fontWeight: 'bold', padding: '10px' }}>
+                {nextBestAction.actionText} <ArrowRight size={15} />
+              </Button>
+            </Link>
           </div>
+        )}
 
-          <Link href={profile.nextBestAction.actionUrl} style={{ textDecoration: 'none', flexShrink: 0 }}>
-            <Button variant="primary" size="sm" style={{ padding: '8px 18px', fontWeight: 'bold' }}>
-              {profile.nextBestAction.actionText} <ArrowRight size={14} />
-            </Button>
-          </Link>
-        </div>
-      )}
-
-      {/* 4. SKILL GAP MATRIX */}
-      {profile.skillGaps.length > 0 && (
-        <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-md)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-sm)' }}>
-            <Target size={16} style={{ color: 'var(--neon-gold)' }} />
-            <h4 style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--neon-gold)' }}>
-              Target Capability vs Current Skill Gap
-            </h4>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 'var(--space-md)' }}>
-            {profile.skillGaps.map((gapItem, idx) => (
-              <div key={idx} style={{ background: 'var(--bg-primary)', padding: '10px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--glass-border)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', marginBottom: '4px' }}>
-                  <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{gapItem.topic}</span>
-                  <span style={{ color: 'var(--neon-gold)', fontWeight: 'bold' }}>Gap: -{gapItem.gap}%</span>
-                </div>
-
-                <div style={{ height: '8px', background: 'rgba(255,255,255,0.08)', borderRadius: '4px', overflow: 'hidden', position: 'relative', marginBottom: '6px' }}>
-                  {/* Current progress */}
-                  <div style={{ width: `${gapItem.currentCapability}%`, height: '100%', background: 'var(--neon-cyan)', borderRadius: '4px 0 0 4px' }} />
-                  {/* Target indicator mark */}
-                  <div style={{ position: 'absolute', left: `${gapItem.targetCapability}%`, top: 0, bottom: 0, width: '2px', background: 'var(--neon-gold)' }} />
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--text-muted)' }}>
-                  <span>Current: {gapItem.currentCapability}%</span>
-                  <span>Target: {gapItem.targetCapability}%</span>
-                </div>
-
-                <div style={{ marginTop: '4px', fontSize: '10px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-                  Why? {gapItem.evidence}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* 5. PERSONALIZED RECOMMENDATIONS GRID */}
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-md)' }}>
-          <h3 style={{ margin: 0, fontSize: 'var(--text-md)', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>Personalized Content Recommendations</span>
-          </h3>
-          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-            Evidence-Backed Choice
-          </span>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 'var(--space-md)' }}>
-          {profile.recommendations.map(rec => (
-            <div
-              key={rec.id}
-              style={{
-                background: 'var(--bg-primary)',
-                border: '1px solid var(--glass-border)',
-                borderRadius: 'var(--radius-md)',
-                padding: 'var(--space-md)',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                gap: 'var(--space-sm)',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <span style={{ fontSize: '10px', fontWeight: 'bold', background: 'rgba(0, 229, 255, 0.1)', color: 'var(--neon-cyan)', padding: '2px 8px', borderRadius: '6px', border: '1px solid rgba(0, 229, 255, 0.2)' }}>
-                    {rec.type.toUpperCase()}
-                  </span>
-                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                    Match Score: {Math.min(99, rec.relevanceScore)}%
-                  </span>
-                </div>
-
-                <h4 style={{ margin: '0 0 4px 0', fontSize: 'var(--text-sm)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                  {rec.title}
-                </h4>
-
-                <p style={{ margin: '0 0 var(--space-xs) 0', fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                  {rec.description}
-                </p>
-
-                {/* Evidence "Why?" Tag */}
-                <div style={{ fontSize: '11px', background: 'rgba(255, 215, 0, 0.08)', color: 'var(--neon-gold)', padding: '6px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255, 215, 0, 0.2)', fontWeight: 500, lineHeight: 1.3 }}>
-                  <strong>Why?</strong> {rec.evidenceWhy.replace(/^Why\?\s*/i, '')}
-                </div>
+        {/* B. RECOMMENDED COURSE CARD */}
+        {recommendedCourse ? (
+          <div style={{ 
+            background: 'linear-gradient(135deg, rgba(255, 0, 255, 0.08) 0%, rgba(99, 102, 241, 0.05) 100%)', 
+            border: '1px solid var(--neon-magenta)', 
+            borderRadius: 'var(--radius-md)', 
+            padding: 'var(--space-lg)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            gap: 'var(--space-md)',
+            boxShadow: '0 4px 20px rgba(255, 0, 255, 0.1)'
+          }}>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-xs)' }}>
+                <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--neon-magenta)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Layers size={15} /> RECOMMENDED COURSE
+                </span>
+                <span style={{ fontSize: '10px', background: 'rgba(255, 0, 255, 0.15)', color: 'var(--neon-magenta)', padding: '2px 8px', borderRadius: '6px', fontWeight: 'bold' }}>
+                  Match: {recommendedCourse.matchScore}%
+                </span>
               </div>
 
-              <Link href={rec.actionUrl} style={{ textDecoration: 'none', marginTop: 'var(--space-xs)' }}>
-                <Button variant="ghost" size="sm" style={{ width: '100%', justifyContent: 'center', fontSize: 'var(--text-xs)', borderColor: 'var(--glass-border)' }}>
-                  {rec.actionText} →
+              <h3 style={{ margin: '0 0 6px 0', fontSize: 'var(--text-lg)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                {recommendedCourse.title}
+              </h3>
+
+              <p style={{ margin: '0 0 var(--space-md) 0', fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                {recommendedCourse.description}
+              </p>
+
+              {/* Evidence Why Badge */}
+              <div style={{ fontSize: '11px', background: 'rgba(255, 0, 255, 0.12)', color: 'var(--neon-magenta)', padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255, 0, 255, 0.25)', fontWeight: 500, lineHeight: 1.4 }}>
+                <strong>Why:</strong> "{recommendedCourse.whyReason}"
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+              <Link href={recommendedCourse.actionUrl} style={{ textDecoration: 'none', flex: 1 }}>
+                <Button variant="secondary" size="sm" style={{ width: '100%', justifyContent: 'center' }}>
+                  View Course
+                </Button>
+              </Link>
+              <Link href={recommendedCourse.actionUrl} style={{ textDecoration: 'none', flex: 1 }}>
+                <Button variant="primary" size="sm" style={{ width: '100%', justifyContent: 'center', background: 'var(--neon-magenta)', border: 'none' }}>
+                  Enroll Now
                 </Button>
               </Link>
             </div>
-          ))}
-        </div>
+          </div>
+        ) : (
+          <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-lg)', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center' }}>
+            <CheckCircle2 size={36} style={{ color: 'var(--neon-lime)', margin: '0 auto var(--space-sm) auto' }} />
+            <h4 style={{ margin: 0, color: 'var(--text-primary)' }}>All Platform Courses Explored!</h4>
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: '4px' }}>
+              You are currently enrolled in or have completed all primary courses in your curriculum.
+            </p>
+          </div>
+        )}
+
       </div>
+
+      {/* 3. YOUR PERSONALIZED LEARNING PLAN */}
+      {personalizedPlan && (
+        <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-lg)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-md)', flexWrap: 'wrap', gap: 'var(--space-sm)' }}>
+            <h3 style={{ margin: 0, fontSize: 'var(--text-md)', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Calendar size={18} style={{ color: 'var(--neon-cyan)' }} />
+              <span>YOUR PERSONALIZED LEARNING PLAN</span>
+            </h3>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+              Tailored to your weak areas &amp; goals
+            </span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-lg)' }}>
+            
+            {/* TODAY COLUMN */}
+            <div style={{ background: 'var(--bg-primary)', padding: 'var(--space-md)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--glass-border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: 'var(--space-sm)', color: 'var(--neon-cyan)', fontWeight: 'bold', fontSize: 'var(--text-xs)', textTransform: 'uppercase' }}>
+                <CheckSquare size={14} /> TODAY
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {personalizedPlan.today.map((task, idx) => (
+                  <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: 'var(--text-xs)' }}>
+                    <span style={{ background: 'rgba(0, 229, 255, 0.15)', color: 'var(--neon-cyan)', width: '18px', height: '18px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold', flexShrink: 0, marginTop: '2px' }}>
+                      {idx + 1}
+                    </span>
+                    <div>
+                      <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{task.title}</div>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>{task.detail}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* THIS WEEK COLUMN */}
+            <div style={{ background: 'var(--bg-primary)', padding: 'var(--space-md)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--glass-border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: 'var(--space-sm)', color: 'var(--neon-lime)', fontWeight: 'bold', fontSize: 'var(--text-xs)', textTransform: 'uppercase' }}>
+                <Target size={14} /> THIS WEEK
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {personalizedPlan.thisWeek.map((milestone, idx) => (
+                  <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: 'var(--text-xs)' }}>
+                    <span style={{ background: 'rgba(57, 255, 20, 0.15)', color: 'var(--neon-lime)', width: '18px', height: '18px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold', flexShrink: 0, marginTop: '2px' }}>
+                      ✓
+                    </span>
+                    <div>
+                      <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{milestone.title}</div>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>{milestone.detail}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* NEXT COURSE COLUMN */}
+            <div style={{ background: 'var(--bg-primary)', padding: 'var(--space-md)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--glass-border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: 'var(--space-sm)', color: 'var(--neon-gold)', fontWeight: 'bold', fontSize: 'var(--text-xs)', textTransform: 'uppercase' }}>
+                <Compass size={14} /> NEXT STEP COURSE
+              </div>
+              {personalizedPlan.nextCourse ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: 'var(--text-xs)' }}>
+                  <div style={{ fontWeight: 'bold', color: 'var(--text-primary)', fontSize: 'var(--text-sm)' }}>
+                    "{personalizedPlan.nextCourse.title}"
+                  </div>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '11px', lineHeight: 1.4 }}>
+                    <strong>Why:</strong> {personalizedPlan.nextCourse.reason}
+                  </div>
+                  <Link href={personalizedPlan.nextCourse.url} style={{ textDecoration: 'none', marginTop: '4px' }}>
+                    <span style={{ color: 'var(--neon-gold)', fontWeight: 'bold', fontSize: '11px' }}>
+                      View Details →
+                    </span>
+                  </Link>
+                </div>
+              ) : (
+                <div style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-xs)' }}>
+                  Complete your current active courses to reveal your next structured milestone course!
+                </div>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* 4. ASK YOUR AI COACH BANNER */}
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(0, 229, 255, 0.15) 100%)',
+        border: '1px solid rgba(99, 102, 241, 0.4)',
+        borderRadius: 'var(--radius-md)',
+        padding: 'var(--space-md) var(--space-lg)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 'var(--space-md)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ background: 'rgba(99, 102, 241, 0.2)', color: '#a5b4fc', padding: '10px', borderRadius: '12px', border: '1px solid rgba(99, 102, 241, 0.4)' }}>
+            <Sparkles size={22} />
+          </div>
+          <div>
+            <h4 style={{ margin: 0, fontSize: 'var(--text-sm)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+              Ask Your AI Coach
+            </h4>
+            <p style={{ margin: '2px 0 0 0', fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
+              Discuss your personalized plan, clear doubt topics, or request custom 7-day schedule adjustments.
+            </p>
+          </div>
+        </div>
+
+        <OpenAgentPlanButton label="Talk to your AI Coach about your learning plan →" />
+      </div>
+
     </Card>
   );
 }

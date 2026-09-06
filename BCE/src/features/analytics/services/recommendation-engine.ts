@@ -1,8 +1,17 @@
 /* ============================================
-   Deterministic Recommendation Engine
+   Student-Aware AI Recommendation Decision Engine
    ============================================ */
 
-export type RecommendationType = 'course' | 'topic' | 'practice' | 'trainer';
+export type RecommendationType = 
+  | 'CONTINUE_COURSE'
+  | 'COMPLETE_PENDING'
+  | 'PRACTICE_TOPIC'
+  | 'REVISE_TOPIC'
+  | 'TAKE_ASSESSMENT'
+  | 'ENROLL_COURSE'
+  | 'NEXT_COURSE'
+  | 'DAILY_ACTION'
+  | 'LEARNING_PLAN';
 
 export interface RecommendationItem {
   id: string;
@@ -13,7 +22,10 @@ export interface RecommendationItem {
   evidenceWhy: string;
   actionUrl: string;
   actionText: string;
-  relevanceScore: number;
+  relevanceScore: number; // 0 - 100
+  topic?: string;
+  currentLevel?: number;
+  targetLevel?: number;
 }
 
 export interface SkillGapItem {
@@ -24,10 +36,33 @@ export interface SkillGapItem {
   evidence: string;
 }
 
-interface GenerateRecommendationsInput {
-  weakAreas: string[];
-  skillGaps: SkillGapItem[];
-  enrolledCourseIds: string[];
+export interface RecommendedCourseItem {
+  id: string;
+  title: string;
+  description: string;
+  matchScore: number;
+  whyReason: string;
+  actionUrl: string;
+  difficulty?: string;
+  tags?: string[];
+}
+
+export interface PersonalizedPlan {
+  today: Array<{ title: string; detail: string; actionUrl: string }>;
+  thisWeek: Array<{ title: string; detail: string }>;
+  nextCourse: { title: string; reason: string; url: string; matchScore: number } | null;
+}
+
+export interface GenerateRecommendationsInput {
+  userId: string;
+  enrolledCourses: Array<{
+    id: string;
+    title: string;
+    progress: number;
+    description?: string;
+    category?: string;
+    lastAccessedAt?: string;
+  }>;
   completedCourseIds: string[];
   availableCourses: Array<{
     id: string;
@@ -42,146 +77,333 @@ interface GenerateRecommendationsInput {
     title: string;
     description: string | null;
   }>;
+  skillGaps: SkillGapItem[];
+  weakAreas: string[];
+  strongAreas: string[];
   mcqAvgScore: number;
   mcqTotalAttempts: number;
   dsaSolvedCount: number;
+  dsaDifficultyStats?: { easy: number; medium: number; hard: number };
+  dsaWeakTopics?: string[];
+  activeGoal?: { goal_type?: string; title?: string } | null;
+  streakCount?: number;
+  lastActiveDaysAgo?: number;
 }
 
-export function generateDeterministicRecommendations(
-  input: GenerateRecommendationsInput
-): RecommendationItem[] {
-  const recommendations: RecommendationItem[] = [];
-
+/**
+ * Transparent Multi-Factor Recommendation Score Model:
+ * score = (skillGap * 0.30) + (goalAlignment * 0.20) + (courseRelevance * 0.20) + 
+ *         (recentActivity * 0.10) + (performanceNeed * 0.10) + (prerequisiteReadiness * 0.10)
+ */
+export function calculateRecommendationScore(params: {
+  skillGapScore: number; // 0-100
+  goalAlignmentScore: number; // 0-100
+  courseRelevanceScore: number; // 0-100
+  recentActivityScore: number; // 0-100
+  performanceNeedScore: number; // 0-100
+  prerequisiteReadinessScore: number; // 0-100
+}): number {
   const {
-    weakAreas,
-    skillGaps,
-    enrolledCourseIds,
+    skillGapScore,
+    goalAlignmentScore,
+    courseRelevanceScore,
+    recentActivityScore,
+    performanceNeedScore,
+    prerequisiteReadinessScore
+  } = params;
+
+  const score = 
+    (skillGapScore * 0.30) +
+    (goalAlignmentScore * 0.20) +
+    (courseRelevanceScore * 0.20) +
+    (recentActivityScore * 0.10) +
+    (performanceNeedScore * 0.10) +
+    (prerequisiteReadinessScore * 0.10);
+
+  return Math.min(99, Math.max(50, Math.round(score)));
+}
+
+export function generateStudentAwareRecommendations(
+  input: GenerateRecommendationsInput
+): {
+  recommendations: RecommendationItem[];
+  nextBestAction: RecommendationItem;
+  recommendedCourse: RecommendedCourseItem | null;
+  personalizedPlan: PersonalizedPlan;
+} {
+  const {
+    enrolledCourses,
     completedCourseIds,
     availableCourses,
     availableSheets,
+    skillGaps,
+    weakAreas,
+    strongAreas,
     mcqAvgScore,
     mcqTotalAttempts,
-    dsaSolvedCount
+    dsaSolvedCount,
+    dsaDifficultyStats = { easy: 0, medium: 0, hard: 0 },
+    dsaWeakTopics = [],
+    activeGoal,
+    streakCount = 0,
+    lastActiveDaysAgo = 0
   } = input;
 
+  const enrolledCourseIds = new Set(enrolledCourses.map(c => c.id));
   const excludedCourseIds = new Set([...enrolledCourseIds, ...completedCourseIds]);
 
-  // 1. RECOMMENDATIONS BASED ON SKILL GAPS / WEAK TOPICS
-  skillGaps.forEach(gapItem => {
-    if (gapItem.gap > 10) {
-      // Find matching un-enrolled course for this weak topic
-      const matchingCourse = availableCourses.find(c => {
-        if (excludedCourseIds.has(c.id)) return false;
-        const searchStr = `${c.title} ${c.description || ''} ${(c.tags || []).join(' ')}`.toLowerCase();
-        return searchStr.includes(gapItem.topic.toLowerCase());
+  const recommendations: RecommendationItem[] = [];
+
+  // Determine Goal Bias (Placement vs Academic vs Skill)
+  const isPlacementGoal = activeGoal?.goal_type === 'placement' || 
+    activeGoal?.title?.toLowerCase().includes('placement') || 
+    activeGoal?.title?.toLowerCase().includes('interview') ||
+    activeGoal?.title?.toLowerCase().includes('job');
+
+  // 1. CONTINUE_COURSE / COMPLETE_PENDING (Enrolled Courses in Progress)
+  const inProgressCourses = enrolledCourses.filter(c => c.progress > 0 && c.progress < 100);
+  if (inProgressCourses.length > 0) {
+    // Pick course with lowest completion or recently accessed
+    const primaryCourse = inProgressCourses[0];
+    const recScore = calculateRecommendationScore({
+      skillGapScore: 70,
+      goalAlignmentScore: isPlacementGoal ? 75 : 90,
+      courseRelevanceScore: 95,
+      recentActivityScore: lastActiveDaysAgo <= 2 ? 90 : 60,
+      performanceNeedScore: 80,
+      prerequisiteReadinessScore: 90
+    });
+
+    recommendations.push({
+      id: `rec-continue-${primaryCourse.id}`,
+      type: 'CONTINUE_COURSE',
+      title: `Continue ${primaryCourse.title}`,
+      subtitle: `Current Progress: ${primaryCourse.progress}%`,
+      description: `Resume where you left off in ${primaryCourse.title}. You have completed ${primaryCourse.progress}% of the curriculum.`,
+      evidenceWhy: `Your current progress in ${primaryCourse.title} is ${primaryCourse.progress}%, and completing this unlocks advanced topics.`,
+      actionUrl: `/courses/${primaryCourse.id}`,
+      actionText: 'Continue Course',
+      relevanceScore: recScore,
+      currentLevel: primaryCourse.progress,
+      targetLevel: 100
+    });
+  }
+
+  // 2. PRACTICE_TOPIC / REVISE_TOPIC (Measurable Skill Gaps)
+  skillGaps.forEach((gapItem) => {
+    if (gapItem.gap > 5) {
+      const isDsaTopic = ['trees', 'graphs', 'dp', 'arrays', 'matrix', 'sorting', 'recursion', 'binary search'].some(
+        t => gapItem.topic.toLowerCase().includes(t)
+      );
+
+      const recScore = calculateRecommendationScore({
+        skillGapScore: Math.min(100, gapItem.gap * 2),
+        goalAlignmentScore: isPlacementGoal && isDsaTopic ? 95 : 80,
+        courseRelevanceScore: 90,
+        recentActivityScore: 70,
+        performanceNeedScore: 90,
+        prerequisiteReadinessScore: 85
       });
 
-      if (matchingCourse) {
-        recommendations.push({
-          id: `rec-course-${matchingCourse.id}`,
-          type: 'course',
-          title: matchingCourse.title,
-          subtitle: `Targeted Course for ${gapItem.topic}`,
-          description: matchingCourse.description || `Boost your ${gapItem.topic} proficiency to close the ${gapItem.gap}% skill gap.`,
-          evidenceWhy: `Why? ${gapItem.evidence}`,
-          actionUrl: `/courses/${matchingCourse.id}`,
-          actionText: 'Explore Course',
-          relevanceScore: 95 + gapItem.gap
-        });
-        excludedCourseIds.add(matchingCourse.id);
-      } else {
-        // Fallback: Topic practice recommendation
-        recommendations.push({
-          id: `rec-topic-${gapItem.topic.replace(/\s+/g, '-').toLowerCase()}`,
-          type: 'topic',
-          title: `Master ${gapItem.topic}`,
-          subtitle: `Recommended Topic Focus`,
-          description: `Your current proficiency is ${gapItem.currentCapability}% (Target: ${gapItem.targetCapability}%). Focus on foundational ${gapItem.topic} concepts.`,
-          evidenceWhy: `Why? ${gapItem.evidence}`,
-          actionUrl: `/code-arena/sheets`,
-          actionText: 'Practice Topic',
-          relevanceScore: 85 + gapItem.gap
-        });
-      }
+      recommendations.push({
+        id: `rec-gap-${gapItem.topic.toLowerCase().replace(/\s+/g, '-')}`,
+        type: gapItem.currentCapability > 40 ? 'REVISE_TOPIC' : 'PRACTICE_TOPIC',
+        title: `Practice ${gapItem.topic}`,
+        subtitle: `Skill Gap: -${gapItem.gap}%`,
+        description: `Your current ${gapItem.topic} proficiency is ${gapItem.currentCapability}% (Target: ${gapItem.targetCapability}%). Focused problem solving will close this gap.`,
+        evidenceWhy: `Your ${gapItem.topic} accuracy is ${gapItem.currentCapability}%, which is below your ${gapItem.targetCapability}% target.`,
+        actionUrl: isDsaTopic ? '/code-arena/sheets' : '/courses',
+        actionText: 'Start Practice',
+        relevanceScore: recScore,
+        topic: gapItem.topic,
+        currentLevel: gapItem.currentCapability,
+        targetLevel: gapItem.targetCapability
+      });
     }
   });
 
-  // 2. DSA / PRACTICE RECOMMENDATION
-  if (dsaSolvedCount < 10) {
-    const firstSheet = availableSheets && availableSheets.length > 0 ? availableSheets[0] : null;
-    recommendations.push({
-      id: 'rec-practice-dsa-beginner',
-      type: 'practice',
-      title: firstSheet ? firstSheet.title : 'Beginner DSA Practice',
-      subtitle: 'Build Problem Solving Habit',
-      description: 'Solving daily DSA problems improves algorithm accuracy and placement readiness.',
-      evidenceWhy: `Why? Based on your current DSA activity (${dsaSolvedCount} problems solved).`,
-      actionUrl: firstSheet ? `/code-arena/sheets/${firstSheet.id}` : '/code-arena/sheets',
-      actionText: 'Start Solving',
-      relevanceScore: 90
-    });
-  } else if (weakAreas.some(w => w.toLowerCase().includes('dsa') || w.toLowerCase().includes('graph') || w.toLowerCase().includes('tree') || w.toLowerCase().includes('dp'))) {
-    const matchingSheet = availableSheets?.find(s => s.title.toLowerCase().includes('dsa') || s.title.toLowerCase().includes('striver') || s.title.toLowerCase().includes('blind'));
-    recommendations.push({
-      id: 'rec-practice-dsa-advanced',
-      type: 'practice',
-      title: matchingSheet ? matchingSheet.title : 'Targeted DSA Practice',
-      subtitle: 'Algorithmic Proficiency',
-      description: 'Consolidate topic strengths by solving structured problem sheets.',
-      evidenceWhy: `Why? Based on weak topic performance identified in assessment data.`,
-      actionUrl: matchingSheet ? `/code-arena/sheets/${matchingSheet.id}` : '/code-arena/sheets',
-      actionText: 'Practice Now',
-      relevanceScore: 88
-    });
-  }
-
-  // 3. ASSESSMENT RECOMMENDATION (IF ASSESSMENT SCORE IS LOW OR ATTEMPTS FEW)
+  // 3. TAKE_ASSESSMENT (Assessment Need)
   if (mcqTotalAttempts === 0) {
+    const recScore = calculateRecommendationScore({
+      skillGapScore: 80,
+      goalAlignmentScore: 85,
+      courseRelevanceScore: 85,
+      recentActivityScore: 50,
+      performanceNeedScore: 95,
+      prerequisiteReadinessScore: 80
+    });
+
     recommendations.push({
-      id: 'rec-mcq-first',
-      type: 'practice',
-      title: 'Take Course Assessments',
-      subtitle: 'Evaluate Skill Knowledge',
-      description: 'Complete course MCQs to test your domain retention and unlock targeted analytics.',
-      evidenceWhy: 'Why? You have 0 assessment attempts recorded in Smart Learn.',
+      id: 'rec-assessment-first',
+      type: 'TAKE_ASSESSMENT',
+      title: 'Take Initial Assessment',
+      subtitle: 'Establish Skill Baseline',
+      description: 'Attempt your first course quiz or MCQ to establish a baseline proficiency score and receive precision recommendations.',
+      evidenceWhy: 'You have 0 recorded assessment attempts in Smart Learn.',
       actionUrl: '/courses',
-      actionText: 'View Courses',
-      relevanceScore: 80
+      actionText: 'Take Quiz',
+      relevanceScore: recScore,
+      currentLevel: 0,
+      targetLevel: 80
     });
   } else if (mcqAvgScore < 70) {
+    const recScore = calculateRecommendationScore({
+      skillGapScore: Math.round(100 - mcqAvgScore),
+      goalAlignmentScore: 80,
+      courseRelevanceScore: 85,
+      recentActivityScore: 70,
+      performanceNeedScore: 90,
+      prerequisiteReadinessScore: 85
+    });
+
     recommendations.push({
-      id: 'rec-mcq-improve',
-      type: 'topic',
-      title: 'Revise Assessment Weak Spots',
-      subtitle: 'Accuracy Enhancement',
-      description: `Re-attempt course MCQs to raise your average assessment score from ${Math.round(mcqAvgScore)}% to 85%+.`,
-      evidenceWhy: `Why? Based on your current average quiz score of ${Math.round(mcqAvgScore)}% across ${mcqTotalAttempts} attempts.`,
+      id: 'rec-assessment-improve',
+      type: 'REVISE_TOPIC',
+      title: 'Raise Quiz Accuracy',
+      subtitle: `Current Avg: ${Math.round(mcqAvgScore)}%`,
+      description: `Re-attempt course assessments to raise your overall quiz accuracy from ${Math.round(mcqAvgScore)}% to 80%+.`,
+      evidenceWhy: `Your average quiz score across ${mcqTotalAttempts} attempts is ${Math.round(mcqAvgScore)}%.`,
       actionUrl: '/courses',
-      actionText: 'Re-attempt Quiz',
-      relevanceScore: 82
+      actionText: 'Improve Score',
+      relevanceScore: recScore,
+      currentLevel: Math.round(mcqAvgScore),
+      targetLevel: 85
     });
   }
 
-  // 4. GENERAL POPULAR/EXPLORE COURSE RECOMMENDATION IF FEWER THAN 3 RECOMMENDATIONS
-  if (recommendations.length < 3) {
-    const exploreCourse = availableCourses.find(c => !excludedCourseIds.has(c.id));
-    if (exploreCourse) {
-      recommendations.push({
-        id: `rec-course-explore-${exploreCourse.id}`,
-        type: 'course',
-        title: exploreCourse.title,
-        subtitle: 'Expand Skill Domain',
-        description: exploreCourse.description || 'Broaden your tech stack with this top-rated Smart Learn course.',
-        evidenceWhy: 'Why? Recommended to expand your learning breadth based on enrolled courses.',
-        actionUrl: `/courses/${exploreCourse.id}`,
-        actionText: 'View Course',
-        relevanceScore: 75
-      });
-    }
+  // 4. COURSE ENROLLMENT INTELLIGENCE (Find Best Unenrolled Course)
+  let recommendedCourse: RecommendedCourseItem | null = null;
+  const unenrolledCourses = availableCourses.filter(c => !excludedCourseIds.has(c.id));
+
+  if (unenrolledCourses.length > 0) {
+    const rankedCourses = unenrolledCourses.map(course => {
+      const courseText = `${course.title} ${course.description || ''} ${(course.tags || []).join(' ')}`.toLowerCase();
+      
+      // Match against weak topics & skill gaps
+      const matchingWeakness = weakAreas.find(w => courseText.includes(w.toLowerCase()));
+      const matchingGap = skillGaps.find(g => courseText.includes(g.topic.toLowerCase()));
+
+      let matchScore = 70;
+      let whyReason = `Recommended based on your overall learning trajectory.`;
+
+      if (matchingGap) {
+        matchScore = Math.min(98, 85 + matchingGap.gap);
+        whyReason = `Addresses your ${matchingGap.topic} skill gap (${matchingGap.currentCapability}% vs ${matchingGap.targetCapability}% target).`;
+      } else if (matchingWeakness) {
+        matchScore = 88;
+        whyReason = `Targets your weak area in ${matchingWeakness}.`;
+      } else if (isPlacementGoal && (courseText.includes('dsa') || courseText.includes('algorithm') || courseText.includes('system design'))) {
+        matchScore = 92;
+        whyReason = `Matches your Placement Goal and complements your coding practice.`;
+      } else if (completedCourseIds.length > 0) {
+        matchScore = 82;
+        whyReason = `Logical next step following your completed coursework.`;
+      }
+
+      return {
+        id: course.id,
+        title: course.title,
+        description: course.description || 'Expand your engineering skills with this course.',
+        matchScore,
+        whyReason,
+        actionUrl: `/courses/${course.id}`,
+        difficulty: course.difficulty,
+        tags: course.tags
+      };
+    }).sort((a, b) => b.matchScore - a.matchScore);
+
+    recommendedCourse = rankedCourses[0];
+
+    const recScore = calculateRecommendationScore({
+      skillGapScore: recommendedCourse.matchScore,
+      goalAlignmentScore: isPlacementGoal ? 90 : 80,
+      courseRelevanceScore: recommendedCourse.matchScore,
+      recentActivityScore: 75,
+      performanceNeedScore: 80,
+      prerequisiteReadinessScore: 90
+    });
+
+    recommendations.push({
+      id: `rec-enroll-${recommendedCourse.id}`,
+      type: 'ENROLL_COURSE',
+      title: `Enroll in ${recommendedCourse.title}`,
+      subtitle: `${recommendedCourse.matchScore}% Match`,
+      description: recommendedCourse.description,
+      evidenceWhy: recommendedCourse.whyReason,
+      actionUrl: recommendedCourse.actionUrl,
+      actionText: 'View Course',
+      relevanceScore: recScore
+    });
   }
 
-  // Sort by relevance score descending & limit to top 4
-  return recommendations
-    .sort((a, b) => b.relevanceScore - a.relevanceScore)
-    .slice(0, 4);
+  // Sort recommendations by relevanceScore descending
+  recommendations.sort((a, b) => b.relevanceScore - a.relevanceScore);
+
+  // 5. DETERMINE NEXT BEST ACTION (Top 1 Recommendation)
+  const defaultNextAction: RecommendationItem = {
+    id: 'rec-default-action',
+    type: 'DAILY_ACTION',
+    title: 'Daily DSA Practice',
+    subtitle: 'Build Problem Solving Habit',
+    description: 'Solve 2 DSA problems today to maintain your streak and sharpen algorithmic speed.',
+    evidenceWhy: `You have solved ${dsaSolvedCount} problems. Daily practice strengthens retention.`,
+    actionUrl: '/code-arena/sheets',
+    actionText: 'Start Practice',
+    relevanceScore: 90,
+    currentLevel: dsaSolvedCount,
+    targetLevel: dsaSolvedCount + 10
+  };
+
+  const nextBestAction = recommendations[0] || defaultNextAction;
+
+  // 6. GENERATE PERSONALIZED 7-DAY LEARNING PLAN
+  const topWeakTopic = weakAreas[0] || dsaWeakTopics[0] || (skillGaps[0] ? skillGaps[0].topic : 'Core Fundamentals');
+  const secondaryWeakTopic = weakAreas[1] || dsaWeakTopics[1] || 'Problem Solving';
+
+  const personalizedPlan: PersonalizedPlan = {
+    today: [
+      {
+        title: `Focus: ${topWeakTopic}`,
+        detail: `Study key concepts and review code patterns in ${topWeakTopic}.`,
+        actionUrl: nextBestAction.actionUrl
+      },
+      {
+        title: `Solve 3 ${dsaDifficultyStats.easy < 10 ? 'Easy' : 'Medium'} Problems`,
+        detail: `Target ${topWeakTopic} problems to close your capability gap.`,
+        actionUrl: '/code-arena/sheets'
+      },
+      {
+        title: 'Review Mistakes & Flashcards',
+        detail: 'Spend 15 minutes reviewing previous incorrect submissions.',
+        actionUrl: '/code-arena/profile'
+      }
+    ],
+    thisWeek: [
+      {
+        title: `Complete ${topWeakTopic} Module`,
+        detail: `Raise your ${topWeakTopic} capability score from current level to 75%+.`
+      },
+      {
+        title: 'Attempt Weekly Assessment',
+        detail: `Take the ${topWeakTopic} quiz to verify your score improvement.`
+      },
+      {
+        title: `Begin ${secondaryWeakTopic} Fundamentals`,
+        detail: `Transition to ${secondaryWeakTopic} once target score is achieved.`
+      }
+    ],
+    nextCourse: recommendedCourse ? {
+      title: recommendedCourse.title,
+      reason: recommendedCourse.whyReason,
+      url: recommendedCourse.actionUrl,
+      matchScore: recommendedCourse.matchScore
+    } : null
+  };
+
+  return {
+    recommendations: recommendations.slice(0, 5),
+    nextBestAction,
+    recommendedCourse,
+    personalizedPlan
+  };
 }
