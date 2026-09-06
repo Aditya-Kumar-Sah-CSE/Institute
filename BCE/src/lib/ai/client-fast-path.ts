@@ -6,13 +6,14 @@ export interface ClientFastPathResult {
   expectedHeading?: string;
   streamingMessage?: string;
   successMessage?: string;
-  clientAction?: 'navigate' | 'back' | 'close' | 'interact' | 'context';
+  clientAction?: 'navigate' | 'back' | 'close' | 'interact' | 'context' | 'exitVoiceSession';
   interactArgs?: {
     actionType: 'click' | 'edit' | 'save' | 'cancel' | 'delete' | 'submit' | 'close' | 'open';
     targetText: string;
   };
   allowed: boolean;
   permissionReason?: string;
+  language?: 'en' | 'hi' | 'hinglish';
 }
 
 // Client-side routes cache map for instant resolution
@@ -33,25 +34,54 @@ const KNOWN_ROUTES_CACHE: Record<string, { route: string; heading: string; requi
 };
 
 /**
+ * Detect language of user query ('en' | 'hi' | 'hinglish')
+ */
+
+export function detectPromptLanguage(prompt: string): 'en' | 'hi' | 'hinglish' {
+  const p = prompt.toLowerCase();
+  const hinglishMarkers = ['karo', 'kholo', 'kya', 'kaise', 'batao', 'dikhao', 'banao', 'bana', 'padhna', 'hoon', 'hai', 'hain', 'bas', 'band', 'aaj', 'ye', 'woh', 'sko', 'isme'];
+  const hasHinglish = hinglishMarkers.some(m => new RegExp(`\\b${m}\\b`, 'i').test(p));
+  return hasHinglish ? 'hinglish' : 'en';
+}
+
+/**
  * Resolves high-frequency user commands deterministically on the client side in <1ms.
  * Bypasses network requests and LLM calls entirely.
  */
 export function resolveClientFastPath(
   prompt: string,
   userRole: string = 'student',
-  activeContext: { courseId?: string; sheetId?: string; problemId?: string } = {}
+  activeContext: { courseId?: string; sheetId?: string; problemId?: string; activeEntityId?: string } = {}
 ): ClientFastPathResult {
   const p = prompt.trim().toLowerCase();
   const normalizedRole = normalizeAgentRole(userRole);
+  const language = detectPromptLanguage(p);
 
-  // 1. Close / Drawer Actions
-  if (/^(close|band\s*karo|drawer\s*band|exit)$/i.test(p)) {
+  // 1. Voice Session Explicit Exit Commands
+  // EXPLICIT ONLY: "stop", "exit", "close voice", "bye", "band karo", "bas karo", "voice off"
+  // Do NOT match domain commands like "stop this problem" or "stop timer"
+  const isExplicitVoiceExit = /^(stop|exit|close\s*voice|bye|bye\s*bye|band\s*karo|bas\s*karo|voice\s*off)$/i.test(p) ||
+                              /^(voice\s*session\s*band|stop\s*listening)$/i.test(p);
+  if (isExplicitVoiceExit) {
+    return {
+      isMatch: true,
+      clientAction: 'exitVoiceSession',
+      streamingMessage: language === 'hinglish' ? 'Voice mode band kar raha hoon. Bye!' : 'Closing voice session. Goodbye!',
+      successMessage: 'Voice session ended.',
+      allowed: true,
+      language
+    };
+  }
+
+  // 1B. Drawer Close / Hide Actions
+  if (/^(close\s*drawer|drawer\s*band\s*karo|hide\s*drawer)$/i.test(p)) {
     return {
       isMatch: true,
       clientAction: 'close',
       streamingMessage: 'Closing drawer...',
       successMessage: 'Drawer closed.',
-      allowed: true
+      allowed: true,
+      language
     };
   }
 
@@ -62,12 +92,13 @@ export function resolveClientFastPath(
       clientAction: 'back',
       streamingMessage: 'Going back...',
       successMessage: 'Navigated back.',
-      allowed: true
+      allowed: true,
+      language
     };
   }
 
   // 3. Open Courses
-  if (/\b(open\s+courses|courses?\s+kholo|show\s+courses|all\s+courses)\b/i.test(p) && !p.includes('create') && !p.includes('banao')) {
+  if (/\b(open\s+courses|courses?\s+kholo|show\s+courses|all\s+courses|sab\s+courses)\b/i.test(p) && !p.includes('create') && !p.includes('banao')) {
     return {
       isMatch: true,
       targetRoute: '/courses',
@@ -75,12 +106,13 @@ export function resolveClientFastPath(
       clientAction: 'navigate',
       streamingMessage: 'Opening Courses...',
       successMessage: 'Courses page opened.',
-      allowed: true
+      allowed: true,
+      language
     };
   }
 
   // 4. Open DSA / Coding Sheets
-  if (/\b(open\s+dsa|dsa\s+kholo|open\s+sheets?|sheets?\s+kholo|coding\s+sheet)\b/i.test(p) && !p.includes('problem') && !p.includes('create') && !p.includes('banao')) {
+  if (/\b(open\s+dsa|dsa\s+kholo|open\s+sheets?|sheets?\s+kholo|coding\s+sheet|dsa\s+sheet)\b/i.test(p) && !p.includes('problem') && !p.includes('create') && !p.includes('banao')) {
     return {
       isMatch: true,
       targetRoute: '/code-arena/sheets',
@@ -88,7 +120,8 @@ export function resolveClientFastPath(
       clientAction: 'navigate',
       streamingMessage: 'Opening DSA Sheets...',
       successMessage: 'DSA Sheets page opened.',
-      allowed: true
+      allowed: true,
+      language
     };
   }
 
@@ -101,7 +134,8 @@ export function resolveClientFastPath(
       clientAction: 'navigate',
       streamingMessage: 'Opening Student Dashboard...',
       successMessage: 'Student Dashboard opened.',
-      allowed: true
+      allowed: true,
+      language
     };
   }
 
@@ -116,7 +150,8 @@ export function resolveClientFastPath(
       streamingMessage: allowed ? 'Opening Instructor Panel...' : 'Checking permissions...',
       successMessage: 'Instructor Panel opened.',
       allowed,
-      permissionReason: allowed ? undefined : 'Access denied: Instructor role required.'
+      permissionReason: allowed ? undefined : 'Access denied: Instructor role required.',
+      language
     };
   }
 
@@ -131,7 +166,8 @@ export function resolveClientFastPath(
       streamingMessage: allowed ? 'Opening Admin Panel...' : 'Checking permissions...',
       successMessage: 'Admin Panel opened.',
       allowed,
-      permissionReason: allowed ? undefined : 'Access denied: Admin role required.'
+      permissionReason: allowed ? undefined : 'Access denied: Admin role required.',
+      language
     };
   }
 
@@ -146,7 +182,8 @@ export function resolveClientFastPath(
       streamingMessage: allowed ? 'Opening Developer Panel...' : 'Checking permissions...',
       successMessage: 'Developer Panel opened.',
       allowed,
-      permissionReason: allowed ? undefined : 'Access denied: Developer role required.'
+      permissionReason: allowed ? undefined : 'Access denied: Developer role required.',
+      language
     };
   }
 
@@ -161,7 +198,8 @@ export function resolveClientFastPath(
       streamingMessage: allowed ? 'Opening Course Creator...' : 'Checking permissions...',
       successMessage: 'Course Creator opened.',
       allowed,
-      permissionReason: allowed ? undefined : 'Access denied: Instructor role required to create courses.'
+      permissionReason: allowed ? undefined : 'Access denied: Instructor role required to create courses.',
+      language
     };
   }
 
@@ -177,49 +215,38 @@ export function resolveClientFastPath(
       streamingMessage: allowed ? 'Opening Course Editor...' : 'Checking permissions...',
       successMessage: 'Course Editor opened.',
       allowed,
-      permissionReason: allowed ? undefined : 'Access denied: Instructor role required.'
+      permissionReason: allowed ? undefined : 'Access denied: Instructor role required.',
+      language
     };
   }
 
-  // 10. Create MCQ Fast-Path
-  if (/\b(create\s+mcq|mcq\s+banao|new\s+mcq|add\s+mcq|create\s+question)\b/i.test(p)) {
-    const allowed = canAccessPage(normalizedRole, '/instructor/mcqs/new');
-    return {
-      isMatch: true,
-      targetRoute: '/instructor/mcqs/new',
-      expectedHeading: 'MCQ Management',
-      clientAction: 'navigate',
-      streamingMessage: allowed ? 'Opening MCQ Creator...' : 'Checking permissions...',
-      successMessage: 'MCQ Creator opened.',
-      allowed,
-      permissionReason: allowed ? undefined : 'Access denied: Instructor role required.'
-    };
-  }
-
-  // 11. Open Current Page Context
+  // 10. Open Current Page Context
   if (/^(current\s+page|open\s+page|isme\s+kya\s+hai|is\s+page\s+par\s+kya\s+hai)$/i.test(p)) {
     return {
       isMatch: true,
       clientAction: 'context',
       streamingMessage: 'Reading page details...',
       successMessage: 'Page details retrieved.',
-      allowed: true
+      allowed: true,
+      language
     };
   }
 
-  // 12. Recommendation & Learning Plan Queries
-  if (/\b(what\s+should\s+i\s+study|kya\s+padhun|recommendation|my\s+plan|learning\s+plan|weak\s+topics|weakness|falling\s+behind|which\s+course\s+to\s+enroll)\b/i.test(p)) {
+  // 11. Recommendation & Learning Plan Queries (Hinglish Supported)
+  if (/\b(what\s+should\s+i\s+study|kya\s+padhun|aaj\tagya\spadhna|recommendation|my\s+plan|learning\s+plan|weak\s+topics|weakness|falling\s+behind|which\s+course\s+to\s+enroll|dsa\s+me\s+main\s+weak\s+hoon)\b/i.test(p)) {
     return {
       isMatch: true,
       targetRoute: '/dashboard',
       expectedHeading: 'Dashboard',
       clientAction: 'navigate',
-      streamingMessage: 'Analyzing your learning profile & recommendations...',
+      streamingMessage: language === 'hinglish' ? 'Aapka learning profile aur recommendations analyze kar raha hoon...' : 'Analyzing your learning profile & recommendations...',
       successMessage: 'Personalized recommendations retrieved.',
-      allowed: true
+      allowed: true,
+      language
     };
   }
 
-  return { isMatch: false, allowed: true };
+  return { isMatch: false, allowed: true, language };
 }
+
 

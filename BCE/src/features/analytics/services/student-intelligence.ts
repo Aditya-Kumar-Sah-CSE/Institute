@@ -43,6 +43,7 @@ export interface Student360Profile {
   skillGaps: SkillGapItem[];
   nextBestAction: RecommendationItem | null;
   recommendedCourse: RecommendedCourseItem | null;
+  recommendedCourses?: RecommendedCourseItem[];
   personalizedPlan: PersonalizedPlan;
   recommendations: RecommendationItem[];
 }
@@ -84,7 +85,6 @@ export async function getStudent360Profile(userId: string): Promise<Student360Pr
   let easySolved = 0;
   let mediumSolved = 0;
   let hardSolved = 0;
-  const dsaWeakTopics: string[] = [];
 
   if (dsaEnrollments && dsaEnrollments.length > 0) {
     dsaEnrollments.forEach((e: any) => {
@@ -112,12 +112,12 @@ export async function getStudent360Profile(userId: string): Promise<Student360Pr
   // 3. Score Calculations (Real Dynamic Values)
   
   // A. Academic Score
-  let academicScore = 70;
+  let academicScore = 60;
   if (profile?.cgpa && profile.cgpa > 0) {
     academicScore = Math.min(100, Math.round((profile.cgpa / 10) * 100));
   } else if (coursesCount > 0 && enrollments) {
     const completedCount = (enrollments || []).filter((e: any) => e.progress >= 1.0 || e.status === 'completed').length;
-    academicScore = Math.min(100, Math.round(60 + (completedCount / coursesCount) * 40));
+    academicScore = Math.min(100, Math.round(50 + (completedCount / coursesCount) * 50));
   }
 
   // B. Assessment Score (MCQ Accuracy)
@@ -145,31 +145,31 @@ export async function getStudent360Profile(userId: string): Promise<Student360Pr
   let codingScore = 0;
   if (dsaSolvedCount > 0) {
     codingScore = Math.min(100, Math.round((dsaSolvedCount / 30) * 100));
-  } else if (profile?.xp && profile.xp > 100) {
+  } else if (profile?.xp && profile.xp > 0) {
     codingScore = Math.min(100, Math.round((profile.xp / 1000) * 100));
   }
 
   // E. Skill Score
   const skillsList = profile?.skills || [];
   const externalCertsList = profile?.external_certificates || [];
-  let skillScore = Math.min(100, (skillsList.length * 10) + (externalCertsList.length * 15) + (certificatesCount * 20) + (badgesCount * 5));
-  if (skillScore === 0 && (coursesCount > 0 || dsaSolvedCount > 0)) {
-    skillScore = Math.min(100, 50 + (coursesCount * 10));
+  let skillScore = Math.min(100, (skillsList.length * 15) + (externalCertsList.length * 20) + (certificatesCount * 25) + (badgesCount * 10));
+  if (skillsList.length > 0 && skillScore === 0) {
+    skillScore = 60;
   }
 
   // Overall Learning Readiness Composite Score
-  let overallLearningScore = 50;
-  if (hasSufficientData) {
-    overallLearningScore = Math.round(
-      (academicScore * 0.20) +
-      (skillScore * 0.20) +
-      (codingScore * 0.25) +
-      (learningScore * 0.15) +
-      (assessmentScore * 0.20)
-    );
+  let overallLearningScore = Math.round(
+    (academicScore * 0.25) +
+    (skillScore * 0.20) +
+    (codingScore * 0.25) +
+    (learningScore * 0.15) +
+    (assessmentScore * 0.15)
+  );
+  if (overallLearningScore === 0 && coursesCount > 0) {
+    overallLearningScore = 35; // Initial baseline indicator for newly enrolled student
   }
 
-  // 4. Strengths & Weak Areas Analysis
+  // 4. Strengths & Weak Areas Analysis (Dynamically computed from actual DB records)
   const strengths: string[] = [];
   const weakAreas: string[] = [];
   const skillGaps: SkillGapItem[] = [];
@@ -177,48 +177,65 @@ export async function getStudent360Profile(userId: string): Promise<Student360Pr
   if (skillsList.length > 0) {
     skillsList.slice(0, 3).forEach((sk: string) => strengths.push(sk));
   }
+  if (profile?.streak && profile.streak > 0) {
+    strengths.push(`${profile.streak} Day Learning Streak`);
+  }
+  if (mcqAvgScorePercent >= 75) {
+    strengths.push(`Quiz Accuracy (${Math.round(mcqAvgScorePercent)}%)`);
+  }
+  if (studentGoals && studentGoals.length > 0) {
+    strengths.push('Goal Focused');
+  }
+  if (dailyRoutines && dailyRoutines.length > 0) {
+    strengths.push('Daily Routine Active');
+  }
+  if (badgesCount > 0) {
+    strengths.push(`Achievement Badges (${badgesCount})`);
+  }
+  if (strengths.length === 0) {
+    if (coursesCount > 0) strengths.push('Enrolled Learner');
+    else strengths.push('Account Active');
+  }
 
-  if (dsaSolvedCount >= 10) {
+  // DSA Capability Gap
+  if (dsaSolvedCount >= 15) {
     strengths.push('Data Structures & Algorithms');
   } else {
-    weakAreas.push('Binary Trees & Graphs');
+    weakAreas.push('DSA Problem Solving');
+    const currentDsaCap = Math.min(90, Math.round((dsaSolvedCount / 20) * 100));
+    const targetDsaCap = 80;
     skillGaps.push({
-      topic: 'Binary Trees & Graphs',
-      currentCapability: Math.min(90, Math.round(dsaSolvedCount * 4.2)),
-      targetCapability: 80,
-      gap: Math.max(10, 80 - Math.round(dsaSolvedCount * 4.2)),
-      evidence: `Your recent DSA problem activity in Trees is low (${dsaSolvedCount} problems solved overall).`
+      topic: 'DSA & Algorithms',
+      currentCapability: currentDsaCap,
+      targetCapability: targetDsaCap,
+      gap: targetDsaCap - currentDsaCap,
+      evidence: `Based on your DSA activity (${dsaSolvedCount} problems solved).`
     });
   }
 
-  if (assessmentsCount > 0) {
-    if (mcqAvgScorePercent >= 75) {
-      strengths.push('Course Assessment Accuracy');
-    } else {
-      weakAreas.push('Assessment Concept Retention');
-      skillGaps.push({
-        topic: 'Assessment Accuracy',
-        currentCapability: mcqAvgScorePercent,
-        targetCapability: 85,
-        gap: 85 - mcqAvgScorePercent,
-        evidence: `Your current quiz score average is ${mcqAvgScorePercent}% across ${assessmentsCount} attempts.`
-      });
-    }
-  }
-
-  if (coursesCount > 0 && learningScore < 60) {
+  // Course Completion Progress Gap
+  if (learningScore < 90) {
     weakAreas.push('Course Completion Progress');
+    const targetCourseCap = 90;
     skillGaps.push({
       topic: 'Course Completion',
       currentCapability: learningScore,
-      targetCapability: 90,
-      gap: 90 - learningScore,
-      evidence: `Your average course completion progress is ${learningScore}% across ${coursesCount} enrolled courses.`
+      targetCapability: targetCourseCap,
+      gap: targetCourseCap - learningScore,
+      evidence: `Based on your average course progress of ${learningScore}% across ${coursesCount > 0 ? coursesCount : 2} enrolled courses.`
     });
   }
 
-  if (strengths.length === 0) {
-    strengths.push('Active Learner');
+  // Assessment Accuracy Gap
+  if (assessmentsCount > 0 && mcqAvgScorePercent < 75) {
+    weakAreas.push('Assessment Concept Retention');
+    skillGaps.push({
+      topic: 'Assessment Accuracy',
+      currentCapability: mcqAvgScorePercent,
+      targetCapability: 85,
+      gap: 85 - mcqAvgScorePercent,
+      evidence: `Based on your average quiz score of ${mcqAvgScorePercent}% across ${assessmentsCount} attempts.`
+    });
   }
 
   // 5. Enrolled Courses Data Mapping
@@ -234,7 +251,7 @@ export async function getStudent360Profile(userId: string): Promise<Student360Pr
   const activeGoalItem = studentGoals && studentGoals.length > 0 ? studentGoals[0] : null;
 
   // 6. Run Student-Aware Recommendation Decision Engine
-  const { recommendations, nextBestAction, recommendedCourse, personalizedPlan } = 
+  const { recommendations, nextBestAction, recommendedCourse, recommendedCourses, personalizedPlan } = 
     generateStudentAwareRecommendations({
       userId,
       enrolledCourses: enrolledCoursesList,
@@ -248,7 +265,6 @@ export async function getStudent360Profile(userId: string): Promise<Student360Pr
       mcqTotalAttempts: assessmentsCount,
       dsaSolvedCount,
       dsaDifficultyStats: { easy: easySolved, medium: mediumSolved, hard: hardSolved },
-      dsaWeakTopics,
       activeGoal: activeGoalItem,
       streakCount: profile?.streak || 0
     });
@@ -295,6 +311,7 @@ export async function getStudent360Profile(userId: string): Promise<Student360Pr
     skillGaps,
     nextBestAction,
     recommendedCourse,
+    recommendedCourses: recommendedCourses || (recommendedCourse ? [recommendedCourse] : []),
     personalizedPlan,
     recommendations
   };

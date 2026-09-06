@@ -147,16 +147,16 @@ export default function DualAudioVisualizer() {
 
   // Status computation for Agent Voice
   const isAgentSpeaking = agentVol > 0 || realtimeVoiceState === 'SPEAKING_AI';
-  let agentStatusText = '○ SILENT';
-  if (diagnostics.outputSource === 'web_speech') {
-    agentStatusText = '○ Web Speech Fallback';
-  } else if (isAgentSpeaking) {
-    agentStatusText = '● SPEAKING';
+  let agentStatusText = '🔊 SPEAKING';
+  if (!isAgentSpeaking) {
+    if (realtimeVoiceState === 'THINKING') agentStatusText = '🧠 THINKING';
+    else if (realtimeVoiceState === 'LISTENING' || realtimeVoiceState === 'HEARING') agentStatusText = '🔵 LISTENING';
+    else agentStatusText = '🎙️ IDLE';
   }
 
   // Status computation for Input Voice
   const isInputActive = inputVol > 0 || realtimeVoiceState === 'HEARING';
-  let inputStatusText = '○ AWAITING SPEECH';
+  let inputStatusText = '🔵 LISTENING';
   let isInputError = false;
 
   if (diagnostics.silentReason === 'AUDIO_CONTEXT_SUSPENDED') {
@@ -171,8 +171,12 @@ export default function DualAudioVisualizer() {
   } else if (diagnostics.silentReason === 'MIC_TRACK_DISABLED') {
     inputStatusText = '⚠️ MIC MUTED';
     isInputError = true;
+  } else if (realtimeVoiceState === 'THINKING') {
+    inputStatusText = '🧠 THINKING';
   } else if (isInputActive) {
-    inputStatusText = '● LISTENING';
+    inputStatusText = '🔵 LISTENING';
+  } else {
+    inputStatusText = '🔵 LISTENING';
   }
 
   return (

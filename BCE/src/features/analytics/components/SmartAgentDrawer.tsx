@@ -8,7 +8,7 @@ import { useSmartAgentSession } from '../context/SmartAgentSessionContext';
 import DualAudioVisualizer from './DualAudioVisualizer';
 import { 
   X, Send, Mic, MicOff, Sparkles, Bot, User, ArrowRight, RefreshCw, 
-  ExternalLink, AlertTriangle, Terminal, HelpCircle, Loader2, Volume2, VolumeX, Square, Trash2, CheckCircle2, AlertCircle, Maximize2, Minimize2
+  ExternalLink, AlertTriangle, Terminal, HelpCircle, Loader2, Volume2, VolumeX, Square, Trash2, CheckCircle2, AlertCircle, Maximize2, Minimize2, Database
 } from 'lucide-react';
 
 const QUICK_COMMANDS = [
@@ -39,12 +39,15 @@ export default function SmartAgentDrawer() {
     isSpeaking,
     isVoiceMode,
     setIsVoiceMode,
+    interimTranscript,
     voiceNotice,
     setVoiceNotice,
     handleSendPrompt,
     stopSpeech,
     stopVoiceSession,
     toggleVoiceRecording,
+    memorySummary,
+    clearMemory,
     clearConversation,
     getDynamicLoadingText
   } = useSmartAgentSession();
@@ -205,6 +208,16 @@ export default function SmartAgentDrawer() {
               title={isMaximized ? "Restore Drawer Size" : "Full Screen AI Assistant"}
             >
               {isMaximized ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            </button>
+
+            {/* CLEAR AI MEMORY BUTTON */}
+            <button 
+              type="button"
+              onClick={clearMemory}
+              style={{ background: 'transparent', border: 'none', color: memorySummary ? 'var(--neon-cyan)' : 'var(--text-muted)', cursor: 'pointer', padding: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              title={memorySummary ? "Clear Stored AI Memory (~200 words)" : "No Stored AI Memory"}
+            >
+              <Database size={16} />
             </button>
 
             {/* RESET CONVERSATION BUTTON */}
@@ -390,6 +403,15 @@ export default function SmartAgentDrawer() {
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: '#00ff88', fontSize: 'var(--text-xs)', padding: '8px 12px', background: 'rgba(0, 255, 136, 0.08)', border: '1px solid rgba(0, 255, 136, 0.3)', borderRadius: 'var(--radius-sm)', width: 'fit-content' }}>
             <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
             <span>Checking destination page state...</span>
+          </div>
+        )}
+
+        {/* LIVE INTERIM SPEECH TRANSCRIPT BUBBLE */}
+        {interimTranscript && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', opacity: 0.85, margin: '4px 0' }}>
+            <div style={{ background: 'rgba(0, 229, 255, 0.1)', border: '1px dashed var(--neon-cyan)', borderRadius: '12px', padding: '8px 14px', fontSize: '13px', fontStyle: 'italic', color: 'var(--text-secondary)' }}>
+              "{interimTranscript}..."
+            </div>
           </div>
         )}
 

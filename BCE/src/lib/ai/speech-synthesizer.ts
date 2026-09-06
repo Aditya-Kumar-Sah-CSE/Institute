@@ -43,7 +43,17 @@ export function cleanTextForSpeech(text: string): string {
   // 7. Remove emoji symbols that clutter speech reading
   cleaned = cleaned.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '');
 
-  // 8. Normalize multiple spaces & newlines to natural pauses
+  // 8. Truncate long explanations for spoken output (keep under 350 chars for natural voice delivery)
+  if (cleaned.length > 350) {
+    const periodIdx = cleaned.indexOf('.', 180);
+    if (periodIdx !== -1 && periodIdx < 350) {
+      cleaned = cleaned.slice(0, periodIdx + 1);
+    } else {
+      cleaned = cleaned.slice(0, 300) + '...';
+    }
+  }
+
+  // 9. Normalize multiple spaces & newlines to natural pauses
   cleaned = cleaned.replace(/\s+/g, ' ').trim();
 
   return cleaned;
@@ -57,7 +67,7 @@ export function detectLanguage(text: string): 'hi-IN' | 'en-IN' {
   const hinglishMarkers = [
     'bhai', 'kholo', 'karo', 'kar', 'hoon', 'hai', 'hain', 'dikhao', 'mera', 'meri',
     'tumhari', 'par', 'pe', 'kya', 'sawal', 'banao', 'hisaab', 'bilkul', 'raha', 'rahi',
-    'kuch', 'kaise', 'sabse', 'padhna', 'karna', 'liye', 'haan'
+    'kuch', 'kaise', 'sabse', 'padhna', 'karna', 'liye', 'haan', 'aaj', 'padh'
   ];
 
   const matchCount = hinglishMarkers.reduce((count, word) => {
@@ -107,6 +117,40 @@ export function stopAssistantSpeech() {
 }
 
 /**
+ * Dynamically selects the best natural browser voice for the target language.
+ */
+function selectBestVoice(targetLang: 'hi-IN' | 'en-IN'): SpeechSynthesisVoice | null {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return null;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices || voices.length === 0) return null;
+
+  // 1. Try exact language match with natural/Google/Microsoft quality voice
+  const exactQuality = voices.find(v => {
+    const lang = v.lang.toLowerCase().replace('_', '-');
+    const name = v.name.toLowerCase();
+    const isLangMatch = targetLang === 'hi-IN' ? (lang.includes('hi') || name.includes('hindi')) : (lang.includes('en-in') || name.includes('india'));
+    const isNatural = name.includes('natural') || name.includes('google') || name.includes('neural') || name.includes('premium');
+    return isLangMatch && isNatural;
+  });
+
+  if (exactQuality) return exactQuality;
+
+  // 2. Try exact language match
+  const exactLang = voices.find(v => {
+    const lang = v.lang.toLowerCase().replace('_', '-');
+    const name = v.name.toLowerCase();
+    return targetLang === 'hi-IN' ? (lang.includes('hi') || name.includes('hindi')) : (lang.includes('en-in') || name.includes('india'));
+  });
+
+  if (exactLang) return exactLang;
+
+  // 3. Fallback to any English natural voice
+  return voices.find(v => v.lang.toLowerCase().includes('en') && (v.name.toLowerCase().includes('google') || v.name.toLowerCase().includes('natural'))) ||
+         voices.find(v => v.lang.toLowerCase().includes('en')) ||
+         voices[0];
+}
+
+/**
  * Speaks the assistant response text aloud.
  * Returns true if speech was initiated, false if unsupported or empty text.
  */
@@ -135,25 +179,13 @@ export function speakAssistantResponse(text: string, options: SpeakOptions = {})
 
     const targetLang = options.lang || detectLanguage(spokenText);
     utterance.lang = targetLang;
-    utterance.rate = 0.95;
-    utterance.pitch = 1.0;
+    utterance.rate = 0.98;   // Natural, warm conversational pace
+    utterance.pitch = 1.05;  // Slightly energetic & friendly tone
     utterance.volume = 1.0;
 
-    const voices = window.speechSynthesis.getVoices();
-    if (voices && voices.length > 0) {
-      const preferredVoice = voices.find(v => {
-        const langStr = v.lang.toLowerCase().replace('_', '-');
-        const nameStr = v.name.toLowerCase();
-        
-        if (targetLang === 'hi-IN') {
-          return langStr.includes('hi') || langStr.includes('hi-in') || nameStr.includes('hindi') || nameStr.includes('india');
-        }
-        return langStr.includes('en-in') || nameStr.includes('india') || nameStr.includes('indian') || nameStr.includes('en_in');
-      }) || voices.find(v => v.lang.toLowerCase().includes('en'));
-
-      if (preferredVoice) {
-        utterance.voice = preferredVoice;
-      }
+    const selectedVoice = selectBestVoice(targetLang as 'hi-IN' | 'en-IN');
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
     }
 
     utterance.onstart = () => {
@@ -164,13 +196,7 @@ export function speakAssistantResponse(text: string, options: SpeakOptions = {})
 
     utterance.onend = () => {
       isSpeechSynthesisActive = false;
-      // Ignore callback if session ID was invalidated by a stop or replacement
-      if (activeSessionId !== currentTtsSessionId) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[TTS] Ignored onend from invalidated session:', activeSessionId);
-        }
-        return;
-      }
+      if (activeSessionId !== currentTtsSessionId) return;
 
       currentUtterance = null;
       const cb = activeEndCallback;
@@ -180,31 +206,16 @@ export function speakAssistantResponse(text: string, options: SpeakOptions = {})
 
     utterance.onerror = (event: any) => {
       isSpeechSynthesisActive = false;
-      // Ignore error callback if session ID was invalidated
-      if (activeSessionId !== currentTtsSessionId) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[TTS] Ignored onerror from invalidated session:', activeSessionId);
-        }
-        return;
-      }
+      if (activeSessionId !== currentTtsSessionId) return;
 
       const errKind = event?.error || '';
       currentUtterance = null;
       activeEndCallback = null;
 
-      // Handle intentional interruptions/cancellations cleanly (NOT a real failure!)
       if (errKind === 'interrupted' || errKind === 'canceled') {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[TTS] Utterance interrupted/cancelled safely.');
-        }
-        // Do NOT trigger onError callback or display playback errors for intentional cancellation
         return;
       }
 
-      // Handle genuine TTS playback failures only
-      if (process.env.NODE_ENV === 'development') {
-        console.error('[TTS ERROR] Genuine SpeechSynthesis failure:', event);
-      }
       if (options.onError) {
         options.onError(event);
       }
@@ -214,12 +225,10 @@ export function speakAssistantResponse(text: string, options: SpeakOptions = {})
     return true;
   } catch (err) {
     isSpeechSynthesisActive = false;
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('[TTS EXCEPTION] Failed to initialize SpeechSynthesisUtterance:', err);
-    }
     if (options.onError) {
       options.onError(err);
     }
     return false;
   }
 }
+

@@ -146,7 +146,29 @@ export class AgentController {
 
     // 3. Fast-Path Deterministic Intent Resolution
     const intentStart = Date.now();
-    const fastPathResult = await this.resolveDeterministicIntent(promptLower, promptRaw, input.user, userRole, input.pageContext, activeState);
+
+    // Contextual Pronoun & Reference Resolution ("open it", "isko open karo", "woh open karo", "why dsa?", "why this course?")
+    let processedPromptLower = promptLower;
+    let processedPromptRaw = promptRaw;
+
+    const isPronounOpen = /^(open\s+(it|this|that)|(isko|ye|woh|sko)\s+(open|kholo)\s*(karo)?)$/i.test(promptLower);
+    if (isPronounOpen) {
+      if (activeState.problemId || activeState.problemTitle) {
+        processedPromptLower = `open problem ${activeState.problemTitle || activeState.problemId}`;
+        processedPromptRaw = `open problem ${activeState.problemTitle || activeState.problemId}`;
+      } else if (activeState.sheetId || activeState.sheetTitle) {
+        processedPromptLower = `open ${activeState.sheetTitle || activeState.sheetId} sheet`;
+        processedPromptRaw = `open ${activeState.sheetTitle || activeState.sheetId} sheet`;
+      } else if (activeState.courseId || activeState.courseTitle) {
+        processedPromptLower = `open ${activeState.courseTitle || activeState.courseId} course`;
+        processedPromptRaw = `open ${activeState.courseTitle || activeState.courseId} course`;
+      } else {
+        processedPromptLower = 'open dsa sheets';
+        processedPromptRaw = 'open dsa sheets';
+      }
+    }
+
+    const fastPathResult = await this.resolveDeterministicIntent(processedPromptLower, processedPromptRaw, input.user, userRole, input.pageContext, activeState);
     if (fastPathResult) {
       const intentEnd = Date.now();
       fastPathResult.latencyMetrics = {

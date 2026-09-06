@@ -129,6 +129,7 @@ export function generateStudentAwareRecommendations(
   recommendations: RecommendationItem[];
   nextBestAction: RecommendationItem;
   recommendedCourse: RecommendedCourseItem | null;
+  recommendedCourses: RecommendedCourseItem[];
   personalizedPlan: PersonalizedPlan;
 } {
   const {
@@ -271,15 +272,17 @@ export function generateStudentAwareRecommendations(
     });
   }
 
-  // 4. COURSE ENROLLMENT INTELLIGENCE (Find Best Unenrolled Course)
+  // 4. COURSE ENROLLMENT INTELLIGENCE (Find Multiple Recommended Courses)
   let recommendedCourse: RecommendedCourseItem | null = null;
-  const unenrolledCourses = availableCourses.filter(c => !excludedCourseIds.has(c.id));
+  let recommendedCourses: RecommendedCourseItem[] = [];
 
-  if (unenrolledCourses.length > 0) {
-    const rankedCourses = unenrolledCourses.map(course => {
-      const courseText = `${course.title} ${course.description || ''} ${(course.tags || []).join(' ')}`.toLowerCase();
+  const candidateCourses = availableCourses.length > 0 ? availableCourses : enrolledCourses.map(e => ({ id: e.id, title: e.title, description: e.description || null }));
+
+  if (candidateCourses.length > 0) {
+    const rankedCourses = candidateCourses.map(course => {
+      const tagsList = (course as any).tags || [];
+      const courseText = `${course.title} ${course.description || ''} ${tagsList.join(' ')}`.toLowerCase();
       
-      // Match against weak topics & skill gaps
       const matchingWeakness = weakAreas.find(w => courseText.includes(w.toLowerCase()));
       const matchingGap = skillGaps.find(g => courseText.includes(g.topic.toLowerCase()));
 
@@ -288,7 +291,7 @@ export function generateStudentAwareRecommendations(
 
       if (matchingGap) {
         matchScore = Math.min(98, 85 + matchingGap.gap);
-        whyReason = `Addresses your ${matchingGap.topic} skill gap (${matchingGap.currentCapability}% vs ${matchingGap.targetCapability}% target).`;
+        whyReason = `Addresses your ${matchingGap.topic} skill gap.`;
       } else if (matchingWeakness) {
         matchScore = 88;
         whyReason = `Targets your weak area in ${matchingWeakness}.`;
@@ -307,33 +310,36 @@ export function generateStudentAwareRecommendations(
         matchScore,
         whyReason,
         actionUrl: `/courses/${course.id}`,
-        difficulty: course.difficulty,
-        tags: course.tags
+        difficulty: (course as any).difficulty,
+        tags: (course as any).tags
       };
     }).sort((a, b) => b.matchScore - a.matchScore);
 
-    recommendedCourse = rankedCourses[0];
+    recommendedCourses = rankedCourses.slice(0, 4);
+    recommendedCourse = rankedCourses[0] || null;
 
-    const recScore = calculateRecommendationScore({
-      skillGapScore: recommendedCourse.matchScore,
-      goalAlignmentScore: isPlacementGoal ? 90 : 80,
-      courseRelevanceScore: recommendedCourse.matchScore,
-      recentActivityScore: 75,
-      performanceNeedScore: 80,
-      prerequisiteReadinessScore: 90
-    });
+    if (recommendedCourse) {
+      const recScore = calculateRecommendationScore({
+        skillGapScore: recommendedCourse.matchScore,
+        goalAlignmentScore: isPlacementGoal ? 90 : 80,
+        courseRelevanceScore: recommendedCourse.matchScore,
+        recentActivityScore: 75,
+        performanceNeedScore: 80,
+        prerequisiteReadinessScore: 90
+      });
 
-    recommendations.push({
-      id: `rec-enroll-${recommendedCourse.id}`,
-      type: 'ENROLL_COURSE',
-      title: `Enroll in ${recommendedCourse.title}`,
-      subtitle: `${recommendedCourse.matchScore}% Match`,
-      description: recommendedCourse.description,
-      evidenceWhy: recommendedCourse.whyReason,
-      actionUrl: recommendedCourse.actionUrl,
-      actionText: 'View Course',
-      relevanceScore: recScore
-    });
+      recommendations.push({
+        id: `rec-enroll-${recommendedCourse.id}`,
+        type: 'ENROLL_COURSE',
+        title: `Enroll in ${recommendedCourse.title}`,
+        subtitle: `${recommendedCourse.matchScore}% Match`,
+        description: recommendedCourse.description,
+        evidenceWhy: recommendedCourse.whyReason,
+        actionUrl: recommendedCourse.actionUrl,
+        actionText: 'View Course',
+        relevanceScore: recScore
+      });
+    }
   }
 
   // Sort recommendations by relevanceScore descending
@@ -404,6 +410,7 @@ export function generateStudentAwareRecommendations(
     recommendations: recommendations.slice(0, 5),
     nextBestAction,
     recommendedCourse,
+    recommendedCourses,
     personalizedPlan
   };
 }

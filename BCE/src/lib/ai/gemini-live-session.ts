@@ -1,6 +1,7 @@
 import { GoogleGenAI, Modality } from '@google/genai';
 import { GEMINI_TOOL_DECLARATIONS } from './agent-tool-declarations';
 import { GeminiAudioPlayer } from './gemini-audio-player';
+import { AdaptiveVAD } from './adaptive-vad';
 
 export type VoiceConnectionState = 'starting' | 'connecting' | 'connected' | 'ready' | 'error' | 'stopped' | 'closed';
 
@@ -23,6 +24,7 @@ export class GeminiLiveSession {
   private workletNode: AudioWorkletNode | null = null;
   private sourceNode: MediaStreamAudioSourceNode | null = null;
   private inputAnalyserNode: AnalyserNode | null = null;
+  private vad: AdaptiveVAD = new AdaptiveVAD();
   private isStopped: boolean = false;
   private isReady: boolean = false;
   private currentAssistantText: string = '';
@@ -232,30 +234,26 @@ export class GeminiLiveSession {
         const pcmArrayBuffer: ArrayBuffer = event.data;
         const int16 = new Int16Array(pcmArrayBuffer);
 
-        let sum = 0;
-        for (let i = 0; i < int16.length; i++) {
-          sum += int16[i] * int16[i];
-        }
-        const pcmRms = Math.sqrt(sum / int16.length);
+        const isPlaying = this.audioPlayer?.getIsPlaying() || false;
+        const vadResult = this.vad.processInt16Samples(int16, isPlaying);
 
         const now = Date.now();
         if (process.env.NODE_ENV === 'development' && now - pcmLogTimer > 1000) {
           pcmLogTimer = now;
-          console.log('[PCM CAPTURE]', {
-            sampleCount: int16.length,
-            firstSample: int16[0] || 0,
-            pcmRms: pcmRms.toFixed(2),
-            timestamp: now
+          console.log('[VAD STATUS]', {
+            isSpeech: vadResult.isSpeech,
+            isBargeIn: vadResult.isBargeIn,
+            rms: vadResult.rms.toFixed(4),
+            noiseFloor: vadResult.noiseFloor.toFixed(4),
+            snrDb: vadResult.snrDb.toFixed(1)
           });
         }
 
-        // Check barge-in: If AI is speaking and user input energy is high, stop AI playback
-        if (this.audioPlayer?.getIsPlaying()) {
-          if (pcmRms > 2000) {
-            console.log('[AUDIO] User barge-in detected (PCM RMS > 2000), stopping playback.');
-            this.audioPlayer.stop();
-            this.callbacks.onStateChange?.('LISTENING');
-          }
+        // Adaptive Barge-in: If AI is playing and adaptive VAD detects true user speech, stop playback
+        if (vadResult.isBargeIn) {
+          console.log('[AUDIO] Adaptive barge-in detected! SNR =', vadResult.snrDb.toFixed(1), 'dB. Cancelling playback.');
+          this.audioPlayer?.stop();
+          this.callbacks.onStateChange?.('LISTENING');
         }
 
         // Send realtime audio stream to Gemini Live when connection is ready

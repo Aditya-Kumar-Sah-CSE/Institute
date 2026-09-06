@@ -14,6 +14,12 @@ import {
 } from '@/lib/ai/speech-synthesizer';
 import { resolveClientFastPath } from '@/lib/ai/client-fast-path';
 import { LatencyTracker } from '@/lib/ai/latency-telemetry';
+import { 
+  loadAgentMemory, 
+  saveAgentMemory, 
+  clearAgentMemory, 
+  SUMMARY_TRIGGER_MESSAGES 
+} from '@/lib/ai/agent-memory';
 
 export interface AudioDiagnostics {
   audioContextState: string;
@@ -128,6 +134,7 @@ interface SmartAgentSessionContextValue {
   isSpeaking: boolean;
   isVoiceMode: boolean;
   setIsVoiceMode: (val: boolean) => void;
+  interimTranscript: string;
   voiceNotice: string | null;
   setVoiceNotice: (val: string | null) => void;
   
@@ -137,6 +144,8 @@ interface SmartAgentSessionContextValue {
   startVoiceListening: () => Promise<void>;
   stopVoiceRecordingAndSend: () => Promise<void>;
   toggleVoiceRecording: () => Promise<void>;
+  memorySummary: string | null;
+  clearMemory: () => void;
   clearConversation: () => void;
   getDynamicLoadingText: () => string;
   getInputAnalyserNode: () => AnalyserNode | null;
@@ -176,7 +185,28 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
   const [isListening, setIsListening] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState('');
   const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
+  const [memorySummary, setMemorySummary] = useState<string | null>(null);
+
+  // Load previous rolling memory summary on session startup
+  useEffect(() => {
+    const mem = loadAgentMemory();
+    if (mem && mem.summary) {
+      setMemorySummary(mem.summary);
+      const shortSummary = mem.summary.length > 180 ? `${mem.summary.slice(0, 180)}...` : mem.summary;
+      setMessages([
+        {
+          role: 'assistant',
+          content: `Welcome back to **Smart Learn AI Agent** ✦\n\nI remember our previous conversation:\n_"${shortSummary}"_\n\nHow would you like to continue today?`,
+          actions: [
+            { label: 'Continue Practice', url: '/code-arena/sheets' },
+            { label: 'View Dashboard', url: '/dashboard' }
+          ]
+        }
+      ]);
+    }
+  }, []);
 
   const [pendingVerification, setPendingVerification] = useState<PendingVerification | null>(null);
 
@@ -189,8 +219,9 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
   const activeAbortControllerRef = useRef<AbortController | null>(null);
   const userRoleRef = useRef<string>('student');
 
-  // Gemini Live Session Ref & AudioContext / Session Counter Refs
+  // Gemini Live Session Ref & AudioContext / SpeechRecognition / Session Counter Refs
   const geminiLiveSessionRef = useRef<GeminiLiveSession | null>(null);
+  const speechRecognitionRef = useRef<any>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const voiceSessionIdRef = useRef<number>(0);
   const voiceStateRef = useRef<RealtimeVoiceState>('IDLE');
@@ -347,6 +378,15 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
 
   const stopVoiceSession = () => {
     voiceSessionIdRef.current++;
+    if (speechRecognitionRef.current) {
+      try {
+        speechRecognitionRef.current.onresult = null;
+        speechRecognitionRef.current.onend = null;
+        speechRecognitionRef.current.onerror = null;
+        speechRecognitionRef.current.stop();
+      } catch (e) {}
+      speechRecognitionRef.current = null;
+    }
     if (geminiLiveSessionRef.current) {
       geminiLiveSessionRef.current.stop();
       geminiLiveSessionRef.current = null;
@@ -355,6 +395,8 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
       try { audioCtxRef.current.close(); } catch (e) {}
       audioCtxRef.current = null;
     }
+    stopAssistantSpeech();
+    setInterimTranscript('');
     setVoiceState('STOPPED');
   };
 
@@ -518,6 +560,13 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
   const closeDrawer = () => {
     stopVoiceSession();
     setIsOpen(false);
+  };
+
+  const clearMemory = () => {
+    clearAgentMemory();
+    setMemorySummary(null);
+    setVoiceNotice('AI Memory cleared cleanly.');
+    setTimeout(() => setVoiceNotice(null), 3000);
   };
 
   const clearConversation = () => {
@@ -893,10 +942,26 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
 
       setMessages((prev) => [...prev, nextMsg]);
 
-      if (isVoiceModeRef.current && response.message) {
+      if (fastPath.clientAction === 'exitVoiceSession') {
+        if (isVoiceModeRef.current && response.message) {
+          speakAssistantResponse(response.message, {
+            onStart: () => setVoiceState('SPEAKING_AI'),
+            onEnd: () => stopVoiceSession()
+          });
+        } else {
+          stopVoiceSession();
+        }
+      } else if (isVoiceModeRef.current && response.message) {
         speakAssistantResponse(response.message, {
           onStart: () => setVoiceState('SPEAKING_AI'),
-          onEnd: () => setVoiceState('IDLE')
+          onEnd: () => {
+            if (isVoiceModeRef.current && voiceStateRef.current !== 'STOPPED') {
+              setVoiceState('LISTENING');
+              if (!geminiLiveSessionRef.current) {
+                startVoiceListening();
+              }
+            }
+          }
         });
       }
 
@@ -943,6 +1008,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         isSpeaking,
         isVoiceMode,
         setIsVoiceMode,
+        interimTranscript,
         voiceNotice,
         setVoiceNotice,
         handleSendPrompt,
@@ -951,6 +1017,8 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         startVoiceListening,
         stopVoiceRecordingAndSend,
         toggleVoiceRecording,
+        memorySummary,
+        clearMemory,
         clearConversation,
         getDynamicLoadingText,
         getInputAnalyserNode: () => geminiLiveSessionRef.current?.getInputAnalyserNode() || null,
