@@ -10,7 +10,7 @@
   box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
-  z-index: var(--z-sticky);
+  z-index: 1000;
   overflow-y: auto;
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE/Edge */
@@ -284,7 +284,7 @@ body.sidebar-is-collapsed .sidebar {
     flex-direction: row;
     justify-content: center;
     background: var(--bg-secondary);
-    z-index: var(--z-modal);
+    z-index: 10000;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex !important;
   }
