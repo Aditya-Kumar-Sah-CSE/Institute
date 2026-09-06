@@ -232,7 +232,7 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
     isChatRoute ? 'chat-active' : null,
     isNavWrapped ? 'mobile-collapsed' : null,
     isCollapsed ? 'is-collapsed' : null,
-  ].filter(Boolean).join(' ');
+  ].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
 
   return (
     <aside className={sidebarClasses} suppressHydrationWarning>
