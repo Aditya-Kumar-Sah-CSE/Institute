@@ -13,6 +13,7 @@ import {
   getSpeechSynthesisSpeaking
 } from '@/lib/ai/speech-synthesizer';
 import { resolveClientFastPath } from '@/lib/ai/client-fast-path';
+import { validateAndRefreshSnapshot, formatLiveSnapshotSummary } from '@/lib/ai/live-dom-reader';
 import { LatencyTracker } from '@/lib/ai/latency-telemetry';
 import { 
   loadAgentMemory, 
@@ -780,111 +781,168 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
       ]);
     }
 
-    // 2. Tier 1: Deterministic Client Fast-Path Router (Requirement 1, 5, 8)
-    const fastPath = resolveClientFastPath(promptText, userRoleRef.current, activeContext);
-    tracker.markStage('intentResolution');
-    tracker.markStage('permissionCheck');
+    try {
+      // 2. Validate & Refresh Live Snapshot (Requirement 3)
+      const freshLiveContext = validateAndRefreshSnapshot(liveContext);
 
-    if (fastPath.isMatch && !confirmedTool) {
-      tracker.setFastPath('client');
-      tracker.setCacheHit(true);
+      // Development-Only Request Flow Logging (Requirement 1)
+      console.log('[Agent] transcript:', promptText);
+      console.log('[Agent] current route:', freshLiveContext.route);
+      console.log('[Agent] snapshot found:', Boolean(freshLiveContext.snapshot));
+      console.log('[Agent] snapshot elements:', freshLiveContext.interactiveElementsList?.length || 0);
 
-      if (!fastPath.allowed) {
-        const errorMsg = fastPath.permissionReason || 'Access denied: You do not have permission for this section.';
+      // Tier 1: Deterministic Client Fast-Path Router (Requirement 2 & 7)
+      const fastPath = resolveClientFastPath(promptText, userRoleRef.current, activeContext, freshLiveContext);
+      console.log('[Agent] intent:', fastPath.isMatch ? (fastPath.clientAction || 'PAGE_AWARENESS_QUERY') : 'LLM_FALLBACK');
+
+      if (fastPath.isMatch && !confirmedTool) {
+        tracker.setFastPath('client');
+        tracker.setCacheHit(true);
+
+        if (!fastPath.allowed) {
+          const errorMsg = fastPath.permissionReason || 'Access denied: You do not have permission for this section.';
+          setMessages((prev) => [
+            ...prev,
+            { role: 'assistant', content: `⚠️ ${errorMsg}`, navigationState: 'UNAUTHORIZED' }
+          ]);
+          setExecutionState('FAILED');
+          setIsLoading(false);
+          tracker.finish();
+          return;
+        }
+
+        setExecutionState(fastPath.clientAction === 'navigate' ? 'NAVIGATING' : 'EXECUTING');
+        
+        const assistantMsgId = `msg_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+        const initialMessage = fastPath.streamingMessage || 'Processing command...';
+
         setMessages((prev) => [
           ...prev,
-          { role: 'assistant', content: `⚠️ ${errorMsg}`, navigationState: 'UNAUTHORIZED' }
+          {
+            id: assistantMsgId,
+            role: 'assistant',
+            content: initialMessage,
+            navigationState: fastPath.targetRoute ? 'NAVIGATING' : undefined,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }
         ]);
-        setExecutionState('FAILED');
-        setIsLoading(false);
-        tracker.finish();
-        return;
-      }
 
-      // Streaming Responses (Requirement 7): Show immediate UI response
-      setExecutionState(fastPath.clientAction === 'navigate' ? 'NAVIGATING' : 'EXECUTING');
-      
-      const initialMessage = fastPath.streamingMessage || 'Processing command...';
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: initialMessage,
-          navigationState: fastPath.targetRoute ? 'NAVIGATING' : undefined,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        const commitAssistantResponse = (contentStr: string, navState: 'VERIFIED' | 'FAILED' = 'VERIFIED') => {
+          console.log('[Agent] response generated:', contentStr.slice(0, 100));
+          setMessages((prev) => {
+            const index = prev.findIndex(m => (m as any).id === assistantMsgId || m.content === initialMessage);
+            if (index !== -1) {
+              const next = [...prev];
+              next[index] = {
+                ...next[index],
+                content: contentStr,
+                navigationState: navState
+              };
+              console.log('[Agent] response committed to UI: true');
+              return next;
+            }
+            console.log('[Agent] response committed to UI: true (appended)');
+            return [
+              ...prev,
+              {
+                id: assistantMsgId,
+                role: 'assistant',
+                content: contentStr,
+                navigationState: navState,
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              } as SmartAgentMessage
+            ];
+          });
+        };
+
+        if (fastPath.clientAction === 'close') {
+          closeDrawer();
+          setExecutionState('IDLE');
+          setIsLoading(false);
+          tracker.finish();
+          return;
         }
-      ]);
 
-      if (fastPath.clientAction === 'close') {
-        closeDrawer();
-        setExecutionState('IDLE');
-        setIsLoading(false);
-        tracker.finish();
-        return;
+        if (fastPath.clientAction === 'back') {
+          router.back();
+          commitAssistantResponse('✅ Navigated back.');
+          setExecutionState('IDLE');
+          setIsLoading(false);
+          tracker.finish();
+          return;
+        }
+
+        if (fastPath.clientAction === 'interact' && fastPath.interactArgs) {
+          const { actionType, targetText } = fastPath.interactArgs;
+          const domRes = executeDOMActionOnPage(actionType, targetText);
+          const finalContent = domRes.success ? `✅ ${domRes.message}` : `⚠️ ${domRes.message}`;
+
+          commitAssistantResponse(finalContent, domRes.success ? 'VERIFIED' : 'FAILED');
+
+          setExecutionState('IDLE');
+          setIsLoading(false);
+          tracker.finish();
+          return;
+        }
+
+        if (fastPath.clientAction === 'context') {
+          const targetFilter = (fastPath.interactArgs?.targetText as any) || 'all';
+          const contentStr = formatLiveSnapshotSummary(freshLiveContext, targetFilter);
+
+          commitAssistantResponse(contentStr, 'VERIFIED');
+
+          if (isVoiceModeRef.current && contentStr) {
+            try {
+              speakAssistantResponse(contentStr.replace(/[*_#`-]/g, ' ').slice(0, 250), {
+                onStart: () => setVoiceState('SPEAKING_AI'),
+                onEnd: () => {
+                  if (isVoiceModeRef.current && voiceStateRef.current !== 'STOPPED') {
+                    setVoiceState('LISTENING');
+                  }
+                }
+              });
+            } catch (ttsErr) {
+              console.warn('[SmartAgent] Voice TTS warning (text retained in UI):', ttsErr);
+            }
+          }
+
+          setExecutionState('IDLE');
+          setIsLoading(false);
+          tracker.finish();
+          return;
+        }
+
+        if (fastPath.targetRoute) {
+          tracker.markStage('navigation');
+          await performRealNavigation(fastPath.targetRoute);
+
+          if (signal.aborted) return;
+
+          tracker.markStage('verification');
+          const verification = await verifyPostActionState(fastPath.targetRoute);
+
+          if (signal.aborted) return;
+
+          tracker.markStage('response');
+          const finalContent = verification.success ? `✅ ${fastPath.successMessage || 'Navigation complete.'}` : verification.message;
+
+          commitAssistantResponse(finalContent, verification.success ? 'VERIFIED' : 'FAILED');
+
+          setExecutionState('IDLE');
+          setIsLoading(false);
+          tracker.finish();
+          return;
+        }
+
+        if (!fastPath.targetRoute && fastPath.streamingMessage) {
+          setExecutionState('IDLE');
+          setIsLoading(false);
+          tracker.finish();
+          return;
+        }
       }
 
-      if (fastPath.clientAction === 'back') {
-        router.back();
-        setMessages(prev => prev.map(m => m.content === initialMessage ? {
-          ...m, content: '✅ Navigated back.', navigationState: 'VERIFIED'
-        } : m));
-        setExecutionState('IDLE');
-        setIsLoading(false);
-        tracker.finish();
-        return;
-      }
-
-      if (fastPath.clientAction === 'context') {
-        const fresh = liveContext || {};
-        const titleStr = fresh.pageTitle || fresh.route;
-        const headingsStr = fresh.visibleHeadings && fresh.visibleHeadings.length > 0 ? fresh.visibleHeadings.join(', ') : 'None';
-        const contentStr = `📄 **Current Page**: ${titleStr} (\`${fresh.route}\`)\n\n• **Headings**: ${headingsStr}\n• **Summary**: ${fresh.visibleTextContent?.slice(0, 300) || 'None'}`;
-
-        setMessages(prev => prev.map(m => m.content === initialMessage ? {
-          ...m, content: contentStr, navigationState: 'VERIFIED'
-        } : m));
-        setExecutionState('IDLE');
-        setIsLoading(false);
-        tracker.finish();
-        return;
-      }
-
-      if (fastPath.targetRoute) {
-        tracker.markStage('navigation');
-        await performRealNavigation(fastPath.targetRoute);
-
-        if (signal.aborted) return;
-
-        tracker.markStage('verification');
-        const verification = await verifyPostActionState(fastPath.targetRoute);
-
-        if (signal.aborted) return;
-
-        tracker.markStage('response');
-        const finalContent = verification.success ? `✅ ${fastPath.successMessage || 'Navigation complete.'}` : verification.message;
-
-        setMessages(prev => prev.map(m => m.content === initialMessage ? {
-          ...m,
-          content: finalContent,
-          navigationState: verification.success ? 'VERIFIED' : 'FAILED'
-        } : m));
-
-        setExecutionState('IDLE');
-        setIsLoading(false);
-        tracker.finish();
-        return;
-      }
-
-      if (!fastPath.targetRoute && fastPath.streamingMessage) {
-        setExecutionState('IDLE');
-        setIsLoading(false);
-        tracker.finish();
-        return;
-      }
-    }
-
-    // 3. Tier 2 & 3: Server Fast-Path & LLM Fallback
-    try {
+      // 3. Tier 2 & 3: Server Fast-Path & LLM Fallback
       tracker.markStage('toolExecution');
       tracker.recordApiCall();
 
@@ -896,7 +954,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
       const response = await askSmartAgentAction({
         prompt: promptText,
         history: formattedHistory,
-        pageContext: liveContext as any,
+        pageContext: freshLiveContext as any,
         confirmedTool,
         sessionState: agentSessionStateRef.current
       });
@@ -915,10 +973,13 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
       }
 
       if (!response.success) {
+        const errorContent = `Sorry, ${response.message || "I couldn't read the current page. Please try again."}`;
+        console.log('[Agent] response generated (error):', errorContent);
         setMessages((prev) => [
           ...prev,
-          { role: 'assistant', content: `Sorry, ${response.message || 'I encountered an issue processing that.'}` }
+          { role: 'assistant', content: errorContent }
         ]);
+        console.log('[Agent] response committed to UI: true');
         setExecutionState('FAILED');
         setIsLoading(false);
         tracker.finish();
@@ -927,7 +988,9 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
 
       let displayMessage = response.message;
 
-      if (response.data && response.data.clientDOMAction) {
+      if (response.toolExecuted === 'getCurrentPageContext' && response.data) {
+        displayMessage = formatLiveSnapshotSummary(freshLiveContext);
+      } else if (response.data && response.data.clientDOMAction) {
         tracker.recordDomScan();
         const { actionType, query, valueToType, elementIndex } = response.data.clientDOMAction;
         const domRes = executeDOMActionOnPage(actionType, query, valueToType, elementIndex);
@@ -971,7 +1034,9 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
 
+      console.log('[Agent] response generated:', displayMessage.slice(0, 100));
       setMessages((prev) => [...prev, nextMsg]);
+      console.log('[Agent] response committed to UI: true');
 
       if (fastPath.clientAction === 'exitVoiceSession') {
         if (isVoiceModeRef.current && response.message) {
@@ -1004,11 +1069,14 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         console.log('[SmartAgent] Request aborted successfully');
         return;
       }
-      console.error('[SmartAgentSessionContext Error]:', err);
+      console.error('[Agent Page Awareness Error]:', err);
+      const fallbackContent = "I couldn't read the current page. Please try again.";
+      console.log('[Agent] response generated (fallback):', fallbackContent);
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: 'An unexpected error occurred. Please try again.' }
+        { role: 'assistant', content: fallbackContent }
       ]);
+      console.log('[Agent] response committed to UI: true');
       setExecutionState('FAILED');
       setIsLoading(false);
       tracker.finish();

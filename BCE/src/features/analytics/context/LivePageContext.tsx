@@ -26,10 +26,11 @@ function LivePageContextProviderInner({ children }: { children: ReactNode }) {
 
   const [contextState, setContextState] = useState<LivePageContext>(() => buildDefaultLiveContext(fullRoute));
 
-  // 1. ROUTE CHANGE & INITIAL EXTRACTION EFFECT
+  // 1. ROUTE CHANGE & INITIAL EXTRACTION EFFECT (Runs post-hydration to avoid attribute mutation mismatches)
   useEffect(() => {
     invalidateDOMCache();
-    setContextState(buildDefaultLiveContext(fullRoute));
+    const immediateCtx = extractLiveDOMContext(fullRoute, true);
+    setContextState(immediateCtx);
 
     const timer = setTimeout(() => {
       const freshCtx = extractLiveDOMContext(fullRoute, true);
@@ -85,7 +86,9 @@ function LivePageContextProviderInner({ children }: { children: ReactNode }) {
   }, [fullRoute]);
 
   const resetLiveContext = useCallback(() => {
-    setContextState(buildDefaultLiveContext(fullRoute));
+    invalidateDOMCache();
+    const fresh = extractLiveDOMContext(fullRoute, true);
+    setContextState(fresh);
   }, [fullRoute]);
 
   // On-demand tool invocation helper to fetch fresh live DOM context
@@ -130,11 +133,12 @@ export function LivePageContextProvider({ children }: { children: ReactNode }) {
 export function useLivePageContext(): LivePageContextValue {
   const ctx = useContext(LivePageContextObj);
   if (!ctx) {
+    const fallbackCtx = buildDefaultLiveContext('/dashboard');
     return {
-      liveContext: buildDefaultLiveContext('/dashboard'),
+      liveContext: fallbackCtx,
       setLiveContext: () => {},
       resetLiveContext: () => {},
-      getCurrentPageContext: () => buildDefaultLiveContext('/dashboard'),
+      getCurrentPageContext: () => typeof window !== 'undefined' ? extractLiveDOMContext('/dashboard', true) : buildDefaultLiveContext('/dashboard'),
       executeDOMActionOnPage: (actionType, query, valueToType, elementIndex) => executeLiveDOMAction(actionType, query, valueToType, elementIndex)
     };
   }

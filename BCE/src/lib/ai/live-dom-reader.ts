@@ -16,6 +16,15 @@ let cachedDOMRoute: string | null = null;
 let lastDOMScanTimestamp = 0;
 const DOM_CACHE_TTL_MS = 2000; // Cache DOM index for 2s unless forced
 
+export function getClassNameString(el: Element | null | undefined): string {
+  if (!el) return '';
+  if (typeof el.className === 'string') return el.className;
+  if (el.className && typeof (el.className as any).baseVal === 'string') {
+    return (el.className as any).baseVal;
+  }
+  return '';
+}
+
 /**
  * Invalidate cached DOM context manually on route change, modal open, or action execution.
  */
@@ -154,8 +163,7 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
         const runtimeId = `agent-el-${String(elementCounter).padStart(3, '0')}`;
         elementCounter++;
 
-        // Attach runtime attribute on DOM element for direct retrieval
-        el.setAttribute('data-agent-runtime-id', runtimeId);
+        const classNameStr = getClassNameString(el);
 
         let type: RuntimeAgentElement['type'] = 'other';
         if (tag === 'BUTTON' || role === 'button' || el.classList.contains('btn')) type = 'button';
@@ -167,7 +175,7 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
         else if (tag === 'SELECT') type = 'select';
         else if (role === 'menuitem') type = 'menu_item';
         else if (el.closest('.modal, [role="dialog"]')) type = 'modal_action';
-        else if (el.classList.contains('card') || el.className.includes('card')) type = 'card';
+        else if (el.classList.contains('card') || classNameStr.includes('card')) type = 'card';
 
         const agentEl: RuntimeAgentElement = {
           id: runtimeId,
@@ -233,8 +241,9 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
       const rect = d.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0 && window.getComputedStyle(d).display !== 'none') {
         const modalTitle = d.querySelector('h1, h2, h3, h4, .modal-title, [class*="title"]')?.textContent?.trim();
-        const isToast = d.classList.contains('toast') || d.className.includes('toast');
-        const isPopover = d.className.includes('popover');
+        const dClassStr = getClassNameString(d);
+        const isToast = d.classList.contains('toast') || dClassStr.includes('toast');
+        const isPopover = dClassStr.includes('popover');
         dialogs.push({
           title: modalTitle,
           type: isToast ? 'toast' : isPopover ? 'popover' : 'modal'
@@ -310,7 +319,7 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
       const text = alertEl.textContent?.trim();
       if (text) {
         const colorInfo = getElementComputedColorInfo(alertEl as HTMLElement);
-        const lowerClass = alertEl.className.toLowerCase();
+        const lowerClass = getClassNameString(alertEl).toLowerCase();
         let type: LiveUIAlert['type'] = 'info';
         if (lowerClass.includes('error') || colorInfo?.semanticColor === 'red') type = 'error';
         else if (lowerClass.includes('warn') || colorInfo?.semanticColor === 'yellow') type = 'warning';
@@ -475,4 +484,164 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
     return baseContext;
   }
 }
+
+/**
+ * Validates whether the provided LivePageContext is fresh, matching the expected route,
+ * and populated with interactive elements/sections. If stale, missing, or empty unexpectedly,
+ * synchronously invalidates cache and extracts a fresh LiveUISnapshot with 1 retry.
+ */
+export function validateAndRefreshSnapshot(liveContext?: LivePageContext, expectedRoute?: string): LivePageContext {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return liveContext || buildDefaultLiveContext(expectedRoute || '/dashboard');
+  }
+
+  const currentRoute = window.location.pathname + window.location.search;
+  const targetRoute = expectedRoute || currentRoute;
+  
+  const normCurrent = targetRoute.split('?')[0].split('#')[0].replace(/\/$/, '').toLowerCase();
+  const normCtxRoute = (liveContext?.route || '').split('?')[0].split('#')[0].replace(/\/$/, '').toLowerCase();
+
+  const isMissing = !liveContext || !liveContext.snapshot;
+  const snap = liveContext?.snapshot;
+  const hasContent = Boolean(
+    snap && (
+      (snap.visibleSections && snap.visibleSections.length > 0) ||
+      (snap.cards && snap.cards.length > 0) ||
+      (snap.actionableElements && snap.actionableElements.length > 0) ||
+      (snap.visibleText && snap.visibleText.length > 0)
+    )
+  );
+
+  const isEmpty = !hasContent || !liveContext?.interactiveElementsList || liveContext.interactiveElementsList.length === 0;
+  const isStale = liveContext?.timestamp ? (Date.now() - liveContext.timestamp > 2500) : true;
+  const isRouteMismatch = normCtxRoute !== normCurrent;
+
+  if (isMissing || isEmpty || isStale || isRouteMismatch) {
+    invalidateDOMCache();
+    const fresh = extractLiveDOMContext(targetRoute, true);
+    if (!fresh.interactiveElementsList || fresh.interactiveElementsList.length === 0) {
+      // Retry once if first scan returned empty
+      invalidateDOMCache();
+      return extractLiveDOMContext(targetRoute, true);
+    }
+    return fresh;
+  }
+
+  return liveContext;
+}
+
+/**
+ * Formats a concise, structured markdown summary from a live page context / LiveUISnapshot.
+ * Output structure:
+ * Page: [Title/Route]
+ *
+ * Sections:
+ * - Section 1
+ *
+ * Cards:
+ * - Card 1
+ *
+ * Actions:
+ * - Action 1
+ */
+export function formatLiveSnapshotSummary(liveCtx?: LivePageContext, targetFilter?: 'all' | 'sidebar' | 'strengths'): string {
+  if (!liveCtx || !liveCtx.snapshot) {
+    return "I couldn't read the current page. Please try again.";
+  }
+
+  const snapshot = liveCtx.snapshot;
+  const pageName = liveCtx.pageTitle || snapshot.pageTitle || liveCtx.route || 'Current Page';
+
+  if (targetFilter === 'sidebar') {
+    const sidebarEls = (liveCtx.interactiveElementsList || []).filter(e => e.parentSection === 'sidebar');
+    const items = Array.from(new Set(
+      sidebarEls
+        .map(e => e.text || e.ariaLabel || e.title)
+        .filter((t): t is string => typeof t === 'string' && t.trim().length > 1)
+    ));
+    if (items.length > 0) {
+      return `**Page:** ${pageName} (Sidebar)\n\n**Sidebar Navigation Items:**\n` + items.map(i => `- ${i}`).join('\n');
+    }
+  }
+
+  if (targetFilter === 'strengths') {
+    const strengthCards = (snapshot.cards || []).filter(c => {
+      const title = (c.title || '').toLowerCase();
+      const sub = (c.subtitle || '').toLowerCase();
+      return title.includes('strength') || title.includes('readiness') || title.includes('improve') || sub.includes('strength');
+    });
+
+    const metrics = (snapshot.cards || []).flatMap(c => c.metrics || []).filter(m => {
+      const lbl = (m.label || '').toLowerCase();
+      return lbl.includes('strength') || lbl.includes('readiness') || m.color?.semanticColor === 'green' || m.color?.semanticColor === 'yellow';
+    });
+
+    const badges = (snapshot.cards || []).flatMap(c => c.badges || []);
+
+    if (strengthCards.length > 0 || metrics.length > 0 || badges.length > 0) {
+      const cardsStr = strengthCards.length > 0 
+        ? `**Strength & Learning Cards:**\n` + strengthCards.map(c => `- **${c.title}**: ${c.subtitle || ''} ${c.metrics ? c.metrics.map(m => `${m.label}: ${m.value}`).join(', ') : ''}`).join('\n')
+        : '';
+      
+      const metricsStr = metrics.length > 0
+        ? `\n\n**Key Performance Metrics:**\n` + metrics.map(m => `- ${m.label}: **${m.value}**`).join('\n')
+        : '';
+
+      const badgesStr = badges.length > 0
+        ? `\n\n**Badges & Strengths:**\n` + badges.slice(0, 10).map(b => `- [${b.semanticColor.toUpperCase()}] ${b.text}`).join('\n')
+        : '';
+
+      return `**Page:** ${pageName}\n\n${cardsStr}${metricsStr}${badgesStr}`.trim();
+    }
+  }
+
+  const sections = (snapshot.visibleSections || [])
+    .map(s => s.title)
+    .filter((t): t is string => typeof t === 'string' && t.trim().length > 0);
+
+  const cards = (snapshot.cards || [])
+    .map(c => c.title)
+    .filter((t): t is string => typeof t === 'string' && t.trim().length > 0);
+
+  const elementsList = liveCtx.interactiveElementsList || [];
+  const actions = Array.from(new Set(
+    elementsList
+      .map(e => e.text || e.ariaLabel || e.dataAgentLabel || e.title)
+      .filter((t): t is string => typeof t === 'string' && t.trim().length > 1 && t.trim().length < 60)
+  )).slice(0, 15);
+
+  const sectionsStr = sections.length > 0 
+    ? `**Sections:**\n` + sections.map(s => `- ${s}`).join('\n') 
+    : '';
+
+  const cardsStr = cards.length > 0 
+    ? `**Cards:**\n` + cards.map(c => `- ${c}`).join('\n') 
+    : '';
+
+  const actionsStr = actions.length > 0 
+    ? `**Actions:**\n` + actions.map(a => `- ${a}`).join('\n') 
+    : '';
+
+  const parts = [
+    `**Page:** ${pageName}`,
+    sectionsStr,
+    cardsStr,
+    actionsStr
+  ].filter(Boolean);
+
+  if (parts.length <= 1) {
+    const headings = (liveCtx.visibleHeadings || []).slice(0, 10);
+    if (headings.length > 0) {
+      return `**Page:** ${pageName}\n\n**Headings:**\n` + headings.map(h => `- ${h}`).join('\n');
+    }
+    const visibleText = liveCtx.visibleTextContent?.slice(0, 400);
+    if (visibleText) {
+      return `**Page:** ${pageName}\n\n**Content:**\n${visibleText}`;
+    }
+  }
+
+  return parts.join('\n\n');
+}
+
+
 

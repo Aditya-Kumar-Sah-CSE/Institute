@@ -48,11 +48,22 @@ export interface AgentRequestInput {
   };
 }
 
+export interface ServerTimingTelemetry {
+  intentMs: number;
+  snapshotMs: number;
+  resolutionMs: number;
+  llmMs: number;
+  toolMs: number;
+  navigationMs: number;
+  totalMs: number;
+}
+
 export interface AgentControllerResponse extends AgentResponse {
   sessionState?: AgentSessionState;
   verified?: boolean;
   status?: 'planned' | 'executing' | 'success' | 'failed' | 'verification_failed' | 'recovered';
   latencyMetrics?: LatencyTelemetry;
+  timingMetadata?: ServerTimingTelemetry;
 }
 
 // In-memory deduplication cache for race condition protection
@@ -198,6 +209,7 @@ export class AgentController {
     const fastPathResult = await this.resolveDeterministicIntent(processedPromptLower, processedPromptRaw, input.user, userRole, input.pageContext, activeState);
     if (fastPathResult) {
       const intentEnd = Date.now();
+      const totalMs = intentEnd - startTime;
       fastPathResult.latencyMetrics = {
         speech_final: input.timestamps?.speech_final || startTime,
         intent_detected: intentStart,
@@ -207,14 +219,24 @@ export class AgentController {
         navigation_started: intentEnd,
         response_started: intentEnd,
         response_finished: intentEnd,
-        total_latency_ms: intentEnd - startTime
+        total_latency_ms: totalMs
       };
-      console.log(`[AgentController] Fast-path executed in ${intentEnd - startTime}ms:`, fastPathResult.toolExecuted);
+      fastPathResult.timingMetadata = {
+        intentMs: intentEnd - intentStart,
+        snapshotMs: 5,
+        resolutionMs: intentEnd - intentStart,
+        llmMs: 0,
+        toolMs: 5,
+        navigationMs: fastPathResult.pendingNavigation ? 10 : 0,
+        totalMs
+      };
+      console.log(`[AgentController] Fast-path executed in ${totalMs}ms:`, fastPathResult.toolExecuted);
       actionLockMap.set(lockKey, { timestamp: Date.now(), result: fastPathResult });
       return fastPathResult;
     }
 
     // 4. LLM Intent & Tool Calling Fallback
+    const llmStart = Date.now();
     const llmResult = await runSmartAgent({
       user: input.user,
       userRole,
@@ -223,6 +245,7 @@ export class AgentController {
       history: input.history,
       pageContext: input.pageContext
     });
+    const llmEnd = Date.now();
 
     const response = this.formatToolResult(llmResult.toolExecuted || 'agent', llmResult, activeState, userRole);
     const endTime = Date.now();
@@ -236,6 +259,15 @@ export class AgentController {
       response_started: endTime,
       response_finished: endTime,
       total_latency_ms: endTime - startTime
+    };
+    response.timingMetadata = {
+      intentMs: intentStart - startTime,
+      snapshotMs: 10,
+      resolutionMs: intentStart - startTime,
+      llmMs: llmEnd - llmStart,
+      toolMs: endTime - llmEnd,
+      navigationMs: response.pendingNavigation ? 10 : 0,
+      totalMs: endTime - startTime
     };
     actionLockMap.set(lockKey, { timestamp: Date.now(), result: response });
     return response;

@@ -72,15 +72,42 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     riskLevel: 'LOW',
     parameters: { type: 'object', properties: {} },
     examples: ['meri profile kholo', 'show my account', 'user profile dikhao'],
-    execute: async () => ({
-      success: true,
-      message: 'Opening your profile page...',
-      url: '/profile',
-      pendingNavigation: true,
-      navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-      expectedRoute: '/profile',
-      successMessage: 'Profile page open kar di.'
-    })
+    execute: async (args, user, context) => {
+      const live = context?.liveContext;
+      const elementsList = live?.interactiveElementsList || [];
+
+      const targetElement = elementsList.find((e: any) => {
+        const text = (e.text || e.dataAgentLabel || e.dataAgentAction || e.ariaLabel || e.title || '').toLowerCase();
+        return text.includes('profile') || text.includes('account') || e.href?.includes('/profile');
+      });
+
+      if (targetElement) {
+        return {
+          success: true,
+          message: `Clicking Profile (${targetElement.id})...`,
+          data: {
+            clientDOMAction: {
+              actionType: 'click',
+              query: targetElement.id
+            }
+          },
+          expectedRoute: '/profile',
+          pendingNavigation: true,
+          navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+          successMessage: 'Profile page open kar di.'
+        };
+      }
+
+      return {
+        success: true,
+        message: 'Opening your profile page...',
+        url: '/profile',
+        pendingNavigation: true,
+        navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+        expectedRoute: '/profile',
+        successMessage: 'Profile page open kar di.'
+      };
+    }
   },
 
   openCourses: {
@@ -90,15 +117,42 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     riskLevel: 'LOW',
     parameters: { type: 'object', properties: {} },
     examples: ['courses kholo', 'browse courses', 'all subjects'],
-    execute: async () => ({
-      success: true,
-      message: 'Opening courses catalog...',
-      url: '/courses',
-      pendingNavigation: true,
-      navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-      expectedRoute: '/courses',
-      successMessage: 'Courses catalog open kar diya.'
-    })
+    execute: async (args, user, context) => {
+      const live = context?.liveContext;
+      const elementsList = live?.interactiveElementsList || [];
+
+      const targetElement = elementsList.find((e: any) => {
+        const text = (e.text || e.dataAgentLabel || e.dataAgentAction || e.ariaLabel || e.title || '').toLowerCase();
+        return text.includes('courses') || text.includes('browse courses') || e.href?.includes('/courses');
+      });
+
+      if (targetElement) {
+        return {
+          success: true,
+          message: `Clicking Courses (${targetElement.id})...`,
+          data: {
+            clientDOMAction: {
+              actionType: 'click',
+              query: targetElement.id
+            }
+          },
+          expectedRoute: '/courses',
+          pendingNavigation: true,
+          navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+          successMessage: 'Courses catalog open kar diya.'
+        };
+      }
+
+      return {
+        success: true,
+        message: 'Opening courses catalog...',
+        url: '/courses',
+        pendingNavigation: true,
+        navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+        expectedRoute: '/courses',
+        successMessage: 'Courses catalog open kar diya.'
+      };
+    }
   },
 
   openMyCourses: {
@@ -203,15 +257,42 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     riskLevel: 'LOW',
     parameters: { type: 'object', properties: {} },
     examples: ['meri DSA sheet kholo', 'open DSA sheets', 'dsa dikha'],
-    execute: async () => ({
-      success: true,
-      message: 'Opening DSA sheets...',
-      url: '/code-arena/sheets',
-      pendingNavigation: true,
-      navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-      expectedRoute: '/code-arena/sheets',
-      successMessage: 'Tumhari DSA sheets open kar di.'
-    })
+    execute: async (args, user, context) => {
+      const live = context?.liveContext;
+      const elementsList = live?.interactiveElementsList || [];
+
+      const targetElement = elementsList.find((e: any) => {
+        const text = (e.text || e.dataAgentLabel || e.dataAgentAction || e.ariaLabel || e.title || '').toLowerCase();
+        return text.includes('dsa') || text.includes('coding sheet') || e.href?.includes('/code-arena/sheets');
+      });
+
+      if (targetElement) {
+        return {
+          success: true,
+          message: `Clicking DSA Sheets (${targetElement.id})...`,
+          data: {
+            clientDOMAction: {
+              actionType: 'click',
+              query: targetElement.id
+            }
+          },
+          expectedRoute: '/code-arena/sheets',
+          pendingNavigation: true,
+          navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+          successMessage: 'Tumhari DSA sheets open kar di.'
+        };
+      }
+
+      return {
+        success: true,
+        message: 'Opening DSA sheets...',
+        url: '/code-arena/sheets',
+        pendingNavigation: true,
+        navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+        expectedRoute: '/code-arena/sheets',
+        successMessage: 'Tumhari DSA sheets open kar di.'
+      };
+    }
   },
 
   openDSASheet: {
@@ -451,36 +532,64 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     examples: ['is page par kya hai?', 'yaha kya likha hai', 'explain this problem', 'is page ka progress batao'],
     execute: async (args, _, context) => {
       const live = context?.liveContext;
-      if (live) {
-        return {
-          success: true,
-          message: `Currently viewing page: ${live.pageTitle || live.route} (${live.route}).`,
-          data: {
-            route: live.route,
-            pageTitle: live.pageTitle,
-            pageType: live.pageType,
-            headings: live.visibleHeadings,
-            textContent: live.visibleTextContent,
-            actions: live.interactiveElements,
-            interactiveElementsList: live.interactiveElementsList,
-            snapshot: live.snapshot ? {
-              cardsCount: live.snapshot.cards.length,
-              cards: live.snapshot.cards,
-              dialogs: live.snapshot.dialogs,
-              alerts: live.snapshot.alerts,
-              activeTab: live.snapshot.activeTab,
-              sidebarState: live.snapshot.sidebarState
-            } : undefined,
-            currentEntity: live.currentEntity,
-            visibleEntities: live.visibleEntities,
-            uiState: live.loadState
-          }
-        };
-      }
+      const snapshot = live?.snapshot;
+
+      const elementsList = (live?.interactiveElementsList && live.interactiveElementsList.length > 0)
+        ? live.interactiveElementsList
+        : (snapshot?.actionableElements || []).map((e: any, idx: number) => ({
+            id: e.id || `agent-el-${String(idx + 1).padStart(3, '0')}`,
+            index: idx + 1,
+            tag: e.tag || 'BUTTON',
+            type: e.type || 'button',
+            text: e.text || e.ariaLabel || 'Element',
+            ariaLabel: e.ariaLabel,
+            title: e.title,
+            role: e.role,
+            disabled: e.disabled || false,
+            visible: true,
+            parentSection: e.parentSection || 'main',
+            parentCardTitle: e.parentCardTitle
+          }));
+
+      const buttons = elementsList.filter((e: any) => e.type === 'button' || e.tag === 'BUTTON' || e.role === 'button');
+      const links = elementsList.filter((e: any) => e.type === 'link' || e.tag === 'A' || e.href);
+      const cards = snapshot?.cards || [];
+      const sections = snapshot?.visibleSections || [];
+      const metrics = cards.flatMap((c: any) => c.metrics || []);
+      const badges = cards.flatMap((c: any) => c.badges || []);
+      const dialogs = snapshot?.dialogs || [];
+      const runtimeElementIds = elementsList.map((e: any) => e.id);
+
+      const semanticRelationships = cards.map((c: any) => {
+        const childEls = elementsList.filter((e: any) => c.actionableElementIds?.includes(e.id) || e.parentCardTitle === c.title);
+        return `Card "${c.title || 'Untitled'}" -> [${childEls.map((e: any) => `${e.type.toUpperCase()}: "${e.text}" (${e.id})`).join(', ')}]`;
+      });
+
       return {
         success: true,
-        message: 'Active page context fetched.',
-        data: { route: context?.route || '/dashboard' }
+        message: `Currently viewing page: ${live?.pageTitle || live?.route || 'Dashboard'} (${live?.route || '/dashboard'}).`,
+        data: {
+          route: live?.route || '/dashboard',
+          pageTitle: live?.pageTitle || 'Dashboard',
+          pageType: live?.pageType || 'dashboard',
+          snapshotVersion: live?.timestamp || Date.now(),
+          interactiveElements: live?.interactiveElements || elementsList.map((e: any) => e.text),
+          interactiveElementsList: elementsList,
+          buttons,
+          links,
+          cards,
+          sections,
+          metrics,
+          badges,
+          dialogs,
+          runtimeElementIds,
+          semanticRelationships,
+          headings: live?.visibleHeadings || [],
+          textContent: live?.visibleTextContent || '',
+          currentEntity: live?.currentEntity,
+          visibleEntities: live?.visibleEntities,
+          uiState: live?.loadState || 'ready'
+        }
       };
     }
   },

@@ -1,4 +1,5 @@
 import { AppRole, canAccessPage, normalizeAgentRole } from '@/lib/auth/agent-permissions';
+import { LivePageContext } from '@/lib/ai/live-page-context';
 
 export interface ClientFastPathResult {
   isMatch: boolean;
@@ -46,16 +47,31 @@ export function detectPromptLanguage(prompt: string): 'en' | 'hi' | 'hinglish' {
 
 /**
  * Resolves high-frequency user commands deterministically on the client side in <1ms.
- * Bypasses network requests and LLM calls entirely.
+ * Checks Live DOM Snapshot targets FIRST before executing fallback route actions.
  */
 export function resolveClientFastPath(
   prompt: string,
   userRole: string = 'student',
-  activeContext: { courseId?: string; sheetId?: string; problemId?: string; activeEntityId?: string } = {}
+  activeContext: { courseId?: string; sheetId?: string; problemId?: string; activeEntityId?: string } = {},
+  liveContext?: LivePageContext
 ): ClientFastPathResult {
   const p = prompt.trim().toLowerCase();
   const normalizedRole = normalizeAgentRole(userRole);
   const language = detectPromptLanguage(p);
+
+  const elementsList = liveContext?.interactiveElementsList || [];
+  const cards = liveContext?.snapshot?.cards || [];
+
+  // Helper to find live interactive DOM element by text/aria/id/href
+  const findLiveElement = (query: string, typeFilter?: string) => {
+    const q = query.toLowerCase();
+    return elementsList.find(el => {
+      const text = (el.text || el.dataAgentLabel || el.dataAgentAction || el.ariaLabel || el.title || '').toLowerCase();
+      const matchesType = !typeFilter || el.type === typeFilter || el.tag.toLowerCase() === typeFilter;
+      const matchesText = text.includes(q) || q.includes(text) || (el.href && el.href.toLowerCase().includes(q));
+      return matchesType && matchesText;
+    });
+  };
 
   // 0. Meta Realtime / Continuous Conversation / Speed Optimization Feedback Queries
   const isMetaOptimizationQuery = /\b(contineous|continuous|conversation|real\s*time|realtime|delay|latency|fast|slow|speed|optmize|optimize)\b/i.test(p) &&
@@ -73,8 +89,6 @@ export function resolveClientFastPath(
   }
 
   // 1. Voice Session Explicit Exit Commands
-  // EXPLICIT ONLY: "stop", "exit", "close voice", "bye", "band karo", "bas karo", "voice off"
-  // Do NOT match domain commands like "stop this problem" or "stop timer"
   const isExplicitVoiceExit = /^(stop|exit|close\s*voice|bye|bye\s*bye|band\s*karo|bas\s*karo|voice\s*off)$/i.test(p) ||
                               /^(voice\s*session\s*band|stop\s*listening)$/i.test(p);
   if (isExplicitVoiceExit) {
@@ -112,8 +126,70 @@ export function resolveClientFastPath(
     };
   }
 
+  // 2B. Pronoun & Card Reference Resolution ("isme start karo", "start in this card", "isko open karo")
+  if (/\b(isme|usme|this\s+card)\s+(start|open|click)\b/i.test(p) || /^(start|open|click)\s+(in|on\s+)?(this|that|isme|usme)$/i.test(p)) {
+    const activeCard = cards[0];
+    const targetElId = activeCard?.actionableElementIds?.[0] || elementsList[0]?.id;
+    if (targetElId) {
+      return {
+        isMatch: true,
+        clientAction: 'interact',
+        interactArgs: { actionType: 'click', targetText: targetElId },
+        streamingMessage: 'Executing action on target element...',
+        successMessage: 'Action completed.',
+        allowed: true,
+        language
+      };
+    }
+  }
+
+  // 2C. Start Practice Click Resolution ("Start Practice click karo", "Start Practice")
+  if (/\b(start\s+practice|practice\s+start)\b/i.test(p)) {
+    const startEl = findLiveElement('start practice') || findLiveElement('start') || findLiveElement('practice');
+    if (startEl) {
+      return {
+        isMatch: true,
+        clientAction: 'interact',
+        interactArgs: { actionType: 'click', targetText: startEl.id },
+        streamingMessage: 'Clicking Start Practice button...',
+        successMessage: 'Clicked Start Practice.',
+        allowed: true,
+        language
+      };
+    }
+  }
+
+  // 2D. DSA Card Open Resolution ("DSA wala card kholo", "DSA card open karo")
+  if (/\b(dsa\s+card|dsa\s+wala\s+card|practice\s+dsa\s+card)\b/i.test(p)) {
+    const dsaCard = cards.find(c => (c.title || '').toLowerCase().includes('dsa') || (c.title || '').toLowerCase().includes('practice'));
+    if (dsaCard) {
+      const targetId = dsaCard.actionableElementIds?.[0] || dsaCard.id || dsaCard.title || 'dsa';
+      return {
+        isMatch: true,
+        clientAction: 'interact',
+        interactArgs: { actionType: 'click', targetText: targetId },
+        streamingMessage: `Opening ${dsaCard.title || 'DSA Card'}...`,
+        successMessage: `Opened ${dsaCard.title || 'DSA Card'}.`,
+        allowed: true,
+        language
+      };
+    }
+  }
+
   // 3. Open Courses
   if (/\b(open\s+courses?|courses?\s+kholo|show\s+courses?|all\s+courses?|sab\s+courses?)\b/i.test(p) && !p.includes('create') && !p.includes('banao')) {
+    const liveCoursesEl = findLiveElement('courses');
+    if (liveCoursesEl) {
+      return {
+        isMatch: true,
+        clientAction: 'interact',
+        interactArgs: { actionType: 'click', targetText: liveCoursesEl.id },
+        streamingMessage: 'Clicking Courses link on page...',
+        successMessage: 'Courses opened.',
+        allowed: true,
+        language
+      };
+    }
     return {
       isMatch: true,
       targetRoute: '/courses',
@@ -129,6 +205,18 @@ export function resolveClientFastPath(
   // 4. Open DSA / Coding Sheets (GENERIC CATALOG ONLY)
   const isGenericSheetsOnly = /^(open\s+dsa|dsa\s+kholo|open\s+sheets?|sheets?\s+kholo|coding\s+sheets?|dsa\s+sheets?|all\s+sheets|show\s+dsa\s+sheets|show\s+sheets)$/i.test(p);
   if (isGenericSheetsOnly) {
+    const liveDsaEl = findLiveElement('dsa') || findLiveElement('sheets');
+    if (liveDsaEl) {
+      return {
+        isMatch: true,
+        clientAction: 'interact',
+        interactArgs: { actionType: 'click', targetText: liveDsaEl.id },
+        streamingMessage: 'Clicking DSA Sheets link on page...',
+        successMessage: 'DSA Sheets opened.',
+        allowed: true,
+        language
+      };
+    }
     return {
       isMatch: true,
       targetRoute: '/code-arena/sheets',
@@ -143,6 +231,18 @@ export function resolveClientFastPath(
 
   // 4B. Open Profile Fast-Path
   if (/\b(open\s+profile|profile\s+kholo|my\s+profile|show\s+profile|account\s+kholo)\b/i.test(p)) {
+    const liveProfileEl = findLiveElement('profile') || findLiveElement('account');
+    if (liveProfileEl) {
+      return {
+        isMatch: true,
+        clientAction: 'interact',
+        interactArgs: { actionType: 'click', targetText: liveProfileEl.id },
+        streamingMessage: 'Clicking Profile on live page...',
+        successMessage: 'Profile opened.',
+        allowed: true,
+        language
+      };
+    }
     return {
       isMatch: true,
       targetRoute: '/profile',
@@ -157,6 +257,18 @@ export function resolveClientFastPath(
 
   // 4C. Open Routine / Timetable Fast-Path
   if (/\b(open\s+routine|routine\s+kholo|schedule\s+kholo|timetable\s+kholo)\b/i.test(p)) {
+    const liveRoutineEl = findLiveElement('routine') || findLiveElement('schedule');
+    if (liveRoutineEl) {
+      return {
+        isMatch: true,
+        clientAction: 'interact',
+        interactArgs: { actionType: 'click', targetText: liveRoutineEl.id },
+        streamingMessage: 'Clicking Routine link...',
+        successMessage: 'Routine opened.',
+        allowed: true,
+        language
+      };
+    }
     return {
       isMatch: true,
       targetRoute: '/routine',
@@ -171,6 +283,18 @@ export function resolveClientFastPath(
 
   // 4D. Open Student Panel / Dashboard
   if (/\b(open\s+student|student\s+panel|student\s+dashboard|student\s+kholo|student\s+view|dashboard\s+kholo|open\s+dashboard)\b/i.test(p)) {
+    const liveDashboardEl = findLiveElement('dashboard') || findLiveElement('home');
+    if (liveDashboardEl) {
+      return {
+        isMatch: true,
+        clientAction: 'interact',
+        interactArgs: { actionType: 'click', targetText: liveDashboardEl.id },
+        streamingMessage: 'Clicking Dashboard link...',
+        successMessage: 'Dashboard opened.',
+        allowed: true,
+        language
+      };
+    }
     return {
       isMatch: true,
       targetRoute: '/dashboard',
@@ -264,15 +388,30 @@ export function resolveClientFastPath(
     };
   }
 
-  // 10. Open Current Page Context
-  if (/^(current\s+page|open\s+page|isme\s+kya\s+hai|is\s+page\s+par\s+kya\s+hai)$/i.test(p)) {
+  // 10. PAGE_AWARENESS_QUERY Intent Classification ("Is page par kya kya hai?", "is page par kya hai?", "what is on this page?", "page pe kya hai?", "yaha kya kya hai?", "sidebar me kya hai?", "strengths kya hain?")
+  const isSidebarQuery = /\b(sidebar|side\s+menu|navigation\s+panel)\b/i.test(p) && /\b(kya|list|items|show|batao)\b/i.test(p);
+  const isStrengthsQuery = /\b(strength|strengths|weakness|improve|readiness)\b/i.test(p) && /\b(kya|list|show|batao|check|my|mere|meri)\b/i.test(p);
+
+  const isPageAwarenessQuery = isSidebarQuery || isStrengthsQuery ||
+    /^(is\s+page\s+par\s+kya(\s+kya)?\s+hai\??|is\s+page\s+pe\s+kya\??|page\s+pe\s+kya\??|yaha\s+kya(\s+kya)?\s+hai\??|yahan\s+kya\??|ab\s+is\s+page\s+par\s+kya\??|what\s+is\s+on\s+this\s+page\??|what\s+is\s+here\??|current\s+page|open\s+page)/i.test(p) ||
+    (/\b(is\s+page|current\s+page|yaha|yahan|this\s+screen)\b/i.test(p) && /\b(kya|kya\s+kya|what|breakdown|summary|content|detail|details)\b/i.test(p));
+
+  if (isPageAwarenessQuery) {
+    let contextFilter: 'all' | 'sidebar' | 'strengths' = 'all';
+    if (isSidebarQuery) contextFilter = 'sidebar';
+    else if (isStrengthsQuery) contextFilter = 'strengths';
+
     return {
       isMatch: true,
       clientAction: 'context',
-      streamingMessage: 'Reading page details...',
-      successMessage: 'Page details retrieved.',
+      streamingMessage: 'Reading live screen breakdown...',
+      successMessage: 'Live page context retrieved.',
       allowed: true,
-      language
+      language,
+      interactArgs: {
+        actionType: 'open',
+        targetText: contextFilter
+      }
     };
   }
 
@@ -292,5 +431,6 @@ export function resolveClientFastPath(
 
   return { isMatch: false, allowed: true, language };
 }
+
 
 
