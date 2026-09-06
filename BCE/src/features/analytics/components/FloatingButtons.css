@@ -2,7 +2,7 @@
 .floating-agent-btn {
   position: fixed;
   bottom: 24px;
-  right: 150px;
+  right: calc(var(--sidebar-width, 260px) + 150px);
   z-index: 9990;
   display: flex;
   align-items: center;
@@ -29,7 +29,7 @@
 .floating-mentor-btn {
   position: fixed;
   bottom: 24px;
-  right: 24px;
+  right: calc(var(--sidebar-width, 260px) + 24px);
   z-index: 9990;
   display: flex;
   align-items: center;

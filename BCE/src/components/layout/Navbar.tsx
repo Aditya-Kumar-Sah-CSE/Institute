@@ -309,10 +309,11 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
 
       <div className="navbar-right" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
         <button 
-          onClick={() => window.dispatchEvent(new Event('expandSidebar'))}
+          suppressHydrationWarning
+          onClick={() => window.dispatchEvent(new Event('toggleSidebar'))}
           className="open-sidebar-btn desktop-only-btn"
           style={{ padding: '8px', background: 'var(--bg-card)', border: '1px solid var(--border-default)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer' }}
-          title="Open Sidebar"
+          title="Toggle Sidebar"
         >
           <MoreVertical size={24} />
         </button>

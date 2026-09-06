@@ -1,9 +1,10 @@
 .sidebar {
   width: var(--sidebar-width);
   height: 100vh;
-  position: fixed;
+  position: sticky;
   top: 0;
-  right: 0;
+  flex-shrink: 0;
+  order: 2;
   background: var(--gradient-sidebar);
   border-left: 1px solid var(--glass-border);
   display: flex;
@@ -252,7 +253,7 @@
 }
 
 body:not(.sidebar-is-collapsed) .open-sidebar-btn {
-  display: none !important;
+  display: flex !important;
 }
 
 .wrap-toggle-btn {

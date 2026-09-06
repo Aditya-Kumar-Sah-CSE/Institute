@@ -149,10 +149,19 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
   };
 
   useEffect(() => {
+    const toggleHandler = () => setIsCollapsed(prev => !prev);
     const expandHandler = () => setIsCollapsed(false);
+    window.addEventListener('toggleSidebar', toggleHandler);
     window.addEventListener('expandSidebar', expandHandler);
-    return () => window.removeEventListener('expandSidebar', expandHandler);
+    return () => {
+      window.removeEventListener('toggleSidebar', toggleHandler);
+      window.removeEventListener('expandSidebar', expandHandler);
+    };
   }, []);
+
+  const handleNavClick = () => {
+    // Keep sidebar open on desktop (>768px) for continuous navigation, matching Instructor Panel
+  };
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -167,17 +176,7 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
       setIsInstallable(false);
     }
 
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
   }, []);
-
-  const handleNavClick = () => {
-    // Only auto-collapse if it's NOT the mobile bottom navbar (<=768px)
-    if (typeof window !== 'undefined' && window.innerWidth > 768) {
-      setIsCollapsed(true);
-    }
-  };
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
