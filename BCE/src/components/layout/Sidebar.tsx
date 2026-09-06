@@ -223,11 +223,19 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
     navItems.push({ label: 'Super Admin', href: '/super-admin', icon: 'Admin' });
   }
 
-  const isChatRoute = pathname.includes('/chat');
+  const isChatRoute = pathname ? pathname.includes('/chat') : false;
   const logoHref = currentView === 'admin' ? '/admin' : currentView === 'instructor' ? '/instructor' : '/dashboard';
 
+  const sidebarClasses = [
+    'sidebar',
+    `view-${currentView}`,
+    isChatRoute ? 'chat-active' : null,
+    isNavWrapped ? 'mobile-collapsed' : null,
+    isCollapsed ? 'is-collapsed' : null,
+  ].filter(Boolean).join(' ');
+
   return (
-    <aside className={`sidebar view-${currentView} ${isChatRoute ? 'chat-active' : ''} ${isNavWrapped ? 'mobile-collapsed' : ''} ${isCollapsed ? 'is-collapsed' : ''}`}>
+    <aside className={sidebarClasses} suppressHydrationWarning>
       <div className="sidebar-header" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
         <button 
           suppressHydrationWarning
