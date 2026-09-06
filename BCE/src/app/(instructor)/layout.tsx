@@ -60,7 +60,7 @@ export default async function InstructorLayout({
           currentView="instructor"
         />
       </div>
-      <div className="main-wrapper">
+      <div className="main-layout">
         <div className="content-wrapper">
           <main className="dashboard-content">
             {children}

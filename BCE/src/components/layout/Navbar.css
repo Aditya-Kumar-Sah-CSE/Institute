@@ -1,5 +1,5 @@
 .dashboard-navbar {
-  height: var(--navbar-height);
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -7,9 +7,7 @@
   background: color-mix(in srgb, var(--bg-primary) 85%, transparent);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--glass-border);
-  position: sticky;
-  top: 0;
-  z-index: calc(var(--z-sticky) + 10);
+  position: relative;
   width: 100%;
   box-sizing: border-box;
 }

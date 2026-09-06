@@ -55,7 +55,7 @@ export default async function AdminLayout({
           currentView="admin"
         />
       </div>
-      <div className="main-wrapper">
+      <div className="main-layout">
         <div className="content-wrapper">
           <main className="dashboard-content">
             {children}
