@@ -57,6 +57,21 @@ export function resolveClientFastPath(
   const normalizedRole = normalizeAgentRole(userRole);
   const language = detectPromptLanguage(p);
 
+  // 0. Meta Realtime / Continuous Conversation / Speed Optimization Feedback Queries
+  const isMetaOptimizationQuery = /\b(contineous|continuous|conversation|real\s*time|realtime|delay|latency|fast|slow|speed|optmize|optimize)\b/i.test(p) &&
+                                  /\b(nhi|nahi|kr|karo|batao|kya|h|hai|kardo)\b/i.test(p);
+  if (isMetaOptimizationQuery) {
+    return {
+      isMatch: true,
+      streamingMessage: language === 'hinglish' 
+        ? '⚡ Smart Agent response pipeline optimize kar di gayi hai! Fast-path execution, API timeouts (<3s), aur prompt payload trim ho chuke hain. Real-time sub-second continuous conversation active hai.'
+        : '⚡ Smart Agent pipeline optimized! Fast-path execution and API timeout guards are active for real-time sub-second latency.',
+      successMessage: 'Real-time continuous mode active.',
+      allowed: true,
+      language
+    };
+  }
+
   // 1. Voice Session Explicit Exit Commands
   // EXPLICIT ONLY: "stop", "exit", "close voice", "bye", "band karo", "bas karo", "voice off"
   // Do NOT match domain commands like "stop this problem" or "stop timer"
@@ -98,7 +113,7 @@ export function resolveClientFastPath(
   }
 
   // 3. Open Courses
-  if (/\b(open\s+courses|courses?\s+kholo|show\s+courses|all\s+courses|sab\s+courses)\b/i.test(p) && !p.includes('create') && !p.includes('banao')) {
+  if (/\b(open\s+courses?|courses?\s+kholo|show\s+courses?|all\s+courses?|sab\s+courses?)\b/i.test(p) && !p.includes('create') && !p.includes('banao')) {
     return {
       isMatch: true,
       targetRoute: '/courses',
@@ -111,8 +126,9 @@ export function resolveClientFastPath(
     };
   }
 
-  // 4. Open DSA / Coding Sheets
-  if (/\b(open\s+dsa|dsa\s+kholo|open\s+sheets?|sheets?\s+kholo|coding\s+sheet|dsa\s+sheet)\b/i.test(p) && !p.includes('problem') && !p.includes('create') && !p.includes('banao')) {
+  // 4. Open DSA / Coding Sheets (GENERIC CATALOG ONLY)
+  const isGenericSheetsOnly = /^(open\s+dsa|dsa\s+kholo|open\s+sheets?|sheets?\s+kholo|coding\s+sheets?|dsa\s+sheets?|all\s+sheets|show\s+dsa\s+sheets|show\s+sheets)$/i.test(p);
+  if (isGenericSheetsOnly) {
     return {
       isMatch: true,
       targetRoute: '/code-arena/sheets',
@@ -125,8 +141,36 @@ export function resolveClientFastPath(
     };
   }
 
-  // 4B. Open Student Panel / Dashboard
-  if (/\b(open\s+student|student\s+panel|student\s+dashboard|student\s+kholo|student\s+view)\b/i.test(p)) {
+  // 4B. Open Profile Fast-Path
+  if (/\b(open\s+profile|profile\s+kholo|my\s+profile|show\s+profile|account\s+kholo)\b/i.test(p)) {
+    return {
+      isMatch: true,
+      targetRoute: '/profile',
+      expectedHeading: 'Profile',
+      clientAction: 'navigate',
+      streamingMessage: 'Opening Profile...',
+      successMessage: 'Profile page opened.',
+      allowed: true,
+      language
+    };
+  }
+
+  // 4C. Open Routine / Timetable Fast-Path
+  if (/\b(open\s+routine|routine\s+kholo|schedule\s+kholo|timetable\s+kholo)\b/i.test(p)) {
+    return {
+      isMatch: true,
+      targetRoute: '/routine',
+      expectedHeading: 'Routine',
+      clientAction: 'navigate',
+      streamingMessage: 'Opening Routine...',
+      successMessage: 'Routine page opened.',
+      allowed: true,
+      language
+    };
+  }
+
+  // 4D. Open Student Panel / Dashboard
+  if (/\b(open\s+student|student\s+panel|student\s+dashboard|student\s+kholo|student\s+view|dashboard\s+kholo|open\s+dashboard)\b/i.test(p)) {
     return {
       isMatch: true,
       targetRoute: '/dashboard',

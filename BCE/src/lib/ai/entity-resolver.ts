@@ -214,15 +214,19 @@ async function getCachedDSASheets(): Promise<DSASheetEntity[]> {
   }
 
   const adminClient = await createAdminClient();
-  const { data } = await adminClient
+  const { data, error } = await adminClient
     .from('coding_sheets')
-    .select('id, title, slug, is_published');
+    .select('id, title, slug');
+
+  if (error) {
+    console.error('[getCachedDSASheets Error]:', error);
+  }
 
   const sheets: DSASheetEntity[] = (data || []).map((s: any) => ({
     id: s.id,
     title: s.title,
     slug: s.slug,
-    isPublished: s.is_published
+    isPublished: true
   }));
 
   sheetCache = { timestamp: now, data: sheets };

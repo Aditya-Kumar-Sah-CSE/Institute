@@ -110,9 +110,11 @@
 /* Mobile Responsive Overrides */
 @media (max-width: 768px) {
   /* Override parent dashboard layout padding which causes the gap above keyboard */
+  .dashboard-shell:has(.chat-container) .dashboard-main,
   .dashboard-layout:has(.chat-container) .dashboard-main {
     padding-bottom: 0 !important;
   }
+  .dashboard-shell:has(.chat-container) .dashboard-content,
   .dashboard-layout:has(.chat-container) .dashboard-content {
     padding: 0 !important;
     margin-bottom: 0 !important;

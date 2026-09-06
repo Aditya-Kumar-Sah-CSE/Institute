@@ -46,20 +46,42 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
       }
     });
 
-    // 2. Visible Text Snippets from main containers
+    // 2. Complete Scroll Screen Text Content Access (Scans all scrollable sections top to bottom)
     let visibleTextContent = '';
-    const mainContainer = document.querySelector('main, .dashboard-content, .content-wrapper, #main-content, article');
-    if (mainContainer) {
-      const paragraphs: string[] = [];
-      const textNodes = mainContainer.querySelectorAll('p, .stat-card-label, .card-description, .problem-description, .notice-content, .recommendation-why, [data-live-text]');
-      textNodes.forEach((el) => {
+    const textContainers = document.querySelectorAll(
+      'main, .dashboard-content, .content-wrapper, #main-content, article, section, .code-arena-page, .problem-statement-body, .sheet-detail-container, .course-detail-container, .discussion-thread, .reviews-container, .dashboard-main-container'
+    );
+
+    const fullPageLines: string[] = [];
+    const seenTexts = new Set<string>();
+
+    textContainers.forEach((container) => {
+      const nodes = container.querySelectorAll(
+        'p, h1, h2, h3, h4, h5, h6, li, td, th, label, blockquote, pre, code, .stat-card-value, .stat-card-label, .card-description, .problem-description, .notice-content, .recommendation-why, .comment-text, .review-text, .course-description, .lesson-title, [data-live-text]'
+      );
+
+      nodes.forEach((el) => {
+        if (el.closest('.smart-agent-drawer, .smart-mentor-drawer, style, script, noscript, svg')) return;
         const txt = el.textContent?.replace(/\s+/g, ' ').trim();
-        if (txt && txt.length > 5 && !paragraphs.includes(txt)) {
-          paragraphs.push(txt);
+        if (txt && txt.length > 3 && !seenTexts.has(txt)) {
+          seenTexts.add(txt);
+          fullPageLines.push(txt);
         }
       });
-      visibleTextContent = paragraphs.slice(0, 15).join(' | ');
+    });
+
+    if (fullPageLines.length < 5) {
+      document.querySelectorAll('p, h1, h2, h3, li, td, pre').forEach((el) => {
+        if (el.closest('.smart-agent-drawer, .smart-mentor-drawer, style, script, noscript, svg')) return;
+        const txt = el.textContent?.replace(/\s+/g, ' ').trim();
+        if (txt && txt.length > 3 && !seenTexts.has(txt)) {
+          seenTexts.add(txt);
+          fullPageLines.push(txt);
+        }
+      });
     }
+
+    visibleTextContent = fullPageLines.slice(0, 80).join('\n• ');
 
     // 3. Lightweight Indexed Discovery of Interactive Elements
     const interactiveElementsSummary: string[] = [];
@@ -188,7 +210,7 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
         }
       };
       if (problemItems.length > 0) {
-        visibleEntities.problems = problemItems.slice(0, 20);
+        visibleEntities.problems = problemItems.slice(0, 30);
       }
     } else if (route.includes('/courses/')) {
       const courseIdFromUrl = route.split('/courses/')[1]?.split('?')[0];
@@ -215,7 +237,7 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
         }
       });
       if (sheetCards.length > 0) {
-        visibleEntities.sheets = sheetCards.slice(0, 15);
+        visibleEntities.sheets = sheetCards.slice(0, 25);
       }
     }
 
@@ -228,10 +250,10 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
       ...baseContext,
       route,
       pageTitle: docTitle,
-      visibleHeadings: mainHeadings.slice(0, 20),
-      visibleTextContent: visibleTextContent.slice(0, 1500),
-      interactiveElements: interactiveElementsSummary.slice(0, 30),
-      interactiveElementsList: interactiveElementsList.slice(0, 50),
+      visibleHeadings: mainHeadings.slice(0, 50),
+      visibleTextContent: visibleTextContent.slice(0, 4000),
+      interactiveElements: interactiveElementsSummary.slice(0, 80),
+      interactiveElementsList: interactiveElementsList.slice(0, 120),
       currentEntity,
       visibleEntities,
       importantIds,

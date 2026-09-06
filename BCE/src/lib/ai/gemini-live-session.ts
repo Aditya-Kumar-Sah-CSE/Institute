@@ -16,6 +16,8 @@ export interface GeminiLiveSessionCallbacks {
   onClose?: () => void;
 }
 
+const registeredAudioWorkletContexts = new WeakSet<AudioContext>();
+
 export class GeminiLiveSession {
   private session: any = null;
   private audioPlayer: GeminiAudioPlayer | null = null;
@@ -522,6 +524,10 @@ You have access to tools for navigating screens (dashboard, DSA sheets, courses,
   }
 
   private async loadPcmWorklet(audioCtx: AudioContext) {
+    if (registeredAudioWorkletContexts.has(audioCtx)) {
+      return;
+    }
+
     const workletCode = `
       class PCMProcessor extends AudioWorkletProcessor {
         constructor() {
@@ -570,7 +576,9 @@ You have access to tools for navigating screens (dashboard, DSA sheets, courses,
           return true;
         }
       }
-      registerProcessor('pcm-processor', PCMProcessor);
+      try {
+        registerProcessor('pcm-processor', PCMProcessor);
+      } catch (e) {}
     `;
 
     try {
@@ -578,9 +586,23 @@ You have access to tools for navigating screens (dashboard, DSA sheets, courses,
       const blobUrl = URL.createObjectURL(blob);
       await audioCtx.audioWorklet.addModule(blobUrl);
       URL.revokeObjectURL(blobUrl);
-    } catch (e) {
+      registeredAudioWorkletContexts.add(audioCtx);
+    } catch (e: any) {
+      if (e?.name === 'NotSupportedError' || e?.message?.includes('already registered')) {
+        registeredAudioWorkletContexts.add(audioCtx);
+        return;
+      }
       console.warn('[GeminiLiveSession] Inline Blob worklet failed, trying /pcm-processor.js', e);
-      await audioCtx.audioWorklet.addModule('/pcm-processor.js');
+      try {
+        await audioCtx.audioWorklet.addModule('/pcm-processor.js');
+        registeredAudioWorkletContexts.add(audioCtx);
+      } catch (err2: any) {
+        if (err2?.name === 'NotSupportedError' || err2?.message?.includes('already registered')) {
+          registeredAudioWorkletContexts.add(audioCtx);
+        } else {
+          throw err2;
+        }
+      }
     }
   }
 }

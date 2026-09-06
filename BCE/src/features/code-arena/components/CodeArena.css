@@ -12,8 +12,9 @@
 
 @media (min-width: 901px) {
   /* Override dashboard container outer padding when code arena IDE mode is active */
+  .dashboard-shell:has(.code-arena-page.ide-mode) .dashboard-content,
   .dashboard-layout:has(.code-arena-page.ide-mode) .dashboard-content {
-    padding-top: var(--space-md) !important;
+    padding-top: var(--space-xs) !important;
     padding-bottom: 0 !important;
     padding-left: 0 !important;
     padding-right: 0 !important;
@@ -29,6 +30,7 @@
     height: 100% !important;
     min-height: 0 !important;
     overflow: hidden;
+    margin-top: 0;
   }
 
   /* Non-IDE code arena pages (sheets, hub, details, etc.) must be fully scrollable */
@@ -38,6 +40,7 @@
     overflow-y: auto !important;
   }
 
+  .dashboard-shell:has(.code-arena-page:not(.ide-mode)) .dashboard-content,
   .dashboard-layout:has(.code-arena-page:not(.ide-mode)) .dashboard-content {
     height: auto !important;
     min-height: 100% !important;
@@ -52,6 +55,7 @@
     overflow-y: auto !important;
   }
 
+  .dashboard-shell:has(.goals-page-scroll) .dashboard-content,
   .dashboard-layout:has(.goals-page-scroll) .dashboard-content {
     height: auto !important;
     overflow-y: auto !important;
@@ -4171,6 +4175,7 @@
 
 /* Resizable IDE Splitter overrides for Mobile and Tablet (< 900px) */
 @media (max-width: 900px) {
+  .dashboard-shell:has(.code-arena-page.ide-mode) .dashboard-content,
   .dashboard-layout:has(.code-arena-page.ide-mode) .dashboard-content {
     height: auto !important;
     overflow-y: auto !important;

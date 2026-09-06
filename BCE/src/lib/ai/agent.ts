@@ -53,9 +53,27 @@ export async function runSmartAgent(params: {
   // Authentication Gate Check for unauthenticated guests
   const isGuest = !user || userRole === 'guest';
 
+  // Compact Context payload optimization with Full Scrollable Screen Text Access
+  const compactLiveContext = pageContext?.liveContext ? {
+    route: pageContext.liveContext.route || pageContext.route,
+    pageTitle: pageContext.liveContext.pageTitle,
+    currentEntity: pageContext.liveContext.currentEntity ? {
+      type: pageContext.liveContext.currentEntity.type,
+      id: pageContext.liveContext.currentEntity.id,
+      title: pageContext.liveContext.currentEntity.title
+    } : null,
+    visibleHeadings: pageContext.liveContext.visibleHeadings?.slice(0, 10) || [],
+    fullPageText: pageContext.liveContext.visibleTextContent ? pageContext.liveContext.visibleTextContent.slice(0, 2000) : ''
+  } : { route: pageContext?.route || '/' };
+
   const agentContext = isGuest
     ? { role: 'guest', authenticated: false, activeRoute: pageContext?.route || '/' }
-    : buildAgentContext(studentProfile, pageContext);
+    : {
+        role: userRole,
+        authenticated: true,
+        userId: user?.id,
+        liveContext: compactLiveContext
+      };
 
   // 1. DYNAMIC TOOL FILTERING: Select only intent-relevant tools for this user role
   const relevantToolsList = selectRelevantTools(userPrompt, pageContext, userRole);
@@ -72,7 +90,7 @@ export async function runSmartAgent(params: {
     });
   }
 
-  // 2. GROQ LLM TOOL CALLING PIPELINE
+  // 2. GROQ LLM TOOL CALLING PIPELINE (Strict 3-second AbortSignal timeout for instant failover)
   if (groqApiKey) {
     try {
       const toolDefs = relevantToolsList.map(tool => ({
@@ -84,36 +102,18 @@ export async function runSmartAgent(params: {
         }
       }));
 
-      const systemPrompt = `You are "Smart Learn Personal Assistant", a natural, friendly, human personal learning guide on Smart Learn.
+      const systemPrompt = `You are "Smart Learn Personal Assistant", a fast, natural, friendly personal learning guide on Smart Learn.
 User Authentication Status: ${isGuest ? 'GUEST (Unauthenticated User)' : `AUTHENTICATED (User Role: ${userRole})`}
+LIVE PAGE CONTEXT: ${JSON.stringify(agentContext)}
 
-REAL STUDENT 360° PROFILE & LIVE PAGE CONTEXT JSON:
-${JSON.stringify(agentContext, null, 2)}
-
-HUMAN CONVERSATION PERSONA & RULES:
-1. ROLE & SECURITY BOUNDARIES:
-   - User Role: "${userRole}". ONLY select tools and suggest page URLs allowed for this role.
-   - If user is NOT logged in (GUEST) and asks for protected pages/actions (dashboard, DSA sheets, profile, my courses, routine), reply: "Please log in first. This section is available to authenticated users."
-
-2. LIVE CURRENT-PAGE CONTENT ACCESS:
-   - You have live access to the open screen via \`currentPageContext.liveContext\` (headings, text summary, active entities, buttons, UI state).
-   - When the user asks "isme kya hai?", "explain this page", "yaha kya hai?", or uses pronouns ("ye", "isko", "isme", "this problem", "this course"):
-     1) Inspect \`currentPageContext.liveContext\` first.
-     2) Bind "isko"/"isme"/"ye" to \`liveContext.currentEntity\` or \`visibleHeadings\`.
-     3) Answer strictly based on the visible screen text and Student360 data.
-   - NO HALLUCINATION: If the requested information is NOT present in \`currentPageContext\` or Student360 profile, explicitly state: "Ye detail currently open page par visible nahi hai." instead of fabricating answers.
-
-3. TALK LIKE A HELPFUL HUMAN ASSISTANT:
-   - Use short, natural, friendly replies (1-3 sentences max).
-   - Match the student's language naturally (Hinglish/English).
-   - NEVER use robotic phrases or mention internal function names.
-
-4. CONTEXT & FOLLOW-UP MEMORY:
-   - Remember previous turns in conversation history and current live page context.`;
+RULES:
+1. User Role: "${userRole}". ONLY select tools allowed for this role.
+2. If user asks "isme kya hai?", "explain this page", inspect liveContext first.
+3. Be concise (1-3 sentences). Match user language (Hinglish/English).`;
 
       const messages: any[] = [
         { role: 'system', content: systemPrompt },
-        ...history.slice(-8).map(h => ({ role: h.role, content: h.content })),
+        ...history.slice(-6).map(h => ({ role: h.role, content: h.content })),
         { role: 'user', content: userPrompt }
       ];
 
@@ -129,8 +129,9 @@ HUMAN CONVERSATION PERSONA & RULES:
           tools: toolDefs.length > 0 ? toolDefs : undefined,
           tool_choice: toolDefs.length > 0 ? 'auto' : undefined,
           temperature: 0.2,
-          max_tokens: 600
-        })
+          max_tokens: 400
+        }),
+        signal: AbortSignal.timeout(3000)
       });
 
       if (groqResponse.ok) {
@@ -191,11 +192,11 @@ HUMAN CONVERSATION PERSONA & RULES:
         }
       }
     } catch (err) {
-      console.warn('Groq Agent API call failed, trying Gemini fallback:', err);
+      console.warn('Groq Agent API call timed out or failed (<3s), trying Gemini fallback:', err);
     }
   }
 
-  // 3. GEMINI 3.6 FLASH LLM FALLBACK PIPELINE
+  // 3. GEMINI 3.6 FLASH LLM FALLBACK PIPELINE (Strict 4-second timeout guard)
   if (geminiApiKey) {
     try {
       const serverAi = new GoogleGenAI({ apiKey: geminiApiKey });
@@ -205,34 +206,20 @@ HUMAN CONVERSATION PERSONA & RULES:
         parameters: tool.parameters
       }));
 
-      const systemPrompt = `You are "Smart Learn Personal Assistant", a natural, friendly, human personal learning guide on Smart Learn.
-User Authentication Status: ${isGuest ? 'GUEST (Unauthenticated User)' : `AUTHENTICATED (User Role: ${userRole})`}
-
-REAL STUDENT 360° PROFILE & LIVE PAGE CONTEXT JSON:
-${JSON.stringify(agentContext, null, 2)}
-
-HUMAN CONVERSATION PERSONA & RULES:
-1. ROLE & SECURITY BOUNDARIES:
-   - User Role: "${userRole}". ONLY select tools and suggest page URLs allowed for this role.
-   - If user is NOT logged in (GUEST) and asks for protected pages/actions (dashboard, DSA sheets, profile, my courses, routine), reply: "Please log in first. This section is available to authenticated users."
-
-2. LIVE CURRENT-PAGE CONTENT ACCESS:
-   - You have live access to the open screen via \`currentPageContext.liveContext\` (headings, text summary, active entities, buttons, UI state).
-   - When the user asks "isme kya hai?", "explain this page", "yaha kya hai?", or uses pronouns ("ye", "isko", "isme", "this problem", "this course"):
-     1) Inspect \`currentPageContext.liveContext\` first.
-     2) Bind "isko"/"isme"/"ye" to \`liveContext.currentEntity\` or \`visibleHeadings\`.
-     3) Answer strictly based on the visible screen text and Student360 data.
-   - NO HALLUCINATION: If the requested information is NOT present in \`currentPageContext\` or Student360 profile, explicitly state: "Ye detail currently open page par visible nahi hai." instead of fabricating answers.`;
+      const systemPrompt = `You are "Smart Learn Personal Assistant", a fast, natural personal learning guide.
+User Auth: ${isGuest ? 'GUEST' : `AUTHENTICATED (${userRole})`}
+LIVE PAGE CONTEXT: ${JSON.stringify(agentContext)}
+RULES: Keep answers under 3 sentences. Only use allowed tools. Avoid hallucinations.`;
 
       const contents: any[] = [
-        ...history.slice(-6).map(h => ({
+        ...history.slice(-4).map(h => ({
           role: h.role === 'assistant' ? 'model' : 'user',
           parts: [{ text: h.content }]
         })),
         { role: 'user', parts: [{ text: userPrompt }] }
       ];
 
-      const geminiRes = await serverAi.models.generateContent({
+      const geminiPromise = serverAi.models.generateContent({
         model: 'gemini-3.6-flash',
         contents,
         config: {
@@ -240,6 +227,12 @@ HUMAN CONVERSATION PERSONA & RULES:
           tools: functionDeclarations.length > 0 ? [{ functionDeclarations: functionDeclarations as any }] : undefined
         }
       });
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Gemini API timeout after 4000ms')), 4000)
+      );
+
+      const geminiRes: any = await Promise.race([geminiPromise, timeoutPromise]);
 
       if (geminiRes.functionCalls && geminiRes.functionCalls.length > 0) {
         const accumulatedActions: Array<{ label: string; url: string; isExternal?: boolean }> = [];

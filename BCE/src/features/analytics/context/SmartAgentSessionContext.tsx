@@ -850,6 +850,13 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         tracker.finish();
         return;
       }
+
+      if (!fastPath.targetRoute && fastPath.streamingMessage) {
+        setExecutionState('IDLE');
+        setIsLoading(false);
+        tracker.finish();
+        return;
+      }
     }
 
     // 3. Tier 2 & 3: Server Fast-Path & LLM Fallback
