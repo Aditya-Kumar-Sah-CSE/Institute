@@ -3,6 +3,7 @@ import { buildAgentContext, AgentPageContext } from './agent-context';
 import { Student360Profile } from '@/features/analytics/services/student-intelligence';
 import { GoogleGenAI } from '@google/genai';
 import { normalizeAgentRole, requireAgentPermission, canAccessPage, canUseTool } from '@/lib/auth/agent-permissions';
+import { safeStringify } from './safe-stringify';
 
 export interface AgentChatMessage {
   role: 'user' | 'assistant';
@@ -208,7 +209,7 @@ RULES:
 
       const systemPrompt = `You are "Smart Learn Personal Assistant", a fast, natural personal learning guide.
 User Auth: ${isGuest ? 'GUEST' : `AUTHENTICATED (${userRole})`}
-LIVE PAGE CONTEXT: ${JSON.stringify(agentContext)}
+LIVE PAGE CONTEXT: ${safeStringify(agentContext)}
 RULES: Keep answers under 3 sentences. Only use allowed tools. Avoid hallucinations.`;
 
       const contents: any[] = [

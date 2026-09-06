@@ -2,6 +2,7 @@ import { GoogleGenAI, Modality } from '@google/genai';
 import { GEMINI_TOOL_DECLARATIONS } from './agent-tool-declarations';
 import { GeminiAudioPlayer } from './gemini-audio-player';
 import { AdaptiveVAD } from './adaptive-vad';
+import { safeStringify } from './safe-stringify';
 
 export type VoiceConnectionState = 'starting' | 'connecting' | 'connected' | 'ready' | 'error' | 'stopped' | 'closed';
 
@@ -493,8 +494,8 @@ export class GeminiLiveSession {
 
   private buildSystemPrompt(): string {
     const activeRoute = this.pageContext?.route || '/dashboard';
-    const profileText = this.studentProfile ? JSON.stringify(this.studentProfile) : 'Student Profile Active';
-    const pageCtxText = this.pageContext ? JSON.stringify(this.pageContext) : 'Standard Page Context';
+    const profileText = this.studentProfile ? safeStringify(this.studentProfile) : 'Student Profile Active';
+    const pageCtxText = this.pageContext ? safeStringify(this.pageContext) : 'Standard Page Context';
     const userRole = this.studentProfile?.role || 'student';
 
     return `You are Smart Learn AI Assistant, a friendly, intelligent voice mentor for engineering and computer science students.
