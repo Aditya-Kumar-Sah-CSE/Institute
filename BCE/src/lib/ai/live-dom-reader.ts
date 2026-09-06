@@ -37,11 +37,13 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
     // 1. Page Title & Headings
     const docTitle = document.title || 'Smart Learn';
     const mainHeadings: string[] = [];
-    const headingElements = document.querySelectorAll('h1, h2, h3, .section-title, .stat-card-value, [data-heading]');
+    const headingElements = document.querySelectorAll(
+      'h1, h2, h3, h4, h5, .section-title, .stat-card-value, .stat-card-label, [data-heading], [class*="title"], [class*="heading"]'
+    );
     
     headingElements.forEach((el) => {
       const text = el.textContent?.trim();
-      if (text && text.length > 1 && text.length < 120 && !mainHeadings.includes(text)) {
+      if (text && text.length >= 1 && text.length < 120 && !mainHeadings.includes(text)) {
         mainHeadings.push(text);
       }
     });
@@ -49,39 +51,43 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
     // 2. Complete Scroll Screen Text Content Access (Scans all scrollable sections top to bottom)
     let visibleTextContent = '';
     const textContainers = document.querySelectorAll(
-      'main, .dashboard-content, .content-wrapper, #main-content, article, section, .code-arena-page, .problem-statement-body, .sheet-detail-container, .course-detail-container, .discussion-thread, .reviews-container, .dashboard-main-container'
+      'main, .dashboard-main-container, .dashboard-content, .content-wrapper, #main-content, article, section, .code-arena-page, .problem-statement-body, .sheet-detail-container, .course-detail-container, .discussion-thread, .reviews-container, .intelligence-card, .dashboard-stats-grid, [class*="dashboard"], [class*="card"]'
     );
 
     const fullPageLines: string[] = [];
     const seenTexts = new Set<string>();
 
-    textContainers.forEach((container) => {
-      const nodes = container.querySelectorAll(
-        'p, h1, h2, h3, h4, h5, h6, li, td, th, label, blockquote, pre, code, .stat-card-value, .stat-card-label, .card-description, .problem-description, .notice-content, .recommendation-why, .comment-text, .review-text, .course-description, .lesson-title, [data-live-text]'
-      );
+    const processElement = (el: Element) => {
+      if (el.closest('.smart-agent-drawer, .smart-mentor-drawer, style, script, noscript, svg')) return;
+      
+      // If element has element children of target types, let child elements provide fine-grained text
+      const hasChildTextElements = el.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, td, th, label, span, code, [data-live-text]').length > 0;
+      const isLeafOrTextTag = !hasChildTextElements || ['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'TD', 'TH', 'LABEL', 'SPAN', 'CODE', 'PRE', 'B', 'STRONG'].includes(el.tagName);
 
-      nodes.forEach((el) => {
-        if (el.closest('.smart-agent-drawer, .smart-mentor-drawer, style, script, noscript, svg')) return;
-        const txt = el.textContent?.replace(/\s+/g, ' ').trim();
-        if (txt && txt.length > 3 && !seenTexts.has(txt)) {
-          seenTexts.add(txt);
-          fullPageLines.push(txt);
-        }
-      });
-    });
+      if (!isLeafOrTextTag) return;
 
-    if (fullPageLines.length < 5) {
-      document.querySelectorAll('p, h1, h2, h3, li, td, pre').forEach((el) => {
-        if (el.closest('.smart-agent-drawer, .smart-mentor-drawer, style, script, noscript, svg')) return;
-        const txt = el.textContent?.replace(/\s+/g, ' ').trim();
-        if (txt && txt.length > 3 && !seenTexts.has(txt)) {
-          seenTexts.add(txt);
-          fullPageLines.push(txt);
-        }
+      const txt = el.textContent?.replace(/\s+/g, ' ').trim();
+      if (txt && txt.length >= 1 && txt.length < 300 && !seenTexts.has(txt)) {
+        seenTexts.add(txt);
+        fullPageLines.push(txt);
+      }
+    };
+
+    if (textContainers.length > 0) {
+      textContainers.forEach((container) => {
+        const nodes = container.querySelectorAll(
+          'p, h1, h2, h3, h4, h5, h6, li, td, th, label, blockquote, pre, code, span, div, .stat-card-value, .stat-card-label, .card-description, .problem-description, .notice-content, .recommendation-why, .comment-text, .review-text, .course-description, .lesson-title, [class*="badge"], [class*="tag"], [class*="score"], [class*="detail"], [data-live-text]'
+        );
+        nodes.forEach(processElement);
       });
     }
 
-    visibleTextContent = fullPageLines.slice(0, 80).join('\n• ');
+    if (fullPageLines.length < 5) {
+      const allNodes = document.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, td, th, label, span, div, pre, code');
+      allNodes.forEach(processElement);
+    }
+
+    visibleTextContent = fullPageLines.slice(0, 150).join('\n• ');
 
     // 3. Lightweight Indexed Discovery of Interactive Elements
     const interactiveElementsSummary: string[] = [];
@@ -89,7 +95,7 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
 
     const candidateNodes = Array.from(
       document.querySelectorAll(
-        'button, a, input, select, textarea, [role="button"], [role="tab"], [role="menuitem"], [role="checkbox"], [role="switch"], [role="option"], [data-action], .btn, [onclick], details, summary, [tabindex="0"]'
+        'button, a, input, select, textarea, [role="button"], [role="tab"], [role="menuitem"], [role="checkbox"], [role="switch"], [role="option"], [data-action], [data-testid], .btn, .stat-card, .hover-lift, [onclick], details, summary, [tabindex="0"], [class*="card"], [class*="badge"]'
       )
     ) as HTMLElement[];
 
@@ -117,11 +123,11 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
       else if (el.closest('.navbar-wrapper, header, .navbar')) parentSection = 'navbar';
       else if (el.closest('.modal, [role="dialog"], .modal-content')) parentSection = 'modal';
       else if (isDrawerChild) parentSection = 'drawer';
-      else if (el.closest('main, .dashboard-content, .content-wrapper')) parentSection = 'main';
+      else if (el.closest('main, .dashboard-main-container, .dashboard-content, .content-wrapper')) parentSection = 'main';
 
       const label = text || ariaLabel || title || placeholder || testId || el.id || 'Interactive Element';
 
-      if (label && label.length > 1 && label.length < 80) {
+      if (label && label.length >= 1 && label.length < 120) {
         if (!interactiveElementsSummary.includes(label)) {
           interactiveElementsSummary.push(label);
         }
@@ -250,10 +256,10 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
       ...baseContext,
       route,
       pageTitle: docTitle,
-      visibleHeadings: mainHeadings.slice(0, 50),
-      visibleTextContent: visibleTextContent.slice(0, 4000),
-      interactiveElements: interactiveElementsSummary.slice(0, 80),
-      interactiveElementsList: interactiveElementsList.slice(0, 120),
+      visibleHeadings: mainHeadings.slice(0, 60),
+      visibleTextContent: visibleTextContent.slice(0, 10000),
+      interactiveElements: interactiveElementsSummary.slice(0, 150),
+      interactiveElementsList: interactiveElementsList.slice(0, 200),
       currentEntity,
       visibleEntities,
       importantIds,

@@ -38,7 +38,7 @@ export function executeLiveDOMAction(
     // 1. Gather all candidate interactive elements using stable selectors
     const rawElements = Array.from(
       document.querySelectorAll(
-        'button, a, input, select, textarea, [role="button"], [role="tab"], [role="menuitem"], [role="checkbox"], [role="switch"], [role="option"], [data-action], [data-testid], .btn, [onclick], details, summary, [tabindex="0"]'
+        'button, a, input, select, textarea, [role="button"], [role="tab"], [role="menuitem"], [role="checkbox"], [role="switch"], [role="option"], [data-action], [data-testid], .btn, .stat-card, .hover-lift, [onclick], details, summary, [tabindex="0"], [class*="card"], [class*="badge"]'
       )
     ) as HTMLElement[];
 
@@ -208,7 +208,7 @@ export function executeLiveDOMAction(
     }
 
     // Automatic Link Navigation Fallback
-    const hrefAttr = targetEl.getAttribute('href');
+    const hrefAttr = targetEl.getAttribute('href') || targetEl.closest('a')?.getAttribute('href');
     if (hrefAttr && !hrefAttr.startsWith('#') && !hrefAttr.startsWith('javascript:')) {
       setTimeout(() => {
         const currentPath = window.location.pathname + window.location.search;
