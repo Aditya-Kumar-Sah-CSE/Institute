@@ -17,6 +17,11 @@
   scroll-behavior: smooth;
 }
 
+.sidebar.is-collapsed,
+body.sidebar-is-collapsed .sidebar {
+  display: none !important;
+}
+
 .sidebar::-webkit-scrollbar {
   display: none; /* Chrome/Safari/Opera */
 }
@@ -279,6 +284,7 @@ body:not(.sidebar-is-collapsed) .open-sidebar-btn {
     background: var(--bg-secondary);
     z-index: var(--z-modal);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex !important;
   }
 
   .sidebar.mobile-collapsed {

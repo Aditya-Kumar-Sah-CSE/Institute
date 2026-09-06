@@ -223,15 +223,11 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
     navItems.push({ label: 'Super Admin', href: '/super-admin', icon: 'Admin' });
   }
 
-  if (isCollapsed) {
-    return null; // The toggle button is now in Navbar.tsx
-  }
-
   const isChatRoute = pathname.includes('/chat');
   const logoHref = currentView === 'admin' ? '/admin' : currentView === 'instructor' ? '/instructor' : '/dashboard';
 
   return (
-    <aside className={`sidebar view-${currentView} ${isChatRoute ? 'chat-active' : ''} ${isNavWrapped ? 'mobile-collapsed' : ''}`}>
+    <aside className={`sidebar view-${currentView} ${isChatRoute ? 'chat-active' : ''} ${isNavWrapped ? 'mobile-collapsed' : ''} ${isCollapsed ? 'is-collapsed' : ''}`}>
       <div className="sidebar-header" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
         <button 
           suppressHydrationWarning
