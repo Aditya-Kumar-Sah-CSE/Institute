@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Mic, MicOff, Globe, Sparkles, Volume2, HelpCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Mic, Globe, Sparkles, Volume2, HelpCircle, Bot } from 'lucide-react';
 
 interface VoiceControlsProps {
   onTranscriptReceived: (transcript: string) => void;
@@ -16,64 +16,12 @@ export default function VoiceControls({
   languageMode,
   onLanguageChange,
 }: VoiceControlsProps) {
-  const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
-  const [isSupported, setIsSupported] = useState(true);
   const [showCheatSheet, setShowCheatSheet] = useState(false);
-  const recognitionRef = useRef<any>(null);
 
-  useEffect(() => {
+  const handleOpenSmartAgentMic = () => {
     if (typeof window !== 'undefined') {
-      const SpeechRecognition =
-        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-
-      if (SpeechRecognition) {
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = languageMode === 'hi-IN' ? 'hi-IN' : 'en-IN';
-
-        recognition.onresult = (event: any) => {
-          let currentTranscript = '';
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            const result = event.results[i];
-            currentTranscript += result[0].transcript;
-            if (result.isFinal) {
-              onTranscriptReceived(result[0].transcript);
-              setTranscript(result[0].transcript);
-            }
-          }
-          if (currentTranscript && !event.results[event.results.length - 1].isFinal) {
-            setTranscript(currentTranscript);
-          }
-        };
-
-        recognition.onerror = (event: any) => {
-          console.warn('Speech recognition error:', event.error);
-          setIsListening(false);
-        };
-
-        recognition.onend = () => {
-          setIsListening(false);
-        };
-
-        recognitionRef.current = recognition;
-      } else {
-        setIsSupported(false);
-      }
-    }
-  }, [languageMode]);
-
-  const toggleListening = () => {
-    if (!recognitionRef.current) return;
-    if (isListening) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-    } else {
-      setTranscript('');
-      recognitionRef.current.lang = languageMode === 'hi-IN' ? 'hi-IN' : 'en-IN';
-      recognitionRef.current.start();
-      setIsListening(true);
+      window.dispatchEvent(new CustomEvent('toggleSmartAgentDrawer'));
     }
   };
 
@@ -87,22 +35,14 @@ export default function VoiceControls({
       <div className="voice-main-toolbar">
         <div className="voice-mic-container">
           <button
-            className={`mic-button ${isListening ? 'listening' : ''}`}
-            onClick={toggleListening}
-            title={isListening ? 'Click to Stop Listening' : 'Click to Speak Voice Command'}
+            className="mic-button listening"
+            onClick={handleOpenSmartAgentMic}
+            title="Open Smart Learn AI Agent (Unified Voice & AI Control)"
+            type="button"
           >
-            {isListening ? <Mic className="mic-icon animate-pulse" /> : <MicOff className="mic-icon" />}
-            <span>{isListening ? 'Listening...' : 'Voice Agent'}</span>
+            <Bot className="mic-icon animate-pulse" />
+            <span>Smart Learn AI Agent</span>
           </button>
-
-          {isListening && (
-            <div className="mic-sound-waves">
-              <span className="wave bar-1"></span>
-              <span className="wave bar-2"></span>
-              <span className="wave bar-3"></span>
-              <span className="wave bar-4"></span>
-            </div>
-          )}
         </div>
 
         <div className="language-selector">
@@ -130,6 +70,7 @@ export default function VoiceControls({
         <button
           className="cheatsheet-toggle-btn"
           onClick={() => setShowCheatSheet(!showCheatSheet)}
+          type="button"
         >
           <HelpCircle className="w-4 h-4" />
           <span>Voice Commands</span>
@@ -140,7 +81,7 @@ export default function VoiceControls({
         {transcript && (
           <div className="live-transcript">
             <Volume2 className="w-4 h-4 text-cyan-400" />
-            <span className="transcript-label">Recognized Speech:</span>
+            <span className="transcript-label">Command Triggered:</span>
             <span className="transcript-text">"{transcript}"</span>
           </div>
         )}
@@ -153,41 +94,40 @@ export default function VoiceControls({
         )}
       </div>
 
-      {!isSupported && (
-        <div className="unsupported-voice-warning">
-          ⚠️ Browser Web Speech API not active in current environment. Use quick test voice command buttons below to simulate Hinglish/English voice prompts!
-        </div>
-      )}
-
       <div className="quick-test-commands">
-        <span className="quick-title">Test Voice Prompts:</span>
+        <span className="quick-title">Quick Voice Commands:</span>
         <button
           className="voice-test-badge"
           onClick={() => handleTestCommand('integral zero se infinity tak add karo')}
+          type="button"
         >
           🗣️ "integral zero se infinity tak add karo"
         </button>
         <button
           className="voice-test-badge"
           onClick={() => handleTestCommand('3 by 3 matrix banao')}
+          type="button"
         >
           🗣️ "3 by 3 matrix banao"
         </button>
         <button
           className="voice-test-badge"
           onClick={() => handleTestCommand('physics template lagao')}
+          type="button"
         >
           🗣️ "physics template lagao"
         </button>
         <button
           className="voice-test-badge"
           onClick={() => handleTestCommand('title ko Quantum Mechanics karo')}
+          type="button"
         >
           🗣️ "title ko Quantum Mechanics karo"
         </button>
         <button
           className="voice-test-badge"
           onClick={() => handleTestCommand('last change undo karo')}
+          type="button"
         >
           🗣️ "last change undo karo"
         </button>
@@ -196,8 +136,8 @@ export default function VoiceControls({
       {showCheatSheet && (
         <div className="voice-cheatsheet-modal">
           <div className="cheatsheet-header">
-            <h3>🎙️ Supported Voice Commands (Hinglish & English)</h3>
-            <button onClick={() => setShowCheatSheet(false)}>×</button>
+            <h3>🎙️ Smart Learn AI Agent Voice Commands (Hinglish & English)</h3>
+            <button onClick={() => setShowCheatSheet(false)} type="button">×</button>
           </div>
           <div className="cheatsheet-grid">
             <div className="command-card">
