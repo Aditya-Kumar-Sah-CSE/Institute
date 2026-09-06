@@ -58,13 +58,20 @@ export default function SmartAgentDrawer() {
   useEffect(() => {
     if (isOpen && !isMaximized) {
       document.body.classList.remove('sidebar-is-collapsed');
-    } else if (!isOpen && typeof document !== 'undefined') {
-      const sidebarElem = document.querySelector('.sidebar');
-      const sidebarIsCollapsed = sidebarElem?.classList.contains('is-collapsed');
-      if (sidebarIsCollapsed) {
-        document.body.classList.add('sidebar-is-collapsed');
+      document.body.classList.add('agent-drawer-open');
+    } else {
+      document.body.classList.remove('agent-drawer-open');
+      if (!isOpen && typeof document !== 'undefined') {
+        const sidebarElem = document.querySelector('.sidebar');
+        const sidebarIsCollapsed = sidebarElem?.classList.contains('is-collapsed');
+        if (sidebarIsCollapsed) {
+          document.body.classList.add('sidebar-is-collapsed');
+        }
       }
     }
+    return () => {
+      document.body.classList.remove('agent-drawer-open');
+    };
   }, [isOpen, isMaximized]);
 
   const scrollToBottom = () => {
@@ -109,7 +116,7 @@ export default function SmartAgentDrawer() {
               background: 'var(--bg-secondary)',
               borderLeft: '1px solid var(--glass-border)',
               boxSizing: 'border-box',
-              zIndex: 9999
+              zIndex: 99999
             }
       }
     >
@@ -544,7 +551,7 @@ export default function SmartAgentDrawer() {
           bottom: 0,
           width: '400px',
           maxWidth: '100vw',
-          zIndex: 9999,
+          zIndex: 99999,
           background: 'var(--bg-secondary)',
           borderLeft: '1px solid var(--glass-border)',
           boxShadow: '-10px 0 40px rgba(0,0,0,0.6)',

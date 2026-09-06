@@ -15,13 +15,15 @@
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
   box-sizing: border-box;
-  z-index: 9999;
+  z-index: 99999;
 }
 
 .sidebar.is-collapsed,
 body.sidebar-is-collapsed .sidebar,
-.sidebar-wrapper:has(.smart-mentor-container.in-sidebar) .sidebar,
-.sidebar-wrapper:has(.smart-agent-container.in-sidebar) .sidebar {
+body.agent-drawer-open .sidebar,
+body.mentor-drawer-open .sidebar,
+.sidebar-wrapper:has(.smart-mentor-container) .sidebar,
+.sidebar-wrapper:has(.smart-agent-container) .sidebar {
   display: none !important;
 }
 

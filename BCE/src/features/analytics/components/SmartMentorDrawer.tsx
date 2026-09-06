@@ -138,6 +138,25 @@ export default function SmartMentorDrawer({
     scrollToBottom();
   }, [messages, isLoading]);
 
+  useEffect(() => {
+    if (isOpen && !isMaximized) {
+      document.body.classList.remove('sidebar-is-collapsed');
+      document.body.classList.add('mentor-drawer-open');
+    } else {
+      document.body.classList.remove('mentor-drawer-open');
+      if (!isOpen && typeof document !== 'undefined') {
+        const sidebarElem = document.querySelector('.sidebar');
+        const sidebarIsCollapsed = sidebarElem?.classList.contains('is-collapsed');
+        if (sidebarIsCollapsed) {
+          document.body.classList.add('sidebar-is-collapsed');
+        }
+      }
+    }
+    return () => {
+      document.body.classList.remove('mentor-drawer-open');
+    };
+  }, [isOpen, isMaximized]);
+
   if (!isOpen || !mounted) return null;
 
   const drawerContent = (
@@ -163,7 +182,7 @@ export default function SmartMentorDrawer({
               background: 'var(--bg-secondary)',
               borderLeft: '1px solid var(--glass-border)',
               boxSizing: 'border-box',
-              zIndex: 9999
+              zIndex: 99999
             }
       }
     >
@@ -427,7 +446,7 @@ export default function SmartMentorDrawer({
           bottom: 0,
           width: '400px',
           maxWidth: '100vw',
-          zIndex: 9999,
+          zIndex: 99999,
           background: 'var(--bg-secondary)',
           borderLeft: '1px solid var(--glass-border)',
           boxShadow: '-10px 0 40px rgba(0,0,0,0.6)',
