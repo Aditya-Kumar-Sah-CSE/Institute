@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, Suspense } from 'react';
 import { LivePageContext, buildDefaultLiveContext } from '@/lib/ai/live-page-context';
-import { extractLiveDOMContext, invalidateDOMCache } from '@/lib/ai/live-dom-reader';
+import { extractLiveDOMContext, invalidateDOMCache, isScanningDOM } from '@/lib/ai/live-dom-reader';
 import { executeLiveDOMAction, DOMActionResult, WhitelistedActionType } from '@/lib/ai/live-dom-executor';
 import { usePathname, useSearchParams } from 'next/navigation';
 
@@ -47,16 +47,26 @@ function LivePageContextProviderInner({ children }: { children: ReactNode }) {
     let debounceTimer: NodeJS.Timeout | null = null;
 
     const observer = new MutationObserver((mutations) => {
-      // Check if mutations occurred outside the agent drawer
+      if (isScanningDOM) return;
+
+      // Filter out mutations caused by scanner attributes or inside agent drawers
       const isRelevantMutation = mutations.some((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'data-agent-runtime-id') {
+          return false;
+        }
         const target = mutation.target as HTMLElement | null;
-        return !target?.closest('.smart-agent-drawer, .smart-mentor-drawer');
+        if (!target) return false;
+        if (target.closest('.smart-agent-drawer, .smart-mentor-drawer')) {
+          return false;
+        }
+        return true;
       });
 
       if (!isRelevantMutation) return;
 
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
+        if (isScanningDOM) return;
         invalidateDOMCache();
         const updatedCtx = extractLiveDOMContext(fullRoute, true);
         setContextState(updatedCtx);

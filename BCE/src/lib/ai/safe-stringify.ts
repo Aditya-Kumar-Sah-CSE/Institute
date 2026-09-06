@@ -4,13 +4,22 @@
  */
 
 /**
- * Checks if a value is a DOM node, Event, Window, or React Fiber reference.
+ * Checks if a value is a DOM node, Event, Window, CSSStyleDeclaration, or React Fiber reference.
  */
 export function isDOMOrFiberNode(value: any, keyName?: string): boolean {
   if (!value || typeof value !== 'object') return false;
 
   if (typeof window !== 'undefined') {
-    if (value instanceof Node || value instanceof Event || value instanceof Window) {
+    if (
+      value instanceof Node ||
+      value instanceof Element ||
+      value instanceof HTMLElement ||
+      value instanceof Event ||
+      value instanceof Window ||
+      value instanceof Document ||
+      value instanceof CSSStyleDeclaration ||
+      (typeof CSSRule !== 'undefined' && value instanceof CSSRule)
+    ) {
       return true;
     }
   }
@@ -22,7 +31,11 @@ export function isDOMOrFiberNode(value: any, keyName?: string): boolean {
     constructorName.includes('Element') ||
     constructorName.includes('Node') ||
     constructorName.includes('Fiber') ||
-    constructorName.includes('HTML')
+    constructorName.includes('HTML') ||
+    constructorName.includes('CSSStyleDeclaration') ||
+    constructorName.includes('CSSRule') ||
+    constructorName.includes('Window') ||
+    constructorName.includes('Document')
   ) {
     return true;
   }
@@ -36,12 +49,13 @@ export function isDOMOrFiberNode(value: any, keyName?: string): boolean {
 
 /**
  * Validates an agent payload in development mode.
- * Logs a clear warning if a non-serializable DOM object is detected, and returns a clean, sanitized copy.
+ * Uses stack-based ancestor tracking for accurate circular reference detection.
+ * Logs a clear warning if a non-serializable DOM object or circular loop is detected, returning a clean, sanitized copy.
  */
 export function assertSerializableAgentPayload<T = any>(payload: T): T {
   if (payload === undefined || payload === null) return payload;
 
-  const seen = new WeakSet();
+  const ancestors = new Set();
 
   function sanitizeDeep(val: any, path: string): any {
     if (val === undefined || val === null) return val;
@@ -50,41 +64,44 @@ export function assertSerializableAgentPayload<T = any>(payload: T): T {
 
     if (isDOMOrFiberNode(val, path.split('.').pop())) {
       if (process.env.NODE_ENV !== 'production') {
-        console.error(`[Agent Serialization Guard] Non-serializable DOM object detected at path: "${path}"`);
+        console.error(`[Agent Serialization Guard] Non-serializable DOM/CSS object detected at path: "${path}"`);
       }
       return undefined;
     }
 
-    if (seen.has(val)) {
+    if (ancestors.has(val)) {
       if (process.env.NODE_ENV !== 'production') {
         console.error(`[Agent Serialization Guard] Circular reference detected at path: "${path}"`);
       }
       return '[Circular]';
     }
-    seen.add(val);
 
+    ancestors.add(val);
+
+    let result: any;
     if (Array.isArray(val)) {
-      return val.map((item, idx) => sanitizeDeep(item, `${path}[${idx}]`)).filter(item => item !== undefined);
-    }
-
-    if (val instanceof Map) {
+      result = val.map((item, idx) => sanitizeDeep(item, `${path}[${idx}]`)).filter(item => item !== undefined);
+    } else if (val instanceof Map) {
       const plainObj: Record<string, any> = {};
       val.forEach((mapVal, mapKey) => {
         const cleaned = sanitizeDeep(mapVal, `${path}.${mapKey}`);
         if (cleaned !== undefined) plainObj[String(mapKey)] = cleaned;
       });
-      return plainObj;
+      result = plainObj;
+    } else {
+      const cleanedObj: Record<string, any> = {};
+      for (const key of Object.keys(val)) {
+        if (key === 'domNode') continue; // Hard filter
+        const cleaned = sanitizeDeep(val[key], path ? `${path}.${key}` : key);
+        if (cleaned !== undefined) {
+          cleanedObj[key] = cleaned;
+        }
+      }
+      result = cleanedObj;
     }
 
-    const cleanedObj: Record<string, any> = {};
-    for (const key of Object.keys(val)) {
-      if (key === 'domNode') continue; // Hard filter
-      const cleaned = sanitizeDeep(val[key], path ? `${path}.${key}` : key);
-      if (cleaned !== undefined) {
-        cleanedObj[key] = cleaned;
-      }
-    }
-    return cleanedObj;
+    ancestors.delete(val);
+    return result;
   }
 
   try {
@@ -93,6 +110,77 @@ export function assertSerializableAgentPayload<T = any>(payload: T): T {
     console.error('[Agent Serialization Guard] Error during payload sanitization:', err);
     return {} as T;
   }
+}
+
+/**
+ * Validates an API payload before sending to agent endpoints.
+ * Fails closed if non-serializable DOM objects or circular references are present.
+ */
+export function validateAgentApiPayload(payload: any, toolName: string): { valid: boolean; error?: string } {
+  if (!payload) return { valid: true };
+
+  const ancestors = new Set();
+  let invalidPath: string | null = null;
+  let invalidType: string | null = null;
+
+  function checkDeep(val: any, path: string): boolean {
+    if (val === undefined || val === null) return true;
+    if (typeof val === 'function') {
+      invalidPath = path;
+      invalidType = 'Function';
+      return false;
+    }
+    if (typeof val !== 'object') return true;
+
+    if (isDOMOrFiberNode(val, path.split('.').pop())) {
+      invalidPath = path;
+      invalidType = val.constructor?.name || 'DOM/CSS Object';
+      return false;
+    }
+
+    if (ancestors.has(val)) {
+      invalidPath = path;
+      invalidType = 'Circular Reference';
+      return false;
+    }
+
+    ancestors.add(val);
+
+    if (Array.isArray(val)) {
+      for (let i = 0; i < val.length; i++) {
+        if (!checkDeep(val[i], `${path}[${i}]`)) {
+          ancestors.delete(val);
+          return false;
+        }
+      }
+    } else if (val instanceof Map) {
+      for (const [k, v] of val.entries()) {
+        if (!checkDeep(v, `${path}.${k}`)) {
+          ancestors.delete(val);
+          return false;
+        }
+      }
+    } else {
+      for (const key of Object.keys(val)) {
+        if (key === 'domNode') continue;
+        if (!checkDeep(val[key], path ? `${path}.${key}` : key)) {
+          ancestors.delete(val);
+          return false;
+        }
+      }
+    }
+
+    ancestors.delete(val);
+    return true;
+  }
+
+  const valid = checkDeep(payload, 'payload');
+  if (!valid) {
+    console.error(`[Agent API Boundary Guard] Payload validation failed for tool "${toolName}" at path "${invalidPath}" (Type: ${invalidType})`);
+    return { valid: false, error: `Payload validation failed for tool "${toolName}" at path "${invalidPath}" (${invalidType})` };
+  }
+
+  return { valid: true };
 }
 
 /**

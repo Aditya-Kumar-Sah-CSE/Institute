@@ -2,9 +2,10 @@ import { GoogleGenAI, Modality } from '@google/genai';
 import { GEMINI_TOOL_DECLARATIONS } from './agent-tool-declarations';
 import { GeminiAudioPlayer } from './gemini-audio-player';
 import { AdaptiveVAD } from './adaptive-vad';
-import { safeStringify, sanitizePageContext, assertSerializableAgentPayload, parseAgentJsonResponse } from './safe-stringify';
+import { safeStringify, sanitizePageContext, assertSerializableAgentPayload, parseAgentJsonResponse, validateAgentApiPayload } from './safe-stringify';
 
 export type VoiceConnectionState = 'starting' | 'connecting' | 'connected' | 'ready' | 'error' | 'stopped' | 'closed';
+
 
 export interface GeminiLiveSessionCallbacks {
   onStateChange?: (state: 'IDLE' | 'LISTENING' | 'THINKING' | 'SPEAKING_AI' | 'STOPPED') => void;
@@ -378,6 +379,13 @@ export class GeminiLiveSession {
         args: assertSerializableAgentPayload(args),
         pageContext: sanitizePageContext(this.pageContext)
       });
+
+      const { valid, error: validationError } = validateAgentApiPayload(cleanPayload, toolName);
+      if (!valid) {
+        console.error(`[GeminiLiveSession] API boundary guard blocked payload for tool "${toolName}": ${validationError}`);
+        this.callbacks.onToolExecuted?.(toolName, { success: false, error: validationError || 'Invalid payload' });
+        return;
+      }
 
       const res = await fetch('/api/ai/gemini-live-tool', {
         method: 'POST',

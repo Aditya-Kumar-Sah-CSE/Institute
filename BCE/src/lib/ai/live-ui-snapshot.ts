@@ -127,16 +127,17 @@ export function classifyRGBToSemanticColor(colorStr: string): SemanticColorChann
 }
 
 /**
- * Builds computed color info for an element using getComputedStyle
+ * Builds computed color info for an element using getComputedStyle.
+ * ALWAYS returns a pure JSON DTO containing string primitives.
  */
 export function getElementComputedColorInfo(el: HTMLElement): ComputedColorInfo | undefined {
   if (typeof window === 'undefined' || !el) return undefined;
 
   try {
     const style = window.getComputedStyle(el);
-    const text = style.color || '';
-    const background = style.backgroundColor || '';
-    const border = style.borderColor || '';
+    const text = String(style.color || '');
+    const background = String(style.backgroundColor || '');
+    const border = String(style.borderColor || '');
 
     let semanticColor: SemanticColorChannel = 'neutral';
     
@@ -159,3 +160,85 @@ export function getElementComputedColorInfo(el: HTMLElement): ComputedColorInfo 
     return undefined;
   }
 }
+
+/**
+ * Developer & Runtime assertion specifically for LiveUISnapshot.
+ * Verifies JSON.stringify(snapshot) succeeds and recursively detects non-serializable DOM/CSS/Fiber objects or functions.
+ */
+export function validateLiveUISnapshotSerializable(snapshot: LiveUISnapshot): void {
+  if (!snapshot) return;
+
+  // 1. Hard JSON stringify assertion
+  try {
+    JSON.stringify(snapshot, (key, value) => {
+      if (value instanceof Map) {
+        const obj: Record<string, any> = {};
+        value.forEach((v, k) => { obj[k] = v; });
+        return obj;
+      }
+      return value;
+    });
+  } catch (err: any) {
+    console.error('[Agent Serialization Guard] Hard JSON.stringify failure on LiveUISnapshot:', err);
+    throw new Error(`[Agent Serialization Guard] LiveUISnapshot failed JSON.stringify: ${err.message}`);
+  }
+
+  // 2. Recursive inspection for forbidden types
+  function inspectValue(val: any, path: string, visited: Set<any>): void {
+    if (val === undefined || val === null) return;
+    if (typeof val === 'function') {
+      console.error(`[Agent Serialization Guard] Non-serializable Function detected at path: "${path}"`);
+      return;
+    }
+    if (typeof val !== 'object') return;
+
+    if (visited.has(val)) {
+      return;
+    }
+    visited.add(val);
+
+    if (typeof window !== 'undefined') {
+      if (val instanceof Node || val instanceof Element || val instanceof HTMLElement || val instanceof Event || val instanceof Window || val instanceof Document) {
+        console.error(`[Agent Serialization Guard] Non-serializable DOM object detected at path: "${path}"`);
+        return;
+      }
+      if (val instanceof CSSStyleDeclaration || (typeof CSSRule !== 'undefined' && val instanceof CSSRule)) {
+        console.error(`[Agent Serialization Guard] Non-serializable CSS object detected at path: "${path}"`);
+        return;
+      }
+    }
+
+    const ctorName = val.constructor && typeof val.constructor.name === 'string' ? val.constructor.name : '';
+    if (
+      ctorName.includes('Element') ||
+      ctorName.includes('Node') ||
+      ctorName.includes('Fiber') ||
+      ctorName.includes('HTML') ||
+      ctorName.includes('CSSStyleDeclaration')
+    ) {
+      console.error(`[Agent Serialization Guard] Non-serializable object (${ctorName}) detected at path: "${path}"`);
+      return;
+    }
+
+    if (Array.isArray(val)) {
+      val.forEach((item, idx) => inspectValue(item, `${path}[${idx}]`, visited));
+      return;
+    }
+
+    if (val instanceof Map) {
+      val.forEach((mapVal, mapKey) => inspectValue(mapVal, `${path}.${mapKey}`, visited));
+      return;
+    }
+
+    for (const key of Object.keys(val)) {
+      inspectValue(val[key], path ? `${path}.${key}` : key, visited);
+    }
+  }
+
+  try {
+    inspectValue(snapshot, 'snapshot', new Set());
+  } catch (err) {
+    console.error('[Agent Serialization Guard] Diagnostic inspection error:', err);
+  }
+}
+

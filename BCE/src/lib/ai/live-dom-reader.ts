@@ -8,13 +8,17 @@ import {
   LiveUIPageBadge,
   LiveUIAlert,
   getElementComputedColorInfo,
-  classifyRGBToSemanticColor
+  classifyRGBToSemanticColor,
+  validateLiveUISnapshotSerializable
 } from './live-ui-snapshot';
 
 let cachedDOMContext: LivePageContext | null = null;
 let cachedDOMRoute: string | null = null;
 let lastDOMScanTimestamp = 0;
 const DOM_CACHE_TTL_MS = 2000; // Cache DOM index for 2s unless forced
+
+export const runtimeElementRegistry = new Map<string, HTMLElement>();
+export let isScanningDOM = false;
 
 export function getClassNameString(el: Element | null | undefined): string {
   if (!el) return '';
@@ -32,6 +36,7 @@ export function invalidateDOMCache(): void {
   cachedDOMContext = null;
   cachedDOMRoute = null;
   lastDOMScanTimestamp = 0;
+  runtimeElementRegistry.clear();
 }
 
 /**
@@ -52,8 +57,11 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
   }
 
   const baseContext = buildDefaultLiveContext(route);
+  isScanningDOM = true;
 
   try {
+    runtimeElementRegistry.clear();
+
     // 1. Page Title & Headings
     const docTitle = document.title || 'Smart Learn Platform';
     const mainHeadings: string[] = [];
@@ -124,11 +132,6 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
       const tag = el.tagName.toUpperCase();
       const text = el.textContent?.replace(/\s+/g, ' ').trim() || '';
       
-      // Accessibility & Metadata Priority Order:
-      // 1. data-agent-label / data-agent-action
-      // 2. aria-label / aria-labelledby
-      // 3. role
-      // 4. visible text / title / placeholder
       const dataAgentLabel = el.getAttribute('data-agent-label') || undefined;
       const dataAgentAction = el.getAttribute('data-agent-action') || undefined;
       const dataAgentDescription = el.getAttribute('data-agent-description') || undefined;
@@ -163,6 +166,12 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
         const runtimeId = `agent-el-${String(elementCounter).padStart(3, '0')}`;
         elementCounter++;
 
+        // Attach runtime ID to live DOM element and store in registry (DOM/DTO separation)
+        if (el.getAttribute('data-agent-runtime-id') !== runtimeId) {
+          el.setAttribute('data-agent-runtime-id', runtimeId);
+        }
+        runtimeElementRegistry.set(runtimeId, el);
+
         const classNameStr = getClassNameString(el);
 
         let type: RuntimeAgentElement['type'] = 'other';
@@ -188,7 +197,7 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
           dataAgentAction,
           dataAgentDescription,
           type,
-          computedColor,
+          computedColor: computedColor ? { ...computedColor } : undefined,
           parentSection,
           parentCardTitle,
           href,
@@ -201,7 +210,7 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
         };
 
         elementsMap.set(runtimeId, agentEl);
-        actionableElementsList.push(agentEl);
+        actionableElementsList.push({ ...agentEl });
 
         if (!interactiveElementsSummary.includes(label)) {
           interactiveElementsSummary.push(label);
@@ -220,7 +229,7 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
           dataAgentLabel,
           dataAgentAction,
           dataAgentDescription,
-          computedColor,
+          computedColor: computedColor ? { ...computedColor } : undefined,
           href,
           value,
           placeholder,
@@ -267,10 +276,11 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
         const valText = mEl.textContent?.trim();
         const lblText = mEl.previousElementSibling?.textContent?.trim() || mEl.nextElementSibling?.textContent?.trim() || mEl.parentElement?.querySelector('h3, h4, span, label')?.textContent?.trim() || 'Metric';
         if (valText) {
+          const mColor = getElementComputedColorInfo(mEl as HTMLElement);
           metrics.push({
             label: lblText,
             value: valText,
-            color: getElementComputedColorInfo(mEl as HTMLElement)
+            color: mColor ? { ...mColor } : undefined
           });
         }
       });
@@ -372,6 +382,11 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
       alerts,
       timestamp: now
     };
+
+    // Assert serializability in non-production environments
+    if (process.env.NODE_ENV !== 'production') {
+      validateLiveUISnapshotSerializable(snapshot);
+    }
 
     // 10. Entity Extraction
     let currentEntity: LivePageContext['currentEntity'] = undefined;
@@ -481,6 +496,8 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
   } catch (err) {
     console.warn('[extractLiveDOMContext] Error scanning DOM:', err);
     return baseContext;
+  } finally {
+    isScanningDOM = false;
   }
 }
 

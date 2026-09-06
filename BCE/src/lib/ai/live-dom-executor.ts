@@ -1,5 +1,5 @@
 import { InteractiveDOMElement } from './live-page-context';
-import { extractLiveDOMContext, invalidateDOMCache } from './live-dom-reader';
+import { extractLiveDOMContext, invalidateDOMCache, runtimeElementRegistry } from './live-dom-reader';
 import { RuntimeAgentElement, SemanticColorChannel, classifyRGBToSemanticColor } from './live-ui-snapshot';
 
 export type WhitelistedActionType = 
@@ -118,10 +118,15 @@ export function executeLiveDOMAction(
       let targetElement: RuntimeAgentElement | undefined = undefined;
       let targetDomNode: HTMLElement | null = null;
 
-      // Strategy A: Direct Runtime ID Match
+      // Strategy A: Direct Runtime ID Match via runtimeElementRegistry (DOM/DTO separation) with DOM fallback
       if (queryString.startsWith('agent-el-') && elementsMap && elementsMap.has(queryString)) {
         targetElement = elementsMap.get(queryString);
-        targetDomNode = document.querySelector(`[data-agent-runtime-id="${queryString}"]`) as HTMLElement | null;
+        const registered = runtimeElementRegistry.get(queryString);
+        if (registered && document.body.contains(registered)) {
+          targetDomNode = registered;
+        } else {
+          targetDomNode = document.querySelector(`[data-agent-runtime-id="${queryString}"]`) as HTMLElement | null;
+        }
         if (!targetDomNode) {
           staleElementDetected = true;
         }
@@ -203,7 +208,12 @@ export function executeLiveDOMAction(
         }
 
         if (targetElement) {
-          targetDomNode = document.querySelector(`[data-agent-runtime-id="${targetElement.id}"]`) as HTMLElement | null;
+          const registered = runtimeElementRegistry.get(targetElement.id);
+          if (registered && document.body.contains(registered)) {
+            targetDomNode = registered;
+          } else {
+            targetDomNode = document.querySelector(`[data-agent-runtime-id="${targetElement.id}"]`) as HTMLElement | null;
+          }
         }
       }
 
