@@ -126,8 +126,7 @@ export default function SmartMentorDrawer({
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.75)',
-        backdropFilter: 'blur(5px)',
+        backgroundColor: 'rgba(0, 0, 0, 0.35)',
         zIndex: 100000,
         display: 'flex',
         justifyContent: 'flex-end',
