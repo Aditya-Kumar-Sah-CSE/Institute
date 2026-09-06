@@ -215,7 +215,7 @@ export default function StoryViewerCanvas({
         style={{
           position: 'fixed',
           inset: 0,
-          zIndex: 9999,
+          zIndex: 1000000,
           backgroundColor: '#0f172a',
           display: 'flex',
           alignItems: 'center',

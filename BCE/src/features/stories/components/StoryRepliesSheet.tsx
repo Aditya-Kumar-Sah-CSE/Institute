@@ -98,7 +98,7 @@ export default function StoryRepliesSheet({
               inset: 0,
               backgroundColor: 'rgba(0, 0, 0, 0.8)',
               backdropFilter: 'blur(8px)',
-              zIndex: 9990
+              zIndex: 1000000
             }}
           />
 
@@ -113,7 +113,7 @@ export default function StoryRepliesSheet({
               bottom: 0,
               left: 0,
               right: 0,
-              zIndex: 9991,
+              zIndex: 1000001,
               backgroundColor: '#0f172a',
               borderRadius: '1.5rem 1.5rem 0 0',
               maxHeight: '80vh',

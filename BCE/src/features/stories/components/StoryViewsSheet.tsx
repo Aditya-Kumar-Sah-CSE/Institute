@@ -69,7 +69,7 @@ export default function StoryViewsSheet({ storyItemId, totalViews, isOpen, onClo
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            style={{ position: 'fixed', inset: 0, zIndex: 10000, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+            style={{ position: 'fixed', inset: 0, zIndex: 1000000, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
           />
 
           {/* Bottom Sheet */}
@@ -86,7 +86,7 @@ export default function StoryViewsSheet({ storyItemId, totalViews, isOpen, onClo
               height: '65vh',
               borderRadius: '1.5rem 1.5rem 0 0',
               backgroundColor: '#0f172a',
-              zIndex: 10001,
+              zIndex: 1000001,
               display: 'flex',
               flexDirection: 'column',
               overflow: 'hidden',

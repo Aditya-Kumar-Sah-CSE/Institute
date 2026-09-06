@@ -289,7 +289,7 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={handleClose}
-            style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 200 }}
+            style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000000 }}
           />
           
           {/* Bottom Sheet */}
@@ -298,7 +298,7 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            style={{ position: 'fixed', bottom: 0, left: 0, right: 0, maxWidth: '36rem', margin: '0 auto', borderRadius: '1.5rem 1.5rem 0 0', zIndex: 201, overflow: 'hidden' }}
+            style={{ position: 'fixed', bottom: 0, left: 0, right: 0, maxWidth: '36rem', margin: '0 auto', borderRadius: '1.5rem 1.5rem 0 0', zIndex: 1000001, overflow: 'hidden' }}
             className="bg-slate-100 dark:bg-slate-900 shadow-[0_-10px_40px_rgba(0,0,0,0.3)]"
           >
             {/* Handle Bar */}
@@ -306,7 +306,7 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
               <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full" />
             </div>
             
-            <div style={{ padding: '0.5rem 1.5rem 1.5rem' }}>
+            <div style={{ padding: '0.5rem 1.5rem max(1.5rem, env(safe-area-inset-bottom, 1.5rem))' }}>
               {/* Header */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 {mode !== 'choose' ? (
