@@ -112,6 +112,9 @@ interface SmartAgentSessionContextValue {
   isOpen: boolean;
   isMaximized: boolean;
   setIsMaximized: React.Dispatch<React.SetStateAction<boolean>>;
+  isWrapped: boolean;
+  setIsWrapped: React.Dispatch<React.SetStateAction<boolean>>;
+  toggleWrap: () => void;
   toggleDrawer: () => void;
   openDrawer: (initialPrompt?: string) => void;
   closeDrawer: () => void;
@@ -169,6 +172,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
 
   const [isOpen, setIsOpen] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
+  const [isWrapped, setIsWrapped] = useState(false);
   const [isVoiceMode, setIsVoiceMode] = useState(true);
   const [inputVal, setInputVal] = useState('');
   const [currentPromptText, setCurrentPromptText] = useState('');
@@ -566,9 +570,11 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
   };
 
   const toggleDrawer = () => setIsOpen(prev => !prev);
+  const toggleWrap = () => setIsWrapped(prev => !prev);
   
   const openDrawer = (initialPrompt?: string) => {
     setIsOpen(true);
+    setIsWrapped(false);
     if (initialPrompt && initialPrompt.trim()) {
       handleSendPrompt(initialPrompt);
     }
@@ -576,6 +582,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
 
   const closeDrawer = () => {
     stopVoiceSession();
+    setIsWrapped(false);
     setIsOpen(false);
   };
 
@@ -1014,6 +1021,9 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         isOpen,
         isMaximized,
         setIsMaximized,
+        isWrapped,
+        setIsWrapped,
+        toggleWrap,
         toggleDrawer,
         openDrawer,
         closeDrawer,

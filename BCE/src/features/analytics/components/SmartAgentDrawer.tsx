@@ -8,7 +8,7 @@ import { useSmartAgentSession } from '../context/SmartAgentSessionContext';
 import DualAudioVisualizer from './DualAudioVisualizer';
 import { 
   X, Send, Mic, MicOff, Sparkles, Bot, User, ArrowRight, RefreshCw, 
-  ExternalLink, AlertTriangle, Terminal, HelpCircle, Loader2, Volume2, VolumeX, Square, Trash2, CheckCircle2, AlertCircle, Maximize2, Minimize2, Database
+  ExternalLink, AlertTriangle, Terminal, HelpCircle, Loader2, Volume2, VolumeX, Square, Trash2, CheckCircle2, AlertCircle, Maximize2, Minimize2, Database, ChevronDown, ChevronUp
 } from 'lucide-react';
 
 const QUICK_COMMANDS = [
@@ -27,6 +27,8 @@ export default function SmartAgentDrawer() {
     isOpen,
     isMaximized,
     setIsMaximized,
+    isWrapped,
+    toggleWrap,
     closeDrawer,
     messages,
     executionState,
@@ -60,7 +62,7 @@ export default function SmartAgentDrawer() {
   }, []);
 
   useEffect(() => {
-    if (isOpen && !isMaximized) {
+    if (isOpen && !isMaximized && !isWrapped) {
       document.body.classList.remove('sidebar-is-collapsed');
       document.body.classList.add('agent-drawer-open');
     } else {
@@ -76,7 +78,7 @@ export default function SmartAgentDrawer() {
     return () => {
       document.body.classList.remove('agent-drawer-open');
     };
-  }, [isOpen, isMaximized]);
+  }, [isOpen, isMaximized, isWrapped]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -96,6 +98,135 @@ export default function SmartAgentDrawer() {
   }, []);
 
   if (!isOpen || !mounted) return null;
+
+  if (isWrapped && mounted) {
+    const wrappedBarContent = (
+      <div
+        className="smart-agent-wrapped-bar"
+        style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          zIndex: 1000000,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-end',
+          gap: '8px'
+        }}
+      >
+        {/* INTERIM TRANSCRIPT / ACTIVE AGENT NOTICE BUBBLE */}
+        {interimTranscript && (
+          <div 
+            style={{ 
+              background: 'rgba(15, 23, 42, 0.92)', 
+              border: '1px solid var(--neon-cyan)', 
+              borderRadius: '12px', 
+              padding: '8px 14px', 
+              fontSize: '12px', 
+              color: 'var(--text-primary)',
+              maxWidth: '320px',
+              boxShadow: '0 8px 24px rgba(0, 229, 255, 0.25)',
+              backdropFilter: 'blur(12px)',
+              fontStyle: 'italic'
+            }}
+          >
+            "{interimTranscript}..."
+          </div>
+        )}
+
+        {/* FLOATING WRAPPED ACTIVE PILL BAR */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            background: 'rgba(15, 23, 42, 0.92)',
+            border: '1px solid var(--neon-cyan)',
+            boxShadow: '0 8px 30px rgba(0, 229, 255, 0.35), 0 0 15px rgba(0, 229, 255, 0.2)',
+            borderRadius: '24px',
+            padding: '8px 16px',
+            backdropFilter: 'blur(16px)',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            userSelect: 'none'
+          }}
+          onClick={toggleWrap}
+          title="Smart Agent is active in background! Click to expand panel."
+        >
+          {/* Chevron Up (^) icon to Unwrap */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleWrap();
+            }}
+            style={{
+              background: 'rgba(0, 229, 255, 0.2)',
+              color: 'var(--neon-cyan)',
+              border: '1px solid rgba(0, 229, 255, 0.4)',
+              borderRadius: '50%',
+              width: '26px',
+              height: '26px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer'
+            }}
+            title="Unwrap / Expand Smart Agent (^)"
+          >
+            <ChevronUp size={16} />
+          </button>
+
+          {/* Active Glowing Status Indicator */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Sparkles size={16} style={{ color: 'var(--neon-cyan)' }} />
+              {(isListening || isSpeaking) && (
+                <span style={{ position: 'absolute', top: -3, right: -3, width: 8, height: 8, borderRadius: '50%', background: isListening ? '#00ff88' : 'var(--neon-cyan)', boxShadow: isListening ? '0 0 8px #00ff88' : '0 0 8px var(--neon-cyan)', animation: 'pulse 1s infinite' }} />
+              )}
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                ✦ Smart Agent <span style={{ fontSize: '10px', color: isListening ? '#00ff88' : isSpeaking ? 'var(--neon-cyan)' : 'var(--neon-lime)', fontWeight: 600 }}>({isListening ? 'Listening…' : isSpeaking ? 'Speaking…' : isLoading ? 'Processing…' : 'Active'})</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Quick Mic Control */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '4px' }}>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleVoiceRecording();
+              }}
+              style={{
+                background: isListening ? 'rgba(0, 255, 136, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+                border: isListening ? '1px solid #00ff88' : '1px solid var(--glass-border)',
+                color: isListening ? '#00ff88' : 'var(--text-secondary)',
+                borderRadius: '50%',
+                width: '26px',
+                height: '26px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}
+              title={isListening ? "Stop Listening" : "Start Listening"}
+            >
+              {isListening ? <Square size={12} /> : <Mic size={14} />}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+
+    if (typeof document !== 'undefined') {
+      return createPortal(wrappedBarContent, document.body);
+    }
+    return wrappedBarContent;
+  }
 
   const drawerContent = (
     <div
@@ -153,9 +284,29 @@ export default function SmartAgentDrawer() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
-            <div style={{ background: 'rgba(0, 229, 255, 0.15)', color: 'var(--neon-cyan)', padding: '6px', borderRadius: '10px', border: '1px solid rgba(0, 229, 255, 0.3)', flexShrink: 0 }}>
-              <Sparkles size={18} />
-            </div>
+            {/* WRAP / COLLAPSE BUTTON (^ / v) IN PLACE OF STATIC AI ICON BOX */}
+            <button
+              type="button"
+              onClick={toggleWrap}
+              style={{
+                background: 'rgba(0, 229, 255, 0.18)',
+                color: 'var(--neon-cyan)',
+                padding: '6px',
+                borderRadius: '10px',
+                border: '1px solid rgba(0, 229, 255, 0.4)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                boxShadow: '0 0 10px rgba(0, 229, 255, 0.25)',
+                transition: 'all 0.2s ease'
+              }}
+              title="Wrap / Minimize Assistant (Agent stays 100% active in background)"
+            >
+              <ChevronDown size={18} />
+            </button>
+
             <div style={{ minWidth: 0, flex: 1 }}>
               <h3 style={{ margin: 0, fontSize: 'var(--text-sm)', fontWeight: 'bold', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 ✦ Smart Learn Agent
@@ -229,6 +380,16 @@ export default function SmartAgentDrawer() {
               title="Reset Conversation"
             >
               <Trash2 size={16} />
+            </button>
+
+            {/* WRAP / COLLAPSE PANEL BUTTON (KEEP AGENT ACTIVE) */}
+            <button 
+              type="button"
+              onClick={toggleWrap}
+              style={{ background: 'transparent', border: 'none', color: 'var(--neon-cyan)', cursor: 'pointer', padding: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              title="Wrap Panel (Keep Agent Active)"
+            >
+              <ChevronDown size={18} />
             </button>
 
             {/* CLOSE PANEL BUTTON */}
