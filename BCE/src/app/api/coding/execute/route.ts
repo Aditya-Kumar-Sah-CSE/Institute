@@ -133,7 +133,6 @@ export async function POST(request: Request) {
       });
     }
 
-    const compiler = WANDBOX_COMPILERS[language] || 'gcc-head';
     let codeToSend = code;
 
     // Single-run execution: check if harness wrapping is needed
@@ -166,81 +165,24 @@ export async function POST(request: Request) {
       }
     }
 
-    if (language === 'java') {
-      codeToSend = codeToSend.replace(/\bpublic\s+class\b/g, 'class');
-    }
-
-    try {
-      const res = await fetch('https://wandbox.org/api/compile.json', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          compiler,
-          code: codeToSend,
-          stdin: typeof stdin === 'string' ? stdin : String(stdin || ''),
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const rawStatus = String(data.status ?? '0');
-        const signal = data.signal || null;
-        const stdout = data.program_output || '';
-        const stderr = data.program_error || '';
-        const compileStdout = data.compiler_output || '';
-        const compileStderr = data.compiler_error || data.compiler_message || '';
-        const exitCode = rawStatus !== '' ? parseInt(rawStatus, 10) : 0;
-
-        let status: ExecutionStatus = 'SUCCESS';
-        let message: string | null = null;
-
-        if (compileStderr && exitCode !== 0 && !stdout) {
-          status = 'COMPILATION_ERROR';
-          message = 'Compilation failed. Check compiler diagnostics.';
-        } else if (signal === 'SIGKILL' || (stderr && stderr.toLowerCase().includes('time limit exceeded'))) {
-          status = 'TIME_LIMIT_EXCEEDED';
-          message = 'Execution exceeded time limit.';
-        } else if (signal || (!isNaN(exitCode) && exitCode !== 0)) {
-          status = 'RUNTIME_ERROR';
-          message = signal ? `Process terminated by signal: ${signal}` : `Process exited with code ${exitCode}`;
-        } else {
-          status = 'SUCCESS';
-          message = 'Execution finished successfully.';
-        }
-
-        const totalMs = Date.now() - reqStart;
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`[CodeArena Perf] Single-run execution completed in ${totalMs}ms`);
-        }
-
-        return NextResponse.json({
-          status,
-          stdout,
-          stderr,
-          compileStdout,
-          compileStderr,
-          exitCode: isNaN(exitCode) ? null : exitCode,
-          signal,
-          executionTimeMs: totalMs,
-          memoryUsedMb: null,
-          message,
-        } as NormalizedExecutionResult);
-      }
-    } catch (wandboxErr: any) {
-      console.warn('Wandbox execution error:', wandboxErr);
-    }
+    const { executeCodeResiliently } = await import('@/features/code-arena/execution-engine');
+    const result = await executeCodeResiliently({
+      language,
+      code: codeToSend,
+      stdin: typeof stdin === 'string' ? stdin : String(stdin || ''),
+    });
 
     return NextResponse.json({
-      status: 'SYSTEM_ERROR',
-      stdout: '',
-      stderr: '',
-      compileStdout: '',
-      compileStderr: '',
-      exitCode: null,
-      signal: null,
-      executionTimeMs: null,
-      memoryUsedMb: null,
-      message: 'Unable to reach execution server. Please try again.',
+      status: result.status,
+      stdout: result.stdout,
+      stderr: result.stderr,
+      compileStdout: result.compileStdout,
+      compileStderr: result.compileStderr,
+      exitCode: result.exitCode,
+      signal: result.signal,
+      executionTimeMs: result.executionTimeMs || (Date.now() - reqStart),
+      memoryUsedMb: result.memoryUsedMb,
+      message: result.message,
     } as NormalizedExecutionResult);
   } catch (err: any) {
     return NextResponse.json(

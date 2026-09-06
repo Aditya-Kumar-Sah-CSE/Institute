@@ -497,28 +497,15 @@ export async function POST(request: Request) {
           return NextResponse.json({ stdout: '', stderr: `g++: error: ${srcArg}: is a directory\n`, exitCode: 1, cwd });
         }
 
-        // Call Wandbox to verify compilation
-        const compiler = WANDBOX_COMPILERS.cpp17;
-        const res = await fetch('https://wandbox.org/api/compile.json', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ compiler, code: content, stdin: '' }),
-        });
+        // Call Resilient Execution Engine to verify compilation
+        const { executeCodeResiliently } = await import('@/features/code-arena/execution-engine');
+        const execRes = await executeCodeResiliently({ language: 'cpp', code: content || '', stdin: '' });
 
-        if (!res.ok) {
-          return NextResponse.json({ stdout: '', stderr: 'g++: compilation service offline\n', exitCode: 1, cwd });
-        }
-
-        const data = await res.json();
-        const compileStderr = data.compiler_error || data.compiler_message || '';
-        const rawStatus = String(data.status ?? '0');
-        const exitCode = parseInt(rawStatus, 10) || 0;
-
-        if (exitCode !== 0) {
+        if (execRes.status === 'COMPILATION_ERROR' || (execRes.exitCode !== null && execRes.exitCode !== 0)) {
           return NextResponse.json({ 
             stdout: '', 
-            stderr: compileStderr + '\n', 
-            exitCode, 
+            stderr: (execRes.compileStderr || execRes.stderr || 'g++: compilation failed') + '\n', 
+            exitCode: execRes.exitCode || 1, 
             cwd 
           });
         }
@@ -558,28 +545,15 @@ export async function POST(request: Request) {
           return NextResponse.json({ stdout: '', stderr: `javac: error: ${srcArg}: is a directory\n`, exitCode: 1, cwd });
         }
 
-        // Call Wandbox to verify compilation
-        const compiler = WANDBOX_COMPILERS.java;
-        const res = await fetch('https://wandbox.org/api/compile.json', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ compiler, code: content, stdin: '' }),
-        });
+        // Call Resilient Execution Engine to verify compilation
+        const { executeCodeResiliently } = await import('@/features/code-arena/execution-engine');
+        const execRes = await executeCodeResiliently({ language: 'java', code: content || '', stdin: '' });
 
-        if (!res.ok) {
-          return NextResponse.json({ stdout: '', stderr: 'javac: compilation service offline\n', exitCode: 1, cwd });
-        }
-
-        const data = await res.json();
-        const compileStderr = data.compiler_error || data.compiler_message || '';
-        const rawStatus = String(data.status ?? '0');
-        const exitCode = parseInt(rawStatus, 10) || 0;
-
-        if (exitCode !== 0) {
+        if (execRes.status === 'COMPILATION_ERROR' || (execRes.exitCode !== null && execRes.exitCode !== 0)) {
           return NextResponse.json({ 
             stdout: '', 
-            stderr: compileStderr + '\n', 
-            exitCode, 
+            stderr: (execRes.compileStderr || execRes.stderr || 'javac: compilation failed') + '\n', 
+            exitCode: execRes.exitCode || 1, 
             cwd 
           });
         }
@@ -627,24 +601,11 @@ export async function POST(request: Request) {
           return NextResponse.json({ stdout: '', stderr: `python: '${srcArg}' is a directory\n`, exitCode: 1, cwd });
         }
 
-        // Execute via Wandbox Python interpreter
-        const compiler = WANDBOX_COMPILERS.python;
-        const res = await fetch('https://wandbox.org/api/compile.json', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ compiler, code: content, stdin }),
-        });
+        // Execute via Resilient Execution Engine
+        const { executeCodeResiliently } = await import('@/features/code-arena/execution-engine');
+        const execRes = await executeCodeResiliently({ language: 'python', code: content || '', stdin });
 
-        if (!res.ok) {
-          return NextResponse.json({ stdout: '', stderr: 'python: execution service offline\n', exitCode: 1, cwd });
-        }
-
-        const data = await res.json();
-        const stdout = data.program_output || '';
-        const stderr = data.program_error || '';
-        const exitCode = parseInt(String(data.status ?? '0'), 10) || 0;
-
-        return NextResponse.json({ stdout, stderr, exitCode, cwd });
+        return NextResponse.json({ stdout: execRes.stdout, stderr: execRes.stderr, exitCode: execRes.exitCode ?? 0, cwd });
       }
 
       case 'node': {
@@ -668,24 +629,11 @@ export async function POST(request: Request) {
           return NextResponse.json({ stdout: '', stderr: `node: '${srcArg}' is a directory\n`, exitCode: 1, cwd });
         }
 
-        // Run Node.js on Wandbox
-        const compiler = WANDBOX_COMPILERS.javascript;
-        const res = await fetch('https://wandbox.org/api/compile.json', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ compiler, code: content, stdin }),
-        });
+        // Run Node.js on Resilient Execution Engine
+        const { executeCodeResiliently } = await import('@/features/code-arena/execution-engine');
+        const execRes = await executeCodeResiliently({ language: 'javascript', code: content || '', stdin });
 
-        if (!res.ok) {
-          return NextResponse.json({ stdout: '', stderr: 'node: execution service offline\n', exitCode: 1, cwd });
-        }
-
-        const data = await res.json();
-        const stdout = data.program_output || '';
-        const stderr = data.program_error || '';
-        const exitCode = parseInt(String(data.status ?? '0'), 10) || 0;
-
-        return NextResponse.json({ stdout, stderr, exitCode, cwd });
+        return NextResponse.json({ stdout: execRes.stdout, stderr: execRes.stderr, exitCode: execRes.exitCode ?? 0, cwd });
       }
 
       case 'java': {
@@ -713,24 +661,11 @@ export async function POST(request: Request) {
           return NextResponse.json({ stdout: '', stderr: `Error: Source file for class ${classArg} was deleted\n`, exitCode: 1, cwd });
         }
 
-        // Run java on Wandbox
-        const compiler = WANDBOX_COMPILERS.java;
-        const res = await fetch('https://wandbox.org/api/compile.json', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ compiler, code: srcCode, stdin }),
-        });
+        // Run java on Resilient Execution Engine
+        const { executeCodeResiliently } = await import('@/features/code-arena/execution-engine');
+        const execRes = await executeCodeResiliently({ language: 'java', code: srcCode, stdin });
 
-        if (!res.ok) {
-          return NextResponse.json({ stdout: '', stderr: 'java: execution service offline\n', exitCode: 1, cwd });
-        }
-
-        const data = await res.json();
-        const stdout = data.program_output || '';
-        const stderr = data.program_error || '';
-        const exitCode = parseInt(String(data.status ?? '0'), 10) || 0;
-
-        return NextResponse.json({ stdout, stderr, exitCode, cwd });
+        return NextResponse.json({ stdout: execRes.stdout, stderr: execRes.stderr, exitCode: execRes.exitCode ?? 0, cwd });
       }
 
       default: {
@@ -761,23 +696,10 @@ export async function POST(request: Request) {
             return NextResponse.json({ stdout: '', stderr: `bash: ${primaryCmd}: source code file deleted\n`, exitCode: 1, cwd });
           }
 
-          const compiler = WANDBOX_COMPILERS[lang];
-          const res = await fetch('https://wandbox.org/api/compile.json', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ compiler, code: srcCode, stdin }),
-          });
+          const { executeCodeResiliently } = await import('@/features/code-arena/execution-engine');
+          const execRes = await executeCodeResiliently({ language: lang || 'cpp', code: srcCode, stdin });
 
-          if (!res.ok) {
-            return NextResponse.json({ stdout: '', stderr: 'bash: execution service offline\n', exitCode: 1, cwd });
-          }
-
-          const data = await res.json();
-          const stdout = data.program_output || '';
-          const stderr = data.program_error || '';
-          const exitCode = parseInt(String(data.status ?? '0'), 10) || 0;
-
-          return NextResponse.json({ stdout, stderr, exitCode, cwd });
+          return NextResponse.json({ stdout: execRes.stdout, stderr: execRes.stderr, exitCode: execRes.exitCode ?? 0, cwd });
         }
 
         // Unknown command

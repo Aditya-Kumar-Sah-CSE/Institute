@@ -1,6 +1,7 @@
 import type { CodeExecutionRequest, CodeExecutionResult, SubmissionStatus, ProblemSignature } from './types';
 import { wrapCodeWithHarness, hasMainFunction } from './harness';
 import { validateContract, ExecutionCapturedState } from './lib/contractValidator';
+import { executeCodeResiliently } from './execution-engine';
 
 const WANDBOX_COMPILERS: Record<string, string> = {
   cpp17: 'gcc-head',
@@ -91,70 +92,49 @@ async function runSingleTestCase(
   language: string,
   signature?: ProblemSignature | null
 ): Promise<SingleTestResult> {
-  let codeToSend = code;
-  if (language === 'java') {
-    codeToSend = code.replace(/\bpublic\s+class\b/g, 'class');
-  }
-
   try {
-    const res = await fetch('https://wandbox.org/api/compile.json', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        compiler,
-        code: codeToSend,
-        stdin: input,
-      }),
+    const execRes = await executeCodeResiliently({
+      language,
+      code,
+      stdin: input,
     });
 
-    if (!res.ok) {
-      throw new Error(`Execution server responded with status ${res.status}`);
-    }
-
-    const data = await res.json();
-    const rawStatus = String(data.status ?? '0');
-    const signal = data.signal || null;
-    const stdout = data.program_output || '';
-    const stderr = data.program_error || '';
-    const compileStderr = data.compiler_error || data.compiler_message || '';
-    const exitCode = rawStatus !== '' ? parseInt(rawStatus, 10) : 0;
-
     // 1. Compilation Error
-    if (compileStderr && exitCode !== 0 && !stdout) {
+    if (execRes.status === 'COMPILATION_ERROR') {
       return {
         status: 'COMPILATION_ERROR',
         input,
         expectedOutput: expected,
         actualOutput: '',
         passed: false,
-        stderr: compileStderr,
+        stderr: execRes.compileStderr || execRes.stderr,
       };
     }
     // 2. Time Limit Exceeded
-    if (signal === 'SIGKILL' || (stderr && stderr.toLowerCase().includes('time limit exceeded'))) {
+    if (execRes.status === 'TIME_LIMIT_EXCEEDED') {
       return {
         status: 'TIME_LIMIT_EXCEEDED',
         input,
         expectedOutput: expected,
-        actualOutput: stdout,
+        actualOutput: execRes.stdout,
         passed: false,
-        stderr,
+        stderr: execRes.stderr || 'Time Limit Exceeded',
       };
     }
-    // 3. Runtime Error
-    if (signal || (!isNaN(exitCode) && exitCode !== 0)) {
+    // 3. Runtime Error / System Error
+    if (execRes.status === 'RUNTIME_ERROR' || execRes.status === 'SYSTEM_ERROR' || (execRes.exitCode !== null && execRes.exitCode !== 0)) {
       return {
         status: 'RUNTIME_ERROR',
         input,
         expectedOutput: expected,
-        actualOutput: stdout,
+        actualOutput: execRes.stdout,
         passed: false,
-        stderr: stderr || `Exited with code ${exitCode}`,
+        stderr: execRes.stderr || execRes.message || `Exited with code ${execRes.exitCode}`,
       };
     }
 
     // 4. Universal Output Contract Validation
-    const capturedState = parseHarnessCapturedState(stdout);
+    const capturedState = parseHarnessCapturedState(execRes.stdout);
     const validation = validateContract(signature, capturedState, expected);
 
     if (validation.passed) {
