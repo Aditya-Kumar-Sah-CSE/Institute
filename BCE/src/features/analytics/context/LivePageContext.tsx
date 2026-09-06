@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, Suspense } from 'react';
 import { LivePageContext, buildDefaultLiveContext } from '@/lib/ai/live-page-context';
 import { extractLiveDOMContext } from '@/lib/ai/live-dom-reader';
 import { executeLiveDOMAction, DOMActionResult } from '@/lib/ai/live-dom-executor';
@@ -19,7 +19,7 @@ interface LivePageContextValue {
 
 const LivePageContextObj = createContext<LivePageContextValue | undefined>(undefined);
 
-export function LivePageContextProvider({ children }: { children: ReactNode }) {
+function LivePageContextProviderInner({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const fullRoute = pathname + (searchParams?.toString() ? `?${searchParams.toString()}` : '');
@@ -82,6 +82,14 @@ export function LivePageContextProvider({ children }: { children: ReactNode }) {
   );
 }
 
+export function LivePageContextProvider({ children }: { children: ReactNode }) {
+  return (
+    <Suspense fallback={null}>
+      <LivePageContextProviderInner>{children}</LivePageContextProviderInner>
+    </Suspense>
+  );
+}
+
 export function useLivePageContext(): LivePageContextValue {
   const ctx = useContext(LivePageContextObj);
   if (!ctx) {
@@ -96,3 +104,4 @@ export function useLivePageContext(): LivePageContextValue {
   }
   return ctx;
 }
+
