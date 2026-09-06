@@ -132,6 +132,13 @@ export const TOOL_PERMISSIONS: Record<string, AppRole> = {
 
   // Instructor tools
   openInstructorDashboard: 'instructor',
+  openInstructorCourses: 'instructor',
+  createCourse: 'instructor',
+  editCourse: 'instructor',
+  publishCourse: 'instructor',
+  createModule: 'instructor',
+  createLesson: 'instructor',
+  createMCQ: 'instructor',
   manageCourseBuilder: 'instructor',
   viewStudentSubmissions: 'instructor',
   createInstructorNotice: 'instructor',
@@ -139,6 +146,13 @@ export const TOOL_PERMISSIONS: Record<string, AppRole> = {
 
   // Admin tools
   openAdminDashboard: 'admin',
+  openAdminCourses: 'admin',
+  openAdminUsers: 'admin',
+  openAdminNptel: 'admin',
+  openAdminNotices: 'admin',
+  openAdminFeedback: 'admin',
+  openAdminSubmissions: 'admin',
+  openDeveloperPanel: 'admin',
   manageUsers: 'admin',
   adminSyncNptel: 'admin',
   manageSystemSettings: 'admin',

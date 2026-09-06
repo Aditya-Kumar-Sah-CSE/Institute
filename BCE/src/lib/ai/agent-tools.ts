@@ -1504,6 +1504,280 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     }
   },
 
+  // ─── INSTRUCTOR & ADMIN PANELS CONTROL ───
+  openInstructorDashboard: {
+    name: 'openInstructorDashboard',
+    description: 'Navigate to Instructor Dashboard and courses workspace.',
+    category: 'NAVIGATION',
+    riskLevel: 'LOW',
+    parameters: { type: 'object', properties: {} },
+    execute: async () => ({
+      success: true,
+      message: 'Opening Instructor Dashboard...',
+      url: '/instructor',
+      pendingNavigation: true,
+      navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      expectedRoute: '/instructor',
+      successMessage: 'Instructor Dashboard open kar diya.'
+    })
+  },
+
+  openInstructorCourses: {
+    name: 'openInstructorCourses',
+    description: 'Navigate to Instructor Courses management workspace.',
+    category: 'COURSES',
+    riskLevel: 'LOW',
+    parameters: { type: 'object', properties: {} },
+    execute: async () => ({
+      success: true,
+      message: 'Opening Instructor Courses management...',
+      url: '/instructor/courses',
+      pendingNavigation: true,
+      navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      expectedRoute: '/instructor/courses',
+      successMessage: 'Instructor Courses page open kar diya.'
+    })
+  },
+
+  createCourse: {
+    name: 'createCourse',
+    description: 'Create a new course in the platform database for instructors and admins.',
+    category: 'COURSES',
+    riskLevel: 'MEDIUM',
+    parameters: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Title of the new course' },
+        description: { type: 'string', description: 'Overview description of the course' },
+        category: { type: 'string', description: 'Category e.g. Computer Science, Web Development' }
+      },
+      required: ['title']
+    },
+    execute: async (args, user) => {
+      const adminClient = await createAdminClient();
+      const slug = args.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const { data, error } = await adminClient
+        .from('courses')
+        .insert({
+          title: args.title,
+          slug,
+          description: args.description || 'New Course',
+          instructor_id: user.id,
+          is_published: false
+        })
+        .select()
+        .single();
+
+      if (error) {
+        return { success: false, message: `Course create nahi ho paya: ${error.message}` };
+      }
+
+      return {
+        success: true,
+        message: `Course "${data.title}" successfully create ho gaya!`,
+        url: `/instructor/courses/${data.id}`,
+        pendingNavigation: true,
+        expectedRoute: `/instructor/courses/${data.id}`,
+        data: { courseId: data.id, courseTitle: data.title }
+      };
+    }
+  },
+
+  editCourse: {
+    name: 'editCourse',
+    description: 'Edit or open course builder workspace for a specific course by ID or name.',
+    category: 'COURSES',
+    riskLevel: 'MEDIUM',
+    parameters: {
+      type: 'object',
+      properties: {
+        courseId: { type: 'string', description: 'Course UUID' },
+        courseTitle: { type: 'string', description: 'Title of the course to edit' }
+      }
+    },
+    execute: async (args, user, context) => {
+      const adminClient = await createAdminClient();
+      let targetId = args.courseId || context?.courseId;
+
+      if (!targetId && args.courseTitle) {
+        const { data: c } = await adminClient
+          .from('courses')
+          .select('id, title')
+          .ilike('title', `%${args.courseTitle.trim()}%`)
+          .limit(1)
+          .maybeSingle();
+        if (c) targetId = c.id;
+      }
+
+      if (!targetId) {
+        return { success: false, message: 'Kaunsa course edit karna hai? Course name bataiye.' };
+      }
+
+      return {
+        success: true,
+        message: `Opening editor workspace for course...`,
+        url: `/instructor/courses/${targetId}`,
+        pendingNavigation: true,
+        expectedRoute: `/instructor/courses/${targetId}`,
+        data: { courseId: targetId }
+      };
+    }
+  },
+
+  createModule: {
+    name: 'createModule',
+    description: 'Add a new module to a course.',
+    category: 'COURSES',
+    riskLevel: 'MEDIUM',
+    parameters: {
+      type: 'object',
+      properties: {
+        courseId: { type: 'string', description: 'Course UUID' },
+        title: { type: 'string', description: 'Module title e.g. "Module 1: Introduction"' }
+      },
+      required: ['title']
+    },
+    execute: async (args, _, context) => {
+      const targetId = args.courseId || context?.courseId;
+      if (!targetId) {
+        return { success: false, message: 'Course ID missing. Pehle course open karein.' };
+      }
+      const adminClient = await createAdminClient();
+      const { data, error } = await adminClient
+        .from('course_modules')
+        .insert({
+          course_id: targetId,
+          title: args.title,
+          order_index: 1
+        })
+        .select()
+        .single();
+
+      if (error) {
+        return { success: false, message: `Module create nahi ho paya: ${error.message}` };
+      }
+
+      return {
+        success: true,
+        message: `Module "${data.title}" successfully add ho gaya!`,
+        url: `/instructor/courses/${targetId}`,
+        data: { moduleId: data.id }
+      };
+    }
+  },
+
+  createMCQ: {
+    name: 'createMCQ',
+    description: 'Create a new multiple choice question (MCQ) for practice or assessment.',
+    category: 'COURSES',
+    riskLevel: 'MEDIUM',
+    parameters: {
+      type: 'object',
+      properties: {
+        questionText: { type: 'string', description: 'MCQ question text' },
+        options: { type: 'string', description: 'Comma-separated options e.g. "Option A, Option B, Option C, Option D"' },
+        correctAnswer: { type: 'string', description: 'Correct answer text or index' }
+      },
+      required: ['questionText']
+    },
+    execute: async (args) => {
+      return {
+        success: true,
+        message: `MCQ Question "${args.questionText}" create karne ke liye action triggered!`,
+        data: {
+          clientDOMAction: {
+            actionType: 'click',
+            query: 'Add MCQ'
+          }
+        }
+      };
+    }
+  },
+
+  openAdminDashboard: {
+    name: 'openAdminDashboard',
+    description: 'Navigate to Admin Control Panel.',
+    category: 'NAVIGATION',
+    riskLevel: 'LOW',
+    parameters: { type: 'object', properties: {} },
+    execute: async () => ({
+      success: true,
+      message: 'Opening Admin Panel...',
+      url: '/admin',
+      pendingNavigation: true,
+      navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      expectedRoute: '/admin',
+      successMessage: 'Admin Panel open kar diya.'
+    })
+  },
+
+  openAdminCourses: {
+    name: 'openAdminCourses',
+    description: 'Navigate to Admin Courses management workspace.',
+    category: 'NAVIGATION',
+    riskLevel: 'LOW',
+    parameters: { type: 'object', properties: {} },
+    execute: async () => ({
+      success: true,
+      message: 'Opening Admin Courses management...',
+      url: '/admin/courses',
+      pendingNavigation: true,
+      navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      expectedRoute: '/admin/courses',
+      successMessage: 'Admin Courses page open kar diya.'
+    })
+  },
+
+  openAdminUsers: {
+    name: 'openAdminUsers',
+    description: 'Navigate to Admin Students and Users management page.',
+    category: 'NAVIGATION',
+    riskLevel: 'LOW',
+    parameters: { type: 'object', properties: {} },
+    execute: async () => ({
+      success: true,
+      message: 'Opening Admin Users management...',
+      url: '/admin/students',
+      pendingNavigation: true,
+      navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      expectedRoute: '/admin/students',
+      successMessage: 'Admin Users page open kar diya.'
+    })
+  },
+
+  openAdminNptel: {
+    name: 'openAdminNptel',
+    description: 'Navigate to Admin NPTEL Course sync management.',
+    category: 'NAVIGATION',
+    riskLevel: 'LOW',
+    parameters: { type: 'object', properties: {} },
+    execute: async () => ({
+      success: true,
+      message: 'Opening NPTEL Course management...',
+      url: '/admin/nptel',
+      pendingNavigation: true,
+      expectedRoute: '/admin/nptel',
+      successMessage: 'Admin NPTEL page open kar diya.'
+    })
+  },
+
+  openDeveloperPanel: {
+    name: 'openDeveloperPanel',
+    description: 'Navigate to Developer / Super Admin Panel workspace.',
+    category: 'NAVIGATION',
+    riskLevel: 'LOW',
+    parameters: { type: 'object', properties: {} },
+    execute: async () => ({
+      success: true,
+      message: 'Opening Developer / Super Admin Panel...',
+      url: '/super-admin',
+      pendingNavigation: true,
+      navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      expectedRoute: '/super-admin',
+      successMessage: 'Developer Panel open kar diya.'
+    })
+  },
+
   // ─── LEADERBOARD RANK CONTROL ───
   getLeaderboardRank: {
     name: 'getLeaderboardRank',
@@ -1586,6 +1860,12 @@ export function selectRelevantTools(userPrompt: string, pageContext?: any, userR
   if (p.includes('latex') || p.includes('equation') || p.includes('formula')) {
     selectedCategories.add('TOOLS');
     selectedCategories.add('NAVIGATION');
+  }
+
+  if (p.includes('instructor') || p.includes('admin') || p.includes('developer') || p.includes('mcq') || p.includes('module') || p.includes('user') || p.includes('nptel')) {
+    selectedCategories.add('NAVIGATION');
+    selectedCategories.add('COURSES');
+    selectedCategories.add('TOOLS');
   }
 
   if (p.includes('certificate') || p.includes('badge') || p.includes('profile') || p.includes('rank') || p.includes('leaderboard') || p.includes('notice') || p.includes('doubt')) {

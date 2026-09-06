@@ -302,6 +302,66 @@ export class AgentController {
       return await executeWithPermission('scanLivePageElements');
     }
 
+    // 0C. Panel & Role Navigation Commands (Instructor, Admin, Developer, Superadmin)
+    // Instructor Panel Commands ("instructor panel kholo", "instructor dashboard open karo")
+    if (/\b(instructor\s+panel|instructor\s+dashboard|instructor\s+view)\b/i.test(promptLower)) {
+      return await executeWithPermission('openInstructorDashboard');
+    }
+
+    if (/\b(instructor\s+courses|my\s+instructor\s+courses)\b/i.test(promptLower)) {
+      return await executeWithPermission('openInstructorCourses');
+    }
+
+    // Admin Panel Commands ("admin panel kholo", "admin dashboard open karo", "admin panel me users kholo")
+    if (/\b(admin\s+panel|admin\s+dashboard|admin\s+view)\b/i.test(promptLower)) {
+      if (promptLower.includes('user') || promptLower.includes('student')) {
+        return await executeWithPermission('openAdminUsers');
+      }
+      if (promptLower.includes('course')) {
+        return await executeWithPermission('openAdminCourses');
+      }
+      if (promptLower.includes('nptel')) {
+        return await executeWithPermission('openAdminNptel');
+      }
+      return await executeWithPermission('openAdminDashboard');
+    }
+
+    if (/\b(admin\s+users|users\s+management|students\s+management)\b/i.test(promptLower)) {
+      return await executeWithPermission('openAdminUsers');
+    }
+
+    // Developer / Super Admin Panel Commands ("developer panel open karo", "super admin panel kholo")
+    if (/\b(developer\s+panel|developer\s+view|super\s+admin|superadmin)\b/i.test(promptLower)) {
+      return await executeWithPermission('openDeveloperPanel');
+    }
+
+    // Course Creation & Management Commands ("course create karo", "new course banao", "is course ko edit karo")
+    if (/\b(course|courses)\b/i.test(promptLower)) {
+      if (/\b(create|banao|make|new|add)\b/i.test(promptLower)) {
+        const titleMatch = promptRaw.match(/(?:create|banao|make|new|add)\s+(?:course\s+)?(.+)/i);
+        const title = titleMatch ? titleMatch[1].replace(/^(course|a|new)\s+/gi, '').trim() : 'New Course';
+        return await executeWithPermission('createCourse', { title });
+      }
+
+      if (/\b(edit|modify|update|builder)\b/i.test(promptLower)) {
+        return await executeWithPermission('editCourse', { courseId: sessionState.courseId });
+      }
+    }
+
+    // MCQ / Question Creation Commands ("MCQ create karo", "isme MCQ add karo", "new question add karo")
+    if (/\b(mcq|quiz|question|sawal)\b/i.test(promptLower) && /\b(create|add|banao|make|new)\b/i.test(promptLower)) {
+      const qMatch = promptRaw.match(/(?:create|add|banao|make|new)\s+(?:mcq\s+|question\s+)?(.+)/i);
+      const questionText = qMatch ? qMatch[1].trim() : 'New Multiple Choice Question';
+      return await executeWithPermission('createMCQ', { questionText });
+    }
+
+    // Module Creation Commands ("module create karo", "isme module add karo")
+    if (/\b(module|unit|section)\b/i.test(promptLower) && /\b(create|add|banao|make|new)\b/i.test(promptLower)) {
+      const modMatch = promptRaw.match(/(?:create|add|banao|make|new)\s+(?:module\s+)?(.+)/i);
+      const title = modMatch ? modMatch[1].trim() : 'New Module';
+      return await executeWithPermission('createModule', { courseId: sessionState.courseId, title });
+    }
+
     // A. Static Navigation Intents
     if (/\b(dashboard|home)\b/i.test(promptLower)) {
       return await executeWithPermission('openDashboard');
