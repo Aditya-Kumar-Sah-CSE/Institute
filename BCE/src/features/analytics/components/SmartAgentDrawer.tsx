@@ -102,21 +102,25 @@ export default function SmartAgentDrawer() {
               position: 'fixed',
               inset: 0,
               backgroundColor: 'rgba(0, 0, 0, 0.75)',
-              zIndex: 100000,
+              zIndex: 1000000,
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center'
             }
           : {
-              position: 'relative',
-              width: '100%',
-              height: '100%',
+              position: 'fixed',
+              right: 0,
+              top: '64px',
+              bottom: 0,
+              width: '420px',
+              maxWidth: '90vw',
               display: 'flex',
               flexDirection: 'column',
               background: 'var(--bg-secondary)',
               borderLeft: '1px solid var(--glass-border)',
+              boxShadow: '-10px 0 40px rgba(0, 0, 0, 0.7)',
               boxSizing: 'border-box',
-              zIndex: 99999
+              zIndex: 999999
             }
       }
     >
@@ -535,33 +539,8 @@ export default function SmartAgentDrawer() {
     </div>
   );
 
-  const sidebarWrapper = typeof document !== 'undefined' ? document.querySelector('.sidebar-wrapper') : null;
-
-  if (sidebarWrapper && !isMaximized) {
-    return createPortal(drawerContent, sidebarWrapper);
-  }
-
-  if (!isMaximized) {
-    return (
-      <div
-        style={{
-          position: 'fixed',
-          right: 0,
-          top: '64px',
-          bottom: 0,
-          width: '400px',
-          maxWidth: '100vw',
-          zIndex: 99999,
-          background: 'var(--bg-secondary)',
-          borderLeft: '1px solid var(--glass-border)',
-          boxShadow: '-10px 0 40px rgba(0,0,0,0.6)',
-          display: 'flex',
-          flexDirection: 'column'
-        }}
-      >
-        {drawerContent}
-      </div>
-    );
+  if (typeof document !== 'undefined') {
+    return createPortal(drawerContent, document.body);
   }
 
   return drawerContent;
