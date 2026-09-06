@@ -331,6 +331,7 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
             </button>
 
             <button 
+              type="button"
               suppressHydrationWarning
               onClick={() => window.dispatchEvent(new Event('toggleSidebar'))}
               className="open-sidebar-btn desktop-only-btn"
@@ -364,7 +365,7 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
         {/* Hamburger Menu (Mobile Only) */}
         {profile && (
           <div className="mobile-menu-container">
-            <button className="hamburger-btn" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+            <button type="button" className="hamburger-btn" onClick={() => setIsMenuOpen(!isMenuOpen)}>
               ☰
             </button>
             {isMenuOpen && (
