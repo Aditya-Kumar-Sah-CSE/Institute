@@ -22,10 +22,11 @@ const QUICK_COMMANDS = [
 ];
 
 export default function SmartAgentDrawer() {
-  const [isMaximized, setIsMaximized] = React.useState(false);
   const [mounted, setMounted] = useState(false);
   const {
     isOpen,
+    isMaximized,
+    setIsMaximized,
     closeDrawer,
     messages,
     executionState,
@@ -349,7 +350,7 @@ export default function SmartAgentDrawer() {
                           </Button>
                         </a>
                       ) : (
-                        <Link key={aIdx} href={act.url} style={{ textDecoration: 'none' }}>
+                        <Link key={aIdx} href={act.url} style={{ textDecoration: 'none' }} onClick={() => setIsMaximized(false)}>
                           <Button variant="primary" size="sm" style={{ fontSize: '11px', padding: '4px 10px', height: 'auto', gap: '4px' }}>
                             {act.label} <ArrowRight size={12} />
                           </Button>

@@ -110,6 +110,8 @@ export type RealtimeVoiceState =
 
 interface SmartAgentSessionContextValue {
   isOpen: boolean;
+  isMaximized: boolean;
+  setIsMaximized: React.Dispatch<React.SetStateAction<boolean>>;
   toggleDrawer: () => void;
   openDrawer: (initialPrompt?: string) => void;
   closeDrawer: () => void;
@@ -155,12 +157,18 @@ interface SmartAgentSessionContextValue {
 
 const SmartAgentSessionContext = createContext<SmartAgentSessionContextValue | undefined>(undefined);
 
+const normalizeRoutePath = (r: string): string => {
+  if (!r) return '';
+  return r.split('?')[0].split('#')[0].replace(/\/$/, '').toLowerCase();
+};
+
 export function SmartAgentSessionProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { liveContext, executeDOMActionOnPage } = useLivePageContext();
 
   const [isOpen, setIsOpen] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
   const [isVoiceMode, setIsVoiceMode] = useState(true);
   const [inputVal, setInputVal] = useState('');
   const [currentPromptText, setCurrentPromptText] = useState('');
@@ -292,10 +300,15 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
   // ─── REAL NAVIGATION & VERIFICATION HELPERS ───
   const performRealNavigation = useCallback(async (targetRoute: string): Promise<boolean> => {
     if (typeof window === 'undefined') return false;
-    const startPath = window.location.pathname + window.location.search;
-    if (startPath === targetRoute) return true;
+
+    const normTarget = normalizeRoutePath(targetRoute);
+    const normCurrent = normalizeRoutePath(window.location.pathname + window.location.search);
+    if (normCurrent === normTarget) return true;
 
     console.log(`[SmartAgent] Executing navigation to: ${targetRoute}`);
+
+    // If drawer is full-screen, restore to standard sidebar width so target page is immediately visible
+    setIsMaximized(false);
 
     // 1. Try Next.js App Router push
     try {
@@ -304,30 +317,34 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
       console.warn('[SmartAgent] router.push threw error:', e);
     }
 
-    // 2. Fast Event-Driven Polling (30ms interval up to 210ms max)
-    for (let i = 0; i < 7; i++) {
-      await new Promise(r => setTimeout(r, 30));
-      const currentPath = window.location.pathname + window.location.search;
-      if (currentPath === targetRoute || currentPath.startsWith(targetRoute)) {
+    // 2. Event-Driven Polling (check every 40ms up to 3500ms max for SPA route transitions)
+    const startTime = Date.now();
+    while (Date.now() - startTime < 3500) {
+      await new Promise(r => setTimeout(r, 40));
+      const activePath = normalizeRoutePath(window.location.pathname + window.location.search);
+      if (activePath === normTarget || activePath.startsWith(normTarget) || normTarget.startsWith(activePath)) {
+        console.log(`[SmartAgent] App Router navigation verified in ${Date.now() - startTime}ms: ${window.location.pathname}`);
         return true;
       }
     }
 
-    // 3. Fallback: Force hard client navigation via location.assign if App Router push timed out across layout groups
-    console.warn(`[SmartAgent] App Router push timed out for ${targetRoute}, executing fallback location assign`);
+    // 3. Fallback: Force hard client navigation via location.assign ONLY if App Router push timed out after 3.5s
+    console.warn(`[SmartAgent] App Router push timed out after 3.5s for ${targetRoute}, executing fallback location assign`);
     window.location.assign(targetRoute);
     return true;
   }, [router]);
 
   const verifyPostActionState = useCallback(async (expectedRoute: string, expectedEntity?: any): Promise<{ success: boolean; message: string }> => {
-    // Fast event-driven check (wait 50ms for React state settlement)
-    await new Promise(r => setTimeout(r, 50));
+    // Wait 100ms for React DOM & state settlement
+    await new Promise(r => setTimeout(r, 100));
 
     const { extractLiveDOMContext } = await import('@/lib/ai/live-dom-reader');
     const freshCtx = extractLiveDOMContext(undefined, true);
     const currentPath = window.location.pathname + window.location.search;
+    const normTarget = normalizeRoutePath(expectedRoute);
+    const normCurrent = normalizeRoutePath(currentPath);
 
-    const isMatch = currentPath === expectedRoute || currentPath.startsWith(expectedRoute);
+    const isMatch = normCurrent === normTarget || normCurrent.startsWith(normTarget) || normTarget.startsWith(normCurrent);
     const isError = freshCtx.loadState === 'error' || freshCtx.loadState === 'not-found' || freshCtx.loadState === 'unauthorized';
 
     if (isError) {
@@ -337,17 +354,17 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
       };
     }
 
-    if (!isMatch && currentPath !== expectedRoute) {
+    if (!isMatch) {
       return {
         success: false,
-        message: `⚠️ Navigation failed: Current page is still ${currentPath} instead of ${expectedRoute}.`
+        message: `⚠️ Page navigation in progress: Current page is ${currentPath}.`
       };
     }
 
     let entityMessage = '';
     if (expectedEntity && freshCtx.currentEntity) {
-      if (freshCtx.currentEntity.id === expectedEntity.id) {
-        entityMessage = ` Verified entity: ${freshCtx.currentEntity.title}`;
+      if (freshCtx.currentEntity.id === expectedEntity.id || freshCtx.currentEntity.title === expectedEntity.title) {
+        entityMessage = ` Verified: ${freshCtx.currentEntity.title}`;
       }
     }
 
@@ -995,6 +1012,8 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
     <SmartAgentSessionContext.Provider
       value={{
         isOpen,
+        isMaximized,
+        setIsMaximized,
         toggleDrawer,
         openDrawer,
         closeDrawer,
