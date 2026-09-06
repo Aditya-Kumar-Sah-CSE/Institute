@@ -134,16 +134,16 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
         </div>
 
 
+        <Suspense fallback={<div className="skeleton-dash" style={{ height: '320px', borderRadius: '12px' }}></div>}>
+          <LearningIntelligenceSection userId={user.id} />
+        </Suspense>
+
         <Suspense fallback={null}>
           <PinnedGoalAlert />
         </Suspense>
 
         <Suspense fallback={<div className="skeleton-dash" style={{ height: '140px', borderRadius: '12px' }}></div>}>
           <UpcomingContestsAlert />
-        </Suspense>
-
-        <Suspense fallback={<div className="skeleton-dash" style={{ height: '320px', borderRadius: '12px' }}></div>}>
-          <LearningIntelligenceSection userId={user.id} />
         </Suspense>
 
         <Suspense fallback={null}>
