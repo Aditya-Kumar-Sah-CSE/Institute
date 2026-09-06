@@ -313,7 +313,7 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
           onClick={() => window.dispatchEvent(new Event('toggleSidebar'))}
           className="open-sidebar-btn desktop-only-btn"
           style={{ padding: '8px', background: 'var(--bg-card)', border: '1px solid var(--border-default)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer' }}
-          title="Toggle Sidebar"
+          title="Open Sidebar"
         >
           <MoreVertical size={24} />
         </button>
