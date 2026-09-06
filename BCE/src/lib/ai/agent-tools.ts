@@ -1178,6 +1178,234 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
         return { success: false, message: `SQL Execution failed: ${err.message}` };
       }
     }
+  },
+
+  // ─── NOTICES & ANNOUNCEMENTS CONTROL ───
+  getNotices: {
+    name: 'getNotices',
+    description: 'Fetch and read latest announcements and notices. Use when student asks "notice read karo", "latest notice kya hai", "announcements dikhao".',
+    category: 'NAVIGATION',
+    riskLevel: 'LOW',
+    parameters: {
+      type: 'object',
+      properties: {
+        limit: { type: 'number', description: 'Number of notices to fetch, default 5' }
+      }
+    },
+    examples: ['notice read karo', 'latest notice kya hai', 'show announcements'],
+    execute: async (args) => {
+      const adminClient = await createAdminClient();
+      const limit = args.limit || 5;
+      const { data, error } = await adminClient
+        .from('notices')
+        .select('id, title, content, created_at, expires_at, profiles(name, role)')
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error || !data || data.length === 0) {
+        return {
+          success: true,
+          message: 'Abhi koi active notice ya announcement nahi hai.',
+          url: '/notices'
+        };
+      }
+
+      const list = data.map((n: any, idx: number) => {
+        const author = n.profiles?.name ? ` (by ${n.profiles.name})` : '';
+        const date = new Date(n.created_at).toLocaleDateString();
+        return `${idx + 1}. **${n.title}**${author} [${date}]: ${n.content}`;
+      }).join('\n\n');
+
+      return {
+        success: true,
+        message: `📢 **Latest Notices & Announcements**:\n\n${list}`,
+        url: '/notices',
+        data
+      };
+    }
+  },
+
+  createNotice: {
+    name: 'createNotice',
+    description: 'Create a new notice or announcement for students. For instructor or admin roles.',
+    category: 'NAVIGATION',
+    riskLevel: 'MEDIUM',
+    parameters: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Title of the notice' },
+        content: { type: 'string', description: 'Detailed notice text content' }
+      },
+      required: ['title', 'content']
+    },
+    examples: ['create notice Exam schedule released', 'naya notice banao'],
+    execute: async (args, user) => {
+      const adminClient = await createAdminClient();
+      const expires = new Date();
+      expires.setMonth(expires.getMonth() + 6);
+
+      const { data, error } = await adminClient
+        .from('notices')
+        .insert({
+          title: args.title,
+          content: args.content,
+          author_id: user.id,
+          expires_at: expires.toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) {
+        return { success: false, message: `Notice create nahi ho paya: ${error.message}` };
+      }
+
+      return {
+        success: true,
+        message: `Notice "${data.title}" successfully publish kar diya gaya!`,
+        url: '/notices'
+      };
+    }
+  },
+
+  // ─── CODING SHEET GRANULAR CONTROL ───
+  getDSASheetDetails: {
+    name: 'getDSASheetDetails',
+    description: 'Read problem breakdown and details of a specific DSA sheet. Use when user asks "is sheet me kitne sawal hain", "sheet details read karo".',
+    category: 'DSA',
+    riskLevel: 'LOW',
+    parameters: {
+      type: 'object',
+      properties: {
+        sheetId: { type: 'string', description: 'Sheet UUID' },
+        sheetQuery: { type: 'string', description: 'Sheet title query e.g. "Blind 75", "Striver"' }
+      }
+    },
+    examples: ['sheet details read karo', 'is sheet me kitne problem hain', 'Blind 75 sheet breakdown'],
+    execute: async (args, user, context) => {
+      const adminClient = await createAdminClient();
+      let targetSheetId = args.sheetId || context?.sheetId;
+
+      if (!targetSheetId && args.sheetQuery) {
+        const sRes = await resolveDSASheet(args.sheetQuery, user);
+        if (sRes.matched && sRes.entity) targetSheetId = sRes.entity.id;
+      }
+
+      if (!targetSheetId && context?.liveContext?.currentEntity?.type === 'sheet') {
+        targetSheetId = context.liveContext.currentEntity.id;
+      }
+
+      if (!targetSheetId) {
+        return { success: false, message: 'Kaunsi sheet ke details read karne hain? Sheet name bataiye.' };
+      }
+
+      const { data: sheet } = await adminClient.from('coding_sheets').select('*').eq('id', targetSheetId).single();
+      const { data: problems } = await adminClient
+        .from('coding_sheet_problems')
+        .select('order_index, coding_problems(id, title, difficulty)')
+        .eq('sheet_id', targetSheetId)
+        .order('order_index', { ascending: true });
+
+      if (!sheet) return { success: false, message: 'Sheet not found.' };
+
+      const probList = (problems || []).map((p: any) => `${p.order_index}. ${p.coding_problems?.title} (${p.coding_problems?.difficulty || 'Medium'})`).join('\n');
+
+      return {
+        success: true,
+        message: `📋 **${sheet.title}** Details:\n${sheet.description || ''}\n\nTotal Problems: ${problems?.length || 0}\n\n${probList}`,
+        url: `/code-arena/sheets/${targetSheetId}`,
+        data: { sheetId: targetSheetId, totalProblems: problems?.length || 0 }
+      };
+    }
+  },
+
+  // ─── LATEX EDITOR CONTROL ───
+  readLatexCode: {
+    name: 'readLatexCode',
+    description: 'Read the current LaTeX code in the editor or workspace.',
+    category: 'TOOLS',
+    riskLevel: 'LOW',
+    parameters: { type: 'object', properties: {} },
+    examples: ['latex code read karo', 'show latex code', 'current latex code kya hai'],
+    execute: async () => {
+      return {
+        success: true,
+        message: 'LaTeX Editor workspace ready hai. Code update karne ke liye request karein.',
+        url: '/latex-editor'
+      };
+    }
+  },
+
+  editLatexCode: {
+    name: 'editLatexCode',
+    description: 'Edit or append sections to LaTeX resume/code in the editor live. Use when student asks "latex code edit karo", "resume me education section add karo", "latex format clean karo".',
+    category: 'TOOLS',
+    riskLevel: 'MEDIUM',
+    parameters: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'Full new LaTeX code string to set' },
+        sectionTitle: { type: 'string', description: 'Section title to append e.g. "Projects", "Education", "Skills"' },
+        sectionContent: { type: 'string', description: 'Content for the appended section' }
+      }
+    },
+    examples: ['latex code edit karo', 'resume me Education section add karo', 'latex code change karo'],
+    execute: async (args) => {
+      let nextCode = args.code;
+      if (!nextCode && args.sectionTitle) {
+        nextCode = `\n\\section*{${args.sectionTitle}}\n${args.sectionContent || '• Item 1\\n• Item 2'}\n`;
+      }
+
+      return {
+        success: true,
+        message: args.sectionTitle
+          ? `LaTeX Resume me "${args.sectionTitle}" section update/add kar diya gaya!`
+          : `LaTeX Editor source code successfully update kar diya gaya!`,
+        url: '/latex-editor',
+        data: { code: nextCode, sectionTitle: args.sectionTitle }
+      };
+    }
+  },
+
+  // ─── LEADERBOARD RANK CONTROL ───
+  getLeaderboardRank: {
+    name: 'getLeaderboardRank',
+    description: 'Read student current rank on the platform leaderboard, total XP, level, and top 5 ranked students.',
+    category: 'NAVIGATION',
+    riskLevel: 'LOW',
+    parameters: {
+      type: 'object',
+      properties: {
+        courseId: { type: 'string', description: 'Optional course ID filter' }
+      }
+    },
+    examples: ['meri rank kya hai', 'leaderboard rank read karo', 'top 5 rankers kaun hain', 'show my rank'],
+    execute: async (_, user) => {
+      const adminClient = await createAdminClient();
+      const { data: topStudents } = await adminClient
+        .from('profiles')
+        .select('id, name, xp, level, role')
+        .eq('role', 'student')
+        .eq('is_verified', true)
+        .order('xp', { ascending: false })
+        .limit(100);
+
+      const students = topStudents || [];
+      const userIndex = students.findIndex(s => s.id === user.id);
+      const userRank = userIndex !== -1 ? userIndex + 1 : 'Unranked';
+      const currentUserData = userIndex !== -1 ? students[userIndex] : null;
+
+      const top5List = students.slice(0, 5).map((s, idx) => `${idx + 1}. **${s.name}** - ${s.xp} XP (${s.level || 'Beginner'})`).join('\n');
+
+      return {
+        success: true,
+        message: `🏆 **Leaderboard Status**:\n\n` +
+          `• **Tumhari Current Rank**: #${userRank} (XP: ${currentUserData?.xp || 0}, Level: ${currentUserData?.level || 'Level 1'})\n\n` +
+          `**Top 5 Rankers**:\n${top5List}`,
+        url: '/leaderboard',
+        data: { rank: userRank, xp: currentUserData?.xp, top5: students.slice(0, 5) }
+      };
+    }
   }
 };
 

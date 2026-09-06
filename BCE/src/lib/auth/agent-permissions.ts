@@ -123,13 +123,19 @@ export const TOOL_PERMISSIONS: Record<string, AppRole> = {
   createGoal: 'student',
   createCodingSheet: 'student',
   addProblemsToSheet: 'student',
+  getDSASheetDetails: 'student',
   runSafeSQLQuery: 'student',
+  getNotices: 'student',
+  readLatexCode: 'student',
+  editLatexCode: 'student',
+  getLeaderboardRank: 'student',
 
   // Instructor tools
   openInstructorDashboard: 'instructor',
   manageCourseBuilder: 'instructor',
   viewStudentSubmissions: 'instructor',
   createInstructorNotice: 'instructor',
+  createNotice: 'instructor',
 
   // Admin tools
   openAdminDashboard: 'admin',

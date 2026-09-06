@@ -344,6 +344,9 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
             if (result.data.problemId) agentSessionStateRef.current.problemId = result.data.problemId;
             if (result.data.problemTitle) agentSessionStateRef.current.problemTitle = result.data.problemTitle;
             if (result.data.number) agentSessionStateRef.current.problemNumber = result.data.number;
+            if ((result.data.code || result.data.sectionTitle) && typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('bce-update-latex', { detail: result.data }));
+            }
           }
 
           if (result.url) {
@@ -609,6 +612,10 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
           ...agentSessionStateRef.current,
           ...response.sessionState
         };
+      }
+
+      if (response.data && (response.data.code || response.data.sectionTitle) && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('bce-update-latex', { detail: response.data }));
       }
 
       if (!response.success) {

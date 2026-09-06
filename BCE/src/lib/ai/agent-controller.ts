@@ -279,12 +279,33 @@ export class AgentController {
       return await executeWithPermission('openGoals');
     }
 
-    if (/\b(latex|latex editor)\b/i.test(promptLower)) {
-      return await executeWithPermission('openLatexEditor', { problemId: sessionState.problemId });
+    // Notice & Announcement Intents ("notice read karo", "latest notice kya hai", "announcements dikhao")
+    if (/\b(notice|notices|announcement|announcements)\b/i.test(promptLower)) {
+      if (/\b(read|padho|kya|latest|dikhao|show|batao|check|get)\b/i.test(promptLower) || !promptLower.includes('kholo')) {
+        return await executeWithPermission('getNotices');
+      }
+      return await executeWithPermission('openNotifications');
     }
 
-    if (/\b(leaderboard|rank|rankings)\b/i.test(promptLower)) {
+    // Leaderboard & Rank Intents ("meri rank kya hai", "leaderboard rank read karo", "top rankers kaun hain")
+    if (/\b(leaderboard|rank|rankings|position)\b/i.test(promptLower)) {
+      if (/\b(read|kya|my|meri|top|check|batao|show|dikhao|kitni)\b/i.test(promptLower) || !promptLower.includes('kholo')) {
+        return await executeWithPermission('getLeaderboardRank');
+      }
       return await executeWithPermission('openLeaderboard');
+    }
+
+    // LaTeX Code & Resume Intents ("latex code edit karo", "resume me education section add karo", "latex format clean karo")
+    if (/\b(latex|latex editor|resume template)\b/i.test(promptLower)) {
+      if (/\b(edit|add|change|update|banao|insert|template|section|write|modify)\b/i.test(promptLower)) {
+        const secMatch = promptRaw.match(/add\s+(.+?)\s+section/i) || promptRaw.match(/(.+?)\s+section\s+add/i);
+        const sectionTitle = secMatch ? secMatch[1].trim() : undefined;
+        return await executeWithPermission('editLatexCode', { sectionTitle });
+      }
+      if (/\b(read|show|dikhao|view|check)\b/i.test(promptLower)) {
+        return await executeWithPermission('readLatexCode');
+      }
+      return await executeWithPermission('openLatexEditor', { problemId: sessionState.problemId });
     }
 
     // B. Relative / Sequential Problem Navigation ("next problem", "previous problem")

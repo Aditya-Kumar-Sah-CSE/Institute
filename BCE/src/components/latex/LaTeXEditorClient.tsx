@@ -53,6 +53,37 @@ export default function LaTeXEditorClient() {
     }
   }, []);
 
+  // Listen to external live updates from Smart Agent (bce-update-latex)
+  useEffect(() => {
+    const handleExternalUpdate = (e: any) => {
+      const detail = e.detail;
+      if (!detail) return;
+
+      if (detail.code) {
+        setLatexCode(detail.code);
+        try {
+          localStorage.setItem(LOCAL_STORAGE_KEY, detail.code);
+          setSaveStatus('saved');
+        } catch (err) {}
+      } else if (detail.sectionTitle) {
+        const appendedSection = `\n\\section*{${detail.sectionTitle}}\n${detail.sectionContent || '\\begin{itemize}\n  \\item Key responsibility / achievement 1\n  \\item Key responsibility / achievement 2\n\\end{itemize}'}\n`;
+        setLatexCode((prev) => {
+          const updated = prev + appendedSection;
+          try {
+            localStorage.setItem(LOCAL_STORAGE_KEY, updated);
+            setSaveStatus('saved');
+          } catch (err) {}
+          return updated;
+        });
+      }
+    };
+
+    window.addEventListener('bce-update-latex', handleExternalUpdate);
+    return () => {
+      window.removeEventListener('bce-update-latex', handleExternalUpdate);
+    };
+  }, []);
+
   // Save to LocalStorage with 400ms debounce
   const handleCodeChange = (value: string | undefined) => {
     const newCode = value || '';
