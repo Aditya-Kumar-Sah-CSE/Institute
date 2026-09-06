@@ -4,13 +4,44 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { useRouter, usePathname } from 'next/navigation';
 import { askSmartAgentAction } from '../actions/agent';
 import { useLivePageContext } from './LivePageContext';
+import { GeminiLiveSession, VoiceConnectionState } from '@/lib/ai/gemini-live-session';
+import { AgentSessionState } from '@/lib/ai/agent-controller';
 import { 
   speakAssistantResponse, 
   stopAssistantSpeech, 
-  isSpeechSynthesisSupported 
+  isSpeechSynthesisSupported,
+  getSpeechSynthesisSpeaking
 } from '@/lib/ai/speech-synthesizer';
-import { GeminiLiveSession } from '@/lib/ai/gemini-live-session';
-import { AgentSessionState } from '@/lib/ai/agent-controller';
+
+export interface AudioDiagnostics {
+  audioContextState: string;
+  connectionState: VoiceConnectionState;
+  micAvailable: boolean;
+  micTrackState: string | null;
+  micTrackEnabled: boolean;
+  inputRms: number;
+  inputDb: number;
+  outputRms: number;
+  outputDb: number;
+  inputSamplesActive: boolean;
+  outputSamplesActive: boolean;
+  agentPlaybackActive: boolean;
+  outputSource: 'gemini_pcm' | 'web_speech' | 'none';
+  silentReason: 
+    | 'VOICE_STARTING'
+    | 'VOICE_CONNECTING'
+    | 'VOICE_ERROR'
+    | 'NO_MIC_STREAM'
+    | 'MIC_TRACK_NOT_LIVE'
+    | 'MIC_TRACK_DISABLED'
+    | 'AUDIO_CONTEXT_SUSPENDED'
+    | 'NO_INPUT_SIGNAL'
+    | 'NO_AGENT_PLAYBACK'
+    | 'NO_OUTPUT_SIGNAL'
+    | 'AWAITING_SPEECH'
+    | 'PLAYBACK_IDLE'
+    | null;
+}
 
 export interface SmartAgentMessage {
   role: 'user' | 'assistant';
@@ -83,6 +114,7 @@ interface SmartAgentSessionContextValue {
   
   executionState: AgentExecutionState;
   realtimeVoiceState: RealtimeVoiceState;
+  connectionState: VoiceConnectionState;
   inputVal: string;
   setInputVal: (val: string) => void;
   
@@ -107,6 +139,7 @@ interface SmartAgentSessionContextValue {
   getDynamicLoadingText: () => string;
   getInputAnalyserNode: () => AnalyserNode | null;
   getOutputAnalyserNode: () => AnalyserNode | null;
+  getAudioDiagnostics: () => AudioDiagnostics;
 }
 
 const SmartAgentSessionContext = createContext<SmartAgentSessionContextValue | undefined>(undefined);
@@ -135,6 +168,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
   const [activeContext, setActiveContext] = useState<ActiveContext>({});
   const [executionState, setExecutionState] = useState<AgentExecutionState>('IDLE');
   const [realtimeVoiceState, setRealtimeVoiceState] = useState<RealtimeVoiceState>('IDLE');
+  const [connectionState, setConnectionState] = useState<VoiceConnectionState>('stopped');
 
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -149,8 +183,10 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
     route: pathname || '/dashboard'
   });
 
-  // Gemini Live Session Ref
+  // Gemini Live Session Ref & AudioContext / Session Counter Refs
   const geminiLiveSessionRef = useRef<GeminiLiveSession | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const voiceSessionIdRef = useRef<number>(0);
   const voiceStateRef = useRef<RealtimeVoiceState>('IDLE');
   const isVoiceModeRef = useRef<boolean>(isVoiceMode);
   const isOpenRef = useRef<boolean>(isOpen);
@@ -220,27 +256,59 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
   };
 
   const stopVoiceSession = () => {
+    voiceSessionIdRef.current++;
     if (geminiLiveSessionRef.current) {
       geminiLiveSessionRef.current.stop();
       geminiLiveSessionRef.current = null;
     }
-    stopAssistantSpeech();
+    if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+      try { audioCtxRef.current.close(); } catch (e) {}
+      audioCtxRef.current = null;
+    }
     setVoiceState('STOPPED');
   };
 
   const startVoiceListening = async () => {
     if (isLoading) return;
 
-    stopVoiceSession();
+    // 1. Increment session ID and cleanup previous session
+    const currentSessionId = ++voiceSessionIdRef.current;
+    if (geminiLiveSessionRef.current) {
+      geminiLiveSessionRef.current.stop();
+      geminiLiveSessionRef.current = null;
+    }
+
+    // 2. SYNCHRONOUS AudioContext Creation / Resume inside user gesture
+    if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+      const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+      audioCtxRef.current = new AudioCtxClass();
+      console.log('[AUDIO] context created');
+    }
+    if (audioCtxRef.current.state === 'suspended') {
+      audioCtxRef.current.resume().then(() => {
+        console.log('[AUDIO] context resumed');
+      }).catch(err => {
+        console.warn('[AUDIO] AudioContext resume failed:', err);
+      });
+    }
+
+    console.log(`[AUDIO] AudioContext state: ${audioCtxRef.current.state}, sampleRate=${audioCtxRef.current.sampleRate}, baseLatency=${audioCtxRef.current.baseLatency || 0}`);
+
     setVoiceNotice(null);
     setVoiceState('THINKING');
 
     const session = new GeminiLiveSession(
       {
         onStateChange: (state) => {
+          if (voiceSessionIdRef.current !== currentSessionId) return;
           setVoiceState(state as RealtimeVoiceState);
         },
+        onConnectionStateChange: (connState) => {
+          if (voiceSessionIdRef.current !== currentSessionId) return;
+          setConnectionState(connState);
+        },
         onAssistantTextChunk: (chunk) => {
+          if (voiceSessionIdRef.current !== currentSessionId) return;
           setMessages((prev) => {
             const lastMsg = prev[prev.length - 1];
             if (lastMsg && lastMsg.role === 'assistant' && (lastMsg as any).isStreaming) {
@@ -257,6 +325,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
           });
         },
         onAssistantTextComplete: (fullText) => {
+          if (voiceSessionIdRef.current !== currentSessionId) return;
           setMessages((prev) => {
             const lastMsg = prev[prev.length - 1];
             if (lastMsg && lastMsg.role === 'assistant' && (lastMsg as any).isStreaming) {
@@ -269,6 +338,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
           });
         },
         onToolExecuted: (toolName, result) => {
+          if (voiceSessionIdRef.current !== currentSessionId) return;
           if (result.data) {
             if (result.data.sheetId) agentSessionStateRef.current.sheetId = result.data.sheetId;
             if (result.data.problemId) agentSessionStateRef.current.problemId = result.data.problemId;
@@ -300,11 +370,16 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
           ]);
         },
         onError: (errMsg) => {
+          if (voiceSessionIdRef.current !== currentSessionId) return;
           setVoiceNotice(errMsg);
           setVoiceState('STOPPED');
+          setConnectionState('error');
         }
       },
-      liveContext
+      liveContext,
+      undefined,
+      audioCtxRef.current,
+      currentSessionId
     );
 
     geminiLiveSessionRef.current = session;
@@ -370,6 +445,52 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
       return 'Opening page...';
     }
     return 'Processing your command...';
+  };
+
+  const getAudioDiagnostics = (): AudioDiagnostics => {
+    const audioContextState = audioCtxRef.current 
+      ? audioCtxRef.current.state 
+      : (geminiLiveSessionRef.current?.getAudioContextState() || 'none');
+    
+    const micStreamState = geminiLiveSessionRef.current 
+      ? geminiLiveSessionRef.current.getMicStreamState() 
+      : { exists: false, trackState: null, trackEnabled: false };
+    
+    const outputSource = geminiLiveSessionRef.current 
+      ? 'gemini_pcm' 
+      : (getSpeechSynthesisSpeaking() ? 'web_speech' : 'none');
+    
+    let silentReason: AudioDiagnostics['silentReason'] = null;
+    if (realtimeVoiceState === 'STOPPED') {
+      silentReason = 'PLAYBACK_IDLE';
+    } else if (audioContextState === 'suspended') {
+      silentReason = 'AUDIO_CONTEXT_SUSPENDED';
+    } else if (!micStreamState.exists) {
+      silentReason = 'NO_MIC_STREAM';
+    } else if (micStreamState.trackState !== 'live') {
+      silentReason = 'MIC_TRACK_NOT_LIVE';
+    } else if (!micStreamState.trackEnabled) {
+      silentReason = 'MIC_TRACK_DISABLED';
+    } else if (realtimeVoiceState === 'LISTENING') {
+      silentReason = 'AWAITING_SPEECH';
+    }
+
+    return {
+      audioContextState,
+      connectionState,
+      micAvailable: micStreamState.exists,
+      micTrackState: micStreamState.trackState,
+      micTrackEnabled: micStreamState.trackEnabled,
+      inputRms: 0,
+      inputDb: -100,
+      outputRms: 0,
+      outputDb: -100,
+      inputSamplesActive: false,
+      outputSamplesActive: false,
+      agentPlaybackActive: realtimeVoiceState === 'SPEAKING_AI',
+      outputSource,
+      silentReason
+    };
   };
 
   // ─── POST-NAVIGATION HANDSHAKE VERIFICATION EFFECT ───
@@ -565,6 +686,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         setActiveContext,
         executionState,
         realtimeVoiceState,
+        connectionState,
         inputVal,
         setInputVal,
         isLoading,
@@ -586,7 +708,8 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         clearConversation,
         getDynamicLoadingText,
         getInputAnalyserNode: () => geminiLiveSessionRef.current?.getInputAnalyserNode() || null,
-        getOutputAnalyserNode: () => geminiLiveSessionRef.current?.getOutputAnalyserNode() || null
+        getOutputAnalyserNode: () => geminiLiveSessionRef.current?.getOutputAnalyserNode() || null,
+        getAudioDiagnostics
       }}
     >
       {children}

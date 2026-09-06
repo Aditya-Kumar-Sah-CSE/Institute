@@ -1,6 +1,7 @@
 /**
  * Client-side Web Audio API player for Gemini Live 24kHz PCM response streams.
  * Supports gapless scheduled playback and instant barge-in cancellation.
+ * Audio Graph: AudioBufferSourceNode -> AnalyserNode -> AudioContext.destination
  */
 
 export interface GeminiAudioPlayerCallbacks {
@@ -16,31 +17,41 @@ export class GeminiAudioPlayer {
   private isPlaying: boolean = false;
   private sampleRate: number = 24000;
   private callbacks: GeminiAudioPlayerCallbacks;
+  private ownsAudioContext: boolean = true;
 
-  constructor(callbacks: GeminiAudioPlayerCallbacks = {}, sampleRate: number = 24000) {
+  constructor(
+    callbacks: GeminiAudioPlayerCallbacks = {}, 
+    sampleRate: number = 24000,
+    existingAudioCtx?: AudioContext | null
+  ) {
     this.callbacks = callbacks;
     this.sampleRate = sampleRate;
-    if (typeof window !== 'undefined') {
-      this.initAudioContext();
+    if (existingAudioCtx) {
+      this.audioCtx = existingAudioCtx;
+      this.ownsAudioContext = false;
+      this.initAnalyserNode();
     }
   }
 
   public prepare() {
-    this.initAudioContext();
+    this.initAnalyserNode();
   }
 
-  private initAudioContext() {
+  private initAnalyserNode() {
     if (!this.audioCtx || this.audioCtx.state === 'closed') {
       const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
       this.audioCtx = new AudioCtxClass({ sampleRate: this.sampleRate });
+      this.ownsAudioContext = true;
+    }
+    if (!this.analyserNode && this.audioCtx) {
       this.analyserNode = this.audioCtx.createAnalyser();
-      this.analyserNode.fftSize = 64;
-      this.analyserNode.smoothingTimeConstant = 0.8;
+      this.analyserNode.fftSize = 512;
+      this.analyserNode.smoothingTimeConstant = 0.15;
       this.analyserNode.connect(this.audioCtx.destination);
     }
-    if (this.audioCtx.state === 'suspended') {
+    if (this.audioCtx && this.audioCtx.state === 'suspended') {
       this.audioCtx.resume().catch((e) => {
-        console.warn('[GeminiAudioPlayer] AudioContext resume error:', e);
+        console.warn('[AUDIO] GeminiAudioPlayer AudioContext resume notice:', e);
       });
     }
   }
@@ -49,12 +60,16 @@ export class GeminiAudioPlayer {
     return this.analyserNode;
   }
 
+  public getAudioContextState(): string {
+    return this.audioCtx ? this.audioCtx.state : 'none';
+  }
+
   /**
    * Enqueue a chunk of base64 16-bit PCM audio (24kHz mono) for playback.
    */
   public playChunk(base64Pcm: string) {
     try {
-      this.initAudioContext();
+      this.initAnalyserNode();
       if (!this.audioCtx || !this.analyserNode) return;
 
       const float32Data = this.base64ToFloat32(base64Pcm);
@@ -65,6 +80,8 @@ export class GeminiAudioPlayer {
 
       const source = this.audioCtx.createBufferSource();
       source.buffer = audioBuffer;
+      
+      // AUDIO GRAPH: source -> outputAnalyser -> destination
       source.connect(this.analyserNode);
 
       const currentTime = this.audioCtx.currentTime;
@@ -77,6 +94,7 @@ export class GeminiAudioPlayer {
 
       if (!this.isPlaying) {
         this.isPlaying = true;
+        console.log('[AUDIO] Gemini playback started');
         this.callbacks.onPlaybackStart?.();
       }
 
@@ -84,6 +102,7 @@ export class GeminiAudioPlayer {
         this.activeSources.delete(source);
         if (this.activeSources.size === 0 && this.audioCtx && this.audioCtx.currentTime >= this.nextStartTime - 0.05) {
           this.isPlaying = false;
+          console.log('[AUDIO] Gemini playback ended');
           this.callbacks.onPlaybackEnd?.();
         }
       };
@@ -110,6 +129,7 @@ export class GeminiAudioPlayer {
 
     if (this.isPlaying) {
       this.isPlaying = false;
+      console.log('[AUDIO] Gemini playback stopped');
       this.callbacks.onPlaybackEnd?.();
     }
   }
@@ -120,8 +140,12 @@ export class GeminiAudioPlayer {
 
   public close() {
     this.stop();
-    if (this.audioCtx && this.audioCtx.state !== 'closed') {
-      this.audioCtx.close();
+    if (this.analyserNode) {
+      try { this.analyserNode.disconnect(); } catch (e) {}
+      this.analyserNode = null;
+    }
+    if (this.ownsAudioContext && this.audioCtx && this.audioCtx.state !== 'closed') {
+      try { this.audioCtx.close(); } catch (e) {}
       this.audioCtx = null;
     }
   }
@@ -141,3 +165,4 @@ export class GeminiAudioPlayer {
     return float32;
   }
 }
+

@@ -27,6 +27,7 @@ export default function SmartAgentDrawer() {
     messages,
     executionState,
     realtimeVoiceState,
+    connectionState,
     inputVal,
     setInputVal,
     isLoading,
@@ -328,8 +329,12 @@ export default function SmartAgentDrawer() {
         {/* VOICE SESSION STOP BUTTON (WHEN ACTIVE) */}
         {realtimeVoiceState !== 'STOPPED' && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 6px' }}>
-            <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-              Live Voice Session Active
+            <span style={{ fontSize: '11px', color: connectionState === 'error' ? '#ff6666' : 'var(--text-secondary)' }}>
+              {connectionState === 'starting' || connectionState === 'connecting'
+                ? 'Connecting to voice agent…'
+                : connectionState === 'error'
+                ? 'Voice agent connection failed'
+                : 'Live Voice Session Active'}
             </span>
             <button
               type="button"

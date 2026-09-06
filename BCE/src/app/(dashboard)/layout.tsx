@@ -13,9 +13,7 @@ import {
   DynamicXpCelebrator as XpCelebrator
 } from '@/components/DynamicWrappers';
 import { Analytics } from "@vercel/analytics/react";
-import dynamic from 'next/dynamic';
-
-const FloatingAgentButton = dynamic(() => import('@/features/analytics/components/FloatingAgentButton'));
+import FloatingAgentButtonClient from '@/features/analytics/components/FloatingAgentButtonClient';
 
 import { LivePageContextProvider } from '@/features/analytics/context/LivePageContext';
 import { SmartAgentSessionProvider } from '@/features/analytics/context/SmartAgentSessionContext';
@@ -91,7 +89,7 @@ export default async function DashboardLayout({
           <PWAInstallPrompt />
           <XpCelebrator />
           <FeedbackWidget />
-          <FloatingAgentButton />
+          <FloatingAgentButtonClient />
           <Analytics />
         </div>
       </SmartAgentSessionProvider>

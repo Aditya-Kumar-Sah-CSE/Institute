@@ -68,10 +68,18 @@ export function detectLanguage(text: string): 'hi-IN' | 'en-IN' {
   return matchCount >= 1 ? 'hi-IN' : 'en-IN';
 }
 
-// Global TTS session counter and references
 let currentTtsSessionId = 0;
 let currentUtterance: SpeechSynthesisUtterance | null = null;
 let activeEndCallback: (() => void) | null = null;
+let isSpeechSynthesisActive = false;
+
+/**
+ * Returns whether Web Speech API synthesis is currently speaking.
+ */
+export function getSpeechSynthesisSpeaking(): boolean {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return false;
+  return isSpeechSynthesisActive || window.speechSynthesis.speaking;
+}
 
 /**
  * Stops any active Text-to-Speech playback immediately without triggering stale callbacks.
@@ -79,6 +87,7 @@ let activeEndCallback: (() => void) | null = null;
 export function stopAssistantSpeech() {
   if (typeof window === 'undefined' || !window.speechSynthesis) return;
 
+  isSpeechSynthesisActive = false;
   // Invalidate current TTS session so any pending utterance callbacks are safely ignored
   currentTtsSessionId++;
   currentUtterance = null;
@@ -149,10 +158,12 @@ export function speakAssistantResponse(text: string, options: SpeakOptions = {})
 
     utterance.onstart = () => {
       if (activeSessionId !== currentTtsSessionId) return;
+      isSpeechSynthesisActive = true;
       if (options.onStart) options.onStart();
     };
 
     utterance.onend = () => {
+      isSpeechSynthesisActive = false;
       // Ignore callback if session ID was invalidated by a stop or replacement
       if (activeSessionId !== currentTtsSessionId) {
         if (process.env.NODE_ENV === 'development') {
@@ -168,6 +179,7 @@ export function speakAssistantResponse(text: string, options: SpeakOptions = {})
     };
 
     utterance.onerror = (event: any) => {
+      isSpeechSynthesisActive = false;
       // Ignore error callback if session ID was invalidated
       if (activeSessionId !== currentTtsSessionId) {
         if (process.env.NODE_ENV === 'development') {
@@ -201,6 +213,7 @@ export function speakAssistantResponse(text: string, options: SpeakOptions = {})
     window.speechSynthesis.speak(utterance);
     return true;
   } catch (err) {
+    isSpeechSynthesisActive = false;
     if (process.env.NODE_ENV === 'development') {
       console.warn('[TTS EXCEPTION] Failed to initialize SpeechSynthesisUtterance:', err);
     }
