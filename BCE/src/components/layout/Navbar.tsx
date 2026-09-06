@@ -66,12 +66,17 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
   const pathname = usePathname();
   const router = useRouter();
 
+  const [mounted, setMounted] = React.useState(false);
   const [canGoBack, setCanGoBack] = React.useState(false);
   const [currentUrl, setCurrentUrl] = React.useState('');
 
   const [isLandscape, setIsLandscape] = React.useState(false);
   const [isStandalone, setIsStandalone] = React.useState(false);
   
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
       const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
@@ -141,10 +146,10 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
     if (typeof window !== 'undefined') {
       setCurrentUrl(window.location.pathname + window.location.search);
     }
-  });
+  }, [pathname]);
 
   React.useEffect(() => {
-    if (!currentUrl) return;
+    if (!mounted || !currentUrl) return;
 
     const sessionStack = sessionStorage.getItem('bce:nav-stack');
     let stack: string[] = sessionStack ? JSON.parse(sessionStack) : [];
@@ -162,7 +167,7 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
       }
       setCanGoBack(stack.length > 1);
     }
-  }, [currentUrl]);
+  }, [currentUrl, mounted]);
 
   const handleBack = () => {
     if (typeof window === 'undefined') return;
@@ -250,7 +255,7 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
   return (
     <header className="dashboard-navbar" style={{ padding: '0 var(--space-md)' }} suppressHydrationWarning>
       <div className="navbar-left" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-        {canGoBack && (
+        {mounted && canGoBack && (
           <button
             onClick={handleBack}
             className="navbar-back-btn"

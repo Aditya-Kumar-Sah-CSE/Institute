@@ -47,17 +47,17 @@ export default async function AdminLayout({
 
   return (
     <div className="dashboard-layout">
-      <Sidebar key="admin" profile={profile} isAdmin={true} isSuperAdmin={profile.email === SUPER_ADMIN_EMAIL} />
-      <div className="dashboard-main">
-        <Navbar 
-          companyName={settings?.company_name} 
-          companyLogo={settings?.logo_url} 
-          profile={profile}
-          currentView="admin"
-        />
+      <Navbar 
+        companyName={settings?.company_name} 
+        companyLogo={settings?.logo_url} 
+        profile={profile}
+        currentView="admin"
+      />
+      <div className="dashboard-body">
         <main className="dashboard-content">
           {children}
         </main>
+        <Sidebar key="admin" profile={profile} isAdmin={true} isSuperAdmin={profile.email === SUPER_ADMIN_EMAIL} />
       </div>
       <PwaRegister />
       <PWAInstallPrompt />

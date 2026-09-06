@@ -71,17 +71,17 @@ export default async function DashboardLayout({
     <LivePageContextProvider>
       <SmartAgentSessionProvider>
         <div className="dashboard-layout">
-          <Sidebar key="student" profile={profile} roleView="student" isSuperAdmin={profile.email === SUPER_ADMIN_EMAIL} />
-          <div className="dashboard-main">
-            <Navbar 
-              companyName={settings?.company_name} 
-              companyLogo={settings?.logo_url} 
-              profile={profile}
-              currentView="student"
-            />
+          <Navbar 
+            companyName={settings?.company_name} 
+            companyLogo={settings?.logo_url} 
+            profile={profile}
+            currentView="student"
+          />
+          <div className="dashboard-body">
             <main className="dashboard-content">
               {children}
             </main>
+            <Sidebar key="student" profile={profile} roleView="student" isSuperAdmin={profile.email === SUPER_ADMIN_EMAIL} />
           </div>
 
           <PwaRegister />

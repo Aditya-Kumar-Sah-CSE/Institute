@@ -72,7 +72,10 @@ export default function SmartAgentDrawer() {
     <div
       style={{
         position: 'fixed',
-        inset: 0,
+        top: 'var(--navbar-height, 64px)',
+        bottom: 0,
+        left: 0,
+        right: 0,
         backgroundColor: 'rgba(0, 0, 0, 0.35)',
         zIndex: 100000,
         display: 'flex',
@@ -87,7 +90,7 @@ export default function SmartAgentDrawer() {
         style={{
           width: isMaximized ? '100vw' : '450px',
           maxWidth: '100vw',
-          height: '100vh',
+          height: 'calc(100vh - var(--navbar-height, 64px))',
           display: 'flex',
           flexDirection: 'column',
           background: 'var(--bg-secondary)',
