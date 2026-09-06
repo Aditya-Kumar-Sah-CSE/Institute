@@ -351,9 +351,6 @@ export default function LearningIntelligenceClient({ userId, initialProfile }: L
       {nextBestAction && (
         <div style={{ background: 'linear-gradient(135deg, rgba(0, 229, 255, 0.1) 0%, rgba(57, 255, 20, 0.08) 100%)', border: '1px solid var(--neon-cyan)', borderRadius: 'var(--radius-md)', padding: 'var(--space-md) var(--space-lg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', flex: 1, minWidth: '260px' }}>
-            <div style={{ background: 'var(--neon-cyan)', color: '#000', padding: '10px', borderRadius: '10px', marginTop: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Zap size={22} />
-            </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                 <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--neon-cyan)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>

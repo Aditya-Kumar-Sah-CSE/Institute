@@ -326,6 +326,16 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
               <span>✦ Smart Agent</span>
             </button>
 
+            <button 
+              type="button"
+              onClick={() => window.dispatchEvent(new Event('toggleSidebar'))}
+              className="nav-toggle-sidebar-btn desktop-only-btn"
+              style={{ padding: '8px', background: 'var(--bg-card)', border: '1px solid var(--border-default)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              title="Toggle Menu Sidebar"
+            >
+              <MoreVertical size={18} />
+            </button>
+
             <div className="theme-toggle-nav-item">
               <ThemeToggle />
             </div>

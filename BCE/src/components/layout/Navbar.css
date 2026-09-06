@@ -239,6 +239,10 @@
     display: flex;
   }
 
+  .nav-toggle-sidebar-btn {
+    display: none !important; /* Hide 3-dot button on mobile view ONLY */
+  }
+
   .theme-toggle-nav-item {
     display: flex;
     align-items: center;
