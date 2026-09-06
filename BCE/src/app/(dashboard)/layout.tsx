@@ -15,6 +15,8 @@ import {
 import { Analytics } from "@vercel/analytics/react";
 import FloatingAgentButtonClient from '@/features/analytics/components/FloatingAgentButtonClient';
 
+import MobileBottomNav from '@/components/layout/MobileBottomNav';
+
 export default async function DashboardLayout({
   children,
 }: {
@@ -84,6 +86,8 @@ export default async function DashboardLayout({
           <Sidebar key="student" profile={profile} roleView="student" isSuperAdmin={profile.email === SUPER_ADMIN_EMAIL} />
         </div>
       </div>
+
+      <MobileBottomNav />
 
       <PwaRegister />
       <PwaUpdateToast />

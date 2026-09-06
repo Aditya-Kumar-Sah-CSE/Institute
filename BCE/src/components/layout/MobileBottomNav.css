@@ -1,0 +1,99 @@
+.mobile-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 99999;
+  display: none; /* Hidden on desktop */
+  background: color-mix(in srgb, var(--bg-primary, #090d16) 92%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
+  box-shadow: 0 -4px 25px rgba(0, 0, 0, 0.6);
+  padding-bottom: max(6px, env(safe-area-inset-bottom));
+}
+
+@media (max-width: 768px) {
+  .mobile-bottom-nav {
+    display: block;
+  }
+
+  /* Add bottom padding to dashboard content on mobile view so fixed bottom nav doesn't cover content */
+  .dashboard-content,
+  .content-wrapper {
+    padding-bottom: 74px !important;
+  }
+}
+
+.mobile-bottom-nav-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  height: 56px;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 0 4px;
+}
+
+.mobile-bottom-nav-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  height: 100%;
+  text-decoration: none;
+  color: var(--text-secondary, #94a3b8);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  gap: 3px;
+}
+
+.mobile-bottom-nav-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mobile-bottom-nav-icon {
+  stroke-width: 2.1px;
+}
+
+.mobile-bottom-nav-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  line-height: 1;
+  transition: color 0.2s ease;
+}
+
+/* Active State */
+.mobile-bottom-nav-item.active {
+  color: var(--neon-cyan, #00f0ff);
+}
+
+.mobile-bottom-nav-item.active .mobile-bottom-nav-icon-wrapper {
+  transform: translateY(-2px);
+}
+
+.mobile-bottom-nav-item.active .mobile-bottom-nav-icon {
+  stroke: var(--neon-cyan, #00f0ff);
+  filter: drop-shadow(0 0 6px rgba(0, 240, 255, 0.4));
+}
+
+.mobile-bottom-active-pill {
+  position: absolute;
+  top: 0;
+  width: 22px;
+  height: 3px;
+  background: var(--neon-cyan, #00f0ff);
+  border-radius: 0 0 3px 3px;
+  box-shadow: 0 2px 8px rgba(0, 240, 255, 0.6);
+}
+
+.mobile-bottom-nav-item:active {
+  transform: scale(0.92);
+}
