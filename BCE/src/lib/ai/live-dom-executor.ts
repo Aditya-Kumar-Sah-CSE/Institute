@@ -1,280 +1,480 @@
 import { InteractiveDOMElement } from './live-page-context';
-import { invalidateDOMCache } from './live-dom-reader';
+import { extractLiveDOMContext, invalidateDOMCache } from './live-dom-reader';
+import { RuntimeAgentElement, SemanticColorChannel, classifyRGBToSemanticColor } from './live-ui-snapshot';
+
+export type WhitelistedActionType = 
+  | 'click' 
+  | 'focus' 
+  | 'type' 
+  | 'select' 
+  | 'scroll' 
+  | 'open' 
+  | 'close' 
+  | 'navigate' 
+  | 'toggle' 
+  | 'clear';
+
+export interface DOMActionTelemetry {
+  snapshotGenTimeMs: number;
+  resolutionTimeMs: number;
+  executionTimeMs: number;
+  verificationTimeMs: number;
+  totalLatencyMs: number;
+  staleElementDetected: boolean;
+  retryAttempted: boolean;
+}
 
 export interface DOMActionResult {
   success: boolean;
   message: string;
-  actionType: string;
+  actionType: WhitelistedActionType;
   targetElementText?: string;
+  targetElementId?: string;
   urlChanged?: boolean;
   newRoute?: string;
+  isAmbiguous?: boolean;
+  matchingCandidates?: Array<{ id: string; text: string; section?: string }>;
   errorDetected?: boolean;
   errorMessage?: string;
+  telemetry?: DOMActionTelemetry;
   data?: any;
 }
 
+// Global execution lock to prevent race conditions during concurrent clicks
+let globalActionExecutionLock = false;
+let lastActionTimestamp = 0;
+const ACTION_LOCK_TIMEOUT_MS = 1200;
+
 /**
- * Client-side Live DOM Executor.
- * Enables Smart Agent to discover, verify, click, type into, toggle, submit, and interact
- * with any UI component on the open page while enforcing pre-action & post-action verification.
+ * Client-side Live DOM Executor (Hardened Production Architecture).
+ * Enforces race condition locks, target revalidation, self-healing retries (max 1),
+ * safe whitelisted actions, and honest post-action state verification.
  */
 export function executeLiveDOMAction(
-  actionType: 'click' | 'open' | 'edit' | 'save' | 'cancel' | 'delete' | 'select' | 'toggle' | 'submit' | 'close' | 'type' | 'clear' | 'navigate',
+  actionType: WhitelistedActionType | string,
   query: string | number,
   valueToType?: string,
   elementIndex?: number
 ): DOMActionResult {
+  const startTime = Date.now();
+  let snapshotGenTimeMs = 0;
+  let resolutionTimeMs = 0;
+  let executionTimeMs = 0;
+  let verificationTimeMs = 0;
+  let staleElementDetected = false;
+  let retryAttempted = false;
+
+  // Normalize action type to whitelisted set
+  const normalizedAction: WhitelistedActionType = 
+    actionType === 'type' || actionType === 'edit' ? 'type'
+    : actionType === 'select' ? 'select'
+    : actionType === 'scroll' ? 'scroll'
+    : actionType === 'focus' ? 'focus'
+    : actionType === 'toggle' ? 'toggle'
+    : actionType === 'clear' ? 'clear'
+    : actionType === 'open' || actionType === 'close' ? (actionType as WhitelistedActionType)
+    : actionType === 'navigate' ? 'navigate'
+    : 'click';
+
   if (typeof window === 'undefined' || typeof document === 'undefined') {
     return {
       success: false,
       message: 'Client DOM interaction is unavailable outside browser environment.',
-      actionType
+      actionType: normalizedAction
     };
   }
+
+  // 1. Race-Condition Lock Protection
+  const now = Date.now();
+  if (globalActionExecutionLock && (now - lastActionTimestamp < ACTION_LOCK_TIMEOUT_MS)) {
+    console.warn('[DOM Executor] Action execution rejected due to active concurrent execution lock.');
+    return {
+      success: false,
+      message: 'Another action is currently executing. Please wait a moment.',
+      actionType: normalizedAction
+    };
+  }
+
+  globalActionExecutionLock = true;
+  lastActionTimestamp = now;
+
+  const releaseLock = () => {
+    globalActionExecutionLock = false;
+  };
 
   try {
     const currentRoute = window.location.pathname + window.location.search;
 
-    // 1. Gather all candidate interactive elements using stable selectors
-    const rawElements = Array.from(
-      document.querySelectorAll(
-        'button, a, input, select, textarea, [role="button"], [role="tab"], [role="menuitem"], [role="checkbox"], [role="switch"], [role="option"], [data-action], [data-testid], .btn, .stat-card, .hover-lift, [onclick], details, summary, [tabindex="0"], [class*="card"], [class*="badge"]'
-      )
-    ) as HTMLElement[];
+    const resolveTargetNode = (forceRefreshSnapshot = false): { targetElement?: RuntimeAgentElement; targetDomNode: HTMLElement | null; isAmbiguous?: boolean; candidates?: any[] } => {
+      const snapStart = Date.now();
+      const liveCtx = extractLiveDOMContext(currentRoute, forceRefreshSnapshot);
+      snapshotGenTimeMs += Date.now() - snapStart;
 
-    const candidates: { 
-      el: HTMLElement; 
-      text: string; 
-      ariaLabel: string; 
-      title: string; 
-      id: string; 
-      name: string; 
-      testId: string;
-      tag: string; 
-      role: string; 
-      index: number;
-      disabled: boolean;
-    }[] = [];
+      const snapshot = liveCtx.snapshot;
+      const elementsMap = snapshot?.elementsMap;
+      const queryString = String(query).trim();
+      const queryLower = queryString.toLowerCase();
 
-    rawElements.forEach((el) => {
-      const isDrawerChild = el.closest('.smart-agent-drawer, .smart-mentor-drawer');
-      const rect = el.getBoundingClientRect();
-      const isVisible = isDrawerChild || (rect.width > 0 && rect.height > 0 && window.getComputedStyle(el).visibility !== 'hidden');
-      
-      if (!isVisible) return;
+      let targetElement: RuntimeAgentElement | undefined = undefined;
+      let targetDomNode: HTMLElement | null = null;
 
-      const text = el.textContent?.replace(/\s+/g, ' ').trim() || '';
-      const ariaLabel = el.getAttribute('aria-label') || '';
-      const title = el.getAttribute('title') || '';
-      const id = el.id || '';
-      const name = el.getAttribute('name') || '';
-      const testId = el.getAttribute('data-testid') || el.getAttribute('data-action') || '';
-      const placeholder = (el as HTMLInputElement).placeholder || '';
-      const value = (el as HTMLInputElement).value || '';
-      const tag = el.tagName.toUpperCase();
-      const role = el.getAttribute('role') || '';
-      const disabled = Boolean((el as HTMLButtonElement).disabled || el.getAttribute('aria-disabled') === 'true');
+      // Strategy A: Direct Runtime ID Match
+      if (queryString.startsWith('agent-el-') && elementsMap && elementsMap.has(queryString)) {
+        targetElement = elementsMap.get(queryString);
+        const cachedNode = targetElement?.domNode as HTMLElement | undefined;
+        if (cachedNode && document.body.contains(cachedNode)) {
+          targetDomNode = cachedNode;
+        } else {
+          staleElementDetected = true;
+          targetDomNode = document.querySelector(`[data-agent-runtime-id="${queryString}"]`) as HTMLElement | null;
+        }
+      }
 
-      candidates.push({
-        el,
-        text: text || ariaLabel || title || placeholder || testId || id || name,
-        ariaLabel,
-        title,
-        id,
-        name,
-        testId,
-        tag,
-        role,
-        disabled,
-        index: candidates.length + 1
-      });
-    });
+      // Strategy B: Query Matching
+      if (!targetDomNode && snapshot && snapshot.actionableElements.length > 0) {
+        const candidates = snapshot.actionableElements;
 
-    if (candidates.length === 0) {
+        let colorFilter: SemanticColorChannel | undefined = undefined;
+        if (queryLower.includes('red') || queryLower.includes('danger') || queryLower.includes('error')) colorFilter = 'red';
+        else if (queryLower.includes('green') || queryLower.includes('success')) colorFilter = 'green';
+        else if (queryLower.includes('yellow') || queryLower.includes('warning')) colorFilter = 'yellow';
+        else if (queryLower.includes('cyan') || queryLower.includes('blue')) colorFilter = 'cyan';
+
+        let sectionFilter: string | undefined = undefined;
+        if (queryLower.includes('sidebar')) sectionFilter = 'sidebar';
+        else if (queryLower.includes('navbar') || queryLower.includes('header')) sectionFilter = 'navbar';
+        else if (queryLower.includes('modal') || queryLower.includes('dialog') || queryLower.includes('popup')) sectionFilter = 'modal';
+        else if (queryLower.includes('main')) sectionFilter = 'main';
+
+        const matched = candidates.filter((item) => {
+          if (sectionFilter && item.parentSection !== sectionFilter) return false;
+          if (colorFilter && item.computedColor?.semanticColor !== colorFilter) return false;
+
+          const dataActionMatch = item.dataAgentAction?.toLowerCase().includes(queryLower);
+          const dataLabelMatch = item.dataAgentLabel?.toLowerCase().includes(queryLower);
+          const ariaMatch = item.ariaLabel?.toLowerCase().includes(queryLower);
+          const textMatch = item.text.toLowerCase().includes(queryLower);
+          const cardMatch = item.parentCardTitle?.toLowerCase().includes(queryLower);
+          const placeholderMatch = item.placeholder?.toLowerCase().includes(queryLower);
+
+          return Boolean(dataActionMatch || dataLabelMatch || ariaMatch || textMatch || cardMatch || placeholderMatch);
+        });
+
+        if (matched.length > 1) {
+          const exactMatch = matched.find(m => 
+            m.text.toLowerCase() === queryLower || 
+            m.dataAgentLabel?.toLowerCase() === queryLower ||
+            m.dataAgentAction?.toLowerCase() === queryLower
+          );
+
+          if (exactMatch) {
+            targetElement = exactMatch;
+          } else {
+            const isCardIntent = queryLower.includes('card');
+            const isActionIntent = queryLower.includes('start') || queryLower.includes('button') || queryLower.includes('link') || queryLower.includes('open') || queryLower.includes('edit') || queryLower.includes('submit');
+
+            const scored = matched.map((item) => {
+              let score = 0;
+              if (isCardIntent && item.type === 'card') score += 10;
+              if (isActionIntent && item.type !== 'card') score += 10;
+              if (item.dataAgentAction?.toLowerCase().includes(queryLower)) score += 8;
+              if (item.dataAgentLabel?.toLowerCase().includes(queryLower)) score += 7;
+              if (item.text.toLowerCase() === queryLower) score += 6;
+              if (item.text.toLowerCase().includes(queryLower)) score += 4;
+              if (item.parentCardTitle && queryLower.includes(item.parentCardTitle.toLowerCase())) score += 5;
+              return { item, score };
+            });
+
+            scored.sort((a, b) => b.score - a.score);
+
+            if (scored[0].score > (scored[1]?.score || 0) + 3) {
+              targetElement = scored[0].item;
+            } else {
+              return {
+                isAmbiguous: true,
+                candidates: matched.slice(0, 5).map(m => ({
+                  id: m.id,
+                  text: m.text,
+                  section: m.parentCardTitle ? `${m.parentSection} (${m.parentCardTitle})` : m.parentSection
+                })),
+                targetDomNode: null
+              };
+            }
+          }
+        } else if (matched.length === 1) {
+          targetElement = matched[0];
+        }
+
+        if (targetElement) {
+          targetDomNode = (targetElement.domNode as HTMLElement) || document.querySelector(`[data-agent-runtime-id="${targetElement.id}"]`);
+        }
+      }
+
+      // Fallback
+      if (!targetDomNode) {
+        const elByAttr = document.querySelector(`[data-agent-action="${queryString}"], [data-agent-label="${queryString}"], #${queryString}`) as HTMLElement;
+        if (elByAttr) {
+          targetDomNode = elByAttr;
+        }
+      }
+
+      return { targetElement, targetDomNode };
+    };
+
+    // 2. Initial Resolution Attempt
+    const resStart = Date.now();
+    let resolution = resolveTargetNode(false);
+    resolutionTimeMs += Date.now() - resStart;
+
+    // Self-Healing Retry (Max 1 retry with force-refreshed DOM snapshot)
+    if (!resolution.targetDomNode && !resolution.isAmbiguous) {
+      console.log('[DOM Executor] Target element not found on first scan. Initiating self-healing DOM snapshot refresh...');
+      retryAttempted = true;
+      invalidateDOMCache();
+      const retryStart = Date.now();
+      resolution = resolveTargetNode(true);
+      resolutionTimeMs += Date.now() - retryStart;
+    }
+
+    if (resolution.isAmbiguous && resolution.candidates) {
+      releaseLock();
       return {
         success: false,
-        message: 'No interactive elements found on the open page.',
-        actionType
+        message: `Multiple matching elements found for "${query}". Please specify which one you would like to interact with.`,
+        actionType: normalizedAction,
+        isAmbiguous: true,
+        matchingCandidates: resolution.candidates
       };
     }
 
-    // 2. Locate target element by index, test ID, exact query, or fuzzy match
-    let targetCandidate: typeof candidates[0] | undefined;
-    const queryString = String(query).trim().toLowerCase();
+    const { targetElement, targetDomNode } = resolution;
 
-    // Strategy A: Direct Index Match
-    if (typeof query === 'number' || !isNaN(Number(query))) {
-      const idx = Number(query);
-      targetCandidate = candidates.find(c => c.index === idx);
-    }
-
-    // Strategy B: Data-TestID / ID Exact Match
-    if (!targetCandidate) {
-      targetCandidate = candidates.find(c => 
-        c.testId.toLowerCase() === queryString || 
-        c.id.toLowerCase() === queryString ||
-        c.ariaLabel.toLowerCase() === queryString
-      );
-    }
-
-    // Strategy C: Exact text match
-    if (!targetCandidate) {
-      targetCandidate = candidates.find(c => c.text.toLowerCase() === queryString);
-    }
-
-    // Strategy D: Substring / Keyword Match
-    if (!targetCandidate) {
-      targetCandidate = candidates.find(c => {
-        const fullStr = `${c.text} ${c.ariaLabel} ${c.title} ${c.testId} ${c.id} ${c.name}`.toLowerCase();
-        return fullStr.includes(queryString);
-      });
-    }
-
-    // Strategy E: Action-specific Fallback
-    if (!targetCandidate) {
-      const actionSynonyms: Record<string, string[]> = {
-        save: ['save', 'submit', 'update', 'done', 'apply'],
-        cancel: ['cancel', 'close', 'back', 'dismiss', 'discard'],
-        close: ['close', 'x', 'cancel', 'dismiss', 'hide'],
-        edit: ['edit', 'modify', 'change', 'update'],
-        delete: ['delete', 'remove', 'trash', 'clear']
-      };
-
-      const synonyms = actionSynonyms[actionType] || [queryString];
-      targetCandidate = candidates.find(c => {
-        const fullStr = `${c.text} ${c.ariaLabel} ${c.title} ${c.testId}`.toLowerCase();
-        return synonyms.some(s => fullStr.includes(s));
-      });
-    }
-
-    if (!targetCandidate) {
-      const availableLabels = candidates.slice(0, 12).map(c => `"${c.text}"`).join(', ');
+    if (!targetDomNode) {
+      releaseLock();
       return {
         success: false,
-        message: `Could not locate component "${query}" on the active page. Accessible components: ${availableLabels}.`,
-        actionType
+        message: `I couldn't complete that action because component "${query}" is unavailable or re-rendered.`,
+        actionType: normalizedAction,
+        telemetry: {
+          snapshotGenTimeMs,
+          resolutionTimeMs,
+          executionTimeMs: 0,
+          verificationTimeMs: 0,
+          totalLatencyMs: Date.now() - startTime,
+          staleElementDetected,
+          retryAttempted
+        }
       };
     }
 
-    const targetEl = targetCandidate.el;
-    const targetLabel = targetCandidate.text || queryString;
+    // 3. PRE-ACTION VERIFICATION: Target Revalidation
+    const style = window.getComputedStyle(targetDomNode);
+    const rect = targetDomNode.getBoundingClientRect();
+    const isVisible = rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+    const isDisabled = Boolean((targetDomNode as HTMLButtonElement).disabled || targetDomNode.getAttribute('aria-disabled') === 'true');
 
-    // 3. PRE-ACTION VERIFICATION: Check if component is enabled & operable
-    if (targetCandidate.disabled) {
+    if (!isVisible || !document.body.contains(targetDomNode)) {
+      releaseLock();
       return {
         success: false,
-        message: `Cannot execute ${actionType} on "${targetLabel}" because it is currently disabled or unavailable.`,
-        actionType,
-        targetElementText: targetLabel
+        message: `Cannot execute ${normalizedAction} because "${targetElement?.text || query}" is currently hidden or re-rendered.`,
+        actionType: normalizedAction,
+        targetElementId: targetElement?.id,
+        targetElementText: targetElement?.text || String(query)
       };
     }
 
-    // 3B. Auto-Open Collapsed / Hidden Parents (details, collapsed dropdowns, sidebar accordions)
-    const detailsParent = targetEl.closest('details');
+    if (isDisabled) {
+      releaseLock();
+      return {
+        success: false,
+        message: `Cannot execute ${normalizedAction} because "${targetElement?.text || query}" is currently disabled.`,
+        actionType: normalizedAction,
+        targetElementId: targetElement?.id,
+        targetElementText: targetElement?.text || String(query)
+      };
+    }
+
+    // Auto-open parent collapsed accordions/details
+    const detailsParent = targetDomNode.closest('details');
     if (detailsParent && !detailsParent.open) {
-      console.log('[DOM Executor] Auto-opening collapsed details container for element:', targetLabel);
       detailsParent.open = true;
     }
-
-    const collapsedDropdown = targetEl.closest('[aria-expanded="false"]');
-    if (collapsedDropdown && collapsedDropdown !== targetEl) {
-      console.log('[DOM Executor] Auto-expanding parent dropdown menu for element:', targetLabel);
+    const collapsedDropdown = targetDomNode.closest('[aria-expanded="false"]');
+    if (collapsedDropdown && collapsedDropdown !== targetDomNode) {
       (collapsedDropdown as HTMLElement).click();
     }
 
-    // 4. Perform Action (Type vs Click/Select/Toggle)
-    if (actionType === 'type' || targetEl.tagName === 'INPUT' || targetEl.tagName === 'TEXTAREA') {
-      if (valueToType !== undefined) {
-        targetEl.focus();
-        if ('value' in targetEl) {
-          (targetEl as HTMLInputElement).value = valueToType;
+    // 4. EXECUTE WHITELISTED ACTION
+    const execStart = Date.now();
+    const labelText = targetElement?.text || targetDomNode.textContent?.trim() || String(query);
+
+    if (normalizedAction === 'scroll') {
+      targetDomNode.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      invalidateDOMCache();
+      executionTimeMs = Date.now() - execStart;
+      releaseLock();
+      return {
+        success: true,
+        message: `Scrolled to element "${labelText}".`,
+        actionType: normalizedAction,
+        targetElementId: targetElement?.id,
+        targetElementText: labelText,
+        telemetry: {
+          snapshotGenTimeMs,
+          resolutionTimeMs,
+          executionTimeMs,
+          verificationTimeMs: 0,
+          totalLatencyMs: Date.now() - startTime,
+          staleElementDetected,
+          retryAttempted
         }
-        targetEl.dispatchEvent(new Event('input', { bubbles: true }));
-        targetEl.dispatchEvent(new Event('change', { bubbles: true }));
-        targetEl.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+      };
+    }
+
+    if (normalizedAction === 'focus') {
+      targetDomNode.focus();
+      executionTimeMs = Date.now() - execStart;
+      releaseLock();
+      return {
+        success: true,
+        message: `Focused element "${labelText}".`,
+        actionType: normalizedAction,
+        targetElementId: targetElement?.id,
+        targetElementText: labelText,
+        telemetry: {
+          snapshotGenTimeMs,
+          resolutionTimeMs,
+          executionTimeMs,
+          verificationTimeMs: 0,
+          totalLatencyMs: Date.now() - startTime,
+          staleElementDetected,
+          retryAttempted
+        }
+      };
+    }
+
+    if (normalizedAction === 'type' || targetDomNode.tagName === 'INPUT' || targetDomNode.tagName === 'TEXTAREA') {
+      if (valueToType !== undefined) {
+        targetDomNode.focus();
+        if ('value' in targetDomNode) {
+          (targetDomNode as HTMLInputElement).value = valueToType;
+        }
+        targetDomNode.dispatchEvent(new Event('input', { bubbles: true }));
+        targetDomNode.dispatchEvent(new Event('change', { bubbles: true }));
+        targetDomNode.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
       }
+    } else if (normalizedAction === 'clear') {
+      targetDomNode.focus();
+      if ('value' in targetDomNode) {
+        (targetDomNode as HTMLInputElement).value = '';
+      }
+      targetDomNode.dispatchEvent(new Event('input', { bubbles: true }));
+      targetDomNode.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
-    // Dispatch full user interaction event sequence
-    targetEl.focus();
-    targetEl.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true, cancelable: true }));
-    targetEl.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-    targetEl.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+    // Interaction Event Sequence
+    targetDomNode.focus();
+    targetDomNode.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true, cancelable: true }));
+    targetDomNode.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    targetDomNode.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
 
-    if (typeof targetEl.click === 'function') {
-      targetEl.click();
+    if (typeof targetDomNode.click === 'function') {
+      targetDomNode.click();
     } else {
-      targetEl.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+      targetDomNode.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     }
+
+    executionTimeMs = Date.now() - execStart;
 
     // Automatic Link Navigation Fallback
-    const hrefAttr = targetEl.getAttribute('href') || targetEl.closest('a')?.getAttribute('href');
+    const hrefAttr = targetDomNode.getAttribute('href') || targetDomNode.closest('a')?.getAttribute('href');
     if (hrefAttr && !hrefAttr.startsWith('#') && !hrefAttr.startsWith('javascript:')) {
       setTimeout(() => {
-        const currentPath = window.location.pathname + window.location.search;
-        if (currentPath !== hrefAttr && !currentPath.startsWith(hrefAttr)) {
-          console.log(`[DOM Executor] Link click did not navigate automatically, enforcing location.assign to ${hrefAttr}`);
+        const pathNow = window.location.pathname + window.location.search;
+        if (pathNow !== hrefAttr && !pathNow.startsWith(hrefAttr)) {
           window.location.assign(hrefAttr);
         }
-      }, 150);
+      }, 120);
     }
 
-    // 5. POST-ACTION UI STATE VERIFICATION
+    // 5. POST-ACTION VERIFICATION
+    const verStart = Date.now();
+    invalidateDOMCache();
+
     let urlChanged = false;
     let newRoute = window.location.pathname + window.location.search;
     if (newRoute !== currentRoute) {
       urlChanged = true;
     }
 
-    const modalVisible = document.querySelector('.modal, [role="dialog"], .modal-content, .drawer-content') !== null;
     const errorBanner = document.querySelector('.error-banner, [class*="error"], .toast-error');
-    const is404 = document.body.textContent?.includes('404') || document.title?.includes('Not Found');
+    verificationTimeMs = Date.now() - verStart;
 
-    if (is404) {
-      return {
-        success: false,
-        message: `Clicked "${targetLabel}", but target page resulted in a 404 Not Found error.`,
-        actionType,
-        targetElementText: targetLabel,
-        errorDetected: true,
-        errorMessage: '404 Page Not Found'
-      };
-    }
+    releaseLock();
 
     if (errorBanner) {
-      const errTxt = errorBanner.textContent?.trim() || 'Error encountered after action.';
+      const errTxt = errorBanner.textContent?.trim() || 'Error encountered after execution';
       return {
         success: false,
-        message: `Executed "${actionType}" on "${targetLabel}", but encountered an error: ${errTxt}`,
-        actionType,
-        targetElementText: targetLabel,
+        message: `Executed ${normalizedAction} on "${labelText}", but encountered error: ${errTxt}`,
+        actionType: normalizedAction,
+        targetElementId: targetElement?.id,
+        targetElementText: labelText,
         errorDetected: true,
-        errorMessage: errTxt
+        errorMessage: errTxt,
+        telemetry: {
+          snapshotGenTimeMs,
+          resolutionTimeMs,
+          executionTimeMs,
+          verificationTimeMs,
+          totalLatencyMs: Date.now() - startTime,
+          staleElementDetected,
+          retryAttempted
+        }
       };
     }
-
-    invalidateDOMCache();
 
     return {
       success: true,
-      message: urlChanged 
-        ? `Successfully clicked "${targetLabel}" and navigated to ${newRoute}.`
-        : modalVisible
-        ? `Successfully executed ${actionType} on "${targetLabel}" and opened modal workspace.`
-        : `Successfully executed ${actionType} on "${targetLabel}".`,
-      actionType,
-      targetElementText: targetLabel,
+      message: urlChanged
+        ? `Successfully executed ${normalizedAction} on "${labelText}" and navigated to ${newRoute}.`
+        : `Successfully executed ${normalizedAction} on "${labelText}".`,
+      actionType: normalizedAction,
+      targetElementId: targetElement?.id,
+      targetElementText: labelText,
       urlChanged,
-      newRoute
+      newRoute,
+      telemetry: {
+        snapshotGenTimeMs,
+        resolutionTimeMs,
+        executionTimeMs,
+        verificationTimeMs,
+        totalLatencyMs: Date.now() - startTime,
+        staleElementDetected,
+        retryAttempted
+      }
     };
   } catch (err: any) {
-    console.error('[executeLiveDOMAction] Failure:', err);
+    releaseLock();
+    console.error('[executeLiveDOMAction] Error:', err);
     return {
       success: false,
-      message: `Failed to interact with component "${query}": ${err.message || 'DOM error'}`,
-      actionType,
+      message: `Failed to execute action on "${query}": ${err.message || 'DOM action error'}`,
+      actionType: 'click',
       errorDetected: true,
-      errorMessage: err.message
+      errorMessage: err.message,
+      telemetry: {
+        snapshotGenTimeMs,
+        resolutionTimeMs,
+        executionTimeMs,
+        verificationTimeMs: 0,
+        totalLatencyMs: Date.now() - startTime,
+        staleElementDetected,
+        retryAttempted
+      }
     };
   }
 }
+
+

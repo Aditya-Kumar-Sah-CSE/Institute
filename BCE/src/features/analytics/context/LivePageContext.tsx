@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, Suspense } from 'react';
 import { LivePageContext, buildDefaultLiveContext } from '@/lib/ai/live-page-context';
-import { extractLiveDOMContext } from '@/lib/ai/live-dom-reader';
-import { executeLiveDOMAction, DOMActionResult } from '@/lib/ai/live-dom-executor';
+import { extractLiveDOMContext, invalidateDOMCache } from '@/lib/ai/live-dom-reader';
+import { executeLiveDOMAction, DOMActionResult, WhitelistedActionType } from '@/lib/ai/live-dom-executor';
 import { usePathname, useSearchParams } from 'next/navigation';
 
 interface LivePageContextValue {
@@ -10,7 +10,7 @@ interface LivePageContextValue {
   resetLiveContext: () => void;
   getCurrentPageContext: () => LivePageContext;
   executeDOMActionOnPage: (
-    actionType: 'click' | 'open' | 'edit' | 'save' | 'cancel' | 'delete' | 'select' | 'toggle' | 'submit' | 'close' | 'type' | 'clear' | 'navigate',
+    actionType: WhitelistedActionType | string,
     query: string | number,
     valueToType?: string,
     elementIndex?: number
@@ -26,18 +26,53 @@ function LivePageContextProviderInner({ children }: { children: ReactNode }) {
 
   const [contextState, setContextState] = useState<LivePageContext>(() => buildDefaultLiveContext(fullRoute));
 
-  // 1. ROUTE CHANGE EFFECT WITH STALE CONTEXT PROTECTION & AUTOMATIC DOM HARVESTING
+  // 1. ROUTE CHANGE & INITIAL EXTRACTION EFFECT
   useEffect(() => {
-    // A. Immediately invalidate old page context on navigation to prevent stale context
+    invalidateDOMCache();
     setContextState(buildDefaultLiveContext(fullRoute));
 
-    // B. Harvest fresh DOM context after React finishes rendering new route components
     const timer = setTimeout(() => {
-      const freshCtx = extractLiveDOMContext(fullRoute);
+      const freshCtx = extractLiveDOMContext(fullRoute, true);
       setContextState(freshCtx);
-    }, 120);
+    }, 100);
 
     return () => clearTimeout(timer);
+  }, [fullRoute]);
+
+  // 2. INCREMENTAL MUTATION OBSERVER EFFECT FOR DYNAMIC CONTENT (MODALS, TOASTS, TAB SWITCHES, DATA FETCHING)
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof document === 'undefined' || !document.body) return;
+
+    let debounceTimer: NodeJS.Timeout | null = null;
+
+    const observer = new MutationObserver((mutations) => {
+      // Check if mutations occurred outside the agent drawer
+      const isRelevantMutation = mutations.some((mutation) => {
+        const target = mutation.target as HTMLElement | null;
+        return !target?.closest('.smart-agent-drawer, .smart-mentor-drawer');
+      });
+
+      if (!isRelevantMutation) return;
+
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        invalidateDOMCache();
+        const updatedCtx = extractLiveDOMContext(fullRoute, true);
+        setContextState(updatedCtx);
+      }, 120);
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['class', 'style', 'hidden', 'disabled', 'aria-expanded', 'aria-hidden', 'aria-selected', 'role', 'data-agent-action', 'data-agent-label']
+    });
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      observer.disconnect();
+    };
   }, [fullRoute]);
 
   const setLiveContext = useCallback((newCtx: Partial<LivePageContext>) => {
@@ -55,13 +90,14 @@ function LivePageContextProviderInner({ children }: { children: ReactNode }) {
 
   // On-demand tool invocation helper to fetch fresh live DOM context
   const getCurrentPageContext = useCallback((): LivePageContext => {
-    const fresh = extractLiveDOMContext(fullRoute);
+    invalidateDOMCache();
+    const fresh = extractLiveDOMContext(fullRoute, true);
     setContextState(fresh);
     return fresh;
   }, [fullRoute]);
 
   const executeDOMActionOnPage = useCallback((
-    actionType: 'click' | 'open' | 'edit' | 'save' | 'cancel' | 'delete' | 'select' | 'toggle' | 'submit' | 'close' | 'type' | 'clear' | 'navigate',
+    actionType: WhitelistedActionType | string,
     query: string | number,
     valueToType?: string,
     elementIndex?: number
@@ -69,9 +105,10 @@ function LivePageContextProviderInner({ children }: { children: ReactNode }) {
     const res = executeLiveDOMAction(actionType, query, valueToType, elementIndex);
     // Refresh page context after DOM action execution
     setTimeout(() => {
-      const fresh = extractLiveDOMContext(fullRoute);
+      invalidateDOMCache();
+      const fresh = extractLiveDOMContext(fullRoute, true);
       setContextState(fresh);
-    }, 100);
+    }, 150);
     return res;
   }, [fullRoute]);
 
@@ -93,7 +130,6 @@ export function LivePageContextProvider({ children }: { children: ReactNode }) {
 export function useLivePageContext(): LivePageContextValue {
   const ctx = useContext(LivePageContextObj);
   if (!ctx) {
-    // Fallback if rendered outside Provider
     return {
       liveContext: buildDefaultLiveContext('/dashboard'),
       setLiveContext: () => {},
@@ -104,4 +140,5 @@ export function useLivePageContext(): LivePageContextValue {
   }
   return ctx;
 }
+
 

@@ -1,9 +1,20 @@
 import { LivePageContext, buildDefaultLiveContext, LiveEntityProblem, LiveEntitySheet, LiveEntityCourse, InteractiveDOMElement } from './live-page-context';
+import {
+  LiveUISnapshot,
+  RuntimeAgentElement,
+  LiveUISection,
+  LiveUICard,
+  LiveUIMetric,
+  LiveUIPageBadge,
+  LiveUIAlert,
+  getElementComputedColorInfo,
+  classifyRGBToSemanticColor
+} from './live-ui-snapshot';
 
 let cachedDOMContext: LivePageContext | null = null;
 let cachedDOMRoute: string | null = null;
 let lastDOMScanTimestamp = 0;
-const DOM_CACHE_TTL_MS = 2500; // Cache DOM index for 2.5s unless forced
+const DOM_CACHE_TTL_MS = 2000; // Cache DOM index for 2s unless forced
 
 /**
  * Invalidate cached DOM context manually on route change, modal open, or action execution.
@@ -16,7 +27,7 @@ export function invalidateDOMCache(): void {
 
 /**
  * Extracts live, rendered DOM context from the active browser window.
- * Uses lightweight indexed representation and updates only when route/state changes.
+ * Scans document.body top to bottom, including header, sidebar, modals, popovers, and main content.
  */
 export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = false): LivePageContext {
   if (typeof window === 'undefined' || typeof document === 'undefined') {
@@ -35,122 +46,174 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
 
   try {
     // 1. Page Title & Headings
-    const docTitle = document.title || 'Smart Learn';
+    const docTitle = document.title || 'Smart Learn Platform';
     const mainHeadings: string[] = [];
     const headingElements = document.querySelectorAll(
-      'h1, h2, h3, h4, h5, .section-title, .stat-card-value, .stat-card-label, [data-heading], [class*="title"], [class*="heading"]'
+      'h1, h2, h3, h4, h5, h6, .section-title, .stat-card-value, .stat-card-label, [data-heading], [class*="title"], [class*="heading"]'
     );
     
     headingElements.forEach((el) => {
+      if (el.closest('.smart-agent-drawer, .smart-mentor-drawer, style, script, noscript, svg')) return;
       const text = el.textContent?.trim();
       if (text && text.length >= 1 && text.length < 120 && !mainHeadings.includes(text)) {
         mainHeadings.push(text);
       }
     });
 
-    // 2. Complete Scroll Screen Text Content Access (Scans all scrollable sections top to bottom)
-    let visibleTextContent = '';
-    const textContainers = document.querySelectorAll(
-      'main, .dashboard-main-container, .dashboard-content, .content-wrapper, #main-content, article, section, .code-arena-page, .problem-statement-body, .sheet-detail-container, .course-detail-container, .discussion-thread, .reviews-container, .intelligence-card, .dashboard-stats-grid, [class*="dashboard"], [class*="card"]'
-    );
-
+    // 2. Whole Body Text Extraction
     const fullPageLines: string[] = [];
     const seenTexts = new Set<string>();
 
-    const processElement = (el: Element) => {
-      if (el.closest('.smart-agent-drawer, .smart-mentor-drawer, style, script, noscript, svg')) return;
-      
-      // If element has element children of target types, let child elements provide fine-grained text
-      const hasChildTextElements = el.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, td, th, label, span, code, [data-live-text]').length > 0;
-      const isLeafOrTextTag = !hasChildTextElements || ['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'TD', 'TH', 'LABEL', 'SPAN', 'CODE', 'PRE', 'B', 'STRONG'].includes(el.tagName);
+    const textNodes = document.body.querySelectorAll(
+      'p, h1, h2, h3, h4, h5, h6, li, td, th, label, blockquote, pre, code, span, div, [data-agent-label], [data-live-text]'
+    );
 
-      if (!isLeafOrTextTag) return;
+    textNodes.forEach((el) => {
+      if (el.closest('.smart-agent-drawer, .smart-mentor-drawer, style, script, noscript, svg')) return;
+
+      const hasChildTextElements = el.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, td, th, label, span, code').length > 0;
+      const isLeaf = !hasChildTextElements || ['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'TD', 'TH', 'LABEL', 'SPAN', 'CODE', 'B', 'STRONG'].includes(el.tagName);
+
+      if (!isLeaf) return;
+
+      const rect = el.getBoundingClientRect();
+      if (rect.width === 0 && rect.height === 0) return;
 
       const txt = el.textContent?.replace(/\s+/g, ' ').trim();
       if (txt && txt.length >= 1 && txt.length < 300 && !seenTexts.has(txt)) {
         seenTexts.add(txt);
         fullPageLines.push(txt);
       }
-    };
+    });
 
-    if (textContainers.length > 0) {
-      textContainers.forEach((container) => {
-        const nodes = container.querySelectorAll(
-          'p, h1, h2, h3, h4, h5, h6, li, td, th, label, blockquote, pre, code, span, div, .stat-card-value, .stat-card-label, .card-description, .problem-description, .notice-content, .recommendation-why, .comment-text, .review-text, .course-description, .lesson-title, [class*="badge"], [class*="tag"], [class*="score"], [class*="detail"], [data-live-text]'
-        );
-        nodes.forEach(processElement);
-      });
-    }
+    const visibleTextContent = fullPageLines.slice(0, 200).join('\n• ');
 
-    if (fullPageLines.length < 5) {
-      const allNodes = document.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, td, th, label, span, div, pre, code');
-      allNodes.forEach(processElement);
-    }
-
-    visibleTextContent = fullPageLines.slice(0, 150).join('\n• ');
-
-    // 3. Lightweight Indexed Discovery of Interactive Elements
+    // 3. Whole-Body Actionable & Semantic Element Discovery with Stable Runtime IDs
+    const elementsMap = new Map<string, RuntimeAgentElement>();
+    const actionableElementsList: RuntimeAgentElement[] = [];
     const interactiveElementsSummary: string[] = [];
     const interactiveElementsList: InteractiveDOMElement[] = [];
 
     const candidateNodes = Array.from(
-      document.querySelectorAll(
-        'button, a, input, select, textarea, [role="button"], [role="tab"], [role="menuitem"], [role="checkbox"], [role="switch"], [role="option"], [data-action], [data-testid], .btn, .stat-card, .hover-lift, [onclick], details, summary, [tabindex="0"], [class*="card"], [class*="badge"]'
+      document.body.querySelectorAll(
+        'button, a, input, select, textarea, [role="button"], [role="tab"], [role="menuitem"], [role="checkbox"], [role="switch"], [role="option"], [data-agent-action], [data-agent-label], [data-action], [data-testid], .btn, [onclick], details, summary, [tabindex="0"], [class*="card"], [class*="badge"], [class*="stat"], [class*="score"], [class*="alert"]'
       )
     ) as HTMLElement[];
 
+    let elementCounter = 1;
+
     candidateNodes.forEach((el) => {
-      const isDrawerChild = el.closest('.smart-agent-drawer, .smart-mentor-drawer');
+      const isDrawerChild = Boolean(el.closest('.smart-agent-drawer, .smart-mentor-drawer'));
+      if (isDrawerChild) return; // Do not index the agent's own drawer controls as target page elements
+
       const rect = el.getBoundingClientRect();
-      const isVisible = isDrawerChild || (rect.width > 0 && rect.height > 0 && window.getComputedStyle(el).visibility !== 'hidden');
+      const style = window.getComputedStyle(el);
+      const isVisible = rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+
       if (!isVisible) return;
 
       const tag = el.tagName.toUpperCase();
       const text = el.textContent?.replace(/\s+/g, ' ').trim() || '';
-      const ariaLabel = el.getAttribute('aria-label') || undefined;
+      
+      // Accessibility & Metadata Priority Order:
+      // 1. data-agent-label / data-agent-action
+      // 2. aria-label / aria-labelledby
+      // 3. role
+      // 4. visible text / title / placeholder
+      const dataAgentLabel = el.getAttribute('data-agent-label') || undefined;
+      const dataAgentAction = el.getAttribute('data-agent-action') || undefined;
+      const dataAgentDescription = el.getAttribute('data-agent-description') || undefined;
+      const ariaLabel = el.getAttribute('aria-label') || el.getAttribute('aria-labelledby') || undefined;
       const title = el.getAttribute('title') || undefined;
       const role = el.getAttribute('role') || undefined;
       const testId = el.getAttribute('data-testid') || el.getAttribute('data-action') || undefined;
       const href = el.getAttribute('href') || undefined;
       const value = (el as HTMLInputElement).value || undefined;
       const placeholder = (el as HTMLInputElement).placeholder || undefined;
-      const disabled = (el as HTMLButtonElement).disabled || el.hasAttribute('aria-disabled');
+      const disabled = (el as HTMLButtonElement).disabled || el.hasAttribute('aria-disabled') || el.getAttribute('aria-disabled') === 'true';
       const ariaExpanded = el.hasAttribute('aria-expanded') ? el.getAttribute('aria-expanded') === 'true' : undefined;
       const ariaChecked = el.hasAttribute('aria-checked') ? el.getAttribute('aria-checked') === 'true' : ((el as HTMLInputElement).type === 'checkbox' ? (el as HTMLInputElement).checked : undefined);
 
-      let parentSection: InteractiveDOMElement['parentSection'] = 'other';
-      if (el.closest('.sidebar-wrapper, aside, .sidebar')) parentSection = 'sidebar';
-      else if (el.closest('.navbar-wrapper, header, .navbar')) parentSection = 'navbar';
-      else if (el.closest('.modal, [role="dialog"], .modal-content')) parentSection = 'modal';
-      else if (isDrawerChild) parentSection = 'drawer';
-      else if (el.closest('main, .dashboard-main-container, .dashboard-content, .content-wrapper')) parentSection = 'main';
+      // Determine parent section
+      let parentSection: RuntimeAgentElement['parentSection'] = 'other';
+      if (el.closest('.sidebar-wrapper, aside, .sidebar, [class*="sidebar"]')) parentSection = 'sidebar';
+      else if (el.closest('.navbar-wrapper, header, nav, .navbar, [class*="navbar"]')) parentSection = 'navbar';
+      else if (el.closest('.modal, [role="dialog"], .modal-content, [class*="modal"], [class*="dialog"]')) parentSection = 'modal';
+      else if (el.closest('main, .dashboard-main-container, .dashboard-content, .content-wrapper, #main-content')) parentSection = 'main';
 
-      const label = text || ariaLabel || title || placeholder || testId || el.id || 'Interactive Element';
+      // Find parent card title if applicable
+      const parentCardEl = el.closest('[class*="card"], article, section');
+      const parentCardTitle = parentCardEl?.querySelector('h1, h2, h3, h4, h5, [class*="title"]')?.textContent?.trim();
 
-      if (label && label.length >= 1 && label.length < 120) {
+      // Compute visual sentiment color via getComputedStyle
+      const computedColor = getElementComputedColorInfo(el);
+
+      const label = dataAgentLabel || dataAgentAction || ariaLabel || text || title || placeholder || testId || el.id || 'Interactive Element';
+
+      if (label && label.length >= 1 && label.length < 150) {
+        const runtimeId = `agent-el-${String(elementCounter).padStart(3, '0')}`;
+        elementCounter++;
+
+        // Attach runtime attribute on DOM element for direct retrieval
+        el.setAttribute('data-agent-runtime-id', runtimeId);
+
+        let type: RuntimeAgentElement['type'] = 'other';
+        if (tag === 'BUTTON' || role === 'button' || el.classList.contains('btn')) type = 'button';
+        else if (tag === 'A' || href) type = 'link';
+        else if (role === 'tab' || el.classList.contains('tab')) type = 'tab';
+        else if (tag === 'INPUT' && (el as HTMLInputElement).type === 'checkbox') type = 'toggle';
+        else if (tag === 'INPUT') type = 'input';
+        else if (tag === 'TEXTAREA') type = 'textarea';
+        else if (tag === 'SELECT') type = 'select';
+        else if (role === 'menuitem') type = 'menu_item';
+        else if (el.closest('.modal, [role="dialog"]')) type = 'modal_action';
+        else if (el.classList.contains('card') || el.className.includes('card')) type = 'card';
+
+        const agentEl: RuntimeAgentElement = {
+          id: runtimeId,
+          domNode: el,
+          tag,
+          role,
+          text: label,
+          ariaLabel,
+          title,
+          dataAgentLabel,
+          dataAgentAction,
+          dataAgentDescription,
+          type,
+          computedColor,
+          parentSection,
+          parentCardTitle,
+          href,
+          value,
+          placeholder,
+          disabled: Boolean(disabled),
+          visible: true,
+          ariaExpanded,
+          ariaChecked
+        };
+
+        elementsMap.set(runtimeId, agentEl);
+        actionableElementsList.push(agentEl);
+
         if (!interactiveElementsSummary.includes(label)) {
           interactiveElementsSummary.push(label);
         }
 
-        let type: InteractiveDOMElement['type'] = 'other';
-        if (tag === 'BUTTON' || role === 'button' || el.classList.contains('btn')) type = 'button';
-        else if (tag === 'A' || href) type = 'link';
-        else if (role === 'tab') type = 'tab';
-        else if (tag === 'INPUT' && (el as HTMLInputElement).type === 'checkbox') type = 'toggle';
-        else if (tag === 'INPUT' || tag === 'TEXTAREA') type = 'input';
-        else if (tag === 'SELECT') type = 'select';
-        else if (role === 'menuitem') type = 'menu_item';
-
         interactiveElementsList.push({
-          id: el.id || `el_${interactiveElementsList.length + 1}`,
-          index: interactiveElementsList.length + 1,
+          id: runtimeId,
+          index: actionableElementsList.length,
           tag,
-          type,
+          type: type as InteractiveDOMElement['type'],
           text: label,
           ariaLabel,
           title,
           role,
           testId,
+          dataAgentLabel,
+          dataAgentAction,
+          dataAgentDescription,
+          computedColor,
           href,
           value,
           placeholder,
@@ -158,12 +221,151 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
           visible: true,
           ariaExpanded,
           ariaChecked,
-          parentSection
+          parentSection: parentSection as InteractiveDOMElement['parentSection'],
+          parentCardTitle
         });
       }
     });
 
-    // 4. Entity Extraction
+    // 4. Modals, Dialogs, Popovers, Toasts, Drawers Detection
+    const dialogs: LiveUISnapshot['dialogs'] = [];
+    document.querySelectorAll('.modal, [role="dialog"], .toast, [class*="popover"], [class*="dialog"]').forEach((d) => {
+      const rect = d.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0 && window.getComputedStyle(d).display !== 'none') {
+        const modalTitle = d.querySelector('h1, h2, h3, h4, .modal-title, [class*="title"]')?.textContent?.trim();
+        const isToast = d.classList.contains('toast') || d.className.includes('toast');
+        const isPopover = d.className.includes('popover');
+        dialogs.push({
+          title: modalTitle,
+          type: isToast ? 'toast' : isPopover ? 'popover' : 'modal'
+        });
+      }
+    });
+
+    // 5. Cards & Metrics Aggregation
+    const cards: LiveUICard[] = [];
+    const cardNodes = document.querySelectorAll('[class*="card"], article, section.stat-section, section.dashboard-section');
+    
+    cardNodes.forEach((cardEl, idx) => {
+      if (cardEl.closest('.smart-agent-drawer, .smart-mentor-drawer')) return;
+      const rect = cardEl.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+
+      const title = cardEl.querySelector('h1, h2, h3, h4, .card-title, [class*="title"]')?.textContent?.trim();
+      const subtitle = cardEl.querySelector('p, .card-subtitle, .card-description, [class*="subtitle"], [class*="desc"]')?.textContent?.trim();
+
+      const metrics: LiveUIMetric[] = [];
+      cardEl.querySelectorAll('.stat-card-value, [class*="stat-value"], [class*="score"], [class*="metric"]').forEach((mEl) => {
+        const valText = mEl.textContent?.trim();
+        const lblText = mEl.previousElementSibling?.textContent?.trim() || mEl.nextElementSibling?.textContent?.trim() || mEl.parentElement?.querySelector('h3, h4, span, label')?.textContent?.trim() || 'Metric';
+        if (valText) {
+          metrics.push({
+            label: lblText,
+            value: valText,
+            color: getElementComputedColorInfo(mEl as HTMLElement)
+          });
+        }
+      });
+
+      const badges: LiveUIPageBadge[] = [];
+      cardEl.querySelectorAll('[class*="badge"], [class*="tag"], [class*="status"], [data-badge]').forEach((bEl) => {
+        const bText = bEl.textContent?.trim();
+        if (bText) {
+          const colorInfo = getElementComputedColorInfo(bEl as HTMLElement);
+          badges.push({
+            text: bText,
+            semanticColor: colorInfo?.semanticColor || 'neutral',
+            elementId: bEl.getAttribute('data-agent-runtime-id') || undefined
+          });
+        }
+      });
+
+      const actionableElementIds: string[] = [];
+      cardEl.querySelectorAll('[data-agent-runtime-id]').forEach((actionable) => {
+        const id = actionable.getAttribute('data-agent-runtime-id');
+        if (id) actionableElementIds.push(id);
+      });
+
+      const href = cardEl.getAttribute('href') || cardEl.querySelector('a')?.getAttribute('href') || undefined;
+
+      if (title || metrics.length > 0 || badges.length > 0 || actionableElementIds.length > 0) {
+        cards.push({
+          id: cardEl.id || `card_${idx + 1}`,
+          title,
+          subtitle,
+          metrics: metrics.length > 0 ? metrics : undefined,
+          badges: badges.length > 0 ? badges : undefined,
+          parentSection: cardEl.closest('main') ? 'main' : 'other',
+          actionableElementIds,
+          href
+        });
+      }
+    });
+
+    // 6. Visible Alerts Detection
+    const alerts: LiveUIAlert[] = [];
+    document.querySelectorAll('[role="alert"], .alert, .notice-banner, .error-banner, [class*="alert"], [class*="banner"]').forEach((alertEl) => {
+      const rect = alertEl.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+      const text = alertEl.textContent?.trim();
+      if (text) {
+        const colorInfo = getElementComputedColorInfo(alertEl as HTMLElement);
+        const lowerClass = alertEl.className.toLowerCase();
+        let type: LiveUIAlert['type'] = 'info';
+        if (lowerClass.includes('error') || colorInfo?.semanticColor === 'red') type = 'error';
+        else if (lowerClass.includes('warn') || colorInfo?.semanticColor === 'yellow') type = 'warning';
+        else if (lowerClass.includes('success') || colorInfo?.semanticColor === 'green') type = 'success';
+
+        alerts.push({
+          type,
+          text,
+          semanticColor: colorInfo?.semanticColor || (type === 'error' ? 'red' : type === 'success' ? 'green' : type === 'warning' ? 'yellow' : 'cyan')
+        });
+      }
+    });
+
+    // 7. Active Tab & Focused Element
+    let activeTab: string | undefined = undefined;
+    const activeTabEl = document.querySelector('[role="tab"][aria-selected="true"], .tab.active, [class*="tab"][class*="active"]');
+    if (activeTabEl) {
+      activeTab = activeTabEl.textContent?.trim();
+    }
+
+    const focusedElementId = document.activeElement?.getAttribute('data-agent-runtime-id') || document.activeElement?.id || undefined;
+
+    // 8. Sidebar State
+    const sidebarEl = document.querySelector('.sidebar-wrapper, aside, .sidebar');
+    let sidebarState: LiveUISnapshot['sidebarState'] = 'hidden';
+    if (sidebarEl) {
+      const sRect = sidebarEl.getBoundingClientRect();
+      sidebarState = sRect.width > 200 ? 'expanded' : sRect.width > 0 ? 'collapsed' : 'hidden';
+    }
+
+    // 9. Create LiveUISnapshot
+    const snapshot: LiveUISnapshot = {
+      route,
+      pageTitle: docTitle,
+      scrollPosition: { top: window.scrollY, left: window.scrollX },
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+      sidebarState,
+      activeTab,
+      focusedElementId,
+      dialogs,
+      visibleSections: [
+        { id: 'sec_navbar', title: 'Navbar', type: 'navbar', elementsCount: actionableElementsList.filter(e => e.parentSection === 'navbar').length },
+        { id: 'sec_sidebar', title: 'Sidebar', type: 'sidebar', elementsCount: actionableElementsList.filter(e => e.parentSection === 'sidebar').length },
+        { id: 'sec_main', title: 'Main Content', type: 'section', elementsCount: actionableElementsList.filter(e => e.parentSection === 'main').length },
+        ...(dialogs.length > 0 ? [{ id: 'sec_modal', title: dialogs[0].title || 'Modal Dialog', type: 'modal' as const, elementsCount: actionableElementsList.filter(e => e.parentSection === 'modal').length }] : [])
+      ],
+      cards,
+      elementsMap,
+      actionableElements: actionableElementsList,
+      visibleText: fullPageLines.slice(0, 150),
+      alerts,
+      timestamp: now
+    };
+
+    // 10. Entity Extraction
     let currentEntity: LivePageContext['currentEntity'] = undefined;
     const visibleEntities: LivePageContext['visibleEntities'] = {};
     const importantIds: Record<string, string> = {};
@@ -172,7 +374,7 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
       const probIdFromUrl = route.split('/code-arena/problems/')[1]?.split('?')[0];
       const h1Title = document.querySelector('h1')?.textContent?.trim() || mainHeadings[0] || 'DSA Problem';
       const difficultyBadge = document.querySelector('[class*="difficulty"], [data-difficulty]')?.textContent?.trim();
-      const solvedBadge = document.querySelector('[class*="solved"], [data-solved]') ? true : false;
+      const solvedBadge = Boolean(document.querySelector('[class*="solved"], [data-solved]'));
       const topicTag = document.querySelector('[class*="tag"], [class*="topic"]')?.textContent?.trim();
 
       importantIds['problemId'] = probIdFromUrl || '';
@@ -230,15 +432,11 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
       };
     } else if (route.includes('/code-arena/sheets')) {
       const sheetCards: LiveEntitySheet[] = [];
-      document.querySelectorAll('[data-sheet-card], .sheet-card, .card').forEach((card, idx) => {
-        const title = card.querySelector('h3, h4, .sheet-card-title')?.textContent?.trim();
-        const countText = card.querySelector('.problem-count, .card-meta')?.textContent?.trim();
-        const countMatch = countText?.match(/\d+/);
-        if (title) {
+      cards.forEach((card, idx) => {
+        if (card.title) {
           sheetCards.push({
-            id: card.getAttribute('data-sheet-id') || `sheet_${idx + 1}`,
-            title,
-            totalProblems: countMatch ? parseInt(countMatch[0], 10) : undefined
+            id: card.id || `sheet_${idx + 1}`,
+            title: card.title
           });
         }
       });
@@ -247,8 +445,7 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
       }
     }
 
-    // 5. Detect Page Load / UI State
-    const isErrorState = document.querySelector('.error-banner, [class*="error"]') !== null;
+    const isErrorState = alerts.some(a => a.type === 'error') || document.querySelector('.error-banner') !== null;
     const is404 = document.body.textContent?.includes('404') || document.title?.includes('Not Found');
     const loadState: LivePageContext['loadState'] = is404 ? 'not-found' : isErrorState ? 'error' : 'ready';
 
@@ -263,6 +460,7 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
       currentEntity,
       visibleEntities,
       importantIds,
+      snapshot,
       loadState,
       timestamp: now
     };
@@ -277,3 +475,4 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
     return baseContext;
   }
 }
+

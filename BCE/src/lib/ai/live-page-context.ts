@@ -1,5 +1,7 @@
+import { LiveUISnapshot, ComputedColorInfo } from './live-ui-snapshot';
+
 export interface InteractiveDOMElement {
-  id: string;
+  id: string; // e.g. "agent-el-001" or DOM element ID
   index: number;
   tag: string;
   type: 'button' | 'link' | 'tab' | 'card' | 'input' | 'select' | 'textarea' | 'toggle' | 'menu_item' | 'modal_action' | 'other';
@@ -8,6 +10,10 @@ export interface InteractiveDOMElement {
   title?: string;
   role?: string;
   testId?: string;
+  dataAgentLabel?: string;
+  dataAgentAction?: string;
+  dataAgentDescription?: string;
+  computedColor?: ComputedColorInfo;
   href?: string;
   value?: string;
   placeholder?: string;
@@ -16,6 +22,7 @@ export interface InteractiveDOMElement {
   ariaExpanded?: boolean;
   ariaChecked?: boolean;
   parentSection?: 'sidebar' | 'navbar' | 'modal' | 'main' | 'drawer' | 'other';
+  parentCardTitle?: string;
   collapsedParentId?: string;
   selector?: string;
 }
@@ -69,6 +76,7 @@ export interface LivePageContext {
   interactiveElements?: string[];
   interactiveElementsList?: InteractiveDOMElement[];
   importantIds?: Record<string, string>;
+  snapshot?: LiveUISnapshot;
 
   visibleEntities?: {
     sheets?: LiveEntitySheet[];

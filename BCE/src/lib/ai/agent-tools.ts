@@ -463,6 +463,14 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
             textContent: live.visibleTextContent,
             actions: live.interactiveElements,
             interactiveElementsList: live.interactiveElementsList,
+            snapshot: live.snapshot ? {
+              cardsCount: live.snapshot.cards.length,
+              cards: live.snapshot.cards,
+              dialogs: live.snapshot.dialogs,
+              alerts: live.snapshot.alerts,
+              activeTab: live.snapshot.activeTab,
+              sidebarState: live.snapshot.sidebarState
+            } : undefined,
             currentEntity: live.currentEntity,
             visibleEntities: live.visibleEntities,
             uiState: live.loadState

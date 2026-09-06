@@ -147,24 +147,51 @@ export class AgentController {
     // 3. Fast-Path Deterministic Intent Resolution
     const intentStart = Date.now();
 
-    // Contextual Pronoun & Reference Resolution ("open it", "isko open karo", "woh open karo", "why dsa?", "why this course?")
+    // Contextual Pronoun & Reference Resolution ("this", "that", "this card", "this button", "isko", "isme", "yaha", "waha", "usko", "usme", "ye", "woh", "same one", "previous one")
     let processedPromptLower = promptLower;
     let processedPromptRaw = promptRaw;
 
-    const isPronounOpen = /^(open\s+(it|this|that)|(isko|ye|woh|sko)\s+(open|kholo)\s*(karo)?)$/i.test(promptLower);
-    if (isPronounOpen) {
-      if (activeState.problemId || activeState.problemTitle) {
-        processedPromptLower = `open problem ${activeState.problemTitle || activeState.problemId}`;
-        processedPromptRaw = `open problem ${activeState.problemTitle || activeState.problemId}`;
-      } else if (activeState.sheetId || activeState.sheetTitle) {
-        processedPromptLower = `open ${activeState.sheetTitle || activeState.sheetId} sheet`;
-        processedPromptRaw = `open ${activeState.sheetTitle || activeState.sheetId} sheet`;
-      } else if (activeState.courseId || activeState.courseTitle) {
-        processedPromptLower = `open ${activeState.courseTitle || activeState.courseId} course`;
-        processedPromptRaw = `open ${activeState.courseTitle || activeState.courseId} course`;
-      } else {
-        processedPromptLower = 'open dsa sheets';
-        processedPromptRaw = 'open dsa sheets';
+    const pronounMatch = promptLower.match(/\b(it|this|that|this\s+card|this\s+button|isko|isme|yaha|waha|usko|usme|ye|woh|same\s+one|previous\s+one)\b/i);
+
+    if (pronounMatch) {
+      const pronoun = pronounMatch[1].toLowerCase();
+
+      // Case A: Action on referenced item ("isme start karo", "isko open karo", "usme submit karo")
+      const actionInsideMatch = promptLower.match(/^(?:isko|isme|usko|usme|this|that|ye|woh)\s+(?:me\s+|par\s+)?(start|open|click|edit|save|submit|cancel|delete)\s*(?:karo|kardo|button)?$/i) ||
+                                 promptLower.match(/^(start|open|click|edit|save|submit|cancel|delete)\s+(?:in|on\s+)?(?:this|that|isko|isme|usko|usme|ye|woh)$/i);
+
+      if (actionInsideMatch) {
+        const subAction = actionInsideMatch[1].toLowerCase();
+        const liveSnapshot = input.pageContext?.liveContext?.snapshot;
+        const activeCards = liveSnapshot?.cards || [];
+        
+        // Find most relevant card or button in current live DOM snapshot
+        const targetCard = activeCards[0];
+        if (targetCard && targetCard.actionableElementIds.length > 0) {
+          const firstActionableId = targetCard.actionableElementIds[0];
+          processedPromptLower = `click ${firstActionableId}`;
+          processedPromptRaw = `click ${firstActionableId}`;
+        } else if (activeState.problemTitle) {
+          processedPromptLower = `${subAction} problem ${activeState.problemTitle}`;
+          processedPromptRaw = `${subAction} problem ${activeState.problemTitle}`;
+        } else if (activeState.sheetTitle) {
+          processedPromptLower = `${subAction} ${activeState.sheetTitle} sheet`;
+          processedPromptRaw = `${subAction} ${activeState.sheetTitle} sheet`;
+        }
+      } else if (/^(open\s+(it|this|that|same\s+one)|(isko|ye|woh|usko)\s+(open|kholo)\s*(karo)?)$/i.test(promptLower)) {
+        if (activeState.problemId || activeState.problemTitle) {
+          processedPromptLower = `open problem ${activeState.problemTitle || activeState.problemId}`;
+          processedPromptRaw = `open problem ${activeState.problemTitle || activeState.problemId}`;
+        } else if (activeState.sheetId || activeState.sheetTitle) {
+          processedPromptLower = `open ${activeState.sheetTitle || activeState.sheetId} sheet`;
+          processedPromptRaw = `open ${activeState.sheetTitle || activeState.sheetId} sheet`;
+        } else if (activeState.courseId || activeState.courseTitle) {
+          processedPromptLower = `open ${activeState.courseTitle || activeState.courseId} course`;
+          processedPromptRaw = `open ${activeState.courseTitle || activeState.courseId} course`;
+        } else {
+          processedPromptLower = 'open dsa sheets';
+          processedPromptRaw = 'open dsa sheets';
+        }
       }
     }
 
@@ -275,13 +302,24 @@ export class AgentController {
         const textStr = live.visibleTextContent ? live.visibleTextContent : 'No extra details text visible.';
         const entityStr = live.currentEntity ? `Active Item: ${live.currentEntity.title} (${live.currentEntity.type})` : '';
 
+        const snapshot = live.snapshot;
+        const cardsSummary = snapshot && snapshot.cards.length > 0
+          ? snapshot.cards.slice(0, 5).map((c: any) => `• **${c.title || 'Card'}**: ${c.subtitle || ''} ${c.metrics ? c.metrics.map((m: any) => `${m.label}: ${m.value}`).join(', ') : ''}`).join('\n')
+          : '';
+
+        const alertsSummary = snapshot && snapshot.alerts.length > 0
+          ? `\n⚠️ **Active Alerts/Notices**:\n` + snapshot.alerts.map((a: any) => `• [${a.type.toUpperCase()}] ${a.text}`).join('\n')
+          : '';
+
         return {
           success: true,
-          message: `📄 **Live Screen Content**: ${titleStr} (\`${live.route}\`)\n\n` +
+          message: `📄 **Live Screen Breakdown**: ${titleStr} (\`${live.route}\`)\n\n` +
                    (entityStr ? `• **${entityStr}**\n` : '') +
                    `• **Headings**: ${headingsStr}\n\n` +
-                   `📝 **Scrollable Page Content**:\n• ${textStr.slice(0, 1500)}\n\n` +
-                   `Aap is page ke kisi bhi specific section ya detail par mujhse sawaal pooch sakte hain.`,
+                   (cardsSummary ? `🎴 **Cards & Key Metrics**:\n${cardsSummary}\n\n` : '') +
+                   (alertsSummary ? `${alertsSummary}\n\n` : '') +
+                   `📝 **Scrollable Page Content**:\n• ${textStr.slice(0, 1200)}\n\n` +
+                   `Aap is page ke kisi bhi specific section, card, ya element (e.g. "red wala button", "agent-el-001") par click ya query kar sakte hain.`,
           status: 'success',
           toolExecuted: 'getCurrentPageContext',
           sessionState
@@ -289,13 +327,24 @@ export class AgentController {
       }
     }
 
-    // 0B. Dynamic Live Page Element Interaction & Operations ("click Submit", "Edit button dabao", "save karo", "cancel karo", "type test in search")
+    // 0B. Dynamic Live Page Element Interaction & Operations ("click agent-el-001", "click Submit", "red button dabao", "save karo", "cancel karo")
     const liveList = pageContext?.liveContext?.interactiveElementsList || [];
     const liveSummary = pageContext?.liveContext?.interactiveElements || [];
+    const snapshotMap = pageContext?.liveContext?.snapshot?.actionableElements || [];
+
+    // Direct Agent Runtime ID match (e.g., "agent-el-005", "click agent-el-001")
+    const agentIdMatch = promptLower.match(/\b(agent-el-\d{3})\b/i);
+    if (agentIdMatch) {
+      const targetId = agentIdMatch[1].toLowerCase();
+      return await executeWithPermission('interactWithPageElement', {
+        actionType: 'click',
+        targetText: targetId
+      });
+    }
 
     // Explicit Click / Open / Edit / Save / Cancel / Delete / Submit Action Detection
     const clickMatch = promptLower.match(/^(?:click|open|press|tap)\s+(?:on\s+)?(?:the\s+)?(.+?)(?:\s+button|\s+card|\s+link|\s+tab)?$/i) ||
-                       promptLower.match(/^(.+?)\s+(?:button|card|link|tab|option)\s*(?:dabao|click\s*karo|open\s*karo|press\s*karo)?$/i) ||
+                       promptLower.match(/^(.+?)\s+(?:button|card|link|tab|option|badge)\s*(?:dabao|click\s*karo|open\s*karo|press\s*karo)?$/i) ||
                        promptLower.match(/^(edit|save|cancel|delete|submit|close)\s*(?:karo|button|kardo)?$/i);
 
     if (clickMatch) {
@@ -309,14 +358,17 @@ export class AgentController {
       else if (promptLower.includes('close')) actionType = 'close';
       else if (promptLower.includes('open')) actionType = 'open';
 
-      // Check if target matches any visible element on screen
-      const matchedElement = liveList.find((el: any) => {
+      // Check if target matches any visible element or computed color/section in snapshot
+      const matchedElement = snapshotMap.find((el: any) => {
+        const textStr = (el.text || el.dataAgentLabel || el.dataAgentAction || el.ariaLabel || el.title || '').toLowerCase();
+        return textStr.includes(targetQuery.toLowerCase()) || targetQuery.toLowerCase().includes(textStr);
+      }) || liveList.find((el: any) => {
         const textStr = (el.text || el.ariaLabel || el.title || '').toLowerCase();
         return textStr.includes(targetQuery.toLowerCase()) || targetQuery.toLowerCase().includes(textStr);
       }) || liveSummary.find((s: string) => s.toLowerCase().includes(targetQuery.toLowerCase()));
 
-      if (matchedElement || ['save', 'submit', 'cancel', 'close', 'edit', 'delete'].includes(targetQuery.toLowerCase())) {
-        const elementLabel = typeof matchedElement === 'string' ? matchedElement : (matchedElement?.text || targetQuery);
+      if (matchedElement || ['save', 'submit', 'cancel', 'close', 'edit', 'delete'].includes(targetQuery.toLowerCase()) || targetQuery.includes('red') || targetQuery.includes('green') || targetQuery.includes('yellow')) {
+        const elementLabel = typeof matchedElement === 'string' ? matchedElement : (matchedElement?.id || matchedElement?.text || targetQuery);
         return await executeWithPermission('interactWithPageElement', {
           actionType,
           targetText: elementLabel
