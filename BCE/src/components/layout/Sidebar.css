@@ -1,9 +1,8 @@
 .sidebar {
-  width: var(--sidebar-width, 20%);
-  min-width: 240px;
-  height: calc(100vh - var(--navbar-height, 64px));
+  width: var(--sidebar-width, 260px);
+  height: 100vh;
   position: sticky;
-  top: var(--navbar-height, 64px);
+  top: 0;
   flex-shrink: 0;
   order: 2;
   background: var(--gradient-sidebar);
