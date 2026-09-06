@@ -121,12 +121,9 @@ export function executeLiveDOMAction(
       // Strategy A: Direct Runtime ID Match
       if (queryString.startsWith('agent-el-') && elementsMap && elementsMap.has(queryString)) {
         targetElement = elementsMap.get(queryString);
-        const cachedNode = targetElement?.domNode as HTMLElement | undefined;
-        if (cachedNode && document.body.contains(cachedNode)) {
-          targetDomNode = cachedNode;
-        } else {
+        targetDomNode = document.querySelector(`[data-agent-runtime-id="${queryString}"]`) as HTMLElement | null;
+        if (!targetDomNode) {
           staleElementDetected = true;
-          targetDomNode = document.querySelector(`[data-agent-runtime-id="${queryString}"]`) as HTMLElement | null;
         }
       }
 
@@ -206,7 +203,7 @@ export function executeLiveDOMAction(
         }
 
         if (targetElement) {
-          targetDomNode = (targetElement.domNode as HTMLElement) || document.querySelector(`[data-agent-runtime-id="${targetElement.id}"]`);
+          targetDomNode = document.querySelector(`[data-agent-runtime-id="${targetElement.id}"]`) as HTMLElement | null;
         }
       }
 

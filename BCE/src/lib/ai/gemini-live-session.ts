@@ -2,7 +2,7 @@ import { GoogleGenAI, Modality } from '@google/genai';
 import { GEMINI_TOOL_DECLARATIONS } from './agent-tool-declarations';
 import { GeminiAudioPlayer } from './gemini-audio-player';
 import { AdaptiveVAD } from './adaptive-vad';
-import { safeStringify } from './safe-stringify';
+import { safeStringify, sanitizePageContext, assertSerializableAgentPayload } from './safe-stringify';
 
 export type VoiceConnectionState = 'starting' | 'connecting' | 'connected' | 'ready' | 'error' | 'stopped' | 'closed';
 
@@ -46,8 +46,8 @@ export class GeminiLiveSession {
     sessionId: number = 0
   ) {
     this.callbacks = callbacks;
-    this.pageContext = pageContext;
-    this.studentProfile = studentProfile;
+    this.pageContext = sanitizePageContext(pageContext);
+    this.studentProfile = assertSerializableAgentPayload(studentProfile);
     this.sessionId = sessionId;
     if (existingAudioCtx) {
       this.audioCtx = existingAudioCtx;
@@ -372,14 +372,16 @@ export class GeminiLiveSession {
     try {
       console.log(`[GeminiLiveSession] Executing tool: ${toolName}`, args);
 
+      const cleanPayload = assertSerializableAgentPayload({
+        toolName,
+        args: assertSerializableAgentPayload(args),
+        pageContext: sanitizePageContext(this.pageContext)
+      });
+
       const res = await fetch('/api/ai/gemini-live-tool', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: safeStringify({
-          toolName,
-          args,
-          pageContext: this.pageContext
-        })
+        body: JSON.stringify(cleanPayload)
       });
 
       const data = await res.json();

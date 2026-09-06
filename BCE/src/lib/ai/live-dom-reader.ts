@@ -179,7 +179,6 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
 
         const agentEl: RuntimeAgentElement = {
           id: runtimeId,
-          domNode: el,
           tag,
           role,
           text: label,

@@ -9,7 +9,6 @@ export interface ComputedColorInfo {
 
 export interface RuntimeAgentElement {
   id: string; // e.g. "agent-el-001"
-  domNode?: HTMLElement;
   tag: string;
   role?: string;
   text: string;
