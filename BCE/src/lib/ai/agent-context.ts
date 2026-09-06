@@ -12,11 +12,11 @@ export interface AgentPageContext {
 }
 
 export function buildAgentContext(
-  profile: Student360Profile,
+  profile?: Student360Profile | null,
   pageContext?: AgentPageContext
 ) {
   return {
-    student: {
+    student: profile ? {
       userId: profile.userId,
       hasSufficientData: profile.hasSufficientData,
       overallLearningScore: profile.overallLearningScore,
@@ -33,7 +33,7 @@ export function buildAgentContext(
       dailyRoutines: profile.dailyRoutines,
       activeGoals: profile.activeGoals,
       nextBestAction: profile.nextBestAction
-    },
+    } : null,
     currentPageContext: {
       route: pageContext?.route || '/dashboard',
       problemId: pageContext?.problemId || null,

@@ -55,7 +55,7 @@ export async function runSmartAgent(params: {
 
   const agentContext = isGuest
     ? { role: 'guest', authenticated: false, activeRoute: pageContext?.route || '/' }
-    : buildAgentContext(studentProfile || { userId: user!.id }, pageContext);
+    : buildAgentContext(studentProfile, pageContext);
 
   // 1. DYNAMIC TOOL FILTERING: Select only intent-relevant tools for this user role
   const relevantToolsList = selectRelevantTools(userPrompt, pageContext, userRole);
@@ -230,7 +230,7 @@ HUMAN CONVERSATION PERSONA & RULES:
         let lastExecutedTool: string | undefined = undefined;
 
         for (const call of geminiRes.functionCalls) {
-          const toolName = call.name;
+          const toolName = call.name || '';
           const parsedArgs = call.args || {};
 
           // Permission Check Before Execution
