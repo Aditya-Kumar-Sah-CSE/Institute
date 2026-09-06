@@ -205,6 +205,9 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
   // Build role switchers (Panels)
   const panelItems: { href: string; label: string; icon: string; style?: React.CSSProperties }[] = [];
   const isPlatformOwner = profile?.email?.trim().toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase() || (profile?.role as string) === 'super_admin';
+  const isAdminUser = isAdminRole(profile?.role) || isPlatformOwner;
+  const isInstructorUser = isInstructorRole(profile?.role) || isPlatformOwner;
+
   if (profile) {
     if (isPlatformOwner) {
       panelItems.push({ href: '/super-admin', label: 'Super Admin Panel', icon: 'Admin', style: { color: '#facc15', fontWeight: 'bold' } });
@@ -212,11 +215,11 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
     if (currentView !== 'student') {
       panelItems.push({ href: '/dashboard', label: 'Student View', icon: 'Dashboard' });
     }
-    if (currentView !== 'admin' && (profile.role === 'admin' || profile.role === 'developer')) {
-      const label = profile.role === 'developer' || profile.email === SUPER_ADMIN_EMAIL ? 'Developer Panel' : 'Admin Panel';
+    if (currentView !== 'admin' && isAdminUser) {
+      const label = (profile.role as string)?.toLowerCase().includes('developer') || isPlatformOwner ? 'Developer Panel' : 'Admin Panel';
       panelItems.push({ href: '/admin', label, icon: 'Admin' });
     }
-    if (currentView !== 'instructor' && ((profile.role === 'instructor' && profile.status === 'active') || profile.role === 'admin' || profile.role === 'developer')) {
+    if (currentView !== 'instructor' && isInstructorUser) {
       panelItems.push({ href: '/instructor', label: 'Instructor Panel', icon: 'Instructors' });
     }
   }
