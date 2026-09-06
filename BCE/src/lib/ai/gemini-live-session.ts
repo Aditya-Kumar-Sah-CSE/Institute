@@ -362,7 +362,7 @@ export class GeminiLiveSession {
       console.error('[GEMINI RECV] error:', msg.error);
       const errMessage = typeof msg.error === 'string' 
         ? msg.error 
-        : (msg.error.message || JSON.stringify(msg.error));
+        : (msg.error.message || safeStringify(msg.error));
       this.callbacks.onError?.(`Gemini Live Error: ${errMessage}`);
       this.callbacks.onConnectionStateChange?.('error');
     }
@@ -375,7 +375,7 @@ export class GeminiLiveSession {
       const res = await fetch('/api/ai/gemini-live-tool', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: safeStringify({
           toolName,
           args,
           pageContext: this.pageContext
