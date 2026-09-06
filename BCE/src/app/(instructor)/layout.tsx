@@ -72,7 +72,7 @@ export default async function InstructorLayout({
           <Sidebar key="instructor" profile={profile} roleView="instructor" isSuperAdmin={profile.email === SUPER_ADMIN_EMAIL} />
         </div>
       </div>
-      <MobileBottomNav />
+      <MobileBottomNav view="instructor" />
       <PwaRegister />
       <PWAInstallPrompt />
       <FeedbackWidget />

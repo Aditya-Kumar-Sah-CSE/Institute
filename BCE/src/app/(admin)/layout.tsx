@@ -12,6 +12,8 @@ import {
 } from '@/components/DynamicWrappers';
 import { Analytics } from "@vercel/analytics/react";
 
+import MobileBottomNav from '@/components/layout/MobileBottomNav';
+
 export default async function AdminLayout({
   children,
 }: {
@@ -65,6 +67,7 @@ export default async function AdminLayout({
           <Sidebar key="admin" profile={profile} isAdmin={true} isSuperAdmin={profile.email === SUPER_ADMIN_EMAIL} />
         </div>
       </div>
+      <MobileBottomNav view="admin" />
       <PwaRegister />
       <PWAInstallPrompt />
       <FeedbackWidget />
