@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Link from 'next/link';
@@ -106,6 +107,24 @@ export default function SmartMentorDrawer({
     }
   };
 
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && !isMaximized) {
+      document.body.classList.remove('sidebar-is-collapsed');
+    } else if (!isOpen && typeof document !== 'undefined') {
+      const sidebarElem = document.querySelector('.sidebar');
+      const sidebarIsCollapsed = sidebarElem?.classList.contains('is-collapsed');
+      if (sidebarIsCollapsed) {
+        document.body.classList.add('sidebar-is-collapsed');
+      }
+    }
+  }, [isOpen, isMaximized]);
+
   useEffect(() => {
     if (isOpen) {
       scrollToBottom();
@@ -119,35 +138,42 @@ export default function SmartMentorDrawer({
     scrollToBottom();
   }, [messages, isLoading]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
+  const drawerContent = (
     <div 
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.35)',
-        zIndex: 100000,
-        display: 'flex',
-        justifyContent: 'flex-end',
-        alignItems: 'stretch'
-      }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+      className={`smart-mentor-container ${isMaximized ? 'is-maximized' : 'in-sidebar'}`}
+      style={
+        isMaximized
+          ? {
+              position: 'fixed',
+              inset: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.75)',
+              zIndex: 100000,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center'
+            }
+          : {
+              position: 'relative',
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              background: 'var(--bg-secondary)',
+              borderLeft: '1px solid var(--glass-border)',
+              boxSizing: 'border-box'
+            }
+      }
     >
       <div 
         style={{
-          width: isMaximized ? '100vw' : '450px',
-          maxWidth: '100vw',
-          height: '100vh',
-          background: 'var(--bg-secondary)',
-          borderLeft: '1px solid var(--glass-border)',
+          width: '100%',
+          height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: '-10px 0 40px rgba(0,0,0,0.6)',
-          position: 'relative',
-          transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
+          background: 'var(--bg-secondary)',
+          position: 'relative'
         }}
       >
         {/* HEADER */}
@@ -383,4 +409,12 @@ export default function SmartMentorDrawer({
       `}</style>
     </div>
   );
+
+  const sidebarWrapper = typeof document !== 'undefined' ? document.querySelector('.sidebar-wrapper') : null;
+
+  if (sidebarWrapper && !isMaximized) {
+    return createPortal(drawerContent, sidebarWrapper);
+  }
+
+  return drawerContent;
 }

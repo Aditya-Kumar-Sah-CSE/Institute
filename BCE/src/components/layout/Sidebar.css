@@ -18,7 +18,9 @@
 }
 
 .sidebar.is-collapsed,
-body.sidebar-is-collapsed .sidebar {
+body.sidebar-is-collapsed .sidebar,
+.sidebar-wrapper:has(.smart-mentor-container.in-sidebar) .sidebar,
+.sidebar-wrapper:has(.smart-agent-container.in-sidebar) .sidebar {
   display: none !important;
 }
 

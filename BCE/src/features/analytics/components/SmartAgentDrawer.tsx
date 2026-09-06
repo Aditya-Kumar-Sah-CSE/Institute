@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Button from '@/components/ui/Button';
 import Link from 'next/link';
 import { useSmartAgentSession } from '../context/SmartAgentSessionContext';
@@ -22,6 +23,7 @@ const QUICK_COMMANDS = [
 
 export default function SmartAgentDrawer() {
   const [isMaximized, setIsMaximized] = React.useState(false);
+  const [mounted, setMounted] = useState(false);
   const {
     isOpen,
     closeDrawer,
@@ -49,6 +51,22 @@ export default function SmartAgentDrawer() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && !isMaximized) {
+      document.body.classList.remove('sidebar-is-collapsed');
+    } else if (!isOpen && typeof document !== 'undefined') {
+      const sidebarElem = document.querySelector('.sidebar');
+      const sidebarIsCollapsed = sidebarElem?.classList.contains('is-collapsed');
+      if (sidebarIsCollapsed) {
+        document.body.classList.add('sidebar-is-collapsed');
+      }
+    }
+  }, [isOpen, isMaximized]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -66,43 +84,42 @@ export default function SmartAgentDrawer() {
     };
   }, []);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
+  const drawerContent = (
     <div
-      style={{
-        position: 'fixed',
-        top: 'var(--navbar-height, 64px)',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        pointerEvents: 'none',
-        backgroundColor: 'transparent',
-        zIndex: 500,
-        display: 'flex',
-        justifyContent: 'flex-end',
-        alignItems: 'stretch'
-      }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) closeDrawer();
-      }}
+      className={`smart-agent-container ${isMaximized ? 'is-maximized' : 'in-sidebar'}`}
+      style={
+        isMaximized
+          ? {
+              position: 'fixed',
+              inset: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.75)',
+              zIndex: 100000,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center'
+            }
+          : {
+              position: 'relative',
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              background: 'var(--bg-secondary)',
+              borderLeft: '1px solid var(--glass-border)',
+              boxSizing: 'border-box'
+            }
+      }
     >
       <div 
         style={{
-          pointerEvents: 'auto',
-          position: 'fixed',
-          right: 0,
-          top: 'var(--navbar-height, 64px)',
-          width: isMaximized ? '100vw' : 'min(420px, 20vw)',
-          minWidth: isMaximized ? '100vw' : '280px',
-          maxWidth: '100vw',
-          height: 'calc(100vh - var(--navbar-height, 64px))',
+          width: '100%',
+          height: '100%',
           display: 'flex',
           flexDirection: 'column',
           background: 'var(--bg-secondary)',
-          borderLeft: '1px solid var(--glass-border)',
-          boxShadow: '-10px 0 40px rgba(0,0,0,0.6)',
-          transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
+          position: 'relative'
         }}
       >
         {/* HEADER */}
@@ -509,4 +526,12 @@ export default function SmartAgentDrawer() {
       </div>
     </div>
   );
+
+  const sidebarWrapper = typeof document !== 'undefined' ? document.querySelector('.sidebar-wrapper') : null;
+
+  if (sidebarWrapper && !isMaximized) {
+    return createPortal(drawerContent, sidebarWrapper);
+  }
+
+  return drawerContent;
 }
