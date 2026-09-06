@@ -162,7 +162,8 @@ export default function SmartMentorDrawer({
               flexDirection: 'column',
               background: 'var(--bg-secondary)',
               borderLeft: '1px solid var(--glass-border)',
-              boxSizing: 'border-box'
+              boxSizing: 'border-box',
+              zIndex: 9999
             }
       }
     >
@@ -414,6 +415,29 @@ export default function SmartMentorDrawer({
 
   if (sidebarWrapper && !isMaximized) {
     return createPortal(drawerContent, sidebarWrapper);
+  }
+
+  if (!isMaximized) {
+    return (
+      <div
+        style={{
+          position: 'fixed',
+          right: 0,
+          top: '64px',
+          bottom: 0,
+          width: '400px',
+          maxWidth: '100vw',
+          zIndex: 9999,
+          background: 'var(--bg-secondary)',
+          borderLeft: '1px solid var(--glass-border)',
+          boxShadow: '-10px 0 40px rgba(0,0,0,0.6)',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
+        {drawerContent}
+      </div>
+    );
   }
 
   return drawerContent;
