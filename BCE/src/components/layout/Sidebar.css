@@ -1,10 +1,9 @@
 .sidebar {
   width: var(--sidebar-width);
   height: 100vh;
-  position: sticky;
+  position: fixed;
   top: 0;
-  flex-shrink: 0;
-  order: 2;
+  right: 0;
   background: var(--gradient-sidebar);
   border-left: 1px solid var(--glass-border);
   display: flex;

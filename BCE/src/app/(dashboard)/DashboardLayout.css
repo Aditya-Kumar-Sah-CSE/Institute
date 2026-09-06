@@ -4,18 +4,21 @@
   background-color: var(--bg-primary);
   width: 100%;
   position: relative;
-  overflow-x: hidden;
 }
 
 .dashboard-main {
   flex: 1;
   min-width: 0;
-  order: 1;
-  margin-right: 0;
+  margin-right: var(--sidebar-width, 260px);
   margin-left: 0;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  transition: margin-right 0.2s ease;
+}
+
+body.sidebar-is-collapsed .dashboard-main {
+  margin-right: 0 !important;
 }
 
 .dashboard-content {

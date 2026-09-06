@@ -53,6 +53,14 @@
   box-shadow: 0 12px 30px rgba(0, 229, 255, 0.5);
 }
 
+body.sidebar-is-collapsed .floating-mentor-btn {
+  right: 24px !important;
+}
+
+body.sidebar-is-collapsed .floating-agent-btn {
+  right: 150px !important;
+}
+
 /* Mobile Responsive Shift: Shift buttons above 72px mobile bottom navigation bar */
 @media (max-width: 768px) {
   .floating-mentor-btn {
