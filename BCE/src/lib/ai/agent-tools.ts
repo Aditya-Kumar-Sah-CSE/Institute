@@ -216,17 +216,18 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
 
   openDSASheet: {
     name: 'openDSASheet',
-    description: 'Open a specific DSA sheet by ID or title query. Examples: "Blind 75 sheet kholo", "Striver A2Z sheet open karo", "Leetcode 100 Basics kholo".',
+    description: 'Open a specific DSA sheet by ID, title query, or 1-based position e.g. "advanced graph", "Leetcode 100 Basics", "leetcode 100 intermediate", "codeforces 900 rated", "Codeforces 800 rated", "1st sheet", "2nd sheet".',
     category: 'DSA',
     riskLevel: 'LOW',
     parameters: {
       type: 'object',
       properties: {
         sheetId: { type: 'string', description: 'Sheet UUID if known' },
-        titleQuery: { type: 'string', description: 'Name of the sheet e.g. "Blind 75", "Striver", "Leetcode 100"' }
+        titleQuery: { type: 'string', description: 'Name of the sheet e.g. "advanced graph", "Leetcode 100", "codeforces 800"' },
+        sheetIndex: { type: 'number', description: '1-based sheet position index if user specifies 1st, 2nd, 3rd sheet' }
       }
     },
-    examples: ['Blind 75 sheet kholo', 'Striver sheet dikhao', 'Leetcode 100 Basics kholo'],
+    examples: ['advanced graph sheet kholo', 'Leetcode 100 Basics kholo', 'Codeforces 800 rated open karo', '1st sheet kholo', '2nd sheet open kar'],
     execute: async (args, user, context) => {
       const userRole = context?.userRole;
 
@@ -247,8 +248,10 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
       }
       
       const query = args.titleQuery ? args.titleQuery.trim() : '';
-      if (query) {
-        const res = await resolveDSASheet(query, user, userRole);
+      const sheetIdx = args.sheetIndex;
+
+      if (query || sheetIdx) {
+        const res = await resolveDSASheet(query, user, userRole, sheetIdx);
         if (res.matched && res.entity && res.route) {
           return { 
             success: true, 
@@ -272,9 +275,10 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
 
         return {
           success: false,
-          message: res.reason || `DSA sheet "${query}" not found.`
+          message: res.reason || `DSA sheet "${query || sheetIdx}" not found.`
         };
       }
+
       return { 
         success: true, 
         message: 'Opening DSA sheets list...', 
@@ -283,6 +287,34 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
         navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
         expectedRoute: '/code-arena/sheets',
         successMessage: 'DSA sheets list open kar di.'
+      };
+    }
+  },
+
+  getAvailableDSASheets: {
+    name: 'getAvailableDSASheets',
+    description: 'Fetch and list all available DSA practice sheets with their details and navigation access. Use when student asks about available sheets or asks agent for sheet access.',
+    category: 'DSA',
+    riskLevel: 'LOW',
+    parameters: { type: 'object', properties: {} },
+    examples: ['sari available sheets dikhao', 'what sheets are available', 'sheets access info', 'sare sheet ka access'],
+    execute: async (_, __, context) => {
+      const adminClient = await createAdminClient();
+      const { data } = await adminClient.from('coding_sheets').select('id, title, description').order('created_at', { ascending: false });
+      const sheets = data || [];
+      if (sheets.length > 0) {
+        const listStr = sheets.map((s, i) => `${i + 1}. **${s.title}** (\`/code-arena/sheets/${s.id}\`)`).join('\n');
+        return {
+          success: true,
+          message: `📚 **Smart Agent Has Full Access To All ${sheets.length} Available DSA Sheets**:\n\n${listStr}\n\nAap kisi bhi sheet ka naam bol kar ya number batakar ("1st sheet kholo", "${sheets[0]?.title} open karo") directly navigate kar sakte hain!`,
+          url: '/code-arena/sheets',
+          data: { sheets }
+        };
+      }
+      return {
+        success: true,
+        message: 'Currently no DSA sheets are published.',
+        url: '/code-arena/sheets'
       };
     }
   },

@@ -327,22 +327,55 @@ export async function resolveCourse(
   };
 }
 
+function extractOrdinalIndex(query: string): number | undefined {
+  if (!query) return undefined;
+  const q = query.toLowerCase().trim();
+  const numMatch = q.match(/\b(\d+)(?:st|nd|rd|th)?\b/);
+  if (numMatch) {
+    const val = parseInt(numMatch[1], 10);
+    if (val >= 1 && val <= 50) return val;
+  }
+  if (/\b(first|pehli|pehla|1st)\b/i.test(q)) return 1;
+  if (/\b(second|dusri|dusra|2nd)\b/i.test(q)) return 2;
+  if (/\b(third|tisri|tisra|3rd)\b/i.test(q)) return 3;
+  if (/\b(fourth|chauthi|chautha|4th)\b/i.test(q)) return 4;
+  if (/\b(fifth|paanchvi|paanchva|5th)\b/i.test(q)) return 5;
+  return undefined;
+}
+
 /**
- * Resolves a DSA Sheet by user query string with authorization check.
+ * Resolves a DSA Sheet by user query string or ordinal index with authorization check.
  */
 export async function resolveDSASheet(
   rawQuery: string,
   user: { id: string } | null,
-  userRole?: string | null
+  userRole?: string | null,
+  sheetIndex?: number
 ): Promise<EntityResolutionResult<DSASheetEntity>> {
   const role = normalizeAgentRole(userRole);
   const normQuery = normalizeQuery(rawQuery);
+  const targetIdx = sheetIndex || extractOrdinalIndex(rawQuery);
+
+  const sheets = await getCachedDSASheets();
+
+  if (targetIdx && targetIdx >= 1 && targetIdx <= sheets.length) {
+    const matchedSheet = sheets[targetIdx - 1];
+    const route = `/code-arena/sheets/${matchedSheet.id}`;
+    if (canAccessPage(role, route)) {
+      return {
+        matched: true,
+        entity: matchedSheet,
+        confidence: 1.0,
+        ambiguous: false,
+        route
+      };
+    }
+  }
 
   if (!normQuery && !rawQuery.trim()) {
     return { matched: false, confidence: 0, ambiguous: false, reason: 'Empty DSA sheet query' };
   }
 
-  const sheets = await getCachedDSASheets();
   const scored = sheets.map(s => ({
     entity: s,
     score: scoreMatch(normQuery, rawQuery, s.title)

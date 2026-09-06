@@ -556,13 +556,20 @@ export class AgentController {
       }
     }
 
-    // E. Named Sheet Navigation ("Binary Search sheet kholo", "Striver sheet open karo", "Blind 75 kholo", "open DP sheet")
+    // E. Available Sheets Info Intent ("sare available sheet ka access info", "which sheets are available?", "sheets list")
+    const isAvailableSheetsInfo = /\b(available\s+sheets?|sare\s+sheet|sari\s+sheets?|all\s+sheets|sheets?\s+access|sheets?\s+list|sheets?\s+info)\b/i.test(promptLower);
+    if (isAvailableSheetsInfo) {
+      return await executeWithPermission('getAvailableDSASheets');
+    }
+
+    // E2. Named & Ordinal Sheet Navigation ("Binary Search sheet kholo", "1st sheet", "2nd sheet", "Leetcode 100 Basics", "Codeforces 800 rated", "advanced graph")
     const isGenericSheets = /^(open\s+dsa|dsa\s+kholo|open\s+sheets?|sheets?\s+kholo|coding\s+sheets?|dsa\s+sheets?|all\s+sheets)$/i.test(promptLower);
     if (!isGenericSheets) {
       const sheetMatch = promptLower.match(/^(?:open\s+)?(?:dsa\s+)?(.+?)\s+(?:dsa\s+)?sheet[s]?(?:\s+kholo|\s+open|\s+dikhao|\s+show|\s+kardo)?$/i) ||
                          promptLower.match(/^(?:open\s+)?(?:dsa\s+)?(.+?)\s+wala\s+(?:dsa\s+)?sheet[s]?(?:\s+kholo|\s+open|\s+dikhao)?$/i) ||
                          promptLower.match(/^(?:open\s+)?(?:dsa\s+)?(.+?)\s+wali\s+(?:dsa\s+)?sheet[s]?(?:\s+kholo|\s+open|\s+dikhao)?$/i) ||
-                         promptLower.match(/^(.+?)\s+(?:dsa\s+)?sheet[s]?(?:\s+kholo|\s+open|\s+dikhao)?$/i);
+                         promptLower.match(/^(.+?)\s+(?:dsa\s+)?sheet[s]?(?:\s+kholo|\s+open|\s+dikhao)?$/i) ||
+                         promptLower.match(/^(?:open\s+)?(advanced\s+graph|leetcode\s+100|codeforces\s+900|codeforces\s+800|blind\s+75|striver)(?:\s+kholo|\s+open)?$/i);
       if (sheetMatch) {
         const titleQuery = sheetMatch[1].replace(/^(open|dsa|coding|show|dikhao|the|a)\s+/gi, '').trim();
         if (titleQuery && titleQuery !== 'dsa' && titleQuery !== 'coding' && titleQuery !== 'open' && !titleQuery.includes('create') && !titleQuery.includes('banao')) {
