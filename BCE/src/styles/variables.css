@@ -155,7 +155,7 @@
   --z-toast: 500;
 
   /* === Layout === */
-  --sidebar-width: 280px;
+  --sidebar-width: 20%;
   --sidebar-collapsed: 72px;
   --navbar-height: 64px;
   --max-content-width: 1200px;

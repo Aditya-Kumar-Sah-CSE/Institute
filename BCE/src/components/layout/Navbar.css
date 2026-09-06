@@ -9,7 +9,9 @@
   border-bottom: 1px solid var(--glass-border);
   position: sticky;
   top: 0;
-  z-index: calc(var(--z-sticky) - 1);
+  z-index: calc(var(--z-sticky) + 10);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .navbar-title {
