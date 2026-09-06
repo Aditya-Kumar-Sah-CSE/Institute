@@ -1,10 +1,11 @@
-export type AppRole = 'guest' | 'student' | 'instructor' | 'admin' | 'superadmin';
+export type AppRole = 'guest' | 'student' | 'instructor' | 'admin' | 'developer' | 'superadmin';
 
 export const ROLE_HIERARCHY: Record<AppRole, number> = {
   guest: 0,
   student: 1,
   instructor: 2,
   admin: 3,
+  developer: 3,
   superadmin: 4,
 };
 
@@ -25,7 +26,10 @@ export function normalizeAgentRole(rawRole?: unknown): AppRole {
   ) {
     return 'superadmin';
   }
-  if (roleStr === 'admin' || roleStr === 'developer') {
+  if (roleStr === 'developer') {
+    return 'developer';
+  }
+  if (roleStr === 'admin') {
     return 'admin';
   }
   if (roleStr === 'instructor' || roleStr === 'faculty' || roleStr === 'teacher') {
@@ -40,6 +44,9 @@ export function normalizeAgentRole(rawRole?: unknown): AppRole {
 export const PAGE_PERMISSIONS: Array<{ prefix: string; minRole: AppRole }> = [
   // Superadmin routes
   { prefix: '/super-admin', minRole: 'superadmin' },
+
+  // Developer routes
+  { prefix: '/developer', minRole: 'developer' },
 
   // Admin routes
   { prefix: '/admin', minRole: 'admin' },

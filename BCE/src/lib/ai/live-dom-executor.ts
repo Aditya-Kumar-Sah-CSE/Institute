@@ -1,4 +1,5 @@
 import { InteractiveDOMElement } from './live-page-context';
+import { invalidateDOMCache } from './live-dom-reader';
 
 export interface DOMActionResult {
   success: boolean;
@@ -213,6 +214,8 @@ export function executeLiveDOMAction(
         errorMessage: errTxt
       };
     }
+
+    invalidateDOMCache();
 
     return {
       success: true,

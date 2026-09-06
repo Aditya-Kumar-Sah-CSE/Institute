@@ -12,6 +12,8 @@ import {
   isSpeechSynthesisSupported,
   getSpeechSynthesisSpeaking
 } from '@/lib/ai/speech-synthesizer';
+import { resolveClientFastPath } from '@/lib/ai/client-fast-path';
+import { LatencyTracker } from '@/lib/ai/latency-telemetry';
 
 export interface AudioDiagnostics {
   audioContextState: string;
@@ -183,6 +185,10 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
     route: pathname || '/dashboard'
   });
 
+  // Request Cancellation AbortController Ref & User Role Cache Ref
+  const activeAbortControllerRef = useRef<AbortController | null>(null);
+  const userRoleRef = useRef<string>('student');
+
   // Gemini Live Session Ref & AudioContext / Session Counter Refs
   const geminiLiveSessionRef = useRef<GeminiLiveSession | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -195,6 +201,11 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
   useEffect(() => {
     if (pathname) {
       agentSessionStateRef.current.route = pathname;
+      let panel: 'student' | 'instructor' | 'admin' | 'developer' = 'student';
+      if (pathname.startsWith('/instructor')) panel = 'instructor';
+      else if (pathname.startsWith('/admin')) panel = 'admin';
+      else if (pathname.startsWith('/developer') || pathname.startsWith('/super-admin')) panel = 'developer';
+      agentSessionStateRef.current.currentPanel = panel;
     }
     if (liveContext?.currentEntity) {
       const entity = liveContext.currentEntity;
@@ -262,9 +273,9 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
       console.warn('[SmartAgent] router.push threw error:', e);
     }
 
-    // 2. Poll window.location.pathname for 400ms
-    for (let i = 0; i < 4; i++) {
-      await new Promise(r => setTimeout(r, 100));
+    // 2. Fast Event-Driven Polling (30ms interval up to 210ms max)
+    for (let i = 0; i < 7; i++) {
+      await new Promise(r => setTimeout(r, 30));
       const currentPath = window.location.pathname + window.location.search;
       if (currentPath === targetRoute || currentPath.startsWith(targetRoute)) {
         return true;
@@ -278,11 +289,11 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
   }, [router]);
 
   const verifyPostActionState = useCallback(async (expectedRoute: string, expectedEntity?: any): Promise<{ success: boolean; message: string }> => {
-    // Wait for DOM & React state settlement
-    await new Promise(r => setTimeout(r, 200));
+    // Fast event-driven check (wait 50ms for React state settlement)
+    await new Promise(r => setTimeout(r, 50));
 
     const { extractLiveDOMContext } = await import('@/lib/ai/live-dom-reader');
-    const freshCtx = extractLiveDOMContext();
+    const freshCtx = extractLiveDOMContext(undefined, true);
     const currentPath = window.location.pathname + window.location.search;
 
     const isMatch = currentPath === expectedRoute || currentPath.startsWith(expectedRoute);
@@ -660,7 +671,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
     };
   }, [pathname, liveContext, pendingVerification, router]);
 
-  // ─── MAIN TEXT CHAT PROMPT HANDLER (AGENT CONTROLLER DRIVEN) ───
+  // ─── MAIN TEXT CHAT PROMPT HANDLER (ULTRA-LOW LATENCY PIPELINE) ───
   const handleSendPrompt = async (
     textToSend?: string, 
     confirmedTool?: { toolName: string; args: any },
@@ -668,6 +679,17 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
   ) => {
     const promptText = textToSend || inputVal;
     if (!promptText.trim() && !confirmedTool) return;
+
+    // 1. Prevent Duplicate Requests & Cancel Previous Pending Actions (Requirement 9)
+    if (activeAbortControllerRef.current) {
+      console.log('[SmartAgent] Cancelling previous active request for new user command');
+      activeAbortControllerRef.current.abort();
+    }
+    activeAbortControllerRef.current = new AbortController();
+    const signal = activeAbortControllerRef.current.signal;
+
+    const tracker = new LatencyTracker(promptText);
+    tracker.markStage('stt');
 
     stopSpeech();
     setInputVal('');
@@ -685,7 +707,107 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
       ]);
     }
 
+    // 2. Tier 1: Deterministic Client Fast-Path Router (Requirement 1, 5, 8)
+    const fastPath = resolveClientFastPath(promptText, userRoleRef.current, activeContext);
+    tracker.markStage('intentResolution');
+    tracker.markStage('permissionCheck');
+
+    if (fastPath.isMatch && !confirmedTool) {
+      tracker.setFastPath('client');
+      tracker.setCacheHit(true);
+
+      if (!fastPath.allowed) {
+        const errorMsg = fastPath.permissionReason || 'Access denied: You do not have permission for this section.';
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', content: `⚠️ ${errorMsg}`, navigationState: 'UNAUTHORIZED' }
+        ]);
+        setExecutionState('FAILED');
+        setIsLoading(false);
+        tracker.finish();
+        return;
+      }
+
+      // Streaming Responses (Requirement 7): Show immediate UI response
+      setExecutionState(fastPath.clientAction === 'navigate' ? 'NAVIGATING' : 'EXECUTING');
+      
+      const initialMessage = fastPath.streamingMessage || 'Processing command...';
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: initialMessage,
+          navigationState: fastPath.targetRoute ? 'NAVIGATING' : undefined,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+
+      if (fastPath.clientAction === 'close') {
+        closeDrawer();
+        setExecutionState('IDLE');
+        setIsLoading(false);
+        tracker.finish();
+        return;
+      }
+
+      if (fastPath.clientAction === 'back') {
+        router.back();
+        setMessages(prev => prev.map(m => m.content === initialMessage ? {
+          ...m, content: '✅ Navigated back.', navigationState: 'VERIFIED'
+        } : m));
+        setExecutionState('IDLE');
+        setIsLoading(false);
+        tracker.finish();
+        return;
+      }
+
+      if (fastPath.clientAction === 'context') {
+        const fresh = liveContext || {};
+        const titleStr = fresh.pageTitle || fresh.route;
+        const headingsStr = fresh.visibleHeadings && fresh.visibleHeadings.length > 0 ? fresh.visibleHeadings.join(', ') : 'None';
+        const contentStr = `📄 **Current Page**: ${titleStr} (\`${fresh.route}\`)\n\n• **Headings**: ${headingsStr}\n• **Summary**: ${fresh.visibleTextContent?.slice(0, 300) || 'None'}`;
+
+        setMessages(prev => prev.map(m => m.content === initialMessage ? {
+          ...m, content: contentStr, navigationState: 'VERIFIED'
+        } : m));
+        setExecutionState('IDLE');
+        setIsLoading(false);
+        tracker.finish();
+        return;
+      }
+
+      if (fastPath.targetRoute) {
+        tracker.markStage('navigation');
+        await performRealNavigation(fastPath.targetRoute);
+
+        if (signal.aborted) return;
+
+        tracker.markStage('verification');
+        const verification = await verifyPostActionState(fastPath.targetRoute);
+
+        if (signal.aborted) return;
+
+        tracker.markStage('response');
+        const finalContent = verification.success ? `✅ ${fastPath.successMessage || 'Navigation complete.'}` : verification.message;
+
+        setMessages(prev => prev.map(m => m.content === initialMessage ? {
+          ...m,
+          content: finalContent,
+          navigationState: verification.success ? 'VERIFIED' : 'FAILED'
+        } : m));
+
+        setExecutionState('IDLE');
+        setIsLoading(false);
+        tracker.finish();
+        return;
+      }
+    }
+
+    // 3. Tier 2 & 3: Server Fast-Path & LLM Fallback
     try {
+      tracker.markStage('toolExecution');
+      tracker.recordApiCall();
+
       const formattedHistory = messages.map(m => ({
         role: m.role,
         content: m.content
@@ -698,6 +820,8 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         confirmedTool,
         sessionState: agentSessionStateRef.current
       });
+
+      if (signal.aborted) return;
 
       if (response.sessionState) {
         agentSessionStateRef.current = {
@@ -717,12 +841,14 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         ]);
         setExecutionState('FAILED');
         setIsLoading(false);
+        tracker.finish();
         return;
       }
 
       let displayMessage = response.message;
 
       if (response.data && response.data.clientDOMAction) {
+        tracker.recordDomScan();
         const { actionType, query, valueToType, elementIndex } = response.data.clientDOMAction;
         const domRes = executeDOMActionOnPage(actionType, query, valueToType, elementIndex);
         if (domRes.success) {
@@ -739,8 +865,13 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
       );
 
       if (targetRoute) {
+        tracker.markStage('navigation');
         setExecutionState('NAVIGATING');
         await performRealNavigation(targetRoute);
+
+        if (signal.aborted) return;
+
+        tracker.markStage('verification');
         const verification = await verifyPostActionState(targetRoute, response.expectedEntity);
         if (verification.success) {
           displayMessage = verification.message;
@@ -749,6 +880,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         }
       }
 
+      tracker.markStage('response');
       const nextMsg: SmartAgentMessage = {
         role: 'assistant',
         content: displayMessage,
@@ -770,7 +902,12 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
 
       setExecutionState('IDLE');
       setIsLoading(false);
+      tracker.finish();
     } catch (err: any) {
+      if (err.name === 'AbortError' || signal.aborted) {
+        console.log('[SmartAgent] Request aborted successfully');
+        return;
+      }
       console.error('[SmartAgentSessionContext Error]:', err);
       setMessages((prev) => [
         ...prev,
@@ -778,6 +915,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
       ]);
       setExecutionState('FAILED');
       setIsLoading(false);
+      tracker.finish();
     }
   };
 

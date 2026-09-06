@@ -53,6 +53,7 @@ export const metadata: Metadata = {
 
 import PwaRegister from '@/components/PwaRegister';
 import { DynamicPWAInstallPrompt, DynamicPwaUpdateToast } from '@/components/DynamicWrappers';
+import GlobalAgentProvider from '@/components/GlobalAgentProvider';
 
 export default function RootLayout({
   children,
@@ -63,12 +64,14 @@ export default function RootLayout({
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning className={`${outfit.variable} ${jetbrainsMono.variable}`}>
       <body suppressHydrationWarning className={`${outfit.variable} ${jetbrainsMono.variable}`}>
         <ThemeProvider attribute="data-theme" defaultTheme="light" enableSystem={false} disableTransitionOnChange={false}>
-          <AuthChangeHandler />
-          <GlobalButtonLoadingHandler />
-          <PwaRegister />
-          <DynamicPwaUpdateToast />
-          <DynamicPWAInstallPrompt />
-          {children}
+          <GlobalAgentProvider>
+            <AuthChangeHandler />
+            <GlobalButtonLoadingHandler />
+            <PwaRegister />
+            <DynamicPwaUpdateToast />
+            <DynamicPWAInstallPrompt />
+            {children}
+          </GlobalAgentProvider>
         </ThemeProvider>
       </body>
     </html>

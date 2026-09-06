@@ -15,9 +15,6 @@ import {
 import { Analytics } from "@vercel/analytics/react";
 import FloatingAgentButtonClient from '@/features/analytics/components/FloatingAgentButtonClient';
 
-import { LivePageContextProvider } from '@/features/analytics/context/LivePageContext';
-import { SmartAgentSessionProvider } from '@/features/analytics/context/SmartAgentSessionContext';
-
 export default async function DashboardLayout({
   children,
 }: {
@@ -68,36 +65,32 @@ export default async function DashboardLayout({
   }
 
   return (
-    <LivePageContextProvider>
-      <SmartAgentSessionProvider>
-        <div className="dashboard-shell">
-          <div className="navbar-wrapper">
-            <Navbar 
-              companyName={settings?.company_name} 
-              companyLogo={settings?.logo_url} 
-              profile={profile}
-              currentView="student"
-            />
-          </div>
-          <div className="main-layout">
-            <div className="content-wrapper">
-              <main className="dashboard-content">
-                {children}
-              </main>
-            </div>
-            <div className="sidebar-wrapper">
-              <Sidebar key="student" profile={profile} roleView="student" isSuperAdmin={profile.email === SUPER_ADMIN_EMAIL} />
-            </div>
-          </div>
-
-          <PwaRegister />
-          <PwaUpdateToast />
-          <PWAInstallPrompt />
-          <XpCelebrator />
-          <FeedbackWidget />
-          <Analytics />
+    <div className="dashboard-shell">
+      <div className="navbar-wrapper">
+        <Navbar 
+          companyName={settings?.company_name} 
+          companyLogo={settings?.logo_url} 
+          profile={profile}
+          currentView="student"
+        />
+      </div>
+      <div className="main-layout">
+        <div className="content-wrapper">
+          <main className="dashboard-content">
+            {children}
+          </main>
         </div>
-      </SmartAgentSessionProvider>
-    </LivePageContextProvider>
+        <div className="sidebar-wrapper">
+          <Sidebar key="student" profile={profile} roleView="student" isSuperAdmin={profile.email === SUPER_ADMIN_EMAIL} />
+        </div>
+      </div>
+
+      <PwaRegister />
+      <PwaUpdateToast />
+      <PWAInstallPrompt />
+      <XpCelebrator />
+      <FeedbackWidget />
+      <Analytics />
+    </div>
   );
 }

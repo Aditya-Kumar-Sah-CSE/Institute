@@ -19,6 +19,8 @@ export interface LatencyTelemetry {
 export interface AgentSessionState {
   route: string;
   pageType?: string;
+  currentPanel?: 'student' | 'instructor' | 'admin' | 'developer';
+  currentRole?: string;
   sheetId?: string;
   sheetTitle?: string;
   problemId?: string;

@@ -1,15 +1,36 @@
 import { LivePageContext, buildDefaultLiveContext, LiveEntityProblem, LiveEntitySheet, LiveEntityCourse, InteractiveDOMElement } from './live-page-context';
 
+let cachedDOMContext: LivePageContext | null = null;
+let cachedDOMRoute: string | null = null;
+let lastDOMScanTimestamp = 0;
+const DOM_CACHE_TTL_MS = 2500; // Cache DOM index for 2.5s unless forced
+
+/**
+ * Invalidate cached DOM context manually on route change, modal open, or action execution.
+ */
+export function invalidateDOMCache(): void {
+  cachedDOMContext = null;
+  cachedDOMRoute = null;
+  lastDOMScanTimestamp = 0;
+}
+
 /**
  * Extracts live, rendered DOM context from the active browser window.
- * Scopes read access strictly to visible content on the open page.
+ * Uses lightweight indexed representation and updates only when route/state changes.
  */
-export function extractLiveDOMContext(overrideRoute?: string): LivePageContext {
+export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = false): LivePageContext {
   if (typeof window === 'undefined' || typeof document === 'undefined') {
     return buildDefaultLiveContext(overrideRoute || '/dashboard');
   }
 
   const route = overrideRoute || (window.location.pathname + window.location.search);
+  const now = Date.now();
+
+  // Return cached representation if route hasn't changed and within TTL
+  if (!forceRefresh && cachedDOMContext && cachedDOMRoute === route && (now - lastDOMScanTimestamp < DOM_CACHE_TTL_MS)) {
+    return cachedDOMContext;
+  }
+
   const baseContext = buildDefaultLiveContext(route);
 
   try {
@@ -40,7 +61,7 @@ export function extractLiveDOMContext(overrideRoute?: string): LivePageContext {
       visibleTextContent = paragraphs.slice(0, 15).join(' | ');
     }
 
-    // 3. Interactive Buttons & Main Actions (Structured Discovery)
+    // 3. Lightweight Indexed Discovery of Interactive Elements
     const interactiveElementsSummary: string[] = [];
     const interactiveElementsList: InteractiveDOMElement[] = [];
 
@@ -100,12 +121,11 @@ export function extractLiveDOMContext(overrideRoute?: string): LivePageContext {
       }
     });
 
-    // 4. Entity Extraction & Page-Specific State Harvesting
+    // 4. Entity Extraction
     let currentEntity: LivePageContext['currentEntity'] = undefined;
     const visibleEntities: LivePageContext['visibleEntities'] = {};
     const importantIds: Record<string, string> = {};
 
-    // A. DSA Problem Page (/code-arena/problems/[id])
     if (route.includes('/code-arena/problems/')) {
       const probIdFromUrl = route.split('/code-arena/problems/')[1]?.split('?')[0];
       const h1Title = document.querySelector('h1')?.textContent?.trim() || mainHeadings[0] || 'DSA Problem';
@@ -125,10 +145,7 @@ export function extractLiveDOMContext(overrideRoute?: string): LivePageContext {
           route
         }
       };
-    }
-
-    // B. DSA Sheet Detail Page (/code-arena/sheets/[id])
-    else if (route.includes('/code-arena/sheets/')) {
+    } else if (route.includes('/code-arena/sheets/')) {
       const sheetIdFromUrl = route.split('/code-arena/sheets/')[1]?.split('?')[0];
       const sheetTitle = document.querySelector('h1, h2.sheet-title')?.textContent?.trim() || mainHeadings[0] || 'DSA Sheet';
       importantIds['sheetId'] = sheetIdFromUrl || '';
@@ -159,10 +176,7 @@ export function extractLiveDOMContext(overrideRoute?: string): LivePageContext {
       if (problemItems.length > 0) {
         visibleEntities.problems = problemItems.slice(0, 20);
       }
-    }
-
-    // C. Courses Page or Detail Page
-    else if (route.includes('/courses/')) {
+    } else if (route.includes('/courses/')) {
       const courseIdFromUrl = route.split('/courses/')[1]?.split('?')[0];
       const courseTitle = document.querySelector('h1, .course-title')?.textContent?.trim() || mainHeadings[0] || 'Course';
       importantIds['courseId'] = courseIdFromUrl || '';
@@ -172,10 +186,7 @@ export function extractLiveDOMContext(overrideRoute?: string): LivePageContext {
         id: courseIdFromUrl || 'active_course',
         title: courseTitle
       };
-    }
-
-    // D. DSA Sheets Catalog (/code-arena/sheets)
-    else if (route.includes('/code-arena/sheets')) {
+    } else if (route.includes('/code-arena/sheets')) {
       const sheetCards: LiveEntitySheet[] = [];
       document.querySelectorAll('[data-sheet-card], .sheet-card, .card').forEach((card, idx) => {
         const title = card.querySelector('h3, h4, .sheet-card-title')?.textContent?.trim();
@@ -199,7 +210,7 @@ export function extractLiveDOMContext(overrideRoute?: string): LivePageContext {
     const is404 = document.body.textContent?.includes('404') || document.title?.includes('Not Found');
     const loadState: LivePageContext['loadState'] = is404 ? 'not-found' : isErrorState ? 'error' : 'ready';
 
-    return {
+    const freshCtx: LivePageContext = {
       ...baseContext,
       route,
       pageTitle: docTitle,
@@ -211,8 +222,14 @@ export function extractLiveDOMContext(overrideRoute?: string): LivePageContext {
       visibleEntities,
       importantIds,
       loadState,
-      timestamp: Date.now()
+      timestamp: now
     };
+
+    cachedDOMContext = freshCtx;
+    cachedDOMRoute = route;
+    lastDOMScanTimestamp = now;
+
+    return freshCtx;
   } catch (err) {
     console.warn('[extractLiveDOMContext] Error scanning DOM:', err);
     return baseContext;
