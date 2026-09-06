@@ -7,11 +7,16 @@ export interface InteractiveDOMElement {
   ariaLabel?: string;
   title?: string;
   role?: string;
+  testId?: string;
   href?: string;
   value?: string;
   placeholder?: string;
   disabled: boolean;
   visible: boolean;
+  ariaExpanded?: boolean;
+  ariaChecked?: boolean;
+  parentSection?: 'sidebar' | 'navbar' | 'modal' | 'main' | 'drawer' | 'other';
+  collapsedParentId?: string;
   selector?: string;
 }
 

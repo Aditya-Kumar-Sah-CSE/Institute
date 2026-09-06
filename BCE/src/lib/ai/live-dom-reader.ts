@@ -82,12 +82,22 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
       const ariaLabel = el.getAttribute('aria-label') || undefined;
       const title = el.getAttribute('title') || undefined;
       const role = el.getAttribute('role') || undefined;
+      const testId = el.getAttribute('data-testid') || el.getAttribute('data-action') || undefined;
       const href = el.getAttribute('href') || undefined;
       const value = (el as HTMLInputElement).value || undefined;
       const placeholder = (el as HTMLInputElement).placeholder || undefined;
       const disabled = (el as HTMLButtonElement).disabled || el.hasAttribute('aria-disabled');
+      const ariaExpanded = el.hasAttribute('aria-expanded') ? el.getAttribute('aria-expanded') === 'true' : undefined;
+      const ariaChecked = el.hasAttribute('aria-checked') ? el.getAttribute('aria-checked') === 'true' : ((el as HTMLInputElement).type === 'checkbox' ? (el as HTMLInputElement).checked : undefined);
 
-      const label = text || ariaLabel || title || placeholder || el.id || 'Interactive Element';
+      let parentSection: InteractiveDOMElement['parentSection'] = 'other';
+      if (el.closest('.sidebar-wrapper, aside, .sidebar')) parentSection = 'sidebar';
+      else if (el.closest('.navbar-wrapper, header, .navbar')) parentSection = 'navbar';
+      else if (el.closest('.modal, [role="dialog"], .modal-content')) parentSection = 'modal';
+      else if (isDrawerChild) parentSection = 'drawer';
+      else if (el.closest('main, .dashboard-content, .content-wrapper')) parentSection = 'main';
+
+      const label = text || ariaLabel || title || placeholder || testId || el.id || 'Interactive Element';
 
       if (label && label.length > 1 && label.length < 80) {
         if (!interactiveElementsSummary.includes(label)) {
@@ -112,11 +122,15 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
           ariaLabel,
           title,
           role,
+          testId,
           href,
           value,
           placeholder,
           disabled: Boolean(disabled),
-          visible: true
+          visible: true,
+          ariaExpanded,
+          ariaChecked,
+          parentSection
         });
       }
     });

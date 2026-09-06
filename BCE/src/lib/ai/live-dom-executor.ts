@@ -15,8 +15,8 @@ export interface DOMActionResult {
 
 /**
  * Client-side Live DOM Executor.
- * Enables Smart Agent to discover, click, type into, toggle, submit, and interact
- * with any interactive DOM element on the open page while verifying resulting state.
+ * Enables Smart Agent to discover, verify, click, type into, toggle, submit, and interact
+ * with any UI component on the open page while enforcing pre-action & post-action verification.
  */
 export function executeLiveDOMAction(
   actionType: 'click' | 'open' | 'edit' | 'save' | 'cancel' | 'delete' | 'select' | 'toggle' | 'submit' | 'close' | 'type' | 'clear' | 'navigate',
@@ -35,17 +35,28 @@ export function executeLiveDOMAction(
   try {
     const currentRoute = window.location.pathname + window.location.search;
 
-    // 1. Gather all candidate interactive elements currently in the DOM
+    // 1. Gather all candidate interactive elements using stable selectors
     const rawElements = Array.from(
       document.querySelectorAll(
-        'button, a, input, select, textarea, [role="button"], [role="tab"], [role="menuitem"], [role="checkbox"], [role="switch"], [role="option"], [data-action], .btn, [onclick], details, summary, [tabindex="0"]'
+        'button, a, input, select, textarea, [role="button"], [role="tab"], [role="menuitem"], [role="checkbox"], [role="switch"], [role="option"], [data-action], [data-testid], .btn, [onclick], details, summary, [tabindex="0"]'
       )
     ) as HTMLElement[];
 
-    const candidates: { el: HTMLElement; text: string; ariaLabel: string; title: string; id: string; name: string; tag: string; role: string; index: number }[] = [];
+    const candidates: { 
+      el: HTMLElement; 
+      text: string; 
+      ariaLabel: string; 
+      title: string; 
+      id: string; 
+      name: string; 
+      testId: string;
+      tag: string; 
+      role: string; 
+      index: number;
+      disabled: boolean;
+    }[] = [];
 
-    rawElements.forEach((el, idx) => {
-      // Filter out invisible elements except drawer buttons
+    rawElements.forEach((el) => {
       const isDrawerChild = el.closest('.smart-agent-drawer, .smart-mentor-drawer');
       const rect = el.getBoundingClientRect();
       const isVisible = isDrawerChild || (rect.width > 0 && rect.height > 0 && window.getComputedStyle(el).visibility !== 'hidden');
@@ -57,22 +68,24 @@ export function executeLiveDOMAction(
       const title = el.getAttribute('title') || '';
       const id = el.id || '';
       const name = el.getAttribute('name') || '';
+      const testId = el.getAttribute('data-testid') || el.getAttribute('data-action') || '';
       const placeholder = (el as HTMLInputElement).placeholder || '';
       const value = (el as HTMLInputElement).value || '';
       const tag = el.tagName.toUpperCase();
       const role = el.getAttribute('role') || '';
-
-      const compositeSearchStr = `${text} ${ariaLabel} ${title} ${id} ${name} ${placeholder} ${value}`.toLowerCase();
+      const disabled = Boolean((el as HTMLButtonElement).disabled || el.getAttribute('aria-disabled') === 'true');
 
       candidates.push({
         el,
-        text: text || ariaLabel || title || placeholder || id || name,
+        text: text || ariaLabel || title || placeholder || testId || id || name,
         ariaLabel,
         title,
         id,
         name,
+        testId,
         tag,
         role,
+        disabled,
         index: candidates.length + 1
       });
     });
@@ -85,9 +98,8 @@ export function executeLiveDOMAction(
       };
     }
 
-    // 2. Locate target element by index, exact query, or fuzzy match
+    // 2. Locate target element by index, test ID, exact query, or fuzzy match
     let targetCandidate: typeof candidates[0] | undefined;
-
     const queryString = String(query).trim().toLowerCase();
 
     // Strategy A: Direct Index Match
@@ -96,23 +108,29 @@ export function executeLiveDOMAction(
       targetCandidate = candidates.find(c => c.index === idx);
     }
 
-    // Strategy B: Exact text / label match
+    // Strategy B: Data-TestID / ID Exact Match
     if (!targetCandidate) {
-      targetCandidate = candidates.find(c => {
-        const t = c.text.toLowerCase();
-        return t === queryString || c.ariaLabel.toLowerCase() === queryString || c.id.toLowerCase() === queryString;
-      });
+      targetCandidate = candidates.find(c => 
+        c.testId.toLowerCase() === queryString || 
+        c.id.toLowerCase() === queryString ||
+        c.ariaLabel.toLowerCase() === queryString
+      );
     }
 
-    // Strategy C: Substring / Keyword Match
+    // Strategy C: Exact text match
+    if (!targetCandidate) {
+      targetCandidate = candidates.find(c => c.text.toLowerCase() === queryString);
+    }
+
+    // Strategy D: Substring / Keyword Match
     if (!targetCandidate) {
       targetCandidate = candidates.find(c => {
-        const fullStr = `${c.text} ${c.ariaLabel} ${c.title} ${c.id} ${c.name}`.toLowerCase();
+        const fullStr = `${c.text} ${c.ariaLabel} ${c.title} ${c.testId} ${c.id} ${c.name}`.toLowerCase();
         return fullStr.includes(queryString);
       });
     }
 
-    // Strategy D: Action-specific Fallback (e.g. "submit", "save", "cancel", "close")
+    // Strategy E: Action-specific Fallback
     if (!targetCandidate) {
       const actionSynonyms: Record<string, string[]> = {
         save: ['save', 'submit', 'update', 'done', 'apply'],
@@ -124,7 +142,7 @@ export function executeLiveDOMAction(
 
       const synonyms = actionSynonyms[actionType] || [queryString];
       targetCandidate = candidates.find(c => {
-        const fullStr = `${c.text} ${c.ariaLabel} ${c.title}`.toLowerCase();
+        const fullStr = `${c.text} ${c.ariaLabel} ${c.title} ${c.testId}`.toLowerCase();
         return synonyms.some(s => fullStr.includes(s));
       });
     }
@@ -133,7 +151,7 @@ export function executeLiveDOMAction(
       const availableLabels = candidates.slice(0, 12).map(c => `"${c.text}"`).join(', ');
       return {
         success: false,
-        message: `Could not locate element "${query}" on the current page. Available interactive elements: ${availableLabels}.`,
+        message: `Could not locate component "${query}" on the active page. Accessible components: ${availableLabels}.`,
         actionType
       };
     }
@@ -141,7 +159,30 @@ export function executeLiveDOMAction(
     const targetEl = targetCandidate.el;
     const targetLabel = targetCandidate.text || queryString;
 
-    // 3. Perform Action (Type vs Click/Select/Toggle)
+    // 3. PRE-ACTION VERIFICATION: Check if component is enabled & operable
+    if (targetCandidate.disabled) {
+      return {
+        success: false,
+        message: `Cannot execute ${actionType} on "${targetLabel}" because it is currently disabled or unavailable.`,
+        actionType,
+        targetElementText: targetLabel
+      };
+    }
+
+    // 3B. Auto-Open Collapsed / Hidden Parents (details, collapsed dropdowns, sidebar accordions)
+    const detailsParent = targetEl.closest('details');
+    if (detailsParent && !detailsParent.open) {
+      console.log('[DOM Executor] Auto-opening collapsed details container for element:', targetLabel);
+      detailsParent.open = true;
+    }
+
+    const collapsedDropdown = targetEl.closest('[aria-expanded="false"]');
+    if (collapsedDropdown && collapsedDropdown !== targetEl) {
+      console.log('[DOM Executor] Auto-expanding parent dropdown menu for element:', targetLabel);
+      (collapsedDropdown as HTMLElement).click();
+    }
+
+    // 4. Perform Action (Type vs Click/Select/Toggle)
     if (actionType === 'type' || targetEl.tagName === 'INPUT' || targetEl.tagName === 'TEXTAREA') {
       if (valueToType !== undefined) {
         targetEl.focus();
@@ -154,7 +195,7 @@ export function executeLiveDOMAction(
       }
     }
 
-    // Dispatch full click & mouse event sequence
+    // Dispatch full user interaction event sequence
     targetEl.focus();
     targetEl.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true, cancelable: true }));
     targetEl.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
@@ -166,7 +207,7 @@ export function executeLiveDOMAction(
       targetEl.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     }
 
-    // 3B. Automatic Link Navigation Fallback if element has href attribute
+    // Automatic Link Navigation Fallback
     const hrefAttr = targetEl.getAttribute('href');
     if (hrefAttr && !hrefAttr.startsWith('#') && !hrefAttr.startsWith('javascript:')) {
       setTimeout(() => {
@@ -175,27 +216,24 @@ export function executeLiveDOMAction(
           console.log(`[DOM Executor] Link click did not navigate automatically, enforcing location.assign to ${hrefAttr}`);
           window.location.assign(hrefAttr);
         }
-      }, 200);
+      }, 150);
     }
 
-    // 4. Verify Immediate Resulting UI State
+    // 5. POST-ACTION UI STATE VERIFICATION
     let urlChanged = false;
     let newRoute = window.location.pathname + window.location.search;
     if (newRoute !== currentRoute) {
       urlChanged = true;
     }
 
-    // Check for modal visibility
     const modalVisible = document.querySelector('.modal, [role="dialog"], .modal-content, .drawer-content') !== null;
-
-    // Check for error banner or 404
     const errorBanner = document.querySelector('.error-banner, [class*="error"], .toast-error');
     const is404 = document.body.textContent?.includes('404') || document.title?.includes('Not Found');
 
     if (is404) {
       return {
         success: false,
-        message: `Clicked "${targetLabel}", but the target page resulted in a 404 Not Found error.`,
+        message: `Clicked "${targetLabel}", but target page resulted in a 404 Not Found error.`,
         actionType,
         targetElementText: targetLabel,
         errorDetected: true,
@@ -233,7 +271,7 @@ export function executeLiveDOMAction(
     console.error('[executeLiveDOMAction] Failure:', err);
     return {
       success: false,
-      message: `Failed to interact with element "${query}": ${err.message || 'DOM error'}`,
+      message: `Failed to interact with component "${query}": ${err.message || 'DOM error'}`,
       actionType,
       errorDetected: true,
       errorMessage: err.message
