@@ -236,20 +236,20 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
 
   return (
     <aside className={sidebarClasses} suppressHydrationWarning>
-      <div className="sidebar-header" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+      <div className="sidebar-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-2)' }}>
+        <Link href={logoHref} className="sidebar-logo">
+          <span className="sidebar-logo-icon text-neon-cyan">{getIcon('Building', { className: 'w-6 h-6' })}</span>
+          <span className="sidebar-logo-text">Smart Learning</span>
+        </Link>
         <button 
           suppressHydrationWarning
           onClick={() => setIsCollapsed(true)} 
           className="desktop-only-btn"
-          style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0, marginLeft: '-8px' }}
+          style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           title="Collapse Sidebar"
         >
-          <X size={20} />
+          <X size={18} />
         </button>
-        <Link href={logoHref} className="sidebar-logo">
-          <span className="sidebar-logo-icon text-neon-cyan">{getIcon('Building', { className: 'w-6 h-6' })}</span>
-          <span className="sidebar-logo-text">Smart  Learning</span>
-        </Link>
       </div>
 
       {currentView === 'student' && (

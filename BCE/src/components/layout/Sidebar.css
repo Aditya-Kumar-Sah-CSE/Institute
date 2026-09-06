@@ -4,9 +4,10 @@
   position: sticky;
   top: 0;
   flex-shrink: 0;
-  order: 2;
+  order: 1;
   background: var(--gradient-sidebar);
-  border-left: 1px solid var(--glass-border);
+  border-right: 1px solid var(--glass-border);
+  border-left: none;
   display: flex;
   flex-direction: column;
   z-index: var(--z-sticky);

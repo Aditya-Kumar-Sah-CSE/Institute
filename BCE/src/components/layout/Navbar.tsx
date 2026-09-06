@@ -245,6 +245,16 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
   return (
     <header className="dashboard-navbar" style={{ padding: '0 var(--space-md)' }}>
       <div className="navbar-left" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+        <button 
+          suppressHydrationWarning
+          onClick={() => window.dispatchEvent(new Event('toggleSidebar'))}
+          className="open-sidebar-btn desktop-only-btn"
+          style={{ padding: '8px', background: 'var(--bg-card)', border: '1px solid var(--border-default)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          title="Toggle Sidebar"
+        >
+          <MoreVertical size={20} />
+        </button>
+
         {canGoBack && (
           <button
             onClick={handleBack}
@@ -308,16 +318,6 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
       </div>
 
       <div className="navbar-right" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-        <button 
-          suppressHydrationWarning
-          onClick={() => window.dispatchEvent(new Event('toggleSidebar'))}
-          className="open-sidebar-btn desktop-only-btn"
-          style={{ padding: '8px', background: 'var(--bg-card)', border: '1px solid var(--border-default)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer' }}
-          title="Open Sidebar"
-        >
-          <MoreVertical size={24} />
-        </button>
-
         <div className="desktop-theme-toggle">
           <ThemeToggle />
         </div>

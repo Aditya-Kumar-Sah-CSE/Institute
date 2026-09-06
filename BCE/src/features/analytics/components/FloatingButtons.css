@@ -2,7 +2,7 @@
 .floating-agent-btn {
   position: fixed;
   bottom: 24px;
-  right: calc(var(--sidebar-width, 260px) + 150px);
+  right: 150px;
   z-index: 9990;
   display: flex;
   align-items: center;
@@ -29,7 +29,7 @@
 .floating-mentor-btn {
   position: fixed;
   bottom: 24px;
-  right: calc(var(--sidebar-width, 260px) + 24px);
+  right: 24px;
   z-index: 9990;
   display: flex;
   align-items: center;
@@ -51,14 +51,6 @@
 .floating-mentor-btn:hover {
   transform: translateY(-2px) scale(1.03);
   box-shadow: 0 12px 30px rgba(0, 229, 255, 0.5);
-}
-
-body.sidebar-is-collapsed .floating-mentor-btn {
-  right: 24px !important;
-}
-
-body.sidebar-is-collapsed .floating-agent-btn {
-  right: 150px !important;
 }
 
 /* Mobile Responsive Shift: Shift buttons above 72px mobile bottom navigation bar */
