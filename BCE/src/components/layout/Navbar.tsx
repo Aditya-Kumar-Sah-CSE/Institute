@@ -318,7 +318,7 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
       </div>
 
       <div className="navbar-right" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-        {profile && currentView === 'student' && (
+        {mounted && profile && currentView === 'student' && (
           <div className="desktop-agent-buttons" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button 
               type="button" 
@@ -332,9 +332,8 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
 
             <button 
               type="button"
-              suppressHydrationWarning
               onClick={() => window.dispatchEvent(new Event('toggleSidebar'))}
-              className="open-sidebar-btn desktop-only-btn"
+              className="nav-toggle-sidebar-btn desktop-only-btn"
               style={{ padding: '8px', background: 'var(--bg-card)', border: '1px solid var(--border-default)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               title="Toggle Menu Sidebar"
             >

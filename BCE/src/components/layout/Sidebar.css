@@ -259,7 +259,8 @@ body.sidebar-is-collapsed .sidebar {
   display: block;
 }
 
-.open-sidebar-btn {
+.open-sidebar-btn,
+.nav-toggle-sidebar-btn {
   display: flex !important;
 }
 
