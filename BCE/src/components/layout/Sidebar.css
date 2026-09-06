@@ -10,6 +10,7 @@
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  overflow-x: hidden;
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE/Edge */
   -webkit-overflow-scrolling: touch;
@@ -104,6 +105,9 @@ body.mentor-drawer-open .sidebar,
   font-weight: var(--weight-semibold);
   font-size: var(--text-sm);
   color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sidebar-xp {
@@ -197,6 +201,9 @@ body.mentor-drawer-open .sidebar,
 
 .sidebar-nav-label {
   flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sidebar-divider {
