@@ -1,10 +1,11 @@
 'use server';
 
-import { getUser } from '@/lib/supabase/server';
+import { getUser, createAdminClient } from '@/lib/supabase/server';
 import { getStudent360Profile } from '../services/student-intelligence';
 import { AgentController, AgentControllerResponse } from '@/lib/ai/agent-controller';
 import { AgentChatMessage } from '@/lib/ai/agent';
 import { AgentPageContext } from '@/lib/ai/agent-context';
+import { normalizeAgentRole } from '@/lib/auth/agent-permissions';
 
 export async function askSmartAgentAction(input: {
   prompt: string;
@@ -18,18 +19,34 @@ export async function askSmartAgentAction(input: {
 }): Promise<AgentControllerResponse> {
   try {
     const user = await getUser();
-    if (!user) {
-      return {
-        success: false,
-        message: 'Authentication required. Please log in.',
-        error: 'AUTH_REQUIRED'
-      };
+    let userRole = 'guest';
+    let studentProfile = null;
+
+    if (user) {
+      try {
+        const adminClient = await createAdminClient();
+        const { data: profile } = await adminClient
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        userRole = normalizeAgentRole(profile?.role || user.user_metadata?.role);
+      } catch (err) {
+        userRole = normalizeAgentRole(user.user_metadata?.role || 'student');
+      }
+
+      try {
+        studentProfile = await getStudent360Profile(user.id);
+      } catch (err) {
+        // Fallback default student profile
+        studentProfile = { userId: user.id };
+      }
     }
 
-    const studentProfile = await getStudent360Profile(user.id);
-
     const response = await AgentController.processRequest({
-      user,
+      user: user ? { id: user.id } : null,
+      userRole,
       studentProfile,
       prompt: input.prompt,
       history: input.history,

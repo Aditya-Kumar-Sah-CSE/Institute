@@ -1,6 +1,7 @@
 import { AGENT_TOOLS, AgentToolResult } from './agent-tools';
 import { runSmartAgent, AgentChatMessage, AgentResponse } from './agent';
 import { AgentPageContext } from './agent-context';
+import { normalizeAgentRole, canUseTool, canAccessPage, requireAgentPermission, AppRole } from '@/lib/auth/agent-permissions';
 
 export interface AgentSessionState {
   route: string;
@@ -19,7 +20,8 @@ export interface AgentSessionState {
 }
 
 export interface AgentRequestInput {
-  user: { id: string };
+  user: { id: string } | null;
+  userRole?: string | null;
   studentProfile?: any;
   prompt: string;
   history?: AgentChatMessage[];
@@ -46,9 +48,11 @@ export class AgentController {
     const startTime = Date.now();
     const promptRaw = (input.prompt || '').trim();
     const promptLower = promptRaw.toLowerCase();
+    const userRole: AppRole = normalizeAgentRole(input.userRole);
+    const userId = input.user?.id || 'guest';
 
     // 1. Race Condition / Deduplication Protection
-    const lockKey = `${input.user.id}_${promptLower}`;
+    const lockKey = `${userId}_${promptLower}`;
     const existingLock = actionLockMap.get(lockKey);
     if (existingLock && (Date.now() - existingLock.timestamp < DEDUP_WINDOW_MS)) {
       console.log('[AgentController] Action request deduplicated:', promptRaw);
@@ -83,11 +87,25 @@ export class AgentController {
     // 2. High-Risk User Confirmed Tool Execution
     if (input.confirmedTool) {
       const { toolName, args } = input.confirmedTool;
+      const permCheck = requireAgentPermission(input.user, userRole, 'tool', toolName);
+      if (!permCheck.allowed) {
+        return {
+          success: false,
+          message: permCheck.reason || 'Please log in first. This section is available to authenticated users.',
+          status: 'failed',
+          sessionState: activeState
+        };
+      }
+
       if (AGENT_TOOLS[toolName]) {
-        const result: AgentToolResult = await AGENT_TOOLS[toolName].execute(args, input.user, input.pageContext);
+        const result: AgentToolResult = await AGENT_TOOLS[toolName].execute(args, input.user || { id: 'guest' }, input.pageContext);
         const actions: Array<{ label: string; url: string; isExternal?: boolean }> = [];
-        if (result.url) actions.push({ label: 'Open Page', url: result.url });
-        if (result.externalUrl) actions.push({ label: 'View External Link', url: result.externalUrl, isExternal: true });
+        if (result.url && canAccessPage(userRole, result.url)) {
+          actions.push({ label: 'Open Page', url: result.url });
+        }
+        if (result.externalUrl) {
+          actions.push({ label: 'View External Link', url: result.externalUrl, isExternal: true });
+        }
 
         const resp: AgentControllerResponse = {
           success: result.success,
@@ -108,7 +126,7 @@ export class AgentController {
     }
 
     // 3. Fast-Path Deterministic Intent Resolution
-    const fastPathResult = await this.resolveDeterministicIntent(promptLower, promptRaw, input.user, input.pageContext, activeState);
+    const fastPathResult = await this.resolveDeterministicIntent(promptLower, promptRaw, input.user, userRole, input.pageContext, activeState);
     if (fastPathResult) {
       console.log(`[AgentController] Fast-path executed in ${Date.now() - startTime}ms:`, fastPathResult.toolExecuted);
       actionLockMap.set(lockKey, { timestamp: Date.now(), result: fastPathResult });
@@ -118,13 +136,14 @@ export class AgentController {
     // 4. LLM Intent & Tool Calling Fallback
     const llmResult = await runSmartAgent({
       user: input.user,
-      studentProfile: (input as any).studentProfile || { userId: input.user.id },
+      userRole,
+      studentProfile: input.studentProfile,
       prompt: promptRaw,
       history: input.history,
       pageContext: input.pageContext
     });
 
-    const response = this.formatToolResult(llmResult.toolExecuted || 'agent', llmResult, activeState);
+    const response = this.formatToolResult(llmResult.toolExecuted || 'agent', llmResult, activeState, userRole);
     actionLockMap.set(lockKey, { timestamp: Date.now(), result: response });
     return response;
   }
@@ -135,50 +154,63 @@ export class AgentController {
   private static async resolveDeterministicIntent(
     promptLower: string,
     promptRaw: string,
-    user: { id: string },
+    user: { id: string } | null,
+    userRole: AppRole,
     pageContext: any,
     sessionState: AgentSessionState
   ): Promise<AgentControllerResponse | null> {
 
+    // Helper for executing tool if permission allowed
+    const executeWithPermission = async (toolName: string, args: any = {}): Promise<AgentControllerResponse> => {
+      const permCheck = requireAgentPermission(user, userRole, 'tool', toolName);
+      if (!permCheck.allowed) {
+        return {
+          success: false,
+          message: permCheck.reason || 'Please log in first. This section is available to authenticated users.',
+          status: 'failed',
+          sessionState
+        };
+      }
+
+      if (!AGENT_TOOLS[toolName]) {
+        return { success: false, message: 'Tool not found', status: 'failed', sessionState };
+      }
+
+      const res = await AGENT_TOOLS[toolName].execute(args, user || { id: 'guest' }, pageContext);
+      return this.formatToolResult(toolName, res, sessionState, userRole);
+    };
+
     // A. Static Navigation Intents
     if (/\b(dashboard|home)\b/i.test(promptLower)) {
-      const res = await AGENT_TOOLS.openDashboard.execute({}, user, pageContext);
-      return this.formatToolResult('openDashboard', res, sessionState);
+      return await executeWithPermission('openDashboard');
     }
 
     if (/\b(dsa|sheet|sheets|coding sheet)\b/i.test(promptLower) && !promptLower.includes('problem') && !promptLower.includes('create') && !promptLower.includes('banao') && !promptLower.includes('add')) {
-      const res = await AGENT_TOOLS.openDSASheets.execute({}, user, pageContext);
-      return this.formatToolResult('openDSASheets', res, sessionState);
+      return await executeWithPermission('openDSASheets');
     }
 
     if (/\b(courses|course|subject|subjects)\b/i.test(promptLower) && !promptLower.includes('itw') && !promptLower.includes('dbms')) {
-      const res = await AGENT_TOOLS.openCourses.execute({}, user, pageContext);
-      return this.formatToolResult('openCourses', res, sessionState);
+      return await executeWithPermission('openCourses');
     }
 
     if (/\b(profile|account)\b/i.test(promptLower)) {
-      const res = await AGENT_TOOLS.openProfile.execute({}, user, pageContext);
-      return this.formatToolResult('openProfile', res, sessionState);
+      return await executeWithPermission('openProfile');
     }
 
     if (/\b(routine|schedule|timetable)\b/i.test(promptLower) && !promptLower.includes('bana')) {
-      const res = await AGENT_TOOLS.openRoutine.execute({}, user, pageContext);
-      return this.formatToolResult('openRoutine', res, sessionState);
+      return await executeWithPermission('openRoutine');
     }
 
     if (/\b(goals|target|targets)\b/i.test(promptLower)) {
-      const res = await AGENT_TOOLS.openGoals.execute({}, user, pageContext);
-      return this.formatToolResult('openGoals', res, sessionState);
+      return await executeWithPermission('openGoals');
     }
 
     if (/\b(latex|latex editor)\b/i.test(promptLower)) {
-      const res = await AGENT_TOOLS.openLatexEditor.execute({ problemId: sessionState.problemId }, user, pageContext);
-      return this.formatToolResult('openLatexEditor', res, sessionState);
+      return await executeWithPermission('openLatexEditor', { problemId: sessionState.problemId });
     }
 
     if (/\b(leaderboard|rank|rankings)\b/i.test(promptLower)) {
-      const res = await AGENT_TOOLS.openLeaderboard.execute({}, user, pageContext);
-      return this.formatToolResult('openLeaderboard', res, sessionState);
+      return await executeWithPermission('openLeaderboard');
     }
 
     // B. Relative / Sequential Problem Navigation ("next problem", "previous problem")
@@ -201,11 +233,7 @@ export class AgentController {
         };
       }
 
-      const res = await AGENT_TOOLS.openDSAProblem.execute(
-        { problemIndex: targetNum, sheetId: sessionState.sheetId, problemId: sessionState.problemId },
-        user,
-        pageContext
-      );
+      const res = await executeWithPermission('openDSAProblem', { problemIndex: targetNum, sheetId: sessionState.sheetId, problemId: sessionState.problemId });
 
       if (res.success && res.data?.number) {
         sessionState.problemNumber = res.data.number;
@@ -214,7 +242,7 @@ export class AgentController {
         if (res.data.sheetId) sessionState.sheetId = res.data.sheetId;
       }
 
-      return this.formatToolResult('openDSAProblem', res, sessionState);
+      return res;
     }
 
     // C. Combined Sheet + Problem references ("Binary Search sheet ka Problem 5 kholo", "Blind 75 problem 3")
@@ -224,18 +252,14 @@ export class AgentController {
       const sheetQuery = sheetProbMatch[1]?.trim();
       const problemIndex = parseInt(sheetProbMatch[2] || sheetProbMatch[1], 10);
       if (sheetQuery && !isNaN(problemIndex)) {
-        const res = await AGENT_TOOLS.openDSAProblem.execute(
-          { sheetQuery, problemIndex },
-          user,
-          pageContext
-        );
+        const res = await executeWithPermission('openDSAProblem', { sheetQuery, problemIndex });
         if (res.success && res.data?.number) {
           sessionState.problemNumber = res.data.number;
           sessionState.problemId = res.data.problemId;
           sessionState.problemTitle = res.data.problemTitle;
           if (res.data.sheetId) sessionState.sheetId = res.data.sheetId;
         }
-        return this.formatToolResult('openDSAProblem', res, sessionState);
+        return res;
       }
     }
 
@@ -245,18 +269,14 @@ export class AgentController {
     if (probNumMatch) {
       const targetNum = parseInt(probNumMatch[1], 10);
       if (!isNaN(targetNum)) {
-        const res = await AGENT_TOOLS.openDSAProblem.execute(
-          { problemIndex: targetNum, sheetId: sessionState.sheetId, problemId: sessionState.problemId },
-          user,
-          pageContext
-        );
+        const res = await executeWithPermission('openDSAProblem', { problemIndex: targetNum, sheetId: sessionState.sheetId, problemId: sessionState.problemId });
         if (res.success && res.data?.number) {
           sessionState.problemNumber = res.data.number;
           sessionState.problemId = res.data.problemId;
           sessionState.problemTitle = res.data.problemTitle;
           if (res.data.sheetId) sessionState.sheetId = res.data.sheetId;
         }
-        return this.formatToolResult('openDSAProblem', res, sessionState);
+        return res;
       }
     }
 
@@ -264,12 +284,12 @@ export class AgentController {
     const sheetMatch = promptLower.match(/^(?:open\s+)?(.+?)\s+sheet(?:\s+kholo|\s+open)?$/i);
     if (sheetMatch) {
       const titleQuery = sheetMatch[1].trim();
-      const res = await AGENT_TOOLS.openDSASheet.execute({ titleQuery }, user, pageContext);
+      const res = await executeWithPermission('openDSASheet', { titleQuery });
       if (res.success && res.expectedEntity?.id) {
         sessionState.sheetId = res.expectedEntity.id;
         sessionState.sheetTitle = res.expectedEntity.title;
       }
-      return this.formatToolResult('openDSASheet', res, sessionState);
+      return res;
     }
 
     // F. Problem Explanation / Solution Approach ("isko solve kaise karna hai?", "explain solution", "approach samjhao")
@@ -298,12 +318,12 @@ export class AgentController {
     if (createSheetMatch && (promptLower.includes('banao') || promptLower.includes('create') || promptLower.includes('make') || promptLower.includes('bana'))) {
       const sheetName = createSheetMatch[1].replace(/^(create|make|banao|bana\s+do|dsa|coding)\s+/gi, '').trim();
       if (sheetName) {
-        const res = await AGENT_TOOLS.createCodingSheet.execute({ title: sheetName }, user, pageContext);
+        const res = await executeWithPermission('createCodingSheet', { title: sheetName });
         if (res.success && res.data?.sheetId) {
           sessionState.sheetId = res.data.sheetId;
           sessionState.sheetTitle = res.data.sheetTitle || sheetName;
         }
-        return this.formatToolResult('createCodingSheet', res, sessionState);
+        return res;
       }
     }
 
@@ -313,12 +333,8 @@ export class AgentController {
     if (isAddProbIntent) {
       const topicMatch = promptLower.match(/(?:binary search|arrays?|strings?|linked list|trees?|graphs?|dp|dynamic programming|sorting|math)/i);
       const topicQuery = topicMatch ? topicMatch[0] : 'Binary Search';
-      const res = await AGENT_TOOLS.addProblemsToSheet.execute(
-        { sheetId: sessionState.sheetId, topicQuery },
-        user,
-        { ...pageContext, sheetId: sessionState.sheetId }
-      );
-      return this.formatToolResult('addProblemsToSheet', res, sessionState);
+      const res = await executeWithPermission('addProblemsToSheet', { sheetId: sessionState.sheetId, topicQuery });
+      return res;
     }
 
     // I. Hint Request ("iska hint do", "give me a hint", "hint chahiye")
@@ -344,8 +360,8 @@ export class AgentController {
     if (promptLower.includes('sql') && (promptLower.includes('run') || promptLower.includes('execute') || promptLower.includes('select') || promptLower.includes('query'))) {
       const sqlMatch = promptRaw.match(/SELECT\s+[\s\S]+/i);
       const queryStr = sqlMatch ? sqlMatch[0] : 'SELECT department, AVG(salary) FROM employees GROUP BY department;';
-      const res = await AGENT_TOOLS.runSafeSQLQuery.execute({ query: queryStr }, user, pageContext);
-      return this.formatToolResult('runSafeSQLQuery', res, sessionState);
+      const res = await executeWithPermission('runSafeSQLQuery', { query: queryStr });
+      return res;
     }
 
     return null; // Not resolved by fast-path, delegate to LLM
@@ -354,7 +370,8 @@ export class AgentController {
   private static formatToolResult(
     toolName: string,
     result: AgentToolResult,
-    sessionState: AgentSessionState
+    sessionState: AgentSessionState,
+    userRole: AppRole = 'student'
   ): AgentControllerResponse {
     if (result.data) {
       if (result.data.sheetId) sessionState.sheetId = result.data.sheetId;
@@ -376,8 +393,12 @@ export class AgentController {
     }
 
     const actions: Array<{ label: string; url: string; isExternal?: boolean }> = [];
-    if (result.url) actions.push({ label: 'Open Page', url: result.url });
-    if (result.externalUrl) actions.push({ label: 'View External Link', url: result.externalUrl, isExternal: true });
+    if (result.url && canAccessPage(userRole, result.url)) {
+      actions.push({ label: 'Open Page', url: result.url });
+    }
+    if (result.externalUrl) {
+      actions.push({ label: 'View External Link', url: result.externalUrl, isExternal: true });
+    }
 
     return {
       success: result.success,

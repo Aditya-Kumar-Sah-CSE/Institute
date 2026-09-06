@@ -495,10 +495,16 @@ export class GeminiLiveSession {
     const activeRoute = this.pageContext?.route || '/dashboard';
     const profileText = this.studentProfile ? JSON.stringify(this.studentProfile) : 'Student Profile Active';
     const pageCtxText = this.pageContext ? JSON.stringify(this.pageContext) : 'Standard Page Context';
+    const userRole = this.studentProfile?.role || 'student';
 
     return `You are Smart Learn AI Assistant, a friendly, intelligent voice mentor for engineering and computer science students.
 You talk naturally in English, Hindi, or Hinglish based on how the user speaks to you.
 Be concise, helpful, clear, and direct in your audio responses. Do not produce long walls of text.
+
+AUTHENTICATION & ROLE BOUNDARIES:
+- Authenticated User Role: ${userRole}.
+- Strictly execute tools and navigate to pages allowed for this role.
+- If user is not logged in and requests protected pages or tools, respond: "Please log in first. This section is available to authenticated users."
 
 Active Page/Route: ${activeRoute}
 Student Profile Data: ${profileText}

@@ -1,5 +1,6 @@
 import { createAdminClient, getUser } from '@/lib/supabase/server';
 import { getStudent360Profile, Student360Profile } from '@/features/analytics/services/student-intelligence';
+import { normalizeAgentRole, canUseTool } from '@/lib/auth/agent-permissions';
 
 export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH';
 
@@ -1275,8 +1276,9 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
 
 // ─── DYNAMIC TOOL FILTERING (Intent & Context Based Selection) ───
 
-export function selectRelevantTools(userPrompt: string, pageContext?: any): AgentToolDefinition[] {
+export function selectRelevantTools(userPrompt: string, pageContext?: any, userRole?: string): AgentToolDefinition[] {
   const p = userPrompt.toLowerCase();
+  const normalizedRole = normalizeAgentRole(userRole);
   const selectedCategories = new Set<string>();
 
   // Determine relevant categories based on keywords
@@ -1327,7 +1329,7 @@ export function selectRelevantTools(userPrompt: string, pageContext?: any): Agen
   }
 
   const allTools = Object.values(AGENT_TOOLS);
-  const filtered = allTools.filter(t => selectedCategories.has(t.category));
+  const filtered = allTools.filter(t => selectedCategories.has(t.category) && canUseTool(normalizedRole, t.name));
 
   // Cap at 15 tools max to keep Groq prompt lean and fast
   return filtered.slice(0, 15);

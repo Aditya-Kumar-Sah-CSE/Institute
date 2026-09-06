@@ -1,15 +1,26 @@
 import { NextResponse } from 'next/server';
-import { getUser } from '@/lib/supabase/server';
+import { getUser, createAdminClient } from '@/lib/supabase/server';
 import { AGENT_TOOLS, AgentToolResult } from '@/lib/ai/agent-tools';
+import { normalizeAgentRole, requireAgentPermission, canUseTool } from '@/lib/auth/agent-permissions';
 
 export async function POST(request: Request) {
   try {
     const user = await getUser();
-    if (!user) {
-      return NextResponse.json(
-        { success: false, errorCode: 'AUTH_REQUIRED', message: 'Authentication required' },
-        { status: 401 }
-      );
+    let userRole = 'guest';
+
+    if (user) {
+      try {
+        const adminClient = await createAdminClient();
+        const { data: profile } = await adminClient
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        userRole = normalizeAgentRole(profile?.role || user.user_metadata?.role);
+      } catch (err) {
+        userRole = normalizeAgentRole(user.user_metadata?.role || 'student');
+      }
     }
 
     const body = await request.json();
@@ -30,8 +41,22 @@ export async function POST(request: Request) {
       );
     }
 
-    // Execute tool
-    const result: AgentToolResult = await tool.execute(args, user, pageContext);
+    // Strict Permission Gate Check
+    const permCheck = requireAgentPermission(user, userRole, 'tool', toolName);
+    if (!permCheck.allowed) {
+      const statusCode = !user || userRole === 'guest' ? 401 : 403;
+      return NextResponse.json(
+        { 
+          success: false, 
+          errorCode: statusCode === 401 ? 'AUTH_REQUIRED' : 'FORBIDDEN', 
+          message: permCheck.reason || 'Please log in first. This section is available to authenticated users.' 
+        },
+        { status: statusCode }
+      );
+    }
+
+    // Execute tool with authenticated user context
+    const result: AgentToolResult = await tool.execute(args, user || { id: 'guest' }, pageContext);
 
     return NextResponse.json({
       success: true,
