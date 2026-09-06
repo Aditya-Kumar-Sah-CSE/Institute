@@ -239,12 +239,10 @@
     display: flex;
   }
 
-  .desktop-logo {
-    display: none !important;
-  }
-
-  .desktop-theme-toggle {
-    display: none !important;
+  .theme-toggle-nav-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .navbar-right {
