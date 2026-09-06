@@ -134,3 +134,81 @@ export function safeStringify(obj: any, maxLength = 4000): string {
     return '[Unserializable Context]';
   }
 }
+
+export interface AgentApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  status: number;
+}
+
+/**
+ * Safe Response Parser that prevents "Unexpected token '<', <!DOCTYPE ... is not valid JSON" crashes.
+ * Validates HTTP status, inspects Content-Type, catches HTML error pages, and safely parses JSON.
+ */
+export async function parseAgentJsonResponse<T = any>(response: Response): Promise<AgentApiResponse<T>> {
+  const contentType = response.headers.get('content-type') || '';
+  const isJson = contentType.includes('application/json');
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[Agent API Response]', {
+      url: response.url,
+      status: response.status,
+      contentType
+    });
+  }
+
+  if (!response.ok) {
+    let errorMsg = `Agent API failed: ${response.status} ${response.statusText}`;
+    if (isJson) {
+      try {
+        const errJson = await response.json();
+        errorMsg = errJson.message || errJson.error || errorMsg;
+      } catch (e) {}
+    } else {
+      try {
+        const text = await response.text();
+        console.error('[Agent API] Non-JSON HTTP Error Received:', {
+          status: response.status,
+          contentType,
+          url: response.url,
+          preview: text.slice(0, 200)
+        });
+      } catch (e) {}
+    }
+    return { success: false, error: errorMsg, status: response.status };
+  }
+
+  if (!isJson) {
+    let preview = '';
+    try {
+      const text = await response.text();
+      preview = text.slice(0, 200);
+    } catch (e) {}
+
+    console.error('[Agent API] Expected application/json but received non-JSON:', {
+      status: response.status,
+      contentType,
+      url: response.url,
+      preview
+    });
+
+    return {
+      success: false,
+      error: `Agent API returned unexpected non-JSON response (${contentType || 'text/html'})`,
+      status: response.status
+    };
+  }
+
+  try {
+    const data = await response.json();
+    return { success: true, data, status: response.status };
+  } catch (err: any) {
+    console.error('[Agent API] JSON parse exception:', err);
+    return {
+      success: false,
+      error: 'Failed to parse API JSON response',
+      status: response.status
+    };
+  }
+}

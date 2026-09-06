@@ -132,6 +132,12 @@ export async function updateSession(request: NextRequest) {
 
   // If not authenticated and trying to access protected route
   if (!user && !isPublicRoute) {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized', message: 'Authentication required' },
+        { status: 401 }
+      );
+    }
     const url = request.nextUrl.clone();
     url.pathname = tenantSlug ? `/${tenantSlug}/login` : '/login';
     return redirectWithCookies(url);

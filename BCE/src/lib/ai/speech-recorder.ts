@@ -341,6 +341,8 @@ export class AudioRecorder {
   }
 }
 
+import { parseAgentJsonResponse } from './safe-stringify';
+
 export async function transcribeAudioFile(
   blob: Blob, 
   mimeType: string, 
@@ -357,8 +359,15 @@ export async function transcribeAudioFile(
       signal: abortSignal
     });
 
-    const data = await res.json();
-    return data;
+    const parsed = await parseAgentJsonResponse(res);
+    if (!parsed.success || !parsed.data) {
+      return {
+        success: false,
+        errorCode: 'TRANSCRIPTION_FAILED',
+        message: parsed.error || 'Transcription server returned an error.'
+      };
+    }
+    return parsed.data;
   } catch (err: any) {
     if (err.name === 'AbortError') {
       return {

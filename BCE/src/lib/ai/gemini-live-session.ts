@@ -2,7 +2,7 @@ import { GoogleGenAI, Modality } from '@google/genai';
 import { GEMINI_TOOL_DECLARATIONS } from './agent-tool-declarations';
 import { GeminiAudioPlayer } from './gemini-audio-player';
 import { AdaptiveVAD } from './adaptive-vad';
-import { safeStringify, sanitizePageContext, assertSerializableAgentPayload } from './safe-stringify';
+import { safeStringify, sanitizePageContext, assertSerializableAgentPayload, parseAgentJsonResponse } from './safe-stringify';
 
 export type VoiceConnectionState = 'starting' | 'connecting' | 'connected' | 'ready' | 'error' | 'stopped' | 'closed';
 
@@ -78,11 +78,12 @@ export class GeminiLiveSession {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
-      const tokenData = await tokenRes.json();
+      const parsedToken = await parseAgentJsonResponse(tokenRes);
 
-      if (!tokenData.success || !tokenData.token) {
-        throw new Error(tokenData.message || 'Failed to initialize Gemini Live session token.');
+      if (!parsedToken.success || !parsedToken.data?.token) {
+        throw new Error(parsedToken.error || parsedToken.data?.message || 'Failed to initialize Gemini Live session token.');
       }
+      const tokenData = parsedToken.data;
 
       if (this.isStopped) return;
 
@@ -384,8 +385,10 @@ export class GeminiLiveSession {
         body: JSON.stringify(cleanPayload)
       });
 
-      const data = await res.json();
-      const toolResult = data.result || { success: false, message: 'Tool execution failed' };
+      const parsedToolRes = await parseAgentJsonResponse(res);
+      const toolResult = parsedToolRes.success && parsedToolRes.data?.result
+        ? parsedToolRes.data.result
+        : { success: false, message: parsedToolRes.error || parsedToolRes.data?.message || 'Tool execution failed' };
 
       this.callbacks.onToolExecuted?.(toolName, toolResult);
 
