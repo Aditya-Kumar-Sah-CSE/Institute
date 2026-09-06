@@ -229,6 +229,7 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
   if (profile) {
     if (currentView === 'admin') {
       menuItems.push({ href: '/admin/nptel', label: 'NPTEL Management', icon: 'Courses' });
+      menuItems.push({ href: '/admin/enrollments', label: 'Enrollments', icon: 'Enrollments' });
       if (profile.email === SUPER_ADMIN_EMAIL) {
         menuItems.push({ href: '/admin/feedback', label: 'Feedback', icon: 'Feedback' });
       }
@@ -236,6 +237,8 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
       menuItems.push({ href: '/doubts', label: 'Batch Doubts', icon: 'Doubts' });
       menuItems.push({ href: '/admin/notices', label: 'Notices', icon: 'Notices' });
     } else if (currentView === 'instructor') {
+      menuItems.push({ href: '/admin/nptel', label: 'NPTEL Management', icon: 'Courses' });
+      menuItems.push({ href: '/instructor/enrollments', label: 'Enrollments', icon: 'Enrollments' });
       menuItems.push({ href: '/leaderboard', label: 'Leaderboard', icon: 'Leaderboard' });
       menuItems.push({ href: '/instructor/notices', label: 'Notices', icon: 'Notices' });
     } else {

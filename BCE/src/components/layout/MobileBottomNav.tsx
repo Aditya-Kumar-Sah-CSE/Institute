@@ -12,7 +12,8 @@ import {
   Users,
   FileCheck,
   Code,
-  GraduationCap
+  GraduationCap,
+  UserCheck
 } from 'lucide-react';
 import './MobileBottomNav.css';
 
@@ -33,9 +34,8 @@ const studentItems: NavItem[] = [
 const instructorItems: NavItem[] = [
   { label: 'Overview', href: '/instructor', icon: LayoutDashboard },
   { label: 'Courses', href: '/instructor/courses', icon: BookOpen },
-  { label: 'Code Arena', href: '/instructor/code-arena', icon: Code },
+  { label: 'Enrollments', href: '/instructor/enrollments', icon: UserCheck },
   { label: 'Submissions', href: '/instructor/submissions', icon: FileCheck },
-  { label: 'Students', href: '/instructor/students', icon: Users },
 ];
 
 const adminItems: NavItem[] = [
@@ -43,7 +43,7 @@ const adminItems: NavItem[] = [
   { label: 'Courses', href: '/admin/courses', icon: BookOpen },
   { label: 'Students', href: '/admin/students', icon: Users },
   { label: 'Submissions', href: '/admin/submissions', icon: FileCheck },
-  { label: 'NPTEL', href: '/admin/nptel', icon: GraduationCap },
+  { label: 'Enrollments', href: '/admin/enrollments', icon: UserCheck },
 ];
 
 interface MobileBottomNavProps {
