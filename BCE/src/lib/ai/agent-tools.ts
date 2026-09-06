@@ -410,6 +410,40 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     }
   },
 
+  getCurrentPageContext: {
+    name: 'getCurrentPageContext',
+    description: 'Read the live rendered content of the current page open on the user\'s screen (visible headings, cards, text content, active buttons, active problem/course/sheet details, stats, progress, UI state). Use when user asks "isme kya hai?", "is page ka progress batao", "yaha kya likha hai?", "explain this page", or refers to current screen context ("ye", "isko", "isme").',
+    category: 'ANALYTICS',
+    riskLevel: 'LOW',
+    parameters: { type: 'object', properties: {} },
+    examples: ['is page par kya hai?', 'yaha kya likha hai', 'explain this problem', 'is page ka progress batao'],
+    execute: async (args, _, context) => {
+      const live = context?.liveContext;
+      if (live) {
+        return {
+          success: true,
+          message: `Currently viewing page: ${live.pageTitle || live.route} (${live.route}).`,
+          data: {
+            route: live.route,
+            pageTitle: live.pageTitle,
+            pageType: live.pageType,
+            headings: live.visibleHeadings,
+            textContent: live.visibleTextContent,
+            actions: live.interactiveElements,
+            currentEntity: live.currentEntity,
+            visibleEntities: live.visibleEntities,
+            uiState: live.loadState
+          }
+        };
+      }
+      return {
+        success: true,
+        message: 'Active page context fetched.',
+        data: { route: context?.route || '/dashboard' }
+      };
+    }
+  },
+
   openWeakestDSAProblem: {
     name: 'openWeakestDSAProblem',
     description: 'Find student weakest topic using Student360 analytics and open a matching DSA problem. Examples: "meri weakest DSA problem kholo", "open problem for weak topic".',
@@ -1428,7 +1462,7 @@ export function selectRelevantTools(userPrompt: string, pageContext?: any, userR
     selectedCategories.add('NAVIGATION');
   }
 
-  if (p.includes('weak') || p.includes('skill') || p.includes('next') || p.includes('360') || p.includes('analyze') || p.includes('plan') || p.includes('recommend')) {
+  if (p.includes('weak') || p.includes('skill') || p.includes('next') || p.includes('360') || p.includes('analyze') || p.includes('plan') || p.includes('recommend') || p.includes('isme') || p.includes('yaha') || p.includes('ye') || p.includes('page') || p.includes('screen') || p.includes('progress') || p.includes('explain')) {
     selectedCategories.add('ANALYTICS');
     selectedCategories.add('ROUTINE_GOALS');
     selectedCategories.add('COURSES');

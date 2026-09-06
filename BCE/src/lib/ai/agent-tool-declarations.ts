@@ -147,6 +147,11 @@ export const GEMINI_TOOL_DECLARATIONS: ToolDeclaration[] = [
     }
   },
   {
+    name: 'getCurrentPageContext',
+    description: 'Read the live rendered content of the current page open on the user\'s screen (visible headings, cards, text content, active buttons, active problem/course/sheet details, stats, progress, UI state). Use when user asks "isme kya hai?", "is page ka progress batao", "yaha kya likha hai?", "explain this page", or refers to current screen context ("ye", "isko", "isme").',
+    parameters: { type: 'object', properties: {} }
+  },
+  {
     name: 'getStudent360',
     description: 'Get comprehensive student intelligence analytics profile.',
     parameters: { type: 'object', properties: {} }

@@ -222,6 +222,32 @@ export class AgentController {
       return this.formatToolResult(toolName, res, sessionState, userRole);
     };
 
+    // 0. Live Current-Page Content Queries ("isme kya hai?", "is page par kya hai?", "yaha kya likha hai?", "explain this page", "is page ka progress")
+    const isCurrentPageQuery = /\b(isme|is\s+page|yaha|yahan|current\s+page|open\s+page|this\s+page)\b/i.test(promptLower) &&
+                               /\b(kya|what|explain|progress|detail|details|info|padho|read|list|batao|dikhao)\b/i.test(promptLower);
+
+    if (isCurrentPageQuery) {
+      const live = pageContext?.liveContext;
+      if (live) {
+        const titleStr = live.pageTitle || live.currentEntity?.title || live.route;
+        const headingsStr = live.visibleHeadings && live.visibleHeadings.length > 0 ? live.visibleHeadings.join(', ') : 'None';
+        const textStr = live.visibleTextContent ? live.visibleTextContent : 'No extra details text visible.';
+        const entityStr = live.currentEntity ? `Active Item: ${live.currentEntity.title} (${live.currentEntity.type})` : '';
+
+        return {
+          success: true,
+          message: `📄 **Current Page**: ${titleStr} (\`${live.route}\`)\n\n` +
+                   (entityStr ? `• **${entityStr}**\n` : '') +
+                   `• **Visible Headings**: ${headingsStr}\n` +
+                   `• **Page Summary**: ${textStr.slice(0, 350)}...\n\n` +
+                   `Aap mujhse is page ki kisi specific detail ya problem par sawaal pooch sakte hain.`,
+          status: 'success',
+          toolExecuted: 'getCurrentPageContext',
+          sessionState
+        };
+      }
+    }
+
     // A. Static Navigation Intents
     if (/\b(dashboard|home)\b/i.test(promptLower)) {
       return await executeWithPermission('openDashboard');
