@@ -226,6 +226,7 @@ export default function LearningIntelligenceClient({ userId, initialProfile }: L
     <Card
       variant="glass"
       padding="lg"
+      className="intelligence-card"
       style={{
         background: 'var(--bg-secondary)',
         border: '1px solid var(--glass-border)',
@@ -236,11 +237,23 @@ export default function LearningIntelligenceClient({ userId, initialProfile }: L
         gap: 'var(--space-xl)'
       }}
     >
+      <style>{`
+        @media (max-width: 768px) {
+          .intelligence-card {
+            padding: 12px !important;
+            gap: 14px !important;
+          }
+          .intelligence-card h2 {
+            font-size: 1.1rem !important;
+          }
+        }
+      `}</style>
+
       {/* HEADER WITH SYNC BUTTON AT TOP RIGHT */}
       {HeaderComponent}
 
       {/* 1. TOP SECTION: LEARNING READINESS (LEFT) + STRENGTHS & NEEDS IMPROVEMENT (RIGHT) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 360px), 1fr))', gap: 'var(--space-lg)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 'var(--space-md)' }}>
         
         {/* LEFT CARD: LEARNING READINESS (360° Score + Bars) */}
         <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-md)' }}>

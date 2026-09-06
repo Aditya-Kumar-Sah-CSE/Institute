@@ -97,6 +97,12 @@ body.sidebar-is-collapsed:not(.agent-drawer-open):not(.mentor-drawer-open) .side
   display: none !important;
 }
 
+.dashboard-main-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
 .dashboard-content {
   min-width: 0;
   width: 100%;
@@ -118,13 +124,18 @@ body.sidebar-is-collapsed:not(.agent-drawer-open):not(.mentor-drawer-open) .side
     width: 100% !important;
     margin-left: 0;
     margin-right: 0;
-    padding-bottom: calc(72px + var(--space-xl) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(74px + env(safe-area-inset-bottom, 0px));
   }
   
   .dashboard-content {
-    padding: var(--space-md);
+    padding: 10px 12px calc(76px + env(safe-area-inset-bottom, 0px)) 12px !important;
+    margin: 0 !important;
     min-width: 0;
     overflow-x: clip;
+  }
+
+  .dashboard-main-container {
+    gap: 12px !important;
   }
 }
 

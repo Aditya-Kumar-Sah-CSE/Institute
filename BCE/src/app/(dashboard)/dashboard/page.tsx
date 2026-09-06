@@ -71,12 +71,8 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
   if (!profile) return null;
 
   return (
-    <div style={{ 
-      display: 'grid', 
-      gridTemplateColumns: 'minmax(0, 1fr)', 
-      gap: 'var(--space-2xl)' 
-    }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2xl)' }}>
+    <div className="dashboard-main-container">
+      <div className="dashboard-main-container">
 
         {searchParams?.error === 'FileTooLarge' && (
           <div style={{ background: 'rgba(255, 0, 0, 0.1)', border: '1px solid var(--neon-red)', padding: 'var(--space-md)', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--space-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
