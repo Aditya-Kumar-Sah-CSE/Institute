@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { askSmartAgentAction } from '../actions/agent';
 import { useLivePageContext } from './LivePageContext';
@@ -247,6 +247,74 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
     setIsSpeaking(nextState === 'SPEAKING_AI');
   };
 
+  // ─── REAL NAVIGATION & VERIFICATION HELPERS ───
+  const performRealNavigation = useCallback(async (targetRoute: string): Promise<boolean> => {
+    if (typeof window === 'undefined') return false;
+    const startPath = window.location.pathname + window.location.search;
+    if (startPath === targetRoute) return true;
+
+    console.log(`[SmartAgent] Executing navigation to: ${targetRoute}`);
+
+    // 1. Try Next.js App Router push
+    try {
+      router.push(targetRoute);
+    } catch (e) {
+      console.warn('[SmartAgent] router.push threw error:', e);
+    }
+
+    // 2. Poll window.location.pathname for 400ms
+    for (let i = 0; i < 4; i++) {
+      await new Promise(r => setTimeout(r, 100));
+      const currentPath = window.location.pathname + window.location.search;
+      if (currentPath === targetRoute || currentPath.startsWith(targetRoute)) {
+        return true;
+      }
+    }
+
+    // 3. Fallback: Force hard client navigation via location.assign if App Router push timed out across layout groups
+    console.warn(`[SmartAgent] App Router push timed out for ${targetRoute}, executing fallback location assign`);
+    window.location.assign(targetRoute);
+    return true;
+  }, [router]);
+
+  const verifyPostActionState = useCallback(async (expectedRoute: string, expectedEntity?: any): Promise<{ success: boolean; message: string }> => {
+    // Wait for DOM & React state settlement
+    await new Promise(r => setTimeout(r, 200));
+
+    const { extractLiveDOMContext } = await import('@/lib/ai/live-dom-reader');
+    const freshCtx = extractLiveDOMContext();
+    const currentPath = window.location.pathname + window.location.search;
+
+    const isMatch = currentPath === expectedRoute || currentPath.startsWith(expectedRoute);
+    const isError = freshCtx.loadState === 'error' || freshCtx.loadState === 'not-found' || freshCtx.loadState === 'unauthorized';
+
+    if (isError) {
+      return {
+        success: false,
+        message: `⚠️ Access / Page Error: Target route ${expectedRoute} returned ${freshCtx.loadState || 'an error'}.`
+      };
+    }
+
+    if (!isMatch && currentPath !== expectedRoute) {
+      return {
+        success: false,
+        message: `⚠️ Navigation failed: Current page is still ${currentPath} instead of ${expectedRoute}.`
+      };
+    }
+
+    let entityMessage = '';
+    if (expectedEntity && freshCtx.currentEntity) {
+      if (freshCtx.currentEntity.id === expectedEntity.id) {
+        entityMessage = ` Verified entity: ${freshCtx.currentEntity.title}`;
+      }
+    }
+
+    return {
+      success: true,
+      message: `✅ Opened ${freshCtx.pageTitle || expectedRoute} (${currentPath}).${entityMessage}`
+    };
+  }, []);
+
   // Clean up on Provider unmount
   useEffect(() => {
     return () => {
@@ -372,13 +440,14 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
             }
           }
 
-          if (result.url) {
-            router.push(result.url);
+          const targetRoute = result.expectedRoute || result.url;
+          if (targetRoute) {
+            performRealNavigation(targetRoute);
           }
-          if (result.pendingNavigation && result.navigationId) {
+          if (result.pendingNavigation && result.navigationId && targetRoute) {
             setPendingVerification({
               navigationId: result.navigationId,
-              expectedRoute: result.expectedRoute || result.url,
+              expectedRoute: targetRoute,
               expectedEntity: result.expectedEntity,
               successMessage: result.successMessage || 'Navigation complete.',
               voiceTriggered: true,
@@ -663,15 +732,6 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         }
       }
 
-      const nextMsg: SmartAgentMessage = {
-        role: 'assistant',
-        content: displayMessage,
-        actions: response.actions,
-        requiresConfirmation: response.requiresConfirmation,
-        toolExecuted: response.toolExecuted,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-
       const targetRoute = response.expectedRoute || (
         response.actions && response.actions.length > 0 && !response.actions[0].isExternal
           ? response.actions[0].url
@@ -679,17 +739,25 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
       );
 
       if (targetRoute) {
-        router.push(targetRoute);
-        nextMsg.navigationState = 'NAVIGATING';
-        setPendingVerification({
-          navigationId: response.navigationId || `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-          expectedRoute: targetRoute,
-          expectedEntity: response.expectedEntity,
-          successMessage: response.successMessage || response.message,
-          voiceTriggered: isVoiceTrigger,
-          timestamp: Date.now()
-        });
+        setExecutionState('NAVIGATING');
+        await performRealNavigation(targetRoute);
+        const verification = await verifyPostActionState(targetRoute, response.expectedEntity);
+        if (verification.success) {
+          displayMessage = verification.message;
+        } else {
+          displayMessage = verification.message;
+        }
       }
+
+      const nextMsg: SmartAgentMessage = {
+        role: 'assistant',
+        content: displayMessage,
+        actions: response.actions,
+        requiresConfirmation: response.requiresConfirmation,
+        toolExecuted: response.toolExecuted,
+        navigationState: targetRoute ? 'VERIFIED' : undefined,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
 
       setMessages((prev) => [...prev, nextMsg]);
 

@@ -165,12 +165,27 @@ export function executeLiveDOMAction(
       targetEl.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     }
 
+    // 3B. Automatic Link Navigation Fallback if element has href attribute
+    const hrefAttr = targetEl.getAttribute('href');
+    if (hrefAttr && !hrefAttr.startsWith('#') && !hrefAttr.startsWith('javascript:')) {
+      setTimeout(() => {
+        const currentPath = window.location.pathname + window.location.search;
+        if (currentPath !== hrefAttr && !currentPath.startsWith(hrefAttr)) {
+          console.log(`[DOM Executor] Link click did not navigate automatically, enforcing location.assign to ${hrefAttr}`);
+          window.location.assign(hrefAttr);
+        }
+      }, 200);
+    }
+
     // 4. Verify Immediate Resulting UI State
     let urlChanged = false;
     let newRoute = window.location.pathname + window.location.search;
     if (newRoute !== currentRoute) {
       urlChanged = true;
     }
+
+    // Check for modal visibility
+    const modalVisible = document.querySelector('.modal, [role="dialog"], .modal-content, .drawer-content') !== null;
 
     // Check for error banner or 404
     const errorBanner = document.querySelector('.error-banner, [class*="error"], .toast-error');
@@ -203,6 +218,8 @@ export function executeLiveDOMAction(
       success: true,
       message: urlChanged 
         ? `Successfully clicked "${targetLabel}" and navigated to ${newRoute}.`
+        : modalVisible
+        ? `Successfully executed ${actionType} on "${targetLabel}" and opened modal workspace.`
         : `Successfully executed ${actionType} on "${targetLabel}".`,
       actionType,
       targetElementText: targetLabel,
