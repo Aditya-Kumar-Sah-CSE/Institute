@@ -44,6 +44,28 @@ let courseCache: CacheEntry<CourseEntity> | null = null;
 let sheetCache: CacheEntry<DSASheetEntity> | null = null;
 const problemCacheMap = new Map<string, CacheEntry<DSAProblemEntity>>();
 
+export function invalidateCourseCache(): void {
+  courseCache = null;
+}
+
+export function invalidateSheetCache(): void {
+  sheetCache = null;
+}
+
+export function invalidateProblemCache(sheetId?: string): void {
+  if (sheetId) {
+    problemCacheMap.delete(sheetId);
+  } else {
+    problemCacheMap.clear();
+  }
+}
+
+export function invalidateAllEntityCaches(): void {
+  courseCache = null;
+  sheetCache = null;
+  problemCacheMap.clear();
+}
+
 // Navigation filler words in English & Hinglish
 const FILLER_WORDS = new Set([
   'kholo', 'khol', 'kholna', 'kholne', 'open', 'show', 'dikhao', 'dikha', 'view', 'go', 'goto', 'navigate',
