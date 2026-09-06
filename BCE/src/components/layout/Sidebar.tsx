@@ -236,7 +236,7 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
 
   return (
     <aside className={sidebarClasses} suppressHydrationWarning>
-      <div className="sidebar-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-2)' }}>
+      <div className="sidebar-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-2)' }} suppressHydrationWarning>
         <Link href={logoHref} className="sidebar-logo">
           <span className="sidebar-logo-icon text-neon-cyan">{getIcon('Building', { className: 'w-6 h-6' })}</span>
           <span className="sidebar-logo-text">Smart Learning</span>
