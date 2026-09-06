@@ -62,7 +62,7 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstallable, setIsInstallable] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const [isNavWrapped, setIsNavWrapped] = useState(false);
 
   useEffect(() => {
@@ -233,8 +233,6 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
     isNavWrapped ? 'mobile-collapsed' : null,
     isCollapsed ? 'is-collapsed' : null,
   ].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
-
-  if (isCollapsed) return null;
 
   return (
     <aside 
