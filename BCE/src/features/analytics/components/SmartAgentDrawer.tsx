@@ -21,7 +21,7 @@ const QUICK_COMMANDS = [
 ];
 
 export default function SmartAgentDrawer() {
-  const [isMaximized, setIsMaximized] = React.useState(true);
+  const [isMaximized, setIsMaximized] = React.useState(false);
   const {
     isOpen,
     closeDrawer,
@@ -86,7 +86,7 @@ export default function SmartAgentDrawer() {
     >
       <div 
         style={{
-          width: isMaximized ? '100vw' : '650px',
+          width: isMaximized ? '100vw' : '450px',
           maxWidth: '100vw',
           height: '100vh',
           display: 'flex',

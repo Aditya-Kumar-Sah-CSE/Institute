@@ -326,6 +326,16 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
             </button>
 
             <button 
+              suppressHydrationWarning
+              onClick={() => window.dispatchEvent(new Event('toggleSidebar'))}
+              className="open-sidebar-btn desktop-only-btn"
+              style={{ padding: '8px', background: 'var(--bg-card)', border: '1px solid var(--border-default)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              title="Toggle Menu Sidebar"
+            >
+              <MoreVertical size={18} />
+            </button>
+
+            <button 
               type="button" 
               className="nav-mentor-btn"
               onClick={() => setIsMentorDrawerOpen(true)}
@@ -340,16 +350,6 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
         <div className="desktop-theme-toggle">
           <ThemeToggle />
         </div>
-
-        <button 
-          suppressHydrationWarning
-          onClick={() => window.dispatchEvent(new Event('toggleSidebar'))}
-          className="open-sidebar-btn desktop-only-btn"
-          style={{ padding: '8px', background: 'var(--bg-card)', border: '1px solid var(--border-default)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          title="Toggle Sidebar"
-        >
-          <MoreVertical size={20} />
-        </button>
 
         {/* Notification Bell */}
         {profile && (

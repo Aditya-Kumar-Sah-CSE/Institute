@@ -26,7 +26,7 @@ export default function SmartMentorDrawer({
   onClose,
   initialPrompt
 }: SmartMentorDrawerProps) {
-  const [isMaximized, setIsMaximized] = useState(true);
+  const [isMaximized, setIsMaximized] = useState(false);
   const [messages, setMessages] = useState<MentorChatMessage[]>([
     {
       role: 'assistant',
@@ -139,7 +139,7 @@ export default function SmartMentorDrawer({
     >
       <div 
         style={{
-          width: isMaximized ? '100vw' : '650px',
+          width: isMaximized ? '100vw' : '450px',
           maxWidth: '100vw',
           height: '100vh',
           background: 'var(--bg-secondary)',
