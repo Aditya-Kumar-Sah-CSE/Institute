@@ -227,6 +227,10 @@
     justify-content: flex-start;
   }
 
+  .navbar-back-btn {
+    display: none !important; /* Hide Back button on mobile view */
+  }
+
   .navbar-title {
     display: none; /* Hide Admin Panel / Page Title on mobile */
   }
@@ -251,12 +255,7 @@
   }
 
   .navbar-center {
-    position: static;
-    transform: none;
-    flex: 2; /* Give more space to center */
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    display: none !important; /* Hide center title/text on mobile view */
   }
 
   .company-branding-nav {
@@ -265,13 +264,7 @@
   }
   
   .company-nav-name-mobile {
-    display: block; /* Show company name on mobile center */
-    text-align: center;
-    white-space: normal; /* Wrap text */
-    line-height: 1.2;
-    background: none !important;
-    -webkit-text-fill-color: var(--text-primary) !important;
-    color: var(--text-primary) !important;
+    display: none !important; /* Hide Smart Learn text on mobile view */
   }
   
   /* Hide desktop text in mobile */

@@ -258,7 +258,7 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
         {mounted && canGoBack && (
           <button
             onClick={handleBack}
-            className="navbar-back-btn"
+            className="navbar-back-btn desktop-only hidden md:flex"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -310,11 +310,7 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
       </div>
 
       <div className="navbar-center mobile-only md:hidden">
-        {companyName && (
-          <span className="company-nav-name-mobile" style={{ fontWeight: 'bold', fontSize: 'var(--text-lg)', color: 'var(--text-primary)' }}>
-            {companyName}
-          </span>
-        )}
+        {/* Hidden on mobile view per optimization */}
       </div>
 
       <div className="navbar-right" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
@@ -408,21 +404,25 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
                   );
                 })}
                 
-                {/* Mobile Theme Toggle Section */}
+                {/* Mobile Theme Toggle Item */}
+                <div className="mobile-divider" />
                 <div
                   className="mobile-theme-toggle"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: 'var(--space-sm) var(--space-md)',
-                    borderTop: '1px solid var(--border-divider)',
-                    borderBottom: '1px solid var(--border-divider)',
-                    marginTop: 'var(--space-xs)',
-                    marginBottom: 'var(--space-xs)'
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'rgba(255, 255, 255, 0.04)',
+                    border: '1px solid var(--glass-border)',
+                    margin: '4px 0'
                   }}
                 >
-                  <span style={{ color: 'var(--text-primary)', fontSize: 'var(--text-base)', fontWeight: 'bold' }}>Theme</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)', fontWeight: 'bold', fontSize: '13px' }}>
+                    <Sparkles size={15} style={{ color: 'var(--neon-cyan)' }} />
+                    <span>Theme Mode</span>
+                  </div>
                   <ThemeToggle />
                 </div>
 
