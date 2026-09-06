@@ -137,30 +137,33 @@ export default function SmartAgentDrawer() {
         {/* HEADER */}
         <div 
           style={{
-            padding: 'var(--space-md) var(--space-lg)',
+            padding: 'var(--space-sm) var(--space-md)',
             background: 'var(--bg-primary)',
             borderBottom: '1px solid var(--glass-border)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between'
+            justifyContent: 'space-between',
+            gap: '8px',
+            minWidth: 0,
+            flexWrap: 'nowrap'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ background: 'rgba(0, 229, 255, 0.15)', color: 'var(--neon-cyan)', padding: '8px', borderRadius: '10px', border: '1px solid rgba(0, 229, 255, 0.3)' }}>
-              <Sparkles size={20} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+            <div style={{ background: 'rgba(0, 229, 255, 0.15)', color: 'var(--neon-cyan)', padding: '6px', borderRadius: '10px', border: '1px solid rgba(0, 229, 255, 0.3)', flexShrink: 0 }}>
+              <Sparkles size={18} />
             </div>
-            <div>
-              <h3 style={{ margin: 0, fontSize: 'var(--text-md)', fontWeight: 'bold', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <h3 style={{ margin: 0, fontSize: 'var(--text-sm)', fontWeight: 'bold', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 ✦ Smart Learn Agent
               </h3>
-              <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-secondary)' }}>
+              <p style={{ margin: 0, fontSize: '10px', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {isMaximized ? 'Full-Screen AI Workspace' : 'AI Assistant & Voice Companion'}
               </p>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {/* VOICE MODE TOGGLE BUTTON */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+            {/* VOICE MODE TOGGLE BUTTON (ICON ONLY) */}
             <button
               type="button"
               onClick={() => {
@@ -169,52 +172,46 @@ export default function SmartAgentDrawer() {
                 if (!nextMode) stopVoiceSession();
               }}
               style={{
-                fontSize: '11px',
-                fontWeight: 'bold',
-                padding: '4px 10px',
-                borderRadius: '12px',
+                padding: '6px 8px',
+                borderRadius: '8px',
                 background: isVoiceMode ? 'rgba(0, 229, 255, 0.15)' : 'rgba(255, 255, 255, 0.06)',
                 color: isVoiceMode ? 'var(--neon-cyan)' : 'var(--text-muted)',
                 border: isVoiceMode ? '1px solid rgba(0, 229, 255, 0.4)' : '1px solid var(--glass-border)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px'
+                justifyContent: 'center'
               }}
-              title={isVoiceMode ? "Voice Mode ON (Assistant speaks responses)" : "Voice Mode OFF (Silent response text)"}
+              title={isVoiceMode ? "Voice Mode ON (Click to Mute Audio)" : "Voice Mode OFF (Click to Enable Audio)"}
             >
-              {isVoiceMode ? <Volume2 size={13} /> : <VolumeX size={13} />}
-              <span>Voice: {isVoiceMode ? 'ON' : 'OFF'}</span>
+              {isVoiceMode ? <Volume2 size={16} /> : <VolumeX size={16} />}
             </button>
 
-            {/* FULLSCREEN / MAXIMIZE TOGGLE BUTTON */}
+            {/* FULLSCREEN / MAXIMIZE TOGGLE BUTTON (ICON ONLY) */}
             <button
               type="button"
               onClick={() => setIsMaximized(prev => !prev)}
               style={{
-                fontSize: '11px',
-                fontWeight: 'bold',
-                padding: '4px 10px',
-                borderRadius: '12px',
+                padding: '6px 8px',
+                borderRadius: '8px',
                 background: isMaximized ? 'rgba(0, 229, 255, 0.15)' : 'rgba(255, 255, 255, 0.06)',
                 color: isMaximized ? 'var(--neon-cyan)' : 'var(--text-muted)',
                 border: isMaximized ? '1px solid rgba(0, 229, 255, 0.4)' : '1px solid var(--glass-border)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px'
+                justifyContent: 'center'
               }}
               title={isMaximized ? "Restore Drawer Size" : "Full Screen AI Assistant"}
             >
-              {isMaximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
-              <span>{isMaximized ? 'Full Screen' : 'Full Open'}</span>
+              {isMaximized ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
             </button>
 
             {/* RESET CONVERSATION BUTTON */}
             <button 
               type="button"
               onClick={clearConversation}
-              style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+              style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               title="Reset Conversation"
             >
               <Trash2 size={16} />
@@ -224,13 +221,14 @@ export default function SmartAgentDrawer() {
             <button 
               type="button"
               onClick={closeDrawer}
-              style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}
+              style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               title="Close Assistant Panel"
             >
-              <X size={20} />
+              <X size={18} />
             </button>
           </div>
         </div>
+
 
       {/* VOICE NOTICE TOAST IF UNSUPPORTED OR ERROR */}
       {voiceNotice && (
