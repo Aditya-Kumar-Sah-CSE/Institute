@@ -120,7 +120,7 @@ export default function SmartAgentDrawer() {
               borderLeft: '1px solid var(--glass-border)',
               boxShadow: '-10px 0 40px rgba(0, 0, 0, 0.7)',
               boxSizing: 'border-box',
-              zIndex: 999999
+              zIndex: 1000000
             }
       }
     >

@@ -18,7 +18,7 @@
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
   box-sizing: border-box;
-  z-index: 999999;
+  z-index: 1000000;
 }
 
 .sidebar.is-collapsed,
