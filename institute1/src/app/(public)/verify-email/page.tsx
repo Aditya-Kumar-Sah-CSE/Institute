@@ -65,7 +65,7 @@ function VerifyEmailForm() {
     } else {
       setStatusMessage({
         type: 'success',
-        text: result.message || 'Verification email sent. Please check your inbox or spam folder.',
+        text: ('message' in result && typeof result.message === 'string' ? result.message : 'Verification email sent. Please check your inbox or spam folder.'),
       });
       setIsLoading(false);
       setCooldown(60); // Start 60-second UI cooldown

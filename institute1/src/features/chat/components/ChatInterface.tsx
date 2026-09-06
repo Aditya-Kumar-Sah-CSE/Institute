@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { ChatConversation, ChatMessage } from '@/types/database';
-import { Send, User as UserIcon, Users, MoreVertical, Plus, Image as ImageIcon, Smile, X, Loader2, Search, ArrowLeft, LayoutDashboard } from 'lucide-react';
+import { Send, User as UserIcon, Users, MoreVertical, Plus, Image as ImageIcon, Smile, X, Loader2, Search, ArrowLeft, LayoutDashboard, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { Virtuoso } from 'react-virtuoso';
@@ -361,13 +361,23 @@ export default function ChatInterface() {
                     })()}
                  </div>
                </div>
-                <button 
-                  onClick={() => router.push(`${baseUrl}/dashboard`)} 
-                  style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', color: 'var(--neon-cyan)', padding: '8px', borderRadius: '50%', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  title="Go to Dashboard"
-                >
-                  <LayoutDashboard size={18} />
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button 
+                    onClick={() => router.push(`${baseUrl}/tools/latex-editor`)} 
+                    style={{ background: 'rgba(6, 182, 212, 0.15)', border: '1px solid rgba(6, 182, 212, 0.4)', color: '#38bdf8', padding: '6px 12px', borderRadius: '20px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600 }}
+                    title="Open Voice LaTeX Editor"
+                  >
+                    <Sparkles size={15} />
+                    <span>LaTeX Editor</span>
+                  </button>
+                  <button 
+                    onClick={() => router.push(`${baseUrl}/dashboard`)} 
+                    style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', color: 'var(--neon-cyan)', padding: '8px', borderRadius: '50%', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    title="Go to Dashboard"
+                  >
+                    <LayoutDashboard size={18} />
+                  </button>
+                </div>
             </div>
 
             {/* Messages Area */}

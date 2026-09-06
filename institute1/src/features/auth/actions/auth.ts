@@ -211,6 +211,17 @@ export async function resetPasswordRequest(formData: FormData) {
   return { success: true };
 }
 
+export async function resendVerificationEmail(email: string) {
+  const supabase = await createClient();
+  if (!email) return { error: 'Email is required' };
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email: email,
+  });
+  if (error) return { error: error.message };
+  return { success: true, message: 'Verification email sent. Please check your inbox or spam folder.' };
+}
+
 export async function updatePassword(formData: FormData) {
   const supabase = await createClient();
   const password = formData.get('password') as string;
