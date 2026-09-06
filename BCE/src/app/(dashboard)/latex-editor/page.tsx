@@ -1,29 +1,16 @@
-import React, { Suspense } from 'react';
-import LaTeXEditorClient from '@/components/latex/LaTeXEditorClient';
+import React from 'react';
+import VoiceLatexEditor from '@/components/latex/VoiceLatexEditor';
+import { Metadata } from 'next';
 
-export const metadata = {
-  title: 'LaTeX Editor & ATS Resume Builder | BCE',
-  description: 'Browser-based LaTeX Code Editor with ATS Resume Template, LocalStorage Persistence, and Real-Time ATS Preview.',
+export const metadata: Metadata = {
+  title: 'Voice-Controlled LaTeX Workspace & Template Editor | BCE',
+  description: 'Browser-based voice-controlled LaTeX Code Editor with live KaTeX rendering, ATS templates, and export tools.',
 };
 
 export default function LaTeXEditorPage() {
   return (
     <div style={{ padding: '0 0 var(--space-xl) 0', width: '100%' }}>
-      <Suspense fallback={
-        <div style={{ 
-          height: '600px', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          background: 'var(--bg-surface)', 
-          borderRadius: '12px',
-          color: 'var(--text-muted)' 
-        }}>
-          Loading LaTeX Editor...
-        </div>
-      }>
-        <LaTeXEditorClient />
-      </Suspense>
+      <VoiceLatexEditor />
     </div>
   );
 }
