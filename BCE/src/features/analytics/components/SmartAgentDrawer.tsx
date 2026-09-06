@@ -7,7 +7,7 @@ import { useSmartAgentSession } from '../context/SmartAgentSessionContext';
 import DualAudioVisualizer from './DualAudioVisualizer';
 import { 
   X, Send, Mic, MicOff, Sparkles, Bot, User, ArrowRight, RefreshCw, 
-  ExternalLink, AlertTriangle, Terminal, HelpCircle, Loader2, Volume2, VolumeX, Square, Trash2, CheckCircle2, AlertCircle
+  ExternalLink, AlertTriangle, Terminal, HelpCircle, Loader2, Volume2, VolumeX, Square, Trash2, CheckCircle2, AlertCircle, Maximize2, Minimize2
 } from 'lucide-react';
 
 const QUICK_COMMANDS = [
@@ -21,6 +21,7 @@ const QUICK_COMMANDS = [
 ];
 
 export default function SmartAgentDrawer() {
+  const [isMaximized, setIsMaximized] = React.useState(true);
   const {
     isOpen,
     closeDrawer,
@@ -68,97 +69,132 @@ export default function SmartAgentDrawer() {
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       style={{
         position: 'fixed',
-        top: 0,
-        right: 0,
-        bottom: 0,
-        width: '440px',
-        maxWidth: '100vw',
-        zIndex: 99999,
+        inset: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        backdropFilter: 'blur(5px)',
+        zIndex: 100000,
         display: 'flex',
-        flexDirection: 'column',
-        background: 'var(--bg-secondary)',
-        borderLeft: '1px solid var(--glass-border)',
-        boxShadow: '-8px 0 35px rgba(0,0,0,0.55)',
-        pointerEvents: 'auto'
+        justifyContent: 'flex-end',
+        alignItems: 'stretch'
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) closeDrawer();
       }}
     >
-      {/* HEADER */}
       <div 
         style={{
-          padding: 'var(--space-md) var(--space-lg)',
-          background: 'var(--bg-primary)',
-          borderBottom: '1px solid var(--glass-border)',
+          width: isMaximized ? '100vw' : '650px',
+          maxWidth: '100vw',
+          height: '100vh',
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
+          flexDirection: 'column',
+          background: 'var(--bg-secondary)',
+          borderLeft: '1px solid var(--glass-border)',
+          boxShadow: '-10px 0 40px rgba(0,0,0,0.6)',
+          position: 'relative',
+          transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ background: 'rgba(0, 229, 255, 0.15)', color: 'var(--neon-cyan)', padding: '8px', borderRadius: '10px', border: '1px solid rgba(0, 229, 255, 0.3)' }}>
-            <Sparkles size={20} />
+        {/* HEADER */}
+        <div 
+          style={{
+            padding: 'var(--space-md) var(--space-lg)',
+            background: 'var(--bg-primary)',
+            borderBottom: '1px solid var(--glass-border)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ background: 'rgba(0, 229, 255, 0.15)', color: 'var(--neon-cyan)', padding: '8px', borderRadius: '10px', border: '1px solid rgba(0, 229, 255, 0.3)' }}>
+              <Sparkles size={20} />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: 'var(--text-md)', fontWeight: 'bold', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                ✦ Smart Learn Agent
+              </h3>
+              <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-secondary)' }}>
+                {isMaximized ? 'Full-Screen AI Workspace' : 'AI Assistant & Voice Companion'}
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 style={{ margin: 0, fontSize: 'var(--text-md)', fontWeight: 'bold', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              ✦ Smart Learn Agent
-            </h3>
-            <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-secondary)' }}>
-              Non-Blocking AI Assistant
-            </p>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* VOICE MODE TOGGLE BUTTON */}
+            <button
+              type="button"
+              onClick={() => {
+                const nextMode = !isVoiceMode;
+                setIsVoiceMode(nextMode);
+                if (!nextMode) stopVoiceSession();
+              }}
+              style={{
+                fontSize: '11px',
+                fontWeight: 'bold',
+                padding: '4px 10px',
+                borderRadius: '12px',
+                background: isVoiceMode ? 'rgba(0, 229, 255, 0.15)' : 'rgba(255, 255, 255, 0.06)',
+                color: isVoiceMode ? 'var(--neon-cyan)' : 'var(--text-muted)',
+                border: isVoiceMode ? '1px solid rgba(0, 229, 255, 0.4)' : '1px solid var(--glass-border)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+              title={isVoiceMode ? "Voice Mode ON (Assistant speaks responses)" : "Voice Mode OFF (Silent response text)"}
+            >
+              {isVoiceMode ? <Volume2 size={13} /> : <VolumeX size={13} />}
+              <span>Voice: {isVoiceMode ? 'ON' : 'OFF'}</span>
+            </button>
+
+            {/* FULLSCREEN / MAXIMIZE TOGGLE BUTTON */}
+            <button
+              type="button"
+              onClick={() => setIsMaximized(prev => !prev)}
+              style={{
+                fontSize: '11px',
+                fontWeight: 'bold',
+                padding: '4px 10px',
+                borderRadius: '12px',
+                background: isMaximized ? 'rgba(0, 229, 255, 0.15)' : 'rgba(255, 255, 255, 0.06)',
+                color: isMaximized ? 'var(--neon-cyan)' : 'var(--text-muted)',
+                border: isMaximized ? '1px solid rgba(0, 229, 255, 0.4)' : '1px solid var(--glass-border)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+              title={isMaximized ? "Restore Drawer Size" : "Full Screen AI Assistant"}
+            >
+              {isMaximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+              <span>{isMaximized ? 'Full Screen' : 'Full Open'}</span>
+            </button>
+
+            {/* RESET CONVERSATION BUTTON */}
+            <button 
+              type="button"
+              onClick={clearConversation}
+              style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+              title="Reset Conversation"
+            >
+              <Trash2 size={16} />
+            </button>
+
+            {/* CLOSE PANEL BUTTON */}
+            <button 
+              type="button"
+              onClick={closeDrawer}
+              style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}
+              title="Close Assistant Panel"
+            >
+              <X size={20} />
+            </button>
           </div>
         </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {/* VOICE MODE TOGGLE BUTTON */}
-          <button
-            type="button"
-            onClick={() => {
-              const nextMode = !isVoiceMode;
-              setIsVoiceMode(nextMode);
-              if (!nextMode) stopVoiceSession();
-            }}
-            style={{
-              fontSize: '11px',
-              fontWeight: 'bold',
-              padding: '4px 10px',
-              borderRadius: '12px',
-              background: isVoiceMode ? 'rgba(0, 229, 255, 0.15)' : 'rgba(255, 255, 255, 0.06)',
-              color: isVoiceMode ? 'var(--neon-cyan)' : 'var(--text-muted)',
-              border: isVoiceMode ? '1px solid rgba(0, 229, 255, 0.4)' : '1px solid var(--glass-border)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
-            title={isVoiceMode ? "Voice Mode ON (Assistant speaks responses)" : "Voice Mode OFF (Silent response text)"}
-          >
-            {isVoiceMode ? <Volume2 size={13} /> : <VolumeX size={13} />}
-            <span>Voice: {isVoiceMode ? 'ON' : 'OFF'}</span>
-          </button>
-
-          {/* RESET CONVERSATION BUTTON */}
-          <button 
-            type="button"
-            onClick={clearConversation}
-            style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
-            title="Reset Conversation"
-          >
-            <Trash2 size={16} />
-          </button>
-
-          {/* CLOSE PANEL BUTTON */}
-          <button 
-            type="button"
-            onClick={closeDrawer}
-            style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}
-            title="Close Assistant Panel"
-          >
-            <X size={20} />
-          </button>
-        </div>
-      </div>
 
       {/* VOICE NOTICE TOAST IF UNSUPPORTED OR ERROR */}
       {voiceNotice && (
@@ -463,6 +499,7 @@ export default function SmartAgentDrawer() {
           to { opacity: 1; }
         }
       `}</style>
+      </div>
     </div>
   );
 }

@@ -5,7 +5,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Link from 'next/link';
 import { askSmartMentorAction, MentorChatMessage } from '../actions/mentor';
-import { X, Send, Sparkles, Brain, Bot, User, ArrowRight, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { X, Send, Sparkles, Brain, Bot, User, ArrowRight, RefreshCw, CheckCircle2, Maximize2, Minimize2 } from 'lucide-react';
 
 interface SmartMentorDrawerProps {
   isOpen: boolean;
@@ -26,6 +26,7 @@ export default function SmartMentorDrawer({
   onClose,
   initialPrompt
 }: SmartMentorDrawerProps) {
+  const [isMaximized, setIsMaximized] = useState(true);
   const [messages, setMessages] = useState<MentorChatMessage[]>([
     {
       role: 'assistant',
@@ -132,17 +133,22 @@ export default function SmartMentorDrawer({
         justifyContent: 'flex-end',
         alignItems: 'stretch'
       }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
       <div 
         style={{
-          width: '100%',
-          maxWidth: '480px',
+          width: isMaximized ? '100vw' : '650px',
+          maxWidth: '100vw',
+          height: '100vh',
           background: 'var(--bg-secondary)',
           borderLeft: '1px solid var(--glass-border)',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: '-10px 0 30px rgba(0,0,0,0.5)',
-          position: 'relative'
+          boxShadow: '-10px 0 40px rgba(0,0,0,0.6)',
+          position: 'relative',
+          transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
         }}
       >
         {/* HEADER */}
@@ -165,18 +171,42 @@ export default function SmartMentorDrawer({
                 ✦ Smart Mentor
               </h3>
               <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-secondary)' }}>
-                Your personal AI guide, powered by your Smart Learn profile
+                {isMaximized ? 'Full-Screen Learning Guide' : 'Personal AI Mentor'}
               </p>
             </div>
           </div>
 
-          <button 
-            onClick={onClose}
-            style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}
-            title="Close Drawer"
-          >
-            <X size={20} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button 
+              type="button"
+              onClick={() => setIsMaximized(prev => !prev)}
+              style={{
+                fontSize: '11px',
+                fontWeight: 'bold',
+                padding: '4px 10px',
+                borderRadius: '12px',
+                background: isMaximized ? 'rgba(0, 229, 255, 0.15)' : 'rgba(255, 255, 255, 0.06)',
+                color: isMaximized ? 'var(--neon-cyan)' : 'var(--text-muted)',
+                border: isMaximized ? '1px solid rgba(0, 229, 255, 0.4)' : '1px solid var(--glass-border)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+              title={isMaximized ? "Restore Drawer Size" : "Full Screen AI Mentor"}
+            >
+              {isMaximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+              <span>{isMaximized ? 'Full Screen' : 'Full Open'}</span>
+            </button>
+
+            <button 
+              onClick={onClose}
+              style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}
+              title="Close Drawer"
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         {/* MESSAGES LIST */}
