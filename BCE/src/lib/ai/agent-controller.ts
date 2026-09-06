@@ -2,6 +2,19 @@ import { AGENT_TOOLS, AgentToolResult } from './agent-tools';
 import { runSmartAgent, AgentChatMessage, AgentResponse } from './agent';
 import { AgentPageContext } from './agent-context';
 import { normalizeAgentRole, canUseTool, canAccessPage, requireAgentPermission, AppRole } from '@/lib/auth/agent-permissions';
+import { resolveCourse, resolveDSASheet, resolveDSAProblem } from '@/lib/ai/entity-resolver';
+
+export interface LatencyTelemetry {
+  speech_final?: number;
+  intent_detected?: number;
+  tool_started?: number;
+  entity_lookup_started?: number;
+  entity_lookup_finished?: number;
+  navigation_started?: number;
+  response_started?: number;
+  response_finished?: number;
+  total_latency_ms?: number;
+}
 
 export interface AgentSessionState {
   route: string;
@@ -28,12 +41,16 @@ export interface AgentRequestInput {
   pageContext?: AgentPageContext;
   confirmedTool?: { toolName: string; args: any };
   sessionState?: AgentSessionState;
+  timestamps?: {
+    speech_final?: number;
+  };
 }
 
 export interface AgentControllerResponse extends AgentResponse {
   sessionState?: AgentSessionState;
   verified?: boolean;
   status?: 'planned' | 'executing' | 'success' | 'failed' | 'verification_failed' | 'recovered';
+  latencyMetrics?: LatencyTelemetry;
 }
 
 // In-memory deduplication cache for race condition protection
@@ -126,9 +143,22 @@ export class AgentController {
     }
 
     // 3. Fast-Path Deterministic Intent Resolution
+    const intentStart = Date.now();
     const fastPathResult = await this.resolveDeterministicIntent(promptLower, promptRaw, input.user, userRole, input.pageContext, activeState);
     if (fastPathResult) {
-      console.log(`[AgentController] Fast-path executed in ${Date.now() - startTime}ms:`, fastPathResult.toolExecuted);
+      const intentEnd = Date.now();
+      fastPathResult.latencyMetrics = {
+        speech_final: input.timestamps?.speech_final || startTime,
+        intent_detected: intentStart,
+        tool_started: intentStart,
+        entity_lookup_started: intentStart,
+        entity_lookup_finished: intentEnd,
+        navigation_started: intentEnd,
+        response_started: intentEnd,
+        response_finished: intentEnd,
+        total_latency_ms: intentEnd - startTime
+      };
+      console.log(`[AgentController] Fast-path executed in ${intentEnd - startTime}ms:`, fastPathResult.toolExecuted);
       actionLockMap.set(lockKey, { timestamp: Date.now(), result: fastPathResult });
       return fastPathResult;
     }
@@ -144,6 +174,18 @@ export class AgentController {
     });
 
     const response = this.formatToolResult(llmResult.toolExecuted || 'agent', llmResult, activeState, userRole);
+    const endTime = Date.now();
+    response.latencyMetrics = {
+      speech_final: input.timestamps?.speech_final || startTime,
+      intent_detected: intentStart,
+      tool_started: startTime,
+      entity_lookup_started: startTime,
+      entity_lookup_finished: endTime,
+      navigation_started: endTime,
+      response_started: endTime,
+      response_finished: endTime,
+      total_latency_ms: endTime - startTime
+    };
     actionLockMap.set(lockKey, { timestamp: Date.now(), result: response });
     return response;
   }
@@ -189,12 +231,44 @@ export class AgentController {
       return await executeWithPermission('openDSASheets');
     }
 
-    if (/\b(courses|course|subject|subjects)\b/i.test(promptLower) && !promptLower.includes('itw') && !promptLower.includes('dbms')) {
+    if (/\b(courses|course|subject|subjects)\b/i.test(promptLower) && !promptLower.includes('itw') && !promptLower.includes('dbms') && !promptLower.includes('java') && !promptLower.includes('python')) {
       return await executeWithPermission('openCourses');
     }
 
     if (/\b(profile|account)\b/i.test(promptLower)) {
       return await executeWithPermission('openProfile');
+    }
+
+    // A2. Named Course Navigation ("open DBMS", "DBMS course kholo", "DBMS wala course", "open DBMS course")
+    const courseMatch = promptLower.match(/^(?:open\s+)?(.+?)\s+(?:course|subject)(?:\s+kholo|\s+open|\s+dikhao)?$/i) ||
+                        promptLower.match(/^(?:open\s+)?(.+?)\s+wala\s+course(?:\s+kholo|\s+open)?$/i) ||
+                        promptLower.match(/^(?:open\s+)?(dbms|itw|dsa|java|python|c\+\+|web dev|web development|operating system|computer networks)(?:\s+kholo|\s+open)?$/i);
+    if (courseMatch) {
+      const courseQuery = courseMatch[1]?.trim();
+      if (courseQuery) {
+        const res = await executeWithPermission('openCourse', { courseName: courseQuery });
+        if (res.success && res.expectedEntity?.id) {
+          sessionState.courseId = res.expectedEntity.id;
+          sessionState.courseTitle = res.expectedEntity.title;
+        }
+        return res;
+      }
+    }
+
+    // A3. Contextual Reference ("iska first module kholo", "first lesson kholo")
+    const contextModuleMatch = promptLower.match(/\b(iska|is\s+course\s+ka)\s+(?:first|1st|pehla)\s+(module|lesson)\b/i);
+    if (contextModuleMatch && sessionState.courseId) {
+      const courseUrl = `/courses/${sessionState.courseId}`;
+      return {
+        success: true,
+        message: `Opening Module 1 of ${sessionState.courseTitle || 'course'}...`,
+        actions: [{ label: 'Open Page', url: courseUrl }],
+        pendingNavigation: true,
+        navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+        expectedRoute: courseUrl,
+        status: 'success',
+        sessionState
+      };
     }
 
     if (/\b(routine|schedule|timetable)\b/i.test(promptLower) && !promptLower.includes('bana')) {

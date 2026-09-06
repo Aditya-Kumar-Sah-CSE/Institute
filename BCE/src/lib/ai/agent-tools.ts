@@ -1,6 +1,7 @@
 import { createAdminClient, getUser } from '@/lib/supabase/server';
 import { getStudent360Profile, Student360Profile } from '@/features/analytics/services/student-intelligence';
 import { normalizeAgentRole, canUseTool } from '@/lib/auth/agent-permissions';
+import { resolveCourse, resolveDSASheet, resolveDSAProblem } from '@/lib/ai/entity-resolver';
 
 export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH';
 
@@ -131,63 +132,66 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
       }
     },
     examples: ['Mera ITW course kholo', 'DBMS course open karo', 'open web dev course'],
-    execute: async (args) => {
-      const adminClient = await createAdminClient();
+    execute: async (args, user, context) => {
+      const userRole = context?.userRole;
+
       if (args.courseId) {
+        const adminClient = await createAdminClient();
         const { data: c } = await adminClient.from('courses').select('id, title').eq('id', args.courseId).maybeSingle();
         const title = c?.title || 'Course';
         return {
           success: true,
-          message: `Opening course: ${title}...`,
+          message: `Opening ${title}...`,
           url: `/courses/${args.courseId}`,
           pendingNavigation: true,
           navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
           expectedRoute: `/courses/${args.courseId}`,
           expectedEntity: { type: 'course', id: args.courseId, title },
-          successMessage: `Course ${title} open kar diya.`,
-          data: { courseId: args.courseId }
+          successMessage: `Opening ${title}.`,
+          data: { courseId: args.courseId, courseTitle: title }
         };
       }
-      
+
       const name = args.courseName ? args.courseName.trim() : '';
 
       if (name) {
-        const { data: matched } = await adminClient
-          .from('courses')
-          .select('id, title')
-          .ilike('title', `%${name}%`)
-          .eq('is_published', true)
-          .limit(1)
-          .maybeSingle();
-
-        if (matched) {
+        const res = await resolveCourse(name, user, userRole);
+        if (res.matched && res.entity && res.route) {
           return {
             success: true,
-            message: `Opening Course ${matched.title}...`,
-            url: `/courses/${matched.id}`,
+            message: `Opening ${res.entity.title}...`,
+            url: res.route,
             pendingNavigation: true,
             navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-            expectedRoute: `/courses/${matched.id}`,
-            expectedEntity: { type: 'course', id: matched.id, title: matched.title },
-            successMessage: `Course ${matched.title} open kar diya.`,
-            data: { courseId: matched.id, courseTitle: matched.title }
+            expectedRoute: res.route,
+            expectedEntity: { type: 'course', id: res.entity.id, title: res.entity.title },
+            successMessage: `Opening ${res.entity.title}.`,
+            data: { courseId: res.entity.id, courseTitle: res.entity.title }
+          };
+        }
+
+        if (res.ambiguous && res.candidates) {
+          const names = res.candidates.map(c => c.title).join(', ');
+          return {
+            success: false,
+            message: `I found multiple courses: ${names}. Which one do you want?`
           };
         }
 
         return {
           success: false,
-          message: `Mujhe "${name}" course nahi mila.`
+          message: res.reason || `Course "${name}" not found.`
         };
       }
 
-      return { 
-        success: true, 
-        message: 'Opening courses catalog...', 
+      return {
+        success: true,
+        message: 'Opening courses catalog...',
         url: '/courses',
         pendingNavigation: true,
         navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
         expectedRoute: '/courses',
-        successMessage: 'Courses catalog open kar diya.' 
+        successMessage: 'Courses catalog open kar diya.'
       };
     }
   },
@@ -223,47 +227,52 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
       }
     },
     examples: ['Blind 75 sheet kholo', 'Striver sheet dikhao', 'Leetcode 100 Basics kholo'],
-    execute: async (args) => {
-      const adminClient = await createAdminClient();
+    execute: async (args, user, context) => {
+      const userRole = context?.userRole;
+
       if (args.sheetId) {
+        const adminClient = await createAdminClient();
         const { data: s } = await adminClient.from('coding_sheets').select('id, title').eq('id', args.sheetId).maybeSingle();
         const title = s?.title || 'DSA Sheet';
         return { 
           success: true, 
-          message: `Opening DSA Sheet: ${title}...`, 
+          message: `Opening ${title}...`, 
           url: `/code-arena/sheets/${args.sheetId}`,
           pendingNavigation: true,
           navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
           expectedRoute: `/code-arena/sheets/${args.sheetId}`,
           expectedEntity: { type: 'sheet', id: args.sheetId, title },
-          successMessage: `DSA Sheet ${title} open kar di.`
+          successMessage: `Opening ${title}.`
         };
       }
       
-      if (args.titleQuery) {
-        const { data } = await adminClient
-          .from('coding_sheets')
-          .select('id, title')
-          .ilike('title', `%${args.titleQuery.trim()}%`)
-          .limit(1)
-          .maybeSingle();
-
-        if (data) {
+      const query = args.titleQuery ? args.titleQuery.trim() : '';
+      if (query) {
+        const res = await resolveDSASheet(query, user, userRole);
+        if (res.matched && res.entity && res.route) {
           return { 
             success: true, 
-            message: `Opening DSA Sheet: ${data.title}...`, 
-            url: `/code-arena/sheets/${data.id}`,
+            message: `Opening ${res.entity.title}...`, 
+            url: res.route,
             pendingNavigation: true,
             navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-            expectedRoute: `/code-arena/sheets/${data.id}`,
-            expectedEntity: { type: 'sheet', id: data.id, title: data.title },
-            successMessage: `DSA Sheet ${data.title} open kar di.`
+            expectedRoute: res.route,
+            expectedEntity: { type: 'sheet', id: res.entity.id, title: res.entity.title },
+            successMessage: `Opening ${res.entity.title}.`
+          };
+        }
+
+        if (res.ambiguous && res.candidates) {
+          const names = res.candidates.map(c => c.title).join(', ');
+          return {
+            success: false,
+            message: `I found multiple DSA sheets: ${names}. Which one do you want?`
           };
         }
 
         return {
           success: false,
-          message: `"${args.titleQuery}" DSA sheet nahi mili.`
+          message: res.reason || `DSA sheet "${query}" not found.`
         };
       }
       return { 
@@ -294,168 +303,66 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
       }
     },
     examples: ['Problem 4 kholo', 'problem 4', 'Two Sum open karo', 'Binary Search sheet ka Problem 5 kholo'],
-    execute: async (args, _, context) => {
-      const adminClient = await createAdminClient();
+    execute: async (args, user, context) => {
+      const userRole = context?.userRole;
 
       if (args.problemId) {
+        const adminClient = await createAdminClient();
         const { data: p } = await adminClient.from('coding_problems').select('id, title').eq('id', args.problemId).maybeSingle();
         const title = p?.title || 'Problem';
         return {
           success: true,
-          message: `Opening DSA problem: ${title}...`,
+          message: `Opening ${title}...`,
           url: `/code-arena/problems/${args.problemId}`,
           pendingNavigation: true,
           navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
           expectedRoute: `/code-arena/problems/${args.problemId}`,
           expectedEntity: { type: 'problem', id: args.problemId, title },
-          successMessage: `Problem ${title} open kar diya.`,
+          successMessage: `Opening ${title}.`,
           data: { problemId: args.problemId, problemTitle: title }
         };
       }
 
+      // If sheet query provided, resolve sheet first
+      let resolvedSheetId = args.sheetId || context?.sheetId;
+      if (!resolvedSheetId && args.sheetQuery) {
+        const sRes = await resolveDSASheet(args.sheetQuery, user, userRole);
+        if (sRes.matched && sRes.entity) {
+          resolvedSheetId = sRes.entity.id;
+        }
+      }
+
       const q = args.query ? args.query.trim() : '';
       const numMatch = q.match(/\b\d+\b/);
-      const targetNum = args.problemIndex || (numMatch ? parseInt(numMatch[0], 10) : null);
+      const targetIndex = args.problemIndex || (numMatch ? parseInt(numMatch[0], 10) : undefined);
 
-      // Resolve sheet ID if provided in args or context
-      let activeSheetId = args.sheetId || context?.sheetId || context?.activeSheet?.id;
+      const pRes = await resolveDSAProblem(q, resolvedSheetId, targetIndex, user, userRole);
 
-      if (!activeSheetId && args.sheetQuery) {
-        const { data: sheetData } = await adminClient
-          .from('coding_sheets')
-          .select('id, title')
-          .ilike('title', `%${args.sheetQuery.trim()}%`)
-          .limit(1)
-          .maybeSingle();
-
-        if (sheetData) {
-          activeSheetId = sheetData.id;
-        }
-      }
-
-      // Auto-resolve activeSheetId from active problem if sheetId is missing
-      const currentProbId = args.problemId || context?.problemId || (
-        context?.liveContext?.currentEntity?.type === 'problem' ? context?.liveContext?.currentEntity?.id : null
-      );
-      if (!activeSheetId && currentProbId) {
-        const { data: linkData } = await adminClient
-          .from('coding_sheet_problems')
-          .select('sheet_id, order_index')
-          .eq('problem_id', currentProbId)
-          .limit(1)
-          .maybeSingle();
-
-        if (linkData?.sheet_id) {
-          activeSheetId = linkData.sheet_id;
-        }
-      }
-
-      // SERVER VERIFICATION FOR PROBLEM N IN ACTIVE SHEET
-      if (targetNum && activeSheetId) {
-        const { data: sheetProblems } = await adminClient
-          .from('coding_sheet_problems')
-          .select('order_index, coding_problems(id, title, difficulty)')
-          .eq('sheet_id', activeSheetId)
-          .order('order_index', { ascending: true });
-
-        if (sheetProblems && sheetProblems.length >= targetNum) {
-          const matchedItem = sheetProblems[targetNum - 1]?.coding_problems as any;
-          if (matchedItem) {
-            return {
-              success: true,
-              message: `Opening Problem ${targetNum}: ${matchedItem.title}...`,
-              url: `/code-arena/problems/${matchedItem.id}`,
-              pendingNavigation: true,
-              navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-              expectedRoute: `/code-arena/problems/${matchedItem.id}`,
-              expectedEntity: { type: 'problem', id: matchedItem.id, title: matchedItem.title, number: targetNum },
-              successMessage: `Problem ${targetNum} (${matchedItem.title}) open kar diya.`,
-              data: { problemId: matchedItem.id, problemTitle: matchedItem.title, number: targetNum, sheetId: activeSheetId }
-            };
-          }
-        } else if (sheetProblems && sheetProblems.length < targetNum) {
-          return {
-            success: false,
-            message: `Is sheet me Problem ${targetNum} available nahi hai. Total ${sheetProblems.length} problems hain.`
-          };
-        }
-      }
-
-      // Check visibleEntities problems list from live context as fallback hint
-      if (targetNum && context?.liveContext?.visibleEntities?.problems) {
-        const visibleProb = context.liveContext.visibleEntities.problems.find((p: any) => p.number === targetNum);
-        if (visibleProb) {
-          return {
-            success: true,
-            message: `Opening Problem ${targetNum}: ${visibleProb.title}...`,
-            url: `/code-arena/problems/${visibleProb.id}`,
-            pendingNavigation: true,
-            navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-            expectedRoute: `/code-arena/problems/${visibleProb.id}`,
-            expectedEntity: { type: 'problem', id: visibleProb.id, title: visibleProb.title, number: targetNum },
-            successMessage: `Problem ${targetNum} (${visibleProb.title}) open kar diya.`,
-            data: { problemId: visibleProb.id, problemTitle: visibleProb.title, number: targetNum }
-          };
-        }
-      }
-
-      if (q) {
-        const { data: matched } = await adminClient
-          .from('coding_problems')
-          .select('id, title, slug')
-          .or(`title.ilike.%${q}%,slug.ilike.%${q}%`)
-          .limit(1)
-          .maybeSingle();
-
-        if (matched) {
-          return {
-            success: true,
-            message: `Opening Problem ${matched.title}...`,
-            url: `/code-arena/problems/${matched.id}`,
-            pendingNavigation: true,
-            navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-            expectedRoute: `/code-arena/problems/${matched.id}`,
-            expectedEntity: { type: 'problem', id: matched.id, title: matched.title },
-            successMessage: `Problem ${matched.title} open kar diya.`,
-            data: { problemId: matched.id, problemTitle: matched.title }
-          };
-        }
-
-        return {
-          success: false,
-          message: `Mujhe "${q}" problem nahi mila.`
-        };
-      }
-
-      const { data: latest } = await adminClient
-        .from('coding_problems')
-        .select('id, title')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (latest) {
+      if (pRes.matched && pRes.entity && pRes.route) {
         return {
           success: true,
-          message: `Opening DSA problem: ${latest.title}...`,
-          url: `/code-arena/problems/${latest.id}`,
+          message: `Opening ${pRes.entity.title}...`,
+          url: pRes.route,
           pendingNavigation: true,
           navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-          expectedRoute: `/code-arena/problems/${latest.id}`,
-          expectedEntity: { type: 'problem', id: latest.id, title: latest.title },
-          successMessage: `Problem ${latest.title} open kar diya.`,
-          data: { problemId: latest.id, problemTitle: latest.title }
+          expectedRoute: pRes.route,
+          expectedEntity: { type: 'problem', id: pRes.entity.id, title: pRes.entity.title, number: pRes.entity.orderIndex },
+          successMessage: `Opening ${pRes.entity.title}.`,
+          data: { problemId: pRes.entity.id, problemTitle: pRes.entity.title, number: pRes.entity.orderIndex, sheetId: resolvedSheetId }
         };
       }
 
-      return { 
-        success: true, 
-        message: 'Opening DSA problems...', 
-        url: '/code-arena/problems',
-        pendingNavigation: true,
-        navigationId: `nav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-        expectedRoute: '/code-arena/problems',
-        successMessage: 'DSA problems list open kar di.'
+      if (pRes.ambiguous && pRes.candidates) {
+        const names = pRes.candidates.map(c => c.title).join(', ');
+        return {
+          success: false,
+          message: `I found multiple problems: ${names}. Which one do you want?`
+        };
+      }
+
+      return {
+        success: false,
+        message: pRes.reason || `Problem "${q || args.problemIndex || ''}" not found.`
       };
     }
   },
