@@ -11,13 +11,11 @@
 }
 
 .dashboard-body {
-  display: flex;
-  flex-direction: row;
-  flex: 1;
-  min-height: calc(100vh - 64px);
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(280px, 1fr);
   width: 100%;
-  max-width: 100%;
-  position: relative;
+  min-width: 0;
+  min-height: calc(100vh - 64px);
   box-sizing: border-box;
 }
 
@@ -35,17 +33,18 @@
 
 body.sidebar-is-collapsed .dashboard-main,
 body.sidebar-is-collapsed .dashboard-body {
+  grid-template-columns: minmax(0, 1fr);
   width: 100% !important;
 }
 
 .dashboard-content {
-  flex: 1;
   min-width: 0;
-  padding: var(--space-xl);
-  max-width: var(--max-content-width);
-  margin: 0 auto 2rem auto;
   width: 100%;
+  max-width: 100%;
   box-sizing: border-box;
+  overflow-x: hidden;
+  padding: var(--space-xl);
+  margin: 0 auto 2rem auto;
 }
 
 @media (max-width: 768px) {

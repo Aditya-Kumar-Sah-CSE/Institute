@@ -76,8 +76,9 @@ export default function SmartAgentDrawer() {
         bottom: 0,
         left: 0,
         right: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.35)',
-        zIndex: 100000,
+        pointerEvents: 'none',
+        backgroundColor: 'transparent',
+        zIndex: 500,
         display: 'flex',
         justifyContent: 'flex-end',
         alignItems: 'stretch'
@@ -88,7 +89,12 @@ export default function SmartAgentDrawer() {
     >
       <div 
         style={{
-          width: isMaximized ? '100vw' : '450px',
+          pointerEvents: 'auto',
+          position: 'fixed',
+          right: 0,
+          top: 'var(--navbar-height, 64px)',
+          width: isMaximized ? '100vw' : 'min(420px, 20vw)',
+          minWidth: isMaximized ? '100vw' : '280px',
           maxWidth: '100vw',
           height: 'calc(100vh - var(--navbar-height, 64px))',
           display: 'flex',
@@ -96,7 +102,6 @@ export default function SmartAgentDrawer() {
           background: 'var(--bg-secondary)',
           borderLeft: '1px solid var(--glass-border)',
           boxShadow: '-10px 0 40px rgba(0,0,0,0.6)',
-          position: 'relative',
           transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
         }}
       >
