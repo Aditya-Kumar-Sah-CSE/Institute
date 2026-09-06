@@ -226,6 +226,17 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    const handleToggle = () => setIsOpen(prev => !prev);
+    const handleOpen = () => setIsOpen(true);
+    window.addEventListener('toggleSmartAgentDrawer', handleToggle);
+    window.addEventListener('openSmartAgentDrawer', handleOpen);
+    return () => {
+      window.removeEventListener('toggleSmartAgentDrawer', handleToggle);
+      window.removeEventListener('openSmartAgentDrawer', handleOpen);
+    };
+  }, []);
+
   // Update voice state helper
   const setVoiceState = (nextState: RealtimeVoiceState) => {
     voiceStateRef.current = nextState;

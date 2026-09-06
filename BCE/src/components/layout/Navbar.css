@@ -27,6 +27,53 @@
   gap: var(--space-md);
 }
 
+.nav-agent-btn, .nav-mentor-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: var(--bg-secondary);
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.nav-agent-btn {
+  border: 1px solid var(--neon-cyan);
+  color: var(--neon-cyan);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.15);
+}
+
+.nav-agent-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.35);
+  background: rgba(0, 240, 255, 0.1);
+}
+
+.nav-mentor-btn {
+  border: 1px solid var(--neon-lime);
+  color: var(--neon-lime);
+  box-shadow: 0 0 10px rgba(57, 255, 20, 0.15);
+}
+
+.nav-mentor-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 14px rgba(57, 255, 20, 0.35);
+  background: rgba(57, 255, 20, 0.1);
+}
+
+@media (max-width: 640px) {
+  .nav-agent-btn span, .nav-mentor-btn span {
+    display: none;
+  }
+  .nav-agent-btn, .nav-mentor-btn {
+    padding: 6px 8px;
+  }
+}
+
 .navbar-center {
   position: absolute;
   left: 50%;

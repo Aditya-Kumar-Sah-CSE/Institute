@@ -89,7 +89,6 @@ export default async function DashboardLayout({
           <PWAInstallPrompt />
           <XpCelebrator />
           <FeedbackWidget />
-          <FloatingAgentButtonClient />
           <Analytics />
         </div>
       </SmartAgentSessionProvider>

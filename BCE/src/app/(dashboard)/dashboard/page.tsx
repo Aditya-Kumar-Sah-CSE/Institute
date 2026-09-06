@@ -207,8 +207,6 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
             </div>
           </div>
         </div>
-
-        <FloatingMentorButton />
       </div>
     </div>
   );
