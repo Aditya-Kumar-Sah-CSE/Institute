@@ -1,15 +1,15 @@
 .dashboard-shell {
-  display: grid;
-  grid-template-rows: 64px minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   width: 100%;
   min-height: 100vh;
   background-color: var(--bg-primary);
   box-sizing: border-box;
   overflow-x: hidden;
+  padding-top: 64px;
 }
 
 .navbar-wrapper {
-  grid-row: 1;
   position: fixed;
   top: 0;
   left: 0;
@@ -21,7 +21,7 @@
 }
 
 .main-layout {
-  grid-row: 2;
+  flex: 1;
   display: grid;
   grid-template-columns: 70% 30%;
   grid-template-rows: 1fr;
