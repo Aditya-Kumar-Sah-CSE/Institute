@@ -318,7 +318,7 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
       </div>
 
       <div className="navbar-right" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-        {mounted && profile && currentView === 'student' && (
+        {mounted && profile && (
           <div className="desktop-agent-buttons" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button 
               type="button" 
@@ -446,7 +446,7 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
         )}
       </div>
 
-      {profile && currentView === 'student' && (
+      {profile && (
         <>
           <SmartAgentDrawer />
           <SmartMentorDrawer isOpen={isMentorDrawerOpen} onClose={() => setIsMentorDrawerOpen(false)} />

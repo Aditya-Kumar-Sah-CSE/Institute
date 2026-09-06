@@ -13,6 +13,9 @@ import {
 } from '@/components/DynamicWrappers';
 import { Analytics } from "@vercel/analytics/react";
 
+import { LivePageContextProvider } from '@/features/analytics/context/LivePageContext';
+import { SmartAgentSessionProvider } from '@/features/analytics/context/SmartAgentSessionContext';
+
 export default async function InstructorLayout({
   children,
 }: {
@@ -51,29 +54,33 @@ export default async function InstructorLayout({
     .single();
 
   return (
-    <div className="dashboard-shell">
-      <div className="navbar-wrapper">
-        <Navbar 
-          companyName={settings?.company_name} 
-          companyLogo={settings?.logo_url} 
-          profile={profile}
-          currentView="instructor"
-        />
-      </div>
-      <div className="main-layout">
-        <div className="content-wrapper">
-          <main className="dashboard-content">
-            {children}
-          </main>
+    <LivePageContextProvider>
+      <SmartAgentSessionProvider>
+        <div className="dashboard-shell">
+          <div className="navbar-wrapper">
+            <Navbar 
+              companyName={settings?.company_name} 
+              companyLogo={settings?.logo_url} 
+              profile={profile}
+              currentView="instructor"
+            />
+          </div>
+          <div className="main-layout">
+            <div className="content-wrapper">
+              <main className="dashboard-content">
+                {children}
+              </main>
+            </div>
+            <div className="sidebar-wrapper">
+              <Sidebar key="instructor" profile={profile} roleView="instructor" isSuperAdmin={profile.email === SUPER_ADMIN_EMAIL} />
+            </div>
+          </div>
+          <PwaRegister />
+          <PWAInstallPrompt />
+          <FeedbackWidget />
+          <Analytics />
         </div>
-        <div className="sidebar-wrapper">
-          <Sidebar key="instructor" profile={profile} roleView="instructor" isSuperAdmin={profile.email === SUPER_ADMIN_EMAIL} />
-        </div>
-      </div>
-      <PwaRegister />
-      <PWAInstallPrompt />
-      <FeedbackWidget />
-      <Analytics />
-    </div>
+      </SmartAgentSessionProvider>
+    </LivePageContextProvider>
   );
 }
