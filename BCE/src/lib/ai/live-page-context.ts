@@ -42,6 +42,10 @@ export interface LivePageContext {
     | 'latex'
     | 'general';
   pageTitle?: string;
+  visibleHeadings?: string[];
+  visibleTextContent?: string;
+  interactiveElements?: string[];
+  importantIds?: Record<string, string>;
 
   visibleEntities?: {
     sheets?: LiveEntitySheet[];
@@ -53,7 +57,7 @@ export interface LivePageContext {
   };
 
   currentEntity?: {
-    type: 'sheet' | 'problem' | 'course' | 'certificate';
+    type: 'sheet' | 'problem' | 'course' | 'certificate' | 'general';
     id: string;
     title: string;
     metadata?: Record<string, any>;
@@ -63,6 +67,7 @@ export interface LivePageContext {
   loadState?: 'loading' | 'ready' | 'error' | 'not-found' | 'unauthorized';
   navigationId?: string;
   errorCode?: string;
+  timestamp?: number;
 }
 
 export function buildDefaultLiveContext(route: string = '/dashboard'): LivePageContext {
