@@ -1,5 +1,6 @@
 .sidebar {
-  width: var(--sidebar-width, 260px);
+  width: var(--sidebar-width, 280px);
+  min-width: var(--sidebar-width, 280px);
   height: 100vh;
   position: sticky;
   top: 0;
@@ -16,6 +17,7 @@
   -ms-overflow-style: none; /* IE/Edge */
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
+  box-sizing: border-box;
 }
 
 .sidebar.is-collapsed,

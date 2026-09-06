@@ -49,7 +49,7 @@ function NoticeAttachments({ urls, onSelectImage }: { urls: string[], onSelectIm
             style={{ 
               position: 'relative', 
               width: urls.length === 1 ? '200px' : 'clamp(100px, calc(50% - var(--space-sm)), 150px)', 
-              height: urls.length === 1 ? '200px' : 'clamp(100px, calc(50vw - var(--space-md)), 150px)', 
+              height: urls.length === 1 ? '200px' : 'clamp(100px, 120px, 150px)', 
               cursor: 'pointer', 
               borderRadius: 'var(--radius-md)', 
               overflow: 'hidden',
