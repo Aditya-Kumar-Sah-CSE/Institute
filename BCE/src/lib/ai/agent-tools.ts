@@ -430,6 +430,7 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
             headings: live.visibleHeadings,
             textContent: live.visibleTextContent,
             actions: live.interactiveElements,
+            interactiveElementsList: live.interactiveElementsList,
             currentEntity: live.currentEntity,
             visibleEntities: live.visibleEntities,
             uiState: live.loadState
@@ -440,6 +441,108 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
         success: true,
         message: 'Active page context fetched.',
         data: { route: context?.route || '/dashboard' }
+      };
+    }
+  },
+
+  interactWithPageElement: {
+    name: 'interactWithPageElement',
+    description: 'Click, open, edit, save, cancel, delete, select, toggle, submit, close, or interact with any button, link, card, tab, dropdown, menu item, or interactive element currently visible on the live page.',
+    category: 'TOOLS',
+    riskLevel: 'LOW',
+    parameters: {
+      type: 'object',
+      properties: {
+        actionType: { 
+          type: 'string', 
+          enum: ['click', 'open', 'edit', 'save', 'cancel', 'delete', 'select', 'toggle', 'submit', 'close', 'navigate'],
+          description: 'Type of DOM interaction'
+        },
+        targetText: { 
+          type: 'string', 
+          description: 'Visible text, title, aria-label, ID, or description of the target button/link/card/element e.g. "Submit", "Edit Profile", "Save", "Tab 2", "Cancel"' 
+        },
+        elementIndex: { 
+          type: 'number', 
+          description: 'Optional 1-based element index if multiple elements match' 
+        }
+      },
+      required: ['actionType', 'targetText']
+    },
+    examples: ['Submit button dabao', 'click on Edit Profile', '2nd card open karo', 'modal close karo', 'Save button click kar'],
+    execute: async (args, _, context) => {
+      const actionType = args.actionType || 'click';
+      const targetText = args.targetText || '';
+
+      return {
+        success: true,
+        message: `Executing ${actionType} on "${targetText}"...`,
+        data: {
+          clientDOMAction: {
+            actionType,
+            query: targetText,
+            elementIndex: args.elementIndex
+          }
+        }
+      };
+    }
+  },
+
+  fillFormInput: {
+    name: 'fillFormInput',
+    description: 'Type or fill a value into any input field, search box, textarea, or form field on the current page.',
+    category: 'TOOLS',
+    riskLevel: 'LOW',
+    parameters: {
+      type: 'object',
+      properties: {
+        fieldLabel: { 
+          type: 'string', 
+          description: 'Label, placeholder, title, or name of the input field e.g. "Search", "Email", "Password", "Notes"' 
+        },
+        value: { 
+          type: 'string', 
+          description: 'Text value to type into the field' 
+        }
+      },
+      required: ['fieldLabel', 'value']
+    },
+    examples: ['Search bar me Binary Search likho', 'Email field me test@example.com daalo', 'Notes me hello text enter karo'],
+    execute: async (args) => {
+      return {
+        success: true,
+        message: `Filling "${args.fieldLabel}" with "${args.value}"...`,
+        data: {
+          clientDOMAction: {
+            actionType: 'type',
+            query: args.fieldLabel,
+            valueToType: args.value
+          }
+        }
+      };
+    }
+  },
+
+  scanLivePageElements: {
+    name: 'scanLivePageElements',
+    description: 'Refresh and list all interactive elements, buttons, links, tabs, and forms currently available on the user\'s screen.',
+    category: 'TOOLS',
+    riskLevel: 'LOW',
+    parameters: { type: 'object', properties: {} },
+    examples: ['is page par kitne buttons hain?', 'what elements can I click?', 'show actionable items'],
+    execute: async (_, __, context) => {
+      const live = context?.liveContext;
+      const elements = live?.interactiveElements || [];
+      if (elements.length > 0) {
+        return {
+          success: true,
+          message: `Screen पर **${elements.length} actionable elements** पाए गए:\n\n• ${elements.slice(0, 15).join('\n• ')}\n\nAap kisi bhi element par click ya interact karne ke liye kah sakte hain.`,
+          data: { elements }
+        };
+      }
+      return {
+        success: true,
+        message: 'Current page elements scanned. You can click any visible button, card, or menu item.'
       };
     }
   },

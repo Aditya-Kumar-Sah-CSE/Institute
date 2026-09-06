@@ -1,8 +1,7 @@
-'use client';
-
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { LivePageContext, buildDefaultLiveContext } from '@/lib/ai/live-page-context';
 import { extractLiveDOMContext } from '@/lib/ai/live-dom-reader';
+import { executeLiveDOMAction, DOMActionResult } from '@/lib/ai/live-dom-executor';
 import { usePathname, useSearchParams } from 'next/navigation';
 
 interface LivePageContextValue {
@@ -10,6 +9,12 @@ interface LivePageContextValue {
   setLiveContext: (ctx: Partial<LivePageContext>) => void;
   resetLiveContext: () => void;
   getCurrentPageContext: () => LivePageContext;
+  executeDOMActionOnPage: (
+    actionType: 'click' | 'open' | 'edit' | 'save' | 'cancel' | 'delete' | 'select' | 'toggle' | 'submit' | 'close' | 'type' | 'clear' | 'navigate',
+    query: string | number,
+    valueToType?: string,
+    elementIndex?: number
+  ) => DOMActionResult;
 }
 
 const LivePageContextObj = createContext<LivePageContextValue | undefined>(undefined);
@@ -55,8 +60,23 @@ export function LivePageContextProvider({ children }: { children: ReactNode }) {
     return fresh;
   }, [fullRoute]);
 
+  const executeDOMActionOnPage = useCallback((
+    actionType: 'click' | 'open' | 'edit' | 'save' | 'cancel' | 'delete' | 'select' | 'toggle' | 'submit' | 'close' | 'type' | 'clear' | 'navigate',
+    query: string | number,
+    valueToType?: string,
+    elementIndex?: number
+  ): DOMActionResult => {
+    const res = executeLiveDOMAction(actionType, query, valueToType, elementIndex);
+    // Refresh page context after DOM action execution
+    setTimeout(() => {
+      const fresh = extractLiveDOMContext(fullRoute);
+      setContextState(fresh);
+    }, 100);
+    return res;
+  }, [fullRoute]);
+
   return (
-    <LivePageContextObj.Provider value={{ liveContext: contextState, setLiveContext, resetLiveContext, getCurrentPageContext }}>
+    <LivePageContextObj.Provider value={{ liveContext: contextState, setLiveContext, resetLiveContext, getCurrentPageContext, executeDOMActionOnPage }}>
       {children}
     </LivePageContextObj.Provider>
   );
@@ -70,7 +90,8 @@ export function useLivePageContext(): LivePageContextValue {
       liveContext: buildDefaultLiveContext('/dashboard'),
       setLiveContext: () => {},
       resetLiveContext: () => {},
-      getCurrentPageContext: () => buildDefaultLiveContext('/dashboard')
+      getCurrentPageContext: () => buildDefaultLiveContext('/dashboard'),
+      executeDOMActionOnPage: (actionType, query, valueToType, elementIndex) => executeLiveDOMAction(actionType, query, valueToType, elementIndex)
     };
   }
   return ctx;

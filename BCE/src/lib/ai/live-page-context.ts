@@ -1,3 +1,20 @@
+export interface InteractiveDOMElement {
+  id: string;
+  index: number;
+  tag: string;
+  type: 'button' | 'link' | 'tab' | 'card' | 'input' | 'select' | 'textarea' | 'toggle' | 'menu_item' | 'modal_action' | 'other';
+  text: string;
+  ariaLabel?: string;
+  title?: string;
+  role?: string;
+  href?: string;
+  value?: string;
+  placeholder?: string;
+  disabled: boolean;
+  visible: boolean;
+  selector?: string;
+}
+
 export interface LiveEntitySheet {
   id: string;
   slug?: string;
@@ -45,6 +62,7 @@ export interface LivePageContext {
   visibleHeadings?: string[];
   visibleTextContent?: string;
   interactiveElements?: string[];
+  interactiveElementsList?: InteractiveDOMElement[];
   importantIds?: Record<string, string>;
 
   visibleEntities?: {
@@ -84,6 +102,7 @@ export function buildDefaultLiveContext(route: string = '/dashboard'): LivePageC
             : route.includes('/latex-editor') ? 'latex'
             : 'dashboard',
     pageTitle: 'Smart Learn Platform',
-    availableActions: ['open_dashboard', 'open_courses', 'open_dsa', 'get_learning_intelligence']
+    interactiveElementsList: [],
+    availableActions: ['open_dashboard', 'open_courses', 'open_dsa', 'interactWithPageElement', 'fillFormInput', 'get_learning_intelligence']
   };
 }

@@ -1,4 +1,4 @@
-import { LivePageContext, buildDefaultLiveContext, LiveEntityProblem, LiveEntitySheet, LiveEntityCourse } from './live-page-context';
+import { LivePageContext, buildDefaultLiveContext, LiveEntityProblem, LiveEntitySheet, LiveEntityCourse, InteractiveDOMElement } from './live-page-context';
 
 /**
  * Extracts live, rendered DOM context from the active browser window.
@@ -40,13 +40,63 @@ export function extractLiveDOMContext(overrideRoute?: string): LivePageContext {
       visibleTextContent = paragraphs.slice(0, 15).join(' | ');
     }
 
-    // 3. Interactive Buttons & Main Actions
-    const interactiveElements: string[] = [];
-    const btnNodes = document.querySelectorAll('button:not([disabled]), a.btn, a[role="button"], .interactive-action');
-    btnNodes.forEach((el) => {
-      const label = el.textContent?.replace(/\s+/g, ' ').trim();
-      if (label && label.length > 1 && label.length < 40 && !interactiveElements.includes(label)) {
-        interactiveElements.push(label);
+    // 3. Interactive Buttons & Main Actions (Structured Discovery)
+    const interactiveElementsSummary: string[] = [];
+    const interactiveElementsList: InteractiveDOMElement[] = [];
+
+    const candidateNodes = Array.from(
+      document.querySelectorAll(
+        'button, a, input, select, textarea, [role="button"], [role="tab"], [role="menuitem"], [role="checkbox"], [role="switch"], [role="option"], [data-action], .btn, [onclick], details, summary, [tabindex="0"]'
+      )
+    ) as HTMLElement[];
+
+    candidateNodes.forEach((el) => {
+      const isDrawerChild = el.closest('.smart-agent-drawer, .smart-mentor-drawer');
+      const rect = el.getBoundingClientRect();
+      const isVisible = isDrawerChild || (rect.width > 0 && rect.height > 0 && window.getComputedStyle(el).visibility !== 'hidden');
+      if (!isVisible) return;
+
+      const tag = el.tagName.toUpperCase();
+      const text = el.textContent?.replace(/\s+/g, ' ').trim() || '';
+      const ariaLabel = el.getAttribute('aria-label') || undefined;
+      const title = el.getAttribute('title') || undefined;
+      const role = el.getAttribute('role') || undefined;
+      const href = el.getAttribute('href') || undefined;
+      const value = (el as HTMLInputElement).value || undefined;
+      const placeholder = (el as HTMLInputElement).placeholder || undefined;
+      const disabled = (el as HTMLButtonElement).disabled || el.hasAttribute('aria-disabled');
+
+      const label = text || ariaLabel || title || placeholder || el.id || 'Interactive Element';
+
+      if (label && label.length > 1 && label.length < 80) {
+        if (!interactiveElementsSummary.includes(label)) {
+          interactiveElementsSummary.push(label);
+        }
+
+        let type: InteractiveDOMElement['type'] = 'other';
+        if (tag === 'BUTTON' || role === 'button' || el.classList.contains('btn')) type = 'button';
+        else if (tag === 'A' || href) type = 'link';
+        else if (role === 'tab') type = 'tab';
+        else if (tag === 'INPUT' && (el as HTMLInputElement).type === 'checkbox') type = 'toggle';
+        else if (tag === 'INPUT' || tag === 'TEXTAREA') type = 'input';
+        else if (tag === 'SELECT') type = 'select';
+        else if (role === 'menuitem') type = 'menu_item';
+
+        interactiveElementsList.push({
+          id: el.id || `el_${interactiveElementsList.length + 1}`,
+          index: interactiveElementsList.length + 1,
+          tag,
+          type,
+          text: label,
+          ariaLabel,
+          title,
+          role,
+          href,
+          value,
+          placeholder,
+          disabled: Boolean(disabled),
+          visible: true
+        });
       }
     });
 
@@ -153,9 +203,10 @@ export function extractLiveDOMContext(overrideRoute?: string): LivePageContext {
       ...baseContext,
       route,
       pageTitle: docTitle,
-      visibleHeadings: mainHeadings.slice(0, 15),
-      visibleTextContent: visibleTextContent.slice(0, 1200),
-      interactiveElements: interactiveElements.slice(0, 15),
+      visibleHeadings: mainHeadings.slice(0, 20),
+      visibleTextContent: visibleTextContent.slice(0, 1500),
+      interactiveElements: interactiveElementsSummary.slice(0, 30),
+      interactiveElementsList: interactiveElementsList.slice(0, 50),
       currentEntity,
       visibleEntities,
       importantIds,

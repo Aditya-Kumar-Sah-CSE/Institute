@@ -147,7 +147,7 @@ const SmartAgentSessionContext = createContext<SmartAgentSessionContextValue | u
 export function SmartAgentSessionProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { liveContext } = useLivePageContext();
+  const { liveContext, executeDOMActionOnPage } = useLivePageContext();
 
   const [isOpen, setIsOpen] = useState(false);
   const [isVoiceMode, setIsVoiceMode] = useState(true);
@@ -350,6 +350,8 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         },
         onToolExecuted: (toolName, result) => {
           if (voiceSessionIdRef.current !== currentSessionId) return;
+          let executedContent = result.message || `Executed ${toolName}`;
+
           if (result.data) {
             if (result.data.sheetId) agentSessionStateRef.current.sheetId = result.data.sheetId;
             if (result.data.problemId) agentSessionStateRef.current.problemId = result.data.problemId;
@@ -357,6 +359,16 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
             if (result.data.number) agentSessionStateRef.current.problemNumber = result.data.number;
             if ((result.data.code || result.data.sectionTitle) && typeof window !== 'undefined') {
               window.dispatchEvent(new CustomEvent('bce-update-latex', { detail: result.data }));
+            }
+
+            if (result.data.clientDOMAction) {
+              const { actionType, query, valueToType, elementIndex } = result.data.clientDOMAction;
+              const domRes = executeDOMActionOnPage(actionType, query, valueToType, elementIndex);
+              if (domRes.success) {
+                executedContent = `✅ ${domRes.message}`;
+              } else {
+                executedContent = `⚠️ ${domRes.message}`;
+              }
             }
           }
 
@@ -377,7 +389,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
             ...prev,
             {
               role: 'assistant',
-              content: result.message || `Executed ${toolName}`,
+              content: executedContent,
               toolExecuted: toolName,
               actions: result.url ? [{ label: `Open ${toolName}`, url: result.url }] : undefined
             }
@@ -639,11 +651,21 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         return;
       }
 
-      setExecutionState('EXECUTING');
+      let displayMessage = response.message;
+
+      if (response.data && response.data.clientDOMAction) {
+        const { actionType, query, valueToType, elementIndex } = response.data.clientDOMAction;
+        const domRes = executeDOMActionOnPage(actionType, query, valueToType, elementIndex);
+        if (domRes.success) {
+          displayMessage = `✅ ${domRes.message}`;
+        } else {
+          displayMessage = `⚠️ ${domRes.message}`;
+        }
+      }
 
       const nextMsg: SmartAgentMessage = {
         role: 'assistant',
-        content: response.message,
+        content: displayMessage,
         actions: response.actions,
         requiresConfirmation: response.requiresConfirmation,
         toolExecuted: response.toolExecuted,

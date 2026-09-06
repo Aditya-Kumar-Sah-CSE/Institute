@@ -248,6 +248,60 @@ export class AgentController {
       }
     }
 
+    // 0B. Dynamic Live Page Element Interaction & Operations ("click Submit", "Edit button dabao", "save karo", "cancel karo", "type test in search")
+    const liveList = pageContext?.liveContext?.interactiveElementsList || [];
+    const liveSummary = pageContext?.liveContext?.interactiveElements || [];
+
+    // Explicit Click / Open / Edit / Save / Cancel / Delete / Submit Action Detection
+    const clickMatch = promptLower.match(/^(?:click|open|press|tap)\s+(?:on\s+)?(?:the\s+)?(.+?)(?:\s+button|\s+card|\s+link|\s+tab)?$/i) ||
+                       promptLower.match(/^(.+?)\s+(?:button|card|link|tab|option)\s*(?:dabao|click\s*karo|open\s*karo|press\s*karo)?$/i) ||
+                       promptLower.match(/^(edit|save|cancel|delete|submit|close)\s*(?:karo|button|kardo)?$/i);
+
+    if (clickMatch) {
+      const targetQuery = clickMatch[1]?.trim() || promptLower;
+      let actionType: 'click' | 'open' | 'edit' | 'save' | 'cancel' | 'delete' | 'submit' | 'close' = 'click';
+
+      if (promptLower.includes('edit')) actionType = 'edit';
+      else if (promptLower.includes('save') || promptLower.includes('submit')) actionType = 'save';
+      else if (promptLower.includes('cancel')) actionType = 'cancel';
+      else if (promptLower.includes('delete')) actionType = 'delete';
+      else if (promptLower.includes('close')) actionType = 'close';
+      else if (promptLower.includes('open')) actionType = 'open';
+
+      // Check if target matches any visible element on screen
+      const matchedElement = liveList.find((el: any) => {
+        const textStr = (el.text || el.ariaLabel || el.title || '').toLowerCase();
+        return textStr.includes(targetQuery.toLowerCase()) || targetQuery.toLowerCase().includes(textStr);
+      }) || liveSummary.find((s: string) => s.toLowerCase().includes(targetQuery.toLowerCase()));
+
+      if (matchedElement || ['save', 'submit', 'cancel', 'close', 'edit', 'delete'].includes(targetQuery.toLowerCase())) {
+        const elementLabel = typeof matchedElement === 'string' ? matchedElement : (matchedElement?.text || targetQuery);
+        return await executeWithPermission('interactWithPageElement', {
+          actionType,
+          targetText: elementLabel
+        });
+      }
+    }
+
+    // Type / Fill Input Detection ("type hello in search", "search me test daalo")
+    const typeMatch = promptLower.match(/^(?:type|write|fill|enter|daalo|likho)\s+(.+?)\s+(?:in|into|me|par)\s+(.+)$/i) ||
+                      promptLower.match(/^(?:in|me)\s+(.+?)\s+(?:field|input|search)\s+(?:type|write|enter|likho)\s+(.+)$/i);
+    if (typeMatch) {
+      const value = typeMatch[1]?.trim();
+      const fieldLabel = typeMatch[2]?.trim();
+      if (value && fieldLabel) {
+        return await executeWithPermission('fillFormInput', {
+          fieldLabel,
+          value
+        });
+      }
+    }
+
+    // Scan Available Elements Intent ("what buttons are here?", "is page par kya kya click kar sakte hain?")
+    if (/\b(what\s+can\s+i\s+click|buttons\s+dikhao|actionable\s+elements|show\s+buttons|elements\s+list)\b/i.test(promptLower)) {
+      return await executeWithPermission('scanLivePageElements');
+    }
+
     // A. Static Navigation Intents
     if (/\b(dashboard|home)\b/i.test(promptLower)) {
       return await executeWithPermission('openDashboard');
