@@ -62,7 +62,7 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstallable, setIsInstallable] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const [isNavWrapped, setIsNavWrapped] = useState(false);
 
   useEffect(() => {
@@ -234,8 +234,39 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
     isCollapsed ? 'is-collapsed' : null,
   ].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
 
+  if (isCollapsed) return null;
+
   return (
-    <aside className={sidebarClasses} suppressHydrationWarning>
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        backdropFilter: 'blur(5px)',
+        zIndex: 100000,
+        display: 'flex',
+        justifyContent: 'flex-end',
+        alignItems: 'stretch'
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) setIsCollapsed(true);
+      }}
+    >
+      <aside 
+        className={sidebarClasses} 
+        suppressHydrationWarning
+        style={{
+          width: '320px',
+          maxWidth: '100vw',
+          height: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          background: 'var(--bg-secondary)',
+          borderLeft: '1px solid var(--glass-border)',
+          boxShadow: '-10px 0 40px rgba(0,0,0,0.6)',
+          position: 'relative'
+        }}
+      >
       <div className="sidebar-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-2)' }} suppressHydrationWarning>
         <Link href={logoHref} className="sidebar-logo">
           <span className="sidebar-logo-icon text-neon-cyan">{getIcon('Building', { className: 'w-6 h-6' })}</span>
@@ -417,5 +448,6 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
         </form>
       </div>
     </aside>
+    </div>
   );
 }
