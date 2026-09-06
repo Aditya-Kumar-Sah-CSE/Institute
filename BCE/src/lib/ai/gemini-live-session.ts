@@ -138,11 +138,13 @@ export class GeminiLiveSession {
           },
           onerror: (err: any) => {
             console.error('[GEMINI WS] ERROR:', err);
+            this.isReady = false;
             this.callbacks.onConnectionStateChange?.('error');
             this.callbacks.onError?.(err?.message || 'Realtime session connection error.');
           },
           onclose: (e: any) => {
             console.log('[GEMINI WS] CLOSED', { code: e?.code, reason: e?.reason });
+            this.isReady = false;
             this.callbacks.onConnectionStateChange?.('closed');
             if (!this.isStopped) {
               this.stop();
@@ -257,7 +259,14 @@ export class GeminiLiveSession {
         }
 
         // Send realtime audio stream to Gemini Live when connection is ready
-        if (this.isReady) {
+        if (this.isReady && !this.isStopped && this.session) {
+          // Verify underlying WebSocket readyState to avoid "WebSocket is already in CLOSING or CLOSED state" browser warnings
+          const ws = this.session?.ws || (this.session as any)?.webSocket || (this.session as any)?.socket;
+          if (ws && typeof ws.readyState === 'number' && ws.readyState !== 1) { // 1 === WebSocket.OPEN
+            this.isReady = false;
+            return;
+          }
+
           const base64Data = this.arrayBufferToBase64(pcmArrayBuffer);
           try {
             this.session.sendRealtimeInput({
@@ -276,7 +285,7 @@ export class GeminiLiveSession {
               });
             }
           } catch (e) {
-            // Ignore send errors during shutdown
+            this.isReady = false;
           }
         }
       };
@@ -452,7 +461,10 @@ export class GeminiLiveSession {
       this.mediaStream = null;
     }
     if (this.workletNode) {
-      this.workletNode.disconnect();
+      try {
+        this.workletNode.port.onmessage = null;
+        this.workletNode.disconnect();
+      } catch (e) {}
       this.workletNode = null;
     }
     if (this.sourceNode) {
