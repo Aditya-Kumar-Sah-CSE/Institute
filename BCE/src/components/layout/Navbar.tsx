@@ -243,7 +243,7 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
   }
 
   return (
-    <header className="dashboard-navbar" style={{ padding: '0 var(--space-md)' }}>
+    <header className="dashboard-navbar" style={{ padding: '0 var(--space-md)' }} suppressHydrationWarning>
       <div className="navbar-left" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
         {canGoBack && (
           <button
