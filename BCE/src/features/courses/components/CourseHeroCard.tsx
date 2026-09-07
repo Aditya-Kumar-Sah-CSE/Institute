@@ -14,7 +14,7 @@ export default function CourseHeroCard({
   children,
   courseTitle,
   instructorName,
-  initialCollapsed = false,
+  initialCollapsed = true,
 }: CourseHeroCardProps) {
   const [isCollapsed, setIsCollapsed] = useState(initialCollapsed);
 
