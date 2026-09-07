@@ -96,7 +96,7 @@ export default function NoticeBoard({ notices, emptyMessage = 'No notices availa
 
   return (
     <>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 350px), 1fr))', gap: 'var(--space-md)', minWidth: 0 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)', minWidth: 0 }}>
         {notices.map((notice) => (
           <Card key={notice.id} variant="glass" padding="md">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-sm)' }}>
