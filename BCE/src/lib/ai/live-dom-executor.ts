@@ -1,6 +1,7 @@
 import { InteractiveDOMElement } from './live-page-context';
 import { extractLiveDOMContext, invalidateDOMCache, runtimeElementRegistry } from './live-dom-reader';
 import { RuntimeAgentElement, SemanticColorChannel, classifyRGBToSemanticColor } from './live-ui-snapshot';
+import { setAgentVisualState } from './agent-visual-state';
 
 export type WhitelistedActionType = 
   | 'click' 
@@ -352,11 +353,19 @@ export function executeLiveDOMAction(
     const execStart = Date.now();
     const labelText = targetElement?.text || targetDomNode.textContent?.trim() || String(query);
 
+    setAgentVisualState('targeting', {
+      targetText: labelText,
+      targetDomNode,
+      targetElementId: targetElement?.id
+    });
+
     if (normalizedAction === 'scroll') {
+      setAgentVisualState('scrolling', { targetText: labelText, targetDomNode });
       targetDomNode.scrollIntoView({ behavior: 'smooth', block: 'center' });
       invalidateDOMCache();
       executionTimeMs = Date.now() - execStart;
       releaseLock();
+      setAgentVisualState('success', { message: `Scrolled to "${labelText}"` });
       return {
         success: true,
         message: `Scrolled to element "${labelText}".`,
@@ -398,6 +407,7 @@ export function executeLiveDOMAction(
     }
 
     if (normalizedAction === 'type' || targetDomNode.tagName === 'INPUT' || targetDomNode.tagName === 'TEXTAREA') {
+      setAgentVisualState('typing', { targetText: labelText, targetDomNode });
       if (valueToType !== undefined) {
         targetDomNode.focus();
         if ('value' in targetDomNode) {
@@ -414,6 +424,8 @@ export function executeLiveDOMAction(
       }
       targetDomNode.dispatchEvent(new Event('input', { bubbles: true }));
       targetDomNode.dispatchEvent(new Event('change', { bubbles: true }));
+    } else {
+      setAgentVisualState('clicking', { targetText: labelText, targetDomNode });
     }
 
     // Interaction Event Sequence
@@ -433,6 +445,7 @@ export function executeLiveDOMAction(
     // Automatic Link Navigation Fallback
     const hrefAttr = targetDomNode.getAttribute('href') || targetDomNode.closest('a')?.getAttribute('href');
     if (hrefAttr && !hrefAttr.startsWith('#') && !hrefAttr.startsWith('javascript:')) {
+      setAgentVisualState('navigating', { targetText: labelText, targetDomNode });
       setTimeout(() => {
         const pathNow = window.location.pathname + window.location.search;
         if (pathNow !== hrefAttr && !pathNow.startsWith(hrefAttr)) {
@@ -443,6 +456,7 @@ export function executeLiveDOMAction(
 
     // 5. POST-ACTION VERIFICATION
     const verStart = Date.now();
+    setAgentVisualState('verifying', { targetDomNode });
     invalidateDOMCache();
 
     let urlChanged = false;
@@ -455,6 +469,12 @@ export function executeLiveDOMAction(
     verificationTimeMs = Date.now() - verStart;
 
     releaseLock();
+
+    if (errorBanner) {
+      setAgentVisualState('error', { message: 'Action error encountered' });
+    } else {
+      setAgentVisualState('success', { message: 'Action completed' });
+    }
 
     if (errorBanner) {
       const errTxt = errorBanner.textContent?.trim() || 'Error encountered after execution';

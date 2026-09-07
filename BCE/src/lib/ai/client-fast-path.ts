@@ -1,5 +1,6 @@
 import { AppRole, canAccessPage, normalizeAgentRole } from '@/lib/auth/agent-permissions';
 import { LivePageContext } from '@/lib/ai/live-page-context';
+import { setAgentVisualState } from './agent-visual-state';
 
 export interface NavigationTelemetry {
   intentResolutionMs: number;
@@ -71,6 +72,8 @@ export function resolveClientFastPath(
   const p = prompt.trim().toLowerCase();
   const normalizedRole = normalizeAgentRole(userRole);
   const language = detectPromptLanguage(p);
+
+  setAgentVisualState('resolving');
 
   const elementsList = liveContext?.interactiveElementsList || [];
   const cards = liveContext?.snapshot?.cards || [];

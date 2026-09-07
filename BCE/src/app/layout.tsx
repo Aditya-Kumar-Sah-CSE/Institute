@@ -55,6 +55,8 @@ import PwaRegister from '@/components/PwaRegister';
 import { DynamicPWAInstallPrompt, DynamicPwaUpdateToast } from '@/components/DynamicWrappers';
 import GlobalAgentProvider from '@/components/GlobalAgentProvider';
 
+import AgentInteractionCursor from '@/features/analytics/components/AgentInteractionCursor';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -65,6 +67,7 @@ export default function RootLayout({
       <body suppressHydrationWarning className={`${outfit.variable} ${jetbrainsMono.variable}`}>
         <ThemeProvider attribute="data-theme" defaultTheme="dark" enableSystem={false} disableTransitionOnChange={false}>
           <GlobalAgentProvider>
+            <AgentInteractionCursor />
             <AuthChangeHandler />
             <GlobalButtonLoadingHandler />
             <PwaRegister />
