@@ -70,7 +70,6 @@ export function invalidateAllEntityCaches(): void {
 const FILLER_WORDS = new Set([
   'kholo', 'khol', 'kholna', 'kholne', 'open', 'show', 'dikhao', 'dikha', 'view', 'go', 'goto', 'navigate',
   'wala', 'wali', 'wale', 'karo', 'kardo', 'do', 'par', 'me', 'mein', 'ka', 'ki', 'ke', 'ko',
-  'course', 'courses', 'subject', 'subjects', 'sheet', 'sheets', 'dsa', 'problem', 'problems', 'question', 'questions',
   'please', 'mujhe', 'mera', 'meri', 'mere', 'iska', 'iski', 'iske', 'this', 'that', 'the', 'a', 'an'
 ]);
 

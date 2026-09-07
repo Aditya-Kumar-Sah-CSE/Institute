@@ -202,9 +202,57 @@ export function resolveClientFastPath(
     };
   }
 
-  // 4. Open DSA / Coding Sheets (GENERIC CATALOG ONLY)
-  const isGenericSheetsOnly = /^(open\s+dsa|dsa\s+kholo|open\s+sheets?|sheets?\s+kholo|coding\s+sheets?|dsa\s+sheets?|all\s+sheets|show\s+dsa\s+sheets|show\s+sheets)$/i.test(p);
-  if (isGenericSheetsOnly) {
+  // 4. Open DSA / Coding Sheets (Generic OR Specific Sheet Queries like "leetcode 100 basic sheet kholo")
+  const isSheetQuery = /\b(sheet|sheets|dsa|leetcode|striver|blind\s*75|coding\s+sheet)\b/i.test(p);
+  if (isSheetQuery) {
+    // Extract key tokens (e.g. "leetcode", "100", "basic")
+    const queryTokens = p
+      .replace(/\b(open|kholo|show|dikhao|view|start|karo|kardo|wala|wali|wale|sheet|sheets|dsa|par|me|mein|ka|ki|ke|ko)\b/gi, ' ')
+      .trim()
+      .split(/\s+/)
+      .filter(t => t.length > 0);
+
+    if (queryTokens.length > 0) {
+      // Strategy 1: Match live cards by token inclusion
+      const matchedCard = cards.find(card => {
+        const titleLower = (card.title || '').toLowerCase();
+        return queryTokens.every(tok => titleLower.includes(tok)) ||
+               (queryTokens.length > 1 && queryTokens.some(tok => titleLower.includes(tok)));
+      });
+
+      if (matchedCard) {
+        const targetId = matchedCard.actionableElementIds?.[0] || matchedCard.id || matchedCard.title || 'sheet';
+        return {
+          isMatch: true,
+          clientAction: 'interact',
+          interactArgs: { actionType: 'click', targetText: targetId },
+          streamingMessage: `Opening ${matchedCard.title || 'Sheet'}...`,
+          successMessage: `Opened ${matchedCard.title || 'Sheet'}.`,
+          allowed: true,
+          language
+        };
+      }
+
+      // Strategy 2: Match live interactive DOM elements
+      const matchedEl = elementsList.find(el => {
+        const elText = (el.text || el.dataAgentLabel || el.dataAgentAction || el.ariaLabel || el.title || '').toLowerCase();
+        return queryTokens.some(tok => tok.length > 1 && elText.includes(tok));
+      });
+
+      if (matchedEl) {
+        return {
+          isMatch: true,
+          clientAction: 'interact',
+          interactArgs: { actionType: 'click', targetText: matchedEl.id },
+          streamingMessage: `Clicking ${matchedEl.text || 'Sheet'}...`,
+          successMessage: `Opened ${matchedEl.text || 'Sheet'}.`,
+          allowed: true,
+          language
+        };
+      }
+    }
+
+    // Fallback: Click DSA link or navigate to /code-arena/sheets
     const liveDsaEl = findLiveElement('dsa') || findLiveElement('sheets');
     if (liveDsaEl) {
       return {

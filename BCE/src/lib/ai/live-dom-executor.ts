@@ -148,18 +148,42 @@ export function executeLiveDOMAction(
         else if (queryLower.includes('modal') || queryLower.includes('dialog') || queryLower.includes('popup')) sectionFilter = 'modal';
         else if (queryLower.includes('main')) sectionFilter = 'main';
 
+        const cleanQueryTokens = queryLower
+          .replace(/\b(kholo|khol|open|show|dikhao|view|go|navigate|karo|kardo|wala|wali|wale|par|me|mein|ka|ki|ke|ko)\b/gi, ' ')
+          .trim()
+          .split(/\s+/)
+          .filter(t => t.length > 0);
+
         const matched = candidates.filter((item) => {
           if (sectionFilter && item.parentSection !== sectionFilter) return false;
           if (colorFilter && item.computedColor?.semanticColor !== colorFilter) return false;
 
-          const dataActionMatch = item.dataAgentAction?.toLowerCase().includes(queryLower);
-          const dataLabelMatch = item.dataAgentLabel?.toLowerCase().includes(queryLower);
-          const ariaMatch = item.ariaLabel?.toLowerCase().includes(queryLower);
-          const textMatch = item.text.toLowerCase().includes(queryLower);
-          const cardMatch = item.parentCardTitle?.toLowerCase().includes(queryLower);
-          const placeholderMatch = item.placeholder?.toLowerCase().includes(queryLower);
+          const dataAction = (item.dataAgentAction || '').toLowerCase();
+          const dataLabel = (item.dataAgentLabel || '').toLowerCase();
+          const aria = (item.ariaLabel || '').toLowerCase();
+          const text = item.text.toLowerCase();
+          const cardTitle = (item.parentCardTitle || '').toLowerCase();
+          const placeholder = (item.placeholder || '').toLowerCase();
+          const combinedTargetText = `${text} ${dataLabel} ${dataAction} ${aria} ${cardTitle} ${placeholder}`;
 
-          return Boolean(dataActionMatch || dataLabelMatch || ariaMatch || textMatch || cardMatch || placeholderMatch);
+          const fullMatch = Boolean(
+            dataAction.includes(queryLower) ||
+            dataLabel.includes(queryLower) ||
+            aria.includes(queryLower) ||
+            text.includes(queryLower) ||
+            cardTitle.includes(queryLower) ||
+            placeholder.includes(queryLower)
+          );
+
+          if (fullMatch) return true;
+
+          // Token-based match: if clean tokens (e.g. "leetcode", "100", "basic") are present
+          if (cleanQueryTokens.length > 0) {
+            const matchCount = cleanQueryTokens.filter(tok => combinedTargetText.includes(tok)).length;
+            return matchCount === cleanQueryTokens.length || (cleanQueryTokens.length > 1 && matchCount >= Math.ceil(cleanQueryTokens.length * 0.6));
+          }
+
+          return false;
         });
 
         if (matched.length > 1) {
