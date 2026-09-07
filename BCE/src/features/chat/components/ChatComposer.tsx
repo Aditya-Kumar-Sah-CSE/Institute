@@ -30,7 +30,7 @@ export default function ChatComposer({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [stagedAttachment, setStagedAttachment] = useState<{ file: File; type: string; previewUrl: string } | null>(null);
+  const [stagedAttachments, setStagedAttachments] = useState<Array<{ id: string; file: File; type: string; previewUrl: string }>>([]);
 
   // Audio Recording State
   const [isRecording, setIsRecording] = useState(false);
@@ -68,19 +68,39 @@ export default function ChatComposer({
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const file = files[0];
-    let type = forcedType || 'file';
-    if (!forcedType) {
-      if (file.type.startsWith('image/')) type = 'image';
-      else if (file.type.startsWith('video/')) type = 'video';
-      else if (file.type.startsWith('audio/')) type = 'audio';
-      else if (file.type === 'application/pdf') type = 'pdf';
-      else type = 'file';
-    }
+    const newAttachments: Array<{ id: string; file: File; type: string; previewUrl: string }> = [];
+    Array.from(files).forEach(file => {
+      let type = forcedType || 'file';
+      if (!forcedType) {
+        if (file.type.startsWith('image/')) type = 'image';
+        else if (file.type.startsWith('video/')) type = 'video';
+        else if (file.type.startsWith('audio/')) type = 'audio';
+        else if (file.type === 'application/pdf') type = 'pdf';
+        else type = 'file';
+      }
 
-    const previewUrl = URL.createObjectURL(file);
-    setStagedAttachment({ file, type, previewUrl });
+      const previewUrl = URL.createObjectURL(file);
+      newAttachments.push({
+        id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        file,
+        type,
+        previewUrl
+      });
+    });
+
+    setStagedAttachments(prev => [...prev, ...newAttachments]);
     setShowAttachmentMenu(false);
+    e.target.value = '';
+  };
+
+  const removeStagedAttachment = (id: string) => {
+    setStagedAttachments(prev => {
+      const target = prev.find(att => att.id === id);
+      if (target) {
+        URL.revokeObjectURL(target.previewUrl);
+      }
+      return prev.filter(att => att.id !== id);
+    });
   };
 
   const uploadFileToSupabase = async (file: File, type: string): Promise<string> => {
@@ -90,7 +110,6 @@ export default function ChatComposer({
     const filePath = `chat/${type}s/${filename}`;
 
     setIsUploading(true);
-    setUploadProgress(20);
 
     const { data, error } = await supabase.storage
       .from('attachments')
@@ -106,13 +125,9 @@ export default function ChatComposer({
         setIsUploading(false);
         throw new Error(fallbackError.message);
       }
-      setUploadProgress(100);
-      setIsUploading(false);
       return supabase.storage.from('lesson_notes').getPublicUrl(fallbackData.path).data.publicUrl;
     }
 
-    setUploadProgress(100);
-    setIsUploading(false);
     return supabase.storage.from('attachments').getPublicUrl(data.path).data.publicUrl;
   };
 
@@ -151,6 +166,8 @@ export default function ChatComposer({
         await handleSend('🎤 Voice Message', 'audio', publicUrl);
       } catch (err: any) {
         alert('Voice message upload failed: ' + err.message);
+      } finally {
+        setIsUploading(false);
       }
     };
 
@@ -168,28 +185,42 @@ export default function ChatComposer({
     e.preventDefault();
     if (isUploading) return;
 
-    let attachmentUrl: string | undefined = undefined;
-    let attachmentType: string | undefined = undefined;
-
-    if (stagedAttachment) {
+    if (stagedAttachments.length > 0) {
+      setIsUploading(true);
+      setUploadProgress(5);
+      const totalCount = stagedAttachments.length;
       try {
-        attachmentUrl = await uploadFileToSupabase(stagedAttachment.file, stagedAttachment.type);
-        attachmentType = stagedAttachment.type;
+        for (let i = 0; i < totalCount; i++) {
+          const att = stagedAttachments[i];
+          setUploadProgress(Math.round(((i + 1) / totalCount) * 100));
+          const publicUrl = await uploadFileToSupabase(att.file, att.type);
+          
+          // First attachment carries the typed message input if provided
+          const messageContent = (i === 0 && msgInput.trim()) ? msgInput.trim() : '';
+          await handleSend(messageContent, att.type, publicUrl);
+        }
+
+        setMsgInput('');
+        setStagedAttachments([]);
       } catch (err: any) {
-        alert('File upload failed: ' + err.message);
-        return;
+        alert('Upload error: ' + err.message);
+      } finally {
+        setIsUploading(false);
+        setUploadProgress(0);
       }
+      setShowEmojiPicker(false);
+      setShowAttachmentMenu(false);
+      return;
     }
 
-    if (!msgInput.trim() && !attachmentUrl) return;
+    if (!msgInput.trim()) return;
 
     const contentToSend = msgInput;
     setMsgInput('');
-    setStagedAttachment(null);
     setShowEmojiPicker(false);
     setShowAttachmentMenu(false);
 
-    await handleSend(contentToSend, attachmentType, attachmentUrl);
+    await handleSend(contentToSend);
   };
 
   const formatRecordingTime = (secs: number) => {
@@ -210,6 +241,7 @@ export default function ChatComposer({
       <input 
         type="file" 
         ref={fileInputRef} 
+        multiple
         style={{ display: 'none' }} 
         onChange={(e) => handleFileSelected(e)} 
       />
@@ -271,44 +303,62 @@ export default function ChatComposer({
         </div>
       )}
 
-      {/* Staged Attachment Preview Bar */}
-      {stagedAttachment && (
+      {/* Staged Attachments Preview Queue Bar */}
+      {stagedAttachments.length > 0 && (
         <div style={{
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+          gap: '10px',
+          overflowX: 'auto',
           padding: '8px 12px',
           background: 'var(--bg-elevated)',
           border: '1px solid var(--glass-border)',
           borderRadius: '12px',
           marginBottom: '8px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {stagedAttachment.type === 'image' ? (
-              <img src={stagedAttachment.previewUrl} alt="preview" style={{ width: 40, height: 40, borderRadius: 6, objectFit: 'cover' }} />
-            ) : stagedAttachment.type === 'video' ? (
-              <video src={stagedAttachment.previewUrl} style={{ width: 40, height: 40, borderRadius: 6, objectFit: 'cover' }} />
-            ) : (
-              <FileText size={28} color="var(--neon-cyan)" />
-            )}
-            <div>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                {stagedAttachment.file.name}
+        }} className="no-scrollbar">
+          {stagedAttachments.map((att) => (
+            <div key={att.id} style={{
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              background: 'var(--bg-secondary)',
+              padding: '6px 10px',
+              borderRadius: '8px',
+              border: '1px solid var(--border-default)',
+              flexShrink: 0,
+              maxWidth: '200px'
+            }}>
+              {att.type === 'image' ? (
+                <img src={att.previewUrl} alt="preview" style={{ width: 36, height: 36, borderRadius: 6, objectFit: 'cover' }} />
+              ) : att.type === 'video' ? (
+                <video src={att.previewUrl} style={{ width: 36, height: 36, borderRadius: 6, objectFit: 'cover' }} />
+              ) : (
+                <FileText size={24} color="var(--neon-cyan)" />
+              )}
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {att.file.name}
+                </div>
+                <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                  {(att.file.size / (1024 * 1024)).toFixed(2)} MB
+                </div>
               </div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                {(stagedAttachment.file.size / (1024 * 1024)).toFixed(2)} MB
-              </div>
+              {!isUploading && (
+                <button 
+                  type="button" 
+                  onClick={() => removeStagedAttachment(att.id)} 
+                  style={{ background: 'none', border: 'none', color: '#ff3b30', cursor: 'pointer', padding: '2px' }}
+                >
+                  <X size={14} />
+                </button>
+              )}
             </div>
-          </div>
+          ))}
 
-          {isUploading ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--neon-cyan)' }}>
-              <Loader2 size={16} className="animate-spin" /> Uploading...
+          {isUploading && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--neon-cyan)', paddingLeft: '8px', whiteSpace: 'nowrap' }}>
+              <Loader2 size={16} className="animate-spin" /> Uploading ({uploadProgress}%)...
             </div>
-          ) : (
-            <button onClick={() => setStagedAttachment(null)} style={{ background: 'none', border: 'none', color: '#ff3b30', cursor: 'pointer' }}>
-              <X size={18} />
-            </button>
           )}
         </div>
       )}
@@ -411,14 +461,14 @@ export default function ChatComposer({
               gap: '4px',
               boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
               zIndex: 30,
-              minWidth: '160px'
+              minWidth: '170px'
             }}>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', borderRadius: '8px', fontSize: '13px' }}
               >
-                <ImageIcon size={18} color="var(--neon-cyan)" /> Image / Video
+                <ImageIcon size={18} color="var(--neon-cyan)" /> Photos & Videos
               </button>
               <button
                 type="button"
@@ -432,7 +482,7 @@ export default function ChatComposer({
                 onClick={() => fileInputRef.current?.click()}
                 style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', borderRadius: '8px', fontSize: '13px' }}
               >
-                <FileText size={18} color="var(--neon-gold)" /> Document
+                <FileText size={18} color="var(--neon-gold)" /> Documents
               </button>
             </div>
           )}
@@ -483,7 +533,7 @@ export default function ChatComposer({
                   onSubmitMessage(e);
                 }
               }}
-              placeholder="Type a message..."
+              placeholder={stagedAttachments.length > 0 ? "Add a caption..." : "Type a message..."}
               style={{ 
                 flex: 1,
                 background: 'transparent', 
@@ -510,7 +560,7 @@ export default function ChatComposer({
               style={{ 
                 background: 'transparent', 
                 border: 'none', 
-                color: showAttachmentMenu ? 'var(--neon-cyan)' : 'var(--text-muted)', 
+                color: (showAttachmentMenu || stagedAttachments.length > 0) ? 'var(--neon-cyan)' : 'var(--text-muted)', 
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -524,7 +574,7 @@ export default function ChatComposer({
           </div>
 
           {/* Mic OR Send Button */}
-          {(!msgInput.trim() && !stagedAttachment) ? (
+          {(!msgInput.trim() && stagedAttachments.length === 0) ? (
             <button 
               type="button"
               onClick={startVoiceRecording}

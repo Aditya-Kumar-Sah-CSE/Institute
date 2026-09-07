@@ -11,7 +11,7 @@ interface OpenAgentPlanButtonProps {
 }
 
 export default function OpenAgentPlanButton({
-  label = 'Talk to your AI Coach about your learning plan →',
+  label = 'Talk to Smart Agent about your learning plan →',
   prompt = 'Explain my personalized learning plan, why these topics are recommended, and what I should study today.'
 }: OpenAgentPlanButtonProps) {
   const { openDrawer } = useSmartAgentSession();

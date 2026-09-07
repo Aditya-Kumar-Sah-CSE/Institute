@@ -162,11 +162,12 @@ export default function BattleAnalyticsModal({
           }}
         >
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <BarChart2 size={18} className="text-neon-cyan" />
               <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }} className="text-gradient">
                 Battle Analytics & Registration Roster
               </h2>
+
             </div>
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
               {battleDetails?.title} • Join Code: <strong style={{ color: 'var(--neon-gold)' }}>{battleDetails?.join_code}</strong>

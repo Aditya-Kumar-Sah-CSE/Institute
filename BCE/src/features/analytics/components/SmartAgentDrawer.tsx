@@ -189,7 +189,7 @@ export default function SmartAgentDrawer() {
 
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                ✦ Smart Agent <span style={{ fontSize: '10px', color: isListening ? '#00ff88' : isSpeaking ? 'var(--neon-cyan)' : 'var(--neon-lime)', fontWeight: 600 }}>({isListening ? 'Listening…' : isSpeaking ? 'Speaking…' : isLoading ? 'Processing…' : 'Active'})</span>
+                Smart Agent <span style={{ fontSize: '10px', color: isListening ? '#00ff88' : isSpeaking ? 'var(--neon-cyan)' : 'var(--neon-lime)', fontWeight: 600 }}>({isListening ? 'Listening…' : isSpeaking ? 'Speaking…' : isLoading ? 'Processing…' : 'Active'})</span>
               </span>
             </div>
           </div>
@@ -313,6 +313,7 @@ export default function SmartAgentDrawer() {
                 <h3 style={{ margin: 0, fontSize: 'var(--text-sm)', fontWeight: 'bold', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   ✦ Smart Learn Agent
                 </h3>
+
                 {activeProvider ? (
                   <span style={{ fontSize: '10px', color: '#00ff88', background: 'rgba(0, 255, 136, 0.12)', border: '1px solid rgba(0, 255, 136, 0.3)', padding: '1px 6px', borderRadius: '10px', fontWeight: 'bold' }}>
                     ✓ {activeProvider === 'gemini' ? 'Gemini' : 'Grok'}

@@ -1,36 +1,56 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Send, Search, Check, Users, User } from 'lucide-react';
-import type { ChatConversation } from '@/types/database';
+import { X, Send, Search, Check, Users, User, CheckSquare, Square } from 'lucide-react';
+import type { ChatConversation, ChatMessage } from '@/types/database';
 import UserAvatar from '@/components/shared/UserAvatar';
 
 interface ForwardModalProps {
   isOpen: boolean;
-  messageContent: string;
+  messagesToForward?: ChatMessage[];
+  messageContent?: string;
   attachmentType?: string | null;
   attachmentLink?: string | null;
   chats: ChatConversation[];
   currentUserId: string | null;
   onClose: () => void;
-  onForward: (targetConversationId: string) => Promise<void>;
+  onForward: (targetConversationIds: string[], messages: ChatMessage[]) => Promise<void>;
 }
 
 export default function ForwardModal({
   isOpen,
-  messageContent,
-  attachmentType,
-  attachmentLink,
+  messagesToForward = [],
+  messageContent = '',
+  attachmentType = null,
+  attachmentLink = null,
   chats,
   currentUserId,
   onClose,
   onForward
 }: ForwardModalProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const [selectedChatIds, setSelectedChatIds] = useState<string[]>([]);
   const [isSending, setIsSending] = useState(false);
 
   if (!isOpen) return null;
+
+  // Normalize effective messages to forward
+  const effectiveMessages: ChatMessage[] = messagesToForward.length > 0 
+    ? messagesToForward 
+    : [{
+        id: 'single_temp',
+        conversation_id: '',
+        sender_id: currentUserId || '',
+        content: messageContent,
+        attachment_type: attachmentType as any,
+        attachment_link: attachmentLink,
+        reply_to_id: null,
+        is_edited: false,
+        is_pinned: false,
+        deleted_for_everyone: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }];
 
   const filteredChats = chats.filter(chat => {
     if (!searchTerm.trim()) return true;
@@ -42,14 +62,28 @@ export default function ForwardModal({
     return name.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
+  const toggleChatSelection = (chatId: string) => {
+    setSelectedChatIds(prev => 
+      prev.includes(chatId) ? prev.filter(id => id !== chatId) : [...prev, chatId]
+    );
+  };
+
+  const handleSelectAllFiltered = () => {
+    if (selectedChatIds.length === filteredChats.length) {
+      setSelectedChatIds([]);
+    } else {
+      setSelectedChatIds(filteredChats.map(c => c.id));
+    }
+  };
+
   const handleConfirmForward = async () => {
-    if (!selectedChatId) return;
+    if (selectedChatIds.length === 0) return;
     setIsSending(true);
     try {
-      await onForward(selectedChatId);
+      await onForward(selectedChatIds, effectiveMessages);
       onClose();
     } catch (err: any) {
-      alert('Failed to forward message: ' + err.message);
+      alert('Failed to forward message(s): ' + err.message);
     } finally {
       setIsSending(false);
     }
@@ -72,7 +106,7 @@ export default function ForwardModal({
         border: '1px solid var(--border-default)',
         borderRadius: 'var(--radius-lg)',
         padding: '24px',
-        maxWidth: '440px',
+        maxWidth: '460px',
         width: '100%',
         color: 'var(--text-primary)',
         boxShadow: '0 20px 30px rgba(0,0,0,0.5)',
@@ -83,7 +117,7 @@ export default function ForwardModal({
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-divider)', paddingBottom: '12px' }}>
           <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Send size={18} style={{ color: 'var(--neon-cyan)', transform: 'rotate(-20deg)' }} /> Forward Message
+            <Send size={18} style={{ color: 'var(--neon-cyan)', transform: 'rotate(-20deg)' }} /> Forward Message{effectiveMessages.length > 1 ? 's' : ''}
           </h3>
           <button
             onClick={onClose}
@@ -101,41 +135,66 @@ export default function ForwardModal({
           borderLeft: '4px solid var(--neon-cyan)',
           fontSize: '13px',
           color: 'var(--text-secondary)',
-          maxHeight: '60px',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis'
+          maxHeight: '70px',
+          overflowY: 'auto'
         }}>
-          {messageContent || (attachmentType ? `[${attachmentType.toUpperCase()} Attachment]` : 'Forwarded message')}
+          {effectiveMessages.length > 1 ? (
+            <span style={{ fontWeight: 700, color: 'var(--neon-cyan)' }}>
+              Forwarding {effectiveMessages.length} selected messages
+            </span>
+          ) : (
+            effectiveMessages[0]?.content || (effectiveMessages[0]?.attachment_type ? `[${effectiveMessages[0].attachment_type.toUpperCase()} Attachment]` : 'Forwarded message')
+          )}
         </div>
 
-        {/* Search */}
-        <div style={{ position: 'relative' }}>
-          <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-          <input 
-            type="text" 
-            placeholder="Search chat or contact..." 
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '10px 12px 10px 36px',
-              borderRadius: 'var(--radius-md)',
-              background: 'var(--bg-input)',
-              border: '1px solid var(--border-default)',
-              color: 'var(--text-primary)',
-              outline: 'none',
-              fontSize: '13px'
-            }}
-          />
+        {/* Search & Select All Bar */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <input 
+              type="text" 
+              placeholder="Search chats or contacts..." 
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 12px 10px 36px',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--bg-input)',
+                border: '1px solid var(--border-default)',
+                color: 'var(--text-primary)',
+                outline: 'none',
+                fontSize: '13px'
+              }}
+            />
+          </div>
+          {filteredChats.length > 0 && (
+            <button
+              onClick={handleSelectAllFiltered}
+              style={{
+                padding: '8px 12px',
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border-default)',
+                borderRadius: 'var(--radius-md)',
+                color: 'var(--neon-cyan)',
+                fontSize: '12px',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                fontWeight: 600
+              }}
+            >
+              {selectedChatIds.length === filteredChats.length ? 'Deselect All' : 'Select All'}
+            </button>
+          )}
         </div>
 
-        {/* Chat List */}
+        {/* Chat Selection List */}
         <div style={{ maxHeight: '240px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }} className="no-scrollbar">
           {filteredChats.length === 0 ? (
             <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px', margin: '20px 0' }}>No chats found.</p>
           ) : (
             filteredChats.map(chat => {
-              const isSelected = selectedChatId === chat.id;
+              const isSelected = selectedChatIds.includes(chat.id);
               let name = chat.name || 'Group';
               let avatar = null;
 
@@ -150,7 +209,7 @@ export default function ForwardModal({
               return (
                 <div 
                   key={chat.id}
-                  onClick={() => setSelectedChatId(chat.id)}
+                  onClick={() => toggleChatSelection(chat.id)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -169,7 +228,11 @@ export default function ForwardModal({
                     </div>
                     <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>{name}</span>
                   </div>
-                  {isSelected && <Check size={18} style={{ color: 'var(--neon-cyan)' }} />}
+                  {isSelected ? (
+                    <CheckSquare size={18} style={{ color: 'var(--neon-cyan)' }} />
+                  ) : (
+                    <Square size={18} style={{ color: 'var(--text-muted)' }} />
+                  )}
                 </div>
               );
             })
@@ -177,38 +240,43 @@ export default function ForwardModal({
         </div>
 
         {/* Footer */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' }}>
-          <button
-            onClick={onClose}
-            style={{
-              padding: '8px 16px',
-              borderRadius: 'var(--radius-sm)',
-              background: 'transparent',
-              border: '1px solid var(--border-default)',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              fontSize: '13px'
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleConfirmForward}
-            disabled={!selectedChatId || isSending}
-            style={{
-              padding: '8px 20px',
-              borderRadius: 'var(--radius-sm)',
-              background: selectedChatId ? 'var(--neon-cyan)' : 'var(--bg-elevated)',
-              border: 'none',
-              color: selectedChatId ? '#000' : 'var(--text-muted)',
-              fontWeight: 700,
-              cursor: (!selectedChatId || isSending) ? 'not-allowed' : 'pointer',
-              fontSize: '13px',
-              transition: 'all 0.2s'
-            }}
-          >
-            {isSending ? 'Forwarding...' : 'Send Forward'}
-          </button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+            {selectedChatIds.length} chat{selectedChatIds.length !== 1 ? 's' : ''} selected
+          </span>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button
+              onClick={onClose}
+              style={{
+                padding: '8px 16px',
+                borderRadius: 'var(--radius-sm)',
+                background: 'transparent',
+                border: '1px solid var(--border-default)',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                fontSize: '13px'
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirmForward}
+              disabled={selectedChatIds.length === 0 || isSending}
+              style={{
+                padding: '8px 20px',
+                borderRadius: 'var(--radius-sm)',
+                background: selectedChatIds.length > 0 ? 'var(--neon-cyan)' : 'var(--bg-elevated)',
+                border: 'none',
+                color: selectedChatIds.length > 0 ? '#000' : 'var(--text-muted)',
+                fontWeight: 700,
+                cursor: (selectedChatIds.length === 0 || isSending) ? 'not-allowed' : 'pointer',
+                fontSize: '13px',
+                transition: 'all 0.2s'
+              }}
+            >
+              {isSending ? 'Forwarding...' : `Forward (${selectedChatIds.length})`}
+            </button>
+          </div>
         </div>
       </div>
     </div>

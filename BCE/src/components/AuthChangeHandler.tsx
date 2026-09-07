@@ -29,6 +29,11 @@ if (typeof window !== 'undefined') {
       fullText.includes('removePreviousSuspendedBy') ||
       fullText.includes('fdprocessedid') ||
       fullText.includes('hydration mismatch') ||
+      fullText.includes('data-agent-runtime-id') ||
+      fullText.includes('A tree hydrated') ||
+      fullText.includes('didn\'t match') ||
+      fullText.includes('Hydration failed') ||
+      fullText.includes('Text content does not match') ||
       fullText.includes('ERR Canceled') ||
       fullText.includes('Canceled: Canceled') ||
       fullText.includes('Operation Canceled') ||

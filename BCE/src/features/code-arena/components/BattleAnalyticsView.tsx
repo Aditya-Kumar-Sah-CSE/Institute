@@ -62,10 +62,13 @@ export default function BattleAnalyticsView({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
         <div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', color: 'var(--neon-cyan)', fontWeight: 700 }}>
-            <BarChart2 size={16} /> BATTLE PERFORMANCE ANALYTICS
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', color: 'var(--neon-cyan)', fontWeight: 700 }}>
+              <BarChart2 size={16} /> BATTLE PERFORMANCE ANALYTICS
+            </div>
+
           </div>
           <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 800, margin: '2px 0' }}>
             {battle.title}

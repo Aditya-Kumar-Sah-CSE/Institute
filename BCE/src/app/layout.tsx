@@ -21,8 +21,8 @@ import AuthChangeHandler from '@/components/AuthChangeHandler';
 import GlobalButtonLoadingHandler from '@/components/GlobalButtonLoadingHandler';
 
 export const viewport: Viewport = {
-  themeColor: '#ffffff',
-  colorScheme: 'light',
+  themeColor: '#0d0f1e',
+  colorScheme: 'dark',
 };
  
 export const metadata: Metadata = {
@@ -63,7 +63,7 @@ export default function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning className={`${outfit.variable} ${jetbrainsMono.variable}`}>
       <body suppressHydrationWarning className={`${outfit.variable} ${jetbrainsMono.variable}`}>
-        <ThemeProvider attribute="data-theme" defaultTheme="light" enableSystem={false} disableTransitionOnChange={false}>
+        <ThemeProvider attribute="data-theme" defaultTheme="dark" enableSystem={false} disableTransitionOnChange={false}>
           <GlobalAgentProvider>
             <AuthChangeHandler />
             <GlobalButtonLoadingHandler />

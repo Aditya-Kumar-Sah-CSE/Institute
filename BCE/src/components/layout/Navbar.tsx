@@ -16,7 +16,6 @@ import { isAdminRole, isInstructorRole } from '@/lib/role-utils';
 import dynamic from 'next/dynamic';
 import { MoreVertical, ArrowLeft, Smartphone, Monitor, Sparkles } from 'lucide-react';
 
-const SmartMentorDrawer = dynamic(() => import('@/features/analytics/components/SmartMentorDrawer'), { ssr: false });
 const SmartAgentDrawer = dynamic(() => import('@/features/analytics/components/SmartAgentDrawer'), { ssr: false });
 
 const ITEM_GROUPS: Record<string, string> = {
@@ -62,7 +61,7 @@ interface NavbarProps {
 
 export default function Navbar({ title, companyName, companyLogo, profile, currentView = 'student' }: NavbarProps) {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
-  const [isMentorDrawerOpen, setIsMentorDrawerOpen] = React.useState(false);
+
   const pathname = usePathname();
   const router = useRouter();
 
@@ -346,15 +345,7 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
               <ThemeToggle />
             </div>
 
-            <button 
-              type="button" 
-              className="nav-mentor-btn"
-              onClick={() => setIsMentorDrawerOpen(true)}
-              title="Open Personal AI Mentor"
-            >
-              <Sparkles size={14} style={{ color: 'var(--neon-lime)' }} />
-              <span>✦ Mentor</span>
-            </button>
+
           </div>
         )}
 
@@ -455,7 +446,6 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
       {profile && (
         <>
           <SmartAgentDrawer />
-          <SmartMentorDrawer isOpen={isMentorDrawerOpen} onClose={() => setIsMentorDrawerOpen(false)} />
         </>
       )}
     </header>

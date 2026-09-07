@@ -21,7 +21,9 @@ import {
   Layers,
   CheckSquare,
   RotateCw,
-  Sparkles
+  Sparkles,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 interface LearningIntelligenceClientProps {
@@ -34,6 +36,7 @@ export default function LearningIntelligenceClient({ userId, initialProfile }: L
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncedTime, setLastSyncedTime] = useState<string | null>(null);
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
+  const [isMainCollapsed, setIsMainCollapsed] = useState(false);
 
   const CACHE_KEY = `smartlearn_analytics_v1_${userId}`;
 
@@ -104,28 +107,47 @@ export default function LearningIntelligenceClient({ userId, initialProfile }: L
   };
   const confidenceColor = confidenceColorMap[profile.confidenceLevel] || 'var(--neon-cyan)';
 
-  // Header JSX with Sync Button (Top Right)
+  // Header JSX with Sync Button & Top-Right Student-Aware Learning Intelligence Badge
   const HeaderComponent = (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <div style={{ background: 'rgba(0, 229, 255, 0.1)', color: 'var(--neon-cyan)', padding: '10px', borderRadius: '12px' }}>
-          <Brain size={28} />
+          <Brain size={24} />
         </div>
-        <div>
-          <h2 className="section-title" style={{ margin: 0, fontSize: 'var(--text-xl)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            Student-Aware Learning Intelligence
-            <span style={{ fontSize: '10px', background: 'rgba(0, 229, 255, 0.15)', color: 'var(--neon-cyan)', padding: '2px 8px', borderRadius: '10px', border: '1px solid rgba(0, 229, 255, 0.3)', fontWeight: 'bold' }}>
-              AI Engine
-            </span>
-          </h2>
-          <p className="text-secondary" style={{ margin: '2px 0 0 0', fontSize: 'var(--text-xs)' }}>
-            Personalized recommendations based on your real learning analytics.
-          </p>
-        </div>
+        <h2 className="section-title" style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'bold' }}>
+          Learning Analytics
+        </h2>
       </div>
 
-      {/* SYNC / REFRESH BUTTON AT TOP RIGHT */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      {/* TOP RIGHT BADGE & SYNC / REFRESH BUTTON & INTERACTIVE TOGGLE */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          onClick={() => setIsMainCollapsed(!isMainCollapsed)}
+          title={isMainCollapsed ? 'Click to expand analytics' : 'Click to collapse analytics'}
+          style={{
+            fontSize: '10px',
+            fontWeight: 800,
+            letterSpacing: '0.4px',
+            color: 'var(--neon-cyan)',
+            background: 'rgba(0, 229, 255, 0.12)',
+            border: '1px solid rgba(0, 229, 255, 0.4)',
+            padding: '4px 10px',
+            borderRadius: '12px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            boxShadow: '0 0 12px rgba(0, 229, 255, 0.2)',
+            whiteSpace: 'nowrap',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            userSelect: 'none'
+          }}
+        >
+          <span>Analytics</span>
+          {isMainCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+        </button>
+
         {syncNotice && (
           <span style={{ fontSize: '11px', color: 'var(--neon-lime)', fontWeight: 'bold', background: 'rgba(57, 255, 20, 0.1)', padding: '4px 10px', borderRadius: '6px', border: '1px solid rgba(57, 255, 20, 0.3)' }}>
             {syncNotice}
@@ -234,14 +256,14 @@ export default function LearningIntelligenceClient({ userId, initialProfile }: L
         boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
         display: 'flex',
         flexDirection: 'column',
-        gap: 'var(--space-xl)'
+        gap: isMainCollapsed ? '0' : 'var(--space-xl)'
       }}
     >
       <style>{`
         @media (max-width: 768px) {
           .intelligence-card {
             padding: 12px !important;
-            gap: 14px !important;
+            gap: ${isMainCollapsed ? '0 !important' : '14px !important'};
           }
           .intelligence-card h2 {
             font-size: 1.1rem !important;
@@ -249,21 +271,21 @@ export default function LearningIntelligenceClient({ userId, initialProfile }: L
         }
       `}</style>
 
-      {/* HEADER WITH SYNC BUTTON AT TOP RIGHT */}
+      {/* HEADER WITH SYNC BUTTON & TOP-RIGHT INTERACTIVE TOGGLE */}
       {HeaderComponent}
 
-      {/* 1. TOP SECTION: LEARNING READINESS (LEFT) + STRENGTHS & NEEDS IMPROVEMENT (RIGHT) */}
+      {!isMainCollapsed && (
+        <>
+          {/* 1. TOP SECTION: LEARNING READINESS (LEFT) + STRENGTHS & NEEDS IMPROVEMENT (RIGHT) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 'var(--space-md)' }}>
         
         {/* LEFT CARD: LEARNING READINESS (360° Score + Bars) */}
         <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-md)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-md)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-md)', flexWrap: 'wrap', gap: '4px' }}>
             <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'bold', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               LEARNING READINESS
             </span>
-            <span style={{ fontSize: '10px', background: 'rgba(0, 229, 255, 0.12)', color: 'var(--neon-cyan)', padding: '2px 8px', borderRadius: '10px', border: '1px solid rgba(0, 229, 255, 0.3)', fontWeight: 'bold' }}>
-              360° Score
-            </span>
+
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
@@ -312,11 +334,14 @@ export default function LearningIntelligenceClient({ userId, initialProfile }: L
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
           {/* YOUR KEY STRENGTHS */}
           <div style={{ background: 'rgba(57, 255, 20, 0.04)', border: '1px solid rgba(57, 255, 20, 0.2)', borderRadius: 'var(--radius-md)', padding: 'var(--space-md)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-              <CheckCircle2 size={16} style={{ color: 'var(--neon-lime)' }} />
-              <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'bold', color: 'var(--neon-lime)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                YOUR KEY STRENGTHS
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <CheckCircle2 size={16} style={{ color: 'var(--neon-lime)' }} />
+                <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'bold', color: 'var(--neon-lime)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  YOUR KEY STRENGTHS
+                </span>
+              </div>
+
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {profile.strengths.map((str, i) => (
@@ -329,11 +354,14 @@ export default function LearningIntelligenceClient({ userId, initialProfile }: L
 
           {/* NEEDS IMPROVEMENT */}
           <div style={{ background: 'rgba(255, 69, 58, 0.04)', border: '1px solid rgba(255, 69, 58, 0.2)', borderRadius: 'var(--radius-md)', padding: 'var(--space-md)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-              <AlertTriangle size={16} style={{ color: '#ff4d4f' }} />
-              <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'bold', color: '#ff4d4f', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                NEEDS IMPROVEMENT
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <AlertTriangle size={16} style={{ color: '#ff4d4f' }} />
+                <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'bold', color: '#ff4d4f', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  NEEDS IMPROVEMENT
+                </span>
+              </div>
+
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {profile.weakAreas.map((weak, i) => (
@@ -347,47 +375,19 @@ export default function LearningIntelligenceClient({ userId, initialProfile }: L
 
       </div>
 
-      {/* 2. NEXT BEST ACTION BANNER */}
-      {nextBestAction && (
-        <div style={{ background: 'linear-gradient(135deg, rgba(0, 229, 255, 0.1) 0%, rgba(57, 255, 20, 0.08) 100%)', border: '1px solid var(--neon-cyan)', borderRadius: 'var(--radius-md)', padding: 'var(--space-md) var(--space-lg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', flex: 1, minWidth: '260px' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--neon-cyan)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  ⚡ NEXT BEST ACTION
-                </span>
-                <span style={{ fontSize: '10px', background: 'rgba(0, 0, 0, 0.4)', color: 'var(--text-secondary)', padding: '1px 8px', borderRadius: '4px' }}>
-                  Recommended Focus
-                </span>
-              </div>
-              <h3 style={{ margin: '0 0 4px 0', fontSize: 'var(--text-lg)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                {nextBestAction.title}
-              </h3>
-              <p style={{ margin: '0 0 8px 0', fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                {nextBestAction.description}
-              </p>
-              <div style={{ display: 'inline-block', fontSize: '11px', background: 'rgba(0, 229, 255, 0.15)', color: 'var(--neon-cyan)', padding: '3px 10px', borderRadius: '4px', border: '1px solid rgba(0, 229, 255, 0.3)', fontWeight: 'bold' }}>
-                {nextBestAction.evidenceWhy}
-              </div>
-            </div>
-          </div>
 
-          <Link href={nextBestAction.actionUrl} style={{ textDecoration: 'none', flexShrink: 0 }}>
-            <Button variant="primary" size="sm" style={{ padding: '10px 20px', fontWeight: 'bold' }}>
-              {nextBestAction.actionText} <ArrowRight size={15} />
-            </Button>
-          </Link>
-        </div>
-      )}
 
       {/* 3. TARGET CAPABILITY VS CURRENT SKILL GAP */}
       {profile.skillGaps.length > 0 && (
         <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-md) var(--space-lg)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-md)' }}>
-            <Target size={18} style={{ color: 'var(--neon-gold)' }} />
-            <h3 style={{ margin: 0, fontSize: 'var(--text-md)', fontWeight: 'bold', color: 'var(--neon-gold)' }}>
-              Target Capability vs Current Skill Gap
-            </h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-md)', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Target size={18} style={{ color: 'var(--neon-gold)' }} />
+              <h3 style={{ margin: 0, fontSize: 'var(--text-md)', fontWeight: 'bold', color: 'var(--neon-gold)' }}>
+                Target Capability vs Current Skill Gap
+              </h3>
+            </div>
+
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-md)' }}>
@@ -432,13 +432,11 @@ export default function LearningIntelligenceClient({ userId, initialProfile }: L
             gap: 'var(--space-md)',
             boxShadow: '0 4px 20px rgba(255, 0, 255, 0.06)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
               <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--neon-magenta)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Layers size={15} /> RECOMMENDED COURSES
               </span>
-              <span style={{ fontSize: '10px', background: 'rgba(255, 0, 255, 0.15)', color: 'var(--neon-magenta)', padding: '2px 8px', borderRadius: '6px', fontWeight: 'bold' }}>
-                {coursesToDisplay.length} Recommended
-              </span>
+
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 'var(--space-sm)' }}>
@@ -502,9 +500,7 @@ export default function LearningIntelligenceClient({ userId, initialProfile }: L
                   <Calendar size={18} style={{ color: 'var(--neon-cyan)' }} />
                   <span>PERSONALIZED LEARNING PLAN</span>
                 </h3>
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                  Student-Aware Schedule
-                </span>
+
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
@@ -538,12 +534,14 @@ export default function LearningIntelligenceClient({ userId, initialProfile }: L
               </div>
             </div>
 
-            {/* ASK YOUR AI COACH */}
-            <OpenAgentPlanButton label="Talk to your AI Coach about your learning plan →" />
+            {/* ASK SMART AGENT */}
+            <OpenAgentPlanButton label="Talk to Smart Agent about your learning plan →" />
           </div>
         )}
 
       </div>
+        </>
+      )}
 
     </Card>
   );

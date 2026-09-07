@@ -4,7 +4,8 @@ import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Play, Pause, Download, ExternalLink, FileText, Pin, MoreHorizontal, 
-  Reply, Smile, Copy, Forward, Trash2, Edit2, Volume2, Check, Share2
+  Reply, Smile, Copy, Forward, Trash2, Edit2, Volume2, Check, Share2,
+  CheckSquare, Square
 } from 'lucide-react';
 import type { ChatMessage } from '@/types/database';
 
@@ -13,6 +14,10 @@ interface MessageBubbleProps {
   isMine: boolean;
   isRead?: boolean;
   showSenderName?: boolean;
+  isSelectMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (msgId: string) => void;
+  onShare?: (msg: ChatMessage) => void;
   onReply?: (msg: ChatMessage) => void;
   onReact?: (msgId: string, emoji: string) => void;
   onEdit?: (msg: ChatMessage) => void;
@@ -34,6 +39,10 @@ export default function MessageBubble({
   isMine,
   isRead = false,
   showSenderName = false,
+  isSelectMode = false,
+  isSelected = false,
+  onToggleSelect,
+  onShare,
   onReply,
   onReact,
   onEdit,
@@ -79,6 +88,40 @@ export default function MessageBubble({
       navigator.clipboard.writeText(msg.content);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+    setShowMenu(false);
+  };
+
+  const handleShareMessage = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onShare) {
+      onShare(msg);
+      return;
+    }
+    const shareText = msg.content || (msg.attachment_link ? `Attachment: ${msg.attachment_link}` : '');
+    if (!shareText) return;
+
+    let shared = false;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Shared Message',
+          text: shareText,
+          url: msg.attachment_link || undefined
+        });
+        shared = true;
+      } catch (err) {
+        console.warn('Native share failed or cancelled:', err);
+      }
+    }
+
+    if (!shared) {
+      try {
+        await navigator.clipboard.writeText(shareText);
+        alert('Message copied to clipboard!');
+      } catch (_) {
+        alert('Share action not supported.');
+      }
     }
     setShowMenu(false);
   };
@@ -179,14 +222,30 @@ export default function MessageBubble({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.15 }}
+      onClick={() => {
+        if (isSelectMode) onToggleSelect?.(msg.id);
+      }}
       style={{
         display: 'flex',
         marginBottom: Object.keys(reactionCounts).length > 0 ? '22px' : '14px',
         justifyContent: isMine ? 'flex-end' : 'flex-start',
+        alignItems: 'center',
         position: 'relative',
+        cursor: isSelectMode ? 'pointer' : 'default'
       }}
       className="message-bubble-wrapper"
     >
+      {/* Checkbox for Select Mode */}
+      {isSelectMode && !isMine && (
+        <div style={{ marginRight: '8px', flexShrink: 0 }}>
+          {isSelected ? (
+            <CheckSquare size={20} color="var(--neon-cyan)" />
+          ) : (
+            <Square size={20} color="var(--text-muted)" />
+          )}
+        </div>
+      )}
+
       <div 
         style={{
           maxWidth: 'min(82vw, 480px)',
@@ -202,7 +261,7 @@ export default function MessageBubble({
         }}
       >
         {/* Floating Quick Action Trigger */}
-        {showMenu && (
+        {showMenu && !isSelectMode && (
           <div style={{
             position: 'absolute',
             top: '-14px',
@@ -247,6 +306,13 @@ export default function MessageBubble({
               title="Forward"
             >
               <Forward size={14} />
+            </button>
+            <button 
+              onClick={handleShareMessage} 
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px 4px' }} 
+              title="Share"
+            >
+              <Share2 size={14} />
             </button>
             <button 
               onClick={handleCopyText} 

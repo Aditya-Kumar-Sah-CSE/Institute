@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ArrowLeft, Search, Video, Phone, Info } from 'lucide-react';
+import { ArrowLeft, Search, Video, Phone, Info, CheckSquare } from 'lucide-react';
 import type { ChatConversation } from '@/types/database';
 
 interface ChatHeaderProps {
@@ -9,6 +9,8 @@ interface ChatHeaderProps {
   currentUserId: string | null;
   onlineUsers: Set<string>;
   typingUsers: string[];
+  isSelectMode?: boolean;
+  onToggleSelectMode?: () => void;
   onBack: () => void;
   onToggleSearch: () => void;
   onStartCall: (type: 'video' | 'audio') => void;
@@ -23,6 +25,8 @@ export default function ChatHeader({
   currentUserId,
   onlineUsers,
   typingUsers,
+  isSelectMode = false,
+  onToggleSelectMode,
   onBack,
   onToggleSearch,
   onStartCall,
@@ -122,8 +126,30 @@ export default function ChatHeader({
         </div>
       </div>
 
-      {/* Right Header Actions (Search, Video Call, Audio Call, Info) */}
+      {/* Right Header Actions (Select Mode, Search, Video Call, Audio Call, Info) */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0 }}>
+        {/* Select Mode Toggle */}
+        <button 
+          onClick={onToggleSelectMode}
+          style={{
+            width: '36px',
+            height: '36px',
+            borderRadius: '50%',
+            background: 'transparent',
+            border: 'none',
+            color: isSelectMode ? 'var(--neon-cyan)' : 'var(--text-primary)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s ease',
+            flexShrink: 0
+          }}
+          title={isSelectMode ? "Exit Select Mode" : "Select Messages"}
+        >
+          <CheckSquare size={18} />
+        </button>
+
         {/* Search */}
         <button 
           onClick={onToggleSearch}

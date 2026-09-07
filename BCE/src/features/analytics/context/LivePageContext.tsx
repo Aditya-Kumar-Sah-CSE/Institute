@@ -29,13 +29,12 @@ function LivePageContextProviderInner({ children }: { children: ReactNode }) {
   // 1. ROUTE CHANGE & INITIAL EXTRACTION EFFECT (Runs post-hydration to avoid attribute mutation mismatches)
   useEffect(() => {
     invalidateDOMCache();
-    const immediateCtx = extractLiveDOMContext(fullRoute, true);
-    setContextState(immediateCtx);
 
+    // Defer DOM scanning slightly so React finishes initial hydration reconciliation first
     const timer = setTimeout(() => {
       const freshCtx = extractLiveDOMContext(fullRoute, true);
       setContextState(freshCtx);
-    }, 100);
+    }, 250);
 
     return () => clearTimeout(timer);
   }, [fullRoute]);

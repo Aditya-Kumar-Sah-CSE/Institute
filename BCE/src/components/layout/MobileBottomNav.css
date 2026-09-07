@@ -19,9 +19,9 @@
   }
 
   /* Add bottom padding to dashboard content on mobile view so fixed bottom nav doesn't cover content */
-  .dashboard-content,
-  .content-wrapper {
-    padding-bottom: 74px !important;
+  .dashboard-content:not(:has(.chat-container)),
+  .content-wrapper:not(:has(.chat-container)) {
+    padding-bottom: 64px !important;
   }
 }
 

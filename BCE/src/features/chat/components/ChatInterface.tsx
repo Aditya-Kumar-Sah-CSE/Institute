@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { ChatConversation, ChatMessage } from '@/types/database';
-import { Send, User as UserIcon, Users, ChevronDown } from 'lucide-react';
+import { Send, User as UserIcon, Users, ChevronDown, Forward, Share2, Trash2, X, CheckSquare } from 'lucide-react';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { Virtuoso } from 'react-virtuoso';
 import NewChatModal from './NewChatModal';
@@ -59,10 +59,12 @@ export default function ChatInterface() {
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [isInfoDrawerOpen, setIsInfoDrawerOpen] = useState(false);
 
-  // Message Actions
+  // Message Actions & Multi-Select / Share / Forward State
   const [replyToMessage, setReplyToMessage] = useState<ChatMessage | null>(null);
   const [lightboxMedia, setLightboxMedia] = useState<{ url: string; type: string } | null>(null);
-  const [forwardingMessage, setForwardingMessage] = useState<ChatMessage | null>(null);
+  const [forwardingMessages, setForwardingMessages] = useState<ChatMessage[]>([]);
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedMessageIds, setSelectedMessageIds] = useState<Set<string>>(new Set());
   const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null);
   const [editText, setEditText] = useState('');
   const [showScrollBottom, setShowScrollBottom] = useState(false);
@@ -1090,17 +1092,119 @@ export default function ChatInterface() {
     }
   };
 
-  const handleForwardConfirm = async (targetConversationId: string) => {
-    if (!forwardingMessage) return;
-    await supabase.from('chat_messages').insert({
-      conversation_id: targetConversationId,
-      sender_id: currentUserId,
-      content: forwardingMessage.content ? `[Forwarded]\n${forwardingMessage.content}` : '[Forwarded Attachment]',
-      attachment_type: forwardingMessage.attachment_type,
-      attachment_link: forwardingMessage.attachment_link
+  const handleToggleSelectMessage = (msgId: string) => {
+    setSelectedMessageIds(prev => {
+      const next = new Set(prev);
+      if (next.has(msgId)) next.delete(msgId);
+      else next.add(msgId);
+      return next;
     });
-    setForwardingMessage(null);
-    alert('Message forwarded successfully!');
+  };
+
+  const handleForwardSingleMessage = (msg: ChatMessage) => {
+    setForwardingMessages([msg]);
+  };
+
+  const handleForwardSelectedMessages = () => {
+    const msgs = messages.filter(m => selectedMessageIds.has(m.id));
+    if (msgs.length > 0) {
+      setForwardingMessages(msgs);
+    }
+  };
+
+  const handleShareSingleMessage = async (msg: ChatMessage) => {
+    const shareText = msg.content || (msg.attachment_link ? `Attachment: ${msg.attachment_link}` : '');
+    if (!shareText) return;
+
+    let shared = false;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Shared Message',
+          text: shareText,
+          url: msg.attachment_link || undefined
+        });
+        shared = true;
+      } catch (e) {
+        console.log('Native share cancelled or failed', e);
+      }
+    }
+    if (!shared) {
+      try {
+        await navigator.clipboard.writeText(shareText);
+        alert('Message copied to clipboard!');
+      } catch (_) {
+        alert('Share action not supported.');
+      }
+    }
+  };
+
+  const handleShareSelectedMessages = async () => {
+    const msgs = messages.filter(m => selectedMessageIds.has(m.id));
+    if (msgs.length === 0) return;
+    const combinedText = msgs.map(m => {
+      const senderName = (m as any).sender?.name || (m.sender_id === currentUserId ? 'Me' : 'User');
+      return `${senderName}: ${m.content || (m.attachment_link ? `[Attachment: ${m.attachment_link}]` : '')}`;
+    }).join('\n\n');
+
+    let shared = false;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Shared Messages',
+          text: combinedText
+        });
+        shared = true;
+      } catch (e) {
+        console.log('Share cancelled or failed', e);
+      }
+    }
+    if (!shared) {
+      try {
+        await navigator.clipboard.writeText(combinedText);
+        alert('Selected messages copied to clipboard!');
+      } catch (_) {
+        alert('Share action failed.');
+      }
+    }
+    setIsSelectMode(false);
+    setSelectedMessageIds(new Set());
+  };
+
+  const handleDeleteSelectedMessages = async () => {
+    const myMsgsToDelete = messages.filter(m => selectedMessageIds.has(m.id) && m.sender_id === currentUserId);
+    if (myMsgsToDelete.length === 0) {
+      alert('You can only delete messages sent by you.');
+      return;
+    }
+    if (!confirm(`Are you sure you want to delete ${myMsgsToDelete.length} selected message(s) for everyone?`)) return;
+
+    for (const msg of myMsgsToDelete) {
+      await deleteChatMessage(msg.id, true);
+    }
+    setIsSelectMode(false);
+    setSelectedMessageIds(new Set());
+    if (activeChat) fetchMessagesClient(activeChat.id).then(setMessages);
+  };
+
+  const handleForwardConfirm = async (targetConversationIds: string[], msgsToForward: ChatMessage[]) => {
+    if (!currentUserId || msgsToForward.length === 0) return;
+    for (const targetId of targetConversationIds) {
+      for (const msg of msgsToForward) {
+        await supabase.from('chat_messages').insert({
+          conversation_id: targetId,
+          sender_id: currentUserId,
+          content: msg.content ? `[Forwarded]\n${msg.content}` : '[Forwarded Attachment]',
+          attachment_type: msg.attachment_type,
+          attachment_link: msg.attachment_link
+        });
+      }
+      await supabase.from('chat_conversations').update({ updated_at: new Date().toISOString() }).eq('id', targetId);
+    }
+    setForwardingMessages([]);
+    setIsSelectMode(false);
+    setSelectedMessageIds(new Set());
+    alert(`Message(s) forwarded to ${targetConversationIds.length} chat(s)!`);
   };
 
   const handleUpdateGroupAvatar = (url: string) => {
@@ -1239,6 +1343,11 @@ export default function ChatInterface() {
               currentUserId={currentUserId}
               onlineUsers={onlineUsers}
               typingUsers={typingUsers}
+              isSelectMode={isSelectMode}
+              onToggleSelectMode={() => {
+                setIsSelectMode(!isSelectMode);
+                setSelectedMessageIds(new Set());
+              }}
               onBack={() => setActiveChat(null)}
               onToggleSearch={() => setIsSearchOpen(!isSearchOpen)}
               onStartCall={handleStartCall}
@@ -1293,6 +1402,10 @@ export default function ChatInterface() {
                            isMine={isMine} 
                            isRead={false} 
                            showSenderName={isGroup && !isMine} 
+                           isSelectMode={isSelectMode}
+                           isSelected={selectedMessageIds.has(msg.id)}
+                           onToggleSelect={handleToggleSelectMessage}
+                           onShare={handleShareSingleMessage}
                            onReply={(m) => setReplyToMessage(m)}
                            onReact={handleReact}
                            onEdit={(m) => {
@@ -1301,7 +1414,7 @@ export default function ChatInterface() {
                            }}
                            onDelete={handleDelete}
                            onPin={handlePin}
-                           onForward={(m) => setForwardingMessage(m)}
+                           onForward={handleForwardSingleMessage}
                            onOpenLightbox={(url, type) => setLightboxMedia({ url, type })}
                          />
                        );
@@ -1310,7 +1423,77 @@ export default function ChatInterface() {
                  </div>
                )}
 
-               {showScrollBottom && (
+               {/* Multi-Select Floating Toolbar */}
+               {isSelectMode && (
+                 <div style={{
+                   position: 'absolute',
+                   bottom: '20px',
+                   left: '50%',
+                   transform: 'translateX(-50%)',
+                   background: 'rgba(29, 32, 48, 0.95)',
+                   border: '1px solid var(--neon-cyan)',
+                   borderRadius: '30px',
+                   padding: '8px 20px',
+                   display: 'flex',
+                   alignItems: 'center',
+                   gap: '16px',
+                   boxShadow: '0 10px 30px rgba(0, 240, 255, 0.3)',
+                   backdropFilter: 'blur(10px)',
+                   zIndex: 40
+                 }}>
+                   <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#fff', whiteSpace: 'nowrap' }}>
+                     {selectedMessageIds.size} Selected
+                   </span>
+                   <button
+                     onClick={handleForwardSelectedMessages}
+                     disabled={selectedMessageIds.size === 0}
+                     style={{
+                       background: 'none', border: 'none',
+                       color: selectedMessageIds.size > 0 ? 'var(--neon-cyan)' : 'var(--text-muted)',
+                       cursor: selectedMessageIds.size > 0 ? 'pointer' : 'not-allowed',
+                       display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600
+                     }}
+                   >
+                     <Forward size={16} /> Forward
+                   </button>
+                   <button
+                     onClick={handleShareSelectedMessages}
+                     disabled={selectedMessageIds.size === 0}
+                     style={{
+                       background: 'none', border: 'none',
+                       color: selectedMessageIds.size > 0 ? 'var(--neon-cyan)' : 'var(--text-muted)',
+                       cursor: selectedMessageIds.size > 0 ? 'pointer' : 'not-allowed',
+                       display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600
+                     }}
+                   >
+                     <Share2 size={16} /> Share
+                   </button>
+                   <button
+                     onClick={handleDeleteSelectedMessages}
+                     disabled={selectedMessageIds.size === 0}
+                     style={{
+                       background: 'none', border: 'none',
+                       color: selectedMessageIds.size > 0 ? '#ff3b30' : 'var(--text-muted)',
+                       cursor: selectedMessageIds.size > 0 ? 'pointer' : 'not-allowed',
+                       display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600
+                     }}
+                   >
+                     <Trash2 size={16} /> Delete
+                   </button>
+                   <button
+                     onClick={() => {
+                       setIsSelectMode(false);
+                       setSelectedMessageIds(new Set());
+                     }}
+                     style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '2px' }}
+                     title="Exit Select Mode"
+                   >
+                     <X size={18} />
+                   </button>
+                 </div>
+               )}
+
+               {showScrollBottom && !isSelectMode && (
                  <button
                    onClick={() => virtuosoRef.current?.scrollToIndex({ index: listItems.length - 1, behavior: 'smooth' })}
                    style={{
@@ -1417,15 +1600,13 @@ export default function ChatInterface() {
       )}
 
       {/* Forward Message Modal */}
-      {forwardingMessage && (
+      {forwardingMessages.length > 0 && (
         <ForwardModal
-          isOpen={!!forwardingMessage}
-          messageContent={forwardingMessage.content || ''}
-          attachmentType={forwardingMessage.attachment_type}
-          attachmentLink={forwardingMessage.attachment_link}
+          isOpen={forwardingMessages.length > 0}
+          messagesToForward={forwardingMessages}
           chats={chats}
           currentUserId={currentUserId}
-          onClose={() => setForwardingMessage(null)}
+          onClose={() => setForwardingMessages([])}
           onForward={handleForwardConfirm}
         />
       )}
