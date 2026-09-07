@@ -26,6 +26,10 @@ export function useFocusMode(
 
       const remaining = Math.max(0, totalSecs - elapsedSecs);
 
+      if (remaining <= 0) {
+        return cached;
+      }
+
       return {
         isRunning: !activeSession.is_paused && remaining > 0,
         remaining,

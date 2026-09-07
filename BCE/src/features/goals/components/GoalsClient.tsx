@@ -84,10 +84,29 @@ export default function GoalsClient() {
       const data = await res.json();
       if (data.sessions && data.sessions.length > 0) {
         const sess = data.sessions[0];
-        setActiveSession(sess);
-        // Pre-select goal & task
-        if (sess.goal_id) setSelectedGoalId(sess.goal_id);
-        if (sess.task_id) setSelectedTaskId(sess.task_id);
+        const isDismissed = typeof window !== 'undefined' && sessionStorage.getItem('dismissed_focus_session_' + sess.id);
+        const totalSecs = (sess.duration_mins || 30) * 60;
+        const startedMs = sess.started_at ? new Date(sess.started_at).getTime() : Date.now();
+        let cumPauseSecs = Number(sess.cumulative_pause_seconds || 0);
+
+        if (sess.is_paused && sess.last_paused_at) {
+          const lastPausedMs = new Date(sess.last_paused_at).getTime();
+          cumPauseSecs += Math.max(0, Math.floor((Date.now() - lastPausedMs) / 1000));
+        }
+
+        const elapsedSecs = sess.is_paused
+          ? cumPauseSecs
+          : Math.max(0, Math.floor((Date.now() - startedMs) / 1000) - cumPauseSecs);
+
+        const remaining = Math.max(0, totalSecs - elapsedSecs);
+
+        if (!isDismissed && remaining > 0) {
+          setActiveSession(sess);
+          if (sess.goal_id) setSelectedGoalId(sess.goal_id);
+          if (sess.task_id) setSelectedTaskId(sess.task_id);
+        } else {
+          setActiveSession(null);
+        }
       } else {
         setActiveSession(null);
       }
@@ -511,8 +530,8 @@ export default function GoalsClient() {
             <ArrowLeft size={18} />
           </Link>
           <div style={{ flex: 1, minWidth: 0, width: '100%' }}>
-            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 800 }} className="text-gradient">My Learning Goals</h1>
-            <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-secondary)' }}>Track goals, manage your daily routine, and set alarms</p>
+            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 800 }} className="text-gradient">My Daily Routine</h1>
+            <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-secondary)' }}>Manage your daily routine checklist and set alarms</p>
           </div>
         </div>
       </header>
@@ -561,10 +580,8 @@ export default function GoalsClient() {
         </div>
       )}
 
-      {/* ── TWO COLUMN LAYOUT ── */}
-      <div className="goals-bottom-grid">
-
-        {/* ── LEFT: DAILY ROUTINE ── */}
+      {/* ── DAILY ROUTINE (FULL WIDTH) ── */}
+      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
         <Card variant="glass" padding="lg" style={{ overflow: 'hidden' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -573,7 +590,7 @@ export default function GoalsClient() {
             </h2>
             {!editingRoutine ? (
               <button onClick={handleStartEditRoutine} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 12px', borderRadius: '6px', background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.3)', color: 'var(--neon-cyan)', cursor: 'pointer', fontSize: '12px', fontWeight: 700 }}>
-                <Edit3 size={12} /> Edit
+                <Edit3 size={12} /> Edit Routine
               </button>
             ) : (
               <div style={{ display: 'flex', gap: '6px' }}>
@@ -735,172 +752,7 @@ export default function GoalsClient() {
             )
           )}
         </Card>
-
-
-
-
-        {/* ── RIGHT: GOALS LIST ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Target size={18} style={{ color: '#ef4444' }} />
-              Goals
-            </h2>
-            <button onClick={() => { setEditGoal({ id: null }); setEditText(''); setEditDuration('30'); setEditRoutine(false); setEditReminder(''); }} style={{ padding: '6px 12px', borderRadius: '6px', background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.3)', color: 'var(--neon-cyan)', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
-              <Plus size={12} /> New Goal
-            </button>
-          </div>
-
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>Loading...</div>
-          ) : goals.length === 0 ? (
-            <Card variant="glass" padding="lg" style={{ textAlign: 'center' }}>
-              <Target size={40} style={{ color: 'var(--text-muted)', marginBottom: '12px' }} />
-              <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>No goals set yet.</p>
-              <button onClick={() => { setEditGoal({ id: null }); setEditText(''); setEditDuration('30'); setEditRoutine(false); setEditReminder(''); }} style={{ display: 'inline-block', marginTop: '8px', padding: '10px 20px', background: 'var(--neon-cyan)', color: '#000', borderRadius: '6px', border: 'none', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
-                + New Goal
-              </button>
-            </Card>
-          ) : (
-            goals.map((goal) => {
-              const formattedDate = new Date(goal.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-              return (
-                <Card key={goal.id} variant="glass" padding="lg" style={{
-                  position: 'relative',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '12px',
-                  border: goal.status === 'active' ? '1px solid rgba(6,182,212,0.3)' : '1px solid var(--glass-border)',
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      <span style={{
-                        fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', padding: '3px 8px', borderRadius: '12px',
-                        background: goal.status === 'active' ? 'rgba(6,182,212,0.15)' : 'rgba(255,255,255,0.05)',
-                        color: goal.status === 'active' ? 'var(--neon-cyan)' : 'var(--text-muted)',
-                        border: goal.status === 'active' ? '1px solid rgba(6,182,212,0.3)' : '1px solid transparent',
-                      }}>
-                        {goal.status}
-                      </span>
-                      {goal.routine && (
-                        <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', background: 'rgba(168,85,247,0.15)', color: '#c084fc', padding: '3px 8px', borderRadius: '12px' }}>
-                          Daily Routine
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button
-                        onClick={() => openEditModal(goal)}
-                        title="Edit Goal"
-                        style={{
-                          background: 'rgba(255,255,255,0.05)',
-                          border: '1px solid var(--glass-border)',
-                          borderRadius: '6px',
-                          padding: '4px 8px',
-                          cursor: 'pointer',
-                          color: 'var(--text-muted)'
-                        }}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteGoal(goal.id)}
-                        disabled={deletingId === goal.id}
-                        title="Delete Goal"
-                        style={{
-                          background: 'rgba(239, 68, 68, 0.1)',
-                          border: '1px solid rgba(239, 68, 68, 0.2)',
-                          borderRadius: '6px',
-                          padding: '4px 8px',
-                          cursor: 'pointer',
-                          color: '#f87171',
-                          opacity: deletingId === goal.id ? 0.5 : 1
-                        }}
-                      >
-                        {deletingId === goal.id ? 'Deleting...' : 'Delete'}
-                      </button>
-                    </div>
-                  </div>
-
-                  <p style={{ margin: 0, fontSize: '15px', color: 'var(--text-main)', fontWeight: 600 }}>{goal.goal_text}</p>
-                  
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Clock size={12} />
-                      Target: {formatMinsToHm(goal.duration_mins || 30)} / day
-                    </div>
-                    {goal.reminder_time && (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        🔔 {goal.reminder_time.slice(0, 5)}
-                      </span>
-                    )}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Calendar size={12} />
-                      Created: {formattedDate}
-                    </div>
-                  </div>
-                </Card>
-              );
-            })
-          )}
-        </div>
       </div>
-
-      {/* ── EDIT GOAL MODAL ── */}
-      <Modal isOpen={!!editGoal} onClose={() => setEditGoal(null)} title={editGoal?.id ? "Edit Goal" : "Create Goal"} size="md">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '8px' }}>Goal</label>
-            <input
-              autoFocus
-              type="text"
-              value={editText}
-              onChange={e => setEditText(e.target.value)}
-              style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--bg-card)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', fontSize: '14px', outline: 'none' }}
-            />
-          </div>
-          <div style={{ display: 'flex', gap: '16px' }}>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '8px' }}>Duration (mins/day)</label>
-              <input
-                type="number"
-                min={5}
-                max={480}
-                value={editDuration}
-                onChange={e => setEditDuration(e.target.value)}
-                style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--bg-card)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', fontSize: '14px', outline: 'none' }}
-              />
-              <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
-                {[15, 25, 30, 45, 60, 90, 120, 240, 480].map(v => (
-                  <button key={v} type="button" onClick={() => setEditDuration(v.toString())} style={{
-                    padding: '4px 10px', borderRadius: '12px',
-                    border: parseInt(editDuration) === v ? '1px solid var(--neon-cyan)' : '1px solid var(--glass-border)',
-                    background: parseInt(editDuration) === v ? 'rgba(6,182,212,0.15)' : 'transparent',
-                    color: parseInt(editDuration) === v ? 'var(--neon-cyan)' : 'var(--text-muted)',
-                    fontSize: '11px', fontWeight: 600, cursor: 'pointer',
-                  }}>
-                    {v >= 60 ? `${v / 60}h` : `${v}m`}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '8px' }}>Reminder Time</label>
-              <input type="time" value={editReminder} onChange={e => setEditReminder(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--bg-card)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', fontSize: '14px', outline: 'none' }} />
-            </div>
-          </div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>
-            <input type="checkbox" checked={editRoutine} onChange={e => setEditRoutine(e.target.checked)} style={{ transform: 'scale(1.2)' }} />
-            Set as Daily Routine
-          </label>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '10px' }}>
-            <button onClick={() => setEditGoal(null)} style={{ padding: '10px 20px', borderRadius: '8px', background: 'rgba(255,255,255,0.1)', color: 'var(--text-main)', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
-            <button onClick={handleSaveEdit} disabled={!editText || editSaving} style={{ padding: '10px 20px', borderRadius: '8px', background: 'var(--neon-cyan)', color: '#000', border: 'none', fontWeight: 'bold', cursor: 'pointer', opacity: (!editText || editSaving) ? 0.5 : 1 }}>
-              {editSaving ? 'Saving...' : 'Save Changes'}
-            </button>
-          </div>
-        </div>
-      </Modal>
 
       <AlertComponent />
 
@@ -908,34 +760,6 @@ export default function GoalsClient() {
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.85; }
-        }
-        .goals-stopwatch-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 32px;
-          align-items: center;
-        }
-        .goals-bottom-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 24px;
-          align-items: start;
-        }
-        @media (max-width: 991px) {
-          .goals-stopwatch-grid {
-            grid-template-columns: 1fr !important;
-            gap: 24px;
-          }
-          .stopwatch-stats-column {
-            border-left: none !important;
-            padding-left: 0 !important;
-            border-top: 1px solid var(--glass-border) !important;
-            padding-top: 24px !important;
-            margin-top: 8px;
-          }
-          .goals-bottom-grid {
-            grid-template-columns: 1fr !important;
-          }
         }
       `}</style>
     </div>

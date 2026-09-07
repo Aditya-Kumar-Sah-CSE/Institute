@@ -55,12 +55,50 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
     }
   }, [goal, isModalOpen]);
 
+  const validateActiveSession = (sess: any): any | null => {
+    if (!sess) return null;
+    if (typeof window !== 'undefined' && sessionStorage.getItem('dismissed_focus_session_' + sess.id)) {
+      return null;
+    }
+    const totalSecs = (sess.duration_mins || 30) * 60;
+    const startedMs = sess.started_at ? new Date(sess.started_at).getTime() : Date.now();
+    let cumPauseSecs = Number(sess.cumulative_pause_seconds || 0);
+
+    if (sess.is_paused && sess.last_paused_at) {
+      const lastPausedMs = new Date(sess.last_paused_at).getTime();
+      cumPauseSecs += Math.max(0, Math.floor((Date.now() - lastPausedMs) / 1000));
+    }
+
+    const elapsedSecs = sess.is_paused
+      ? cumPauseSecs
+      : Math.max(0, Math.floor((Date.now() - startedMs) / 1000) - cumPauseSecs);
+
+    const remaining = Math.max(0, totalSecs - elapsedSecs);
+
+    if (remaining <= 0) {
+      fetch('/api/goals/sessions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sess.id,
+          progress_mins: sess.duration_mins,
+          status: 'completed',
+        }),
+      }).catch(() => {});
+      return null;
+    }
+
+    return sess;
+  };
+
   useEffect(() => {
     // Check if there's a cached running session on mount
     fetchDeduplicated('/api/goals/sessions?active=true')
       .then(data => {
          if (data.sessions && data.sessions.length > 0) {
-            setActiveSession(data.sessions[0]);
+            setActiveSession(validateActiveSession(data.sessions[0]));
+         } else {
+            setActiveSession(null);
          }
       })
       .catch(() => {});
@@ -97,7 +135,7 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
       fetchDeduplicated('/api/goals/sessions?active=true', 0)
         .then(data => {
            if (data.sessions && data.sessions.length > 0) {
-              setActiveSession(data.sessions[0]);
+              setActiveSession(validateActiveSession(data.sessions[0]));
            } else {
               setActiveSession(null);
            }
@@ -280,13 +318,7 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
   const taskIdx = dueTask ? sortedRoutines.indexOf(dueTask) : -1;
 
   const handleCardClick = () => {
-    if (activeSession) {
-      // Resume focus session, open FocusModeWindow
-    } else if (routines.length > 0) {
-      router.push('/code-arena/goals');
-    } else {
-      setIsModalOpen(true);
-    }
+    router.push('/code-arena/goals');
   };
 
   return (
@@ -294,25 +326,20 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
       <div 
         onClick={handleCardClick}
         style={{ textDecoration: 'none', cursor: 'pointer' }} 
-        title={activeSession ? "Resume Focus Session" : routines.length > 0 ? "View Routine Checklist" : goal ? "Update Goal" : "Create Goal"}
+        title={activeSession ? "Resume Focus Session" : "Manage Daily Routine"}
       >
         <Card variant="glass" padding="lg" className="stat-card hover-lift">
           <div suppressHydrationWarning className="stat-card-icon" style={{ background: 'rgba(6, 182, 212, 0.1)', color: 'var(--neon-cyan)' }}>
-            <Plus size={24} />
+            <Clock size={24} />
           </div>
           <div className="stat-card-content">
-            <div className="stat-card-value" style={{ color: '#ef4444', fontSize: goal ? '1rem' : '1.2rem', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center' }}>
+            <div className="stat-card-value" style={{ color: 'var(--neon-cyan)', fontSize: '1.2rem', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center' }}>
               {activeSession ? (
                 <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
-                   <span style={{ fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text-main)' }}>{activeSession.task_name || activeSession.student_goals?.goal_text || 'Active Focus'}</span>
+                   <span style={{ fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text-main)' }}>{activeSession.task_name || 'Active Focus'}</span>
                    <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--neon-cyan)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '3px' }}>
                       ⏱️ {timeLeftStr || '00:00'} remaining
                    </span>
-                </div>
-              ) : goal ? (
-                <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
-                   <span style={{ fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text-main)' }}>{goal.goal_text}</span>
-                   <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--neon-cyan)', marginTop: '2px' }}>{formatMinsToHm(goal.duration_mins)} goal</span>
                 </div>
               ) : routines.length > 0 ? (
                 dueTask ? (
@@ -338,13 +365,13 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
                   </div>
                 )
               ) : (
-                <>
-                  <Plus size={16} /> New Goal
-                </>
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--neon-cyan)' }}>
+                  Set Routine
+                </div>
               )}
             </div>
             <div className="text-secondary stat-card-label">
-              {activeSession ? "Active Session" : goal ? "Active Goal" : routines.length > 0 ? (dueTask ? "Scheduled Routine" : "Daily Routine") : "Target Tracker"}
+              {activeSession ? "Active Session" : routines.length > 0 ? (dueTask ? "Scheduled Routine" : "Daily Routine") : "Daily Routine"}
             </div>
           </div>
         </Card>
@@ -443,8 +470,19 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
       {activeSession && (
          <FocusModeWindow 
             activeSession={activeSession}
-            onComplete={() => setActiveSession(null)}
-            onExit={() => { setActiveSession(null); router.refresh(); }}
+            onComplete={() => {
+              if (activeSession?.id && typeof window !== 'undefined') {
+                sessionStorage.setItem('dismissed_focus_session_' + activeSession.id, 'true');
+              }
+              setActiveSession(null);
+            }}
+            onExit={() => { 
+              if (activeSession?.id && typeof window !== 'undefined') {
+                sessionStorage.setItem('dismissed_focus_session_' + activeSession.id, 'true');
+              }
+              setActiveSession(null); 
+              router.refresh(); 
+            }}
          />
       )}
        <AlertComponent />

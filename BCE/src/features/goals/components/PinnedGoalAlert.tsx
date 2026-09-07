@@ -46,7 +46,28 @@ export default function PinnedGoalAlert() {
       ]);
 
       if (sessionRes.sessions && sessionRes.sessions.length > 0) {
-        setActiveSession(sessionRes.sessions[0]);
+        const sess = sessionRes.sessions[0];
+        const isDismissed = typeof window !== 'undefined' && sessionStorage.getItem('dismissed_focus_session_' + sess.id);
+        const totalSecs = (sess.duration_mins || 30) * 60;
+        const startedMs = sess.started_at ? new Date(sess.started_at).getTime() : Date.now();
+        let cumPauseSecs = Number(sess.cumulative_pause_seconds || 0);
+
+        if (sess.is_paused && sess.last_paused_at) {
+          const lastPausedMs = new Date(sess.last_paused_at).getTime();
+          cumPauseSecs += Math.max(0, Math.floor((Date.now() - lastPausedMs) / 1000));
+        }
+
+        const elapsedSecs = sess.is_paused
+          ? cumPauseSecs
+          : Math.max(0, Math.floor((Date.now() - startedMs) / 1000) - cumPauseSecs);
+
+        const remaining = Math.max(0, totalSecs - elapsedSecs);
+
+        if (!isDismissed && remaining > 0) {
+          setActiveSession(sess);
+        } else {
+          setActiveSession(null);
+        }
       } else {
         setActiveSession(null);
       }
