@@ -1,6 +1,16 @@
 import { AppRole, canAccessPage, normalizeAgentRole } from '@/lib/auth/agent-permissions';
 import { LivePageContext } from '@/lib/ai/live-page-context';
 
+export interface NavigationTelemetry {
+  intentResolutionMs: number;
+  fastPathResolutionMs: number;
+  domResolutionMs: number;
+  executionMs: number;
+  routeNavigationMs: number;
+  pageReadyMs: number;
+  totalLatencyMs: number;
+}
+
 export interface ClientFastPathResult {
   isMatch: boolean;
   targetRoute?: string;
@@ -12,9 +22,12 @@ export interface ClientFastPathResult {
     actionType: 'click' | 'edit' | 'save' | 'cancel' | 'delete' | 'submit' | 'close' | 'open';
     targetText: string;
   };
+  isAmbiguous?: boolean;
+  candidates?: Array<{ id: string; title: string }>;
   allowed: boolean;
   permissionReason?: string;
   language?: 'en' | 'hi' | 'hinglish';
+  telemetry?: NavigationTelemetry;
 }
 
 // Client-side routes cache map for instant resolution
@@ -205,29 +218,53 @@ export function resolveClientFastPath(
   // 4. Open DSA / Coding Sheets (Generic OR Specific Sheet Queries like "leetcode 100 basic sheet kholo")
   const isSheetQuery = /\b(sheet|sheets|dsa|leetcode|striver|blind\s*75|coding\s+sheet)\b/i.test(p);
   if (isSheetQuery) {
-    // Extract key tokens (e.g. "leetcode", "100", "basic")
+    // Extract key tokens (e.g. "leetcode", "100", "basic") preserving domain terms
     const queryTokens = p
-      .replace(/\b(open|kholo|show|dikhao|view|start|karo|kardo|wala|wali|wale|sheet|sheets|dsa|par|me|mein|ka|ki|ke|ko)\b/gi, ' ')
+      .replace(/\b(open|kholo|show|dikhao|view|start|karo|kardo|wala|wali|wale|par|me|mein|ka|ki|ke|ko)\b/gi, ' ')
       .trim()
       .split(/\s+/)
-      .filter(t => t.length > 0);
+      .filter(t => t.length > 0 && t !== 'sheet' && t !== 'sheets' && t !== 'dsa');
 
     if (queryTokens.length > 0) {
-      // Strategy 1: Match live cards by token inclusion
-      const matchedCard = cards.find(card => {
+      // Calculate token match scores across all cards
+      const scoredCards = cards.map(card => {
         const titleLower = (card.title || '').toLowerCase();
-        return queryTokens.every(tok => titleLower.includes(tok)) ||
-               (queryTokens.length > 1 && queryTokens.some(tok => titleLower.includes(tok)));
-      });
+        let matchedCount = 0;
+        for (const tok of queryTokens) {
+          if (titleLower.includes(tok)) matchedCount++;
+        }
+        const score = queryTokens.length > 0 ? matchedCount / queryTokens.length : 0;
+        return { card, score, title: card.title || 'Sheet' };
+      }).filter(s => s.score > 0.4);
 
-      if (matchedCard) {
-        const targetId = matchedCard.actionableElementIds?.[0] || matchedCard.id || matchedCard.title || 'sheet';
+      scoredCards.sort((a, b) => b.score - a.score);
+
+      // Ambiguity Protection: If multiple candidate cards have close scores (<= 0.15 diff), ask for clarification
+      if (scoredCards.length > 1) {
+        const top = scoredCards[0];
+        const second = scoredCards[1];
+        if (top.score >= 0.5 && (top.score - second.score <= 0.15)) {
+          return {
+            isMatch: true,
+            isAmbiguous: true,
+            candidates: scoredCards.slice(0, 3).map(c => ({ id: c.card.id || c.title, title: c.title })),
+            streamingMessage: `Multiple sheets match "${prompt}". Which one would you like to open?`,
+            successMessage: 'Multiple matching sheets found.',
+            allowed: true,
+            language
+          };
+        }
+      }
+
+      if (scoredCards.length > 0 && scoredCards[0].score >= 0.5) {
+        const topCard = scoredCards[0].card;
+        const targetId = topCard.actionableElementIds?.[0] || topCard.id || topCard.title || 'sheet';
         return {
           isMatch: true,
           clientAction: 'interact',
           interactArgs: { actionType: 'click', targetText: targetId },
-          streamingMessage: `Opening ${matchedCard.title || 'Sheet'}...`,
-          successMessage: `Opened ${matchedCard.title || 'Sheet'}.`,
+          streamingMessage: `Opening ${topCard.title || 'Sheet'}...`,
+          successMessage: `Opened ${topCard.title || 'Sheet'}.`,
           allowed: true,
           language
         };
@@ -265,14 +302,17 @@ export function resolveClientFastPath(
         language
       };
     }
+
+    const routeAllowed = canAccessPage(normalizedRole, '/code-arena/sheets');
     return {
       isMatch: true,
       targetRoute: '/code-arena/sheets',
       expectedHeading: 'DSA Sheets',
       clientAction: 'navigate',
-      streamingMessage: 'Opening DSA Sheets...',
+      streamingMessage: routeAllowed ? 'Opening DSA Sheets...' : 'Checking permissions...',
       successMessage: 'DSA Sheets page opened.',
-      allowed: true,
+      allowed: routeAllowed,
+      permissionReason: routeAllowed ? undefined : 'Access denied: Page requires authentication.',
       language
     };
   }

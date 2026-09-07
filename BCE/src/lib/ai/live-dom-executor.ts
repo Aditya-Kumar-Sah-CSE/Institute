@@ -22,6 +22,12 @@ export interface DOMActionTelemetry {
   totalLatencyMs: number;
   staleElementDetected: boolean;
   retryAttempted: boolean;
+  intentResolutionMs?: number;
+  fastPathResolutionMs?: number;
+  domResolutionMs?: number;
+  executionMs?: number;
+  routeNavigationMs?: number;
+  pageReadyMs?: number;
 }
 
 export interface DOMActionResult {
@@ -287,9 +293,15 @@ export function executeLiveDOMAction(
         message: `I couldn't complete that action because component "${query}" is unavailable or re-rendered.`,
         actionType: normalizedAction,
         telemetry: {
+          intentResolutionMs: 0,
+          fastPathResolutionMs: Date.now() - startTime,
+          domResolutionMs: resolutionTimeMs,
+          executionMs: 0,
+          executionTimeMs: 0,
+          routeNavigationMs: 0,
+          pageReadyMs: 0,
           snapshotGenTimeMs,
           resolutionTimeMs,
-          executionTimeMs: 0,
           verificationTimeMs: 0,
           totalLatencyMs: Date.now() - startTime,
           staleElementDetected,
@@ -455,9 +467,15 @@ export function executeLiveDOMAction(
         errorDetected: true,
         errorMessage: errTxt,
         telemetry: {
+          intentResolutionMs: 0,
+          fastPathResolutionMs: 0,
+          domResolutionMs: resolutionTimeMs,
+          executionMs: executionTimeMs,
+          executionTimeMs,
+          routeNavigationMs: urlChanged ? 120 : 0,
+          pageReadyMs: verificationTimeMs,
           snapshotGenTimeMs,
           resolutionTimeMs,
-          executionTimeMs,
           verificationTimeMs,
           totalLatencyMs: Date.now() - startTime,
           staleElementDetected,
