@@ -16,6 +16,7 @@ import { Analytics } from "@vercel/analytics/react";
 import FloatingAgentButtonClient from '@/features/analytics/components/FloatingAgentButtonClient';
 
 import MobileBottomNav from '@/components/layout/MobileBottomNav';
+import './DashboardLayout.css';
 
 export default async function DashboardLayout({
   children,
