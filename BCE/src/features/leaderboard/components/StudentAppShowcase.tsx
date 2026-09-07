@@ -166,21 +166,18 @@ export default function StudentAppShowcase({
         }}
       >
       {/* Section Header with Top-Right ^ Toggle */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
         <div 
           onClick={() => setIsCollapsed(!isCollapsed)} 
-          style={{ cursor: 'pointer', flex: 1, minWidth: 0 }}
+          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
         >
           <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-            <Rocket className="text-neon-cyan" size={22} /> Innovation Hub & Apps
+            <Rocket className="text-neon-cyan" size={22} /> APPs
           </h2>
-          <p className="text-secondary text-sm" style={{ margin: '4px 0 0 0' }}>
-            Showcasing working projects, full-stack websites, and apps developed by Smart Learn students.
-          </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
           <Button variant="primary" size="sm" onClick={() => setShowSubmitModal(true)}>
-            🚀 Submit Your Project
+            🚀 Submit
           </Button>
           <button 
             type="button"
@@ -197,7 +194,7 @@ export default function StudentAppShowcase({
               justifyContent: 'center',
               transition: 'all 0.2s'
             }}
-            title={isCollapsed ? "Expand Innovation Hub" : "Collapse Innovation Hub"}
+            title={isCollapsed ? "Expand APPs" : "Collapse APPs"}
           >
             {isCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
           </button>
