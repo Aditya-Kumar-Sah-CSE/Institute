@@ -429,21 +429,61 @@ export function executeLiveDOMAction(
     }
 
     // Interaction Event Sequence
-    targetDomNode.focus();
-    targetDomNode.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true, cancelable: true }));
-    targetDomNode.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-    targetDomNode.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+    // Card-to-child-action resolution: If target is a card container, find the preferred
+    // child navigation action (e.g., "View Sheet" link) to ensure deterministic specific navigation
+    let effectiveClickTarget = targetDomNode;
+    if (targetElement && (targetElement.type === 'card' || targetElement.type === 'other') && targetDomNode) {
+      const childActions = targetDomNode.querySelectorAll('a[href], button, [role="button"], [data-agent-action]');
+      if (childActions.length > 0) {
+        // Prioritize: "View Sheet" > any link with href > first button
+        let preferredChild: HTMLElement | null = null;
+        childActions.forEach((child) => {
+          const childText = (child.textContent || '').toLowerCase().trim();
+          const childHref = child.getAttribute('href') || '';
+          if (
+            childText.includes('view') ||
+            childText.includes('sheet') ||
+            childText.includes('open') ||
+            childText.includes('start') ||
+            childHref.includes('/sheets/') ||
+            childHref.includes('/courses/')
+          ) {
+            if (!preferredChild) preferredChild = child as HTMLElement;
+          }
+        });
+        // Fallback: first link with an href (most likely the navigation action)
+        if (!preferredChild) {
+          const firstLink = targetDomNode.querySelector('a[href]') as HTMLElement;
+          if (firstLink) preferredChild = firstLink;
+        }
+        if (preferredChild) {
+          effectiveClickTarget = preferredChild;
+          if (process.env.NODE_ENV !== 'production') {
+            console.log('[DOM Executor] Card-to-child resolved:', {
+              cardTitle: targetElement.text?.slice(0, 40),
+              childText: effectiveClickTarget.textContent?.trim()?.slice(0, 40),
+              childHref: effectiveClickTarget.getAttribute('href')
+            });
+          }
+        }
+      }
+    }
 
-    if (typeof targetDomNode.click === 'function') {
-      targetDomNode.click();
+    effectiveClickTarget.focus();
+    effectiveClickTarget.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true, cancelable: true }));
+    effectiveClickTarget.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    effectiveClickTarget.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+
+    if (typeof effectiveClickTarget.click === 'function') {
+      effectiveClickTarget.click();
     } else {
-      targetDomNode.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+      effectiveClickTarget.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     }
 
     executionTimeMs = Date.now() - execStart;
 
     // Automatic Link Navigation Fallback
-    const hrefAttr = targetDomNode.getAttribute('href') || targetDomNode.closest('a')?.getAttribute('href');
+    const hrefAttr = effectiveClickTarget.getAttribute('href') || effectiveClickTarget.closest('a')?.getAttribute('href');
     if (hrefAttr && !hrefAttr.startsWith('#') && !hrefAttr.startsWith('javascript:')) {
       setAgentVisualState('navigating', { targetText: labelText, targetDomNode });
       setTimeout(() => {

@@ -11,6 +11,7 @@ import {
   classifyRGBToSemanticColor,
   validateLiveUISnapshotSerializable
 } from './live-ui-snapshot';
+import { emitScanEvent, isAgentSessionActive, setAgentVisualState } from './agent-visual-state';
 
 let cachedDOMContext: LivePageContext | null = null;
 let cachedDOMRoute: string | null = null;
@@ -112,6 +113,11 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
 
   try {
     runtimeElementRegistry.clear();
+
+    // Emit scanning visual state for persistent cursor tracking
+    if (isAgentSessionActive()) {
+      setAgentVisualState('scanning', { message: 'Scanning page...' });
+    }
 
     // 1. Page Title & Headings
     const docTitle = document.title || 'Smart Learn Platform';
@@ -216,6 +222,11 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
       if (label && label.length >= 1 && label.length < 150) {
         const runtimeId = `agent-el-${String(elementCounter).padStart(3, '0')}`;
         elementCounter++;
+
+        // Emit reading cursor event every 5th element for visual tracking
+        if (isAgentSessionActive() && elementCounter % 5 === 0) {
+          emitScanEvent(el, label.slice(0, 50), 'reading');
+        }
 
         // Attach runtime ID to live DOM element and store in registry (DOM/DTO separation)
         if (el.getAttribute('data-agent-runtime-id') !== runtimeId) {

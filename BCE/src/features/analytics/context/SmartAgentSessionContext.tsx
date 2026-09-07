@@ -21,6 +21,7 @@ import {
   invalidateDOMCache 
 } from '@/lib/ai/live-dom-reader';
 import { LatencyTracker } from '@/lib/ai/latency-telemetry';
+import { setAgentSessionActive } from '@/lib/ai/agent-visual-state';
 import { 
   loadAgentMemory, 
   saveAgentMemory, 
@@ -325,6 +326,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
 
   useEffect(() => {
     isOpenRef.current = isOpen;
+    setAgentSessionActive(isOpen);
     if (!isOpen) {
       stopVoiceSession();
     }
@@ -627,6 +629,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
   const openDrawer = (initialPrompt?: string) => {
     setIsOpen(true);
     setIsWrapped(false);
+    setAgentSessionActive(true);
     if (initialPrompt && initialPrompt.trim()) {
       handleSendPrompt(initialPrompt);
     }
@@ -636,6 +639,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
     stopVoiceSession();
     setIsWrapped(false);
     setIsOpen(false);
+    setAgentSessionActive(false);
   };
 
   const clearMemory = () => {

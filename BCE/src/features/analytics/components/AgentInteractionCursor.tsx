@@ -1,9 +1,14 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
-import { AgentInteractionState, AgentVisualStatePayload, subscribeAgentVisualState } from '@/lib/ai/agent-visual-state';
+import { AgentInteractionState, AgentVisualStatePayload, subscribeAgentVisualState, isAgentSessionActive } from '@/lib/ai/agent-visual-state';
 
-export default function AgentInteractionCursor() {
+interface AgentInteractionCursorProps {
+  /** When true, cursor stays visible even during idle states */
+  sessionActive?: boolean;
+}
+
+export default function AgentInteractionCursor({ sessionActive }: AgentInteractionCursorProps) {
   const [visualState, setVisualState] = useState<AgentVisualStatePayload>({
     state: 'idle',
     timestamp: Date.now()
@@ -13,6 +18,9 @@ export default function AgentInteractionCursor() {
   const targetPosRef = useRef<{ x: number; y: number }>({ x: -100, y: -100 });
   const animFrameRef = useRef<number | null>(null);
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Derive persistent visibility from prop or global flag
+  const isPersistent = sessionActive ?? isAgentSessionActive();
 
   useEffect(() => {
     const unsubscribe = subscribeAgentVisualState((payload) => {
@@ -33,7 +41,8 @@ export default function AgentInteractionCursor() {
         targetPosRef.current = { x: vW * 0.5, y: vH * 0.3 };
       }
 
-      if (payload.state === 'idle' || payload.state === 'success') {
+      // Only auto-hide if the session is NOT persistently active
+      if (!isPersistent && (payload.state === 'idle' || payload.state === 'success')) {
         hideTimerRef.current = setTimeout(() => {
           setVisualState(prev => ({ ...prev, state: 'idle', targetRect: null }));
         }, 1800);
@@ -44,7 +53,7 @@ export default function AgentInteractionCursor() {
       unsubscribe();
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     };
-  }, []);
+  }, [isPersistent]);
 
   // Smooth lerp movement animation using requestAnimationFrame
   useEffect(() => {
@@ -77,9 +86,9 @@ export default function AgentInteractionCursor() {
 
   const { state, targetText, targetRect, message } = visualState;
 
-  if (state === 'idle' && pos.x === -100) return null;
-
-  const isVisibleState = state !== 'idle';
+  // When persistent, show cursor even during idle; otherwise hide when idle and offscreen
+  const isVisibleState = isPersistent ? (state !== 'idle' || pos.x !== -100) : state !== 'idle';
+  if (!isPersistent && state === 'idle' && pos.x === -100) return null;
   const getBadgeColor = (s: AgentInteractionState) => {
     switch (s) {
       case 'error': return 'bg-red-600 text-white border-red-400';

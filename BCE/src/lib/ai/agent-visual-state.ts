@@ -34,6 +34,23 @@ let currentStatePayload: AgentVisualStatePayload = {
   timestamp: Date.now()
 };
 
+// Persistent agent session flag — cursor stays visible while true
+let _agentSessionActive = false;
+
+export function setAgentSessionActive(active: boolean): void {
+  _agentSessionActive = active;
+  if (active && currentStatePayload.state === 'idle') {
+    // Emit a scanning state so the cursor becomes visible immediately
+    setAgentVisualState('scanning', { message: 'Agent active' });
+  } else if (!active) {
+    setAgentVisualState('idle');
+  }
+}
+
+export function isAgentSessionActive(): boolean {
+  return _agentSessionActive;
+}
+
 const listeners = new Set<Listener>();
 
 export function getAgentVisualState(): AgentVisualStatePayload {
@@ -93,4 +110,49 @@ export function subscribeAgentVisualState(listener: Listener): () => void {
 
 export function resetAgentVisualState(): void {
   setAgentVisualState('idle');
+}
+
+/**
+ * Emit a single scanning/reading event for one DOM element.
+ * Called from live-dom-reader during DOM scanning to make the cursor
+ * visually track which element the agent is currently reading.
+ */
+export function emitScanEvent(
+  element: HTMLElement,
+  label: string,
+  state: 'scanning' | 'reading' = 'reading'
+): void {
+  if (!_agentSessionActive) return;
+  setAgentVisualState(state, {
+    targetText: label,
+    targetDomNode: element,
+    message: state === 'scanning' ? 'Scanning page...' : `Reading: ${label}`
+  });
+}
+
+/**
+ * Batch-emit scanning events for a list of DOM elements with staggered timing.
+ * Uses requestAnimationFrame for smooth cursor movement.
+ * Returns a cancel function.
+ */
+export function emitScanSequence(
+  elements: Array<{ el: HTMLElement; label: string }>,
+  intervalMs = 60
+): () => void {
+  if (!_agentSessionActive || elements.length === 0) return () => {};
+  let cancelled = false;
+  let idx = 0;
+
+  const step = () => {
+    if (cancelled || idx >= elements.length || !_agentSessionActive) return;
+    const { el, label } = elements[idx];
+    emitScanEvent(el, label, idx === 0 ? 'scanning' : 'reading');
+    idx++;
+    if (idx < elements.length) {
+      setTimeout(() => requestAnimationFrame(step), intervalMs);
+    }
+  };
+
+  requestAnimationFrame(step);
+  return () => { cancelled = true; };
 }
