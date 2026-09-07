@@ -152,9 +152,9 @@ export default function NoticeBoard({ notices, emptyMessage = 'No notices availa
       <div className="notice-board-wrapper">
         {notices.map((notice) => (
           <Card key={notice.id} variant="glass" padding="md">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-sm)' }}>
-              <h3 style={{ color: 'var(--neon-cyan)', margin: 0 }}>{notice.title}</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: 'var(--space-sm)' }}>
+              <h3 style={{ color: 'var(--neon-cyan)', margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>{notice.title}</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                 <span suppressHydrationWarning style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
                   {new Date(notice.created_at).toLocaleDateString(undefined, {
                     year: 'numeric', month: 'short', day: 'numeric',
