@@ -349,6 +349,7 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
   // File explorer states
   const [files, setFiles] = useState<FileItem[]>([]);
   const [activeFile, setActiveFile] = useState<FileItem | null>(null);
+  const [activeFileImageUrl, setActiveFileImageUrl] = useState<string | null>(null);
   const [rootDirectoryHandle, setRootDirectoryHandle] = useState<FileSystemDirectoryHandle | null>(null);
   const [workspaceMode, setWorkspaceMode] = useState<'cloud' | 'local'>(() => {
     if (typeof window !== 'undefined') {
@@ -925,6 +926,7 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
     if (backupTimeoutRef.current) clearTimeout(backupTimeoutRef.current);
 
     setActiveFile(null);
+    setActiveFileImageUrl(null);
     setCode('');
     setFiles([]);
     setRootDirectoryHandle(null);
@@ -951,23 +953,44 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
     }
 
     try {
+      const parts = item.name.split('.');
+      const ext = parts[parts.length - 1]?.toLowerCase() || '';
+      const isImg = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico', 'bmp', 'avif'].includes(ext);
+
       let content = '';
       let lastMod = Date.now();
+      let imgUrl: string | null = null;
+
       if (item.handle && item.handle.kind === 'file') {
         const file = await (item.handle as FileSystemFileHandle).getFile();
-        content = await file.text();
         lastMod = file.lastModified || Date.now();
+        if (isImg) {
+          imgUrl = URL.createObjectURL(file);
+          content = `[Image file: ${item.name}]`;
+        } else {
+          content = await file.text();
+        }
       } else {
         const res = await fetch(`/api/code-arena/files/read?path=${encodeURIComponent(item.path)}`);
         if (!res.ok) {
           throw new Error((await res.json()).error || 'Failed to read file');
         }
         const data = await res.json();
-        content = data.content || '';
+        const rawContent = data.content || '';
+        if (isImg) {
+          if (ext === 'svg') {
+            imgUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(rawContent)}`;
+          } else if (rawContent.startsWith('data:image/')) {
+            imgUrl = rawContent;
+          } else {
+            imgUrl = `data:image/${ext === 'jpg' ? 'jpeg' : ext};base64,${btoa(rawContent)}`;
+          }
+          content = `[Image file: ${item.name}]`;
+        } else {
+          content = rawContent;
+        }
       }
 
-      const parts = item.name.split('.');
-      const ext = parts[parts.length - 1]?.toLowerCase() || '';
       let detectedLang: CodeLanguage = 'cpp17';
       if (['cpp', 'cc', 'cxx', 'h', 'hpp'].includes(ext)) detectedLang = 'cpp17';
       else if (ext === 'c') detectedLang = 'c';
@@ -982,12 +1005,13 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
 
       let finalContent = content;
       let isDirty = false;
-      if (restored) {
+      if (restored && !isImg) {
         finalContent = restored;
         isDirty = true;
       }
 
       setActiveFile({ ...item, content: finalContent, isDirty });
+      setActiveFileImageUrl(imgUrl);
       setCode(finalContent);
       lastSavedCodeRef.current = content;
       lastSavedPathRef.current = item.path;
@@ -2035,26 +2059,95 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
           </div>
         </header>
 
-        <div style={{ flex: 1, minHeight: '260px', position: 'relative' }}>
-          <Editor
-            height="100%"
-            theme="vs-dark"
-            language={monaco[language]}
-            value={code}
-            onChange={(v) => handleCodeChange(v || '')}
-            beforeMount={registerMonacoIntelliSense}
-            onMount={(editor, monaco) => {
-              editorRef.current = editor;
-              monacoRef.current = monaco;
-            }}
-            options={{
-              automaticLayout: true,
-              minimap: { enabled: false },
-              fontSize: 14,
-              glyphMargin: true,
-              ...intelliSenseEditorOptions,
-            }}
-          />
+        <div style={{ flex: 1, minHeight: '260px', position: 'relative', overflow: 'hidden' }}>
+          {activeFileImageUrl ? (
+            <div style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'radial-gradient(circle at center, rgba(30,41,59,0.8) 0%, rgba(15,23,42,1) 100%)',
+              padding: '24px',
+              gap: '16px',
+              position: 'relative'
+            }}>
+              {/* Background checkerboard for transparent PNGs */}
+              <div style={{
+                position: 'relative',
+                maxWidth: '100%',
+                maxHeight: 'calc(100% - 40px)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '8px',
+                border: '1px solid var(--glass-border)',
+                padding: '16px',
+                background: 'rgba(0,0,0,0.3)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.5)'
+              }}>
+                <img
+                  src={activeFileImageUrl}
+                  alt={activeFile?.name || 'Image preview'}
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '65vh',
+                    objectFit: 'contain',
+                    borderRadius: '4px'
+                  }}
+                  onError={() => {
+                    console.error('Failed to load image preview');
+                  }}
+                />
+              </div>
+
+              {/* Image Info Footer */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                background: 'rgba(0,0,0,0.4)',
+                padding: '6px 16px',
+                borderRadius: '20px',
+                border: '1px solid var(--glass-border)'
+              }}>
+                <FileText size={14} className="text-neon-cyan" />
+                <span>{activeFile?.name}</span>
+                <span style={{ opacity: 0.5 }}>|</span>
+                <a
+                  href={activeFileImageUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--neon-cyan)', textDecoration: 'none', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                >
+                  Open Image In New Tab
+                </a>
+              </div>
+            </div>
+          ) : (
+            <Editor
+              height="100%"
+              theme="vs-dark"
+              language={monaco[language]}
+              value={code}
+              onChange={(v) => handleCodeChange(v || '')}
+              beforeMount={registerMonacoIntelliSense}
+              onMount={(editor, monaco) => {
+                editorRef.current = editor;
+                monacoRef.current = monaco;
+              }}
+              options={{
+                automaticLayout: true,
+                minimap: { enabled: false },
+                fontSize: 14,
+                glyphMargin: true,
+                ...intelliSenseEditorOptions,
+              }}
+            />
+          )}
         </div>
          {/* Bottom Console Panel */}
         {isConsoleCollapsed ? null : (
