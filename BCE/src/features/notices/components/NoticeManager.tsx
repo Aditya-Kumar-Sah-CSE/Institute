@@ -14,6 +14,44 @@ interface NoticeManagerProps {
   currentUserRole: string;
 }
 
+function NoticeContentText({ content }: { content: string }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const words = content ? content.trim().split(/\s+/) : [];
+  const isLong = words.length > 50;
+
+  const displayContent = !isLong || isExpanded
+    ? content
+    : words.slice(0, 50).join(' ') + '...';
+
+  return (
+    <div style={{ marginBottom: 'var(--space-xs)' }}>
+      <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{displayContent}</p>
+      {isLong && (
+        <button
+          type="button"
+          onClick={() => setIsExpanded(!isExpanded)}
+          style={{
+            cursor: 'pointer',
+            background: 'rgba(6, 182, 212, 0.1)',
+            border: '1px solid rgba(6, 182, 212, 0.3)',
+            color: 'var(--neon-cyan)',
+            padding: '4px 12px',
+            borderRadius: '12px',
+            fontSize: '12px',
+            fontWeight: 600,
+            marginTop: '6px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}
+        >
+          {isExpanded ? 'See less' : 'See more'}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function NoticeManager({ notices, currentUserId, currentUserRole }: NoticeManagerProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,7 +115,7 @@ export default function NoticeManager({ notices, currentUserId, currentUserRole 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div style={{ flex: 1 }}>
                         <h3 style={{ color: 'var(--neon-cyan)', margin: '0 0 var(--space-xs) 0' }}>{notice.title}</h3>
-                        <p style={{ margin: '0 0 var(--space-xs) 0', whiteSpace: 'pre-wrap' }}>{notice.content}</p>
+                        <NoticeContentText content={notice.content} />
                         {(() => {
                           const urls = parseAttachmentUrls(notice.image_url);
                           if (urls.length === 0) return null;

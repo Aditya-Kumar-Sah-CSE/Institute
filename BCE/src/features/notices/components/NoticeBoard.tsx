@@ -79,6 +79,44 @@ function NoticeAttachments({ urls, onSelectImage }: { urls: string[], onSelectIm
   );
 }
 
+function NoticeContentText({ content }: { content: string }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const words = content ? content.trim().split(/\s+/) : [];
+  const isLong = words.length > 50;
+
+  const displayContent = !isLong || isExpanded
+    ? content
+    : words.slice(0, 50).join(' ') + '...';
+
+  return (
+    <div style={{ marginBottom: 'var(--space-md)' }}>
+      <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{displayContent}</p>
+      {isLong && (
+        <button
+          type="button"
+          onClick={() => setIsExpanded(!isExpanded)}
+          style={{
+            cursor: 'pointer',
+            background: 'rgba(6, 182, 212, 0.1)',
+            border: '1px solid rgba(6, 182, 212, 0.3)',
+            color: 'var(--neon-cyan)',
+            padding: '4px 12px',
+            borderRadius: '12px',
+            fontSize: '12px',
+            fontWeight: 600,
+            marginTop: '8px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}
+        >
+          {isExpanded ? 'See less' : 'See more'}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function NoticeBoard({ notices, emptyMessage = 'No notices available.' }: NoticeBoardProps) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
@@ -130,7 +168,7 @@ export default function NoticeBoard({ notices, emptyMessage = 'No notices availa
                 )}
               </div>
             </div>
-            <p style={{ margin: '0 0 var(--space-md) 0', whiteSpace: 'pre-wrap' }}>{notice.content}</p>
+            <NoticeContentText content={notice.content} />
             {(() => {
               const urls = parseAttachmentUrls(notice.image_url);
               if (urls.length === 0) return null;
