@@ -91,6 +91,7 @@ export const ADMIN_NAV_ITEMS = [
   { label: 'Feedback', href: '/admin/feedback', icon: 'Feedback' },
   { label: 'Notices', href: '/admin/notices', icon: 'Notices' },
   { label: 'Polls', href: '/admin/polls', icon: 'Polls' },
+  { label: 'Settings', href: '/settings', icon: 'Settings' },
 ];
 
 export const INSTRUCTOR_NAV_ITEMS = [
@@ -101,4 +102,5 @@ export const INSTRUCTOR_NAV_ITEMS = [
   { label: 'Enrollments', href: '/instructor/enrollments', icon: 'Enrollments' },
   { label: 'Review Submissions', href: '/instructor/submissions', icon: 'Submissions' },
   { label: 'Polls', href: '/instructor/polls', icon: 'Polls' },
+  { label: 'Settings', href: '/settings', icon: 'Settings' },
 ];

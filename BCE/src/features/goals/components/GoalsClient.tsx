@@ -522,7 +522,29 @@ export default function GoalsClient() {
   const nowStr = currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
   return (
-    <div className="code-arena-page goals-page-scroll" style={{ padding: '24px', minHeight: '100vh', color: 'var(--text-main)' }}>
+    <div className="code-arena-page goals-page-scroll daily-routine-container" style={{ padding: '24px', minHeight: '100vh', color: 'var(--text-main)' }}>
+      <style>{`
+        @media (max-width: 640px) {
+          .daily-routine-container {
+            padding: 12px 8px !important;
+          }
+          .daily-routine-banner {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            padding: 12px 14px !important;
+            gap: 10px !important;
+          }
+          .daily-routine-item-row {
+            grid-template-columns: 32px 75px 1fr auto !important;
+            gap: 6px !important;
+            padding: 8px 6px !important;
+          }
+          .daily-routine-edit-row {
+            grid-template-columns: 80px 1fr 28px !important;
+            gap: 6px !important;
+          }
+        }
+      `}</style>
       {/* Header */}
       <header style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', width: '100%' }}>
@@ -544,7 +566,7 @@ export default function GoalsClient() {
 
       {/* ── ACTIVE ALARM/TIMER BANNER ── */}
       {(alarmTarget || alarmFired) && (
-        <div style={{
+        <div className="daily-routine-banner" style={{
           marginBottom: '24px',
           padding: '16px 24px',
           borderRadius: '12px',
@@ -611,11 +633,11 @@ export default function GoalsClient() {
           {editingRoutine ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {/* Column Labels */}
-              <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr 32px', gap: '8px', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', padding: '0 4px' }}>
+              <div className="daily-routine-edit-row" style={{ display: 'grid', gridTemplateColumns: '110px 1fr 32px', gap: '8px', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', padding: '0 4px' }}>
                 <span>Time</span><span>Task</span><span></span>
               </div>
               {draftRoutines.map((slot, i) => (
-                <div key={i} style={{ display: 'grid', gridTemplateColumns: '110px 1fr 32px', gap: '8px', alignItems: 'center' }}>
+                <div key={i} className="daily-routine-edit-row" style={{ display: 'grid', gridTemplateColumns: '110px 1fr 32px', gap: '8px', alignItems: 'center' }}>
                   <input
                     type="time"
                     value={slot.time_slot}
@@ -671,6 +693,7 @@ export default function GoalsClient() {
                   return (
                     <div
                       key={slot.id || i}
+                      className="daily-routine-item-row"
                       style={{
                         display: 'grid',
                         gridTemplateColumns: '40px 90px 1fr auto',

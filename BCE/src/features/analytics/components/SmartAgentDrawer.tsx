@@ -336,36 +336,59 @@ export default function SmartAgentDrawer() {
   }
 
   const drawerContent = (
-    <div
-      className={`smart-agent-container ${isMaximized ? 'is-maximized' : 'in-sidebar'}`}
-      style={
-        isMaximized
-          ? {
-              position: 'fixed',
-              inset: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.75)',
-              zIndex: 1000000,
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center'
-            }
-          : {
-              position: 'fixed',
-              right: 0,
-              top: '64px',
-              bottom: 0,
-              width: '420px',
-              maxWidth: '90vw',
-              display: 'flex',
-              flexDirection: 'column',
-              background: 'var(--bg-secondary)',
-              borderLeft: '1px solid var(--glass-border)',
-              boxShadow: '-10px 0 40px rgba(0, 0, 0, 0.7)',
-              boxSizing: 'border-box',
-              zIndex: 1000000
-            }
-      }
-    >
+    <>
+      <style>{`
+        @media (max-width: 768px) {
+          .smart-agent-container.in-sidebar {
+            top: 0 !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100vw !important;
+            max-width: 100vw !important;
+            border-left: none !important;
+            box-shadow: none !important;
+          }
+          .smart-agent-wrapped-bar {
+            right: 10px !important;
+            bottom: 15px !important;
+            max-width: calc(100vw - 20px) !important;
+          }
+          .smart-agent-container input[type="text"] {
+            font-size: 16px !important;
+          }
+        }
+      `}</style>
+      <div
+        className={`smart-agent-container ${isMaximized ? 'is-maximized' : 'in-sidebar'}`}
+        style={
+          isMaximized
+            ? {
+                position: 'fixed',
+                inset: 0,
+                backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                zIndex: 1000000,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }
+            : {
+                position: 'fixed',
+                right: 0,
+                top: '64px',
+                bottom: 0,
+                width: '420px',
+                maxWidth: '90vw',
+                display: 'flex',
+                flexDirection: 'column',
+                background: 'var(--bg-secondary)',
+                borderLeft: '1px solid var(--glass-border)',
+                boxShadow: '-10px 0 40px rgba(0, 0, 0, 0.7)',
+                boxSizing: 'border-box',
+                zIndex: 1000000
+              }
+        }
+      >
       <div 
         style={{
           width: '100%',
@@ -840,6 +863,7 @@ export default function SmartAgentDrawer() {
       `}</style>
       </div>
     </div>
+    </>
   );
 
   if (typeof document !== 'undefined') {

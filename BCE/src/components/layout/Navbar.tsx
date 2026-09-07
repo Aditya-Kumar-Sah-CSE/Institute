@@ -255,6 +255,7 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
     menuItems.push({ href: '/latex-editor', label: 'LaTeX Editor', icon: 'LaTeX' });
     menuItems.push({ href: '/student/nptel', label: 'My NPTEL Courses', icon: 'Courses' });
     menuItems.push({ href: '/profile', label: 'Profile', icon: 'Profile' });
+    menuItems.push({ href: '/settings', label: 'Settings', icon: 'Settings' });
   }
 
   return (
