@@ -82,11 +82,11 @@ function NoticeAttachments({ urls, onSelectImage }: { urls: string[], onSelectIm
 function NoticeContentText({ content }: { content: string }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const words = content ? content.trim().split(/\s+/) : [];
-  const isLong = words.length > 50;
+  const isLong = words.length > 25;
 
   const displayContent = !isLong || isExpanded
     ? content
-    : words.slice(0, 50).join(' ') + '...';
+    : words.slice(0, 25).join(' ') + '...';
 
   return (
     <div style={{ marginBottom: 'var(--space-md)' }}>
@@ -110,7 +110,7 @@ function NoticeContentText({ content }: { content: string }) {
             gap: '4px'
           }}
         >
-          {isExpanded ? 'See less' : 'See more'}
+          {isExpanded ? 'Show less' : 'Show more'}
         </button>
       )}
     </div>
