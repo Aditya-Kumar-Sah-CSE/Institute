@@ -414,29 +414,6 @@ export default function SmartAgentDrawer() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
-            {/* WRAP / COLLAPSE BUTTON (^ / v) IN PLACE OF STATIC AI ICON BOX */}
-            <button
-              type="button"
-              onClick={toggleWrap}
-              style={{
-                background: 'rgba(0, 229, 255, 0.18)',
-                color: 'var(--neon-cyan)',
-                padding: '6px',
-                borderRadius: '10px',
-                border: '1px solid rgba(0, 229, 255, 0.4)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                boxShadow: '0 0 10px rgba(0, 229, 255, 0.25)',
-                transition: 'all 0.2s ease'
-              }}
-              title="Wrap / Minimize Assistant (Agent stays 100% active in background)"
-            >
-              <ChevronDown size={18} />
-            </button>
-
             <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <h3 style={{ margin: 0, fontSize: 'var(--text-sm)', fontWeight: 'bold', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
