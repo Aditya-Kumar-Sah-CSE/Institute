@@ -519,9 +519,6 @@ export default function GoalsClient() {
             <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-secondary)' }}>Track goals, manage your daily routine, and set alarms</p>
           </div>
         </div>
-        <div suppressHydrationWarning style={{ fontSize: '18px', fontWeight: 800, fontFamily: 'monospace', color: 'var(--neon-cyan)', letterSpacing: '1px', width: 'fit-content', background: 'rgba(6, 182, 212, 0.08)', padding: '6px 14px', borderRadius: '8px', border: '1px solid rgba(6, 182, 212, 0.2)', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-          ⏱️ {nowStr}
-        </div>
       </header>
 
       {error && (
@@ -529,115 +526,6 @@ export default function GoalsClient() {
           {error}
         </div>
       )}
-
-      {/* ── STOPWATCH / STUDY TIMER BLOCK ── */}
-      <Card variant="glass" padding="lg" style={{ marginBottom: '24px' }}>
-        <div className="goals-stopwatch-grid">
-          {/* Left Side: Stopwatch */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Clock size={20} style={{ color: 'var(--neon-cyan)' }} />
-              Study Stopwatch
-            </h2>
-            
-            {/* Goal & Task Dropdowns */}
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-              <div style={{ flex: '1 1 180px', minWidth: 0 }}>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>Link to Goal</label>
-                <select
-                  disabled={!!activeSession}
-                  value={selectedGoalId}
-                  onChange={e => setSelectedGoalId(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'var(--bg-card)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', fontSize: '13px', outline: 'none' }}
-                >
-                  {goals.map(g => (
-                    <option key={g.id} value={g.id}>{g.goal_text}</option>
-                  ))}
-                  {goals.length === 0 && (
-                    <option value="">No active goals</option>
-                  )}
-                </select>
-              </div>
-              <div style={{ flex: '1 1 180px', minWidth: 0 }}>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>Link to Task</label>
-                <select
-                  disabled={!!activeSession}
-                  value={selectedTaskId}
-                  onChange={e => setSelectedTaskId(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'var(--bg-card)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', fontSize: '13px', outline: 'none' }}
-                >
-                  <option value="">Select Routine Task...</option>
-                  {routines.map(r => (
-                    <option key={r.id} value={r.id}>{r.task_name} ({formatTime12h(r.time_slot)})</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Stopwatch Time Representation */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-              <div style={{ fontSize: 'clamp(30px, 6vw, 48px)', fontWeight: 900, fontFamily: 'monospace', letterSpacing: '2px', color: activeSession?.is_paused ? 'var(--text-muted)' : 'var(--neon-cyan)' }}>
-                {formatHHMMSS(elapsedSeconds)}
-              </div>
-              
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {!activeSession ? (
-                  <button onClick={handleStartStopwatch} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', borderRadius: '8px', background: 'rgba(57, 255, 20, 0.15)', border: '1px solid rgba(57, 255, 20, 0.4)', color: 'var(--neon-lime)', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
-                    <Play size={16} /> Start Focus
-                  </button>
-                ) : (
-                  <>
-                    {activeSession.is_paused ? (
-                      <button onClick={handleResumeStopwatch} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', borderRadius: '8px', background: 'rgba(6, 182, 212, 0.15)', border: '1px solid rgba(6, 182, 212, 0.4)', color: 'var(--neon-cyan)', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
-                        <Play size={16} /> Resume
-                      </button>
-                    ) : (
-                      <button onClick={handlePauseStopwatch} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', borderRadius: '8px', background: 'rgba(255, 0, 255, 0.15)', border: '1px solid rgba(255, 0, 255, 0.4)', color: 'var(--neon-magenta)', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
-                        <Pause size={16} /> Pause
-                      </button>
-                    )}
-                    <button onClick={handleCompleteStopwatch} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', borderRadius: '8px', background: 'rgba(57, 255, 20, 0.15)', border: '1px solid rgba(57, 255, 20, 0.4)', color: 'var(--neon-lime)', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
-                      <Check size={16} /> Complete
-                    </button>
-                    <button onClick={handleAbandonStopwatch} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 14px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
-                      <RotateCcw size={16} /> Reset
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-            {activeSession && (
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                Active: <span style={{ color: 'var(--neon-purple)', fontWeight: 'bold' }}>{activeSession.student_goals?.goal_text || 'Daily Routine Focus'}</span>
-                {activeSession.task_name && <> &bull; Task: <span style={{ color: 'var(--neon-purple)', fontWeight: 'bold' }}>{activeSession.task_name}</span></>}
-              </div>
-            )}
-          </div>
-
-          {/* Right Side: stats */}
-          <div className="stopwatch-stats-column" style={{ borderLeft: '1px solid var(--glass-border)', paddingLeft: '32px', display: 'flex', flexDirection: 'column', gap: '12px', minHeight: '130px', justifyContent: 'center' }}>
-            <h3 style={{ margin: 0, fontSize: '15px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Today's Accomplishments</h3>
-            
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-              <span style={{ fontSize: '32px', fontWeight: 800, color: 'var(--neon-cyan)' }}>{todayStats.total_focus_mins}</span>
-              <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>minutes total focus time today</span>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '100px', overflowY: 'auto' }}>
-              {todayStats.per_goal_stats && todayStats.per_goal_stats.length > 0 ? (
-                todayStats.per_goal_stats.map((g: any, idx: number) => (
-                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', borderBottom: '1px dashed rgba(255,255,255,0.03)', paddingBottom: '4px' }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>{g.goal_text}</span>
-                    <span style={{ fontWeight: 'bold', color: 'var(--neon-purple)' }}>{g.focus_mins} mins</span>
-                  </div>
-                ))
-              ) : (
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>No focus sessions completed today yet.</div>
-              )}
-            </div>
-          </div>
-        </div>
-      </Card>
 
       {/* ── ACTIVE ALARM/TIMER BANNER ── */}
       {(alarmTarget || alarmFired) && (
