@@ -77,6 +77,7 @@ export const NAV_ITEMS = [
   { label: 'Notices', href: '/notices', icon: 'Notices' },
   { label: 'Chat', href: '/dashboard/chat', icon: 'Chat' },
   { label: 'Profile', href: '/profile', icon: 'Profile' },
+  { label: 'Settings', href: '/settings', icon: 'Settings' },
 ];
 
 export const ADMIN_NAV_ITEMS = [

@@ -45,6 +45,7 @@ const ITEM_GROUPS: Record<string, string> = {
   'Polls': 'General',
   'Feedback': 'General',
   'Profile': 'General',
+  'Settings': 'General',
   'Super Admin': 'General',
 };
 

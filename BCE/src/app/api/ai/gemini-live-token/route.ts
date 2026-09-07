@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getUser } from '@/lib/supabase/server';
 import { GoogleGenAI } from '@google/genai';
+import { getUserAIProvider } from '@/lib/ai/providers/factory';
 
 export async function POST() {
   try {
@@ -12,18 +13,19 @@ export async function POST() {
       );
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
+    const userBYOK = await getUserAIProvider(user.id);
+    if (!userBYOK || userBYOK.activeProvider !== 'gemini') {
       return NextResponse.json(
         {
           success: false,
-          errorCode: 'GEMINI_NOT_CONFIGURED',
-          message: 'Gemini API key is not configured on the server.'
+          errorCode: 'GEMINI_NOT_CONNECTED',
+          message: 'Connect Google Gemini API key in Settings -> AI Agent to use live voice.'
         },
-        { status: 503 }
+        { status: 400 }
       );
     }
 
+    const apiKey = userBYOK.provider.apiKey;
     const serverAi = new GoogleGenAI({
       apiKey,
       httpOptions: { apiVersion: 'v1alpha' }

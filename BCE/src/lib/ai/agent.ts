@@ -4,6 +4,7 @@ import { Student360Profile } from '@/features/analytics/services/student-intelli
 import { GoogleGenAI } from '@google/genai';
 import { normalizeAgentRole, requireAgentPermission, canAccessPage, canUseTool } from '@/lib/auth/agent-permissions';
 import { safeStringify } from './safe-stringify';
+import { getUserAIProvider } from './providers/factory';
 
 export interface AgentChatMessage {
   role: 'user' | 'assistant';
@@ -92,205 +93,106 @@ export async function runSmartAgent(params: {
     });
   }
 
-  // 2. GROQ LLM TOOL CALLING PIPELINE (Strict 3-second AbortSignal timeout for instant failover)
-  if (groqApiKey) {
-    try {
-      const toolDefs = relevantToolsList.map(tool => ({
-        type: 'function',
-        function: {
-          name: tool.name,
-          description: tool.description,
-          parameters: tool.parameters
-        }
-      }));
+  // 2. USER BYOK AI PROVIDER PIPELINE (Gemini / Grok)
+  if (user && user.id) {
+    const userBYOK = await getUserAIProvider(user.id);
 
-      const systemPrompt = `You are "Smart Learn Personal Assistant", a fast, natural, friendly personal learning guide on Smart Learn.
-User Authentication Status: ${isGuest ? 'GUEST (Unauthenticated User)' : `AUTHENTICATED (User Role: ${userRole})`}
-LIVE PAGE CONTEXT: ${JSON.stringify(agentContext)}
+    if (userBYOK) {
+      try {
+        const systemPrompt = `You are "Smart Learn Personal Assistant", a fast, natural, friendly personal learning guide on Smart Learn.
+User Authentication Status: AUTHENTICATED (User Role: ${userRole}, Active Provider: ${userBYOK.activeProvider.toUpperCase()})
+LIVE PAGE CONTEXT: ${safeStringify(agentContext)}
 
 RULES:
 1. User Role: "${userRole}". ONLY select tools allowed for this role.
 2. If user asks "isme kya hai?", "explain this page", inspect liveContext first.
 3. Be concise (1-3 sentences). Match user language (Hinglish/English).`;
 
-      const messages: any[] = [
-        { role: 'system', content: systemPrompt },
-        ...history.slice(-6).map(h => ({ role: h.role, content: h.content })),
-        { role: 'user', content: userPrompt }
-      ];
+        const toolDeclarations = relevantToolsList.map(tool => ({
+          name: tool.name,
+          description: tool.description,
+          parameters: tool.parameters
+        }));
 
-      const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${groqApiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: groqModel,
-          messages,
-          tools: toolDefs.length > 0 ? toolDefs : undefined,
-          tool_choice: toolDefs.length > 0 ? 'auto' : undefined,
-          temperature: 0.2,
-          max_tokens: 400
-        }),
-        signal: AbortSignal.timeout(3000)
-      });
-
-      if (groqResponse.ok) {
-        const data = await groqResponse.json();
-        const choiceMessage = data.choices?.[0]?.message;
-
-        if (choiceMessage?.tool_calls && choiceMessage.tool_calls.length > 0) {
-          const accumulatedActions: Array<{ label: string; url: string; isExternal?: boolean }> = [];
-          let lastExecutedTool: string | undefined = undefined;
-
-          for (const toolCall of choiceMessage.tool_calls) {
-            const toolName = toolCall.function.name;
-            const rawArgs = toolCall.function.arguments || '{}';
-            let parsedArgs = {};
-            try { parsedArgs = JSON.parse(rawArgs); } catch (e) {}
-
-            // Permission Check Before Execution
-            const permCheck = requireAgentPermission(user, userRole, 'tool', toolName);
-            if (!permCheck.allowed) {
-              return {
-                success: false,
-                message: permCheck.reason || 'Please log in first. This section is available to authenticated users.',
-                toolExecuted: toolName
-              };
-            }
-
-            if (AGENT_TOOLS[toolName]) {
-              lastExecutedTool = toolName;
-              const result: AgentToolResult = await AGENT_TOOLS[toolName].execute(parsedArgs, user || { id: 'guest' }, pageContext);
-
-              if (result.url && canAccessPage(userRole, result.url)) {
-                accumulatedActions.push({ label: 'Open Page', url: result.url });
-              }
-              if (result.externalUrl) {
-                accumulatedActions.push({ label: 'View External Link', url: result.externalUrl, isExternal: true });
-              }
-
-              return {
-                success: result.success,
-                message: result.message,
-                actions: accumulatedActions.length > 0 ? accumulatedActions : undefined,
-                requiresConfirmation: result.requiresConfirmation,
-                toolExecuted: lastExecutedTool,
-                pendingNavigation: result.pendingNavigation,
-                navigationId: result.navigationId,
-                expectedRoute: result.expectedRoute,
-                expectedEntity: result.expectedEntity,
-                successMessage: result.successMessage,
-                data: result.data
-              };
-            }
-          }
-        } else if (choiceMessage?.content) {
-          return {
-            success: true,
-            message: choiceMessage.content
-          };
-        }
-      }
-    } catch (err) {
-      console.warn('Groq Agent API call timed out or failed (<3s), trying Gemini fallback:', err);
-    }
-  }
-
-  // 3. GEMINI 3.6 FLASH LLM FALLBACK PIPELINE (Strict 4-second timeout guard)
-  if (geminiApiKey) {
-    try {
-      const serverAi = new GoogleGenAI({ apiKey: geminiApiKey });
-      const functionDeclarations = relevantToolsList.map(tool => ({
-        name: tool.name,
-        description: tool.description,
-        parameters: tool.parameters
-      }));
-
-      const systemPrompt = `You are "Smart Learn Personal Assistant", a fast, natural personal learning guide.
-User Auth: ${isGuest ? 'GUEST' : `AUTHENTICATED (${userRole})`}
-LIVE PAGE CONTEXT: ${safeStringify(agentContext)}
-RULES: Keep answers under 3 sentences. Only use allowed tools. Avoid hallucinations.`;
-
-      const contents: any[] = [
-        ...history.slice(-4).map(h => ({
-          role: h.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: h.content }]
-        })),
-        { role: 'user', parts: [{ text: userPrompt }] }
-      ];
-
-      const geminiPromise = serverAi.models.generateContent({
-        model: 'gemini-3.6-flash',
-        contents,
-        config: {
+        const providerRes = await userBYOK.provider.generateResponse({
           systemInstruction: systemPrompt,
-          tools: functionDeclarations.length > 0 ? [{ functionDeclarations: functionDeclarations as any }] : undefined
-        }
-      });
+          history,
+          prompt: userPrompt,
+          tools: toolDeclarations
+        });
 
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Gemini API timeout after 4000ms')), 4000)
-      );
+        if (providerRes.success) {
+          if (providerRes.toolCalls && providerRes.toolCalls.length > 0) {
+            const accumulatedActions: Array<{ label: string; url: string; isExternal?: boolean }> = [];
+            let lastExecutedTool: string | undefined = undefined;
 
-      const geminiRes: any = await Promise.race([geminiPromise, timeoutPromise]);
+            for (const call of providerRes.toolCalls) {
+              const toolName = call.name;
+              const parsedArgs = call.args || {};
 
-      if (geminiRes.functionCalls && geminiRes.functionCalls.length > 0) {
-        const accumulatedActions: Array<{ label: string; url: string; isExternal?: boolean }> = [];
-        let lastExecutedTool: string | undefined = undefined;
+              // Permission Check Before Execution
+              const permCheck = requireAgentPermission(user, userRole, 'tool', toolName);
+              if (!permCheck.allowed) {
+                return {
+                  success: false,
+                  message: permCheck.reason || 'Please log in first. This section is available to authenticated users.',
+                  toolExecuted: toolName
+                };
+              }
 
-        for (const call of geminiRes.functionCalls) {
-          const toolName = call.name || '';
-          const parsedArgs = call.args || {};
+              if (AGENT_TOOLS[toolName]) {
+                lastExecutedTool = toolName;
+                const result: AgentToolResult = await AGENT_TOOLS[toolName].execute(parsedArgs, user, pageContext);
 
-          // Permission Check Before Execution
-          const permCheck = requireAgentPermission(user, userRole, 'tool', toolName);
-          if (!permCheck.allowed) {
+                if (result.url && canAccessPage(userRole, result.url)) {
+                  accumulatedActions.push({ label: 'Open Page', url: result.url });
+                }
+                if (result.externalUrl) {
+                  accumulatedActions.push({ label: 'View External Link', url: result.externalUrl, isExternal: true });
+                }
+
+                return {
+                  success: result.success,
+                  message: result.message,
+                  actions: accumulatedActions.length > 0 ? accumulatedActions : undefined,
+                  requiresConfirmation: result.requiresConfirmation,
+                  toolExecuted: lastExecutedTool,
+                  pendingNavigation: result.pendingNavigation,
+                  navigationId: result.navigationId,
+                  expectedRoute: result.expectedRoute,
+                  expectedEntity: result.expectedEntity,
+                  successMessage: result.successMessage,
+                  data: result.data
+                };
+              }
+            }
+          } else if (providerRes.text) {
             return {
-              success: false,
-              message: permCheck.reason || 'Please log in first. This section is available to authenticated users.',
-              toolExecuted: toolName
+              success: true,
+              message: providerRes.text
             };
           }
-
-          if (toolName && AGENT_TOOLS[toolName]) {
-            lastExecutedTool = toolName;
-            const result: AgentToolResult = await AGENT_TOOLS[toolName].execute(parsedArgs, user || { id: 'guest' }, pageContext);
-
-            if (result.url && canAccessPage(userRole, result.url)) {
-              accumulatedActions.push({ label: 'Open Page', url: result.url });
-            }
-            if (result.externalUrl) {
-              accumulatedActions.push({ label: 'View External Link', url: result.externalUrl, isExternal: true });
-            }
-
-            return {
-              success: result.success,
-              message: result.message,
-              actions: accumulatedActions.length > 0 ? accumulatedActions : undefined,
-              requiresConfirmation: result.requiresConfirmation,
-              toolExecuted: lastExecutedTool,
-              pendingNavigation: result.pendingNavigation,
-              navigationId: result.navigationId,
-              expectedRoute: result.expectedRoute,
-              expectedEntity: result.expectedEntity,
-              successMessage: result.successMessage
-            };
-          }
         }
-      } else if (geminiRes.text) {
-        return {
-          success: true,
-          message: geminiRes.text
-        };
+      } catch (byokErr) {
+        console.warn('[SmartAgent BYOK Provider Error]:', byokErr);
       }
-    } catch (geminiErr) {
-      console.warn('Gemini Agent API call failed, falling back to deterministic classifier:', geminiErr);
+    } else {
+      // User is logged in but has no BYOK provider connected
+      // Check if command is handled by deterministic fast-path navigation rule
+      const fallbackRes = await resolveFallbackAgentCommand(userPrompt, user, userRole, studentProfile, pageContext, requestId, startTime);
+      if (fallbackRes.toolExecuted || fallbackRes.pendingNavigation) {
+        return fallbackRes;
+      }
+
+      return {
+        success: false,
+        message: 'Connect Gemini or Grok to start your AI Agent.',
+        actions: [{ label: 'Connect AI', url: '/settings/ai-agent' }]
+      };
     }
   }
 
-  // 4. DETERMINISTIC RULE-BASED FALLBACK ENGINE
+  // 3. DETERMINISTIC RULE-BASED FALLBACK ENGINE FOR GUEST USERS
   return await resolveFallbackAgentCommand(userPrompt, user, userRole, studentProfile, pageContext, requestId, startTime);
 }
 

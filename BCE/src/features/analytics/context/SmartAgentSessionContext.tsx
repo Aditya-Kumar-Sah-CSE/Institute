@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { askSmartAgentAction } from '../actions/agent';
+import { getAIProviderStatusAction } from '@/features/ai-settings/actions/ai-settings';
 import { useLivePageContext } from './LivePageContext';
 import { GeminiLiveSession, VoiceConnectionState } from '@/lib/ai/gemini-live-session';
 import { AgentSessionState } from '@/lib/ai/agent-controller';
@@ -155,6 +156,8 @@ interface SmartAgentSessionContextValue {
   startVoiceListening: () => Promise<void>;
   stopVoiceRecordingAndSend: () => Promise<void>;
   toggleVoiceRecording: () => Promise<void>;
+  activeProvider: 'gemini' | 'grok' | null;
+  refreshProviderStatus: () => Promise<void>;
   memorySummary: string | null;
   clearMemory: () => void;
   clearConversation: () => void;
@@ -207,8 +210,49 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
   const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
   const [memorySummary, setMemorySummary] = useState<string | null>(null);
 
-  // Load previous rolling memory summary on session startup
+  const [activeProvider, setActiveProvider] = useState<'gemini' | 'grok' | null>(null);
+
+  const refreshProviderStatus = useCallback(async () => {
+    try {
+      const res = await getAIProviderStatusAction();
+      if (res.success) {
+        setActiveProvider(res.activeProvider as 'gemini' | 'grok' | null);
+        if (!res.activeProvider) {
+          setMessages([
+            {
+              role: 'assistant',
+              content: 'Connect Gemini or Grok to start your AI Agent.',
+              actions: [
+                { label: 'Connect AI', url: '/settings/ai-agent' }
+              ]
+            }
+          ]);
+        } else {
+          const providerTitle = res.activeProvider === 'gemini' ? 'Gemini' : 'Grok';
+          const mem = loadAgentMemory();
+          if (!mem || !mem.summary) {
+            setMessages([
+              {
+                role: 'assistant',
+                content: `✓ ${providerTitle} connected. Your AI Agent is ready.`,
+                actions: [
+                  { label: 'Open DSA Sheets', url: '/code-arena/sheets' },
+                  { label: 'AI Settings', url: '/settings/ai-agent' }
+                ]
+              }
+            ]);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to load AI Provider status:', err);
+    }
+  }, []);
+
+  // Load provider status and previous rolling memory summary on session startup
   useEffect(() => {
+    refreshProviderStatus();
+
     const mem = loadAgentMemory();
     if (mem && mem.summary) {
       setMemorySummary(mem.summary);
@@ -224,7 +268,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         }
       ]);
     }
-  }, []);
+  }, [refreshProviderStatus]);
 
   const [pendingVerification, setPendingVerification] = useState<PendingVerification | null>(null);
 
@@ -1135,6 +1179,8 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         startVoiceListening,
         stopVoiceRecordingAndSend,
         toggleVoiceRecording,
+        activeProvider,
+        refreshProviderStatus,
         memorySummary,
         clearMemory,
         clearConversation,

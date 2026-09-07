@@ -52,7 +52,8 @@ export default function SmartAgentDrawer() {
     memorySummary,
     clearMemory,
     clearConversation,
-    getDynamicLoadingText
+    getDynamicLoadingText,
+    activeProvider
   } = useSmartAgentSession();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -307,12 +308,25 @@ export default function SmartAgentDrawer() {
               <ChevronDown size={18} />
             </button>
 
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <h3 style={{ margin: 0, fontSize: 'var(--text-sm)', fontWeight: 'bold', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                ✦ Smart Learn Agent
-              </h3>
+            <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <h3 style={{ margin: 0, fontSize: 'var(--text-sm)', fontWeight: 'bold', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  ✦ Smart Learn Agent
+                </h3>
+                {activeProvider ? (
+                  <span style={{ fontSize: '10px', color: '#00ff88', background: 'rgba(0, 255, 136, 0.12)', border: '1px solid rgba(0, 255, 136, 0.3)', padding: '1px 6px', borderRadius: '10px', fontWeight: 'bold' }}>
+                    ✓ {activeProvider === 'gemini' ? 'Gemini' : 'Grok'}
+                  </span>
+                ) : (
+                  <Link href="/settings/ai-agent" style={{ textDecoration: 'none' }} onClick={closeDrawer}>
+                    <span style={{ fontSize: '10px', color: 'var(--neon-cyan)', background: 'rgba(0, 229, 255, 0.15)', border: '1px solid var(--neon-cyan)', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>
+                      Connect AI
+                    </span>
+                  </Link>
+                )}
+              </div>
               <p style={{ margin: 0, fontSize: '10px', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {isMaximized ? 'Full-Screen AI Workspace' : 'AI Assistant & Voice Companion'}
+                {isMaximized ? 'Full-Screen AI Workspace' : activeProvider ? `BYOK Active (${activeProvider.toUpperCase()})` : 'Connect Gemini or Grok'}
               </p>
             </div>
           </div>

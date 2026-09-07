@@ -17,7 +17,8 @@ import {
   LogOut,
   Database,
   Gamepad2,
-  Vote
+  Vote,
+  Settings
 } from 'lucide-react';
 
 export function getIcon(name: string, props?: any) {
@@ -30,6 +31,7 @@ export function getIcon(name: string, props?: any) {
     case 'Notices': return <Megaphone {...iconProps} />;
     case 'Polls': return <Vote {...iconProps} />;
     case 'Profile': return <User {...iconProps} />;
+    case 'Settings': return <Settings {...iconProps} />;
     case 'Enrollments': return <Users {...iconProps} />;
     case 'Students': return <Users {...iconProps} />;
     case 'Submissions': return <FileText {...iconProps} />;
