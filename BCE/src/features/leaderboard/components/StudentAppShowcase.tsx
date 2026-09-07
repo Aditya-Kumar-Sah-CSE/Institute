@@ -37,6 +37,7 @@ export default function StudentAppShowcase({
   const [success, setSuccess] = useState<string | null>(null);
   const [showAllApps, setShowAllApps] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -150,10 +151,26 @@ export default function StudentAppShowcase({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)', marginTop: 'var(--space-md)' }}>
-      {/* Section Header */}
+    <>
+      <Card 
+        variant="glass" 
+        style={{ 
+          background: 'rgba(15, 23, 42, 0.4)', 
+          border: '1px solid var(--glass-border)', 
+          borderRadius: 'var(--radius-lg)', 
+          padding: '20px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--space-md)',
+          marginTop: 'var(--space-md)'
+        }}
+      >
+      {/* Section Header with Top-Right ^ Toggle */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
-        <div>
+        <div 
+          onClick={() => setIsCollapsed(!isCollapsed)} 
+          style={{ cursor: 'pointer', flex: 1, minWidth: 0 }}
+        >
           <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
             <Rocket className="text-neon-cyan" size={22} /> Innovation Hub & Apps
           </h2>
@@ -161,226 +178,253 @@ export default function StudentAppShowcase({
             Showcasing working projects, full-stack websites, and apps developed by Smart Learn students.
           </p>
         </div>
-        <Button variant="primary" onClick={() => setShowSubmitModal(true)}>
-          🚀 Submit Your Project
-        </Button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Button variant="primary" size="sm" onClick={() => setShowSubmitModal(true)}>
+            🚀 Submit Your Project
+          </Button>
+          <button 
+            type="button"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            style={{ 
+              background: 'rgba(255,255,255,0.05)', 
+              border: '1px solid var(--glass-border)', 
+              borderRadius: '8px', 
+              color: 'var(--text-primary)', 
+              padding: '6px 10px', 
+              cursor: 'pointer', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              transition: 'all 0.2s'
+            }}
+            title={isCollapsed ? "Expand Innovation Hub" : "Collapse Innovation Hub"}
+          >
+            {isCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+          </button>
+        </div>
       </div>
 
-      {/* User Submission Status Tracker */}
-      {userSubmissions.length > 0 && (
-        <Card variant="glass" style={{ background: 'rgba(6, 182, 212, 0.03)', border: '1px solid rgba(6, 182, 212, 0.15)' }}>
-          <h3 style={{ fontSize: '13px', fontWeight: 700, margin: '0 0 10px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }} className="text-neon-cyan">
-            Your Submissions Tracker
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {userSubmissions.map((sub: any) => (
-              <div key={sub.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--glass-border)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <img src={sub.app_logo_url} alt={sub.app_name} style={{ width: '28px', height: '28px', borderRadius: '6px', objectFit: 'cover' }} />
-                  <div>
-                    <strong style={{ fontSize: '14px' }}>{sub.app_name}</strong>
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '8px' }}>submitted on {new Date(sub.created_at).toLocaleDateString()}</span>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  {sub.status === 'pending' && (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: 'var(--neon-gold)', fontWeight: 600 }}>
-                      <Clock size={13} /> Pending Review
-                    </span>
-                  )}
-                  {sub.status === 'approved' && (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: 'var(--neon-emerald)', fontWeight: 600 }}>
-                      <CheckCircle size={13} /> Approved
-                    </span>
-                  )}
-                  {sub.status === 'rejected' && (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: 'var(--neon-red)', fontWeight: 600 }}>
-                      <XCircle size={13} /> Rejected
-                    </span>
-                  )}
-                  <button onClick={() => handleDelete(sub.id)} style={{ border: 'none', background: 'transparent', color: 'rgba(239, 68, 68, 0.7)', cursor: 'pointer', display: 'flex', padding: 0 }} title="Delete submission">
-                    <Trash2 size={15} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      {/* Admin Review Board */}
-      {isAdmin && pendingApps.length > 0 && (
-        <Card variant="glass" style={{ border: '1px solid var(--neon-purple)', background: 'rgba(124, 58, 237, 0.03)' }}>
-          <h3 style={{ fontSize: '14px', fontWeight: 800, margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: '6px' }} className="text-neon-purple">
-            <ShieldCheck size={16} /> Pending Showcase Approvals ({pendingApps.length})
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {pendingApps.map((app: any) => (
-              <div key={app.id} style={{ padding: '16px', borderRadius: 'var(--radius-md)', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', flexWrap: 'wrap', gap: '12px' }}>
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                    <img src={app.app_logo_url} alt={app.app_name} style={{ width: '48px', height: '48px', borderRadius: '10px', objectFit: 'cover', border: '1px solid var(--glass-border)' }} />
-                    <div>
-                      <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>{app.app_name}</h4>
-                      <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
-                        By <strong>{app.student_name}</strong> ({app.batch}) · mob: {app.mobile_no}
-                      </p>
+      {/* Collapsible Content Body */}
+      {!isCollapsed && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)', marginTop: 'var(--space-sm)' }}>
+          {/* User Submission Status Tracker */}
+          {userSubmissions.length > 0 && (
+            <Card variant="glass" style={{ background: 'rgba(6, 182, 212, 0.03)', border: '1px solid rgba(6, 182, 212, 0.15)' }}>
+              <h3 style={{ fontSize: '13px', fontWeight: 700, margin: '0 0 10px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }} className="text-neon-cyan">
+                Your Submissions Tracker
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {userSubmissions.map((sub: any) => (
+                  <div key={sub.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--glass-border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <img src={sub.app_logo_url} alt={sub.app_name} style={{ width: '28px', height: '28px', borderRadius: '6px', objectFit: 'cover' }} />
+                      <div>
+                        <strong style={{ fontSize: '14px' }}>{sub.app_name}</strong>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '8px' }}>submitted on {new Date(sub.created_at).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      {sub.status === 'pending' && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: 'var(--neon-gold)', fontWeight: 600 }}>
+                          <Clock size={13} /> Pending Review
+                        </span>
+                      )}
+                      {sub.status === 'approved' && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: 'var(--neon-emerald)', fontWeight: 600 }}>
+                          <CheckCircle size={13} /> Approved
+                        </span>
+                      )}
+                      {sub.status === 'rejected' && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: 'var(--neon-red)', fontWeight: 600 }}>
+                          <XCircle size={13} /> Rejected
+                        </span>
+                      )}
+                      <button onClick={() => handleDelete(sub.id)} style={{ border: 'none', background: 'transparent', color: 'rgba(239, 68, 68, 0.7)', cursor: 'pointer', display: 'flex', padding: 0 }} title="Delete submission">
+                        <Trash2 size={15} />
+                      </button>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <Button variant="success" size="sm" onClick={() => handleApprove(app.id)} disabled={actionLoading === app.id}>
-                      Approve
-                    </Button>
-                    <Button variant="danger" size="sm" onClick={() => handleReject(app.id)} disabled={actionLoading === app.id}>
-                      Reject
-                    </Button>
-                  </div>
-                </div>
-                <div style={{ fontSize: '13px', background: 'rgba(255,255,255,0.01)', padding: '10px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.03)' }}>
-                  <p style={{ margin: '0 0 6px 0' }}><strong>Problem:</strong> {app.problem_addressing}</p>
-                  <p style={{ margin: 0 }}><strong>Solution:</strong> {app.solution}</p>
-                </div>
-                <a href={app.working_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: 'var(--neon-cyan)', textDecoration: 'none', fontWeight: 600 }}>
-                  <LinkIcon size={12} /> Live Link: {app.working_url} <ExternalLink size={10} />
-                </a>
+                ))}
               </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      {/* Main Showcase Grid */}
-      {approvedApps.length === 0 ? (
-        <Card variant="glass" style={{ textAlign: 'center', padding: 'var(--space-2xl) var(--space-md)' }}>
-          <Rocket size={36} className="text-secondary" style={{ margin: '0 auto var(--space-sm) auto', opacity: 0.5 }} />
-          <h3 style={{ margin: 0 }}>No apps showcased yet</h3>
-          <p className="text-secondary text-sm" style={{ margin: '6px 0 0 0' }}>
-            Be the first to submit your app and see it live on the Hall of Fame!
-          </p>
-        </Card>
-      ) : (
-        <>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-            gap: 'var(--space-md)'
-          }}>
-            {visibleApps.map((app: any) => (
-              <Card 
-                key={app.id} 
-                variant="glass" 
-                className="hover-lift"
-                style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'center',
-                  textAlign: 'center',
-                  padding: '16px 12px', 
-                  cursor: 'pointer', 
-                  background: 'var(--bg-card)', 
-                  border: '1px solid var(--border-default)',
-                  borderRadius: 'var(--radius-lg)',
-                  transition: 'all 0.25s ease',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  minHeight: '230px',
-                  justifyContent: 'space-between'
-                }}
-                onClick={() => setSelectedApp(app)}
-              >
-                {/* Top Center: App Icon */}
-                <div style={{ position: 'relative', width: 60, height: 60, marginTop: '4px', borderRadius: '16px', overflow: 'hidden', flexShrink: 0, border: '1.5px solid rgba(0, 240, 255, 0.4)', boxShadow: '0 6px 18px rgba(0, 240, 255, 0.15)' }}>
-                  <img src={app.app_logo_url} alt={app.app_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                </div>
-
-                {/* Middle: App Name & Author */}
-                <div style={{ width: '100%', padding: '6px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
-                  <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.25, letterSpacing: '-0.2px' }}>
-                    {app.app_name}
-                  </h3>
-                  <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
-                    By {app.student_name}
-                  </p>
-                </div>
-
-                {/* Bottom: See & Open Action Buttons */}
-                <div style={{ display: 'flex', width: '100%', gap: '6px', marginTop: 'auto', paddingTop: '8px' }} onClick={(e) => e.stopPropagation()}>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedApp(app)}
-                    style={{
-                      flex: 1,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '4px',
-                      padding: '6px 0',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      borderRadius: 'var(--radius-sm)',
-                      background: 'rgba(0, 240, 255, 0.08)',
-                      border: '1px solid rgba(0, 240, 255, 0.25)',
-                      color: 'var(--neon-cyan)',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease'
-                    }}
-                    onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(0, 240, 255, 0.2)'; }}
-                    onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(0, 240, 255, 0.08)'; }}
-                    title="See details"
-                  >
-                    <Eye size={12} /> See
-                  </button>
-                  
-                  <a 
-                    href={app.working_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    style={{ 
-                      flex: 1,
-                      display: 'inline-flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center',
-                      gap: '4px', 
-                      padding: '6px 0', 
-                      fontSize: '11px', 
-                      fontWeight: 700,
-                      borderRadius: 'var(--radius-sm)',
-                      background: 'linear-gradient(135deg, var(--neon-cyan), #00c9db)',
-                      border: 'none',
-                      color: '#000',
-                      textDecoration: 'none',
-                      boxShadow: '0 2px 10px rgba(0, 240, 255, 0.3)',
-                      transition: 'all 0.2s ease'
-                    }}
-                    onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                    onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
-                    title="Open application"
-                  >
-                    Open <ExternalLink size={11} />
-                  </a>
-                </div>
-              </Card>
-            ))}
-          </div>
-
-          {isMobile && approvedApps.length > 3 && (
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '12px' }}>
-              <Button 
-                variant="secondary" 
-                size="sm"
-                onClick={() => setShowAllApps(!showAllApps)}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '20px', padding: '8px 20px', fontSize: '13px', fontWeight: 600 }}
-              >
-                {showAllApps ? (
-                  <>Show Less <ChevronUp size={16} /></>
-                ) : (
-                  <>Show All Apps ({approvedApps.length}) <ChevronDown size={16} /></>
-                )}
-              </Button>
-            </div>
+            </Card>
           )}
-        </>
+
+          {/* Admin Review Board */}
+          {isAdmin && pendingApps.length > 0 && (
+            <Card variant="glass" style={{ border: '1px solid var(--neon-purple)', background: 'rgba(124, 58, 237, 0.03)' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 800, margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: '6px' }} className="text-neon-purple">
+                <ShieldCheck size={16} /> Pending Showcase Approvals ({pendingApps.length})
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {pendingApps.map((app: any) => (
+                  <div key={app.id} style={{ padding: '16px', borderRadius: 'var(--radius-md)', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', flexWrap: 'wrap', gap: '12px' }}>
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <img src={app.app_logo_url} alt={app.app_name} style={{ width: '48px', height: '48px', borderRadius: '10px', objectFit: 'cover', border: '1px solid var(--glass-border)' }} />
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>{app.app_name}</h4>
+                          <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
+                            By <strong>{app.student_name}</strong> ({app.batch}) · mob: {app.mobile_no}
+                          </p>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <Button variant="success" size="sm" onClick={() => handleApprove(app.id)} disabled={actionLoading === app.id}>
+                          Approve
+                        </Button>
+                        <Button variant="danger" size="sm" onClick={() => handleReject(app.id)} disabled={actionLoading === app.id}>
+                          Reject
+                        </Button>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '13px', background: 'rgba(255,255,255,0.01)', padding: '10px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.03)' }}>
+                      <p style={{ margin: '0 0 6px 0' }}><strong>Problem:</strong> {app.problem_addressing}</p>
+                      <p style={{ margin: 0 }}><strong>Solution:</strong> {app.solution}</p>
+                    </div>
+                    <a href={app.working_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: 'var(--neon-cyan)', textDecoration: 'none', fontWeight: 600 }}>
+                      <LinkIcon size={12} /> Live Link: {app.working_url} <ExternalLink size={10} />
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* Main Showcase Grid */}
+          {approvedApps.length === 0 ? (
+            <Card variant="glass" style={{ textAlign: 'center', padding: 'var(--space-2xl) var(--space-md)' }}>
+              <Rocket size={36} className="text-secondary" style={{ margin: '0 auto var(--space-sm) auto', opacity: 0.5 }} />
+              <h3 style={{ margin: 0 }}>No apps showcased yet</h3>
+              <p className="text-secondary text-sm" style={{ margin: '6px 0 0 0' }}>
+                Be the first to submit your app and see it live on the Hall of Fame!
+              </p>
+            </Card>
+          ) : (
+            <>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+                gap: 'var(--space-md)'
+              }}>
+                {visibleApps.map((app: any) => (
+                  <Card 
+                    key={app.id} 
+                    variant="glass" 
+                    className="hover-lift"
+                    style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      alignItems: 'center',
+                      textAlign: 'center',
+                      padding: '16px 12px', 
+                      cursor: 'pointer', 
+                      background: 'var(--bg-card)', 
+                      border: '1px solid var(--border-default)',
+                      borderRadius: 'var(--radius-lg)',
+                      transition: 'all 0.25s ease',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      minHeight: '230px',
+                      justifyContent: 'space-between'
+                    }}
+                    onClick={() => setSelectedApp(app)}
+                  >
+                    {/* Top Center: App Icon */}
+                    <div style={{ position: 'relative', width: 60, height: 60, marginTop: '4px', borderRadius: '16px', overflow: 'hidden', flexShrink: 0, border: '1.5px solid rgba(0, 240, 255, 0.4)', boxShadow: '0 6px 18px rgba(0, 240, 255, 0.15)' }}>
+                      <img src={app.app_logo_url} alt={app.app_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+
+                    {/* Middle: App Name & Author */}
+                    <div style={{ width: '100%', padding: '6px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+                      <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.25, letterSpacing: '-0.2px' }}>
+                        {app.app_name}
+                      </h3>
+                      <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
+                        By {app.student_name}
+                      </p>
+                    </div>
+
+                    {/* Bottom: See & Open Action Buttons */}
+                    <div style={{ display: 'flex', width: '100%', gap: '6px', marginTop: 'auto', paddingTop: '8px' }} onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedApp(app)}
+                        style={{
+                          flex: 1,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px',
+                          padding: '6px 0',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'rgba(0, 240, 255, 0.08)',
+                          border: '1px solid rgba(0, 240, 255, 0.25)',
+                          color: 'var(--neon-cyan)',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(0, 240, 255, 0.2)'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(0, 240, 255, 0.08)'; }}
+                        title="See details"
+                      >
+                        <Eye size={12} /> See
+                      </button>
+                      
+                      <a 
+                        href={app.working_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        style={{ 
+                          flex: 1,
+                          display: 'inline-flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          gap: '4px', 
+                          padding: '6px 0', 
+                          fontSize: '11px', 
+                          fontWeight: 700,
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'linear-gradient(135deg, var(--neon-cyan), #00c9db)',
+                          border: 'none',
+                          color: '#000',
+                          textDecoration: 'none',
+                          boxShadow: '0 2px 10px rgba(0, 240, 255, 0.3)',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+                        title="Open application"
+                      >
+                        Open <ExternalLink size={11} />
+                      </a>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+
+              {isMobile && approvedApps.length > 3 && (
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '12px' }}>
+                  <Button 
+                    variant="secondary" 
+                    size="sm"
+                    onClick={() => setShowAllApps(!showAllApps)}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '20px', padding: '8px 20px', fontSize: '13px', fontWeight: 600 }}
+                  >
+                    {showAllApps ? (
+                      <>Show Less <ChevronUp size={16} /></>
+                    ) : (
+                      <>Show All Apps ({approvedApps.length}) <ChevronDown size={16} /></>
+                    )}
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       )}
+    </Card>
 
       {/* Submission Modal Sheet */}
       {showSubmitModal && (
@@ -601,6 +645,6 @@ export default function StudentAppShowcase({
           </Card>
         </div>
       )}
-    </div>
+    </>
   );
 }
