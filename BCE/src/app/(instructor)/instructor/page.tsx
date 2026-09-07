@@ -3,6 +3,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import Card from '@/components/ui/Card';
 import Link from 'next/link';
 import { BookOpen, FileText, Users, UserPlus } from 'lucide-react';
+import InstructorCoursesList from './InstructorCoursesList';
 export const dynamic = 'force-dynamic';
 
 export default async function InstructorDashboardPage() {
@@ -142,23 +143,7 @@ export default async function InstructorDashboardPage() {
             </Link>
           </div>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-            {courses && courses.length > 0 ? (
-              courses.map(course => (
-                <div key={course.id} style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-md)', gap: 'var(--space-md)', background: 'var(--bg-input)', borderRadius: 'var(--radius-md)' }}>
-                  <div style={{ flex: '1 1 200px' }}>
-                    <h3 style={{ fontSize: 'var(--text-md)', fontWeight: 'var(--weight-semibold)' }}>{course.title}</h3>
-                    <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>{course.is_published ? '🟢 Published' : '🟡 Draft'}</p>
-                  </div>
-                  <Link href={`/instructor/courses/${course.id}/builder`} className="btn btn-primary" style={{ padding: '6px 12px', fontSize: 'var(--text-sm)', flex: '0 0 auto' }}>
-                    Start Teaching
-                  </Link>
-                </div>
-              ))
-            ) : (
-              <p className="text-muted" style={{ textAlign: 'center', padding: 'var(--space-lg)' }}>You haven&apos;t created any courses yet.</p>
-            )}
-          </div>
+          <InstructorCoursesList courses={courses || []} />
         </Card>
 
         <Card variant="glass">
