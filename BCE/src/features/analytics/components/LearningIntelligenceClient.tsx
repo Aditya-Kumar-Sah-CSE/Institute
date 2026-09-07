@@ -418,6 +418,147 @@ export default function LearningIntelligenceClient({ userId, initialProfile }: L
           </div>
         </div>
       )}
+
+      {/* 4. RECOMMENDED COURSE & PERSONALIZED LEARNING PLAN GRID */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 380px), 1fr))', gap: 'var(--space-lg)' }}>
+        
+        {/* RECOMMENDED COURSES GRID (COMPACT SMALL BOXES) */}
+        {coursesToDisplay.length > 0 && (
+          <div style={{ 
+            background: 'rgba(255, 255, 255, 0.02)', 
+            border: '1px solid var(--neon-magenta)', 
+            borderRadius: 'var(--radius-md)', 
+            padding: 'var(--space-md) var(--space-lg)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: isRecommendedCoursesCollapsed ? '0' : 'var(--space-md)',
+            boxShadow: '0 4px 20px rgba(255, 0, 255, 0.06)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--neon-magenta)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Layers size={15} /> RECOMMENDED COURSES
+              </span>
+              <button 
+                onClick={() => setIsRecommendedCoursesCollapsed(!isRecommendedCoursesCollapsed)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--neon-magenta)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
+                title={isRecommendedCoursesCollapsed ? "Expand Recommended Courses" : "Collapse Recommended Courses"}
+              >
+                {isRecommendedCoursesCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+              </button>
+            </div>
+
+            {!isRecommendedCoursesCollapsed && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 'var(--space-sm)' }}>
+                {coursesToDisplay.map((course, idx) => (
+                  <div 
+                    key={idx} 
+                    style={{ 
+                      background: 'linear-gradient(135deg, rgba(255, 0, 255, 0.06) 0%, rgba(99, 102, 241, 0.04) 100%)', 
+                      border: '1px solid rgba(255, 0, 255, 0.3)', 
+                      borderRadius: 'var(--radius-sm)', 
+                      padding: '12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      gap: '8px'
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '4px', marginBottom: '4px' }}>
+                        <h4 style={{ margin: 0, fontSize: '12px', fontWeight: 'bold', color: 'var(--text-primary)', lineHeight: 1.3 }}>
+                          {course.title}
+                        </h4>
+                        <span style={{ fontSize: '9px', background: 'rgba(255, 0, 255, 0.15)', color: 'var(--neon-magenta)', padding: '1px 5px', borderRadius: '4px', fontWeight: 'bold', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                          {course.matchScore}%
+                        </span>
+                      </div>
+
+                      <p style={{ margin: '0 0 6px 0', fontSize: '10px', color: 'var(--text-secondary)', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        {course.description}
+                      </p>
+
+                      <div style={{ fontSize: '9.5px', background: 'rgba(255, 0, 255, 0.1)', color: 'var(--neon-magenta)', padding: '3px 6px', borderRadius: '4px', border: '1px solid rgba(255, 0, 255, 0.2)', fontStyle: 'italic', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        Why: "{course.whyReason}"
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
+                      <Link href={course.actionUrl} style={{ textDecoration: 'none', flex: 1 }}>
+                        <Button variant="secondary" size="sm" style={{ width: '100%', justifyContent: 'center', fontSize: '10px', padding: '3px 6px', height: '24px' }}>
+                          View
+                        </Button>
+                      </Link>
+                      <Link href={course.actionUrl} style={{ textDecoration: 'none', flex: 1 }}>
+                        <Button variant="primary" size="sm" style={{ width: '100%', justifyContent: 'center', fontSize: '10px', padding: '3px 6px', height: '24px', background: 'var(--neon-magenta)', border: 'none' }}>
+                          Enroll
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* PERSONALIZED LEARNING PLAN CARD */}
+        {personalizedPlan && (
+          <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-lg)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: isLearningPlanCollapsed ? '0' : 'var(--space-md)' }}>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isLearningPlanCollapsed ? '0' : 'var(--space-md)', flexWrap: 'wrap', gap: 'var(--space-sm)' }}>
+                <h3 style={{ margin: 0, fontSize: 'var(--text-md)', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Calendar size={18} style={{ color: 'var(--neon-cyan)' }} />
+                  <span>PERSONALIZED LEARNING PLAN</span>
+                </h3>
+                <button 
+                  onClick={() => setIsLearningPlanCollapsed(!isLearningPlanCollapsed)}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--neon-cyan)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
+                  title={isLearningPlanCollapsed ? "Expand Learning Plan" : "Collapse Learning Plan"}
+                >
+                  {isLearningPlanCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+                </button>
+              </div>
+
+              {!isLearningPlanCollapsed && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+                  {/* TODAY */}
+                  <div style={{ background: 'var(--bg-primary)', padding: '10px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--glass-border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: 'var(--neon-cyan)', fontWeight: 'bold', fontSize: 'var(--text-xs)', textTransform: 'uppercase' }}>
+                      <CheckSquare size={13} /> TODAY
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {personalizedPlan.today.map((task, idx) => (
+                        <div key={idx} style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
+                          • <strong style={{ color: 'var(--text-primary)' }}>{task.title}:</strong> {task.detail}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* THIS WEEK */}
+                  <div style={{ background: 'var(--bg-primary)', padding: '10px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--glass-border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: 'var(--neon-lime)', fontWeight: 'bold', fontSize: 'var(--text-xs)', textTransform: 'uppercase' }}>
+                      <Target size={13} /> THIS WEEK
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {personalizedPlan.thisWeek.map((milestone, idx) => (
+                        <div key={idx} style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
+                          • <strong style={{ color: 'var(--text-primary)' }}>{milestone.title}:</strong> {milestone.detail}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {!isLearningPlanCollapsed && (
+              <OpenAgentPlanButton label="Talk to Smart Agent about your learning plan →" />
+            )}
+          </div>
+        )}
+
+      </div>
         </>
       )}
 
