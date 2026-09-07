@@ -59,10 +59,14 @@ export default function PinnedGoalAlert() {
       // Wait, PinnedGoalAlert needs activeGoal to show the "Today's Focus Goal" fallback.
       // If we don't have it, we can fetch just the active goal or rely on the server fetch.
       // We will add it to fetchDeduplicated with ?status=active if needed, but for now we'll do:
-      const activeGoalRes = await fetchDeduplicated('/api/goals?status=active');
-      if (activeGoalRes.goals) {
+      const activeGoalRes = await fetchDeduplicated('/api/goals');
+      if (activeGoalRes.goal) {
+        setActiveGoal(activeGoalRes.goal);
+      } else if (activeGoalRes.goals && activeGoalRes.goals.length > 0) {
         const active = activeGoalRes.goals.find((g: any) => g.status === 'active');
         setActiveGoal(active || null);
+      } else {
+        setActiveGoal(null);
       }
 
       if (routinesRes.routines) {

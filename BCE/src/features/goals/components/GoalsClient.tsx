@@ -353,12 +353,8 @@ export default function GoalsClient() {
       });
       if (res.ok) {
         setEditGoal(null);
-        if (isNew) {
-          // Redirect to dashboard so new goal appears pinned
-          window.location.href = '/dashboard';
-        } else {
-          loadData();
-        }
+        await loadData();
+        window.dispatchEvent(new CustomEvent('goal-update'));
       }
     } catch (e) {
       premiumAlert('Failed to save goal.', 'Save Error', 'error');

@@ -309,6 +309,11 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
                       ⏱️ {timeLeftStr || '00:00'} remaining
                    </span>
                 </div>
+              ) : goal ? (
+                <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                   <span style={{ fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text-main)' }}>{goal.goal_text}</span>
+                   <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--neon-cyan)', marginTop: '2px' }}>{formatMinsToHm(goal.duration_mins)} goal</span>
+                </div>
               ) : routines.length > 0 ? (
                 dueTask ? (
                   <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '3px' }}>
@@ -332,11 +337,6 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
                     <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>All routines completed today!</span>
                   </div>
                 )
-              ) : goal ? (
-                <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
-                   <span style={{ fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{goal.goal_text}</span>
-                   <span style={{ fontSize: '10px', fontWeight: 600, opacity: 0.8 }}>{formatMinsToHm(goal.duration_mins)} goal</span>
-                </div>
               ) : (
                 <>
                   <Plus size={16} /> New Goal
@@ -344,7 +344,7 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
               )}
             </div>
             <div className="text-secondary stat-card-label">
-              {activeSession ? "Active Session" : routines.length > 0 ? (dueTask ? "" : "Daily Routine") : goal ? "Active Goal" : "Target Tracker"}
+              {activeSession ? "Active Session" : goal ? "Active Goal" : routines.length > 0 ? (dueTask ? "Scheduled Routine" : "Daily Routine") : "Target Tracker"}
             </div>
           </div>
         </Card>
