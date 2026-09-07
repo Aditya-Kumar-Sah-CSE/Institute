@@ -494,7 +494,8 @@ export class AgentController {
       return await executeWithPermission('openDashboard');
     }
 
-    if (/\b(dsa|sheet|sheets|coding sheet)\b/i.test(promptLower) && !promptLower.includes('problem') && !promptLower.includes('create') && !promptLower.includes('banao') && !promptLower.includes('add')) {
+    const isExplicitGenericSheetList = /^(open\s+dsa(\s+sheets?)?|dsa\s+sheets?\s+(kholo|dikhao|open|show)|show\s+dsa\s+sheets?|coding\s+sheets?\s+(kholo|dikhao)|open\s+coding\s+sheets?|all\s+sheets|show\s+me\s+coding\s+sheets|open\s+sheets?|sheets?\s+kholo)$/i.test(promptLower);
+    if (isExplicitGenericSheetList) {
       return await executeWithPermission('openDSASheets');
     }
 
@@ -649,22 +650,28 @@ export class AgentController {
     }
 
     // E2. Named & Ordinal Sheet Navigation ("Binary Search sheet kholo", "1st sheet", "2nd sheet", "Leetcode 100 Basics", "Codeforces 800 rated", "advanced graph")
-    const isGenericSheets = /^(open\s+dsa|dsa\s+kholo|open\s+sheets?|sheets?\s+kholo|coding\s+sheets?|dsa\s+sheets?|all\s+sheets)$/i.test(promptLower);
-    if (!isGenericSheets) {
+    if (!isExplicitGenericSheetList) {
       const sheetMatch = promptLower.match(/^(?:open\s+)?(?:dsa\s+)?(.+?)\s+(?:dsa\s+)?sheet[s]?(?:\s+kholo|\s+open|\s+dikhao|\s+show|\s+kardo)?$/i) ||
                          promptLower.match(/^(?:open\s+)?(?:dsa\s+)?(.+?)\s+wala\s+(?:dsa\s+)?sheet[s]?(?:\s+kholo|\s+open|\s+dikhao)?$/i) ||
                          promptLower.match(/^(?:open\s+)?(?:dsa\s+)?(.+?)\s+wali\s+(?:dsa\s+)?sheet[s]?(?:\s+kholo|\s+open|\s+dikhao)?$/i) ||
                          promptLower.match(/^(.+?)\s+(?:dsa\s+)?sheet[s]?(?:\s+kholo|\s+open|\s+dikhao)?$/i) ||
-                         promptLower.match(/^(?:open\s+)?(advanced\s+graph|leetcode\s+100|codeforces\s+900|codeforces\s+800|blind\s+75|striver)(?:\s+kholo|\s+open)?$/i);
+                         promptLower.match(/^(?:open\s+)?(advanced\s+graph|leetcode\s+100|leetcode\s+100\s+basics?|leetcode\s+100\s+intermediate|codeforces\s+900|codeforces\s+800|blind\s+75|striver\s+75|striver)(?:\s+kholo|\s+open|\s+karo)?$/i) ||
+                         promptLower.match(/^(.+?)\s+(kholo|open|show|dikhao|karo)$/i);
       if (sheetMatch) {
-        const titleQuery = sheetMatch[1].replace(/^(open|dsa|coding|show|dikhao|the|a)\s+/gi, '').trim();
+        const rawTitle = sheetMatch[1] || sheetMatch[0];
+        const titleQuery = rawTitle
+          .replace(/^(open|dsa|coding|show|dikhao|the|a)\s+/gi, '')
+          .replace(/\s+(kholo|open|show|dikhao|karo|kardo|wala|wali|wale)$/gi, '')
+          .replace(/\b(sheet|sheets)\b/gi, '')
+          .trim();
+
         if (titleQuery && titleQuery !== 'dsa' && titleQuery !== 'coding' && titleQuery !== 'open' && !titleQuery.includes('create') && !titleQuery.includes('banao')) {
           const res = await executeWithPermission('openDSASheet', { titleQuery });
           if (res.success && res.expectedEntity?.id) {
             sessionState.sheetId = res.expectedEntity.id;
             sessionState.sheetTitle = res.expectedEntity.title;
-            return res;
           }
+          return res;
         }
       }
     }

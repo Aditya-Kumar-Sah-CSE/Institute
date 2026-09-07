@@ -30,23 +30,28 @@ function AgentActivityCard({ msg }: { msg: any }) {
   const runtimeMatch = rawContent.match(/agent-el-[a-zA-Z0-9_-]+/);
   const runtimeId = runtimeMatch ? runtimeMatch[0] : null;
 
-  let targetName = 'Page Element';
-  const cleanStr = rawContent
-    .replace(/^Executed:\s*/i, '')
-    .replace(/^Executing\s*/i, '')
-    .replace(/open on\s*/i, '')
-    .replace(/click on\s*/i, '')
-    .replace(/interactWithPageElement\s*/i, '')
-    .replace(/["']/g, '')
-    .replace(/agent-el-[a-zA-Z0-9_-]+/g, '')
-    .replace(/\.{2,}$/, '')
-    .trim();
+  let targetName = msg.expectedEntity?.title || 'Page Element';
+  if (!msg.expectedEntity?.title) {
+    const cleanStr = rawContent
+      .replace(/^Executed:\s*/i, '')
+      .replace(/^Executing\s*/i, '')
+      .replace(/^Opening\s*/i, '')
+      .replace(/open on\s*/i, '')
+      .replace(/click on\s*/i, '')
+      .replace(/interactWithPageElement\s*/i, '')
+      .replace(/["']/g, '')
+      .replace(/agent-el-[a-zA-Z0-9_-]+/g, '')
+      .replace(/\.{2,}$/, '')
+      .trim();
 
-  if (cleanStr.length > 0) {
-    targetName = cleanStr;
+    if (cleanStr.length > 0) {
+      targetName = cleanStr;
+    }
   }
 
-  const isNav = msg.navigationState === 'VERIFIED' || /open|navigate|sheet|course|problem/i.test(targetName);
+  const isSheetAction = toolName === 'openDSASheet' || msg.expectedEntity?.type === 'sheet' || /sheet/i.test(targetName);
+  const actionLabel = isSheetAction ? 'Clicking "View Sheet"' : 'Clicking target element';
+  const isNav = msg.navigationState === 'VERIFIED' || isSheetAction || /open|navigate|course|problem/i.test(targetName);
 
   return (
     <div style={{
@@ -68,7 +73,7 @@ function AgentActivityCard({ msg }: { msg: any }) {
           <span>🎯</span> <strong>Target found:</strong> <span style={{ color: '#a5f3fc' }}>{targetName}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span>👆</span> <strong>Action:</strong> Clicking target element
+          <span>👆</span> <strong>Action:</strong> {actionLabel}
         </div>
         {isNav && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#67e8f9' }}>
@@ -116,7 +121,11 @@ function AgentActivityCard({ msg }: { msg: any }) {
           gap: '3px'
         }}>
           <div>Tool: {toolName}</div>
+          <div>Entity Type: {msg.expectedEntity?.type === 'sheet' ? 'DSA_SHEET' : 'DOM_ELEMENT'}</div>
+          <div>Entity Query: {targetName}</div>
+          {msg.expectedEntity?.id && <div>Sheet ID: {msg.expectedEntity.id}</div>}
           {runtimeId && <div>Runtime ID: {runtimeId}</div>}
+          <div>Resolution Path: Client Fast Path / Live DOM / Backend</div>
           <div>Fast Path: Active (&lt; 1ms)</div>
           <div>Resolution Latency: ~0.8ms</div>
           <div>Execution Latency: ~4.1ms</div>

@@ -221,28 +221,47 @@ export function resolveClientFastPath(
   // 4. Open DSA / Coding Sheets (Generic OR Specific Sheet Queries like "leetcode 100 basic sheet kholo")
   const isSheetQuery = /\b(sheet|sheets|dsa|leetcode|striver|blind\s*75|coding\s+sheet)\b/i.test(p);
   if (isSheetQuery) {
-    // Extract key tokens (e.g. "leetcode", "100", "basic") preserving domain terms
-    const queryTokens = p
-      .replace(/\b(open|kholo|show|dikhao|view|start|karo|kardo|wala|wali|wale|par|me|mein|ka|ki|ke|ko)\b/gi, ' ')
-      .trim()
-      .split(/\s+/)
-      .filter(t => t.length > 0 && t !== 'sheet' && t !== 'sheets' && t !== 'dsa');
+    // 4A. EXPLICIT GENERIC DSA SHEET LIST INTENT
+    const isExplicitGenericList = /^(open\s+dsa(\s+sheets?)?|dsa\s+sheets?\s+(kholo|dikhao|open|show)|show\s+dsa\s+sheets?|coding\s+sheets?\s+(kholo|dikhao)|open\s+coding\s+sheets?|all\s+sheets|show\s+me\s+coding\s+sheets|open\s+sheets?|sheets?\s+kholo)$/i.test(p);
 
-    if (queryTokens.length > 0) {
-      // Calculate token match scores across all cards
+    // Normalize conversational filler words preserving entity tokens
+    const rawTokens = p
+      .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, ' ')
+      .split(/\s+/)
+      .filter(t => t.length > 0);
+
+    const FILLER = new Set([
+      'open', 'khol', 'kholna', 'kholo', 'show', 'dikhao', 'dikha', 'view', 'start', 'go', 'goto', 'navigate',
+      'karo', 'kardo', 'do', 'wala', 'wali', 'wale', 'par', 'me', 'mein', 'ka', 'ki', 'ke', 'ko',
+      'please', 'the', 'this', 'one', 'a', 'an', 'dsa', 'coding'
+    ]);
+
+    // Preserve entity tokens (including sheet/sheets if title specifies it like "basic sheet")
+    const queryTokens = rawTokens.filter(t => !FILLER.has(t) && t !== 'sheet' && t !== 'sheets');
+
+    if (!isExplicitGenericList && queryTokens.length > 0) {
+      // Lexical variant helper: basic <-> basics equivalence
+      const normalizeLexicalToken = (tok: string) => tok === 'basic' ? 'basics' : tok === 'basics' ? 'basic' : tok;
+
+      // Strategy 1: Calculate match scores across visible DOM cards
       const scoredCards = cards.map(card => {
         const titleLower = (card.title || '').toLowerCase();
+        const titleTokens = titleLower.split(/\s+/);
         let matchedCount = 0;
+
         for (const tok of queryTokens) {
-          if (titleLower.includes(tok)) matchedCount++;
+          const variant = normalizeLexicalToken(tok);
+          if (titleLower.includes(tok) || titleLower.includes(variant) || titleTokens.some(tt => tt === tok || tt === variant)) {
+            matchedCount++;
+          }
         }
         const score = queryTokens.length > 0 ? matchedCount / queryTokens.length : 0;
         return { card, score, title: card.title || 'Sheet' };
-      }).filter(s => s.score > 0.4);
+      }).filter(s => s.score >= 0.4);
 
       scoredCards.sort((a, b) => b.score - a.score);
 
-      // Ambiguity Protection: If multiple candidate cards have close scores (<= 0.15 diff), ask for clarification
+      // Ambiguity Protection: If prompt is generic like "leetcode 100" and multiple candidates match closely (diff <= 0.15)
       if (scoredCards.length > 1) {
         const top = scoredCards[0];
         const second = scoredCards[1];
@@ -251,7 +270,8 @@ export function resolveClientFastPath(
             isMatch: true,
             isAmbiguous: true,
             candidates: scoredCards.slice(0, 3).map(c => ({ id: c.card.id || c.title, title: c.title })),
-            streamingMessage: `Multiple sheets match "${prompt}". Which one would you like to open?`,
+            streamingMessage: `Multiple sheets match "${prompt}". Which one would you like to open?\n` +
+              scoredCards.slice(0, 3).map((c, i) => `${i + 1}. ${c.title}`).join('\n'),
             successMessage: 'Multiple matching sheets found.',
             allowed: true,
             language
@@ -261,7 +281,16 @@ export function resolveClientFastPath(
 
       if (scoredCards.length > 0 && scoredCards[0].score >= 0.5) {
         const topCard = scoredCards[0].card;
-        const targetId = topCard.actionableElementIds?.[0] || topCard.id || topCard.title || 'sheet';
+        
+        // Find preferred child action element ("View Sheet" button) inside card
+        const childActionEl = elementsList.find(el => {
+          const elText = (el.text || el.ariaLabel || el.dataAgentAction || '').toLowerCase();
+          const isViewAction = elText.includes('view') || elText.includes('sheet') || elText.includes('open');
+          const belongsToCard = topCard.actionableElementIds?.includes(el.id) || el.parentCardTitle === topCard.title;
+          return isViewAction && belongsToCard;
+        });
+
+        const targetId = childActionEl?.id || topCard.actionableElementIds?.[0] || topCard.id || topCard.title || 'sheet';
         return {
           isMatch: true,
           clientAction: 'interact',
@@ -276,7 +305,10 @@ export function resolveClientFastPath(
       // Strategy 2: Match live interactive DOM elements
       const matchedEl = elementsList.find(el => {
         const elText = (el.text || el.dataAgentLabel || el.dataAgentAction || el.ariaLabel || el.title || '').toLowerCase();
-        return queryTokens.some(tok => tok.length > 1 && elText.includes(tok));
+        return queryTokens.some(tok => {
+          const variant = normalizeLexicalToken(tok);
+          return tok.length > 1 && (elText.includes(tok) || elText.includes(variant));
+        });
       });
 
       if (matchedEl) {
@@ -284,40 +316,46 @@ export function resolveClientFastPath(
           isMatch: true,
           clientAction: 'interact',
           interactArgs: { actionType: 'click', targetText: matchedEl.id },
-          streamingMessage: `Clicking ${matchedEl.text || 'Sheet'}...`,
+          streamingMessage: `Opening ${matchedEl.text || 'Sheet'}...`,
           successMessage: `Opened ${matchedEl.text || 'Sheet'}.`,
           allowed: true,
           language
         };
       }
+
+      // Specific sheet query but NOT found on current page DOM snapshot:
+      // Return isMatch: false to let agent-controller resolve the specific sheet entity from backend database
+      return { isMatch: false, allowed: true, language };
     }
 
-    // Fallback: Click DSA link or navigate to /code-arena/sheets
-    const liveDsaEl = findLiveElement('dsa') || findLiveElement('sheets');
-    if (liveDsaEl) {
+    // Explicit generic DSA list navigation branch
+    if (isExplicitGenericList) {
+      const liveDsaEl = findLiveElement('dsa') || findLiveElement('sheets');
+      if (liveDsaEl) {
+        return {
+          isMatch: true,
+          clientAction: 'interact',
+          interactArgs: { actionType: 'click', targetText: liveDsaEl.id },
+          streamingMessage: 'Clicking DSA Sheets link on page...',
+          successMessage: 'DSA Sheets opened.',
+          allowed: true,
+          language
+        };
+      }
+
+      const routeAllowed = canAccessPage(normalizedRole, '/code-arena/sheets');
       return {
         isMatch: true,
-        clientAction: 'interact',
-        interactArgs: { actionType: 'click', targetText: liveDsaEl.id },
-        streamingMessage: 'Clicking DSA Sheets link on page...',
-        successMessage: 'DSA Sheets opened.',
-        allowed: true,
+        targetRoute: '/code-arena/sheets',
+        expectedHeading: 'DSA Sheets',
+        clientAction: 'navigate',
+        streamingMessage: routeAllowed ? 'Opening DSA Sheets list...' : 'Checking permissions...',
+        successMessage: 'DSA Sheets page opened.',
+        allowed: routeAllowed,
+        permissionReason: routeAllowed ? undefined : 'Access denied: Page requires authentication.',
         language
       };
     }
-
-    const routeAllowed = canAccessPage(normalizedRole, '/code-arena/sheets');
-    return {
-      isMatch: true,
-      targetRoute: '/code-arena/sheets',
-      expectedHeading: 'DSA Sheets',
-      clientAction: 'navigate',
-      streamingMessage: routeAllowed ? 'Opening DSA Sheets...' : 'Checking permissions...',
-      successMessage: 'DSA Sheets page opened.',
-      allowed: routeAllowed,
-      permissionReason: routeAllowed ? undefined : 'Access denied: Page requires authentication.',
-      language
-    };
   }
 
   // 4B. Open Profile Fast-Path

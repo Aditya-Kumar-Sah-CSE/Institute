@@ -355,16 +355,22 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
         }
 
         if (res.ambiguous && res.candidates) {
-          const names = res.candidates.map(c => c.title).join(', ');
+          const options = res.candidates.map((c, i) => `${i + 1}. ${c.title}`).join('\n');
           return {
             success: false,
-            message: `I found multiple DSA sheets: ${names}. Which one do you want?`
+            reason: 'AMBIGUOUS_SHEET',
+            isAmbiguous: true,
+            candidates: res.candidates,
+            message: `Which one should I open?\n${options}`
           };
         }
 
         return {
           success: false,
-          message: res.reason || `DSA sheet "${query || sheetIdx}" not found.`
+          reason: 'SPECIFIC_SHEET_NOT_FOUND',
+          query: query || String(sheetIdx),
+          candidates: res.candidates || [],
+          message: res.reason || `Specific sheet "${query || sheetIdx}" was not found.`
         };
       }
 

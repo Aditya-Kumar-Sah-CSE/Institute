@@ -92,7 +92,7 @@ export function normalizeQuery(rawQuery: string): string {
     return !FILLER_WORDS.has(token);
   });
 
-  return tokens.join(' ');
+  return tokens.map(t => t === 'basic' ? 'basics' : t).join(' ');
 }
 
 /**
@@ -132,7 +132,14 @@ function levenshteinDistance(a: string, b: string): number {
 }
 
 /**
- * Calculates match score (0.0 to 1.0) between query and target title
+ * Calculates match score (0.0 to 1.0) between query and target title.
+ * Enforces deterministic scoring priority:
+ * 1. Exact canonical title (1.0)
+ * 2. Exact normalized title (1.0)
+ * 3. Exact token-set match (0.95)
+ * 4. Strong multi-token match (0.85)
+ * 5. Partial token match (0.65)
+ * 6. No match (0)
  */
 function scoreMatch(queryNorm: string, rawQuery: string, title: string): number {
   const titleLower = title.toLowerCase().trim();
@@ -140,42 +147,52 @@ function scoreMatch(queryNorm: string, rawQuery: string, title: string): number 
   const titleAcronym = getAcronym(title);
   const rawLower = rawQuery.toLowerCase().trim();
 
-  // 1. Exact match on raw query or normalized query
-  if (rawLower === titleLower || queryNorm === titleNorm) return 1.0;
+  // 1. Exact canonical title match
+  if (rawLower === titleLower) return 1.0;
 
-  // 2. Acronym match (e.g., "dbms" matches "Database Management System" or "DBMS")
-  if (queryNorm === titleAcronym || rawLower.includes(titleAcronym) || titleLower.includes(rawLower)) {
-    if (rawLower.length >= 2 && (titleLower.startsWith(rawLower) || titleAcronym === rawLower)) {
-      return 0.95;
-    }
+  // 2. Exact normalized title match (including basic <-> basics equivalence)
+  if (queryNorm === titleNorm) return 1.0;
+
+  // Lexical token sets comparison
+  const normalizeTok = (t: string) => t === 'basic' ? 'basics' : t;
+  const queryTokens = queryNorm.split(' ').map(normalizeTok).filter(Boolean);
+  const titleTokens = titleNorm.split(' ').map(normalizeTok).filter(Boolean);
+
+  // 3. Exact token-set match (same set of normalized entity tokens regardless of order)
+  const isExactTokenSet = queryTokens.length === titleTokens.length &&
+    queryTokens.every(q => titleTokens.includes(q)) &&
+    titleTokens.every(t => queryTokens.includes(t));
+  if (isExactTokenSet && queryTokens.length > 0) return 0.95;
+
+  // Acronym match
+  if (queryNorm === titleAcronym || rawLower === titleAcronym) {
+    return 0.92;
   }
 
-  // 3. Prefix or Word Boundary match
-  if (titleNorm.startsWith(queryNorm) || queryNorm.startsWith(titleNorm)) return 0.9;
-  if (titleLower.startsWith(rawLower)) return 0.88;
-
-  // 4. Substring / Word Inclusion
-  const queryTokens = queryNorm.split(' ');
-  const titleTokens = titleNorm.split(' ');
-  let tokenMatches = 0;
+  // 4. Strong multi-token match
+  let matchedCount = 0;
   for (const qTok of queryTokens) {
-    if (titleTokens.some(tTok => tTok.includes(qTok) || qTok.includes(tTok))) {
-      tokenMatches++;
+    if (titleTokens.some(tTok => tTok === qTok || tTok.includes(qTok) || qTok.includes(tTok))) {
+      matchedCount++;
     }
   }
 
   if (queryTokens.length > 0) {
-    const tokenScore = tokenMatches / queryTokens.length;
-    if (tokenScore === 1.0) return 0.85;
-    if (tokenScore >= 0.5) return 0.65;
+    const ratio = matchedCount / queryTokens.length;
+    if (ratio === 1.0) return 0.88;
+    if (ratio >= 0.66) return 0.78;
+    if (ratio >= 0.5) return 0.65;
   }
+
+  // Prefix match
+  if (titleNorm.startsWith(queryNorm) || queryNorm.startsWith(titleNorm)) return 0.75;
 
   // 5. Fuzzy Levenshtein for minor typos
   const distance = levenshteinDistance(queryNorm, titleNorm);
   const maxLen = Math.max(queryNorm.length, titleNorm.length);
   if (maxLen > 0) {
     const similarity = 1 - distance / maxLen;
-    if (similarity >= 0.7) return similarity * 0.8;
+    if (similarity >= 0.75) return similarity * 0.7;
   }
 
   return 0;
