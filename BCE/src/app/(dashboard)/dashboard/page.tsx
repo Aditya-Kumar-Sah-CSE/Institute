@@ -8,7 +8,7 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { getDashboardPolls } from '@/features/courses/actions/polls';
 import { getGlobalPolls } from '@/features/polls/actions';
 import GlobalPollCard from '@/features/polls/components/GlobalPollCard';
-import { Zap, Flame, CheckCircle, Award, User, BookOpen, Download } from 'lucide-react';
+import { Zap, Flame, CheckCircle, Award, GraduationCap, BookOpen, Download } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import AddGoalDashboardCard from '@/features/goals/components/AddGoalDashboardCard';
 import { Suspense } from 'react';
@@ -70,16 +70,16 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
         )}
 
         <div className="dashboard-stats-grid">
-          <Link href="/code-arena/profile" style={{ textDecoration: 'none' }} title="View Coding Profile">
+          <Link href="/courses" style={{ textDecoration: 'none' }} title="View Courses">
             <Card variant="glass" padding="lg" className="stat-card hover-lift">
               <div className="stat-card-icon" style={{ background: 'rgba(0, 242, 254, 0.1)', color: 'var(--neon-cyan)' }}>
-                <User size={24} />
+                <GraduationCap size={24} />
               </div>
               <div className="stat-card-content">
                 <div suppressHydrationWarning className="stat-card-value" style={{ color: 'var(--neon-cyan)', fontSize: '1.4rem', fontWeight: 800 }}>
-                  Profile <span style={{ fontSize: '0.8rem', fontWeight: 600, opacity: 0.85 }}>View</span>
+                  Course <span style={{ fontSize: '0.8rem', fontWeight: 600, opacity: 0.85 }}>View</span>
                 </div>
-                <div className="text-secondary stat-card-label">Coding Profile</div>
+                <div className="text-secondary stat-card-label">My Courses</div>
               </div>
             </Card>
           </Link>
