@@ -1,13 +1,17 @@
 'use client';
 
 import React, { useRef } from 'react';
-import { Code, Trash2, Copy, Check } from 'lucide-react';
+import { Code, Trash2, Copy, Check, Undo, Redo } from 'lucide-react';
 
 interface LatexCodeEditorProps {
   code: string;
   onChange: (newCode: string) => void;
   onSelectionChange: (selectionStart: number) => void;
   onClear: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
 }
 
 export default function LatexCodeEditor({
@@ -15,6 +19,10 @@ export default function LatexCodeEditor({
   onChange,
   onSelectionChange,
   onClear,
+  onUndo,
+  onRedo,
+  canUndo = true,
+  canRedo = true,
 }: LatexCodeEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [copied, setCopied] = React.useState(false);
@@ -43,6 +51,28 @@ export default function LatexCodeEditor({
           <span className="stats-badge">{lineCount} lines</span>
         </div>
         <div className="editor-actions">
+          {onUndo && (
+            <button
+              type="button"
+              className="editor-action-btn"
+              onClick={onUndo}
+              disabled={!canUndo}
+              title="Undo (Ctrl+Z)"
+            >
+              <Undo className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {onRedo && (
+            <button
+              type="button"
+              className="editor-action-btn"
+              onClick={onRedo}
+              disabled={!canRedo}
+              title="Redo (Ctrl+Y)"
+            >
+              <Redo className="w-3.5 h-3.5" />
+            </button>
+          )}
           <button className="editor-action-btn" onClick={handleCopy} title="Copy LaTeX Source">
             {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
             <span>{copied ? 'Copied' : 'Copy'}</span>

@@ -269,27 +269,6 @@ export default function VoiceLatexEditor() {
             <p>Integrated with existing Smart Learn AI Agent (Hinglish &amp; English Voice Control)</p>
           </div>
         </div>
-
-        <div className="header-history-controls">
-          <button
-            className="history-btn"
-            onClick={handleUndo}
-            disabled={!canUndo}
-            title="Undo Last Action (Ctrl+Z)"
-          >
-            <Undo className="w-4 h-4" />
-            <span>Undo</span>
-          </button>
-          <button
-            className="history-btn"
-            onClick={handleRedo}
-            disabled={!canRedo}
-            title="Redo Action (Ctrl+Y)"
-          >
-            <Redo className="w-4 h-4" />
-            <span>Redo</span>
-          </button>
-        </div>
       </header>
 
       {/* Existing AI Agent Voice Control Bar */}
@@ -311,6 +290,10 @@ export default function VoiceLatexEditor() {
             onChange={(newCode) => handleCodeChange(newCode, 'Manual Typing')}
             onSelectionChange={setCursorPos}
             onClear={handleClear}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+            canUndo={canUndo}
+            canRedo={canRedo}
           />
           <SyntaxErrorBanner errors={syntaxErrors} />
         </div>
