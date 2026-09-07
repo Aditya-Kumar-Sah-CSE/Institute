@@ -8,23 +8,47 @@ export function useFocusMode(
   onComplete: () => void,
   onExit: () => void
 ) {
-  const [state, setState] = useState<FocusModeState>(() => {
+  const computeInitialState = (): FocusModeState => {
     const cached = focusModeStorage.get();
-    if (activeSession && (!cached.session || cached.session.id !== activeSession.id)) {
+    if (activeSession) {
+      const totalSecs = (activeSession.duration_mins || 30) * 60;
+      const startedMs = activeSession.started_at ? new Date(activeSession.started_at).getTime() : Date.now();
+      let cumPauseSecs = Number(activeSession.cumulative_pause_seconds || 0);
+
+      if (activeSession.is_paused && activeSession.last_paused_at) {
+        const lastPausedMs = new Date(activeSession.last_paused_at).getTime();
+        cumPauseSecs += Math.max(0, Math.floor((Date.now() - lastPausedMs) / 1000));
+      }
+
+      const elapsedSecs = activeSession.is_paused
+        ? cumPauseSecs
+        : Math.max(0, Math.floor((Date.now() - startedMs) / 1000) - cumPauseSecs);
+
+      const remaining = Math.max(0, totalSecs - elapsedSecs);
+
       return {
-        isRunning: true,
-        remaining: activeSession.duration_mins * 60,
-        size: cached.size,
-        position: cached.position,
+        isRunning: !activeSession.is_paused && remaining > 0,
+        remaining,
+        size: cached.size || { width: 380, height: 260 },
+        position: cached.position || { x: 20, y: 80 },
         session: {
           id: activeSession.id,
-          name: activeSession.student_goals?.goal_text || 'Focus Session',
-          total: activeSession.duration_mins * 60,
+          name: activeSession.task_name || activeSession.student_goals?.goal_text || 'Focus Session',
+          total: totalSecs,
         },
       };
     }
     return cached;
-  });
+  };
+
+  const [state, setState] = useState<FocusModeState>(computeInitialState);
+
+  // Recalculate if activeSession changes (e.g. async load after reload)
+  useEffect(() => {
+    if (activeSession) {
+      setState(computeInitialState());
+    }
+  }, [activeSession?.id, activeSession?.started_at, activeSession?.is_paused]);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const expiryRef = useRef<number | null>(null);
