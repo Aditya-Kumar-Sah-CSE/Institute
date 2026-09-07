@@ -36,7 +36,7 @@ export default function LearningIntelligenceClient({ userId, initialProfile }: L
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncedTime, setLastSyncedTime] = useState<string | null>(null);
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
-  const [isMainCollapsed, setIsMainCollapsed] = useState(false);
+  const [isMainCollapsed, setIsMainCollapsed] = useState(true);
   const [isRecommendedCoursesCollapsed, setIsRecommendedCoursesCollapsed] = useState(true);
   const [isLearningPlanCollapsed, setIsLearningPlanCollapsed] = useState(true);
 
