@@ -18,7 +18,7 @@ import {
   replaceTitleInLatex,
   makeCurrentMatrixSymmetric,
 } from '@/lib/latex/latexCommands';
-import { Undo, Redo, Sparkles, Eye, FileText, Bot } from 'lucide-react';
+import { Undo, Redo, Sparkles, Eye, FileText } from 'lucide-react';
 import './VoiceLatexEditor.css';
 
 export default function VoiceLatexEditor() {
@@ -258,18 +258,6 @@ export default function VoiceLatexEditor() {
 
   return (
     <div className="voice-latex-workspace">
-      {/* Top Header Banner */}
-      <header className="workspace-header">
-        <div className="brand-group">
-          <div className="brand-badge">
-            <Bot className="w-5 h-5 text-cyan-400" />
-          </div>
-          <div>
-            <h1>Smart Learn Voice LaTeX Workspace</h1>
-            <p>Integrated with existing Smart Learn AI Agent (Hinglish &amp; English Voice Control)</p>
-          </div>
-        </div>
-      </header>
 
       {/* Existing AI Agent Voice Control Bar */}
       <VoiceControls
