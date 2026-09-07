@@ -15,6 +15,12 @@ export interface NavigationTelemetry {
 export interface ClientFastPathResult {
   isMatch: boolean;
   targetRoute?: string;
+  expectedRoute?: string;
+  expectedEntity?: {
+    type: 'sheet' | 'problem' | 'course' | 'certificate';
+    id: string;
+    title?: string;
+  };
   expectedHeading?: string;
   streamingMessage?: string;
   successMessage?: string;
@@ -291,10 +297,14 @@ export function resolveClientFastPath(
         });
 
         const targetId = childActionEl?.id || topCard.actionableElementIds?.[0] || topCard.id || topCard.title || 'sheet';
+        const expectedRoute = topCard.id ? `/code-arena/sheets/${topCard.id}` : undefined;
         return {
           isMatch: true,
           clientAction: 'interact',
           interactArgs: { actionType: 'click', targetText: targetId },
+          targetRoute: expectedRoute,
+          expectedRoute,
+          expectedEntity: topCard.id ? { type: 'sheet' as const, id: topCard.id, title: topCard.title } : undefined,
           streamingMessage: `Opening ${topCard.title || 'Sheet'}...`,
           successMessage: `Opened ${topCard.title || 'Sheet'}.`,
           allowed: true,

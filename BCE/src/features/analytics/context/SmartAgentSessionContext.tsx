@@ -937,9 +937,37 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         if (fastPath.clientAction === 'interact' && fastPath.interactArgs) {
           const { actionType, targetText } = fastPath.interactArgs;
           const domRes = executeDOMActionOnPage(actionType, targetText);
-          const finalContent = domRes.success ? `✅ ${domRes.message}` : `⚠️ ${domRes.message}`;
 
-          commitAssistantResponse(finalContent, domRes.success ? 'VERIFIED' : 'FAILED');
+          const targetRoute = domRes.expectedRoute || fastPath.expectedRoute || fastPath.targetRoute;
+          const expectedEntity = domRes.expectedEntity || fastPath.expectedEntity;
+
+          if (targetRoute && domRes.success) {
+            tracker.markStage('navigation');
+            setExecutionState('NAVIGATING');
+            await new Promise(res => setTimeout(res, 150));
+
+            tracker.markStage('verification');
+            setExecutionState('VERIFYING');
+            const verification = await verifyPostActionState(targetRoute, expectedEntity);
+
+            if (verification.success) {
+              commitAssistantResponse(`✅ Opened ${expectedEntity?.title || domRes.targetElementText || 'Sheet'}.`, 'VERIFIED');
+            } else {
+              console.warn('[SmartAgent] Navigation verification failed on first attempt. Retrying click/navigation to:', targetRoute);
+              const retryDomRes = executeDOMActionOnPage(actionType, targetText);
+              await new Promise(res => setTimeout(res, 350));
+              const retryVerification = await verifyPostActionState(targetRoute, expectedEntity);
+
+              if (retryVerification.success) {
+                commitAssistantResponse(`✅ Opened ${expectedEntity?.title || domRes.targetElementText || 'Sheet'}.`, 'VERIFIED');
+              } else {
+                commitAssistantResponse(`❌ Unable to open ${expectedEntity?.title || domRes.targetElementText || 'Sheet'}. Destination page did not load.`, 'FAILED');
+              }
+            }
+          } else {
+            const finalContent = domRes.success ? `✅ ${domRes.message}` : `⚠️ ${domRes.message}`;
+            commitAssistantResponse(finalContent, domRes.success ? 'VERIFIED' : 'FAILED');
+          }
 
           setExecutionState('IDLE');
           setIsLoading(false);

@@ -29,6 +29,21 @@ export interface DOMActionTelemetry {
   executionMs?: number;
   routeNavigationMs?: number;
   pageReadyMs?: number;
+  // Execution Telemetry
+  targetResolved?: boolean;
+  targetRuntimeId?: string;
+  targetConnected?: boolean;
+  targetVisible?: boolean;
+  targetEnabled?: boolean;
+  targetRect?: { top: number; left: number; width: number; height: number };
+  actionResolved?: boolean;
+  actionRuntimeId?: string;
+  clickStarted?: boolean;
+  clickEventDispatched?: boolean;
+  nativeClickCalled?: boolean;
+  navigationStarted?: boolean;
+  routeChanged?: boolean;
+  destinationVerified?: boolean;
 }
 
 export interface DOMActionResult {
@@ -39,6 +54,12 @@ export interface DOMActionResult {
   targetElementId?: string;
   urlChanged?: boolean;
   newRoute?: string;
+  expectedRoute?: string;
+  expectedEntity?: {
+    type: 'sheet' | 'problem' | 'course' | 'certificate';
+    id: string;
+    title?: string;
+  };
   isAmbiguous?: boolean;
   matchingCandidates?: Array<{ id: string; text: string; section?: string }>;
   errorDetected?: boolean;
@@ -432,6 +453,8 @@ export function executeLiveDOMAction(
     // Card-to-child-action resolution: If target is a card container, find the preferred
     // child navigation action (e.g., "View Sheet" link) to ensure deterministic specific navigation
     let effectiveClickTarget = targetDomNode;
+    let childActionResolved = false;
+
     if (targetElement && (targetElement.type === 'card' || targetElement.type === 'other') && targetDomNode) {
       const childActions = targetDomNode.querySelectorAll('a[href], button, [role="button"], [data-agent-action]');
       if (childActions.length > 0) {
@@ -458,6 +481,7 @@ export function executeLiveDOMAction(
         }
         if (preferredChild) {
           effectiveClickTarget = preferredChild;
+          childActionResolved = true;
           if (process.env.NODE_ENV !== 'production') {
             console.log('[DOM Executor] Card-to-child resolved:', {
               cardTitle: targetElement.text?.slice(0, 40),
@@ -469,12 +493,66 @@ export function executeLiveDOMAction(
       }
     }
 
+    // Visual Cursor Non-Blocking Movement:
+    // 1) First emit card target highlight if card container
+    if (childActionResolved && targetDomNode !== effectiveClickTarget) {
+      setAgentVisualState('targeting', {
+        targetText: targetElement?.text || 'Target Card',
+        targetDomNode,
+        targetElementId: targetElement?.id
+      });
+    }
+
+    // 2) Emit action target highlight on effective click element (e.g. View Sheet button)
+    const effectiveLabelText = effectiveClickTarget.textContent?.trim() || labelText;
+    setAgentVisualState('targeting', {
+      targetText: effectiveLabelText,
+      targetDomNode: effectiveClickTarget,
+      targetElementId: targetElement?.id
+    });
+
+    setAgentVisualState('clicking', {
+      targetText: effectiveLabelText,
+      targetDomNode: effectiveClickTarget
+    });
+
+    // Scroll into view if needed before dispatching click
+    try {
+      effectiveClickTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch {
+      // Fallback
+    }
+
+    // Extract expected route & entity if target is a link or contains href
+    const hrefAttr = effectiveClickTarget.getAttribute('href') || effectiveClickTarget.closest('a')?.getAttribute('href');
+    let expectedRoute: string | undefined = undefined;
+    let expectedEntity: DOMActionResult['expectedEntity'] = undefined;
+
+    if (hrefAttr && !hrefAttr.startsWith('#') && !hrefAttr.startsWith('javascript:')) {
+      expectedRoute = hrefAttr;
+      if (hrefAttr.includes('/sheets/')) {
+        const sheetId = hrefAttr.split('/sheets/')[1]?.split('?')[0];
+        if (sheetId) {
+          expectedEntity = {
+            type: 'sheet',
+            id: sheetId,
+            title: labelText
+          };
+        }
+      }
+    }
+
+    // Dispatch Event Sequence
     effectiveClickTarget.focus();
     effectiveClickTarget.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true, cancelable: true }));
     effectiveClickTarget.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
     effectiveClickTarget.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
 
+    const clickEventDispatched = true;
+    let nativeClickCalled = false;
+
     if (typeof effectiveClickTarget.click === 'function') {
+      nativeClickCalled = true;
       effectiveClickTarget.click();
     } else {
       effectiveClickTarget.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
@@ -482,27 +560,58 @@ export function executeLiveDOMAction(
 
     executionTimeMs = Date.now() - execStart;
 
-    // Automatic Link Navigation Fallback
-    const hrefAttr = effectiveClickTarget.getAttribute('href') || effectiveClickTarget.closest('a')?.getAttribute('href');
-    if (hrefAttr && !hrefAttr.startsWith('#') && !hrefAttr.startsWith('javascript:')) {
-      setAgentVisualState('navigating', { targetText: labelText, targetDomNode });
+    // Build Execution Telemetry
+    const effectiveRect = effectiveClickTarget.getBoundingClientRect();
+    const fullTelemetry: DOMActionTelemetry = {
+      snapshotGenTimeMs,
+      resolutionTimeMs,
+      executionTimeMs,
+      verificationTimeMs: 0,
+      totalLatencyMs: Date.now() - startTime,
+      staleElementDetected,
+      retryAttempted,
+      targetResolved: true,
+      targetRuntimeId: targetElement?.id || 'dom-query',
+      targetConnected: effectiveClickTarget.isConnected,
+      targetVisible: effectiveRect.width > 0 && effectiveRect.height > 0,
+      targetEnabled: !((effectiveClickTarget as HTMLButtonElement).disabled || effectiveClickTarget.getAttribute('aria-disabled') === 'true'),
+      targetRect: {
+        top: Math.round(effectiveRect.top),
+        left: Math.round(effectiveRect.left),
+        width: Math.round(effectiveRect.width),
+        height: Math.round(effectiveRect.height)
+      },
+      actionResolved: true,
+      actionRuntimeId: effectiveClickTarget.getAttribute('data-agent-runtime-id') || targetElement?.id,
+      clickStarted: true,
+      clickEventDispatched,
+      nativeClickCalled,
+      navigationStarted: Boolean(expectedRoute),
+      routeChanged: false,
+      destinationVerified: false
+    };
+
+    // Automatic Link Navigation Fallback if router event didn't trigger immediately
+    if (expectedRoute) {
+      setAgentVisualState('navigating', { targetText: effectiveLabelText, targetDomNode: effectiveClickTarget });
       setTimeout(() => {
         const pathNow = window.location.pathname + window.location.search;
-        if (pathNow !== hrefAttr && !pathNow.startsWith(hrefAttr)) {
-          window.location.assign(hrefAttr);
+        if (pathNow !== expectedRoute && !pathNow.startsWith(expectedRoute)) {
+          window.location.assign(expectedRoute);
         }
-      }, 120);
+      }, 150);
     }
 
     // 5. POST-ACTION VERIFICATION
     const verStart = Date.now();
-    setAgentVisualState('verifying', { targetDomNode });
+    setAgentVisualState('verifying', { targetDomNode: effectiveClickTarget });
     invalidateDOMCache();
 
     let urlChanged = false;
     let newRoute = window.location.pathname + window.location.search;
     if (newRoute !== currentRoute) {
       urlChanged = true;
+      fullTelemetry.routeChanged = true;
     }
 
     const errorBanner = document.querySelector('.error-banner, [class*="error"], .toast-error');
@@ -520,49 +629,29 @@ export function executeLiveDOMAction(
       const errTxt = errorBanner.textContent?.trim() || 'Error encountered after execution';
       return {
         success: false,
-        message: `Executed ${normalizedAction} on "${labelText}", but encountered error: ${errTxt}`,
+        message: `Executed ${normalizedAction} on "${effectiveLabelText}", but encountered error: ${errTxt}`,
         actionType: normalizedAction,
         targetElementId: targetElement?.id,
-        targetElementText: labelText,
+        targetElementText: effectiveLabelText,
         errorDetected: true,
         errorMessage: errTxt,
-        telemetry: {
-          intentResolutionMs: 0,
-          fastPathResolutionMs: 0,
-          domResolutionMs: resolutionTimeMs,
-          executionMs: executionTimeMs,
-          executionTimeMs,
-          routeNavigationMs: urlChanged ? 120 : 0,
-          pageReadyMs: verificationTimeMs,
-          snapshotGenTimeMs,
-          resolutionTimeMs,
-          verificationTimeMs,
-          totalLatencyMs: Date.now() - startTime,
-          staleElementDetected,
-          retryAttempted
-        }
+        telemetry: fullTelemetry
       };
     }
 
     return {
       success: true,
       message: urlChanged
-        ? `Successfully executed ${normalizedAction} on "${labelText}" and navigated to ${newRoute}.`
-        : `Successfully executed ${normalizedAction} on "${labelText}".`,
+        ? `Successfully executed ${normalizedAction} on "${effectiveLabelText}" and navigated to ${newRoute}.`
+        : `Successfully executed ${normalizedAction} on "${effectiveLabelText}".`,
       actionType: normalizedAction,
       targetElementId: targetElement?.id,
-      targetElementText: labelText,
+      targetElementText: effectiveLabelText,
+      expectedRoute,
+      expectedEntity,
       urlChanged,
       newRoute,
-      telemetry: {
-        snapshotGenTimeMs,
-        resolutionTimeMs,
-        executionTimeMs,
-        verificationTimeMs,
-        totalLatencyMs: Date.now() - startTime,
-        staleElementDetected,
-        retryAttempted
-      }
+      telemetry: fullTelemetry
     };
   } catch (err: any) {
     releaseLock();
