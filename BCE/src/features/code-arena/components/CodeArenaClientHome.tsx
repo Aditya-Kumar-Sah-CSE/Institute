@@ -143,53 +143,32 @@ export default function CodeArenaClientHome({
           <Link href="/code-arena/profile" className="navbar-link">
             <User size={13} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'text-bottom' }} /> Profile
           </Link>
+          {isInstructor && (
+            <>
+              <span style={{ color: 'rgba(255,255,255,0.1)' }}>|</span>
+              <button 
+                suppressHydrationWarning 
+                onClick={() => setShowWizard(true)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))',
+                  border: 'none',
+                  color: '#fff',
+                  padding: '4px 12px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                <Plus size={13} /> Create Battle
+              </button>
+            </>
+          )}
         </div>
       </nav>
-
-      {/* 2. Compact Premium Hero */}
-      <div className="arena-dashboard-hero">
-        <div className="hero-details">
-          <div className="arena-pill-badge">
-            <span className="pill-dot"></span>
-            ⚡ SL CODE ARENA
-          </div>
-          <h1 className="hero-main-title">Compete. Solve. Improve.</h1>
-
-          <div className="hero-action-buttons">
-            {isInstructor && (
-              <button suppressHydrationWarning className="btn-hero-primary" onClick={() => setShowWizard(true)}>
-                <Plus size={14} /> Create Battle
-              </button>
-            )}
-            <Link href="/code-arena/problems" className="btn-hero-secondary">
-              Explore Problems <ArrowRight size={14} />
-            </Link>
-          </div>
-        </div>
-
-        <div className="hero-summary-card">
-          <div className="summary-header">
-            <Activity size={12} className="text-neon-cyan animate-pulse" />
-            <span className="summary-label">LIVE ARENA STATUS</span>
-          </div>
-          <div className="summary-grid">
-            <div className="summary-stat">
-              <span className="summary-val text-neon-cyan">{liveBattlesCount}</span>
-              <span className="summary-lbl">Active Battles</span>
-            </div>
-            <div className="summary-stat">
-              <span className="summary-val text-neon-purple">{initialProblems.length}</span>
-              <span className="summary-lbl">Practice Problems</span>
-            </div>
-            <div className="summary-stat">
-              <span className="summary-val text-neon-gold">
-                {battles.filter(b => b.status === 'LOBBY').length}
-              </span>
-              <span className="summary-lbl">Upcoming</span>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* 3. Upcoming & Live Contests Alert (CodeChef, Codeforces, LeetCode) */}
       <UpcomingContestsAlert />
