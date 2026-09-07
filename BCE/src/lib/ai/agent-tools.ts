@@ -2,6 +2,14 @@ import { createAdminClient, getUser } from '@/lib/supabase/server';
 import { getStudent360Profile, Student360Profile } from '@/features/analytics/services/student-intelligence';
 import { normalizeAgentRole, canUseTool } from '@/lib/auth/agent-permissions';
 import { resolveCourse, resolveDSASheet, resolveDSAProblem } from '@/lib/ai/entity-resolver';
+import { getFreshAgentPageContext } from '@/lib/ai/live-dom-reader';
+
+export function getLiveContextFromArgs(context: any): any {
+  if (context?.liveContext) return context.liveContext;
+  if (context?.snapshot || context?.route || context?.interactiveElementsList) return context;
+  if (typeof window !== 'undefined') return getFreshAgentPageContext();
+  return null;
+}
 
 export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH';
 
@@ -73,7 +81,7 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     parameters: { type: 'object', properties: {} },
     examples: ['meri profile kholo', 'show my account', 'user profile dikhao'],
     execute: async (args, user, context) => {
-      const live = context?.liveContext;
+      const live = getLiveContextFromArgs(context);
       const elementsList = live?.interactiveElementsList || [];
 
       const targetElement = elementsList.find((e: any) => {
@@ -118,7 +126,7 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     parameters: { type: 'object', properties: {} },
     examples: ['courses kholo', 'browse courses', 'all subjects'],
     execute: async (args, user, context) => {
-      const live = context?.liveContext;
+      const live = getLiveContextFromArgs(context);
       const elementsList = live?.interactiveElementsList || [];
 
       const targetElement = elementsList.find((e: any) => {
@@ -258,7 +266,7 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     parameters: { type: 'object', properties: {} },
     examples: ['meri DSA sheet kholo', 'open DSA sheets', 'dsa dikha'],
     execute: async (args, user, context) => {
-      const live = context?.liveContext;
+      const live = getLiveContextFromArgs(context);
       const elementsList = live?.interactiveElementsList || [];
 
       const targetElement = elementsList.find((e: any) => {
@@ -493,7 +501,7 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     },
     examples: ['Kaunsi sheets available hain?', 'Is sheet me kitne problems hain?', 'Yahan kya kya hai?'],
     execute: async (args, _, context) => {
-      const live = context?.liveContext;
+      const live = getLiveContextFromArgs(context);
       const q = (args.question || '').toLowerCase();
 
       if (q.includes('sheet') && (q.includes('available') || q.includes('kaunsi') || q.includes('kitni') || q.includes('list') || q.includes('yahan'))) {
@@ -531,7 +539,7 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     parameters: { type: 'object', properties: {} },
     examples: ['is page par kya hai?', 'yaha kya likha hai', 'explain this problem', 'is page ka progress batao'],
     execute: async (args, _, context) => {
-      const live = context?.liveContext;
+      const live = getLiveContextFromArgs(context);
       const snapshot = live?.snapshot;
 
       const elementsList = (live?.interactiveElementsList && live.interactiveElementsList.length > 0)
@@ -680,7 +688,7 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     parameters: { type: 'object', properties: {} },
     examples: ['is page par kitne buttons hain?', 'what elements can I click?', 'show actionable items'],
     execute: async (_, __, context) => {
-      const live = context?.liveContext;
+      const live = getLiveContextFromArgs(context);
       const elements = live?.interactiveElements || [];
       if (elements.length > 0) {
         return {

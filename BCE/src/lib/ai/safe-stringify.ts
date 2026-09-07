@@ -79,25 +79,37 @@ export function assertSerializableAgentPayload<T = any>(payload: T): T {
     ancestors.add(val);
 
     let result: any;
-    if (Array.isArray(val)) {
-      result = val.map((item, idx) => sanitizeDeep(item, `${path}[${idx}]`)).filter(item => item !== undefined);
-    } else if (val instanceof Map) {
-      const plainObj: Record<string, any> = {};
-      val.forEach((mapVal, mapKey) => {
-        const cleaned = sanitizeDeep(mapVal, `${path}.${mapKey}`);
-        if (cleaned !== undefined) plainObj[String(mapKey)] = cleaned;
-      });
-      result = plainObj;
-    } else {
-      const cleanedObj: Record<string, any> = {};
-      for (const key of Object.keys(val)) {
-        if (key === 'domNode') continue; // Hard filter
-        const cleaned = sanitizeDeep(val[key], path ? `${path}.${key}` : key);
-        if (cleaned !== undefined) {
-          cleanedObj[key] = cleaned;
+    try {
+      if (Array.isArray(val)) {
+        result = val.map((item, idx) => sanitizeDeep(item, `${path}[${idx}]`)).filter(item => item !== undefined);
+      } else if (val instanceof Map) {
+        const plainObj: Record<string, any> = {};
+        try {
+          val.forEach((mapVal, mapKey) => {
+            const cleaned = sanitizeDeep(mapVal, `${path}.${mapKey}`);
+            if (cleaned !== undefined) plainObj[String(mapKey)] = cleaned;
+          });
+        } catch (e) {}
+        result = plainObj;
+      } else {
+        const cleanedObj: Record<string, any> = {};
+        let keys: string[] = [];
+        try {
+          keys = Object.keys(val);
+        } catch (e) {}
+        for (const key of keys) {
+          if (key === 'domNode' || key.startsWith('__react') || key.startsWith('__reactFiber')) continue;
+          try {
+            const cleaned = sanitizeDeep(val[key], path ? `${path}.${key}` : key);
+            if (cleaned !== undefined) {
+              cleanedObj[key] = cleaned;
+            }
+          } catch (e) {}
         }
+        result = cleanedObj;
       }
-      result = cleanedObj;
+    } catch (e) {
+      result = undefined;
     }
 
     ancestors.delete(val);

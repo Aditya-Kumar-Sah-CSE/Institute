@@ -13,7 +13,12 @@ import {
   getSpeechSynthesisSpeaking
 } from '@/lib/ai/speech-synthesizer';
 import { resolveClientFastPath } from '@/lib/ai/client-fast-path';
-import { validateAndRefreshSnapshot, formatLiveSnapshotSummary } from '@/lib/ai/live-dom-reader';
+import { 
+  getFreshAgentPageContext,
+  validateAndRefreshSnapshot, 
+  formatLiveSnapshotSummary, 
+  invalidateDOMCache 
+} from '@/lib/ai/live-dom-reader';
 import { LatencyTracker } from '@/lib/ai/latency-telemetry';
 import { 
   loadAgentMemory, 
@@ -329,6 +334,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
       const activePath = normalizeRoutePath(window.location.pathname + window.location.search);
       if (activePath === normTarget || activePath.startsWith(normTarget) || normTarget.startsWith(activePath)) {
         console.log(`[SmartAgent] App Router navigation verified in ${Date.now() - startTime}ms: ${window.location.pathname}`);
+        invalidateDOMCache();
         return true;
       }
     }
@@ -343,8 +349,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
     // Wait 100ms for React DOM & state settlement
     await new Promise(r => setTimeout(r, 100));
 
-    const { extractLiveDOMContext } = await import('@/lib/ai/live-dom-reader');
-    const freshCtx = extractLiveDOMContext(undefined, true);
+    const freshCtx = getFreshAgentPageContext(expectedRoute);
     const currentPath = window.location.pathname + window.location.search;
     const normTarget = normalizeRoutePath(expectedRoute);
     const normCurrent = normalizeRoutePath(currentPath);
@@ -451,6 +456,8 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
     setVoiceNotice(null);
     setVoiceState('THINKING');
 
+    const freshLiveContext = getFreshAgentPageContext();
+
     const session = new GeminiLiveSession(
       {
         onStateChange: (state) => {
@@ -546,7 +553,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
           setConnectionState('error');
         }
       },
-      liveContext,
+      freshLiveContext,
       undefined,
       audioCtxRef.current,
       currentSessionId
@@ -782,14 +789,21 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
     }
 
     try {
-      // 2. Validate & Refresh Live Snapshot (Requirement 3)
-      const freshLiveContext = validateAndRefreshSnapshot(liveContext);
+      // 2. Obtain Fresh Live DOM Snapshot (Requirements 1 & 11)
+      const freshLiveContext = getFreshAgentPageContext();
 
-      // Development-Only Request Flow Logging (Requirement 1)
-      console.log('[Agent] transcript:', promptText);
-      console.log('[Agent] current route:', freshLiveContext.route);
-      console.log('[Agent] snapshot found:', Boolean(freshLiveContext.snapshot));
-      console.log('[Agent] snapshot elements:', freshLiveContext.interactiveElementsList?.length || 0);
+      // Development Telemetry Logging (Requirements 6 & 14)
+      if (process.env.NODE_ENV !== 'production') {
+        const snap = freshLiveContext.snapshot;
+        console.log('[AGENT TURN]', {
+          transcript: promptText,
+          pageRoute: freshLiveContext.route,
+          snapshotElements: freshLiveContext.interactiveElementsList?.length || 0,
+          snapshotCards: snap?.cards?.length || 0,
+          snapshotMetrics: snap?.cards?.flatMap((c: any) => c.metrics || []).length || 0,
+          snapshotBytes: JSON.stringify(snap || {}).length
+        });
+      }
 
       // Tier 1: Deterministic Client Fast-Path Router (Requirement 2 & 7)
       const fastPath = resolveClientFastPath(promptText, userRoleRef.current, activeContext, freshLiveContext);

@@ -3,6 +3,7 @@ import { GEMINI_TOOL_DECLARATIONS } from './agent-tool-declarations';
 import { GeminiAudioPlayer } from './gemini-audio-player';
 import { AdaptiveVAD } from './adaptive-vad';
 import { safeStringify, sanitizePageContext, assertSerializableAgentPayload, parseAgentJsonResponse, validateAgentApiPayload } from './safe-stringify';
+import { getFreshAgentPageContext } from './live-dom-reader';
 
 export type VoiceConnectionState = 'starting' | 'connecting' | 'connected' | 'ready' | 'error' | 'stopped' | 'closed';
 
@@ -328,6 +329,13 @@ export class GeminiLiveSession {
 
       if (msg.serverContent.modelTurn?.parts) {
         for (const part of msg.serverContent.modelTurn.parts) {
+          if (process.env.NODE_ENV !== 'production' && (part.text || part.inlineData)) {
+            console.log('[GEMINI RESPONSE]', {
+              textLength: part.text?.length || 0,
+              audioChunks: part.inlineData ? 1 : 0,
+              audioBytes: part.inlineData?.data?.length || 0
+            });
+          }
           if (part.inlineData && part.inlineData.data) {
             const chunkBytes = part.inlineData.data.length;
             console.log('[GEMINI RECV] audio chunk', { bytes: chunkBytes });
@@ -374,10 +382,29 @@ export class GeminiLiveSession {
     try {
       console.log(`[GeminiLiveSession] Executing tool: ${toolName}`, args);
 
+      // Refresh pageContext dynamically immediately before tool calls (Requirement 12 & 3)
+      const freshContext = typeof window !== 'undefined' ? getFreshAgentPageContext() : this.pageContext;
+      this.pageContext = freshContext;
+
+      if (process.env.NODE_ENV !== 'production' && freshContext) {
+        const snap = freshContext.snapshot;
+        console.log('[GEMINI TOOL API BOUNDARY]', {
+          route: freshContext.route,
+          pageTitle: freshContext.pageTitle,
+          headings: freshContext.visibleHeadings?.length || 0,
+          sections: snap?.visibleSections?.length || 0,
+          cards: snap?.cards?.length || 0,
+          metrics: snap?.cards?.flatMap((c: any) => c.metrics || []).length || 0,
+          badges: snap?.cards?.flatMap((c: any) => c.badges || []).length || 0,
+          interactiveElements: freshContext.interactiveElementsList?.length || 0,
+          availableActions: freshContext.availableActions?.length || 0
+        });
+      }
+
       const cleanPayload = assertSerializableAgentPayload({
         toolName,
         args: assertSerializableAgentPayload(args),
-        pageContext: sanitizePageContext(this.pageContext)
+        pageContext: sanitizePageContext(freshContext)
       });
 
       const { valid, error: validationError } = validateAgentApiPayload(cleanPayload, toolName);

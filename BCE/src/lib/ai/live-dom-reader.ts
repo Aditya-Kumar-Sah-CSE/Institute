@@ -40,6 +40,57 @@ export function invalidateDOMCache(): void {
 }
 
 /**
+ * Single source-of-truth function for fetching fresh, serializable LivePageContext.
+ * Detects current route, invalidates stale caches, scans rendered DOM, validates serializability,
+ * and logs development diagnostics.
+ */
+export function getFreshAgentPageContext(overrideRoute?: string): LivePageContext {
+  invalidateDOMCache();
+  const freshCtx = extractLiveDOMContext(overrideRoute, true);
+
+  // If extraction returns 0 interactive elements despite visible candidate DOM elements existing on page, attempt 1 sync retry
+  if ((freshCtx.interactiveElementsList?.length || 0) === 0 && typeof document !== 'undefined') {
+    const candidateCount = document.querySelectorAll('button, a, input, select, textarea, [role="button"]').length;
+    if (candidateCount > 0) {
+      invalidateDOMCache();
+      const retryCtx = extractLiveDOMContext(overrideRoute, true);
+      if ((retryCtx.interactiveElementsList?.length || 0) > 0) {
+        return retryCtx;
+      }
+    }
+  }
+
+  // Developer Runtime Diagnostic Logging (Requirement 6 & 14)
+  if (process.env.NODE_ENV !== 'production') {
+    const snap = freshCtx.snapshot;
+    const snapshotBytes = JSON.stringify(snap || {}).length;
+    console.log('[LIVE PAGE CONTEXT]', {
+      route: freshCtx.route,
+      pageTitle: freshCtx.pageTitle,
+      headings: freshCtx.visibleHeadings?.length || 0,
+      elements: freshCtx.interactiveElementsList?.length || 0,
+      cards: snap?.cards?.length || 0,
+      metrics: snap?.cards?.flatMap(c => c.metrics || []).length || 0,
+      badges: snap?.cards?.flatMap(c => c.badges || []).length || 0,
+      actions: freshCtx.availableActions?.length || 0,
+      snapshotBytes
+    });
+
+    if ((freshCtx.interactiveElementsList?.length || 0) === 0 && typeof document !== 'undefined') {
+      const visibleButtons = document.querySelectorAll('button, a, input');
+      if (visibleButtons.length > 0) {
+        console.error('[LIVE PAGE CONTEXT ERROR] 0 interactive elements extracted despite visible DOM elements existing on page!', {
+          route: freshCtx.route,
+          visibleCount: visibleButtons.length
+        });
+      }
+    }
+  }
+
+  return freshCtx;
+}
+
+/**
  * Extracts live, rendered DOM context from the active browser window.
  * Scans document.body top to bottom, including header, sidebar, modals, popovers, and main content.
  */

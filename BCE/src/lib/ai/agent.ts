@@ -55,16 +55,17 @@ export async function runSmartAgent(params: {
   const isGuest = !user || userRole === 'guest';
 
   // Compact Context payload optimization with Full Scrollable Screen Text Access
-  const compactLiveContext = pageContext?.liveContext ? {
-    route: pageContext.liveContext.route || pageContext.route,
-    pageTitle: pageContext.liveContext.pageTitle,
-    currentEntity: pageContext.liveContext.currentEntity ? {
-      type: pageContext.liveContext.currentEntity.type,
-      id: pageContext.liveContext.currentEntity.id,
-      title: pageContext.liveContext.currentEntity.title
+  const liveCtx = pageContext?.liveContext || (pageContext?.snapshot || pageContext?.route ? pageContext : null);
+  const compactLiveContext = liveCtx ? {
+    route: liveCtx.route || pageContext?.route || '/',
+    pageTitle: liveCtx.pageTitle,
+    currentEntity: liveCtx.currentEntity ? {
+      type: liveCtx.currentEntity.type,
+      id: liveCtx.currentEntity.id,
+      title: liveCtx.currentEntity.title
     } : null,
-    visibleHeadings: pageContext.liveContext.visibleHeadings?.slice(0, 10) || [],
-    fullPageText: pageContext.liveContext.visibleTextContent ? pageContext.liveContext.visibleTextContent.slice(0, 2000) : ''
+    visibleHeadings: liveCtx.visibleHeadings?.slice(0, 10) || [],
+    fullPageText: liveCtx.visibleTextContent ? liveCtx.visibleTextContent.slice(0, 2000) : ''
   } : { route: pageContext?.route || '/' };
 
   const agentContext = isGuest

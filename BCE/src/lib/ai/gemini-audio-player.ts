@@ -24,6 +24,10 @@ export class GeminiAudioPlayer {
   private playbackEndTimer: NodeJS.Timeout | null = null;
   private totalChunksProcessed: number = 0;
   private totalDurationScheduled: number = 0;
+  private sessionStartTime: number = 0;
+  private firstAudioMs: number = 0;
+  private lastChunkArrivalMs: number = 0;
+  private maxQueueGapMs: number = 0;
 
   constructor(
     callbacks: GeminiAudioPlayerCallbacks = {}, 
@@ -106,6 +110,22 @@ export class GeminiAudioPlayer {
       source.connect(this.gainNode);
 
       const currentTime = this.audioCtx.currentTime;
+      const nowMs = Date.now();
+
+      if (this.totalChunksProcessed === 0) {
+        this.sessionStartTime = nowMs;
+        this.firstAudioMs = 0;
+      } else if (this.firstAudioMs === 0) {
+        this.firstAudioMs = Math.max(0, nowMs - this.sessionStartTime);
+      }
+
+      if (this.lastChunkArrivalMs > 0) {
+        const gap = nowMs - this.lastChunkArrivalMs;
+        if (gap > this.maxQueueGapMs) {
+          this.maxQueueGapMs = gap;
+        }
+      }
+      this.lastChunkArrivalMs = nowMs;
 
       // Cancel pending end timer if a new chunk arrives
       if (this.playbackEndTimer) {
@@ -132,6 +152,12 @@ export class GeminiAudioPlayer {
 
       if (process.env.NODE_ENV === 'development') {
         const leadMs = Math.round((this.nextStartTime - currentTime) * 1000);
+        const totalAudioMs = Math.round(this.totalDurationScheduled * 1000);
+        console.log('[TTS]', {
+          firstAudioMs: this.firstAudioMs,
+          totalAudioMs,
+          queueGapMs: this.maxQueueGapMs
+        });
         console.log('[AUDIO QUEUE]', {
           chunkIndex: this.totalChunksProcessed,
           bytes: base64Pcm.length,

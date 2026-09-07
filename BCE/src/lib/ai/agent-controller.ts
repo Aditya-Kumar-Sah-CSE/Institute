@@ -90,22 +90,23 @@ export class AgentController {
     }
 
     // Update active session state from input pageContext
+    const liveCtx = input.pageContext?.liveContext || (input.pageContext?.snapshot || input.pageContext?.route ? input.pageContext : null);
     const activeState: AgentSessionState = {
-      route: input.pageContext?.route || input.sessionState?.route || '/dashboard',
-      sheetId: input.pageContext?.liveContext?.currentEntity?.type === 'sheet'
-        ? input.pageContext.liveContext.currentEntity.id
+      route: input.pageContext?.route || liveCtx?.route || input.sessionState?.route || '/dashboard',
+      sheetId: liveCtx?.currentEntity?.type === 'sheet'
+        ? liveCtx.currentEntity.id
         : input.sessionState?.sheetId,
-      sheetTitle: input.pageContext?.liveContext?.currentEntity?.type === 'sheet'
-        ? input.pageContext.liveContext.currentEntity.title
+      sheetTitle: liveCtx?.currentEntity?.type === 'sheet'
+        ? liveCtx.currentEntity.title
         : input.sessionState?.sheetTitle,
       problemId: input.pageContext?.problemId || (
-        input.pageContext?.liveContext?.currentEntity?.type === 'problem'
-          ? input.pageContext.liveContext.currentEntity.id
+        liveCtx?.currentEntity?.type === 'problem'
+          ? liveCtx.currentEntity.id
           : input.sessionState?.problemId
       ),
       problemTitle: input.pageContext?.problemTitle || (
-        input.pageContext?.liveContext?.currentEntity?.type === 'problem'
-          ? input.pageContext.liveContext.currentEntity.title
+        liveCtx?.currentEntity?.type === 'problem'
+          ? liveCtx.currentEntity.title
           : input.sessionState?.problemTitle
       ),
       problemNumber: input.sessionState?.problemNumber,
@@ -327,7 +328,7 @@ export class AgentController {
                                /\b(kya|what|explain|progress|detail|details|info|padho|read|list|batao|dikhao|content|access)\b/i.test(promptLower);
 
     if (isCurrentPageQuery) {
-      const live = pageContext?.liveContext;
+      const live = pageContext?.liveContext || (pageContext?.snapshot || pageContext?.route ? pageContext : null);
       if (live) {
         const titleStr = live.pageTitle || live.currentEntity?.title || live.route;
         const headingsStr = live.visibleHeadings && live.visibleHeadings.length > 0 ? live.visibleHeadings.join(', ') : 'None';
@@ -360,9 +361,10 @@ export class AgentController {
     }
 
     // 0B. Dynamic Live Page Element Interaction & Operations ("click agent-el-001", "click Submit", "red button dabao", "save karo", "cancel karo")
-    const liveList = pageContext?.liveContext?.interactiveElementsList || [];
-    const liveSummary = pageContext?.liveContext?.interactiveElements || [];
-    const snapshotMap = pageContext?.liveContext?.snapshot?.actionableElements || [];
+    const liveCtxObj = pageContext?.liveContext || (pageContext?.snapshot || pageContext?.route ? pageContext : null);
+    const liveList = liveCtxObj?.interactiveElementsList || [];
+    const liveSummary = liveCtxObj?.interactiveElements || [];
+    const snapshotMap = liveCtxObj?.snapshot?.actionableElements || [];
 
     // Direct Agent Runtime ID match (e.g., "agent-el-005", "click agent-el-001")
     const agentIdMatch = promptLower.match(/\b(agent-el-\d{3})\b/i);

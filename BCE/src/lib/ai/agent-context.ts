@@ -1,7 +1,7 @@
 import { Student360Profile } from '@/features/analytics/services/student-intelligence';
 import { LivePageContext } from './live-page-context';
 
-export interface AgentPageContext {
+export interface AgentPageContext extends Partial<LivePageContext> {
   route?: string;
   problemId?: string;
   problemTitle?: string;
