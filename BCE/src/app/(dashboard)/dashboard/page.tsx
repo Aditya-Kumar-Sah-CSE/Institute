@@ -157,7 +157,7 @@ async function DeferredGlobalPolls({ userId, role, email }: { userId: string; ro
         <h2 className="section-title" style={{ margin: 0 }}>Active Global Polls</h2>
         <Link href="/polls" style={{ color: 'var(--neon-cyan)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)', whiteSpace: 'nowrap' }}>View all polls →</Link>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 360px), 1fr))', gap: 'var(--space-lg)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
         {activeGlobalPolls.map((poll: any) => (
           <GlobalPollCard 
             key={poll.id} 

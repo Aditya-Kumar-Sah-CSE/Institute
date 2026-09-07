@@ -214,24 +214,21 @@ body.sidebar-is-collapsed:not(.agent-drawer-open):not(.mentor-drawer-open) .side
 }
 
 .dashboard-bottom-row {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2xl);
-  align-items: stretch;
-}
-
-.dashboard-bottom-col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-xl);
+  align-items: start;
   width: 100%;
 }
 
-@media (min-width: 992px) {
+.dashboard-bottom-col {
+  min-width: 0;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
   .dashboard-bottom-row {
-    flex-direction: row;
-  }
-  
-  .dashboard-bottom-col {
-    flex: 1;
-    min-width: 0;
-    width: 50%;
+    grid-template-columns: 1fr;
+    gap: var(--space-lg);
   }
 }
