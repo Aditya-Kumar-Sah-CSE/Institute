@@ -103,9 +103,8 @@ export default function AgentInteractionCursor({ sessionActive }: AgentInteracti
         const centerY = payload.targetRect.top + payload.targetRect.height / 2;
         targetPosRef.current = { x: centerX, y: centerY };
       } else if (payload.state === 'scanning' || payload.state === 'reading') {
-        const vW = typeof window !== 'undefined' ? window.innerWidth : 1000;
-        const vH = typeof window !== 'undefined' ? window.innerHeight : 800;
-        targetPosRef.current = { x: vW * 0.5, y: vH * 0.3 };
+        // Default to screen center when agent is active with no specific target
+        targetPosRef.current = getCenterPos();
       } else if (payload.state === 'idle') {
         targetPosRef.current = getCenterPos();
       }

@@ -308,6 +308,8 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
       else if (pathname.startsWith('/admin')) panel = 'admin';
       else if (pathname.startsWith('/developer') || pathname.startsWith('/super-admin')) panel = 'developer';
       agentSessionStateRef.current.currentPanel = panel;
+      // Sync user role with active panel — enables panel-specific agent tools
+      userRoleRef.current = panel;
     }
     if (liveContext?.currentEntity) {
       const entity = liveContext.currentEntity;

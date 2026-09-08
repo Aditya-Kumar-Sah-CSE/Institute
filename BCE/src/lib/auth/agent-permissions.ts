@@ -92,12 +92,16 @@ export const PAGE_PERMISSIONS: Array<{ prefix: string; minRole: AppRole }> = [
  * Tool permission mappings to minimum required AppRole.
  */
 export const TOOL_PERMISSIONS: Record<string, AppRole> = {
-  // Public search & query tools
+  // Universal read & interaction tools (accessible to ALL roles)
   searchWeb: 'guest',
   searchYouTube: 'guest',
   searchGPT: 'guest',
   searchProgramSeats: 'guest',
   queryLivePage: 'guest',
+  getCurrentPageContext: 'guest',
+  interactWithPageElement: 'guest',
+  fillFormInput: 'guest',
+  readPageContent: 'guest',
 
   // Student tools
   openDashboard: 'student',
@@ -107,7 +111,7 @@ export const TOOL_PERMISSIONS: Record<string, AppRole> = {
   openCourse: 'student',
   openDSASheets: 'student',
   openDSASheet: 'student',
-  openDSAProblem: 'student',
+  openDSAProblem: 'guest',
   openWeakestDSAProblem: 'student',
   openCodingArena: 'student',
   openCodingProfile: 'student',
