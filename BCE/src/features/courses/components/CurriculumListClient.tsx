@@ -22,6 +22,15 @@ interface CurriculumListClientProps {
   isApproved: boolean;
 }
 
+const truncateTitle = (title: string) => {
+  if (!title) return '';
+  const words = title.trim().split(/\s+/);
+  if (words.length > 3) {
+    return words.slice(0, 3).join(' ') + '...';
+  }
+  return title;
+};
+
 export default function CurriculumListClient({ courseId, groupedLessons, sortedDates, completedLessonIds, isApproved }: CurriculumListClientProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const completedSet = new Set(completedLessonIds);
@@ -61,51 +70,37 @@ export default function CurriculumListClient({ courseId, groupedLessons, sortedD
                 const isCompleted = completedSet.has(lesson.id);
                 const isLocked = !isApproved; // Lock all lessons if not approved
                 const assignmentXp = lesson.assignments?.reduce((sum: number, a: any) => sum + (a.xp_reward || 0), 0) || 0;
+                const formattedTitle = truncateTitle(lesson.title);
 
-                return (
+                const cardContent = (
                   <Card 
-                    key={lesson.id} 
                     variant={isLocked ? 'default' : 'glass'}
                     className={`lesson-list-item ${isLocked ? 'locked' : ''} ${isCompleted ? 'completed' : ''}`}
+                    title={lesson.title}
                   >
-                    <div className="lesson-list-item-content">
-                      <h3 className="lesson-list-item-title">{lesson.title}</h3>
-                      
-                      <div className="lesson-actions-container">
+                    <div className="lesson-card-inner">
+                      <span className="lesson-card-title">{formattedTitle}</span>
+                      <div className="lesson-card-status">
                         {isLocked ? (
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 'var(--space-md)', width: '100%' }}>
-                            {isCompleted && <span className="completed-mark" style={{ color: 'var(--neon-lime)', fontWeight: 'bold' }}>✓</span>}
-                            <span className="locked-mark">🔒</span>
-                          </div>
+                          <span className="status-badge locked">🔒</span>
                         ) : isCompleted ? (
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 'var(--space-md)', width: '100%' }}>
-                            <span className="completed-mark" style={{ color: 'var(--neon-lime)', fontWeight: 'bold' }}>✓</span>
-                            <Link href={`/courses/${courseId}/${lesson.id}`}>
-                              <Button variant="secondary" size="md" style={{ minHeight: '44px' }}>Review / Task</Button>
-                            </Link>
-                          </div>
+                          <span className="status-badge completed">✓ Done</span>
                         ) : (
-                          <>
-                            {assignmentXp > 0 && (
-                              <div className="lesson-action-group">
-                                <span className="lesson-reward text-gradient" style={{ fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)', whiteSpace: 'nowrap' }}>+{assignmentXp} XP</span>
-                                <Link href={`/courses/${courseId}/${lesson.id}#assignments`} style={{ flex: 1, display: 'flex' }}>
-                                  <Button variant="secondary" size="md" style={{ width: '100%', minHeight: '44px' }}>Assignment</Button>
-                                </Link>
-                              </div>
-                            )}
-                            
-                            <div className="lesson-action-group">
-                              <span className="lesson-reward text-gradient" style={{ fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)', whiteSpace: 'nowrap' }}>+{lesson.xp_reward} XP</span>
-                              <Link href={`/courses/${courseId}/${lesson.id}`} style={{ flex: 1, display: 'flex' }}>
-                                <Button variant="primary" size="md" style={{ width: '100%', minHeight: '44px' }}>Start</Button>
-                              </Link>
-                            </div>
-                          </>
+                          <span className="status-badge xp">+{lesson.xp_reward} XP</span>
                         )}
                       </div>
                     </div>
                   </Card>
+                );
+
+                if (isLocked) {
+                  return <div key={lesson.id}>{cardContent}</div>;
+                }
+
+                return (
+                  <Link key={lesson.id} href={`/courses/${courseId}/${lesson.id}`} style={{ textDecoration: 'none' }}>
+                    {cardContent}
+                  </Link>
                 );
               })}
             </div>

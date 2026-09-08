@@ -16,6 +16,7 @@ import { Analytics } from "@vercel/analytics/react";
 import FloatingAgentButtonClient from '@/features/analytics/components/FloatingAgentButtonClient';
 
 import MobileBottomNav from '@/components/layout/MobileBottomNav';
+import Footer from '@/components/layout/Footer';
 import './DashboardLayout.css';
 
 export default async function DashboardLayout({
@@ -82,6 +83,7 @@ export default async function DashboardLayout({
           <main className="dashboard-content">
             {children}
           </main>
+          <Footer companyName={settings?.company_name} />
         </div>
         <div className="sidebar-wrapper">
           <Sidebar key="student" profile={profile} roleView="student" isSuperAdmin={profile.email === SUPER_ADMIN_EMAIL} />

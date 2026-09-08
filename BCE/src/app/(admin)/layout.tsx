@@ -13,6 +13,7 @@ import {
 import { Analytics } from "@vercel/analytics/react";
 
 import MobileBottomNav from '@/components/layout/MobileBottomNav';
+import Footer from '@/components/layout/Footer';
 
 export default async function AdminLayout({
   children,
@@ -62,6 +63,7 @@ export default async function AdminLayout({
           <main className="dashboard-content">
             {children}
           </main>
+          <Footer companyName={settings?.company_name} />
         </div>
         <div className="sidebar-wrapper">
           <Sidebar key="admin" profile={profile} isAdmin={true} isSuperAdmin={profile.email === SUPER_ADMIN_EMAIL} />

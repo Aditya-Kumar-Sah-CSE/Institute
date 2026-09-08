@@ -1,0 +1,103 @@
+# Smart Learn Architecture Documentation System Plan
+
+Create a code-grounded, 46-file **Smart Learn Architecture Documentation System** under `docs/architecture/` based on a real, deep audit of the repository (`d:\Institute\BCE`).
+
+---
+
+## Codebase Audit Summary
+
+### 1. Repository Subsystems Discovered
+- **Core App & Routing**: Next.js 16 (App Router + Turbopack), Server Actions, Middleware permission guard (`src/middleware.ts`), Multi-tenant context (`src/lib/tenant/`).
+- **Authentication & Security**: Supabase Auth (Cookie-based SSR), Custom RLS Policies, AES-256-GCM BYOK Provider Key Encryption (`src/lib/security/encryption.ts`), Role Hierarchy (`guest`, `student`, `instructor`, `admin`, `super_admin`, `developer`).
+- **AI Agent System & BYOK**:
+  - Controller & State Machine: `src/lib/ai/agent-controller.ts`
+  - Engine & Fast Path: `src/lib/ai/agent.ts`, `src/lib/ai/client-fast-path.ts`
+  - Tool Registry: `src/lib/ai/agent-tools.ts` (30+ tools), `agent-tool-declarations.ts`
+  - Context & Memory: `src/lib/ai/live-dom-reader.ts`, `live-dom-executor.ts`, `agent-memory.ts`
+  - Live Voice & VAD: `gemini-live-session.ts`, `adaptive-vad.ts`, `speech-recorder.ts`, `speech-synthesizer.ts`, `gemini-audio-player.ts`
+  - BYOK Providers: `GeminiProvider.ts` (`gemini-3.6-flash`), `GrokProvider.ts` (`grok-2-latest`), `factory.ts`
+- **Standalone In-Browser / Backend Engines**:
+  - **In-Browser SQL Engine**: `src/lib/sql/` (`parser.ts`, `executor.ts`, `tokenizer.ts`, `formatter.ts`, `sampleDatasets.ts`)
+  - **Code Execution & Judge Engine**: `src/features/code-arena/` (`execution-engine.ts`, `harness.ts`, `judge.ts`, `workspace-db.ts`)
+  - **LaTeX Engine**: `src/lib/latex/` (`latex-parser.ts`, `latexTemplates.ts`, `latexValidator.ts`, `voiceCommandParser.ts`, `exportLatex.ts`)
+  - **Recommendation Engine**: `src/features/analytics/services/recommendation-engine.ts`
+  - **Student Intelligence & Learning Gap Engine**: `src/features/analytics/services/student-intelligence.ts`
+- **Analytics & Gamification**: Student 360 analytics (`SmartAgentSessionContext.tsx`), Leaderboards (`src/features/leaderboard/`), Badges & Monthly Rankings (`src/features/gamification/`), Multi-platform Coding Sync (`src/lib/coding-platforms/` for Codeforces, LeetCode, CodeChef, GeeksforGeeks).
+- **Core Learning Features**: Course Builder & Player (`src/features/courses`), Coding Battles & Dynamic Team Arena (`src/features/code-arena`), Doubt System & Likes/Replies (`src/features/doubts`), Global/Course Polls & MCQs (`src/features/polls`), Daily Routines & Goals (`src/features/goals`), Ephemeral Stories & DM Chat (`src/features/stories`, `src/features/chat`).
+- **Database & Migration Layer**: 134 SQL migration scripts in `supabase/migrations/` covering RLS, triggers, indexes, search vectors, storage buckets (`avatars`, `notice-images`, `branding`, `doubt-media`, `story-media`).
+- **API Inventory**: ~82 API routes under `src/app/api/` + 25+ Server Action files.
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> - All documentation will be strictly grounded in empirical code evidence from `src/`, `supabase/migrations/`, `public/`, and `package.json`.
+> - Every file will use standard `STATUS: ✅ IMPLEMENTED`, `STATUS: 🟡 PARTIAL`, or `STATUS: 🔴 MISSING` headers.
+> - Mermaid diagrams will map actual files, actual API paths, and actual database table relations.
+
+---
+
+## Proposed File Inventory (`docs/architecture/`)
+
+We will generate the complete 46-file documentation suite:
+
+| File Path | Subsystem / Subject | Primary Code Sources | Status |
+| --------- | ------------------- | -------------------- | ------ |
+| `00-README.md` | Index & Documentation Usage Guide | Entire repository index | ✅ |
+| `01-system-overview.md` | Executive System Overview & Mission | `package.json`, `src/app/page.tsx` | ✅ |
+| `02-high-level-architecture.md` | High-Level System Architecture Diagram | Overall System Architecture | ✅ |
+| `03-folder-structure.md` | Complete Source Code Tree & Folder Guide | Source Code Tree Audit | ✅ |
+| `04-application-flow.md` | User Application & Navigation Lifecycle | App Router & Layouts | ✅ |
+| `05-authentication-authorization.md` | Supabase Auth, Roles & RLS Security | `src/lib/auth.ts`, `src/middleware.ts`, `002_rls_policies.sql` | ✅ |
+| `06-database-architecture.md` | PostgreSQL Schema, Migrations & Tables | `supabase/migrations/*.sql` | ✅ |
+| `07-api-architecture.md` | Next.js API Routes & Server Actions | `src/app/api/`, `src/features/*/actions/` | ✅ |
+| `08-ai-agent-architecture.md` | Smart Agent Architecture & Orchestration | `src/lib/ai/agent.ts`, `agent-controller.ts` | ✅ |
+| `09-ai-provider-architecture.md` | BYOK Provider System (Gemini & Grok) | `src/lib/ai/providers/` | ✅ |
+| `10-agent-tool-system.md` | Agent Tool Execution Engine | `src/lib/ai/agent-tools.ts` | ✅ |
+| `11-ui-accessibility-agent.md` | DOM Reading & UI Snapshot Reader | `src/lib/ai/live-dom-reader.ts`, `live-dom-executor.ts` | ✅ |
+| `12-voice-stt-tts.md` | Realtime Voice, VAD, WebSpeech & Gemini Audio | `src/lib/ai/gemini-live-session.ts`, `speech-recorder.ts` | ✅ |
+| `13-conversation-memory.md` | Conversation Session Memory | `src/lib/ai/agent-memory.ts`, `SmartAgentSessionContext.tsx` | ✅ |
+| `14-latex-engine.md` | In-Browser LaTeX Editor & Parser | `src/lib/latex/` | ✅ |
+| `15-monaco-editor.md` | Monaco Editor Integration & Themes | `src/lib/monacoInit.ts`, Monaco Wrappers | ✅ |
+| `16-code-editor-engine.md` | Code Execution Harness & Judge | `src/features/code-arena/execution-engine.ts`, `harness.ts` | ✅ |
+| `17-sql-engine.md` | Custom In-Browser SQL Lexer, Parser & Executor | `src/lib/sql/` | ✅ |
+| `18-recommendation-engine.md` | Dynamic Content & Learning Recommendation | `src/features/analytics/services/recommendation-engine.ts` | ✅ |
+| `19-learning-gap-engine.md` | Student Intelligence & Weak Area Detection | `src/features/analytics/services/student-intelligence.ts` | ✅ |
+| `20-student-awareness-analytics.md` | Student 360 Profile & Analytics | `src/features/analytics/` | ✅ |
+| `21-chart-analytics-system.md` | Charting & Visual Analytics Engine | Recharts / Chart Components | ✅ |
+| `22-leaderboard-system.md` | XP, Ranking & Monthly Leaderboards | `src/features/leaderboard/` | ✅ |
+| `23-battle-system.md` | Realtime Coding Battles & Anti-Cheat | `src/features/code-arena/`, `085_code_arena_student_battles.sql` | ✅ |
+| `24-course-system.md` | Course Builder, Lessons & MCQs | `src/features/courses/` | ✅ |
+| `25-doubt-system.md` | Doubt Resolution, Likes & Media | `src/features/doubts/` | ✅ |
+| `26-poll-system.md` | Course & Global Poll System | `src/features/polls/`, `118_global_polls.sql` | ✅ |
+| `27-assessment-system.md` | MCQs & Assignment Submissions | `src/features/courses/components/MCQQuiz.tsx` | ✅ |
+| `28-progress-tracking.md` | Student Goals, Daily Routines & Stopwatch | `src/features/goals/`, `115_daily_routines_and_stopwatch.sql` | ✅ |
+| `29-notification-system.md` | Realtime Notification Triggers & Dispatch | `src/features/notifications/`, `046_notification_triggers.sql` | ✅ |
+| `30-role-based-panels.md` | Student, Instructor, Admin & Super Admin Panels | `src/features/admin/`, `src/features/instructor/` | ✅ |
+| `31-settings-system.md` | Profile, Tags, Certificates & BYOK Settings | `src/features/profile/`, `src/features/ai-settings/` | ✅ |
+| `32-storage-system.md` | Supabase Buckets, Attachments & Media | `src/features/storage/`, `028_google_drive_storage.sql` | ✅ |
+| `33-external-integrations.md` | Coding Platform Sync (Codeforces, LeetCode, etc.) | `src/lib/coding-platforms/` | ✅ |
+| `34-environment-configuration.md` | Environment Variables & Secrets Inventory | `.env.example`, Config Constants | ✅ |
+| `35-security-architecture.md` | RLS, AES-256 BYOK, Auth & Input Validation | `src/lib/security/`, Security Triggers | ✅ |
+| `36-data-flow.md` | End-to-End System Data Flow Maps | System-wide Data Traces | ✅ |
+| `37-request-lifecycle.md` | Client → Middleware → Route → DB Lifecycle | HTTP & Action Lifecycle | ✅ |
+| `38-component-dependency-map.md` | Cross-Feature Component Dependency Matrix | Component Imports Matrix | ✅ |
+| `39-database-relationship-map.md` | Complete Entity-Relationship (ER) Map | ER Schema Traces | ✅ |
+| `40-api-inventory.md` | Complete 80+ API Route & Action Registry | All `src/app/api/` & Server Actions | ✅ |
+| `41-engine-inventory.md` | Complete Engine & Subsystem Registry | SQL, Code, LaTeX, Rec, VAD, Agent | ✅ |
+| `42-known-issues.md` | Discovered Edge Cases & Bugs | Repository Audit | ✅ |
+| `43-technical-debt.md` | Technical Debt & Refactoring Roadmap | Repository Audit | ✅ |
+| `44-performance-architecture.md` | Caching, Indexing & Bundle Optimization | Indexing & Caching Strategy | ✅ |
+| `99-complete-system-map.md` | Executive System Map & Master Architecture | Full Master Subsystem Diagram | ✅ |
+
+---
+
+## Verification Plan
+
+### Automated Checks
+- Verify file generation using custom script to confirm all 46 files exist in `docs/architecture/`.
+- Validate Mermaid diagram syntax for all created `.md` files.
+
+### Manual Verification
+- Cross-reference file paths, table names, and API route signatures against `src/` and `supabase/migrations/` to guarantee 100% accuracy.

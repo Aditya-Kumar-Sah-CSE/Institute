@@ -11,6 +11,7 @@ interface CardProps {
   className?: string;
   style?: React.CSSProperties;
   onClick?: () => void;
+  title?: string;
 }
 
 export default function Card({
@@ -22,6 +23,7 @@ export default function Card({
   className,
   style,
   onClick,
+  title,
 }: CardProps) {
   const baseClasses = `card card-${variant} card-pad-${padding} ${
     hover ? 'card-hover' : ''
@@ -34,6 +36,7 @@ export default function Card({
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
+      title={title}
     >
       {children}
     </div>
