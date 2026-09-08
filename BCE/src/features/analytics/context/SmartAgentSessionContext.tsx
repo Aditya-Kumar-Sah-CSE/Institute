@@ -597,6 +597,20 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
           setVoiceNotice(errMsg);
           setVoiceState('STOPPED');
           setConnectionState('error');
+          if (errMsg.includes('Settings') || errMsg.includes('Gemini') || errMsg.includes('API key')) {
+            setMessages((prev) => {
+              const alreadyHas = prev.some(m => m.actions?.some(a => a.url === '/settings/ai-agent'));
+              if (alreadyHas) return prev;
+              return [
+                ...prev,
+                {
+                  role: 'assistant',
+                  content: 'Connect Google Gemini API key to enable live voice assistant.',
+                  actions: [{ label: 'Connect AI Key', url: '/settings/ai-agent' }]
+                }
+              ];
+            });
+          }
         }
       },
       freshLiveContext,

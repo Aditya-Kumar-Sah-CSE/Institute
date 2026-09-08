@@ -14,7 +14,17 @@ export async function POST() {
     }
 
     const userBYOK = await getUserAIProvider(user.id);
-    if (!userBYOK || userBYOK.activeProvider !== 'gemini') {
+    let apiKey: string | undefined = undefined;
+
+    if (userBYOK && userBYOK.activeProvider === 'gemini' && userBYOK.provider?.apiKey) {
+      apiKey = userBYOK.provider.apiKey;
+    } else if (process.env.GEMINI_API_KEY) {
+      apiKey = process.env.GEMINI_API_KEY;
+    } else if (process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
+      apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+    }
+
+    if (!apiKey) {
       return NextResponse.json(
         {
           success: false,
@@ -25,7 +35,6 @@ export async function POST() {
       );
     }
 
-    const apiKey = userBYOK.provider.apiKey;
     const serverAi = new GoogleGenAI({
       apiKey,
       httpOptions: { apiVersion: 'v1alpha' }
