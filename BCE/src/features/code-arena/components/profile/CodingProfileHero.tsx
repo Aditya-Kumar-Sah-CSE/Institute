@@ -217,98 +217,100 @@ export default function CodingProfileHero({ profile, codeforcesConnected, leetCo
         </div>
 
         {/* Contribution Calendar Grid */}
-        <div className="contribution-calendar-grid" style={{ display: 'flex', gap: '4px', minWidth: '450px' }}>
-          {weeks.map((week, wIdx) => {
-            // Find month label if it's the start of a month
-            const firstCell = week.find(c => c !== undefined);
-            const showMonthLabel = firstCell && firstCell.dateObj.getDate() <= 7;
-            const monthName = firstCell ? firstCell.dateObj.toLocaleString('default', { month: 'short' }) : '';
+        <div className="calendar-scroll-wrapper" style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingTop: '16px', paddingBottom: '4px' }}>
+          <div className="contribution-calendar-grid" style={{ display: 'flex', gap: '4px', minWidth: '450px' }}>
+            {weeks.map((week, wIdx) => {
+              // Find month label if it's the start of a month
+              const firstCell = week.find(c => c !== undefined);
+              const showMonthLabel = firstCell && firstCell.dateObj.getDate() <= 7;
+              const monthName = firstCell ? firstCell.dateObj.toLocaleString('default', { month: 'short' }) : '';
 
-            return (
-              <div key={wIdx} style={{ display: 'flex', flexDirection: 'column', gap: '4px', position: 'relative' }}>
-                {showMonthLabel && (
-                  <span style={{
-                    position: 'absolute',
-                    top: '-15px',
-                    left: '0',
-                    fontSize: '8.5px',
-                    color: 'var(--text-muted)',
-                    fontWeight: 700,
-                    whiteSpace: 'nowrap'
-                  }}>
-                    {monthName}
-                  </span>
-                )}
-                {/* 7 Days of the Week */}
-                {Array.from({ length: 7 }).map((_, dIdx) => {
-                  const cell = week[dIdx];
-                  if (!cell) {
-                    return <div key={dIdx} style={{ width: '10px', height: '10px', opacity: 0 }} />;
-                  }
+              return (
+                <div key={wIdx} style={{ display: 'flex', flexDirection: 'column', gap: '4px', position: 'relative' }}>
+                  {showMonthLabel && (
+                    <span style={{
+                      position: 'absolute',
+                      top: '-15px',
+                      left: '0',
+                      fontSize: '8.5px',
+                      color: 'var(--text-muted)',
+                      fontWeight: 700,
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {monthName}
+                    </span>
+                  )}
+                  {/* 7 Days of the Week */}
+                  {Array.from({ length: 7 }).map((_, dIdx) => {
+                    const cell = week[dIdx];
+                    if (!cell) {
+                      return <div key={dIdx} style={{ width: '10px', height: '10px', opacity: 0 }} />;
+                    }
 
-                  // Compute background color based on activity
-                  let bgColor = 'rgba(255, 255, 255, 0.04)'; // empty
-                  let borderStyle = '1px solid rgba(255, 255, 255, 0.01)';
-                  const total = cell.activity.total;
-                  
-                  if (total > 0) {
-                    if (total === 1) bgColor = 'rgba(34, 197, 94, 0.2)';
-                    else if (total === 2) bgColor = 'rgba(34, 197, 94, 0.4)';
-                    else if (total <= 4) bgColor = 'rgba(34, 197, 94, 0.7)';
-                    else bgColor = 'rgba(34, 197, 94, 1.0)';
-                    borderStyle = '1px solid rgba(34, 197, 94, 0.15)';
-                  }
+                    // Compute background color based on activity
+                    let bgColor = 'rgba(255, 255, 255, 0.04)'; // empty
+                    let borderStyle = '1px solid rgba(255, 255, 255, 0.01)';
+                    const total = cell.activity.total;
+                    
+                    if (total > 0) {
+                      if (total === 1) bgColor = 'rgba(34, 197, 94, 0.2)';
+                      else if (total === 2) bgColor = 'rgba(34, 197, 94, 0.4)';
+                      else if (total <= 4) bgColor = 'rgba(34, 197, 94, 0.7)';
+                      else bgColor = 'rgba(34, 197, 94, 1.0)';
+                      borderStyle = '1px solid rgba(34, 197, 94, 0.15)';
+                    }
 
-                  return (
-                    <div
-                      key={dIdx}
-                      className="calendar-cell"
-                      style={{
-                        width: '10px',
-                        height: '10px',
-                        borderRadius: '2px',
-                        background: bgColor,
-                        border: borderStyle,
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease'
-                      }}
-                    >
-                      {/* Tooltip */}
-                      <div className="cell-tooltip" style={{
-                        visibility: 'hidden',
-                        opacity: 0,
-                        position: 'absolute',
-                        bottom: '100%',
-                        left: '50%',
-                        transform: 'translateX(-50%) translateY(-6px)',
-                        background: '#0b0f19',
-                        border: '1px solid rgba(255, 255, 255, 0.08)',
-                        color: 'var(--text-main)',
-                        padding: '6px 10px',
-                        borderRadius: '6px',
-                        fontSize: '10px',
-                        whiteSpace: 'nowrap',
-                        zIndex: 1000,
-                        pointerEvents: 'none',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.6)',
-                        transition: 'opacity 0.15s, transform 0.15s'
-                      }}>
-                        <div style={{ fontWeight: 700, marginBottom: '2px' }}>{new Date(cell.dateStr).toLocaleDateString(undefined, { dateStyle: 'medium' })}</div>
-                        <div style={{ color: 'var(--neon-emerald)', fontWeight: 800 }}>Total: {total} solved</div>
-                        <div style={{ display: 'flex', gap: '6px', color: 'var(--text-muted)', fontSize: '9px', marginTop: '2px', flexWrap: 'wrap' }}>
-                          <span>SL: {cell.activity.bce}</span>
-                          <span>CF: {cell.activity.cf}</span>
-                          <span>LC: {cell.activity.lc}</span>
-                          <span>CC: {cell.activity.cc || 0}</span>
-                          <span>GFG: {cell.activity.gfg || 0}</span>
+                    return (
+                      <div
+                        key={dIdx}
+                        className="calendar-cell"
+                        style={{
+                          width: '10px',
+                          height: '10px',
+                          borderRadius: '2px',
+                          background: bgColor,
+                          border: borderStyle,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        {/* Tooltip */}
+                        <div className="cell-tooltip" style={{
+                          visibility: 'hidden',
+                          opacity: 0,
+                          position: 'absolute',
+                          bottom: '100%',
+                          left: '50%',
+                          transform: 'translateX(-50%) translateY(-6px)',
+                          background: '#0b0f19',
+                          border: '1px solid rgba(255, 255, 255, 0.08)',
+                          color: 'var(--text-main)',
+                          padding: '6px 10px',
+                          borderRadius: '6px',
+                          fontSize: '10px',
+                          whiteSpace: 'nowrap',
+                          zIndex: 1000,
+                          pointerEvents: 'none',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.6)',
+                          transition: 'opacity 0.15s, transform 0.15s'
+                        }}>
+                          <div style={{ fontWeight: 700, marginBottom: '2px' }}>{new Date(cell.dateStr).toLocaleDateString(undefined, { dateStyle: 'medium' })}</div>
+                          <div style={{ color: 'var(--neon-emerald)', fontWeight: 800 }}>Total: {total} solved</div>
+                          <div style={{ display: 'flex', gap: '6px', color: 'var(--text-muted)', fontSize: '9px', marginTop: '2px', flexWrap: 'wrap' }}>
+                            <span>SL: {cell.activity.bce}</span>
+                            <span>CF: {cell.activity.cf}</span>
+                            <span>LC: {cell.activity.lc}</span>
+                            <span>CC: {cell.activity.cc || 0}</span>
+                            <span>GFG: {cell.activity.gfg || 0}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 

@@ -2651,42 +2651,121 @@
 }
 
 @media screen and (max-width: 768px) {
+  .code-arena-profile-page {
+    padding: 0 4px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+    gap: var(--space-md, 16px);
+  }
+
   .profile-hero-container {
     flex-direction: column;
     align-items: stretch;
-    gap: var(--space-lg);
-    padding: var(--space-lg);
+    gap: var(--space-md);
+    padding: 16px 14px;
+    min-height: auto;
+    width: 100%;
+    box-sizing: border-box;
   }
   
   .profile-hero-calendar-section {
-    margin: 12px 0;
+    margin: 8px 0;
     max-width: 100%;
+    width: 100%;
+    padding: 12px 10px 8px 10px;
+    box-sizing: border-box;
+  }
+
+  .calendar-scroll-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .profile-hero-actions {
-    width: 100%;
+    width: 100% !important;
+    min-width: 0 !important;
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    gap: 8px !important;
+  }
+  
+  .profile-hero-actions > * {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 120px;
   }
   
   .platform-cards-grid { grid-template-columns: 1fr; }
   .overview-cards-grid { grid-template-columns: repeat(2, 1fr); }
   .platform-stats-grid.four-col { grid-template-columns: repeat(2, 1fr); }
+
+  .recent-activity-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+
+  .activity-tabs {
+    display: flex !important;
+    overflow-x: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    flex-wrap: nowrap !important;
+    padding-bottom: 4px !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .activity-tabs button {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+  }
 }
 
 @media screen and (max-width: 480px) {
   .profile-hero-actions {
-    width: 100%;
-    flex-direction: column;
+    width: 100% !important;
+    flex-direction: column !important;
+    gap: 6px !important;
   }
-  .hero-action-btn { justify-content: center; }
+  .hero-action-btn { justify-content: center; width: 100% !important; }
   
-  .profile-hero-content { flex-direction: column; align-items: flex-start; }
+  .profile-hero-content {
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 12px !important;
+  }
+
+  .profile-hero-avatar {
+    width: 64px !important;
+    height: 64px !important;
+    flex-shrink: 0;
+  }
+
+  .profile-hero-name {
+    font-size: 1.25rem !important;
+  }
+
+  .profile-hero-badges {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .profile-badge {
+    font-size: 10px !important;
+    padding: 2px 6px !important;
+  }
+  
   .platform-cards-grid { grid-template-columns: 1fr; }
-  .platform-title { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .platform-title { flex-direction: row; align-items: center; gap: 8px; flex-wrap: wrap; }
   
   .platform-stats-grid,
   .platform-stats-grid.three-col,
   .platform-stats-grid.four-col {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    padding: 10px 12px !important;
   }
   
   .overview-cards-grid {
@@ -2694,19 +2773,22 @@
     gap: 8px !important;
   }
   .overview-stat-card {
-    padding: var(--space-sm) var(--space-sm) !important;
-    gap: var(--space-sm) !important;
+    padding: 10px 8px !important;
+    gap: 8px !important;
   }
   .stat-icon-wrapper {
-    width: 36px !important;
-    height: 36px !important;
+    width: 34px !important;
+    height: 34px !important;
     border-radius: 8px !important;
   }
   .stat-content .stat-value {
-    font-size: var(--text-md) !important;
+    font-size: 1.1rem !important;
   }
   .stat-content .stat-label {
     font-size: 9px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 
