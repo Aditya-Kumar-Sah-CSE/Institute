@@ -534,8 +534,8 @@ export async function initializeUserDriveStorage(
       return createData.id;
     };
 
-    // 2. Search/Create `Code Arena/` root folder
-    const rootFolderId = existingRecord?.root_folder_id || (await getOrCreateDriveFolder('Code Arena'));
+    // 2. Search/Create `Smart Learn/` root folder
+    const rootFolderId = existingRecord?.root_folder_id || (await getOrCreateDriveFolder('Smart Learn'));
 
     // 3. Search/Create subfolders
     const categories = [

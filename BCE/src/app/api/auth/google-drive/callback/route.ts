@@ -152,9 +152,9 @@ export async function GET(request: NextRequest) {
       if (userinfo.email) googleEmail = userinfo.email;
     }
 
-    // 3. Automatically create/reuse root folder "Code Arena/"
+    // 3. Automatically create/reuse root folder "Smart Learn/"
     console.info('[google-drive/callback] provisioning Drive folders', { traceId, userId: user.id });
-    const rootFolderId = await getOrCreateDriveFolder(accessToken, 'Code Arena');
+    const rootFolderId = await getOrCreateDriveFolder(accessToken, 'Smart Learn');
 
     // 4. Automatically create/reuse required subfolders
     const subfolders: Record<string, string> = {};

@@ -27,6 +27,7 @@ import {
   EyeOff,
   AlertCircle
 } from 'lucide-react';
+import StorageUsageIndicator from '@/components/shared/StorageUsageIndicator';
 
 interface ProviderState {
   provider: AIProviderName;
@@ -597,6 +598,14 @@ export default function AISettingsClient() {
           </div>
         </div>
 
+      </div>
+
+      {/* GOOGLE DRIVE STORAGE SECTION */}
+      <div style={{ marginTop: 'var(--space-xl)' }}>
+        <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: 'var(--space-md)' }}>
+          Cloud Storage Connection
+        </h2>
+        <StorageUsageIndicator />
       </div>
     </div>
   );

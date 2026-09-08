@@ -179,7 +179,7 @@ export default function StorageUsageIndicator({
                 border: '1px solid rgba(16, 185, 129, 0.3)',
               }}
             >
-              <CheckCircle size={12} /> Connected ✓
+              <CheckCircle size={12} /> ✓ Google Drive Connected
             </span>
           </div>
         </div>
@@ -191,7 +191,7 @@ export default function StorageUsageIndicator({
 
         {/* Subtext */}
         <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '10px' }}>
-          Code Arena Files: <strong style={{ color: 'var(--text-primary)' }}>{fileCount} files</strong> ({appBytes})
+          Smart Learn Files: <strong style={{ color: 'var(--text-primary)' }}>{fileCount} files</strong> ({appBytes})
         </div>
 
         {/* Progress Bar Container */}
