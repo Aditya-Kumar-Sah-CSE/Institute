@@ -317,6 +317,20 @@ export default function AISettingsClient() {
                 <li>Click <strong>Connect & Test</strong>.</li>
               </ol>
             </div>
+
+            {/* GOOGLE DRIVE STORAGE GUIDE */}
+            <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '14px', borderRadius: '10px', border: '1px solid var(--glass-border)' }}>
+              <div style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                Google Drive Storage
+              </div>
+              <ol style={{ margin: 0, paddingLeft: '18px', fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                <li>Click <strong>Connect Google Drive</strong>.</li>
+                <li>Sign in with your Google account.</li>
+                <li>Grant storage permissions.</li>
+                <li>Auto-creates <strong>/Smart Learn/</strong> folder.</li>
+                <li>Your Drive is connected!</li>
+              </ol>
+            </div>
           </div>
         )}
       </div>

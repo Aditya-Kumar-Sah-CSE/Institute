@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { RefreshCw, ExternalLink, Cloud, CheckCircle, LogOut, ArrowRight, AlertCircle } from 'lucide-react';
+import { RefreshCw, ExternalLink, Cloud, CheckCircle, LogOut, ArrowRight, AlertCircle, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { getUserStorageUsage, StorageUsageResult } from '@/features/profile/actions/storage';
 import { getGoogleDriveStatus, disconnectGoogleDrive, migrateExistingFilesToDrive, GoogleDriveStatusResult } from '@/features/profile/actions/google-drive';
 
@@ -27,6 +27,7 @@ export default function StorageUsageIndicator({
   const [migrationResult, setMigrationResult] = useState<string | null>(null);
   const [showMigrateModal, setShowMigrateModal] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showGuide, setShowGuide] = useState<boolean>(false);
 
   const loadData = async () => {
     try {
@@ -381,9 +382,53 @@ export default function StorageUsageIndicator({
         {loading ? '...' : dbData?.formattedTotal || '0 B'}
       </div>
 
-      <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '14px', lineHeight: '1.4' }}>
+      <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: '1.4' }}>
         Connect your Google Drive to store files securely in your own Drive.
       </p>
+
+      {/* EXPANDABLE CONNECTION GUIDE */}
+      <div style={{ marginBottom: '14px' }}>
+        <button
+          type="button"
+          onClick={() => setShowGuide(!showGuide)}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--neon-cyan)',
+            fontSize: '12px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            padding: 0,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}
+        >
+          <HelpCircle size={14} /> How to connect Google Drive? {showGuide ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </button>
+
+        {showGuide && (
+          <div
+            style={{
+              marginTop: '8px',
+              padding: '10px 12px',
+              background: 'rgba(0, 242, 254, 0.05)',
+              border: '1px solid rgba(0, 242, 254, 0.2)',
+              borderRadius: '8px',
+              fontSize: '12px',
+              color: 'var(--text-secondary)',
+              lineHeight: '1.6'
+            }}
+          >
+            <ol style={{ margin: 0, paddingLeft: '16px' }}>
+              <li>Click <strong>Connect Google Drive</strong> below.</li>
+              <li>Sign in to your Google account and grant permissions.</li>
+              <li>Smart Learn automatically creates your <strong>/Smart Learn/</strong> root folder.</li>
+              <li>Your files stay 100% private in your own Google Drive!</li>
+            </ol>
+          </div>
+        )}
+      </div>
 
       {errorMessage && (
         <div
