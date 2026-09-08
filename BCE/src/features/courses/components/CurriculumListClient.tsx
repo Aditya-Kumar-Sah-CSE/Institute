@@ -86,7 +86,7 @@ export default function CurriculumListClient({ courseId, groupedLessons, sortedD
                         ) : isCompleted ? (
                           <span className="status-badge completed">✓ Done</span>
                         ) : (
-                          <span className="status-badge xp">+{lesson.xp_reward} XP</span>
+                          <span className="status-badge start">Start</span>
                         )}
                       </div>
                     </div>
