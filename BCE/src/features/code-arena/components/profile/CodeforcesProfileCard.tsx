@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, ExternalLink, CheckCircle2, TrendingUp, Target, Award, Key, Unlink, Sparkles } from 'lucide-react';
+import { RefreshCw, ExternalLink, CheckCircle2, TrendingUp, Target, Award, Key, Unlink, Sparkles, ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function CodeforcesProfileCard({ account, isOwnProfile = true }: { account: any; isOwnProfile?: boolean }) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [handle, setHandle] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -93,105 +94,130 @@ export default function CodeforcesProfileCard({ account, isOwnProfile = true }: 
     return (
       <div className={`platform-profile-card codeforces-card not-connected ${mounted ? 'animate-fade-in' : ''}`}>
         <div className="platform-card-accent cf-accent" />
-        <div className="platform-header">
+        <div 
+          className="platform-header"
+          style={{ cursor: 'pointer' }}
+          onClick={(e) => {
+            if ((e.target as HTMLElement).closest('button, a, input')) return;
+            setIsExpanded(!isExpanded);
+          }}
+        >
           <div className="platform-title">
             <div className="platform-icon-badge cf-icon">CF</div>
             <h3>Codeforces</h3>
           </div>
-          <span className="not-connected-badge">Not Connected</span>
+          <div className="platform-actions">
+            <span className="not-connected-badge">Not Connected</span>
+            <button
+              type="button"
+              className="icon-action-btn"
+              title={isExpanded ? "Collapse card" : "Expand card"}
+              onClick={() => setIsExpanded(!isExpanded)}
+            >
+              <ChevronDown 
+                size={16} 
+                style={{ 
+                  transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', 
+                  transition: 'transform 0.25s ease' 
+                }} 
+              />
+            </button>
+          </div>
         </div>
-        <div className="platform-body" style={{ padding: '0 16px 16px 16px' }}>
-          {isOwnProfile ? (
-            <form onSubmit={handleConnect} style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', marginTop: '8px' }}>
-              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
-                <span>Connect your public Codeforces handle to track stats, rating graph, and solves.</span>
-                <button
-                  type="button"
-                  onClick={() => setShowGuide(!showGuide)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--neon-cyan, #06b6d4)',
+        {isExpanded && (
+          <div className="platform-body" style={{ padding: '0 16px 16px 16px' }}>
+            {isOwnProfile ? (
+              <form onSubmit={handleConnect} style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', marginTop: '8px' }}>
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
+                  <span>Connect your public Codeforces handle to track stats, rating graph, and solves.</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowGuide(!showGuide)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--neon-cyan, #06b6d4)',
+                      fontSize: '11px',
+                      textDecoration: 'underline',
+                      cursor: 'pointer',
+                      padding: 0
+                    }}
+                  >
+                    {showGuide ? 'Hide Guide' : 'Connection Guide'}
+                  </button>
+                </p>
+
+                {showGuide && (
+                  <div style={{
+                    padding: '10px 12px',
+                    background: 'rgba(6, 182, 212, 0.05)',
+                    border: '1px solid rgba(6, 182, 212, 0.15)',
+                    borderRadius: 'var(--radius-sm, 6px)',
                     fontSize: '11px',
-                    textDecoration: 'underline',
-                    cursor: 'pointer',
-                    padding: 0
-                  }}
-                >
-                  {showGuide ? 'Hide Guide' : 'Connection Guide'}
-                </button>
-              </p>
-
-              {showGuide && (
-                <div style={{
-                  padding: '10px 12px',
-                  background: 'rgba(6, 182, 212, 0.05)',
-                  border: '1px solid rgba(6, 182, 212, 0.15)',
-                  borderRadius: 'var(--radius-sm, 6px)',
-                  fontSize: '11px',
-                  lineHeight: '1.4',
-                  color: 'var(--text-main, #f8fafc)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '6px'
-                }}>
-                  <div style={{ fontWeight: 'bold', color: 'var(--neon-cyan, #06b6d4)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Sparkles size={12} /> Codeforces Connection Steps:
+                    lineHeight: '1.4',
+                    color: 'var(--text-main, #f8fafc)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px'
+                  }}>
+                    <div style={{ fontWeight: 'bold', color: 'var(--neon-cyan, #06b6d4)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Sparkles size={12} /> Codeforces Connection Steps:
+                    </div>
+                    <div><strong>Step 1:</strong> First, open your browser and log into <a href="https://codeforces.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--neon-cyan)', textDecoration: 'underline' }}>codeforces.com</a>.</div>
+                    <div><strong>Step 2:</strong> Copy ONLY your exact handle / username from your profile page (e.g. <code>tourist</code>). Do NOT copy the full link or any extra characters.</div>
+                    <div><strong>Step 3:</strong> Paste your handle below and click <strong>Connect</strong>.</div>
                   </div>
-                  <div><strong>Step 1:</strong> First, open your browser and log into <a href="https://codeforces.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--neon-cyan)', textDecoration: 'underline' }}>codeforces.com</a>.</div>
-                  <div><strong>Step 2:</strong> Copy ONLY your exact handle / username from your profile page (e.g. <code>tourist</code>). Do NOT copy the full link or any extra characters.</div>
-                  <div><strong>Step 3:</strong> Paste your handle below and click <strong>Connect</strong>.</div>
+                )}
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    className="hub-search-input"
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      fontSize: 'var(--text-sm)',
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--glass-border)',
+                      borderRadius: 'var(--radius-sm)',
+                      color: 'var(--text-main)',
+                      outline: 'none',
+                    }}
+                    disabled={isConnecting}
+                    placeholder="Codeforces handle (e.g. tourist)"
+                    value={handle}
+                    onChange={(e) => setHandle(e.target.value)}
+                  />
+                  <button
+                    type="submit"
+                    disabled={isConnecting || !handle.trim()}
+                    className="hub-solve-btn"
+                    style={{ padding: '8px 16px', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: (isConnecting || !handle.trim()) ? 'not-allowed' : 'pointer' }}
+                  >
+                    {isConnecting ? <RefreshCw size={13} className="spin animate-spin" /> : <Key size={13} />}
+                    Connect
+                  </button>
                 </div>
-              )}
+              </form>
+            ) : (
+              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: '8px 0 0 0' }}>
+                No Codeforces account connected.
+              </p>
+            )}
 
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input
-                  type="text"
-                  className="hub-search-input"
-                  style={{
-                    flex: 1,
-                    padding: '8px 12px',
-                    fontSize: 'var(--text-sm)',
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--glass-border)',
-                    borderRadius: 'var(--radius-sm)',
-                    color: 'var(--text-main)',
-                    outline: 'none',
-                  }}
-                  disabled={isConnecting}
-                  placeholder="Codeforces handle (e.g. tourist)"
-                  value={handle}
-                  onChange={(e) => setHandle(e.target.value)}
-                />
-                <button
-                  type="submit"
-                  disabled={isConnecting || !handle.trim()}
-                  className="hub-solve-btn"
-                  style={{ padding: '8px 16px', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: (isConnecting || !handle.trim()) ? 'not-allowed' : 'pointer' }}
-                >
-                  {isConnecting ? <RefreshCw size={13} className="spin animate-spin" /> : <Key size={13} />}
-                  Connect
-                </button>
+            {errorMsg && (
+              <div className="sync-error-banner" style={{ marginTop: '12px', fontSize: 'var(--text-xs)', color: '#f87171' }}>
+                ⚠️ {errorMsg}
               </div>
-            </form>
-          ) : (
-            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: '8px 0 0 0' }}>
-              No Codeforces account connected.
-            </p>
-          )}
+            )}
 
-          {errorMsg && (
-            <div className="sync-error-banner" style={{ marginTop: '12px', fontSize: 'var(--text-xs)', color: '#f87171' }}>
-              ⚠️ {errorMsg}
-            </div>
-          )}
-
-          {successMsg && (
-            <div className="sync-success-banner" style={{ marginTop: '12px', fontSize: 'var(--text-xs)', color: 'var(--neon-emerald)' }}>
-              ✓ {successMsg}
-            </div>
-          )}
-        </div>
+            {successMsg && (
+              <div className="sync-success-banner" style={{ marginTop: '12px', fontSize: 'var(--text-xs)', color: 'var(--neon-emerald)' }}>
+                ✓ {successMsg}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   }
@@ -212,7 +238,14 @@ export default function CodeforcesProfileCard({ account, isOwnProfile = true }: 
     <div className={`platform-profile-card codeforces-card ${mounted ? 'animate-fade-in' : ''}`}>
       <div className="platform-card-accent cf-accent" />
       
-      <div className="platform-header">
+      <div 
+        className="platform-header"
+        style={{ cursor: 'pointer' }}
+        onClick={(e) => {
+          if ((e.target as HTMLElement).closest('button, a, input')) return;
+          setIsExpanded(!isExpanded);
+        }}
+      >
         <div className="platform-title">
           <div className="platform-icon-badge cf-icon">CF</div>
           <div className="platform-title-info">
@@ -246,71 +279,89 @@ export default function CodeforcesProfileCard({ account, isOwnProfile = true }: 
               </button>
             </>
           )}
+          <button
+            type="button"
+            className="icon-action-btn"
+            title={isExpanded ? "Collapse card" : "Expand card"}
+            onClick={() => setIsExpanded(!isExpanded)}
+          >
+            <ChevronDown 
+              size={16} 
+              style={{ 
+                transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', 
+                transition: 'transform 0.25s ease' 
+              }} 
+            />
+          </button>
         </div>
       </div>
 
-      {(errorMsg || syncStatus === 'ERROR') && (
-        <div className="sync-error-banner" style={{ margin: '8px 16px 0', fontSize: 'var(--text-xs)', color: '#f87171' }}>
-          ⚠️ {errorMsg || 'Failed to sync Codeforces'}
-        </div>
-      )}
-
-      {successMsg && (
-        <div className="sync-success-banner" style={{ fontSize: 'var(--text-xs)', color: 'var(--neon-emerald)', margin: '8px 16px 0' }}>
-          ✓ {successMsg}
-        </div>
-      )}
-
-      <div className="platform-stats-grid three-col">
-        <div className="stat-box">
-          <span className="stat-icon-mini"><TrendingUp size={14} /></span>
-          <span className="stat-label">Rating</span>
-          <span className="stat-value highlight-purple">{account.rating ?? '—'}</span>
-          <span className="stat-sub">{account.rank || 'Unrated'}</span>
-        </div>
-        <div className="stat-box">
-          <span className="stat-icon-mini"><Award size={14} /></span>
-          <span className="stat-label">Max Rating</span>
-          <span className="stat-value">{account.max_rating ?? '—'}</span>
-          <span className="stat-sub">{md.max_rank || '—'}</span>
-        </div>
-        <div className="stat-box">
-          <span className="stat-icon-mini"><Target size={14} /></span>
-          <span className="stat-label">Solved</span>
-          <span className="stat-value">{total ?? '—'}</span>
-          <span className="stat-sub">Total</span>
-        </div>
-      </div>
-
-      <div className="difficulty-breakdown">
-        <h4>Difficulty Distribution</h4>
-        <div className="difficulty-bars">
-          {ratingDistribution.map((d, i) => (
-            <div key={i} className="difficulty-bar-row">
-              <div className="diff-label-value">
-                <span className="diff-label-text">
-                  <span className="diff-color-dot" style={{ backgroundColor: d.color }} />
-                  {d.label} <span className="diff-range">{d.range}</span>
-                </span>
-                <span className="diff-count">{d.value}</span>
-              </div>
-              <div className="diff-progress-track">
-                <div 
-                  className="diff-progress-fill" 
-                  style={{ 
-                    width: `${d.pct}%`,
-                    backgroundColor: d.color,
-                  }} 
-                />
-              </div>
+      {isExpanded && (
+        <>
+          {(errorMsg || syncStatus === 'ERROR') && (
+            <div className="sync-error-banner" style={{ margin: '8px 16px 0', fontSize: 'var(--text-xs)', color: '#f87171' }}>
+              ⚠️ {errorMsg || 'Failed to sync Codeforces'}
             </div>
-          ))}
-        </div>
-      </div>
-      
-      <div className="platform-footer">
-        <span className="last-synced">Last synced {mounted && account.last_synced_at ? new Date(account.last_synced_at).toLocaleString() : '—'}</span>
-      </div>
+          )}
+
+          {successMsg && (
+            <div className="sync-success-banner" style={{ fontSize: 'var(--text-xs)', color: 'var(--neon-emerald)', margin: '8px 16px 0' }}>
+              ✓ {successMsg}
+            </div>
+          )}
+
+          <div className="platform-stats-grid three-col">
+            <div className="stat-box">
+              <span className="stat-icon-mini"><TrendingUp size={14} /></span>
+              <span className="stat-label">Rating</span>
+              <span className="stat-value highlight-purple">{account.rating ?? '—'}</span>
+              <span className="stat-sub">{account.rank || 'Unrated'}</span>
+            </div>
+            <div className="stat-box">
+              <span className="stat-icon-mini"><Award size={14} /></span>
+              <span className="stat-label">Max Rating</span>
+              <span className="stat-value">{account.max_rating ?? '—'}</span>
+              <span className="stat-sub">{md.max_rank || '—'}</span>
+            </div>
+            <div className="stat-box">
+              <span className="stat-icon-mini"><Target size={14} /></span>
+              <span className="stat-label">Solved</span>
+              <span className="stat-value">{total ?? '—'}</span>
+              <span className="stat-sub">Total</span>
+            </div>
+          </div>
+
+          <div className="difficulty-breakdown">
+            <h4>Difficulty Distribution</h4>
+            <div className="difficulty-bars">
+              {ratingDistribution.map((d, i) => (
+                <div key={i} className="difficulty-bar-row">
+                  <div className="diff-label-value">
+                    <span className="diff-label-text">
+                      <span className="diff-color-dot" style={{ backgroundColor: d.color }} />
+                      {d.label} <span className="diff-range">{d.range}</span>
+                    </span>
+                    <span className="diff-count">{d.value}</span>
+                  </div>
+                  <div className="diff-progress-track">
+                    <div 
+                      className="diff-progress-fill" 
+                      style={{ 
+                        width: `${d.pct}%`,
+                        backgroundColor: d.color,
+                      }} 
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <div className="platform-footer">
+            <span className="last-synced">Last synced {mounted && account.last_synced_at ? new Date(account.last_synced_at).toLocaleString() : '—'}</span>
+          </div>
+        </>
+      )}
     </div>
   );
 }

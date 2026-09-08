@@ -232,3 +232,31 @@ body.sidebar-is-collapsed:not(.agent-drawer-open):not(.mentor-drawer-open) .side
     gap: var(--space-lg);
   }
 }
+
+/* ======================================== */
+/*  AGENT DRAWER OPEN – RESPONSIVE LAYOUT   */
+/* ======================================== */
+
+/* Desktop: shrink main content when agent drawer (420px) is open */
+@media (min-width: 769px) {
+  body.agent-drawer-open .content-wrapper {
+    max-width: calc(100vw - 420px);
+    transition: max-width 0.25s ease;
+  }
+
+  body.agent-drawer-open .main-layout {
+    max-width: calc(100vw - 420px);
+    transition: max-width 0.25s ease;
+  }
+
+  body.agent-drawer-open .dashboard-content {
+    overflow-x: hidden;
+  }
+}
+
+/* Mobile: drawer is full-width overlay, no content shrink needed */
+@media (max-width: 768px) {
+  body.agent-drawer-open .content-wrapper {
+    max-width: 100%;
+  }
+}

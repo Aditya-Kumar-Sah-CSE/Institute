@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Activity, Clock3, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import { Activity, Clock3, CheckCircle2, XCircle, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface RecentCodingActivityProps {
   bceRecent?: any[];
@@ -22,6 +22,7 @@ export default function RecentCodingActivity({
 }: RecentCodingActivityProps) {
   const [filter, setFilter] = useState<PlatformFilter>('ALL');
   const [visibleCount, setVisibleCount] = useState(15);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
     setVisibleCount(15);
@@ -161,115 +162,141 @@ export default function RecentCodingActivity({
           <Activity size={18} />
           <span>Recent Activity</span>
         </h3>
-        <div className="activity-tabs" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-          {filters.map((f) => {
-            const isActive = filter === f.key;
-            return (
-              <button
-                key={f.key}
-                type="button"
-                className={isActive ? 'active' : ''}
-                onClick={() => setFilter(f.key)}
-                style={{
-                  padding: '4px 12px',
-                  borderRadius: '16px',
-                  border: isActive ? '1px solid #00f0ff' : '1px solid rgba(255, 255, 255, 0.1)',
-                  background: isActive ? '#00f0ff' : 'rgba(255, 255, 255, 0.04)',
-                  color: isActive ? '#090d16' : '#94a3b8',
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  outline: 'none',
-                }}
-              >
-                {f.label}
-              </button>
-            );
-          })}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {isExpanded && (
+            <div className="activity-tabs" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {filters.map((f) => {
+                const isActive = filter === f.key;
+                return (
+                  <button
+                    key={f.key}
+                    type="button"
+                    className={isActive ? 'active' : ''}
+                    onClick={() => setFilter(f.key)}
+                    style={{
+                      padding: '4px 12px',
+                      borderRadius: '16px',
+                      border: isActive ? '1px solid #00f0ff' : '1px solid rgba(255, 255, 255, 0.1)',
+                      background: isActive ? '#00f0ff' : 'rgba(255, 255, 255, 0.04)',
+                      color: isActive ? '#090d16' : '#94a3b8',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      outline: 'none',
+                    }}
+                  >
+                    {f.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setIsExpanded(prev => !prev)}
+            style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: '6px',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              padding: '4px 6px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s ease',
+              flexShrink: 0,
+            }}
+            title={isExpanded ? 'Collapse Recent Activity' : 'Expand Recent Activity'}
+          >
+            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
         </div>
       </div>
 
-      <div className="recent-activity-list" style={{ marginTop: '14px' }}>
-        {filteredActivity.length === 0 ? (
-          <div className="empty-activity">
-            <Activity size={28} strokeWidth={1.5} />
-            <p>No recent coding activity found for {filter === 'ALL' ? 'any platform' : filter}.</p>
-          </div>
-        ) : (
-          <>
-            {filteredActivity.slice(0, visibleCount).map((activity, idx) => {
-              const v = formatVerdict(activity.verdict);
-              const badgeStyle = getPlatformBadgeStyle(activity.platform);
-              return (
-                <div
-                  key={activity.id}
-                  className="activity-row"
-                  style={{ animationDelay: `${idx * 50}ms` }}
-                >
-                  <div className={`activity-verdict-indicator ${v.className}`} />
-                  <div className={`activity-verdict-icon ${v.className}`} title={v.label}>
-                    {v.icon}
-                  </div>
-                  <div className="activity-details">
-                    <span className="activity-problem">{activity.problemName}</span>
-                    <div className="activity-meta" style={{ gap: '6px', alignItems: 'center' }}>
-                      <span
-                        className="activity-platform"
-                        style={{
-                          padding: '1px 6px',
-                          borderRadius: '4px',
-                          fontSize: '9px',
-                          fontWeight: 800,
-                          ...badgeStyle,
-                        }}
-                      >
-                        {activity.platformFull}
-                      </span>
-                      <span className="activity-lang">{activity.language}</span>
-                      <span className="activity-time">{timeAgo(activity.time)}</span>
+      {isExpanded && (
+        <div className="recent-activity-list" style={{ marginTop: '14px' }}>
+          {filteredActivity.length === 0 ? (
+            <div className="empty-activity">
+              <Activity size={28} strokeWidth={1.5} />
+              <p>No recent coding activity found for {filter === 'ALL' ? 'any platform' : filter}.</p>
+            </div>
+          ) : (
+            <>
+              {filteredActivity.slice(0, visibleCount).map((activity, idx) => {
+                const v = formatVerdict(activity.verdict);
+                const badgeStyle = getPlatformBadgeStyle(activity.platform);
+                return (
+                  <div
+                    key={activity.id}
+                    className="activity-row"
+                    style={{ animationDelay: `${idx * 50}ms` }}
+                  >
+                    <div className={`activity-verdict-indicator ${v.className}`} />
+                    <div className={`activity-verdict-icon ${v.className}`} title={v.label}>
+                      {v.icon}
+                    </div>
+                    <div className="activity-details">
+                      <span className="activity-problem">{activity.problemName}</span>
+                      <div className="activity-meta" style={{ gap: '6px', alignItems: 'center' }}>
+                        <span
+                          className="activity-platform"
+                          style={{
+                            padding: '1px 6px',
+                            borderRadius: '4px',
+                            fontSize: '9px',
+                            fontWeight: 800,
+                            ...badgeStyle,
+                          }}
+                        >
+                          {activity.platformFull}
+                        </span>
+                        <span className="activity-lang">{activity.language}</span>
+                        <span className="activity-time">{timeAgo(activity.time)}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
 
-            {filteredActivity.length > visibleCount && (
-              <button
-                type="button"
-                onClick={() => setVisibleCount((prev) => prev + 15)}
-                className="activity-show-more-btn"
-                style={{
-                  width: '100%',
-                  marginTop: '12px',
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px dashed var(--glass-border)',
-                  borderRadius: 'var(--radius-sm)',
-                  color: 'var(--neon-cyan)',
-                  padding: '10px',
-                  cursor: 'pointer',
-                  fontSize: '12px',
-                  fontWeight: 'var(--weight-bold)',
-                  textAlign: 'center',
-                  transition: 'all 0.2s ease',
-                  textTransform: 'uppercase',
-                  letterSpacing: '1px',
-                }}
-                onMouseOver={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = 'rgba(6, 182, 212, 0.08)';
-                  (e.currentTarget as HTMLElement).style.borderColor = 'var(--neon-cyan)';
-                }}
-                onMouseOut={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = 'rgba(255, 255, 255, 0.03)';
-                  (e.currentTarget as HTMLElement).style.borderColor = 'var(--glass-border)';
-                }}
-              >
-                Show More Submissions
-              </button>
-            )}
-          </>
-        )}
-      </div>
+              {filteredActivity.length > visibleCount && (
+                <button
+                  type="button"
+                  onClick={() => setVisibleCount((prev) => prev + 15)}
+                  className="activity-show-more-btn"
+                  style={{
+                    width: '100%',
+                    marginTop: '12px',
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px dashed var(--glass-border)',
+                    borderRadius: 'var(--radius-sm)',
+                    color: 'var(--neon-cyan)',
+                    padding: '10px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: 'var(--weight-bold)',
+                    textAlign: 'center',
+                    transition: 'all 0.2s ease',
+                    textTransform: 'uppercase',
+                    letterSpacing: '1px',
+                  }}
+                  onMouseOver={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = 'rgba(6, 182, 212, 0.08)';
+                    (e.currentTarget as HTMLElement).style.borderColor = 'var(--neon-cyan)';
+                  }}
+                  onMouseOut={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = 'rgba(255, 255, 255, 0.03)';
+                    (e.currentTarget as HTMLElement).style.borderColor = 'var(--glass-border)';
+                  }}
+                >
+                  Show More Submissions
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

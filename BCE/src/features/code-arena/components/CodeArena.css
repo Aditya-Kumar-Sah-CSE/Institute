@@ -2793,6 +2793,36 @@
 }
 
 /* ======================================== */
+/*  PROFILE PAGE – AGENT DRAWER OPEN        */
+/* ======================================== */
+@media (min-width: 769px) {
+  body.agent-drawer-open .code-arena-profile-page {
+    max-width: calc(100vw - 440px);
+    overflow-x: hidden;
+    transition: max-width 0.25s ease;
+  }
+
+  body.agent-drawer-open .profile-hero-container {
+    flex-wrap: wrap;
+    gap: var(--space-md);
+  }
+
+  body.agent-drawer-open .profile-hero-calendar-section {
+    max-width: 100%;
+    margin: 8px 0;
+  }
+
+  body.agent-drawer-open .profile-hero-actions {
+    flex-direction: column;
+    min-width: 120px;
+  }
+
+  body.agent-drawer-open .profile-grid-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ======================================== */
 /*  BCE CODE ARENA PREMIUM LANDING PAGE CSS */
 /* ======================================== */
 

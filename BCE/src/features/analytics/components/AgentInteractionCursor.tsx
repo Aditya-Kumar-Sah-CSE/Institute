@@ -14,17 +14,39 @@ export default function AgentInteractionCursor({ sessionActive }: AgentInteracti
     timestamp: Date.now()
   });
 
-  const [pos, setPos] = useState<{ x: number; y: number }>({ x: -100, y: -100 });
-  const targetPosRef = useRef<{ x: number; y: number }>({ x: -100, y: -100 });
+  // Calculate dynamic screen center position
+  const getCenterPos = () => {
+    if (typeof window !== 'undefined') {
+      return { x: window.innerWidth * 0.5, y: window.innerHeight * 0.5 };
+    }
+    return { x: 500, y: 400 };
+  };
+
+  const [pos, setPos] = useState<{ x: number; y: number }>(getCenterPos);
+  const targetPosRef = useRef<{ x: number; y: number }>(getCenterPos());
   const animFrameRef = useRef<number | null>(null);
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Derive persistent visibility from prop or global flag
-  const isPersistent = sessionActive ?? isAgentSessionActive();
+  const [activeSession, setActiveSession] = useState<boolean>(() => sessionActive ?? isAgentSessionActive());
+  const isPersistent = sessionActive ?? activeSession;
+
+  // Window resize handler to maintain center target when idle
+  useEffect(() => {
+    const handleResize = () => {
+      if (!visualState.targetRect && (visualState.state === 'idle' || visualState.state === 'success')) {
+        targetPosRef.current = getCenterPos();
+      }
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, [visualState.state, visualState.targetRect]);
 
   useEffect(() => {
     const unsubscribe = subscribeAgentVisualState((payload) => {
       setVisualState(payload);
+      setActiveSession(isAgentSessionActive());
 
       if (hideTimerRef.current) {
         clearTimeout(hideTimerRef.current);
@@ -39,6 +61,8 @@ export default function AgentInteractionCursor({ sessionActive }: AgentInteracti
         const vW = typeof window !== 'undefined' ? window.innerWidth : 1000;
         const vH = typeof window !== 'undefined' ? window.innerHeight : 800;
         targetPosRef.current = { x: vW * 0.5, y: vH * 0.3 };
+      } else if (payload.state === 'idle') {
+        targetPosRef.current = getCenterPos();
       }
 
       // Only auto-hide if the session is NOT persistently active
@@ -86,9 +110,10 @@ export default function AgentInteractionCursor({ sessionActive }: AgentInteracti
 
   const { state, targetText, targetRect, message } = visualState;
 
-  // When persistent, show cursor even during idle; otherwise hide when idle and offscreen
-  const isVisibleState = isPersistent ? (state !== 'idle' || pos.x !== -100) : state !== 'idle';
-  if (!isPersistent && state === 'idle' && pos.x === -100) return null;
+  // Whenever session is active/persistent, cursor stays ALWAYS visible!
+  const isVisibleState = isPersistent || state !== 'idle';
+  if (!isPersistent && state === 'idle' && !targetRect) return null;
+
   const getBadgeColor = (s: AgentInteractionState) => {
     switch (s) {
       case 'error': return 'bg-red-600 text-white border-red-400';
@@ -115,7 +140,7 @@ export default function AgentInteractionCursor({ sessionActive }: AgentInteracti
       case 'verifying': return 'Verifying action...';
       case 'success': return '✓ Action completed';
       case 'error': return '✗ Action error';
-      default: return '';
+      default: return '✦ Smart Learn Agent Active';
     }
   };
 
@@ -192,7 +217,7 @@ export default function AgentInteractionCursor({ sessionActive }: AgentInteracti
             top: `${pos.y - (typeof window !== 'undefined' ? window.scrollY : 0)}px`,
             left: `${pos.x - (typeof window !== 'undefined' ? window.scrollX : 0)}px`,
             transition: 'opacity 0.2s ease-in-out',
-            opacity: isVisibleState ? 1 : 0,
+            opacity: 1,
             transform: 'translate(-4px, -4px)'
           }}
         >
@@ -233,3 +258,4 @@ export default function AgentInteractionCursor({ sessionActive }: AgentInteracti
     </div>
   );
 }
+
