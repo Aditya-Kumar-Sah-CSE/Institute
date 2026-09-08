@@ -119,6 +119,8 @@ function NoticeContentText({ content }: { content: string }) {
 
 export default function NoticeBoard({ notices, emptyMessage = 'No notices available.' }: NoticeBoardProps) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const initialLimit = 3;
 
   if (!notices || notices.length === 0) {
     return (
@@ -131,6 +133,9 @@ export default function NoticeBoard({ notices, emptyMessage = 'No notices availa
       </Card>
     );
   }
+
+  const displayedNotices = isExpanded ? notices : notices.slice(0, initialLimit);
+  const remainingCount = notices.length - initialLimit;
 
   return (
     <>
@@ -150,7 +155,7 @@ export default function NoticeBoard({ notices, emptyMessage = 'No notices availa
         }
       `}</style>
       <div className="notice-board-wrapper">
-        {notices.map((notice) => (
+        {displayedNotices.map((notice) => (
           <Card key={notice.id} variant="glass" padding="md">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: 'var(--space-sm)' }}>
               <h3 style={{ color: 'var(--neon-cyan)', margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>{notice.title}</h3>
@@ -190,6 +195,30 @@ export default function NoticeBoard({ notices, emptyMessage = 'No notices availa
             </div>
           </Card>
         ))}
+
+        {remainingCount > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 'var(--space-xs)' }}>
+            <button
+              type="button"
+              onClick={() => setIsExpanded(!isExpanded)}
+              style={{
+                background: 'rgba(0, 229, 255, 0.08)',
+                border: '1px solid rgba(0, 229, 255, 0.3)',
+                color: 'var(--neon-cyan)',
+                padding: '8px 20px',
+                borderRadius: 'var(--radius-full)',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(0, 229, 255, 0.16)'; }}
+              onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(0, 229, 255, 0.08)'; }}
+            >
+              {isExpanded ? 'Show Less Notices' : `See More Notices (${remainingCount} more)`}
+            </button>
+          </div>
+        )}
       </div>
 
       {selectedImage && (

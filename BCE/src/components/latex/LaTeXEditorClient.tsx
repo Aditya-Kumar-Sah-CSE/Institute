@@ -2,7 +2,12 @@
 
 import '@/lib/monacoInit';
 import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
-import Editor from '@monaco-editor/react';
+import dynamic from 'next/dynamic';
+
+const Editor = dynamic(() => import('@monaco-editor/react'), {
+  ssr: false,
+  loading: () => <div style={{ padding: '20px', color: '#94a3b8' }}>Loading Monaco Editor...</div>,
+});
 import { 
   DEFAULT_ATS_LATEX_RESUME 
 } from '@/lib/latex-templates';

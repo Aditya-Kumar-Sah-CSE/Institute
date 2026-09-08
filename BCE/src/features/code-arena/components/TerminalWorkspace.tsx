@@ -1,8 +1,6 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Terminal } from 'xterm';
-import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
 
 // ── sessionStorage keys (scoped per-tab, never shared across tabs/users) ──
@@ -43,258 +41,270 @@ export default function TerminalWorkspace({ onCommandComplete }: TerminalWorkspa
     if (initRef.current || !terminalRef.current) return;
     initRef.current = true;
 
-    let term: Terminal;
-    let fitAddon: FitAddon;
+    let term: any;
+    let fitAddon: any;
+    let isDisposed = false;
 
-    // Initialize premium dark theme xterm terminal
-    term = new Terminal({
-      fontFamily: '"Fira Code", Menlo, Monaco, Consolas, monospace',
-      fontSize: 13,
-      lineHeight: 1.2,
-      theme: {
-        background: '#0a0a0a',
-        foreground: '#f8fafc',
-        cursor: '#06b6d4',
-        cursorAccent: '#0a0a0a',
-        selectionBackground: 'rgba(6, 182, 212, 0.3)',
-      },
-      cursorBlink: true,
-    });
+    async function initXterm() {
+      const [{ Terminal }, { FitAddon }] = await Promise.all([
+        import('xterm'),
+        import('xterm-addon-fit')
+      ]);
 
-    fitAddon = new FitAddon();
-    term.loadAddon(fitAddon);
-    term.open(terminalRef.current);
-    fitAddon.fit();
-    setBooting(false);
+      if (isDisposed || !terminalRef.current) return;
 
-    // Shell state — restore from sessionStorage
-    let lineBuffer = '';
-    const commandHistory: string[] = loadHistory();
-    let historyIndex = commandHistory.length;
+      term = new Terminal({
+        fontFamily: '"Fira Code", Menlo, Monaco, Consolas, monospace',
+        fontSize: 13,
+        lineHeight: 1.2,
+        theme: {
+          background: '#0a0a0a',
+          foreground: '#f8fafc',
+          cursor: '#06b6d4',
+          cursorAccent: '#0a0a0a',
+          selectionBackground: 'rgba(6, 182, 212, 0.3)',
+        },
+        cursorBlink: true,
+      });
 
-    // Interactive stdin state
-    let isReadingStdin = false;
-    let stdinCommand = '';
-    let stdinLines: string[] = [];
-    let stdinLineBuffer = '';
+      fitAddon = new FitAddon();
+      term.loadAddon(fitAddon);
+      term.open(terminalRef.current);
+      fitAddon.fit();
+      setBooting(false);
 
-    const getPrompt = () => {
-      const virtualPath = shellCwdRef.current ? `~/workspace/${shellCwdRef.current}` : '~/workspace';
-      return `\x1b[1;36m${virtualPath}\x1b[0m \x1b[1;32m$\x1b[0m `;
-    };
+      // Shell state — restore from sessionStorage
+      let lineBuffer = '';
+      const commandHistory: string[] = loadHistory();
+      let historyIndex = commandHistory.length;
 
-    const printPrompt = () => {
-      term.write(`\r\n${getPrompt()}`);
-    };
+      // Interactive stdin state
+      let isReadingStdin = false;
+      let stdinCommand = '';
+      let stdinLines: string[] = [];
+      let stdinLineBuffer = '';
 
-    // Welcome Message
-    term.writeln('\x1b[1;32m===================================================\x1b[0m');
-    term.writeln('\x1b[1;36m  Welcome to Smart Learn Sandbox Browser Shell   \x1b[0m');
-    term.writeln('\x1b[1;32m===================================================\x1b[0m');
-    if (shellCwdRef.current) {
-      term.writeln(`\x1b[2;37mSession restored — cwd: ~/workspace/${shellCwdRef.current}\x1b[0m`);
-    }
-    term.writeln('Compile C++: \x1b[33mg++ main.cpp -o main\x1b[0m & execute: \x1b[33m./main\x1b[0m');
-    term.writeln('Compile Java: \x1b[33mjavac Main.java\x1b[0m & execute: \x1b[33mjava Main\x1b[0m');
-    term.writeln('Run Python: \x1b[33mpython solve.py\x1b[0m | Node.js: \x1b[33mnode script.js\x1b[0m');
-    term.write(getPrompt());
+      const getPrompt = () => {
+        const virtualPath = shellCwdRef.current ? `~/workspace/${shellCwdRef.current}` : '~/workspace';
+        return `\x1b[1;36m${virtualPath}\x1b[0m \x1b[1;32m$\x1b[0m `;
+      };
 
-    const executeCommand = async (cmdLine: string, stdinData: string = '') => {
-      abortControllerRef.current = new AbortController();
-      
-      try {
-        term.write('\r\n\x1b[2;37mRunning...\x1b[0m\r\n');
-        
-        const response = await fetch('/api/code-arena/terminal/execute', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            command: cmdLine, 
-            cwd: shellCwdRef.current,
-            stdin: stdinData 
-          }),
-          signal: abortControllerRef.current.signal
-        });
+      const printPrompt = () => {
+        term.write(`\r\n${getPrompt()}`);
+      };
 
-        if (!response.ok) {
-          const errData = await response.json();
-          term.write(`\x1b[1;31mError: ${errData.error || 'Server error'}\x1b[0m\r\n`);
-          printPrompt();
-          return;
-        }
-
-        const data = await response.json();
-        
-        // Print stdout
-        if (data.stdout) {
-          term.write(data.stdout.replace(/\n/g, '\r\n'));
-        }
-        // Print stderr
-        if (data.stderr) {
-          term.write(`\x1b[1;31m${data.stderr.replace(/\n/g, '\r\n')}\x1b[0m`);
-        }
-
-        // Update working directory if changed — persist to sessionStorage
-        if (typeof data.cwd === 'string') {
-          shellCwdRef.current = data.cwd;
-          saveCwd(data.cwd);
-        }
-
-        // Trigger file tree refresh
-        if (onCommandComplete) {
-          onCommandComplete();
-        }
-      } catch (err: any) {
-        if (err.name === 'AbortError') {
-          term.write('\r\n\x1b[1;31mProcess terminated.\x1b[0m\r\n');
-        } else {
-          term.write(`\r\n\x1b[1;31mExecution failed: ${err.message || err}\x1b[0m\r\n`);
-        }
-      } finally {
-        abortControllerRef.current = null;
-        printPrompt();
+      // Welcome Message
+      term.writeln('\x1b[1;32m===================================================\x1b[0m');
+      term.writeln('\x1b[1;36m  Welcome to Smart Learn Sandbox Browser Shell   \x1b[0m');
+      term.writeln('\x1b[1;32m===================================================\x1b[0m');
+      if (shellCwdRef.current) {
+        term.writeln(`\x1b[2;37mSession restored — cwd: ~/workspace/${shellCwdRef.current}\x1b[0m`);
       }
-    };
+      term.writeln('Compile C++: \x1b[33mg++ main.cpp -o main\x1b[0m & execute: \x1b[33m./main\x1b[0m');
+      term.writeln('Compile Java: \x1b[33mjavac Main.java\x1b[0m & execute: \x1b[33mjava Main\x1b[0m');
+      term.writeln('Run Python: \x1b[33mpython solve.py\x1b[0m | Node.js: \x1b[33mnode script.js\x1b[0m');
+      term.write(getPrompt());
 
-    // Terminal Key Event Handler
-    term.onData((data) => {
-      if (abortControllerRef.current) {
-        // Process is executing. If Ctrl+C is pressed, abort process
-        if (data === '\x03') { // Ctrl+C
-          abortControllerRef.current.abort();
-        }
-        return;
-      }
+      const executeCommand = async (cmdLine: string, stdinData: string = '') => {
+        abortControllerRef.current = new AbortController();
+        
+        try {
+          term.write('\r\n\x1b[2;37mRunning...\x1b[0m\r\n');
+          
+          const response = await fetch('/api/code-arena/terminal/execute', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              command: cmdLine, 
+              cwd: shellCwdRef.current,
+              stdin: stdinData 
+            }),
+            signal: abortControllerRef.current.signal
+          });
 
-      // If reading stdin interactively
-      if (isReadingStdin) {
-        if (data === '\x03') { // Ctrl+C to cancel stdin
-          term.write('^C\r\n\x1b[1;31mCancelled.\x1b[0m');
-          isReadingStdin = false;
-          stdinCommand = '';
-          stdinLines = [];
-          stdinLineBuffer = '';
+          if (!response.ok) {
+            const errData = await response.json();
+            term.write(`\x1b[1;31mError: ${errData.error || 'Server error'}\x1b[0m\r\n`);
+            printPrompt();
+            return;
+          }
+
+          const data = await response.json();
+          
+          // Print stdout
+          if (data.stdout) {
+            term.write(data.stdout.replace(/\n/g, '\r\n'));
+          }
+          // Print stderr
+          if (data.stderr) {
+            term.write(`\x1b[1;31m${data.stderr.replace(/\n/g, '\r\n')}\x1b[0m`);
+          }
+
+          // Update working directory if changed — persist to sessionStorage
+          if (typeof data.cwd === 'string') {
+            shellCwdRef.current = data.cwd;
+            saveCwd(data.cwd);
+          }
+
+          // Trigger file tree refresh
+          if (onCommandComplete) {
+            onCommandComplete();
+          }
+        } catch (err: any) {
+          if (err.name === 'AbortError') {
+            term.write('\r\n\x1b[1;31mProcess terminated.\x1b[0m\r\n');
+          } else {
+            term.write(`\r\n\x1b[1;31mExecution failed: ${err.message || err}\x1b[0m\r\n`);
+          }
+        } finally {
+          abortControllerRef.current = null;
           printPrompt();
+        }
+      };
+
+      // Terminal Key Event Handler
+      term.onData((data: string) => {
+        if (abortControllerRef.current) {
+          // Process is executing. If Ctrl+C is pressed, abort process
+          if (data === '\x03') { // Ctrl+C
+            abortControllerRef.current.abort();
+          }
           return;
         }
 
-        if (data === '\x04') { // Ctrl+D to trigger execution
-          term.write('\r\n[Executing with stdin...]');
-          isReadingStdin = false;
-          const fullStdin = stdinLines.join('\n') + (stdinLineBuffer ? '\n' : '') + stdinLineBuffer;
-          executeCommand(stdinCommand, fullStdin);
-          stdinCommand = '';
-          stdinLines = [];
-          stdinLineBuffer = '';
+        // If reading stdin interactively
+        if (isReadingStdin) {
+          if (data === '\x03') { // Ctrl+C to cancel stdin
+            term.write('^C\r\n\x1b[1;31mCancelled.\x1b[0m');
+            isReadingStdin = false;
+            stdinCommand = '';
+            stdinLines = [];
+            stdinLineBuffer = '';
+            printPrompt();
+            return;
+          }
+
+          if (data === '\x04') { // Ctrl+D to trigger execution
+            term.write('\r\n[Executing with stdin...]');
+            isReadingStdin = false;
+            const fullStdin = stdinLines.join('\n') + (stdinLineBuffer ? '\n' : '') + stdinLineBuffer;
+            executeCommand(stdinCommand, fullStdin);
+            stdinCommand = '';
+            stdinLines = [];
+            stdinLineBuffer = '';
+            return;
+          }
+
+          if (data === '\r') { // Enter
+            stdinLines.push(stdinLineBuffer);
+            stdinLineBuffer = '';
+            term.write('\r\n');
+            return;
+          }
+
+          if (data === '\x7f' || data === '\x08') { // Backspace
+            if (stdinLineBuffer.length > 0) {
+              stdinLineBuffer = stdinLineBuffer.slice(0, -1);
+              term.write('\b \b');
+            }
+            return;
+          }
+
+          // Echo and buffer readable character
+          if (data.charCodeAt(0) >= 32) {
+            stdinLineBuffer += data;
+            term.write(data);
+          }
           return;
         }
 
+        // Normal terminal input
         if (data === '\r') { // Enter
-          stdinLines.push(stdinLineBuffer);
-          stdinLineBuffer = '';
+          const cmd = lineBuffer.trim();
           term.write('\r\n');
+          
+          if (cmd) {
+            commandHistory.push(lineBuffer);
+            historyIndex = commandHistory.length;
+            saveHistory(commandHistory); // persist history
+            
+            // Check if command is a code runner that might need stdin
+            const parts = cmd.split(' ');
+            const isRunner = parts[0] === 'python' || parts[0] === 'python3' || parts[0] === 'java' || parts[0] === 'node' || parts[0].startsWith('./');
+            
+            if (isRunner) {
+              // Prompt user for stdin input
+              isReadingStdin = true;
+              stdinCommand = cmd;
+              term.writeln('\x1b[33m[Reading Stdin. Press Enter for next line, Ctrl+D to Execute, Ctrl+C to Cancel]\x1b[0m');
+              term.write('> ');
+            } else {
+              executeCommand(cmd);
+            }
+          } else {
+            printPrompt();
+          }
+          lineBuffer = '';
           return;
         }
 
         if (data === '\x7f' || data === '\x08') { // Backspace
-          if (stdinLineBuffer.length > 0) {
-            stdinLineBuffer = stdinLineBuffer.slice(0, -1);
+          if (lineBuffer.length > 0) {
+            lineBuffer = lineBuffer.slice(0, -1);
             term.write('\b \b');
           }
           return;
         }
 
-        // Echo and buffer readable character
-        if (data.charCodeAt(0) >= 32) {
-          stdinLineBuffer += data;
-          term.write(data);
-        }
-        return;
-      }
-
-      // Normal terminal input
-      if (data === '\r') { // Enter
-        const cmd = lineBuffer.trim();
-        term.write('\r\n');
-        
-        if (cmd) {
-          commandHistory.push(lineBuffer);
-          historyIndex = commandHistory.length;
-          saveHistory(commandHistory); // persist history
-          
-          // Check if command is a code runner that might need stdin
-          const parts = cmd.split(' ');
-          const isRunner = parts[0] === 'python' || parts[0] === 'python3' || parts[0] === 'java' || parts[0] === 'node' || parts[0].startsWith('./');
-          
-          if (isRunner) {
-            // Prompt user for stdin input
-            isReadingStdin = true;
-            stdinCommand = cmd;
-            term.writeln('\x1b[33m[Reading Stdin. Press Enter for next line, Ctrl+D to Execute, Ctrl+C to Cancel]\x1b[0m');
-            term.write('> ');
-          } else {
-            executeCommand(cmd);
-          }
-        } else {
+        if (data === '\x03') { // Ctrl+C
+          term.write('^C');
+          lineBuffer = '';
           printPrompt();
+          return;
         }
-        lineBuffer = '';
-        return;
-      }
 
-      if (data === '\x7f' || data === '\x08') { // Backspace
-        if (lineBuffer.length > 0) {
-          lineBuffer = lineBuffer.slice(0, -1);
-          term.write('\b \b');
-        }
-        return;
-      }
-
-      if (data === '\x03') { // Ctrl+C
-        term.write('^C');
-        lineBuffer = '';
-        printPrompt();
-        return;
-      }
-
-      // Handle Arrow Up / Down for history
-      if (data === '\u001b[A') { // Up Arrow
-        if (commandHistory.length > 0 && historyIndex > 0) {
-          historyIndex--;
-          term.write('\b \b'.repeat(lineBuffer.length));
-          lineBuffer = commandHistory[historyIndex];
-          term.write(lineBuffer);
-        }
-        return;
-      }
-      if (data === '\u001b[B') { // Down Arrow
-        if (commandHistory.length > 0 && historyIndex < commandHistory.length) {
-          historyIndex++;
-          term.write('\b \b'.repeat(lineBuffer.length));
-          if (historyIndex === commandHistory.length) {
-            lineBuffer = '';
-          } else {
+        // Handle Arrow Up / Down for history
+        if (data === '\u001b[A') { // Up Arrow
+          if (commandHistory.length > 0 && historyIndex > 0) {
+            historyIndex--;
+            term.write('\b \b'.repeat(lineBuffer.length));
             lineBuffer = commandHistory[historyIndex];
             term.write(lineBuffer);
           }
+          return;
         }
-        return;
-      }
+        if (data === '\u001b[B') { // Down Arrow
+          if (commandHistory.length > 0 && historyIndex < commandHistory.length) {
+            historyIndex++;
+            term.write('\b \b'.repeat(lineBuffer.length));
+            if (historyIndex === commandHistory.length) {
+              lineBuffer = '';
+            } else {
+              lineBuffer = commandHistory[historyIndex];
+              term.write(lineBuffer);
+            }
+          }
+          return;
+        }
 
-      // Echo printable character
-      if (data.charCodeAt(0) >= 32) {
-        lineBuffer += data;
-        term.write(data);
-      }
-    });
+        // Echo printable character
+        if (data.charCodeAt(0) >= 32) {
+          lineBuffer += data;
+          term.write(data);
+        }
+      });
+    }
+
+    initXterm();
 
     const handleResize = () => {
-      fitAddon.fit();
+      if (fitAddon) fitAddon.fit();
     };
     
     window.addEventListener('resize', handleResize);
 
     return () => {
+      isDisposed = true;
       window.removeEventListener('resize', handleResize);
       term?.dispose();
       initRef.current = false;
