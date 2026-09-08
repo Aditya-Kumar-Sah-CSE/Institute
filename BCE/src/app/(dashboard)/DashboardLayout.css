@@ -237,14 +237,18 @@ body.sidebar-is-collapsed:not(.agent-drawer-open):not(.mentor-drawer-open) .side
 /*  AGENT DRAWER OPEN – RESPONSIVE LAYOUT   */
 /* ======================================== */
 
-/* Desktop: shrink main content when agent drawer (420px) is open */
+/* When agent drawer is open, collapse grid to single column and hide the sidebar */
+body.agent-drawer-open .main-layout {
+  grid-template-columns: 100% !important;
+}
+
+body.agent-drawer-open .sidebar-wrapper {
+  display: none !important;
+}
+
+/* Desktop: constrain content so it doesn't go behind the fixed 420px drawer */
 @media (min-width: 769px) {
   body.agent-drawer-open .content-wrapper {
-    max-width: calc(100vw - 420px);
-    transition: max-width 0.25s ease;
-  }
-
-  body.agent-drawer-open .main-layout {
     max-width: calc(100vw - 420px);
     transition: max-width 0.25s ease;
   }
