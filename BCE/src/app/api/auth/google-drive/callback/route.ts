@@ -80,10 +80,15 @@ export async function GET(request: NextRequest) {
   const oauthError = url.searchParams.get('error');
 
   const cookieState = request.cookies.get('gdrive_oauth_state')?.value;
+  const cookieReturnTo = request.cookies.get('gdrive_oauth_return_to')?.value;
+  const returnTo = cookieReturnTo && cookieReturnTo.startsWith('/') ? cookieReturnTo : '/settings/ai-agent';
 
   if (oauthError || !code || !state || state !== cookieState) {
     console.error('[google-drive/callback] authorization rejected or state mismatch', { traceId, oauthError: oauthError || null, hasCode: Boolean(code), hasState: Boolean(state), hasCookieState: Boolean(cookieState) });
-    return NextResponse.redirect(new URL('/profile?drive_error=invalid_state', request.url));
+    const errRes = NextResponse.redirect(new URL(`${returnTo}?drive_error=invalid_state`, request.url));
+    errRes.cookies.delete('gdrive_oauth_state');
+    errRes.cookies.delete('gdrive_oauth_return_to');
+    return errRes;
   }
 
   const supabase = await createClient();
@@ -101,16 +106,19 @@ export async function GET(request: NextRequest) {
 
   if (!clientId || !clientSecret || clientId.includes('YOUR_') || clientId.toLowerCase() === 'placeholder') {
     console.error('Google Drive OAuth is not configured: missing or invalid GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET');
-    return NextResponse.redirect(new URL('/profile?drive_error=unavailable', request.url));
+    return NextResponse.redirect(new URL(`${returnTo}?drive_error=unavailable`, request.url));
   }
 
-  let redirectUri: string;
-  try {
-    redirectUri = await getGoogleDriveRedirectUri(request.url);
-  } catch (error) {
-    console.error('[google-drive/callback] invalid redirect URI configuration', { traceId, error: error instanceof Error ? error.message : String(error) });
-    return NextResponse.redirect(new URL('/profile?drive_error=unavailable', request.url));
-  }
+  const redirectUri = getGoogleDriveRedirectUri(request);
+
+  // Safe development diagnostic log (Requirement 8)
+  console.log('[Google OAuth Callback Diagnostic]', {
+    environment: process.env.NODE_ENV || 'development',
+    generatedRedirectUri: redirectUri,
+    callbackRoute: '/api/auth/google-drive/callback',
+    clientIdMasked: clientId ? `${clientId.slice(0, 10)}...` : 'MISSING',
+    returnTo
+  });
 
   try {
     console.info('[google-drive/callback] starting token exchange', { traceId, userId: user.id, redirectUri });
@@ -130,7 +138,7 @@ export async function GET(request: NextRequest) {
     if (!tokenRes.ok) {
       const errText = await tokenRes.text();
       console.error('[google-drive/callback] token exchange failed', { traceId, status: tokenRes.status, response: errText.slice(0, 1000), redirectUri });
-      return NextResponse.redirect(new URL('/profile?drive_error=token_exchange_failed', request.url));
+      return NextResponse.redirect(new URL(`${returnTo}?drive_error=token_exchange_failed`, request.url));
     }
 
     const tokenData = await tokenRes.json();
@@ -187,16 +195,17 @@ export async function GET(request: NextRequest) {
 
     if (upsertErr) {
       console.error('[google-drive/callback] failed to store Drive connection', { traceId, code: upsertErr.code, message: upsertErr.message });
-      return NextResponse.redirect(new URL('/profile?drive_error=db_save_failed', request.url));
+      return NextResponse.redirect(new URL(`${returnTo}?drive_error=db_save_failed`, request.url));
     }
 
-    // Redirect to profile page with success message
-    const response = NextResponse.redirect(new URL('/profile?drive_connected=true', request.url));
+    // Redirect user back to target page (Settings or Profile) with success query param
+    const response = NextResponse.redirect(new URL(`${returnTo}?drive_connected=true`, request.url));
     response.cookies.delete('gdrive_oauth_state');
-    console.info('[google-drive/callback] Drive connected', { traceId, userId: user.id, googleEmail });
+    response.cookies.delete('gdrive_oauth_return_to');
+    console.info('[google-drive/callback] Drive connected', { traceId, userId: user.id, googleEmail, returnTo });
     return response;
   } catch (err: any) {
     console.error('[google-drive/callback] unexpected callback exception', { traceId, name: err?.name, message: err?.message, stack: err?.stack, userId: user.id, redirectUri });
-    return NextResponse.redirect(new URL('/profile?drive_error=callback_exception', request.url));
+    return NextResponse.redirect(new URL(`${returnTo}?drive_error=callback_exception`, request.url));
   }
 }

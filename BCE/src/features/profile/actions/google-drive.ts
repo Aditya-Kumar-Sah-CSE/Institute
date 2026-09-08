@@ -22,30 +22,49 @@ export interface GoogleDriveStatusResult {
 
 /**
  * Helper to get the canonical Google Drive OAuth callback URL.
- * Prefers process.env.GOOGLE_REDIRECT_URI, then derives from requestUrl origin,
- * and defaults to http://localhost:3000/api/auth/google-drive/callback.
+ * Environment-aware:
+ * 1. Checks GOOGLE_REDIRECT_URI environment variable.
+ * 2. Checks NEXT_PUBLIC_APP_URL environment variable.
+ * 3. Checks VERCEL_PROJECT_PRODUCTION_URL or VERCEL_URL.
+ * 4. Derives protocol and host from incoming NextRequest headers (x-forwarded-proto/x-forwarded-host).
+ * 5. Defaults to http://localhost:3000/api/auth/google-drive/callback.
  */
-export async function getGoogleDriveRedirectUri(requestUrl?: string): Promise<string> {
-  const envRedirectUri = process.env.GOOGLE_REDIRECT_URI?.trim();
-  if (envRedirectUri && envRedirectUri.trim().length > 0) {
-    let configured: URL;
-    try {
-      configured = new URL(envRedirectUri);
-    } catch {
-      throw new Error('GOOGLE_REDIRECT_URI must be an absolute URL');
-    }
-    if (configured.pathname !== '/api/auth/google-drive/callback') {
-      throw new Error('GOOGLE_REDIRECT_URI must use /api/auth/google-drive/callback');
-    }
-    configured.hash = '';
-    configured.search = '';
-    return configured.toString().replace(/\/$/, '');
+export function getGoogleDriveRedirectUri(requestOrUrl?: any): string {
+  const envRedirectUri = process.env.GOOGLE_REDIRECT_URI?.trim().replace(/^["']|["']$/g, '');
+  if (envRedirectUri && (envRedirectUri.startsWith('http://') || envRedirectUri.startsWith('https://'))) {
+    return envRedirectUri.replace(/\/$/, '');
   }
 
-  if (requestUrl) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/^["']|["']$/g, '');
+  if (appUrl && (appUrl.startsWith('http://') || appUrl.startsWith('https://'))) {
+    return `${appUrl.replace(/\/$/, '')}/api/auth/google-drive/callback`;
+  }
+
+  const vercelUrl = (process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL)?.trim().replace(/^["']|["']$/g, '');
+  if (vercelUrl) {
+    const cleanVercel = vercelUrl.replace(/\/$/, '');
+    const protocol = cleanVercel.startsWith('http') ? '' : 'https://';
+    return `${protocol}${cleanVercel}/api/auth/google-drive/callback`;
+  }
+
+  if (requestOrUrl) {
     try {
-      const url = new URL(requestUrl);
-      return `${url.origin}/api/auth/google-drive/callback`;
+      if (typeof requestOrUrl !== 'string' && requestOrUrl?.headers) {
+        const req = requestOrUrl;
+        const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
+        const proto = req.headers.get('x-forwarded-proto') || 'https';
+        if (host && !host.includes('localhost') && !host.includes('127.0.0.1')) {
+          return `${proto}://${host}/api/auth/google-drive/callback`;
+        }
+      }
+
+      const urlStr = typeof requestOrUrl === 'string' ? requestOrUrl : requestOrUrl?.url;
+      if (urlStr) {
+        const parsed = new URL(urlStr);
+        if (parsed.host && !parsed.host.includes('localhost') && !parsed.host.includes('127.0.0.1')) {
+          return `${parsed.protocol}//${parsed.host}/api/auth/google-drive/callback`;
+        }
+      }
     } catch (e) {
       // Ignore URL parsing errors
     }

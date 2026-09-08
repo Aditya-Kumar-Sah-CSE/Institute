@@ -7,6 +7,16 @@ export async function GET(request: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  // Determine return URL (Settings vs Profile)
+  const queryReturnTo = request.nextUrl.searchParams.get('return_to');
+  const referer = request.headers.get('referer');
+  let returnTo = '/settings/ai-agent';
+  if (queryReturnTo && queryReturnTo.startsWith('/')) {
+    returnTo = queryReturnTo;
+  } else if (referer && referer.includes('/profile')) {
+    returnTo = '/profile';
+  }
+
   if (!user) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
@@ -18,17 +28,20 @@ export async function GET(request: NextRequest) {
   const clientSecret = rawClientSecret.trim().replace(/^["']|["']$/g, '');
 
   if (!clientId || !clientSecret || clientId.includes('YOUR_') || clientId.toLowerCase() === 'placeholder') {
-    console.error('Google Drive OAuth is not configured: missing or invalid GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET');
-    return NextResponse.redirect(new URL('/profile?drive_error=unavailable', request.url));
+    console.error('[Google OAuth Connect] OAuth not configured: missing GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET');
+    return NextResponse.redirect(new URL(`${returnTo}?drive_error=unavailable`, request.url));
   }
 
-  let redirectUri: string;
-  try {
-    redirectUri = await getGoogleDriveRedirectUri(request.url);
-  } catch (error) {
-    console.error('[google-drive/connect] invalid redirect URI configuration', { error: error instanceof Error ? error.message : String(error) });
-    return NextResponse.redirect(new URL('/profile?drive_error=unavailable', request.url));
-  }
+  const redirectUri = getGoogleDriveRedirectUri(request);
+
+  // Safe development diagnostic log (Requirement 8)
+  console.log('[Google OAuth Connect Diagnostic]', {
+    environment: process.env.NODE_ENV || 'development',
+    generatedRedirectUri: redirectUri,
+    callbackRoute: '/api/auth/google-drive/callback',
+    clientIdMasked: clientId ? `${clientId.slice(0, 10)}...` : 'MISSING',
+    returnTo
+  });
 
   // Generate cryptographically secure OAuth state parameter
   const state = crypto.randomBytes(32).toString('hex');
@@ -43,8 +56,16 @@ export async function GET(request: NextRequest) {
 
   const response = NextResponse.redirect(googleAuthUrl);
 
-  // Set secure HTTP-only state cookie
+  // Set secure HTTP-only cookies
   response.cookies.set('gdrive_oauth_state', state, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 600, // 10 minutes
+    path: '/',
+  });
+
+  response.cookies.set('gdrive_oauth_return_to', returnTo, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
