@@ -169,50 +169,23 @@ export async function uploadCertificateFileAction(formData: FormData) {
     return { error: 'Only PDF or image files (JPG, PNG, WEBP) are allowed.' };
   }
 
-  const { checkDriveConnection, uploadFileToGoogleDrive } = await import('@/features/profile/actions/google-drive');
-  const isDriveConnected = await checkDriveConnection(user.id);
-
-  if (isDriveConnected) {
-    try {
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const cleanFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const filename = `cert_${Date.now()}_${cleanFileName}`;
-
-      const result = await uploadFileToGoogleDrive({
-        filename,
-        mimeType: file.type,
-        fileBuffer: buffer,
-        category: 'Certificates',
-      });
-
-      if (result.success && result.googleDriveFileId) {
-        return { success: true, url: `/api/drive/files/${result.googleDriveFileId}` };
-      }
-      console.warn('[uploadCertificateFileAction] Drive upload failed, falling back to Supabase:', result.error);
-    } catch (driveErr) {
-      console.warn('[uploadCertificateFileAction] Drive upload error, falling back to Supabase:', driveErr);
-    }
-  }
-
-  const adminSb = await createAdminClient();
+  const { uploadSingleFileWithFallback } = await import('@/lib/storage-service');
   const cleanFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-  const filePath = `${user.id}/certificates/cert_${Date.now()}_${cleanFileName}`;
+  const filename = `cert_${Date.now()}_${cleanFileName}`;
 
-  const { error: uploadError } = await adminSb.storage
-    .from('attachments')
-    .upload(filePath, file, { 
-      contentType: file.type,
-      upsert: true 
-    });
+  const uploadResult = await uploadSingleFileWithFallback({
+    file,
+    filename,
+    mimeType: file.type,
+    bucketName: 'attachments',
+    pathPrefix: `${user.id}/certificates`,
+    category: 'Certificates',
+    userId: user.id,
+  });
 
-  if (uploadError) {
-    console.error('Certificate upload error:', uploadError);
-    return { error: uploadError.message };
+  if (!uploadResult.success || !uploadResult.url) {
+    return { error: uploadResult.error || 'Certificate upload failed' };
   }
 
-  const { data: { publicUrl } } = adminSb.storage
-    .from('attachments')
-    .getPublicUrl(filePath);
-
-  return { success: true, url: publicUrl };
+  return { success: true, url: uploadResult.url };
 }

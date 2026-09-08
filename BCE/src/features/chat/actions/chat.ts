@@ -283,7 +283,7 @@ export async function createGroupChat(groupName: string, memberIds: string[], ic
 
 export async function uploadGroupAvatarAction(formData: FormData, conversationId?: string) {
   const { createAdminClient } = await import('@/lib/supabase/server');
-  const { checkDriveConnection, uploadFileToGoogleDrive } = await import('@/features/profile/actions/google-drive');
+  const { uploadSingleFileWithFallback } = await import('@/lib/storage-service');
   const supabaseAdmin = await createAdminClient();
   const supabase = await createClient();
 
@@ -291,52 +291,31 @@ export async function uploadGroupAvatarAction(formData: FormData, conversationId
   if (!userData?.user) return { error: 'Not authenticated' };
 
   const file = formData.get('file') as File;
-  if (!file) return { error: 'No file provided' };
+  if (!file || file.size === 0) return { error: 'No file provided' };
 
   if (file.size > 5 * 1024 * 1024) {
     return { error: 'Image size must be less than 5MB' };
   }
 
-  let publicUrl = '';
-  const isDriveConnected = await checkDriveConnection(userData.user.id);
+  const fileExt = file.name.split('.').pop() || 'png';
+  const filename = `group_avatar_${Date.now()}.${fileExt}`;
 
-  if (isDriveConnected) {
-    try {
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const fileExt = file.name.split('.').pop() || 'png';
-      const filename = `group_avatar_${Date.now()}.${fileExt}`;
+  const uploadResult = await uploadSingleFileWithFallback({
+    file,
+    filename,
+    mimeType: file.type || 'image/png',
+    bucketName: 'avatars',
+    pathPrefix: userData.user.id,
+    category: 'Chat',
+    userId: userData.user.id,
+    supabaseClient: supabaseAdmin,
+  });
 
-      const result = await uploadFileToGoogleDrive({
-        filename,
-        mimeType: file.type,
-        fileBuffer: buffer,
-        category: 'Chat',
-      });
-
-      if (result.success && result.googleDriveFileId) {
-        publicUrl = `/api/drive/files/${result.googleDriveFileId}`;
-      }
-    } catch (driveErr) {
-      console.warn('[uploadGroupAvatarAction] Drive upload failed, falling back to Supabase:', driveErr);
-    }
+  if (!uploadResult.success || !uploadResult.url) {
+    return { error: uploadResult.error || 'Failed to upload group avatar.' };
   }
 
-  if (!publicUrl) {
-    const fileExt = file.name.split('.').pop() || 'png';
-    const filePath = `${userData.user.id}/group_avatar_${Date.now()}.${fileExt}`;
-
-    const { error: uploadError } = await supabaseAdmin.storage
-      .from('avatars')
-      .upload(filePath, file, { upsert: true });
-
-    if (uploadError) return { error: uploadError.message };
-
-    const { data: { publicUrl: sbUrl } } = supabaseAdmin.storage
-      .from('avatars')
-      .getPublicUrl(filePath);
-
-    publicUrl = sbUrl;
-  }
+  const publicUrl = uploadResult.url;
 
   if (conversationId) {
     const { error: updateError } = await supabase
@@ -348,7 +327,7 @@ export async function uploadGroupAvatarAction(formData: FormData, conversationId
     revalidatePath('/dashboard/chat');
   }
 
-  return { success: true, publicUrl };
+  return { success: true, publicUrl, provider: uploadResult.provider };
 }
 
 export async function updateGroupAvatar(conversationId: string, iconUrl: string) {

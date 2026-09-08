@@ -2,7 +2,8 @@
 
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { validateFiles, uploadFiles } from '@/lib/attachments';
+import { validateFiles } from '@/lib/attachments';
+import { uploadFilesServerSide } from '@/lib/attachments.server';
 import type { CourseMCQ, CourseMCQAttempt } from '@/types/database';
 
 async function requireMcqManager(courseId: string) {
@@ -123,13 +124,12 @@ export async function createCourseMcqAction(formData: FormData) {
       return { error: valResult.error };
     }
 
-    const adminSupabase = await createAdminClient();
-    const { urls, errors } = await uploadFiles({
+    const { urls, errors } = await uploadFilesServerSide({
       files: [imageFile],
-      supabase: adminSupabase,
       bucketName: 'attachments',
       pathPrefix: `mcqs/${courseId}`,
-      ensureBucket: true
+      category: 'Courses',
+      userId: user.id,
     });
 
     if (errors.length > 0 && urls.length === 0) {
@@ -176,7 +176,7 @@ export async function updateCourseMcqAction(mcqId: string, formData: FormData) {
   const courseId = formData.get('course_id') as string;
   if (!courseId) return { error: 'Course ID is required' };
 
-  const { supabase } = await requireMcqManager(courseId);
+  const { supabase, user } = await requireMcqManager(courseId);
 
   const questionText = (formData.get('question_text') as string) || '';
   const optionA = (formData.get('option_a') as string) || '';
@@ -207,13 +207,12 @@ export async function updateCourseMcqAction(mcqId: string, formData: FormData) {
       return { error: valResult.error };
     }
 
-    const adminSupabase = await createAdminClient();
-    const { urls, errors } = await uploadFiles({
+    const { urls, errors } = await uploadFilesServerSide({
       files: [imageFile],
-      supabase: adminSupabase,
       bucketName: 'attachments',
       pathPrefix: `mcqs/${courseId}`,
-      ensureBucket: true
+      category: 'Courses',
+      userId: user.id,
     });
 
     if (errors.length === 0 && urls.length > 0) {

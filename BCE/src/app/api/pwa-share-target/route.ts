@@ -184,14 +184,7 @@ export async function POST(req: NextRequest) {
     // ---------------------------------------------------------
     // 9. Upload files
     // ---------------------------------------------------------
-    // Check Google Drive connection for user
-    const { data: driveTokens } = await supabase
-      .from('user_google_drive_tokens')
-      .select('root_folder_id')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    const isDriveConnected = !!driveTokens?.root_folder_id;
+    const { uploadSingleFileWithFallback } = await import('@/lib/storage-service');
 
     for (const file of files) {
       if (!file.size || !file.name) {
@@ -201,76 +194,27 @@ export async function POST(req: NextRequest) {
       const attachmentId = randomUUID();
       const originalName = file.name;
 
-      if (isDriveConnected) {
-        try {
-          const { uploadFileToGoogleDrive } = await import('@/features/profile/actions/google-drive');
-          const buffer = Buffer.from(await file.arrayBuffer());
-          const result = await uploadFileToGoogleDrive({
-            filename: originalName,
-            mimeType: file.type || 'application/octet-stream',
-            fileBuffer: buffer,
-            category: 'Other',
-          });
+      const uploadResult = await uploadSingleFileWithFallback({
+        file,
+        filename: `${attachmentId}_${originalName}`,
+        mimeType: file.type || 'application/octet-stream',
+        bucketName: 'lesson_notes',
+        pathPrefix: `temp/${user.id}`,
+        category: 'Other',
+        userId: user.id,
+      });
 
-          if (result.success && result.googleDriveFileId) {
-            attachments.push({
-              id: attachmentId,
-              name: originalName,
-              type: file.type,
-              size: file.size,
-              url: `/api/drive/files/${result.googleDriveFileId}`,
-            });
-            continue;
-          }
-        } catch (driveErr) {
-          console.warn('[PWA SHARE] Drive upload failed, falling back to Supabase:', driveErr);
-        }
+      if (!uploadResult.success || !uploadResult.url) {
+        console.error('[PWA SHARE] Storage upload failed:', uploadResult.error);
+        return redirectTo(req, '/dashboard?error=ShareUploadFailed');
       }
-
-      const extension =
-        originalName.includes('.')
-          ? originalName
-              .split('.')
-              .pop()
-              ?.toLowerCase() || 'bin'
-          : 'bin';
-
-      // Unique path for every uploaded file.
-      const storagePath =
-        `temp/${user.id}/${attachmentId}.${extension}`;
-
-      const { error: uploadError } =
-        await supabase.storage
-          .from('lesson_notes')
-          .upload(storagePath, file, {
-            contentType: file.type,
-            upsert: false,
-          });
-
-      if (uploadError) {
-        console.error(
-          '[PWA SHARE] Storage upload failed:',
-          uploadError
-        );
-
-        return redirectTo(
-          req,
-          '/dashboard?error=ShareUploadFailed'
-        );
-      }
-
-      // Generate URL only AFTER successful upload.
-      const { data: publicUrlData } =
-        supabase.storage
-          .from('lesson_notes')
-          .getPublicUrl(storagePath);
 
       attachments.push({
         id: attachmentId,
         name: originalName,
         type: file.type,
         size: file.size,
-        url: publicUrlData.publicUrl,
+        url: uploadResult.url,
       });
     }
 

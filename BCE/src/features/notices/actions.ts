@@ -2,7 +2,8 @@
 
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { validateFiles, uploadFiles, serializeAttachmentUrls } from '@/lib/attachments';
+import { validateFiles, serializeAttachmentUrls } from '@/lib/attachments';
+import { uploadFilesServerSide } from '@/lib/attachments.server';
 
 export async function getNotices(limit?: number) {
   // Fire-and-forget cleanup of expired notices
@@ -60,13 +61,12 @@ export async function createNotice(formData: FormData) {
       return { error: valResult.error };
     }
 
-    const adminSupabase = await createAdminClient();
-    const { urls, errors } = await uploadFiles({
+    const { urls, errors } = await uploadFilesServerSide({
       files: validImages,
-      supabase: adminSupabase,
       bucketName: 'notices_media',
       pathPrefix: user.id,
-      ensureBucket: true
+      category: 'Notices',
+      userId: user.id,
     });
 
     if (errors.length > 0) {

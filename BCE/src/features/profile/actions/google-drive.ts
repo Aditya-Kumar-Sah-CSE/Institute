@@ -191,7 +191,7 @@ export async function checkDriveConnection(userId: string): Promise<boolean> {
 /**
  * Get valid access token for target user, auto-refreshing if expired.
  */
-async function getValidAccessToken(userId: string): Promise<{ accessToken: string; record: any } | null> {
+export async function getValidAccessToken(userId: string): Promise<{ accessToken: string; record: any } | null> {
   const adminSb = await createAdminClient();
   const { data: record } = await adminSb
     .from('user_google_drive_tokens')

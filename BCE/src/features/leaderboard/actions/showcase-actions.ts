@@ -44,52 +44,23 @@ export async function submitStudentApp(formData: FormData) {
 
     let publicUrl: string;
 
-    // Check Google Drive connection
-    const adminSb = await createAdminClient();
-    const { data: driveRecord } = await adminSb
-      .from('user_google_drive_tokens')
-      .select('root_folder_id')
-      .eq('user_id', userId)
-      .maybeSingle();
+    // Use centralized storage service (Drive-first, Supabase-fallback)
+    const { uploadSingleFileWithFallback } = await import('@/lib/storage-service');
+    const uploadResult = await uploadSingleFileWithFallback({
+      file: logoFile,
+      filename: uniqueName,
+      mimeType: logoFile.type,
+      bucketName: STORY_BUCKET,
+      pathPrefix: userId,
+      category: 'Projects',
+      userId,
+    });
 
-    if (driveRecord?.root_folder_id) {
-      // Upload to Google Drive
-      try {
-        const { uploadFileToGoogleDrive } = await import('@/features/profile/actions/google-drive');
-        const arrayBuffer = await logoFile.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-
-        const result = await uploadFileToGoogleDrive({
-          filename: uniqueName,
-          mimeType: logoFile.type,
-          fileBuffer: buffer,
-          category: 'Projects',
-        });
-
-        if (result.success && result.googleDriveFileId) {
-          publicUrl = `/api/drive/files/${result.googleDriveFileId}`;
-        } else {
-          throw new Error(result.error || 'Drive upload failed');
-        }
-      } catch (driveErr: any) {
-        // Fall back to Supabase
-        console.warn('[submitStudentApp] Drive upload failed, falling back to Supabase:', driveErr.message);
-        const filePath = `${userId}/${uniqueName}`;
-        const { error: uploadError } = await supabase.storage
-          .from(STORY_BUCKET)
-          .upload(filePath, logoFile, { upsert: false, contentType: logoFile.type });
-        if (uploadError) throw new Error(`Upload logo failed: ${uploadError.message}`);
-        publicUrl = supabase.storage.from(STORY_BUCKET).getPublicUrl(filePath).data.publicUrl;
-      }
-    } else {
-      // Upload to Supabase Storage
-      const filePath = `${userId}/${uniqueName}`; // Must be under userId/ folder for RLS storage policy
-      const { error: uploadError } = await supabase.storage
-        .from(STORY_BUCKET)
-        .upload(filePath, logoFile, { upsert: false, contentType: logoFile.type });
-      if (uploadError) throw new Error(`Upload logo failed: ${uploadError.message}`);
-      publicUrl = supabase.storage.from(STORY_BUCKET).getPublicUrl(filePath).data.publicUrl;
+    if (!uploadResult.success || !uploadResult.url) {
+      throw new Error(uploadResult.error || 'Failed to upload app logo');
     }
+
+    publicUrl = uploadResult.url;
 
     const { error: insertError } = await supabase
       .from('student_apps')

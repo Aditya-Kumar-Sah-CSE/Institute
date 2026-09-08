@@ -12,11 +12,12 @@ const ALLOWED_MIME_TYPES = [
   'video/mp4', 'video/webm', 'video/quicktime',
 ];
 
+import { uploadSingleFileWithFallback } from '@/lib/storage-service';
+
 // ─── Server-Side Upload Action ───────────────────────────────────────────────
 /**
  * Receives a raw File object from the client, validates it, then uploads it
- * server-side using the authenticated server Supabase client.
- * Never exposes the service-role key; uses session-bound authenticated client.
+ * server-side using the centralized storage abstraction service.
  */
 export async function uploadStoryMedia(formData: FormData): Promise<{ url: string; mediaType: StoryMediaType }> {
   const supabase = await createClient();
@@ -43,52 +44,25 @@ export async function uploadStoryMedia(formData: FormData): Promise<{ url: strin
   const userId = userData.user.id;
   const mediaType: StoryMediaType = file.type.startsWith('video/') ? 'video' : 'image';
 
-  // Check Google Drive connection
-  const adminSb = await createAdminClient();
-  const { data: driveRecord } = await adminSb
-    .from('user_google_drive_tokens')
-    .select('root_folder_id')
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  if (driveRecord?.root_folder_id) {
-    // Upload to Google Drive
-    try {
-      const { uploadFileToGoogleDrive } = await import('@/features/profile/actions/google-drive');
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-
-      const result = await uploadFileToGoogleDrive({
-        filename: `${crypto.randomUUID()}-${Date.now()}.${file.name.split('.').pop()?.toLowerCase() || 'bin'}`,
-        mimeType: file.type,
-        fileBuffer: buffer,
-        category: 'Activity History',
-      });
-
-      if (result.success && result.googleDriveFileId) {
-        return { url: `/api/drive/files/${result.googleDriveFileId}`, mediaType };
-      }
-      // Fall through to Supabase on failure
-      console.warn('[uploadStoryMedia] Drive upload failed, falling back to Supabase:', result.error);
-    } catch (driveErr) {
-      console.warn('[uploadStoryMedia] Drive upload error, falling back to Supabase:', driveErr);
-    }
-  }
-
-  // Fallback: Upload to Supabase Storage
   const ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
   const uniqueName = `${crypto.randomUUID()}-${Date.now()}.${ext}`;
-  const filePath = `${userId}/${uniqueName}`; // Must be under user_id/ for RLS to pass
 
-  const { error: uploadError } = await supabase.storage
-    .from(STORY_BUCKET)
-    .upload(filePath, file, { upsert: false, contentType: file.type });
+  const uploadResult = await uploadSingleFileWithFallback({
+    file,
+    filename: uniqueName,
+    mimeType: file.type,
+    bucketName: STORY_BUCKET,
+    pathPrefix: userId,
+    category: 'Activity History',
+    userId,
+    supabaseClient: supabase,
+  });
 
-  if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+  if (!uploadResult.success || !uploadResult.url) {
+    throw new Error(uploadResult.error || 'Failed to upload story media.');
+  }
 
-  const { data: { publicUrl } } = supabase.storage.from(STORY_BUCKET).getPublicUrl(filePath);
-
-  return { url: publicUrl, mediaType };
+  return { url: uploadResult.url, mediaType };
 }
 
 /**
