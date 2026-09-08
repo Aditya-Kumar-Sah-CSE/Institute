@@ -30,39 +30,72 @@ export interface GoogleDriveStatusResult {
  * 5. Defaults to http://localhost:3000/api/auth/google-drive/callback.
  */
 export async function getGoogleDriveRedirectUri(requestOrUrl?: any): Promise<string> {
-  const envRedirectUri = process.env.GOOGLE_REDIRECT_URI?.trim().replace(/^["']|["']$/g, '');
+  // 1. Check explicit redirect URI environment variables
+  const envRedirectUri = (
+    process.env.GOOGLE_OAUTH_REDIRECT_URI ||
+    process.env.GOOGLE_REDIRECT_URI
+  )?.trim().replace(/^["']|["']$/g, '');
+
   if (envRedirectUri && (envRedirectUri.startsWith('http://') || envRedirectUri.startsWith('https://'))) {
-    return envRedirectUri.replace(/\/$/, '');
+    const canonicalUri = envRedirectUri.replace(/\/$/, '');
+    console.log(`[Google OAuth Canonical URI] GOOGLE_OAUTH_REDIRECT_URI = ${canonicalUri}`);
+    return canonicalUri;
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/^["']|["']$/g, '');
+  // 2. Check explicit site/app URL environment variables
+  const appUrl = (
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL
+  )?.trim().replace(/^["']|["']$/g, '');
+
   if (appUrl && (appUrl.startsWith('http://') || appUrl.startsWith('https://'))) {
-    return `${appUrl.replace(/\/$/, '')}/api/auth/google-drive/callback`;
+    const canonicalUri = `${appUrl.replace(/\/$/, '')}/api/auth/google-drive/callback`;
+    console.log(`[Google OAuth Canonical URI from Site URL] GOOGLE_OAUTH_REDIRECT_URI = ${canonicalUri}`);
+    return canonicalUri;
   }
 
-  const vercelUrl = (process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL)?.trim().replace(/^["']|["']$/g, '');
+  // 3. Check Vercel production domain environment variable
+  const vercelProdUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim().replace(/^["']|["']$/g, '');
+  if (vercelProdUrl) {
+    const cleanVercel = vercelProdUrl.replace(/\/$/, '');
+    const protocol = cleanVercel.startsWith('http') ? '' : 'https://';
+    const canonicalUri = `${protocol}${cleanVercel}/api/auth/google-drive/callback`;
+    console.log(`[Google OAuth Canonical URI from Vercel Prod] GOOGLE_OAUTH_REDIRECT_URI = ${canonicalUri}`);
+    return canonicalUri;
+  }
+
+  // 4. Check Vercel deployment URL environment variable
+  const vercelUrl = process.env.VERCEL_URL?.trim().replace(/^["']|["']$/g, '');
   if (vercelUrl) {
     const cleanVercel = vercelUrl.replace(/\/$/, '');
     const protocol = cleanVercel.startsWith('http') ? '' : 'https://';
-    return `${protocol}${cleanVercel}/api/auth/google-drive/callback`;
+    const canonicalUri = `${protocol}${cleanVercel}/api/auth/google-drive/callback`;
+    console.log(`[Google OAuth Canonical URI from Vercel URL] GOOGLE_OAUTH_REDIRECT_URI = ${canonicalUri}`);
+    return canonicalUri;
   }
 
+  // 5. Derive from incoming request headers if available
   if (requestOrUrl) {
     try {
       if (typeof requestOrUrl !== 'string' && requestOrUrl?.headers) {
         const req = requestOrUrl;
         const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
         const proto = req.headers.get('x-forwarded-proto') || 'https';
-        if (host && !host.includes('localhost') && !host.includes('127.0.0.1')) {
-          return `${proto}://${host}/api/auth/google-drive/callback`;
+        if (host) {
+          const cleanHost = host.split(',')[0].trim();
+          const canonicalUri = `${proto}://${cleanHost}/api/auth/google-drive/callback`;
+          console.log(`[Google OAuth Canonical URI from Request Host] GOOGLE_OAUTH_REDIRECT_URI = ${canonicalUri}`);
+          return canonicalUri;
         }
       }
 
       const urlStr = typeof requestOrUrl === 'string' ? requestOrUrl : requestOrUrl?.url;
       if (urlStr) {
         const parsed = new URL(urlStr);
-        if (parsed.host && !parsed.host.includes('localhost') && !parsed.host.includes('127.0.0.1')) {
-          return `${parsed.protocol}//${parsed.host}/api/auth/google-drive/callback`;
+        if (parsed.host) {
+          const canonicalUri = `${parsed.protocol}//${parsed.host}/api/auth/google-drive/callback`;
+          console.log(`[Google OAuth Canonical URI from Request URL] GOOGLE_OAUTH_REDIRECT_URI = ${canonicalUri}`);
+          return canonicalUri;
         }
       }
     } catch (e) {
@@ -70,7 +103,9 @@ export async function getGoogleDriveRedirectUri(requestOrUrl?: any): Promise<str
     }
   }
 
-  return 'http://localhost:3000/api/auth/google-drive/callback';
+  const defaultUri = 'http://localhost:3000/api/auth/google-drive/callback';
+  console.log(`[Google OAuth Canonical URI Default] GOOGLE_OAUTH_REDIRECT_URI = ${defaultUri}`);
+  return defaultUri;
 }
 
 /**
