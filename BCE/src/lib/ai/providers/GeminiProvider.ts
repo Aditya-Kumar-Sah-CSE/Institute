@@ -2,7 +2,7 @@ import { GoogleGenAI } from '@google/genai';
 import { AIProvider, AIProviderName, AIProviderResponse, AIProviderToolDeclaration } from './types';
 import { AgentChatMessage } from '../agent';
 
-const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash-exp'];
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-3.5-flash-lite'];
 
 export class GeminiProvider implements AIProvider {
   public readonly name: AIProviderName = 'gemini';
@@ -242,16 +242,25 @@ export class GeminiProvider implements AIProvider {
 
     if (
       msg.includes('API_KEY_INVALID') ||
-      msg.includes('400') ||
       msg.includes('403') ||
       msg.includes('unauthorized') ||
-      msg.includes('API key') ||
-      msg.includes('INVALID_ARGUMENT') ||
-      msg.includes('404')
+      msg.includes('API key')
     ) {
       return {
         success: false,
-        message: 'Invalid or unsupported Google Gemini API key/model. Please check your key in Google AI Studio.'
+        message: 'Invalid Google Gemini API key. Please check your key in Google AI Studio.'
+      };
+    }
+
+    if (
+      msg.includes('404') ||
+      msg.includes('not found') ||
+      msg.includes('INVALID_ARGUMENT') ||
+      msg.includes('400')
+    ) {
+      return {
+        success: false,
+        message: 'Gemini model not available. The API key appears valid but the requested model could not be found. Please try again or contact support.'
       };
     }
 
