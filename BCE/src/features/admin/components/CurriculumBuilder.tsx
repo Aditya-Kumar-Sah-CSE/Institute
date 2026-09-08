@@ -15,8 +15,9 @@ import { reviewSubmissionAction } from '@/features/admin/actions/submissions';
 import { completeCourseAndIssueCertificates } from '@/features/courses/actions/certificates';
 import type { Course, Lesson, Assignment, Badge } from '@/types';
 import CreatePollWidget from '@/features/courses/components/CreatePollWidget';
+import CreateMcqModal from '@/features/courses/components/CreateMcqModal';
 import { parseAttachmentUrls } from '@/lib/attachments';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, ChevronDown, ChevronUp, HelpCircle } from 'lucide-react';
 import './CurriculumBuilder.css';
 
 interface EditingItem {
@@ -74,6 +75,8 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
   const [isLoading, setIsLoading] = useState(false);
   const [reviewingSubmission, setReviewingSubmission] = useState<any>(null);
   const [expandedAssignments, setExpandedAssignments] = useState<Record<string, boolean>>({});
+  const [expandedLessons, setExpandedLessons] = useState<Record<string, boolean>>({});
+  const [isMcqModalOpen, setIsMcqModalOpen] = useState(false);
   const [isCompletingCourse, setIsCompletingCourse] = useState(false);
   const [showAllLessons, setShowAllLessons] = useState(false);
   const [lessonFormData, setLessonFormData] = useState<Record<string, any>>({});
@@ -359,9 +362,26 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
       </div>
 
       {!course.is_completed && (
-        <div style={{ display: 'flex', justifyContent: 'flex-start', gap: 'var(--space-md)' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-start', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
           <Button variant="ghost" onClick={() => setModalType('complete_course')} isLoading={isCompletingCourse} style={{ color: 'var(--neon-gold)', border: '1px solid var(--neon-gold)', padding: '12px 24px', fontSize: 'var(--text-md)', fontWeight: 'var(--weight-bold)' }}>Issue Certificate</Button>
           <Button variant="primary" onClick={() => openLessonModal()} style={{ padding: '12px 24px', fontSize: 'var(--text-md)', fontWeight: 'var(--weight-bold)' }}>+ Add Day (Lesson)</Button>
+          <Button 
+            variant="secondary" 
+            onClick={() => setIsMcqModalOpen(true)} 
+            style={{ 
+              padding: '12px 24px', 
+              fontSize: 'var(--text-md)', 
+              fontWeight: 'var(--weight-bold)',
+              background: 'linear-gradient(135deg, rgba(0, 240, 255, 0.15) 0%, rgba(112, 0, 255, 0.2) 100%)',
+              border: '1px solid var(--neon-cyan)',
+              color: 'var(--neon-cyan)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <HelpCircle size={18} /> + Add MCQs
+          </Button>
         </div>
       )}
 
@@ -375,33 +395,62 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
         {visibleGroups.map(dateStr => (
           <div key={`date-${dateStr}`} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
             <h3 style={{ fontSize: 'var(--text-xl)', color: 'var(--neon-gold)', marginTop: 'var(--space-md)', paddingBottom: 'var(--space-xs)', borderBottom: '1px solid var(--glass-border)' }}>{dateStr}</h3>
-            {groupedLessons[dateStr].map((lesson) => (
-              <Card key={lesson.id} variant="glass" style={{ borderLeft: '4px solid var(--neon-cyan)' }}>
-                <div className="lesson-header-row" style={{ marginBottom: 'var(--space-md)' }}>
-                  <div>
-                    <h3 style={{ fontSize: 'var(--text-lg)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ color: 'inherit' }}>
-                        {lesson.title}
-                      </span>
-                    </h3>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)', fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: '4px' }}>
-                      <span>⭐ {lesson.xp_reward} XP</span>
-                      {lesson.youtube_url && <span>🔗 Link Attached</span>}
+            {groupedLessons[dateStr].map((lesson) => {
+              const isLessonExpanded = !!expandedLessons[lesson.id];
+
+              return (
+                <Card key={lesson.id} variant="glass" style={{ borderLeft: '4px solid var(--neon-cyan)' }}>
+                  <div className="lesson-header-row" style={{ marginBottom: isLessonExpanded ? 'var(--space-md)' : 0, transition: 'margin-bottom 0.2s ease' }}>
+                    <div 
+                      onClick={() => setExpandedLessons(prev => ({ ...prev, [lesson.id]: !prev[lesson.id] }))}
+                      style={{ cursor: 'pointer', flex: 1 }}
+                    >
+                      <h3 style={{ fontSize: 'var(--text-lg)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ color: 'inherit' }}>
+                          {lesson.title}
+                        </span>
+                      </h3>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)', fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        <span>⭐ {lesson.xp_reward} XP</span>
+                        {lesson.youtube_url && <span>🔗 Link Attached</span>}
+                        {lesson.assignments && lesson.assignments.length > 0 && (
+                          <span>📝 {lesson.assignments.length} Task{lesson.assignments.length > 1 ? 's' : ''}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="action-buttons" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {!course.is_completed && (
+                        <>
+                          <Button variant="ghost" size="sm" onClick={() => openLessonModal(lesson as any)} style={{ padding: '8px' }} title="Edit Lesson">
+                            <Edit size={16} />
+                          </Button>
+                          <Button variant="danger" size="sm" onClick={async () => {
+                            if (confirm('Delete this lesson?')) await deleteLesson(lesson.id, course.id);
+                          }} style={{ padding: '8px' }} title="Delete Lesson">
+                            <Trash2 size={16} />
+                          </Button>
+                        </>
+                      )}
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => setExpandedLessons(prev => ({ ...prev, [lesson.id]: !prev[lesson.id] }))} 
+                        style={{ 
+                          padding: '8px', 
+                          color: isLessonExpanded ? 'var(--neon-cyan)' : 'var(--text-secondary)',
+                          background: isLessonExpanded ? 'rgba(0, 229, 255, 0.12)' : 'transparent',
+                          borderRadius: 'var(--radius-sm)'
+                        }} 
+                        title={isLessonExpanded ? "Collapse Lesson" : "Expand Lesson"}
+                      >
+                        {isLessonExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                      </Button>
                     </div>
                   </div>
-                  {!course.is_completed && (
-                    <div className="action-buttons">
-                      <Button variant="ghost" size="sm" onClick={() => openLessonModal(lesson as any)} style={{ padding: '8px' }} title="Edit Lesson">
-                        <Edit size={16} />
-                      </Button>
-                      <Button variant="danger" size="sm" onClick={async () => {
-                        if (confirm('Delete this lesson?')) await deleteLesson(lesson.id, course.id);
-                      }} style={{ padding: '8px' }} title="Delete Lesson">
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
-                  )}
-                </div>
+
+                  {isLessonExpanded && (
+                    <div style={{ animation: 'fadeIn 0.2s ease-in-out' }}>
 
                 {/* ── Inline Content Preview Cards ── */}
                 {(lesson.youtube_url || lesson.pdf_url) && (() => {
@@ -670,8 +719,10 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
                     </div>
                   )}
                 </div>
-              </Card>
-            ))}
+              </div>
+            )}
+          </Card>
+        )})}
           </div>
         ))}
 
@@ -1040,6 +1091,16 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
           </Card>
         </div>
       )}
+
+      <CreateMcqModal
+        courseId={course.id}
+        isOpen={isMcqModalOpen}
+        onClose={() => setIsMcqModalOpen(false)}
+        onSuccess={() => {
+          setIsMcqModalOpen(false);
+          window.location.reload();
+        }}
+      />
     </div>
   );
 }
