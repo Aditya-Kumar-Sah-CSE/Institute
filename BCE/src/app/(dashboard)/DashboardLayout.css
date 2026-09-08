@@ -23,7 +23,7 @@
 .main-layout {
   flex: 1;
   display: grid;
-  grid-template-columns: 70% 30%;
+  grid-template-columns: 1fr 320px;
   grid-template-rows: 1fr;
   align-items: start;
   width: 100%;
@@ -36,7 +36,7 @@
 
 @media (max-width: 1024px) {
   .main-layout {
-    grid-template-columns: 65% 35%;
+    grid-template-columns: 1fr 320px;
   }
 }
 
