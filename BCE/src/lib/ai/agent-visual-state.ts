@@ -112,6 +112,13 @@ export function resetAgentVisualState(): void {
   setAgentVisualState('idle');
 }
 
+// Scan progress tracking for cursor UI
+let _scanProgress = { current: 0, total: 0 };
+
+export function getScanProgress(): { current: number; total: number } {
+  return { ..._scanProgress };
+}
+
 /**
  * Emit a single scanning/reading event for one DOM element.
  * Called from live-dom-reader during DOM scanning to make the cursor
@@ -131,28 +138,47 @@ export function emitScanEvent(
 }
 
 /**
+ * Emit a scan event and return a Promise that resolves after a delay,
+ * giving the cursor time to visually arrive at the element.
+ */
+export function emitScanEventAsync(
+  element: HTMLElement,
+  label: string,
+  delayMs = 80,
+  state: 'scanning' | 'reading' = 'reading'
+): Promise<void> {
+  if (!_agentSessionActive) return Promise.resolve();
+  emitScanEvent(element, label, state);
+  return new Promise(resolve => setTimeout(resolve, delayMs));
+}
+
+/**
  * Batch-emit scanning events for a list of DOM elements with staggered timing.
  * Uses requestAnimationFrame for smooth cursor movement.
  * Returns a cancel function.
  */
 export function emitScanSequence(
   elements: Array<{ el: HTMLElement; label: string }>,
-  intervalMs = 60
+  intervalMs = 120
 ): () => void {
   if (!_agentSessionActive || elements.length === 0) return () => {};
   let cancelled = false;
   let idx = 0;
+  _scanProgress = { current: 0, total: elements.length };
 
   const step = () => {
     if (cancelled || idx >= elements.length || !_agentSessionActive) return;
     const { el, label } = elements[idx];
+    _scanProgress.current = idx + 1;
     emitScanEvent(el, label, idx === 0 ? 'scanning' : 'reading');
     idx++;
     if (idx < elements.length) {
       setTimeout(() => requestAnimationFrame(step), intervalMs);
+    } else {
+      _scanProgress = { current: 0, total: 0 };
     }
   };
 
   requestAnimationFrame(step);
-  return () => { cancelled = true; };
+  return () => { cancelled = true; _scanProgress = { current: 0, total: 0 }; };
 }

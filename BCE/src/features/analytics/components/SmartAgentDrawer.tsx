@@ -136,6 +136,100 @@ function AgentActivityCard({ msg }: { msg: any }) {
   );
 }
 
+function AgentActionPlanCard({ plan }: { plan: any }) {
+  const completedSteps = plan.steps.filter((s: any) => s.status === 'success').length;
+  const totalSteps = plan.steps.length;
+  const progressPct = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+
+  const statusIcon = (status: string) => {
+    switch (status) {
+      case 'pending': return '⏳';
+      case 'executing': return '🔄';
+      case 'success': return '✅';
+      case 'failed': return '❌';
+      case 'skipped': return '⏩';
+      default: return '⏳';
+    }
+  };
+
+  const statusColor = (status: string) => {
+    switch (status) {
+      case 'executing': return '#06b6d4';
+      case 'success': return '#22c55e';
+      case 'failed': return '#ef4444';
+      case 'skipped': return '#6b7280';
+      default: return '#94a3b8';
+    }
+  };
+
+  return (
+    <div style={{
+      background: 'rgba(99, 102, 241, 0.08)',
+      border: '1px solid rgba(99, 102, 241, 0.3)',
+      borderRadius: '10px',
+      padding: '12px 14px',
+      fontSize: '12px',
+      color: '#e0f7fa',
+      width: '100%',
+      marginBottom: '8px'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', color: '#818cf8', marginBottom: '8px' }}>
+        <Sparkles size={14} /> Autonomous Action Plan
+      </div>
+
+      <div style={{ fontSize: '11px', color: '#c7d2fe', marginBottom: '8px', fontStyle: 'italic' }}>
+        🎯 {plan.goal}
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px', marginBottom: '10px', overflow: 'hidden' }}>
+        <div style={{
+          width: `${progressPct}%`,
+          height: '100%',
+          background: plan.status === 'failed' ? '#ef4444' : plan.status === 'completed' ? '#22c55e' : 'linear-gradient(90deg, #6366f1, #06b6d4)',
+          borderRadius: '2px',
+          transition: 'width 0.4s ease-out'
+        }} />
+      </div>
+
+      {/* Steps */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        {plan.steps.map((step: any, idx: number) => (
+          <div
+            key={step.id}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '3px 6px',
+              borderRadius: '4px',
+              background: step.status === 'executing' ? 'rgba(6, 182, 212, 0.1)' : 'transparent',
+              transition: 'background 0.2s ease',
+              color: statusColor(step.status)
+            }}
+          >
+            <span style={{ fontSize: '13px' }}>{statusIcon(step.status)}</span>
+            <span style={{ flex: 1, fontSize: '11px', color: step.status === 'executing' ? '#a5f3fc' : step.status === 'success' ? '#86efac' : step.status === 'failed' ? '#fca5a5' : '#94a3b8' }}>
+              {step.label || step.action}
+            </span>
+            {step.status === 'executing' && (
+              <Loader2 size={12} style={{ animation: 'spin 1s linear infinite', color: '#06b6d4' }} />
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Status footer */}
+      <div style={{ marginTop: '8px', fontSize: '10px', color: '#94a3b8', display: 'flex', justifyContent: 'space-between' }}>
+        <span>{completedSteps}/{totalSteps} steps</span>
+        <span style={{ color: plan.status === 'completed' ? '#22c55e' : plan.status === 'failed' ? '#ef4444' : '#818cf8' }}>
+          {plan.status === 'completed' ? '✓ Complete' : plan.status === 'failed' ? '✗ Failed' : 'Executing...'}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default function SmartAgentDrawer() {
   const [mounted, setMounted] = useState(false);
   const {
@@ -168,7 +262,8 @@ export default function SmartAgentDrawer() {
     clearMemory,
     clearConversation,
     getDynamicLoadingText,
-    activeProvider
+    activeProvider,
+    activeActionPlan
   } = useSmartAgentSession();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -556,6 +651,11 @@ export default function SmartAgentDrawer() {
           gap: 'var(--space-md)'
         }}
       >
+        {/* ACTIVE ACTION PLAN CARD */}
+        {activeActionPlan && (
+          <AgentActionPlanCard plan={activeActionPlan} />
+        )}
+
         {messages.map((msg, idx) => (
           <div 
             key={idx}

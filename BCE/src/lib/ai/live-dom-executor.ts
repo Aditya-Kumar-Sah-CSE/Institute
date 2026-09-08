@@ -74,6 +74,56 @@ let lastActionTimestamp = 0;
 const ACTION_LOCK_TIMEOUT_MS = 1200;
 
 /**
+ * Animated character-by-character typing with visual state updates.
+ * Types each character with a 30ms delay so the cursor UI shows typing progress.
+ * Dispatches input/change events after each character for React compatibility.
+ */
+function scheduleAnimatedTyping(
+  inputEl: HTMLInputElement | HTMLTextAreaElement,
+  fullText: string,
+  label: string
+): void {
+  const CHAR_DELAY_MS = 30;
+  let charIndex = 0;
+
+  const typeNextChar = () => {
+    if (charIndex >= fullText.length) {
+      // Final events after all characters typed
+      inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+      inputEl.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+      setAgentVisualState('success', {
+        targetText: label,
+        targetDomNode: inputEl,
+        message: `Typed: "${fullText}"`
+      });
+      return;
+    }
+
+    charIndex++;
+    const partial = fullText.slice(0, charIndex);
+
+    // Set the value progressively
+    if ('value' in inputEl) {
+      inputEl.value = partial;
+    }
+
+    // Dispatch input event for React controlled components
+    inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+
+    // Update visual state with partial text
+    setAgentVisualState('typing', {
+      targetText: `${label}: "${partial}"`,
+      targetDomNode: inputEl,
+      message: `Typing: ${partial}`
+    });
+
+    setTimeout(typeNextChar, CHAR_DELAY_MS);
+  };
+
+  typeNextChar();
+}
+
+/**
  * Client-side Live DOM Executor (Hardened Production Architecture).
  * Enforces race condition locks, target revalidation, self-healing retries (max 1),
  * safe whitelisted actions, and honest post-action state verification.
@@ -431,12 +481,8 @@ export function executeLiveDOMAction(
       setAgentVisualState('typing', { targetText: labelText, targetDomNode });
       if (valueToType !== undefined) {
         targetDomNode.focus();
-        if ('value' in targetDomNode) {
-          (targetDomNode as HTMLInputElement).value = valueToType;
-        }
-        targetDomNode.dispatchEvent(new Event('input', { bubbles: true }));
-        targetDomNode.dispatchEvent(new Event('change', { bubbles: true }));
-        targetDomNode.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+        // Animated character-by-character typing for visual feedback
+        scheduleAnimatedTyping(targetDomNode as HTMLInputElement, valueToType, labelText);
       }
     } else if (normalizedAction === 'clear') {
       targetDomNode.focus();

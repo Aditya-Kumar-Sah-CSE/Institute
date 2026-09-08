@@ -21,6 +21,12 @@ import {
   invalidateDOMCache 
 } from '@/lib/ai/live-dom-reader';
 import { LatencyTracker } from '@/lib/ai/latency-telemetry';
+import {
+  AgentActionPlan,
+  isMultiStepIntent,
+  planActionSequence,
+  executeActionPlan
+} from '@/lib/ai/autonomous-executor';
 import { setAgentSessionActive } from '@/lib/ai/agent-visual-state';
 import { 
   loadAgentMemory, 
@@ -160,6 +166,7 @@ interface SmartAgentSessionContextValue {
   activeProvider: 'gemini' | 'grok' | null;
   refreshProviderStatus: () => Promise<void>;
   memorySummary: string | null;
+  activeActionPlan: AgentActionPlan | null;
   clearMemory: () => void;
   clearConversation: () => void;
   getDynamicLoadingText: () => string;
@@ -212,6 +219,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
   const [memorySummary, setMemorySummary] = useState<string | null>(null);
 
   const [activeProvider, setActiveProvider] = useState<'gemini' | 'grok' | null>(null);
+  const [activeActionPlan, setActiveActionPlan] = useState<AgentActionPlan | null>(null);
 
   const refreshProviderStatus = useCallback(async () => {
     try {
@@ -867,6 +875,51 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         });
       }
 
+      // Tier 0: Multi-Step Autonomous Action Chain Detection
+      if (isMultiStepIntent(promptText)) {
+        const currentRoute = typeof window !== 'undefined' ? window.location.pathname : '/';
+        const plan = planActionSequence(promptText, currentRoute);
+        if (plan) {
+          setActiveActionPlan(plan);
+          setExecutionState('EXECUTING');
+
+          const finalPlan = await executeActionPlan(plan, {
+            onPlanCreated: (p) => setActiveActionPlan({ ...p }),
+            onStepStart: (p) => setActiveActionPlan({ ...p }),
+            onStepComplete: (p) => setActiveActionPlan({ ...p }),
+            onPlanComplete: (p) => {
+              setActiveActionPlan({ ...p });
+              setTimeout(() => setActiveActionPlan(null), 5000);
+            },
+            onPlanFailed: (p) => {
+              setActiveActionPlan({ ...p });
+              setTimeout(() => setActiveActionPlan(null), 8000);
+            },
+            executeDOMAction: executeDOMActionOnPage
+          });
+
+          const planStatus = finalPlan.status === 'completed' ? 'VERIFIED' : 'FAILED';
+          const planMsg = finalPlan.status === 'completed'
+            ? `✅ ${finalPlan.goal} — All ${finalPlan.steps.length} steps completed successfully.`
+            : `⚠️ ${finalPlan.goal} — Failed at: ${finalPlan.steps.find(s => s.status === 'failed')?.label || 'unknown step'}`;
+
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: 'assistant',
+              content: planMsg,
+              navigationState: planStatus,
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            }
+          ]);
+
+          setExecutionState('IDLE');
+          setIsLoading(false);
+          tracker.finish();
+          return;
+        }
+      }
+
       // Tier 1: Deterministic Client Fast-Path Router (Requirement 2 & 7)
       const fastPath = resolveClientFastPath(promptText, userRoleRef.current, activeContext, freshLiveContext);
       console.log('[Agent] intent:', fastPath.isMatch ? (fastPath.clientAction || 'PAGE_AWARENESS_QUERY') : 'LLM_FALLBACK');
@@ -1228,6 +1281,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         activeProvider,
         refreshProviderStatus,
         memorySummary,
+        activeActionPlan,
         clearMemory,
         clearConversation,
         getDynamicLoadingText,

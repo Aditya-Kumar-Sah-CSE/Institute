@@ -1,12 +1,38 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
-import { AgentInteractionState, AgentVisualStatePayload, subscribeAgentVisualState, isAgentSessionActive } from '@/lib/ai/agent-visual-state';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import {
+  AgentInteractionState,
+  AgentVisualStatePayload,
+  subscribeAgentVisualState,
+  isAgentSessionActive,
+  getScanProgress
+} from '@/lib/ai/agent-visual-state';
 
 interface AgentInteractionCursorProps {
-  /** When true, cursor stays visible even during idle states */
   sessionActive?: boolean;
 }
+
+// State-specific cursor colors
+const STATE_COLORS: Record<AgentInteractionState, { fill: string; glow: string; badge: string }> = {
+  idle:       { fill: '#06b6d4', glow: 'rgba(6,182,212,0.6)',   badge: 'rgba(6,182,212,0.15)' },
+  scanning:   { fill: '#06b6d4', glow: 'rgba(6,182,212,0.8)',   badge: 'rgba(6,182,212,0.2)' },
+  reading:    { fill: '#60a5fa', glow: 'rgba(96,165,250,0.7)',  badge: 'rgba(96,165,250,0.15)' },
+  resolving:  { fill: '#818cf8', glow: 'rgba(129,140,248,0.6)', badge: 'rgba(129,140,248,0.15)' },
+  targeting:  { fill: '#06b6d4', glow: 'rgba(6,182,212,0.8)',   badge: 'rgba(6,182,212,0.2)' },
+  clicking:   { fill: '#22d3ee', glow: 'rgba(34,211,238,0.9)',  badge: 'rgba(34,211,238,0.2)' },
+  typing:     { fill: '#f59e0b', glow: 'rgba(245,158,11,0.8)',  badge: 'rgba(245,158,11,0.2)' },
+  selecting:  { fill: '#a78bfa', glow: 'rgba(167,139,250,0.7)', badge: 'rgba(167,139,250,0.15)' },
+  scrolling:  { fill: '#06b6d4', glow: 'rgba(6,182,212,0.5)',   badge: 'rgba(6,182,212,0.1)' },
+  navigating: { fill: '#6366f1', glow: 'rgba(99,102,241,0.7)',  badge: 'rgba(99,102,241,0.2)' },
+  verifying:  { fill: '#34d399', glow: 'rgba(52,211,153,0.6)',  badge: 'rgba(52,211,153,0.15)' },
+  success:    { fill: '#22c55e', glow: 'rgba(34,197,94,0.8)',   badge: 'rgba(34,197,94,0.2)' },
+  error:      { fill: '#ef4444', glow: 'rgba(239,68,68,0.8)',   badge: 'rgba(239,68,68,0.2)' },
+};
+
+// Max trail points to keep
+const TRAIL_LENGTH = 6;
+const TRAIL_SAMPLE_DIST = 12;
 
 export default function AgentInteractionCursor({ sessionActive }: AgentInteractionCursorProps) {
   const [visualState, setVisualState] = useState<AgentVisualStatePayload>({
@@ -14,7 +40,6 @@ export default function AgentInteractionCursor({ sessionActive }: AgentInteracti
     timestamp: Date.now()
   });
 
-  // Calculate dynamic screen center position
   const getCenterPos = () => {
     if (typeof window !== 'undefined') {
       return { x: window.innerWidth * 0.5, y: window.innerHeight * 0.5 };
@@ -23,14 +48,33 @@ export default function AgentInteractionCursor({ sessionActive }: AgentInteracti
   };
 
   const [pos, setPos] = useState<{ x: number; y: number }>(getCenterPos);
+  const [trail, setTrail] = useState<Array<{ x: number; y: number }>>([]);
+  const [scrollY, setScrollY] = useState(0);
+  const [scrollX, setScrollX] = useState(0);
+
   const targetPosRef = useRef<{ x: number; y: number }>(getCenterPos());
   const animFrameRef = useRef<number | null>(null);
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastTrailPos = useRef<{ x: number; y: number }>(getCenterPos());
 
   const [activeSession, setActiveSession] = useState<boolean>(() => sessionActive ?? isAgentSessionActive());
   const isPersistent = sessionActive ?? activeSession;
 
-  // Window resize handler to maintain center target when idle
+  // Scroll tracking — keeps cursor correct during page scroll
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+      setScrollX(window.scrollX);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Window resize handler
   useEffect(() => {
     const handleResize = () => {
       if (!visualState.targetRect && (visualState.state === 'idle' || visualState.state === 'success')) {
@@ -43,6 +87,7 @@ export default function AgentInteractionCursor({ sessionActive }: AgentInteracti
     }
   }, [visualState.state, visualState.targetRect]);
 
+  // Subscribe to visual state changes
   useEffect(() => {
     const unsubscribe = subscribeAgentVisualState((payload) => {
       setVisualState(payload);
@@ -65,11 +110,10 @@ export default function AgentInteractionCursor({ sessionActive }: AgentInteracti
         targetPosRef.current = getCenterPos();
       }
 
-      // Only auto-hide if the session is NOT persistently active
       if (!isPersistent && (payload.state === 'idle' || payload.state === 'success')) {
         hideTimerRef.current = setTimeout(() => {
           setVisualState(prev => ({ ...prev, state: 'idle', targetRect: null }));
-        }, 1800);
+        }, 2500);
       }
     });
 
@@ -79,7 +123,7 @@ export default function AgentInteractionCursor({ sessionActive }: AgentInteracti
     };
   }, [isPersistent]);
 
-  // Smooth lerp movement animation using requestAnimationFrame
+  // Smooth lerp animation — slower factor (0.12) for visible movement
   useEffect(() => {
     let active = true;
 
@@ -90,10 +134,23 @@ export default function AgentInteractionCursor({ sessionActive }: AgentInteracti
         if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) {
           return targetPosRef.current;
         }
-        return {
-          x: prev.x + dx * 0.22,
-          y: prev.y + dy * 0.22
+        const next = {
+          x: prev.x + dx * 0.12,
+          y: prev.y + dy * 0.12
         };
+
+        // Build trail — only add point if moved enough distance
+        const tdx = next.x - lastTrailPos.current.x;
+        const tdy = next.y - lastTrailPos.current.y;
+        if (tdx * tdx + tdy * tdy > TRAIL_SAMPLE_DIST * TRAIL_SAMPLE_DIST) {
+          lastTrailPos.current = { x: next.x, y: next.y };
+          setTrail(prev => {
+            const updated = [...prev, { x: next.x, y: next.y }];
+            return updated.slice(-TRAIL_LENGTH);
+          });
+        }
+
+        return next;
       });
 
       if (active) {
@@ -109,40 +166,34 @@ export default function AgentInteractionCursor({ sessionActive }: AgentInteracti
   }, []);
 
   const { state, targetText, targetRect, message } = visualState;
-
-  // Whenever session is active/persistent, cursor stays ALWAYS visible!
   const isVisibleState = isPersistent || state !== 'idle';
   if (!isPersistent && state === 'idle' && !targetRect) return null;
 
-  const getBadgeColor = (s: AgentInteractionState) => {
-    switch (s) {
-      case 'error': return 'bg-red-600 text-white border-red-400';
-      case 'success': return 'bg-emerald-600 text-white border-emerald-400';
-      case 'clicking': return 'bg-cyan-600 text-white border-cyan-300';
-      case 'typing': return 'bg-amber-600 text-white border-amber-300';
-      case 'navigating': return 'bg-indigo-600 text-white border-indigo-300';
-      default: return 'bg-cyan-950/90 text-cyan-200 border-cyan-500/50 backdrop-blur-md';
-    }
-  };
+  const colors = STATE_COLORS[state] || STATE_COLORS.idle;
+  const scanProgress = getScanProgress();
 
   const getDisplayText = () => {
     if (message) return message;
     switch (state) {
-      case 'scanning': return 'Scanning page...';
+      case 'scanning': return scanProgress.total > 0 ? `Scanning page... (${scanProgress.current}/${scanProgress.total})` : 'Scanning page...';
       case 'reading': return targetText ? `Reading: ${targetText}` : 'Reading content...';
       case 'resolving': return 'Resolving target...';
       case 'targeting': return targetText ? `Target: ${targetText}` : 'Targeting element...';
       case 'clicking': return targetText ? `Clicking: ${targetText}` : 'Clicking...';
-      case 'typing': return 'Typing...';
+      case 'typing': return targetText ? `Typing: ${targetText}` : 'Typing...';
       case 'selecting': return 'Selecting option...';
       case 'scrolling': return 'Scrolling page...';
       case 'navigating': return targetText ? `Opening: ${targetText}` : 'Navigating...';
       case 'verifying': return 'Verifying action...';
       case 'success': return '✓ Action completed';
       case 'error': return '✗ Action error';
-      default: return '✦ Smart Learn Agent Active';
+      default: return '✦ Smart Agent Active';
     }
   };
+
+  // Screen-space positions (account for scroll)
+  const screenX = pos.x - scrollX;
+  const screenY = pos.y - scrollY;
 
   return (
     <div
@@ -162,93 +213,233 @@ export default function AgentInteractionCursor({ sessionActive }: AgentInteracti
         }
         @keyframes agentClickRipple {
           0% { transform: scale(0.3); opacity: 1; }
-          100% { transform: scale(2.2); opacity: 0; }
+          100% { transform: scale(2.5); opacity: 0; }
+        }
+        @keyframes agentRadarPulse {
+          0% { transform: scale(0.5); opacity: 0.7; }
+          100% { transform: scale(2.5); opacity: 0; }
+        }
+        @keyframes agentTypeDots {
+          0%, 80%, 100% { opacity: 0.3; }
+          40% { opacity: 1; }
+        }
+        @keyframes agentSuccessPop {
+          0% { transform: scale(0.6); opacity: 1; }
+          50% { transform: scale(1.3); opacity: 0.8; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes agentCursorEntrance {
+          0% { transform: scale(0) rotate(-45deg); opacity: 0; }
+          60% { transform: scale(1.15) rotate(5deg); opacity: 1; }
+          100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        @keyframes agentErrorShake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-3px); }
+          75% { transform: translateX(3px); }
         }
         .agent-target-box {
           position: absolute;
-          border: 2px dashed rgba(6, 182, 212, 0.85);
-          background: rgba(6, 182, 212, 0.08);
+          border: 2px dashed ${colors.fill};
+          background: ${colors.badge};
           border-radius: 6px;
-          transition: all 0.15s ease-out;
+          transition: all 0.18s ease-out;
           animation: agentPulseRing 1.5s infinite ease-in-out;
-          box-shadow: 0 0 15px rgba(6, 182, 212, 0.35);
+          box-shadow: 0 0 18px ${colors.glow};
         }
         .agent-click-ripple {
           position: absolute;
-          width: 44px;
-          height: 44px;
+          width: 48px;
+          height: 48px;
           border-radius: 50%;
-          border: 2px solid #06b6d4;
-          background: rgba(6, 182, 212, 0.3);
-          animation: agentClickRipple 0.5s ease-out forwards;
+          border: 2px solid ${colors.fill};
+          background: ${colors.glow};
+          animation: agentClickRipple 0.55s ease-out forwards;
           pointer-events: none;
         }
       `}</style>
 
-      {/* 1. Target Node Highlight Box */}
+      {/* Trail effect — fading circles following cursor path */}
+      {isVisibleState && trail.map((pt, i) => {
+        const opacity = ((i + 1) / trail.length) * 0.35;
+        const size = 4 + ((i + 1) / trail.length) * 4;
+        return (
+          <div
+            key={i}
+            style={{
+              position: 'absolute',
+              top: `${pt.y - scrollY - size / 2}px`,
+              left: `${pt.x - scrollX - size / 2}px`,
+              width: `${size}px`,
+              height: `${size}px`,
+              borderRadius: '50%',
+              background: colors.fill,
+              opacity,
+              transition: 'opacity 0.3s ease-out',
+              pointerEvents: 'none'
+            }}
+          />
+        );
+      })}
+
+      {/* Target Node Highlight Box */}
       {isVisibleState && targetRect && targetRect.width > 0 && targetRect.height > 0 && (
         <div
           className="agent-target-box"
           style={{
-            top: `${targetRect.top - (typeof window !== 'undefined' ? window.scrollY : 0)}px`,
-            left: `${targetRect.left - (typeof window !== 'undefined' ? window.scrollX : 0)}px`,
+            top: `${targetRect.top - scrollY}px`,
+            left: `${targetRect.left - scrollX}px`,
             width: `${targetRect.width}px`,
             height: `${targetRect.height}px`
           }}
         />
       )}
 
-      {/* 2. Click Ripple Indicator */}
+      {/* Click Ripple Indicator */}
       {state === 'clicking' && (
         <div
           className="agent-click-ripple"
           style={{
-            top: `${pos.y - (typeof window !== 'undefined' ? window.scrollY : 0) - 22}px`,
-            left: `${pos.x - (typeof window !== 'undefined' ? window.scrollX : 0) - 22}px`
+            top: `${screenY - 24}px`,
+            left: `${screenX - 24}px`
           }}
         />
       )}
 
-      {/* 3. Animated Virtual Agent Cursor & Status Badge */}
+      {/* Scanning Radar Pulse */}
+      {state === 'scanning' && (
+        <div
+          style={{
+            position: 'absolute',
+            top: `${screenY - 20}px`,
+            left: `${screenX - 20}px`,
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            border: `2px solid ${colors.fill}`,
+            animation: 'agentRadarPulse 1.2s ease-out infinite',
+            pointerEvents: 'none'
+          }}
+        />
+      )}
+
+      {/* Animated Virtual Agent Cursor & Status Badge */}
       {isVisibleState && (
         <div
           style={{
             position: 'absolute',
-            top: `${pos.y - (typeof window !== 'undefined' ? window.scrollY : 0)}px`,
-            left: `${pos.x - (typeof window !== 'undefined' ? window.scrollX : 0)}px`,
+            top: `${screenY}px`,
+            left: `${screenX}px`,
             transition: 'opacity 0.2s ease-in-out',
             opacity: 1,
-            transform: 'translate(-4px, -4px)'
+            transform: 'translate(-4px, -4px)',
+            animation: state === 'error' ? 'agentErrorShake 0.4s ease-in-out' : undefined
           }}
         >
-          {/* Virtual SVG Pointer Icon */}
-          <div className="relative">
+          <div style={{ position: 'relative' }}>
+            {/* Outer glow ring */}
+            <div
+              style={{
+                position: 'absolute',
+                top: '-6px',
+                left: '-6px',
+                width: '44px',
+                height: '44px',
+                borderRadius: '50%',
+                background: `radial-gradient(circle, ${colors.glow} 0%, transparent 70%)`,
+                animation: state === 'success' ? 'agentSuccessPop 0.6s ease-out' : 'agentPulseRing 2s infinite ease-in-out',
+                pointerEvents: 'none'
+              }}
+            />
+
+            {/* Virtual SVG Pointer Icon — larger 32px */}
             <svg
-              width="28"
-              height="28"
+              width="32"
+              height="32"
               viewBox="0 0 24 24"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
-              className="drop-shadow-[0_2px_8px_rgba(6,182,212,0.8)]"
+              style={{
+                filter: `drop-shadow(0 2px 10px ${colors.glow})`,
+                animation: 'agentCursorEntrance 0.4s ease-out'
+              }}
             >
               <path
                 d="M3 3L10.07 19.97L12.58 12.58L19.97 10.07L3 3Z"
-                fill="#06b6d4"
+                fill={colors.fill}
                 stroke="#ffffff"
                 strokeWidth="1.5"
                 strokeLinejoin="round"
               />
             </svg>
 
+            {/* Typing indicator dots */}
+            {state === 'typing' && (
+              <div style={{ position: 'absolute', top: '-8px', left: '20px', display: 'flex', gap: '3px' }}>
+                {[0, 1, 2].map(i => (
+                  <span
+                    key={i}
+                    style={{
+                      width: '4px',
+                      height: '4px',
+                      borderRadius: '50%',
+                      background: '#f59e0b',
+                      animation: `agentTypeDots 0.8s ${i * 0.15}s infinite ease-in-out`
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+
             {/* Glowing Pointer Dot */}
-            <span className="absolute top-0 left-0 w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+            <span
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                background: colors.fill,
+                boxShadow: `0 0 6px ${colors.glow}`,
+                animation: 'agentPulseRing 1s infinite ease-in-out'
+              }}
+            />
 
             {/* Action Status Badge */}
             <div
-              className={`absolute left-6 top-4 min-w-[140px] max-w-[280px] px-3 py-1.5 rounded-lg border text-xs font-semibold shadow-lg whitespace-nowrap overflow-hidden text-ellipsis ${getBadgeColor(state)}`}
+              style={{
+                position: 'absolute',
+                left: '28px',
+                top: '16px',
+                minWidth: '140px',
+                maxWidth: '300px',
+                padding: '5px 10px',
+                borderRadius: '8px',
+                border: `1px solid ${colors.fill}`,
+                background: `linear-gradient(135deg, rgba(15,23,42,0.95), ${colors.badge})`,
+                backdropFilter: 'blur(12px)',
+                fontSize: '11px',
+                fontWeight: 600,
+                color: '#e2e8f0',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                boxShadow: `0 4px 16px ${colors.glow}, 0 0 1px rgba(255,255,255,0.1)`,
+                fontFamily: 'Inter, system-ui, sans-serif'
+              }}
             >
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span
+                  style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    background: colors.fill,
+                    boxShadow: `0 0 4px ${colors.fill}`,
+                    animation: 'agentPulseRing 1s infinite'
+                  }}
+                />
                 <span>{getDisplayText()}</span>
               </div>
             </div>
@@ -258,4 +449,3 @@ export default function AgentInteractionCursor({ sessionActive }: AgentInteracti
     </div>
   );
 }
-
