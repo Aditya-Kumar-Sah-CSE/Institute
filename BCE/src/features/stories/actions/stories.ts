@@ -41,6 +41,41 @@ export async function uploadStoryMedia(formData: FormData): Promise<{ url: strin
   }
 
   const userId = userData.user.id;
+  const mediaType: StoryMediaType = file.type.startsWith('video/') ? 'video' : 'image';
+
+  // Check Google Drive connection
+  const adminSb = await createAdminClient();
+  const { data: driveRecord } = await adminSb
+    .from('user_google_drive_tokens')
+    .select('root_folder_id')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (driveRecord?.root_folder_id) {
+    // Upload to Google Drive
+    try {
+      const { uploadFileToGoogleDrive } = await import('@/features/profile/actions/google-drive');
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      const result = await uploadFileToGoogleDrive({
+        filename: `${crypto.randomUUID()}-${Date.now()}.${file.name.split('.').pop()?.toLowerCase() || 'bin'}`,
+        mimeType: file.type,
+        fileBuffer: buffer,
+        category: 'Activity History',
+      });
+
+      if (result.success && result.googleDriveFileId) {
+        return { url: `/api/drive/files/${result.googleDriveFileId}`, mediaType };
+      }
+      // Fall through to Supabase on failure
+      console.warn('[uploadStoryMedia] Drive upload failed, falling back to Supabase:', result.error);
+    } catch (driveErr) {
+      console.warn('[uploadStoryMedia] Drive upload error, falling back to Supabase:', driveErr);
+    }
+  }
+
+  // Fallback: Upload to Supabase Storage
   const ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
   const uniqueName = `${crypto.randomUUID()}-${Date.now()}.${ext}`;
   const filePath = `${userId}/${uniqueName}`; // Must be under user_id/ for RLS to pass
@@ -53,7 +88,6 @@ export async function uploadStoryMedia(formData: FormData): Promise<{ url: strin
 
   const { data: { publicUrl } } = supabase.storage.from(STORY_BUCKET).getPublicUrl(filePath);
 
-  const mediaType: StoryMediaType = file.type.startsWith('video/') ? 'video' : 'image';
   return { url: publicUrl, mediaType };
 }
 

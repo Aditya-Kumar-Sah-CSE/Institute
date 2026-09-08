@@ -29,7 +29,7 @@ export interface GoogleDriveStatusResult {
  * 4. Derives protocol and host from incoming NextRequest headers (x-forwarded-proto/x-forwarded-host).
  * 5. Defaults to http://localhost:3000/api/auth/google-drive/callback.
  */
-export function getGoogleDriveRedirectUri(requestOrUrl?: any): string {
+export async function getGoogleDriveRedirectUri(requestOrUrl?: any): Promise<string> {
   const envRedirectUri = process.env.GOOGLE_REDIRECT_URI?.trim().replace(/^["']|["']$/g, '');
   if (envRedirectUri && (envRedirectUri.startsWith('http://') || envRedirectUri.startsWith('https://'))) {
     return envRedirectUri.replace(/\/$/, '');
@@ -131,6 +131,25 @@ export async function refreshGoogleDriveToken(userId: string): Promise<string | 
   } catch (err) {
     console.error('Exception refreshing Google Drive token:', err);
     return null;
+  }
+}
+
+/**
+ * Checks if a user has an active Google Drive connection with a provisioned root folder.
+ */
+export async function checkDriveConnection(userId: string): Promise<boolean> {
+  if (!userId) return false;
+  try {
+    const adminSb = await createAdminClient();
+    const { data: record } = await adminSb
+      .from('user_google_drive_tokens')
+      .select('root_folder_id')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    return !!record?.root_folder_id;
+  } catch (e) {
+    return false;
   }
 }
 
@@ -398,21 +417,28 @@ export async function uploadFileToGoogleDrive(params: {
 
 /**
  * Safely migrates existing Supabase Storage files to Google Drive for logged in user.
+ * 
+ * - Idempotent: skips files already present in user_drive_files by filename match.
+ * - Resumable: can be called multiple times safely.
+ * - Does NOT delete source files from Supabase.
+ * - Reports per-file migration status.
  */
 export async function migrateExistingFilesToDrive(): Promise<{
   success: boolean;
   migratedCount: number;
+  skippedCount: number;
   failedCount: number;
+  totalFound: number;
   error?: string;
 }> {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user) return { success: false, migratedCount: 0, failedCount: 0, error: 'Not authenticated' };
+    if (!user) return { success: false, migratedCount: 0, skippedCount: 0, failedCount: 0, totalFound: 0, error: 'Not authenticated' };
 
     const validData = await getValidAccessToken(user.id);
-    if (!validData) return { success: false, migratedCount: 0, failedCount: 0, error: 'Google Drive not connected' };
+    if (!validData) return { success: false, migratedCount: 0, skippedCount: 0, failedCount: 0, totalFound: 0, error: 'Google Drive not connected' };
 
     const adminSb = await createAdminClient();
 
@@ -424,38 +450,79 @@ export async function migrateExistingFilesToDrive(): Promise<{
       .or(`owner.eq.${user.id},name.ilike.%${user.id}%`);
 
     if (!storageObjects || storageObjects.length === 0) {
-      return { success: true, migratedCount: 0, failedCount: 0 };
+      return { success: true, migratedCount: 0, skippedCount: 0, failedCount: 0, totalFound: 0 };
     }
 
+    // Load already-migrated files to enable idempotency
+    const { data: existingDriveFiles } = await adminSb
+      .from('user_drive_files')
+      .select('filename')
+      .eq('user_id', user.id);
+
+    const migratedFilenames = new Set(
+      (existingDriveFiles || []).map(f => f.filename)
+    );
+
     let migratedCount = 0;
+    let skippedCount = 0;
     let failedCount = 0;
+
+    // Category mapping: bucket_id → Drive subfolder category
+    const bucketCategoryMap: Record<string, string> = {
+      'avatars': 'Profile Image',
+      'story_media': 'Activity History',
+      'lesson_notes': 'Course Materials',
+      'attachments': 'Other',
+      'branding': 'Other',
+    };
 
     for (const obj of storageObjects) {
       try {
+        const filename = obj.name.split('/').pop() || obj.name;
+
+        // Idempotency: skip if already migrated
+        if (migratedFilenames.has(filename)) {
+          skippedCount++;
+          continue;
+        }
+
         // Download file from Supabase Storage
         const { data: blob, error: downloadErr } = await adminSb.storage
           .from(obj.bucket_id)
           .download(obj.name);
 
         if (downloadErr || !blob) {
+          console.warn(`[migration] Download failed for ${obj.bucket_id}/${obj.name}:`, downloadErr?.message);
           failedCount++;
           continue;
         }
 
         const arrayBuffer = await blob.arrayBuffer();
         const fileBuffer = Buffer.from(arrayBuffer);
-        const filename = obj.name.split('/').pop() || obj.name;
         const mimeType = obj.metadata?.mimetype || 'application/octet-stream';
 
-        // Categorize based on bucket name
-        let category = 'Other';
-        if (obj.bucket_id.includes('lesson') || obj.bucket_id.includes('notes')) category = 'Notes';
-        else if (obj.bucket_id.includes('assignment')) category = 'Assignments';
-        else if (obj.bucket_id.includes('submission')) category = 'Submissions';
-        else if (obj.bucket_id.includes('doubt')) category = 'Doubts';
-        else if (obj.bucket_id.includes('story')) category = 'Stories';
-        else if (obj.bucket_id.includes('avatar')) category = 'Avatars';
-        else if (obj.bucket_id.includes('notice')) category = 'Notices';
+        // Determine target Drive category from bucket + path heuristics
+        let category = bucketCategoryMap[obj.bucket_id] || 'Other';
+
+        // Path-based refinement
+        const pathLower = obj.name.toLowerCase();
+        if (pathLower.includes('assignment') || pathLower.includes('submission')) {
+          category = pathLower.includes('submission') ? 'Submissions' : 'Assignments';
+        } else if (pathLower.includes('certificate') || pathLower.includes('cert')) {
+          category = pathLower.includes('battle') ? 'Battle Certificates' : 'Certificates';
+        } else if (pathLower.includes('chat/')) {
+          category = 'Chat';
+        } else if (pathLower.includes('doubt')) {
+          category = 'Doubts';
+        } else if (pathLower.includes('notice')) {
+          category = 'Notices';
+        } else if (pathLower.includes('forum')) {
+          category = 'Forum';
+        } else if (pathLower.includes('badge')) {
+          category = 'Badges';
+        } else if (pathLower.includes('project')) {
+          category = 'Projects';
+        }
 
         // Upload to Google Drive
         const uploadRes = await uploadFileToGoogleDrive({
@@ -467,23 +534,206 @@ export async function migrateExistingFilesToDrive(): Promise<{
 
         if (uploadRes.success) {
           migratedCount++;
+          migratedFilenames.add(filename); // Prevent re-migration within same run
         } else {
+          console.warn(`[migration] Upload failed for ${filename}:`, uploadRes.error);
           failedCount++;
         }
-      } catch (e) {
+      } catch (e: any) {
+        console.error(`[migration] Exception processing ${obj.name}:`, e.message);
         failedCount++;
       }
     }
 
-    return { success: true, migratedCount, failedCount };
+    return { success: true, migratedCount, skippedCount, failedCount, totalFound: storageObjects.length };
   } catch (err: any) {
-    return { success: false, migratedCount: 0, failedCount: 0, error: err.message };
+    return { success: false, migratedCount: 0, skippedCount: 0, failedCount: 0, totalFound: 0, error: err.message };
+  }
+}
+
+/**
+ * Full nested folder hierarchy for Smart Learn on Google Drive.
+ * Designed as flat category keys mapping to nested paths for lookup.
+ */
+const SMART_LEARN_FOLDER_TREE: Record<string, { parent?: string; name: string }> = {
+  // Top-level categories under Smart Learn/
+  'Sheets':              { name: 'Sheets' },
+  'Charts':              { name: 'Charts' },
+  'Courses':             { name: 'Courses' },
+  'Profile':             { name: 'Profile' },
+  'Badges':              { name: 'Badges' },
+  'Status':              { name: 'Status' },
+  'Projects':            { name: 'Projects' },
+  'Submissions':         { name: 'Submissions' },
+  'Notes':               { name: 'Notes' },
+  'AI':                  { name: 'AI' },
+  'Other':               { name: 'Other' },
+  'Chat':                { name: 'Chat' },
+  'Doubts':              { name: 'Doubts' },
+  'Forum':               { name: 'Forum' },
+  'Notices':             { name: 'Notices' },
+  // Nested children
+  'DSA Sheets':          { parent: 'Sheets', name: 'DSA Sheets' },
+  'Coding Sheets':       { parent: 'Sheets', name: 'Coding Sheets' },
+  'Other Sheets':        { parent: 'Sheets', name: 'Other Sheets' },
+  'Learning Charts':     { parent: 'Charts', name: 'Learning Charts' },
+  'Progress Charts':     { parent: 'Charts', name: 'Progress Charts' },
+  'Analytics':           { parent: 'Charts', name: 'Analytics' },
+  'Course Materials':    { parent: 'Courses', name: 'Course Materials' },
+  'Course Notes':        { parent: 'Courses', name: 'Notes' },
+  'Assignments':         { parent: 'Courses', name: 'Assignments' },
+  'Certificates':        { parent: 'Courses', name: 'Certificates' },
+  'Battle Certificates': { parent: 'Courses', name: 'Battle Certificates' },
+  'Profile Image':       { parent: 'Profile', name: 'Profile Image' },
+  'Resume':              { parent: 'Profile', name: 'Resume' },
+  'Documents':           { parent: 'Profile', name: 'Documents' },
+  'Learning Status':     { parent: 'Status', name: 'Learning Status' },
+  'Course Status':       { parent: 'Status', name: 'Course Status' },
+  'Assignment Status':   { parent: 'Status', name: 'Assignment Status' },
+  'Sheet Status':        { parent: 'Status', name: 'Sheet Status' },
+  'Battle Status':       { parent: 'Status', name: 'Battle Status' },
+  'Activity History':    { parent: 'Status', name: 'Activity History' },
+  'AI Documents':        { parent: 'AI', name: 'Documents' },
+  'Generated Content':   { parent: 'AI', name: 'Generated Content' },
+  // Legacy flat aliases (backward compatibility with old subfolders dict)
+  'Avatars':             { parent: 'Profile', name: 'Profile Image' },
+  'Stories':             { parent: 'Status', name: 'Activity History' },
+};
+
+/**
+ * Idempotently provisions the full Smart Learn folder tree on Google Drive.
+ * Creates top-level categories first, then nested children.
+ * Returns the complete subfolders dictionary mapping category key → Drive folder ID.
+ */
+export async function ensureSmartLearnFolderTree(
+  accessToken: string,
+  rootFolderId: string,
+  existingSubfolders?: Record<string, string>
+): Promise<Record<string, string>> {
+  const subfolders: Record<string, string> = { ...(existingSubfolders || {}) };
+
+  // Helper: idempotent folder search/create
+  const getOrCreate = async (folderName: string, parentId: string): Promise<string> => {
+    const query = `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false and '${parentId}' in parents`;
+    const searchRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name)`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    if (searchRes.ok) {
+      const data = await searchRes.json();
+      if (data.files && data.files.length > 0) return data.files[0].id;
+    }
+    const createRes = await fetch('https://www.googleapis.com/drive/v3/files?fields=id', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: folderName, mimeType: 'application/vnd.google-apps.folder', parents: [parentId] }),
+    });
+    if (!createRes.ok) {
+      const errText = await createRes.text();
+      throw new Error(`Failed to create folder ${folderName}: ${errText}`);
+    }
+    return (await createRes.json()).id;
+  };
+
+  // Phase 1: Create top-level folders (no parent key)
+  const topLevel = Object.entries(SMART_LEARN_FOLDER_TREE).filter(([, v]) => !v.parent);
+  for (const [key, entry] of topLevel) {
+    if (!subfolders[key]) {
+      try {
+        subfolders[key] = await getOrCreate(entry.name, rootFolderId);
+      } catch (e) {
+        console.error(`[ensureSmartLearnFolderTree] Failed top-level ${key}:`, e);
+      }
+    }
+  }
+
+  // Phase 2: Create nested children (have parent key)
+  const nested = Object.entries(SMART_LEARN_FOLDER_TREE).filter(([, v]) => !!v.parent);
+  for (const [key, entry] of nested) {
+    if (!subfolders[key] && entry.parent && subfolders[entry.parent]) {
+      try {
+        subfolders[key] = await getOrCreate(entry.name, subfolders[entry.parent]);
+      } catch (e) {
+        console.error(`[ensureSmartLearnFolderTree] Failed nested ${key}:`, e);
+      }
+    }
+  }
+
+  return subfolders;
+}
+
+/**
+ * Returns the Google Drive folder ID for a given user and category path.
+ * Falls back to root folder if category not found in subfolders.
+ */
+export async function getUserDriveFolderId(
+  userId: string,
+  folderCategory: string
+): Promise<string | null> {
+  const adminSb = await createAdminClient();
+  const { data: record } = await adminSb
+    .from('user_google_drive_tokens')
+    .select('root_folder_id, subfolders')
+    .eq('user_id', userId)
+    .single();
+
+  if (!record) return null;
+
+  const subfolders = record.subfolders || {};
+  return subfolders[folderCategory] || record.root_folder_id;
+}
+
+/**
+ * Initiates a Google Drive resumable upload session.
+ * Returns the resumable upload URI for subsequent chunk uploads.
+ */
+export async function initiateGoogleDriveResumableUpload(params: {
+  accessToken: string;
+  filename: string;
+  mimeType: string;
+  parentFolderId: string;
+  fileSize: number;
+}): Promise<{ uploadUri: string } | { error: string }> {
+  try {
+    const metadata = {
+      name: params.filename,
+      mimeType: params.mimeType,
+      parents: [params.parentFolderId],
+    };
+
+    const initRes = await fetch(
+      'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,webViewLink,webContentLink,size',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${params.accessToken}`,
+          'Content-Type': 'application/json; charset=UTF-8',
+          'X-Upload-Content-Type': params.mimeType,
+          'X-Upload-Content-Length': String(params.fileSize),
+        },
+        body: JSON.stringify(metadata),
+      }
+    );
+
+    if (!initRes.ok) {
+      const errText = await initRes.text();
+      return { error: `Failed to initiate resumable upload: ${errText}` };
+    }
+
+    const uploadUri = initRes.headers.get('Location');
+    if (!uploadUri) {
+      return { error: 'Google Drive did not return a resumable upload URI' };
+    }
+
+    return { uploadUri };
+  } catch (err: any) {
+    return { error: err.message || 'Resumable upload initiation failed' };
   }
 }
 
 /**
  * Server action / helper to initialize Google Drive connection for a given user.
- * Idempotently searches or creates the `Code Arena/` root folder and 12 category subfolders.
+ * Idempotently searches or creates the `Smart Learn/` root folder and full nested folder hierarchy.
  * Persists OAuth tokens and folder IDs in `user_google_drive_tokens`.
  */
 export async function initializeUserDriveStorage(
@@ -505,86 +755,39 @@ export async function initializeUserDriveStorage(
     // If refreshToken is missing, retain existing refresh_token from DB
     const finalRefreshToken = refreshToken || existingRecord?.refresh_token;
 
-    // Helper: search or create folder on Google Drive
-    const getOrCreateDriveFolder = async (folderName: string, parentId?: string): Promise<string> => {
-      let query = `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
-      if (parentId) {
-        query += ` and '${parentId}' in parents`;
-      } else {
-        query += ` and 'root' in parents`;
-      }
-
+    // Helper: search or create folder on Google Drive (root-level)
+    const getOrCreateRootFolder = async (folderName: string): Promise<string> => {
+      const query = `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false and 'root' in parents`;
       const searchRes = await fetch(
         `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name)`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
-
       if (searchRes.ok) {
         const searchData = await searchRes.json();
         if (searchData.files && searchData.files.length > 0) {
           return searchData.files[0].id;
         }
       }
-
-      // Folder not found -> Create it
-      const metadata: Record<string, any> = {
-        name: folderName,
-        mimeType: 'application/vnd.google-apps.folder',
-      };
-      if (parentId) {
-        metadata.parents = [parentId];
-      }
-
       const createRes = await fetch('https://www.googleapis.com/drive/v3/files?fields=id', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(metadata),
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: folderName, mimeType: 'application/vnd.google-apps.folder' }),
       });
-
       if (!createRes.ok) {
-        const errText = await createRes.text();
-        throw new Error(`Failed to create folder ${folderName}: ${errText}`);
+        throw new Error(`Failed to create root folder ${folderName}: ${await createRes.text()}`);
       }
-
-      const createData = await createRes.json();
-      return createData.id;
+      return (await createRes.json()).id;
     };
 
     // 2. Search/Create `Smart Learn/` root folder
-    const rootFolderId = existingRecord?.root_folder_id || (await getOrCreateDriveFolder('Smart Learn'));
+    const rootFolderId = existingRecord?.root_folder_id || (await getOrCreateRootFolder('Smart Learn'));
 
-    // 3. Search/Create subfolders
-    const categories = [
-      'Courses',
-      'Assignments',
-      'Submissions',
-      'Certificates',
-      'Battle Certificates',
-      'Doubts',
-      'Stories',
-      'Chat',
-      'Notes',
-      'Notices',
-      'Forum',
-      'Avatars',
-      'Other',
-    ];
-
-    const subfolders: Record<string, string> = existingRecord?.subfolders || {};
-
-    for (const cat of categories) {
-      if (!subfolders[cat]) {
-        try {
-          const subId = await getOrCreateDriveFolder(cat, rootFolderId);
-          subfolders[cat] = subId;
-        } catch (subErr) {
-          console.error(`Failed to create subfolder ${cat}:`, subErr);
-        }
-      }
-    }
+    // 3. Provision full nested folder tree
+    const subfolders = await ensureSmartLearnFolderTree(
+      accessToken,
+      rootFolderId,
+      existingRecord?.subfolders || {}
+    );
 
     // 4. Save/Update record in DB
     const expiresAt = new Date(Date.now() + 3600 * 1000).toISOString();

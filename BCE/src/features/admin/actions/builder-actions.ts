@@ -3,6 +3,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { validateFiles, uploadFiles, serializeAttachmentUrls } from '@/lib/attachments';
+import { uploadFilesServerSide } from '@/lib/attachments.server';
 
 // Authorization helper — verifies the user has admin or instructor role
 async function requireBuilderRole() {
@@ -141,13 +142,14 @@ export async function addLesson(courseId: string, formData: FormData) {
         return { error: valResult.error };
       }
 
-      const adminSupabase = await createAdminClient();
-      const { urls, errors } = await uploadFiles({
+      // Get current user for Drive routing
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const { urls, errors } = await uploadFilesServerSide({
         files: validFiles,
-        supabase: adminSupabase,
         bucketName: 'lesson_notes',
         pathPrefix: `lesson_${courseId}`,
-        ensureBucket: true
+        category: 'Course Materials',
+        userId: currentUser?.id || '',
       });
 
       if (errors.length > 0 && urls.length === 0) {
@@ -252,13 +254,13 @@ export async function updateLesson(lessonId: string, courseId: string, formData:
         return { error: valResult.error };
       }
 
-      const adminSupabase = await createAdminClient();
-      const { urls, errors } = await uploadFiles({
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const { urls, errors } = await uploadFilesServerSide({
         files: validFiles,
-        supabase: adminSupabase,
         bucketName: 'lesson_notes',
         pathPrefix: `lesson_${courseId}`,
-        ensureBucket: true
+        category: 'Course Materials',
+        userId: currentUser?.id || '',
       });
 
       if (errors.length > 0 && urls.length === 0) {
@@ -321,13 +323,13 @@ export async function addAssignment(lessonId: string, courseId: string, formData
     const validation = validateFiles(validFiles, { allowedTypes: ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'] });
     if (!validation.valid) return { error: validation.error };
 
-    const adminSupabase = await createAdminClient();
-    const uploadResult = await uploadFiles({
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    const uploadResult = await uploadFilesServerSide({
       files: validFiles,
-      supabase: adminSupabase,
       bucketName: 'attachments',
       pathPrefix: `assignments/${courseId}`,
-      ensureBucket: true
+      category: 'Assignments',
+      userId: currentUser?.id || '',
     });
 
     if (uploadResult.errors.length > 0) {
@@ -411,13 +413,13 @@ export async function updateAssignment(assignmentId: string, courseId: string, f
       const validation = validateFiles(validFiles, { allowedTypes: ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'] });
       if (!validation.valid) return { error: validation.error };
 
-      const adminSupabase = await createAdminClient();
-      const uploadResult = await uploadFiles({
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const uploadResult = await uploadFilesServerSide({
         files: validFiles,
-        supabase: adminSupabase,
         bucketName: 'attachments',
         pathPrefix: `assignments/${courseId}`,
-        ensureBucket: true
+        category: 'Assignments',
+        userId: currentUser?.id || '',
       });
 
       if (uploadResult.errors.length > 0) {

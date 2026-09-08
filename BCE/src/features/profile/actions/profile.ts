@@ -169,8 +169,32 @@ export async function uploadCertificateFileAction(formData: FormData) {
     return { error: 'Only PDF or image files (JPG, PNG, WEBP) are allowed.' };
   }
 
+  const { checkDriveConnection, uploadFileToGoogleDrive } = await import('@/features/profile/actions/google-drive');
+  const isDriveConnected = await checkDriveConnection(user.id);
+
+  if (isDriveConnected) {
+    try {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const cleanFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const filename = `cert_${Date.now()}_${cleanFileName}`;
+
+      const result = await uploadFileToGoogleDrive({
+        filename,
+        mimeType: file.type,
+        fileBuffer: buffer,
+        category: 'Certificates',
+      });
+
+      if (result.success && result.googleDriveFileId) {
+        return { success: true, url: `/api/drive/files/${result.googleDriveFileId}` };
+      }
+      console.warn('[uploadCertificateFileAction] Drive upload failed, falling back to Supabase:', result.error);
+    } catch (driveErr) {
+      console.warn('[uploadCertificateFileAction] Drive upload error, falling back to Supabase:', driveErr);
+    }
+  }
+
   const adminSb = await createAdminClient();
-  const fileExt = file.name.split('.').pop() || 'pdf';
   const cleanFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
   const filePath = `${user.id}/certificates/cert_${Date.now()}_${cleanFileName}`;
 

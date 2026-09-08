@@ -255,24 +255,55 @@ export default function SolutionEditor({
       const userId = userData.user?.id;
       if (!userId) throw new Error('Not authenticated');
 
-      const ext = file.name.split('.').pop() || 'png';
-      const uniqueName = `${crypto.randomUUID()}-${Date.now()}.${ext}`;
-      const filePath = `solution-images/${userId}/${uniqueName}`;
+      let url = '';
 
-      const { error: uploadError } = await supabase.storage
-        .from('lesson_notes')
-        .upload(filePath, file, {
-          contentType: file.type,
-          upsert: false,
+      // First try Google Drive upload via resumable API
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const base64Data = Buffer.from(arrayBuffer).toString('base64');
+
+        const driveRes = await fetch('/api/drive/upload/resumable', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            filename: file.name,
+            mimeType: file.type || 'image/png',
+            category: 'Notes',
+            fileData: base64Data,
+          }),
         });
 
-      if (uploadError) throw uploadError;
+        if (driveRes.ok) {
+          const driveData = await driveRes.json();
+          if (driveData.proxyUrl) {
+            url = driveData.proxyUrl;
+          }
+        }
+      } catch (driveErr) {
+        console.warn('[SolutionEditor] Drive upload failed, falling back to Supabase:', driveErr);
+      }
 
-      const { data: publicUrlData } = supabase.storage
-        .from('lesson_notes')
-        .getPublicUrl(filePath);
+      if (!url) {
+        const ext = file.name.split('.').pop() || 'png';
+        const uniqueName = `${crypto.randomUUID()}-${Date.now()}.${ext}`;
+        const filePath = `solution-images/${userId}/${uniqueName}`;
 
-      const url = publicUrlData.publicUrl;
+        const { error: uploadError } = await supabase.storage
+          .from('lesson_notes')
+          .upload(filePath, file, {
+            contentType: file.type,
+            upsert: false,
+          });
+
+        if (uploadError) throw uploadError;
+
+        const { data: publicUrlData } = supabase.storage
+          .from('lesson_notes')
+          .getPublicUrl(filePath);
+
+        url = publicUrlData.publicUrl;
+      }
+
       const altText = file.name.split('.')[0] || 'Image';
       insertMarkdown(`![${altText}](`, `${url})`);
     } catch (err: any) {

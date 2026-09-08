@@ -62,6 +62,33 @@ export function serializeAttachmentUrls(urls: string[]): string | null {
 }
 
 /**
+ * Category mapping: Maps Supabase bucket names and common categories to
+ * Google Drive subfolder keys in the Smart Learn hierarchy.
+ */
+export const BUCKET_TO_DRIVE_CATEGORY: Record<string, string> = {
+  'avatars': 'Profile Image',
+  'story_media': 'Activity History',
+  'lesson_notes': 'Course Materials',
+  'attachments': 'Other',
+  'branding': 'Other',
+  // Direct category mappings
+  'Courses': 'Course Materials',
+  'Assignments': 'Assignments',
+  'Submissions': 'Submissions',
+  'Notes': 'Notes',
+  'Chat': 'Chat',
+  'Doubts': 'Doubts',
+  'Forum': 'Forum',
+  'Notices': 'Notices',
+  'Profile': 'Profile Image',
+  'AI': 'AI Documents',
+  'Certificates': 'Certificates',
+  'Battle Certificates': 'Battle Certificates',
+  'Projects': 'Projects',
+  'Badges': 'Badges',
+};
+
+/**
  * Generic upload helper for Supabase.
  * Works on both client and server by taking the Supabase instance as an argument.
  * Designed to upload multiple files concurrently.
@@ -176,3 +203,6 @@ export async function deleteUploadedFiles({
     return { success: false };
   }
 }
+
+
+

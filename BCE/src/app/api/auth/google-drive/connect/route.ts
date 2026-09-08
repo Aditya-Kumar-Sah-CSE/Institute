@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL(`${returnTo}?drive_error=unavailable`, request.url));
   }
 
-  const redirectUri = getGoogleDriveRedirectUri(request);
+  const redirectUri = await getGoogleDriveRedirectUri(request);
 
   // Safe development diagnostic log (Requirement 8)
   console.log('[Google OAuth Connect Diagnostic]', {

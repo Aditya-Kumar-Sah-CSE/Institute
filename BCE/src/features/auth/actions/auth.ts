@@ -544,22 +544,57 @@ export async function uploadAvatarToServer(formData: FormData) {
   const file = formData.get('file') as File;
   if (!file) return { error: 'No file provided' };
 
-  const fileExt = file.name.split('.').pop();
-  const filePath = `${user.id}/avatar_${Date.now()}.${fileExt}`;
+  // Check if user has Google Drive connected
+  const { data: driveRecord } = await supabaseAdmin
+    .from('user_google_drive_tokens')
+    .select('root_folder_id')
+    .eq('user_id', user.id)
+    .maybeSingle();
 
-  // Upload to Supabase Storage as Admin (bypasses RLS)
-  const { error: uploadError } = await supabaseAdmin.storage
-    .from('avatars')
-    .upload(filePath, file, { upsert: true });
+  let publicUrl: string;
 
-  if (uploadError) return { error: uploadError.message };
+  if (driveRecord?.root_folder_id) {
+    // Upload to Google Drive
+    try {
+      const { uploadFileToGoogleDrive } = await import('@/features/profile/actions/google-drive');
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
 
-  // Get Public URL
-  const { data: { publicUrl } } = supabaseAdmin.storage
-    .from('avatars')
-    .getPublicUrl(filePath);
+      const result = await uploadFileToGoogleDrive({
+        filename: `avatar_${Date.now()}.${file.name.split('.').pop() || 'jpg'}`,
+        mimeType: file.type || 'image/jpeg',
+        fileBuffer: buffer,
+        category: 'Profile Image',
+      });
 
-  // Clean up old avatar
+      if (!result.success || !result.googleDriveFileId) {
+        return { error: result.error || 'Drive upload failed' };
+      }
+
+      publicUrl = `/api/drive/files/${result.googleDriveFileId}`;
+    } catch (driveErr: any) {
+      return { error: `Drive upload error: ${driveErr.message}` };
+    }
+  } else {
+    // Fallback: Upload to Supabase Storage as Admin (bypasses RLS)
+    const fileExt = file.name.split('.').pop();
+    const filePath = `${user.id}/avatar_${Date.now()}.${fileExt}`;
+
+    const { error: uploadError } = await supabaseAdmin.storage
+      .from('avatars')
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) return { error: uploadError.message };
+
+    // Get Public URL
+    const { data: { publicUrl: supabaseUrl } } = supabaseAdmin.storage
+      .from('avatars')
+      .getPublicUrl(filePath);
+
+    publicUrl = supabaseUrl;
+  }
+
+  // Clean up old avatar from Supabase Storage (only if it's a Supabase URL)
   const { data: profile } = await supabaseAdmin.from('profiles').select('avatar_url').eq('id', user.id).single();
   if (profile?.avatar_url && profile.avatar_url !== publicUrl) {
     const match = profile.avatar_url.match(/\/object\/public\/avatars\/(.+)$/);

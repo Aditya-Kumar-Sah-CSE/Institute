@@ -1,132 +1,137 @@
-# Final QA Verification Report: Smart Agent Live UI Ground-Truth Interaction Layer
+# Final Production Audit Report: Google Drive Storage Migration & User-Owned Architecture
 
 ## Overview
-A comprehensive production-level QA verification of the **Smart Agent Live UI Ground-Truth Interaction Layer** was executed. The implementation moves the Smart Agent from static route assumptions to using the **live rendered DOM as the absolute source of truth** across Student, Instructor, Admin, and Developer pages.
+A comprehensive production audit of the **Smart Learn User-Owned Google Drive Storage Architecture & Migration System** was performed across the entire repository. The system transitions Smart Learn from storing binary files in Supabase Storage to utilizing the user's personal Google Drive as the primary binary store, while retaining essential relational metadata and authentication in Supabase.
 
 ---
 
-## Detailed Test & Verification Matrix
+## 1. Storage Source of Truth Audit
 
-### 1. Real Page Reading Test — PASSED
-- **Whole-Body Scanning Root**: Starts at `document.body` (excluding `.smart-agent-drawer` and `.smart-mentor-drawer`).
-- **Elements Captured**: Navbar, Sidebar, Cards, Headings (H1–H6), Paragraphs, Leaf Text Nodes, Metrics/Scores, Readiness %, Badges, Status tags, Visible Alerts, Buttons, Links, Tabs, Dropdowns, Inputs, Textareas, Selects, Modals, Toasts, Drawers, Popovers, and CTA text.
-- **Source of Truth**: Live DOM visibility (`rect.width > 0 && rect.height > 0`, `getComputedStyle(el).display !== 'none'`, `visibility !== 'hidden'`).
+Every binary file upload pathway in the repository was audited. When Google Drive is connected for a user, new uploads are sent directly to Google Drive via the resumable upload API or server-side Drive routines. Supabase stores ONLY file metadata (`user_drive_files` table containing `google_drive_file_id`, `filename`, `file_size`, `mime_type`, `category`, `user_id`, `created_at`).
 
-### 2. Natural Language Resolution Test — PASSED
-- Successfully maps natural language requests to live DOM elements:
-  - `"is page par kya kya hai?"` → Returns live page breakdown including active cards, headings, metrics, open dialogs, and text.
-  - `"mere strengths kya hain?"` / `"red wala improvement open karo"` → Uses `getComputedStyle()` to locate badges with red border/background/text.
-  - `"DSA wala card kholo"` → Resolves target card container.
-  - `"Start Practice click karo"` → Resolves actionable child button inside card.
-  - `"sidebar kholo"` / `"top right menu kholo"` → Resolves navigation container elements.
+### Inventory & Classification of Remaining Supabase Storage Calls
 
-### 3. Ambiguity Protection — PASSED
-- When multiple matching candidates exist (e.g. multiple `"Open"` or `"Edit"` buttons) without an exact score lead (>3 points difference), the executor **refuses to guess or randomly click**.
-- Returns `isAmbiguous: true` with `matchingCandidates` list so the agent prompts the user for clarification.
-- Resolves cleanly when contextual details are added (e.g. `"DSA card wala open karo"`).
-
-### 4. Runtime ID Validation & Stale Detection — PASSED
-- Runtime IDs (`agent-el-001`, `agent-el-002`, ...) are attached to DOM nodes via `data-agent-runtime-id`.
-- **Stale Protection**: Before executing any action, the executor runs `document.body.contains(targetDomNode)` and verifies `isVisible` & `!isDisabled`. If the node was detached during a React re-render, it falls back to querying the active DOM node.
-
-### 5. Dynamic UI & MutationObserver Sync — PASSED
-- A debounced (100ms) `MutationObserver` watches `document.body` for subtree changes, attribute mutations (`class`, `style`, `hidden`, `disabled`, `aria-expanded`, `role`), and element additions.
-- Supports dynamically opened modals, drawers, toasts, tab switches, dropdowns, and SPA route transitions without requiring a page reload.
-
-### 6. Color Semantic Classification — PASSED
-- `classifyRGBToSemanticColor()` and `getElementComputedColorInfo()` analyze `window.getComputedStyle()` RGB/Hex values for border, background, and text colors.
-- Maps colors to semantic channels:
-  - **Red**: Danger, error, needs improvement.
-  - **Green**: Success, key strength.
-  - **Yellow**: Warning, gap, pending.
-  - **Cyan/Blue**: Action, primary CTA, active tab.
-
-### 7. Card → Child Action Resolution — PASSED
-- Implemented parent-child intent scoring in `live-dom-executor.ts`:
-  - Query asking for `"card"` → Gives bonus rank (+10) to `type === 'card'`.
-  - Query asking for `"start"`, `"click"`, `"edit"`, `"submit"`, or `"open"` → Gives bonus rank (+10) to actionable child buttons/links over container cards.
-
-### 8. Action Verification — PASSED
-- Action workflow follows: **Resolve → Pre-Action Operable Check → Execute → Invalidate Cache → Post-Action Check**.
-- Post-action check verifies route changes (`window.location.pathname`), error banners (`.error-banner`, `.toast-error`), and modal open/close states.
-- Reports real failure messages if target is disabled, hidden, or encounters errors post-execution.
-
-### 9. Agent Self-Reading Post-Navigation — PASSED
-- Calling `getCurrentPageContext` or navigating automatically calls `invalidateDOMCache()` and re-harvests fresh DOM state (`extractLiveDOMContext(route, true)`).
-- Ensures the agent never answers using stale context from a previous page.
-
-### 10. Agent UI Exclusion — PASSED
-- All element scanners and text extractors explicitly check `el.closest('.smart-agent-drawer, .smart-mentor-drawer')` and skip indexing the agent's own drawer, transcript, and control buttons.
-
-### 11. Performance & Payload Optimization — PASSED
-- DOM extraction executes in browser memory (<5ms).
-- `MutationObserver` updates are debounced at 100ms.
-- LLM payloads transmit compact, normalized JSON data without sending raw uncompressed HTML strings.
-
-### 12. Security & Whitelisted Actions — PASSED
-- Bounded strictly to safe whitelisted actions: `click`, `focus`, `type`, `select`, `scroll`, `open`, `close`, `navigate`, `toggle`, `clear`.
-- Zero dynamic code evaluation (`eval()`, `Function()`, dynamic `<script>` injection) is permitted or exposed to natural language.
-
-### 13. Accessibility Priority Contract — PASSED
-- Label extraction priority enforced:
-  1. `data-agent-label` / `data-agent-action`
-  2. `aria-label` / `aria-labelledby` / accessible name
-  3. Visible text
-  4. `title`
-  5. `placeholder`
-  6. `data-testid`
-  7. Element `id`
-
-### 14. Cross-Page Regression Test — PASSED
-- Tested across Student, Instructor, Admin, and Developer panels.
-- Verified SPA navigation, sidebar/navbar, role-based access, voice/text chat, and LaTeX/DSA features operate without regression.
+| File Path | Function / Routine | Bucket Name | Classification | Rationale |
+|---|---|---|---|---|
+| `src/lib/attachments.ts` | `uploadFilesServerSide()` | Variable (`attachments`, etc.) | **Class C** | Temporary fallback for unconnected users or legacy attachment uploads prior to Drive connection. |
+| `src/features/stories/actions/stories.ts` | `uploadStoryMedia()` | `story_media` | **Class C** | Fallback upload to Supabase when user has not connected Google Drive. |
+| `src/features/stories/components/StoryComposerSheet.tsx` | `handlePostAllMedia` | `story_media` | **Class A** | Routes through `uploadStoryMedia` server action (Google Drive primary, Supabase fallback). |
+| `src/features/auth/actions/auth.ts` | `updateProfileAvatar()` | `avatars` | **Class A** | Checks `isDriveConnected`, uploads to `Smart Learn/Avatars/` on Drive when linked. Fallback to Supabase `avatars` bucket if unlinked. |
+| `src/features/profile/actions/profile.ts` | `uploadCertificateFileAction()` | `attachments` | **Class A** | Checks `isDriveConnected`, uploads to `Smart Learn/Certificates/` on Drive when linked. Fallback to Supabase if unlinked. |
+| `src/features/leaderboard/actions/showcase-actions.ts` | `submitStudentApp()` | `story_media` | **Class A** | Checks `checkDriveConnection`, uploads to `Smart Learn/Projects/` on Drive when linked. Fallback to Supabase if unlinked. |
+| `src/features/code-arena/components/SolutionEditor.tsx` | `handleImageUpload()` | `lesson_notes` | **Class A** | Tries `/api/drive/upload/resumable` under `Notes` category when connected. Fallback to Supabase `lesson_notes` if unlinked. |
+| `src/features/chat/components/ChatComposer.tsx` | `uploadFileToSupabase()` | `attachments` | **Class A** | Tries `/api/drive/upload/resumable` under `Chat` category when connected. Fallback to Supabase if unlinked. |
+| `src/features/chat/actions/chat.ts` | `uploadGroupAvatarAction()` | `avatars` | **Class A** | Checks `checkDriveConnection`, uploads to `Smart Learn/Chat/` on Drive when linked. Fallback to Supabase if unlinked. |
+| `src/app/api/pwa-share-target/route.ts` | `POST` | `lesson_notes` | **Class A** | Checks Drive connection tokens, uploads shared files to `Smart Learn/Other/` on Drive when linked. Fallback to Supabase if unlinked. |
+| `src/app/super-admin/landing/page.tsx` | `uploadBrandingLogo` | `branding` | **Class B** | **Legitimately Remains**: Global system branding logo uploaded by Super Admin. Not a user-owned file. |
+| `src/app/(admin)/admin/page.tsx` | `uploadAdminLogo` | `branding` | **Class B** | **Legitimately Remains**: Global platform branding logo uploaded by Admin. Not a user-owned file. |
 
 ---
 
-## Production Hardening Summary
+## 2. Folder Routing & Hierarchy Audit
 
-### 1. Race-Condition Lock Protection — PASSED
-- Enforced a global execution lock (`globalActionExecutionLock` with 1200ms timeout) in `live-dom-executor.ts` to prevent overlapping or concurrent clicks from corrupting DOM focus/state.
+All 17 application subfolder categories map cleanly to their corresponding Google Drive folders under the single root folder `Smart Learn Root`:
 
-### 2. Self-Healing DOM Retries (Max 1) — PASSED
-- Implemented automatic self-healing in `live-dom-executor.ts`: If a target element is missing on the initial scan, the executor invalidates the cache, force-refreshes the live DOM snapshot, and retries resolution (max 1 retry) before reporting honest failure.
-
-### 3. Pronoun & Contextual Reference Resolution — PASSED
-- Upgraded regex router in `agent-controller.ts` to support pronouns and references (`this`, `that`, `this card`, `this button`, `isko`, `isme`, `yaha`, `waha`, `usko`, `usme`, `ye`, `woh`, `same one`, `previous one`).
-- Commands like `"isme start karo"` inspect active cards/sections from the current `LiveUISnapshot` and target the appropriate element inside the active container.
-
-### 4. Telemetry & Observability — PASSED
-- Every DOM action returns detailed telemetry metadata (`snapshotGenTimeMs`, `resolutionTimeMs`, `executionTimeMs`, `verificationTimeMs`, `totalLatencyMs`, `staleElementDetected`, `retryAttempted`).
-
-### 5. Unified Voice + Text Pipeline — PASSED
-- Voice and text requests share the exact same semantic router, DOM snapshot reader, action executor, verification pipeline, and session state.
+| Category Key | Google Drive Folder Path | Primary Features Using Route |
+|---|---|---|
+| `Avatars` | `Smart Learn Root/Avatars/` | Profile avatars & user profile pictures |
+| `Courses` | `Smart Learn Root/Courses/` | Instructor course materials, PDFs, lesson files |
+| `Assignments` | `Smart Learn Root/Assignments/` | Course assignments & homework problem PDFs |
+| `Submissions` | `Smart Learn Root/Submissions/` | Student homework submissions & code solutions |
+| `Doubts` | `Smart Learn Root/Doubts/` | Student doubt attachments, screenshots, audio notes |
+| `Chat` | `Smart Learn Root/Chat/` | Group & direct chat media, voice notes, attachments |
+| `Stories` | `Smart Learn Root/Stories/` | Status stories (images, videos, status clips) |
+| `Notices` | `Smart Learn Root/Notices/` | Institute notices, announcements, bulletin attachments |
+| `Notes` | `Smart Learn Root/Notes/` | Personal notes, Code Arena solution images |
+| `Certificates` | `Smart Learn Root/Certificates/` | Course completion certificates & uploaded cert PDFs |
+| `Badges` | `Smart Learn Root/Badges/` | Achievement badges & reward icons |
+| `Projects` | `Smart Learn Root/Projects/` | Student showcase apps, ZIP files, project code |
+| `AI Generated` | `Smart Learn Root/AI Generated/` | AI generated summary documents & study guides |
+| `Chart Exports` | `Smart Learn Root/Chart Exports/` | Exported analytics charts & progress diagrams |
+| `Exports` | `Smart Learn Root/Exports/` | User data backup ZIPs & CSV exports |
+| `Transcripts` | `Smart Learn Root/Transcripts/` | Lecture audio/video transcripts & AI summaries |
+| `Other` | `Smart Learn Root/Other/` | Miscellaneous user attachments & PWA shared items |
 
 ---
 
-## Final Acceptance Criteria Matrix
+## 3. User Isolation & Security Proxy Audit
 
-| Criterion | Status | Notes |
-| :--- | :---: | :--- |
-| Agent reads complete currently rendered page | **PASSED** | Scans `document.body` top-to-bottom |
-| Agent understands cards and their children | **PASSED** | Intent scoring ranks cards vs buttons correctly |
-| Agent reads metrics and badges | **PASSED** | Captures values (`85%`, `69/100`) and badge colors |
-| Agent reads buttons and links | **PASSED** | Indexed with stable runtime IDs (`agent-el-XXX`) |
-| Agent reads modals/drawers/dropdowns | **PASSED** | Modal & drawer dialogs detected |
-| Agent handles dynamic DOM updates | **PASSED** | Debounced 100ms `MutationObserver` syncs DOM |
-| Agent resolves natural-language references | **PASSED** | Supports color, position, and label queries |
-| Multi-turn references & pronouns (`isko/isme/ye`) work | **PASSED** | Pronoun & contextual reference resolver active |
-| Concurrent action race protection | **PASSED** | Global execution lock prevents race conditions |
-| Self-healing DOM snapshot retries (max 1) | **PASSED** | Auto-refreshes snapshot if element missing |
-| Voice and text use identical interaction logic | **PASSED** | Shared execution pipeline & session state |
-| Agent handles ambiguous targets safely | **PASSED** | Asks user clarification when target is ambiguous |
-| Agent validates stale runtime IDs | **PASSED** | `document.body.contains(node)` check enforced |
-| Agent verifies actions after execution | **PASSED** | Post-action URL and error state check |
-| Agent refreshes context after navigation | **PASSED** | Cache invalidated on route change |
-| Agent excludes its own UI | **PASSED** | Agent drawer elements excluded from snapshot |
-| Agent does not use arbitrary JS execution | **PASSED** | Strictly bounded to whitelisted action types |
-| Agent works across Student/Instructor/Admin/Dev | **PASSED** | Verified on all role panels |
-| No route-specific hardcoded UI mappings required | **PASSED** | Live rendered DOM is absolute ground truth |
-| `npx tsc --noEmit` passes | **PASSED** | Clean 0 errors output |
-| Production build passes | **PASSED** | Next.js build compilation verified (120/120 pages) |
-| No console/runtime errors introduced | **PASSED** | Verified clean runtime execution |
+- **Proxy Endpoint**: `/api/drive/files/[fileId]`
+- **Ownership Verification**: Before streaming any file from Google Drive, the route verifies that `user_drive_files` has a record where `google_drive_file_id = fileId` AND `user_id = session.user.id`.
+- **Authorization Failure**: If User A requests `fileId` belonging to User B, or if an unauthenticated user calls the endpoint, the proxy returns `403 Forbidden` / `401 Unauthorized`.
+- **Token Refresh**: Uses valid user OAuth access tokens refreshed via `refreshGoogleDriveToken()` without exposing raw Google Drive tokens to the client.
 
+---
+
+## 4. Google OAuth & Environment Setup
+
+- **Canonical Redirect URI**: Enforced across server and client via `getGoogleDriveRedirectUri()`:
+  - **Development**: `http://localhost:3000/api/auth/google-drive/callback`
+  - **Production**: `https://institute-ashen.vercel.app/api/auth/google-drive/callback`
+- **Token Security**: OAuth access & refresh tokens are stored exclusively in `user_google_drive_tokens` via service-role Supabase admin calls. Zero tokens are passed in client URLs, `localStorage`, `sessionStorage`, or client logs.
+- **State Validation**: CSRF state parameter passed during OAuth authorization flow and verified during callback exchange.
+
+---
+
+## 5. Folder Idempotency & Reconnect Verification
+
+- `provisionDriveFolders()` queries Google Drive API using name search (`name = 'Smart Learn Root' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`) before creating folders.
+- If a folder already exists, its existing `id` is retained and stored in `user_google_drive_folders`.
+- Reconnecting the same account does NOT generate duplicate `Smart Learn Root (1)` folders.
+
+---
+
+## 6. Large File Handling & Resumable Upload Audit
+
+- **API Route**: `/api/drive/upload/resumable`
+- Supports chunked uploads using Google Drive Resumable Upload sessions (`https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable`).
+- Streams file buffers without exceeding memory thresholds.
+
+---
+
+## 7. Migration Engine Audit (`migrateExistingFilesToDrive`)
+
+- **Idempotency**: Scans `user_drive_files` and checks existing filenames before attempting to migrate legacy Supabase Storage files.
+- **Safety**: Original Supabase Storage files remain intact until Drive upload and metadata insertion succeed.
+- **Resumability**: Can be re-executed safely at any time without creating duplicate files on Google Drive.
+
+---
+
+## 8. Feature-by-Feature Real Audit Matrix
+
+| Feature | Drive Folder | Upload API / Action | Read / Proxy Route | User Isolation | Status |
+|---|---|---|---|---|---|
+| **Profile Avatar** | `Smart Learn Root/Avatars/` | `updateProfileAvatar()` | `/api/drive/files/[fileId]` | Enforced (`user_id`) | **VERIFIED** |
+| **Course Material** | `Smart Learn Root/Courses/` | `uploadAttachment()` | `/api/drive/files/[fileId]` | Enforced (`user_id`) | **VERIFIED** |
+| **Assignments** | `Smart Learn Root/Assignments/` | `uploadAttachment()` | `/api/drive/files/[fileId]` | Enforced (`user_id`) | **VERIFIED** |
+| **Submissions** | `Smart Learn Root/Submissions/` | `uploadAttachment()` | `/api/drive/files/[fileId]` | Enforced (`user_id`) | **VERIFIED** |
+| **Doubt Attachments** | `Smart Learn Root/Doubts/` | `uploadAttachment()` | `/api/drive/files/[fileId]` | Enforced (`user_id`) | **VERIFIED** |
+| **Chat Attachments** | `Smart Learn Root/Chat/` | `/api/drive/upload/resumable` | `/api/drive/files/[fileId]` | Enforced (`user_id`) | **VERIFIED** |
+| **Chat Group Avatar** | `Smart Learn Root/Chat/` | `uploadGroupAvatarAction()` | `/api/drive/files/[fileId]` | Enforced (`user_id`) | **VERIFIED** |
+| **Stories (Media)** | `Smart Learn Root/Stories/` | `uploadStoryMedia()` | `/api/drive/files/[fileId]` | Enforced (`user_id`) | **VERIFIED** |
+| **Notices** | `Smart Learn Root/Notices/` | `uploadAttachment()` | `/api/drive/files/[fileId]` | Enforced (`user_id`) | **VERIFIED** |
+| **Notes / Code Arena** | `Smart Learn Root/Notes/` | `/api/drive/upload/resumable` | `/api/drive/files/[fileId]` | Enforced (`user_id`) | **VERIFIED** |
+| **Certificates** | `Smart Learn Root/Certificates/` | `uploadCertificateFileAction()` | `/api/drive/files/[fileId]` | Enforced (`user_id`) | **VERIFIED** |
+| **Student App Showcase** | `Smart Learn Root/Projects/` | `submitStudentApp()` | `/api/drive/files/[fileId]` | Enforced (`user_id`) | **VERIFIED** |
+| **PWA Share Uploads** | `Smart Learn Root/Other/` | `/api/pwa-share-target` | `/api/drive/files/[fileId]` | Enforced (`user_id`) | **VERIFIED** |
+
+---
+
+## 9. Build & Verification Status
+
+1. **TypeScript Verification (`npx tsc --noEmit`)**:
+   - **Result**: Clean compilation with **0 errors**.
+2. **Next.js Production Build (`npm run build`)**:
+   - **Result**: Production build compilation succeeded cleanly.
+3. **Environment Security**:
+   - No credentials or access tokens exposed in client bundles or public endpoints.
+
+---
+
+## 10. Summary Audit Conclusion
+
+The repository audit confirms that:
+1. **Google Drive Storage is Primary** for all user-owned binary uploads when connected.
+2. **Supabase Stores Metadata Only** (`user_drive_files`, `user_google_drive_tokens`, `user_drive_folders`).
+3. **Remaining Supabase Storage calls** are strictly classified as either Super Admin site branding (Class B) or fallback for unlinked accounts (Class C).
+4. **Build verification** (`npx tsc --noEmit`) passed with 0 errors.

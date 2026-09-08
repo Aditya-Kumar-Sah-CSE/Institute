@@ -283,6 +283,7 @@ export async function createGroupChat(groupName: string, memberIds: string[], ic
 
 export async function uploadGroupAvatarAction(formData: FormData, conversationId?: string) {
   const { createAdminClient } = await import('@/lib/supabase/server');
+  const { checkDriveConnection, uploadFileToGoogleDrive } = await import('@/features/profile/actions/google-drive');
   const supabaseAdmin = await createAdminClient();
   const supabase = await createClient();
 
@@ -296,18 +297,46 @@ export async function uploadGroupAvatarAction(formData: FormData, conversationId
     return { error: 'Image size must be less than 5MB' };
   }
 
-  const fileExt = file.name.split('.').pop() || 'png';
-  const filePath = `${userData.user.id}/group_avatar_${Date.now()}.${fileExt}`;
+  let publicUrl = '';
+  const isDriveConnected = await checkDriveConnection(userData.user.id);
 
-  const { error: uploadError } = await supabaseAdmin.storage
-    .from('avatars')
-    .upload(filePath, file, { upsert: true });
+  if (isDriveConnected) {
+    try {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const fileExt = file.name.split('.').pop() || 'png';
+      const filename = `group_avatar_${Date.now()}.${fileExt}`;
 
-  if (uploadError) return { error: uploadError.message };
+      const result = await uploadFileToGoogleDrive({
+        filename,
+        mimeType: file.type,
+        fileBuffer: buffer,
+        category: 'Chat',
+      });
 
-  const { data: { publicUrl } } = supabaseAdmin.storage
-    .from('avatars')
-    .getPublicUrl(filePath);
+      if (result.success && result.googleDriveFileId) {
+        publicUrl = `/api/drive/files/${result.googleDriveFileId}`;
+      }
+    } catch (driveErr) {
+      console.warn('[uploadGroupAvatarAction] Drive upload failed, falling back to Supabase:', driveErr);
+    }
+  }
+
+  if (!publicUrl) {
+    const fileExt = file.name.split('.').pop() || 'png';
+    const filePath = `${userData.user.id}/group_avatar_${Date.now()}.${fileExt}`;
+
+    const { error: uploadError } = await supabaseAdmin.storage
+      .from('avatars')
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) return { error: uploadError.message };
+
+    const { data: { publicUrl: sbUrl } } = supabaseAdmin.storage
+      .from('avatars')
+      .getPublicUrl(filePath);
+
+    publicUrl = sbUrl;
+  }
 
   if (conversationId) {
     const { error: updateError } = await supabase

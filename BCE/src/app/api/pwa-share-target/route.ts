@@ -184,14 +184,48 @@ export async function POST(req: NextRequest) {
     // ---------------------------------------------------------
     // 9. Upload files
     // ---------------------------------------------------------
+    // Check Google Drive connection for user
+    const { data: driveTokens } = await supabase
+      .from('user_google_drive_tokens')
+      .select('root_folder_id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const isDriveConnected = !!driveTokens?.root_folder_id;
+
     for (const file of files) {
       if (!file.size || !file.name) {
         continue;
       }
 
       const attachmentId = randomUUID();
-
       const originalName = file.name;
+
+      if (isDriveConnected) {
+        try {
+          const { uploadFileToGoogleDrive } = await import('@/features/profile/actions/google-drive');
+          const buffer = Buffer.from(await file.arrayBuffer());
+          const result = await uploadFileToGoogleDrive({
+            filename: originalName,
+            mimeType: file.type || 'application/octet-stream',
+            fileBuffer: buffer,
+            category: 'Other',
+          });
+
+          if (result.success && result.googleDriveFileId) {
+            attachments.push({
+              id: attachmentId,
+              name: originalName,
+              type: file.type,
+              size: file.size,
+              url: `/api/drive/files/${result.googleDriveFileId}`,
+            });
+            continue;
+          }
+        } catch (driveErr) {
+          console.warn('[PWA SHARE] Drive upload failed, falling back to Supabase:', driveErr);
+        }
+      }
 
       const extension =
         originalName.includes('.')

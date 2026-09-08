@@ -176,32 +176,18 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
         setUploadProgress({ current: i + 1, total: mediaDrafts.length });
         const draft = mediaDrafts[i];
         
-        let url = '';
-        let mediaType: 'image' | 'video' = draft.type === 'video' ? 'video' : 'image';
+        const formData = new FormData();
+        formData.append('file', draft.file);
 
-        const ext = draft.file.name.split('.').pop() || (mediaType === 'video' ? 'mp4' : 'jpg');
-        const uniqueName = `${crypto.randomUUID()}-${Date.now()}.${ext}`;
-        const filePath = `${userId}/${uniqueName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('story_media')
-          .upload(filePath, draft.file, {
-            contentType: draft.file.type,
-            upsert: false,
-          });
-
-        if (uploadError) throw uploadError;
-
-        const { data: publicUrlData } = supabase.storage
-          .from('story_media')
-          .getPublicUrl(filePath);
-
-        url = publicUrlData.publicUrl;
+        const uploadRes = await uploadStoryMedia(formData);
+        if (!uploadRes || !uploadRes.url) {
+          throw new Error('Failed to upload story media.');
+        }
 
         await createStoryItem({
-          mediaUrl: url,
+          mediaUrl: uploadRes.url,
           thumbnailUrl: null,
-          mediaType,
+          mediaType: uploadRes.mediaType,
           caption: draft.caption.trim(),
         });
       }

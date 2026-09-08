@@ -104,12 +104,65 @@ export default function ChatComposer({
   };
 
   const uploadFileToSupabase = async (file: File, type: string): Promise<string> => {
+    setIsUploading(true);
+
+    // First, try Google Drive upload via API route
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const base64Data = btoa(
+        new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+      );
+
+      // Step 1: Initiate resumable upload
+      const initRes = await fetch('/api/drive/upload/resumable', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'initiate',
+          filename: file.name,
+          mimeType: file.type || 'application/octet-stream',
+          fileSize: file.size,
+          category: 'Chat',
+        }),
+      });
+
+      if (initRes.ok) {
+        const initData = await initRes.json();
+        if (initData.uploadUri) {
+          // Step 2: Complete upload
+          const completeRes = await fetch('/api/drive/upload/resumable', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'complete',
+              uploadUri: initData.uploadUri,
+              fileData: base64Data,
+              mimeType: file.type || 'application/octet-stream',
+              filename: file.name,
+              fileSize: file.size,
+              category: 'Chat',
+            }),
+          });
+
+          if (completeRes.ok) {
+            const completeData = await completeRes.json();
+            if (completeData.fileId) {
+              return `/api/drive/files/${completeData.fileId}`;
+            }
+          }
+        }
+      }
+      // If Drive upload fails (not connected, error, etc.), fall through to Supabase
+    } catch (driveErr) {
+      // Fall through to Supabase
+      console.warn('[ChatComposer] Drive upload unavailable, using Supabase:', driveErr);
+    }
+
+    // Fallback: Upload to Supabase Storage
     const supabase = createClient();
     const ext = file.name.split('.').pop() || 'dat';
     const filename = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${ext}`;
     const filePath = `chat/${type}s/${filename}`;
-
-    setIsUploading(true);
 
     const { data, error } = await supabase.storage
       .from('attachments')

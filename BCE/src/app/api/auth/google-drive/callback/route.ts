@@ -1,39 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { getGoogleDriveRedirectUri } from '@/features/profile/actions/google-drive';
+import { getGoogleDriveRedirectUri, ensureSmartLearnFolderTree } from '@/features/profile/actions/google-drive';
 import crypto from 'crypto';
 
-const REQUIRED_SUBFOLDERS = [
-  'Courses',
-  'Assignments',
-  'Submissions',
-  'Certificates',
-  'Battle Certificates',
-  'Doubts',
-  'Stories',
-  'Chat',
-  'Notes',
-  'Notices',
-  'Forum',
-  'Avatars',
-  'Other',
-];
-
 /**
- * Creates or reuses a Google Drive folder by name and parent ID.
+ * Creates or reuses a Google Drive folder by name (root-level).
  */
-async function getOrCreateDriveFolder(accessToken: string, folderName: string, parentId?: string): Promise<string> {
-  let query = `name = '${folderName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
-  if (parentId) {
-    query += ` and '${parentId}' in parents`;
-  }
+async function getOrCreateRootDriveFolder(accessToken: string, folderName: string): Promise<string> {
+  const query = `name = '${folderName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false and 'root' in parents`;
 
-  // 1. Search for existing folder
   const searchRes = await fetch(
     `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name)`,
-    {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }
+    { headers: { Authorization: `Bearer ${accessToken}` } }
   );
 
   if (searchRes.ok) {
@@ -45,14 +23,10 @@ async function getOrCreateDriveFolder(accessToken: string, folderName: string, p
     throw new Error(`Drive folder search failed (${searchRes.status}): ${(await searchRes.text()).slice(0, 500)}`);
   }
 
-  // 2. Create folder if not found
   const metadata: any = {
     name: folderName,
     mimeType: 'application/vnd.google-apps.folder',
   };
-  if (parentId) {
-    metadata.parents = [parentId];
-  }
 
   const createRes = await fetch('https://www.googleapis.com/drive/v3/files?fields=id', {
     method: 'POST',
@@ -109,7 +83,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL(`${returnTo}?drive_error=unavailable`, request.url));
   }
 
-  const redirectUri = getGoogleDriveRedirectUri(request);
+  const redirectUri = await getGoogleDriveRedirectUri(request);
 
   // Safe development diagnostic log (Requirement 8)
   console.log('[Google OAuth Callback Diagnostic]', {
@@ -162,18 +136,25 @@ export async function GET(request: NextRequest) {
 
     // 3. Automatically create/reuse root folder "Smart Learn/"
     console.info('[google-drive/callback] provisioning Drive folders', { traceId, userId: user.id });
-    const rootFolderId = await getOrCreateDriveFolder(accessToken, 'Smart Learn');
+    const rootFolderId = await getOrCreateRootDriveFolder(accessToken, 'Smart Learn');
 
-    // 4. Automatically create/reuse required subfolders
-    const subfolders: Record<string, string> = {};
-    for (const subName of REQUIRED_SUBFOLDERS) {
-      const subId = await getOrCreateDriveFolder(accessToken, subName, rootFolderId);
-      subfolders[subName] = subId;
-    }
+    // 4. Provision full nested folder hierarchy using ensureSmartLearnFolderTree
+    const adminSb = await createAdminClient();
+    
+    // Get existing subfolders to avoid duplicates
+    const { data: existingRecord } = await adminSb
+      .from('user_google_drive_tokens')
+      .select('subfolders')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const subfolders = await ensureSmartLearnFolderTree(
+      accessToken,
+      rootFolderId,
+      existingRecord?.subfolders || {}
+    );
 
     // 5. Store tokens securely in database via admin client
-    const adminSb = await createAdminClient();
-
     // Check if refresh_token was provided (Google provides it on first consent)
     const updatePayload: any = {
       user_id: user.id,
@@ -209,3 +190,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL(`${returnTo}?drive_error=callback_exception`, request.url));
   }
 }
+
