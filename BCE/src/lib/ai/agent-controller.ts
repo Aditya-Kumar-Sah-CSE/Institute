@@ -1,4 +1,4 @@
-import { AGENT_TOOLS, AgentToolResult } from './agent-tools';
+import { AGENT_TOOLS, AgentToolResult } from './agent-tools-server';
 import { runSmartAgent, AgentChatMessage, AgentResponse } from './agent';
 import { AgentPageContext } from './agent-context';
 import { normalizeAgentRole, canUseTool, canAccessPage, requireAgentPermission, AppRole } from '@/lib/auth/agent-permissions';

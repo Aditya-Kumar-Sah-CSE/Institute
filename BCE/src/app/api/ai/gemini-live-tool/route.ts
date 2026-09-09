@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getUser, createAdminClient } from '@/lib/supabase/server';
-import { AGENT_TOOLS, AgentToolResult } from '@/lib/ai/agent-tools';
+import { AGENT_TOOLS, AgentToolResult } from '@/lib/ai/agent-tools-server';
 import { normalizeAgentRole, requireAgentPermission, canUseTool } from '@/lib/auth/agent-permissions';
 
 export async function POST(request: Request) {

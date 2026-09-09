@@ -218,5 +218,173 @@ export const GEMINI_TOOL_DECLARATIONS: ToolDeclaration[] = [
       },
       required: ['query']
     }
+  },
+  // ─── WEB RESEARCH TOOLS ───
+  {
+    name: 'webSearch',
+    description: 'Search the web for information. Returns search results with titles, snippets, and URLs.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Search query text' },
+        limit: { type: 'number', description: 'Max results to return (default 5)' }
+      },
+      required: ['query']
+    }
+  },
+  {
+    name: 'webScrape',
+    description: 'Fetch and extract text content from a URL.',
+    parameters: {
+      type: 'object',
+      properties: {
+        url: { type: 'string', description: 'Full URL to fetch and parse' },
+        maxLength: { type: 'number', description: 'Max characters to return (default 3000)' }
+      },
+      required: ['url']
+    }
+  },
+  {
+    name: 'summarizeURL',
+    description: 'Fetch URL content and return a concise summary.',
+    parameters: {
+      type: 'object',
+      properties: {
+        url: { type: 'string', description: 'URL to summarize' }
+      },
+      required: ['url']
+    }
+  },
+  // ─── FILE & SYSTEM TOOLS ───
+  {
+    name: 'readFile',
+    description: 'Read the contents of a local file by path.',
+    parameters: {
+      type: 'object',
+      properties: {
+        filePath: { type: 'string', description: 'File path to read' }
+      },
+      required: ['filePath']
+    }
+  },
+  {
+    name: 'writeFile',
+    description: 'Write content to a local file. REQUIRES CONFIRMATION.',
+    parameters: {
+      type: 'object',
+      properties: {
+        filePath: { type: 'string', description: 'Output file path' },
+        content: { type: 'string', description: 'Content to write' },
+        append: { type: 'string', description: 'Set "true" to append instead of overwrite' }
+      },
+      required: ['filePath', 'content']
+    }
+  },
+  {
+    name: 'listDirectory',
+    description: 'List files and folders in a directory.',
+    parameters: {
+      type: 'object',
+      properties: {
+        dirPath: { type: 'string', description: 'Directory path (default: current directory)' }
+      }
+    }
+  },
+  {
+    name: 'deleteFile',
+    description: 'Delete a file. REQUIRES CONFIRMATION.',
+    parameters: {
+      type: 'object',
+      properties: {
+        filePath: { type: 'string', description: 'File path to delete' }
+      },
+      required: ['filePath']
+    }
+  },
+  {
+    name: 'getSystemInfo',
+    description: 'Get system information like OS, hostname, memory, and Node.js version.',
+    parameters: { type: 'object', properties: {} }
+  },
+  {
+    name: 'runTerminalCommand',
+    description: 'Execute a shell command. REQUIRES CONFIRMATION.',
+    parameters: {
+      type: 'object',
+      properties: {
+        command: { type: 'string', description: 'Shell command to run' },
+        cwd: { type: 'string', description: 'Working directory' },
+        timeoutMs: { type: 'number', description: 'Max execution time in ms' }
+      },
+      required: ['command']
+    }
+  },
+  // ─── SCREEN & CONTEXT TOOLS ───
+  {
+    name: 'captureScreenContext',
+    description: 'Capture the current screen state as a structured DOM snapshot.',
+    parameters: { type: 'object', properties: {} }
+  },
+  {
+    name: 'readScreenRegion',
+    description: 'Read text content from a specific section of the page (sidebar, main, navbar, modal).',
+    parameters: {
+      type: 'object',
+      properties: {
+        section: { type: 'string', description: 'Page section: sidebar, main, navbar, modal, or all', enum: ['sidebar', 'main', 'navbar', 'modal', 'all'] }
+      }
+    }
+  },
+  // ─── PERSISTENT MEMORY TOOLS ───
+  {
+    name: 'saveToMemory',
+    description: 'Save a fact or note to persistent agent memory.',
+    parameters: {
+      type: 'object',
+      properties: {
+        key: { type: 'string', description: 'Short label/key for the memory' },
+        value: { type: 'string', description: 'The fact/note to remember' },
+        category: { type: 'string', description: 'Category: general, academic, personal, preference' }
+      },
+      required: ['key', 'value']
+    }
+  },
+  {
+    name: 'recallFromMemory',
+    description: 'Search and recall saved facts from persistent memory.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Search query to find matching memories' }
+      },
+      required: ['query']
+    }
+  },
+  {
+    name: 'setReminder',
+    description: 'Set a future reminder with a message.',
+    parameters: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', description: 'Reminder message text' },
+        triggerAt: { type: 'string', description: 'ISO timestamp for when to trigger' }
+      },
+      required: ['message']
+    }
+  },
+  {
+    name: 'listReminders',
+    description: 'List all active/pending reminders.',
+    parameters: { type: 'object', properties: {} }
+  },
+  {
+    name: 'clearPersistentMemory',
+    description: 'Clear stored agent memories. REQUIRES CONFIRMATION.',
+    parameters: {
+      type: 'object',
+      properties: {
+        category: { type: 'string', description: 'Optional: clear only a specific category' }
+      }
+    }
   }
 ];

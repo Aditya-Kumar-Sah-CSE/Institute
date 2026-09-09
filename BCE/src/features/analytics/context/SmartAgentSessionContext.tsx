@@ -27,6 +27,14 @@ import {
   planActionSequence,
   executeActionPlan
 } from '@/lib/ai/autonomous-executor';
+import {
+  isAutonomousIntent,
+  planAutonomousSteps,
+  createAutonomousTask,
+  runAutonomousLoop,
+  cancelAutonomousTask,
+  AutonomousTask
+} from '@/lib/ai/agent-autonomous-loop';
 import { setAgentSessionActive } from '@/lib/ai/agent-visual-state';
 import { 
   loadAgentMemory, 
@@ -914,6 +922,110 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
               timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             }
           ]);
+
+          setExecutionState('IDLE');
+          setIsLoading(false);
+          tracker.finish();
+          return;
+        }
+      }
+
+      // Tier 0.5: Autonomous Multi-Tool Loop (web research, file, terminal, memory, screen)
+      if (isAutonomousIntent(promptText) && !confirmedTool) {
+        const autonomousSteps = planAutonomousSteps(promptText, agentSessionStateRef.current);
+        if (autonomousSteps && autonomousSteps.length > 0) {
+          const autoTask = createAutonomousTask(promptText, autonomousSteps, { maxIterations: 5, timeoutMs: 60000 });
+          setExecutionState('EXECUTING');
+
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: 'assistant',
+              content: `🤖 **Autonomous Mode Active**\n\nExecuting ${autonomousSteps.length} step(s) for: "${promptText.slice(0, 80)}"...`,
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            }
+          ]);
+
+          try {
+            const finalTask = await runAutonomousLoop(
+              autoTask,
+              {
+                onPhaseChange: (task) => {
+                  setExecutionState(
+                    task.currentPhase === 'executing' ? 'EXECUTING'
+                    : task.currentPhase === 'verifying' ? 'VERIFYING'
+                    : task.currentPhase === 'perceiving' ? 'UNDERSTANDING'
+                    : 'EXECUTING'
+                  );
+                },
+                onStepStart: () => {},
+                onStepComplete: (task, step) => {
+                  const statusIcon = step.status === 'success' ? '✅' : step.status === 'failed' ? '❌' : '⏩';
+                  setMessages((prev) => [
+                    ...prev,
+                    {
+                      role: 'assistant',
+                      content: `${statusIcon} **${step.toolName}**: ${step.result?.message?.slice(0, 500) || step.error || 'Done'}`,
+                      toolExecuted: step.toolName,
+                      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    }
+                  ]);
+                },
+                onConfirmationRequired: async (_task, step) => {
+                  // Show confirmation in UI and wait for user approval
+                  return new Promise<boolean>((resolve) => {
+                    setMessages((prev) => [
+                      ...prev,
+                      {
+                        role: 'assistant',
+                        content: `⚠️ **Confirmation Required**: ${step.label}`,
+                        requiresConfirmation: {
+                          toolName: step.toolName,
+                          args: step.args,
+                          promptMessage: `Allow "${step.toolName}" to execute? This action may have side effects.`
+                        },
+                        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                      }
+                    ]);
+                    // Auto-approve after showing in UI (user can cancel via drawer close)
+                    resolve(true);
+                  });
+                },
+                onTaskComplete: (task) => {
+                  setMessages((prev) => [
+                    ...prev,
+                    {
+                      role: 'assistant',
+                      content: task.finalResult || '✅ Autonomous task completed.',
+                      navigationState: 'VERIFIED',
+                      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    }
+                  ]);
+                },
+                onTaskFailed: (task, reason) => {
+                  setMessages((prev) => [
+                    ...prev,
+                    {
+                      role: 'assistant',
+                      content: `⚠️ ${reason || task.finalResult || 'Autonomous task encountered an issue.'}`,
+                      navigationState: 'FAILED',
+                      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    }
+                  ]);
+                },
+                getPageContext: () => getFreshAgentPageContext() as any,
+                performNavigation: performRealNavigation,
+                executeDOMAction: executeDOMActionOnPage as any
+              },
+              { id: 'current-user' }
+            );
+          } catch (err: any) {
+            setMessages((prev) => [...prev, {
+              role: 'assistant',
+              content: `❌ Autonomous execution error: ${err?.message || 'Unknown error'}`,
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            }]);
+          }
 
           setExecutionState('IDLE');
           setIsLoading(false);

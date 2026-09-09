@@ -1,4 +1,4 @@
-import { AGENT_TOOLS, AgentToolResult, selectRelevantTools } from './agent-tools';
+import { AGENT_TOOLS, AgentToolResult, selectRelevantTools } from './agent-tools-server';
 import { buildAgentContext, AgentPageContext } from './agent-context';
 import { Student360Profile } from '@/features/analytics/services/student-intelligence';
 import { GoogleGenAI } from '@google/genai';

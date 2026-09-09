@@ -6,7 +6,9 @@ import { setAgentVisualState, emitScanSequence } from './agent-visual-state';
 
 export interface AgentActionStep {
   id: string;
-  action: 'scan' | 'read' | 'click' | 'type' | 'scroll' | 'wait' | 'verify' | 'navigate';
+  action: 'scan' | 'read' | 'click' | 'type' | 'scroll' | 'wait' | 'verify' | 'navigate'
+    | 'web_search' | 'web_scrape' | 'file_read' | 'file_write' | 'terminal'
+    | 'screen_capture' | 'memory_save' | 'memory_recall' | 'set_reminder';
   target?: string;
   value?: string;
   waitMs?: number;
