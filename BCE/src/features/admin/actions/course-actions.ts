@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { checkBadges } from '@/features/gamification/actions/gamification';
+import { isInstructorRole, normalizeRole } from '@/lib/role-utils';
 
 // Authorization helper — verifies admin or instructor role
 async function requireCourseRole() {
@@ -16,11 +17,11 @@ async function requireCourseRole() {
     .eq('id', user.id)
     .single();
 
-  if (!profile || (profile.role !== 'admin' && profile.role !== 'instructor' && profile.role !== 'developer')) {
+  if (!profile || !isInstructorRole(profile.role)) {
     throw new Error('Unauthorized: admin, instructor, or developer role required');
   }
 
-  return { supabase, user, role: profile.role, instituteId: profile.institute_id };
+  return { supabase, user, role: normalizeRole(profile.role), instituteId: profile.institute_id };
 }
 
 export async function addCourse(formData: FormData) {
