@@ -7,7 +7,14 @@ export async function getCodeArenaActor() {
   if (!user) return { supabase, user: null, profile: null, isInstructor: false };
   const { data: profile } = await supabase.from('profiles').select('id, role, status, graduation_period, institution_id').eq('id', user.id).single();
   const role = normalizeRole(profile?.role);
-  return { supabase, user, profile, isInstructor: ['instructor', 'admin', 'developer'].includes(role) && profile?.status !== 'pending' && profile?.status !== 'rejected' };
+  return {
+    supabase,
+    user,
+    profile,
+    isInstructor: ['instructor', 'admin', 'developer', 'super_admin', 'superadmin'].includes(role)
+      && profile?.status !== 'pending'
+      && profile?.status !== 'rejected'
+  };
 }
 
 export function slugifyProblem(value: string) {
