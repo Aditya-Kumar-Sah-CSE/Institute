@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "node --max-old-space-size=4096 node_modules/next/dist/bin/next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "companion": "node ../tools/smart-learn-companion/companion.js"
   },
   "dependencies": {
     "@google/genai": "^2.21.0",

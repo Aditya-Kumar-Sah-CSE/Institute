@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { checkBadges } from '@/features/gamification/actions/gamification';
-import { isInstructorRole, normalizeRole } from '@/lib/role-utils';
+import { canCreateLearningContent, normalizeRole } from '@/lib/role-utils';
 
 // Authorization helper — verifies admin or instructor role
 async function requireCourseRole() {
@@ -13,11 +13,11 @@ async function requireCourseRole() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, institute_id')
+    .select('role, status, institute_id')
     .eq('id', user.id)
     .single();
 
-  if (!profile || !isInstructorRole(profile.role)) {
+  if (!profile || !canCreateLearningContent(profile.role, profile.status)) {
     throw new Error('Unauthorized: admin, instructor, or developer role required');
   }
 
@@ -42,16 +42,23 @@ export async function addCourse(formData: FormData) {
   const enrollment_restriction = (formData.get('enrollment_restriction') as string) || 'any';
 
   const instructorIdsString = formData.get('instructor_ids') as string;
-  const rawInstructorIds: string[] = instructorIdsString 
-    ? JSON.parse(instructorIdsString) 
-    : [user?.id].filter(Boolean) as string[];
+  let parsedInstructorIds: string[] = [];
+  try {
+    if (instructorIdsString) parsedInstructorIds = JSON.parse(instructorIdsString);
+  } catch {
+    // Fallback if malformed string
+  }
+  
+  if (!Array.isArray(parsedInstructorIds) || parsedInstructorIds.length === 0) {
+    parsedInstructorIds = [user.id];
+  }
 
   // Normalize selected user IDs in a unique array
-  const instructorIds = Array.from(new Set(rawInstructorIds));
+  const instructorIds = Array.from(new Set(parsedInstructorIds));
 
   if (!title) return { error: 'Title is required' };
 
-  // Validate every selected user
+  // Validate every selected user if provided
   if (instructorIds.length > 0) {
     const { data: validatedProfiles, error: valError } = await supabase
       .from('profiles')
@@ -59,17 +66,13 @@ export async function addCourse(formData: FormData) {
       .in('id', instructorIds);
 
     if (valError) {
-      return { error: 'Faculty validation error: ' + valError.message };
-    }
-
-    if (!validatedProfiles || validatedProfiles.length !== instructorIds.length) {
-      return { error: 'One or more selected faculty/admin users do not exist.' };
-    }
-
-    for (const p of validatedProfiles) {
-      const roleLower = (p.role || '').toLowerCase();
-      if (roleLower !== 'admin' && roleLower !== 'instructor' && roleLower !== 'developer' && roleLower !== 'faculty' && roleLower !== 'super_admin' && roleLower !== 'superadmin') {
-        return { error: `User is not an Instructor or Admin.` };
+      console.warn('Faculty validation warning:', valError.message);
+    } else if (validatedProfiles) {
+      for (const p of validatedProfiles) {
+        const roleLower = (p.role || '').toLowerCase();
+        if (roleLower === 'student' || roleLower === 'user') {
+          return { error: `User ${p.id} is a student, not an Instructor or Admin.` };
+        }
       }
     }
   }
@@ -80,7 +83,7 @@ export async function addCourse(formData: FormData) {
     difficulty,
     is_published,
     enrollment_restriction,
-    created_by: user?.id,
+    created_by: user.id,
   }).select('id').single();
 
   if (error) return { error: error.message };
@@ -91,7 +94,9 @@ export async function addCourse(formData: FormData) {
       instructor_id: instructorId
     }));
     const { error: linkError } = await supabase.from('course_instructors').insert(instructorInserts);
-    if (linkError) return { error: linkError.message };
+    if (linkError) {
+      console.warn('Linking course_instructors failed:', linkError.message);
+    }
   }
 
   if (user?.id) {

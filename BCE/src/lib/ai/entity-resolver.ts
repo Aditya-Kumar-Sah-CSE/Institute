@@ -485,6 +485,16 @@ export async function resolveDSAProblem(
     score: scoreMatch(normQuery, rawQuery, p.title)
   })).filter(s => s.score > 0.45);
 
+  // A named problem may belong to another sheet than the one currently open.
+  // Keep the active-sheet lookup first, then search globally when it has no match.
+  if (scored.length === 0 && sheetId) {
+    const allProblems = await getCachedDSAProblems();
+    scored.push(...allProblems.map(p => ({
+      entity: p,
+      score: scoreMatch(normQuery, rawQuery, p.title)
+    })).filter(s => s.score > 0.45));
+  }
+
   scored.sort((a, b) => b.score - a.score);
 
   if (scored.length === 0) {

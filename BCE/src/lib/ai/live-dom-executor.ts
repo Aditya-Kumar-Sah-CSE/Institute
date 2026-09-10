@@ -48,6 +48,7 @@ export interface DOMActionTelemetry {
 
 export interface DOMActionResult {
   success: boolean;
+  verified?: boolean;
   message: string;
   actionType: WhitelistedActionType;
   targetElementText?: string;
@@ -325,6 +326,10 @@ export function executeLiveDOMAction(
         if (elByAttr) {
           targetDomNode = elByAttr;
         }
+      }
+
+      if (targetDomNode?.closest('.smart-agent-drawer, .smart-mentor-drawer')) {
+        return { targetElement: undefined, targetDomNode: null };
       }
 
       return { targetElement, targetDomNode };
@@ -687,9 +692,10 @@ export function executeLiveDOMAction(
 
     return {
       success: true,
+      verified: Boolean(urlChanged),
       message: urlChanged
-        ? `Successfully executed ${normalizedAction} on "${effectiveLabelText}" and navigated to ${newRoute}.`
-        : `Successfully executed ${normalizedAction} on "${effectiveLabelText}".`,
+        ? `Executed ${normalizedAction} on "${effectiveLabelText}" and navigated to ${newRoute}.`
+        : `Executed ${normalizedAction} on "${effectiveLabelText}". The resulting state still needs verification.`,
       actionType: normalizedAction,
       targetElementId: targetElement?.id,
       targetElementText: effectiveLabelText,

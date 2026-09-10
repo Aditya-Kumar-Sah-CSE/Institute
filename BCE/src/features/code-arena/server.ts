@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { normalizeRole } from '@/lib/role-utils';
+import { canCreateLearningContent, normalizeRole } from '@/lib/role-utils';
 
 export async function getCodeArenaActor() {
   const supabase = await createClient();
@@ -11,9 +11,7 @@ export async function getCodeArenaActor() {
     supabase,
     user,
     profile,
-    isInstructor: ['instructor', 'admin', 'developer', 'super_admin', 'superadmin'].includes(role)
-      && profile?.status !== 'pending'
-      && profile?.status !== 'rejected'
+    isInstructor: canCreateLearningContent(role, profile?.status)
   };
 }
 

@@ -1,6 +1,9 @@
+import { AppRole, getRequiredRoleForTool } from '@/lib/auth/agent-permissions';
+
 export interface ToolDeclaration {
   name: string;
   description: string;
+  requiredPermission?: AppRole;
   parameters: {
     type: 'object';
     properties: Record<string, { type: string; description: string; enum?: string[] }>;
@@ -8,7 +11,7 @@ export interface ToolDeclaration {
   };
 }
 
-export const GEMINI_TOOL_DECLARATIONS: ToolDeclaration[] = [
+const TOOL_DECLARATIONS: ToolDeclaration[] = [
   {
     name: 'openDashboard',
     description: 'Navigate to the student main dashboard. Use when student asks to open/show dashboard, home page, or main screen. Examples: "dashboard kholo", "open home", "home page dikhao".',
@@ -39,6 +42,11 @@ export const GEMINI_TOOL_DECLARATIONS: ToolDeclaration[] = [
         courseName: { type: 'string', description: 'Course title or query string to match' }
       }
     }
+  },
+  {
+    name: 'getCurrentCodingProblem',
+    description: 'Read the currently open rendered coding problem before solving or explaining it, including its statement, formats, constraints, examples, explanation, starter code, signature, and editor language.',
+    parameters: { type: 'object', properties: {} }
   },
   {
     name: 'openDSASheets',
@@ -326,6 +334,61 @@ export const GEMINI_TOOL_DECLARATIONS: ToolDeclaration[] = [
     parameters: { type: 'object', properties: {} }
   },
   {
+    name: 'inspectLocalComputer',
+    description: 'Inspect the connected local Computer Companion capabilities and connection state.',
+    parameters: { type: 'object', properties: {} }
+  },
+  {
+    name: 'launchPermittedApp',
+    description: 'Launch an allowlisted desktop app through the local companion. Requires explicit user confirmation.',
+    parameters: {
+      type: 'object',
+      properties: {
+        app: { type: 'string', description: 'Allowlisted app name such as chrome or edge' },
+        args: { type: 'array', description: 'Safe navigation arguments' }
+      },
+      required: ['app']
+    }
+  },
+  {
+    name: 'openBrowserUrl',
+    description: 'Open an HTTP(S) URL in the paired local browser and verify the active tab URL, title, and visible DOM.',
+    parameters: {
+      type: 'object',
+      properties: {
+        url: { type: 'string', description: 'HTTP(S) URL to open' },
+        app: { type: 'string', description: 'Allowlisted browser name' }
+      },
+      required: ['url']
+    }
+  },
+  {
+    name: 'observeBrowserState',
+    description: 'Observe the actual paired browser active tab URL, title, and visible DOM text.',
+    parameters: { type: 'object', properties: {} }
+  },
+  {
+    name: 'readLocalWorkspaceFile',
+    description: 'Read a file from the local companion workspace.',
+    parameters: {
+      type: 'object',
+      properties: { path: { type: 'string', description: 'Relative workspace path' } },
+      required: ['path']
+    }
+  },
+  {
+    name: 'writeLocalWorkspaceFile',
+    description: 'Write a file in the local companion workspace. Requires explicit user confirmation.',
+    parameters: {
+      type: 'object',
+      properties: {
+        path: { type: 'string', description: 'Relative workspace path' },
+        content: { type: 'string', description: 'File content' }
+      },
+      required: ['path', 'content']
+    }
+  },
+  {
     name: 'readScreenRegion',
     description: 'Read text content from a specific section of the page (sidebar, main, navbar, modal).',
     parameters: {
@@ -386,5 +449,22 @@ export const GEMINI_TOOL_DECLARATIONS: ToolDeclaration[] = [
         category: { type: 'string', description: 'Optional: clear only a specific category' }
       }
     }
+  },
+  {
+    name: 'runAutonomousCodingAgent',
+    description: 'Autonomously plan, inspect, generate code, apply workspace files, compile, repair errors, and verify pages in browser. Use when user asks to "Make a login page", "create a page", "build a component", "fix component", or requests full autonomous software engineering.',
+    parameters: {
+      type: 'object',
+      properties: {
+        prompt: { type: 'string', description: 'Coding prompt or feature description e.g. "Make a login page"' },
+        maxRetries: { type: 'number', description: 'Max repair loop iterations (default: 3)' }
+      },
+      required: ['prompt']
+    }
   }
 ];
+
+export const GEMINI_TOOL_DECLARATIONS: ToolDeclaration[] = TOOL_DECLARATIONS.map(tool => ({
+  ...tool,
+  requiredPermission: getRequiredRoleForTool(tool.name)
+}));

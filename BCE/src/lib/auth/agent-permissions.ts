@@ -99,6 +99,7 @@ export const TOOL_PERMISSIONS: Record<string, AppRole> = {
   searchProgramSeats: 'guest',
   queryLivePage: 'guest',
   getCurrentPageContext: 'guest',
+  getCurrentCodingProblem: 'student',
   interactWithPageElement: 'guest',
   fillFormInput: 'guest',
   readPageContent: 'guest',
@@ -132,7 +133,7 @@ export const TOOL_PERMISSIONS: Record<string, AppRole> = {
   createRoutine: 'student',
   getMyGoals: 'student',
   createGoal: 'student',
-  createCodingSheet: 'student',
+  createCodingSheet: 'instructor',
   addProblemsToSheet: 'student',
   getDSASheetDetails: 'student',
   runSafeSQLQuery: 'student',
@@ -140,6 +141,36 @@ export const TOOL_PERMISSIONS: Record<string, AppRole> = {
   readLatexCode: 'student',
   editLatexCode: 'student',
   getLeaderboardRank: 'student',
+  runAutonomousCodingAgent: 'student',
+
+  // Shared agent tools not tied to a student workflow
+  scanLivePageElements: 'guest',
+  getAvailableDSASheets: 'student',
+  createNotice: 'instructor',
+  captureScreenContext: 'student',
+  readScreenRegion: 'student',
+  saveToMemory: 'student',
+  recallFromMemory: 'student',
+  setReminder: 'student',
+  listReminders: 'student',
+  clearPersistentMemory: 'student',
+  readFile: 'admin',
+  writeFile: 'admin',
+  listDirectory: 'admin',
+  deleteFile: 'admin',
+  getSystemInfo: 'admin',
+  runTerminalCommand: 'admin',
+  webSearch: 'guest',
+  webScrape: 'guest',
+  summarizeURL: 'guest',
+
+  // Local Computer Companion tools. Desktop mutations remain confirmation-gated.
+  inspectLocalComputer: 'student',
+  launchPermittedApp: 'student',
+  openBrowserUrl: 'student',
+  observeBrowserState: 'student',
+  readLocalWorkspaceFile: 'student',
+  writeLocalWorkspaceFile: 'student',
 
   // Instructor tools
   openInstructorDashboard: 'instructor',
@@ -153,7 +184,6 @@ export const TOOL_PERMISSIONS: Record<string, AppRole> = {
   manageCourseBuilder: 'instructor',
   viewStudentSubmissions: 'instructor',
   createInstructorNotice: 'instructor',
-  createNotice: 'instructor',
 
   // Admin tools
   openAdminDashboard: 'admin',
@@ -196,6 +226,51 @@ export function getRequiredRoleForTool(toolName: string): AppRole {
   return TOOL_PERMISSIONS[toolName] || 'student';
 }
 
+export class AgentPermissionManager {
+  static getRequiredRole(toolName: string): AppRole | undefined {
+    return TOOL_PERMISSIONS[toolName];
+  }
+
+  static canUseTool(role: unknown, toolName: string): boolean {
+    const requiredRole = this.getRequiredRole(toolName);
+    if (!requiredRole) return false;
+    const normalizedRole = normalizeAgentRole(role);
+    return ROLE_HIERARCHY[normalizedRole] >= ROLE_HIERARCHY[requiredRole];
+  }
+
+  static requireToolPermission(
+    user: { id: string } | null | undefined,
+    userRole: unknown,
+    toolName: string
+  ): { allowed: boolean; reason?: string; requiredRole?: AppRole } {
+    const requiredRole = this.getRequiredRole(toolName);
+    if (!requiredRole) {
+      return { allowed: false, reason: 'Access denied. This agent tool is not authorized.' };
+    }
+
+    const normalizedRole = normalizeAgentRole(userRole);
+    if ((!user || normalizedRole === 'guest') && requiredRole !== 'guest') {
+      return {
+        allowed: false,
+        reason: 'Please log in first. This action is available to authenticated users.',
+        requiredRole
+      };
+    }
+
+    if (requiredRole === 'guest') return { allowed: true, requiredRole };
+
+    if (!this.canUseTool(normalizedRole, toolName)) {
+      return {
+        allowed: false,
+        reason: `Access denied. The ${toolName} tool requires ${requiredRole} permissions.`,
+        requiredRole
+      };
+    }
+
+    return { allowed: true, requiredRole };
+  }
+}
+
 /**
  * Check if a role can access a given pathname.
  */
@@ -209,9 +284,7 @@ export function canAccessPage(role: unknown, pathname: string): boolean {
  * Check if a role can execute a given tool.
  */
 export function canUseTool(role: unknown, toolName: string): boolean {
-  const userRole = normalizeAgentRole(role);
-  const minRequired = getRequiredRoleForTool(toolName);
-  return ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY[minRequired];
+  return AgentPermissionManager.canUseTool(role, toolName);
 }
 
 /**
@@ -235,6 +308,10 @@ export function requireAgentPermission(
   targetType: 'page' | 'tool' | 'resource',
   targetName: string
 ): { allowed: boolean; reason?: string; requiredRole?: AppRole } {
+  if (targetType === 'tool') {
+    return AgentPermissionManager.requireToolPermission(user, userRole, targetName);
+  }
+
   const normalizedRole = normalizeAgentRole(userRole);
 
   // Authentication Gate check for unauthenticated users
@@ -248,15 +325,6 @@ export function requireAgentPermission(
           requiredRole: getRequiredRoleForPage(targetName)
         };
       }
-    } else if (targetType === 'tool') {
-      const allowed = canUseTool('guest', targetName);
-      if (!allowed) {
-        return {
-          allowed: false,
-          reason: 'Please log in first. This section is available to authenticated users.',
-          requiredRole: getRequiredRoleForTool(targetName)
-        };
-      }
     }
   }
 
@@ -268,16 +336,6 @@ export function requireAgentPermission(
       return {
         allowed: false,
         reason: `Access denied. The ${targetName} page requires ${requiredRole} permissions.`,
-        requiredRole
-      };
-    }
-  } else if (targetType === 'tool') {
-    const allowed = canUseTool(normalizedRole, targetName);
-    const requiredRole = getRequiredRoleForTool(targetName);
-    if (!allowed) {
-      return {
-        allowed: false,
-        reason: `Access denied. The ${targetName} tool requires ${requiredRole} permissions.`,
         requiredRole
       };
     }

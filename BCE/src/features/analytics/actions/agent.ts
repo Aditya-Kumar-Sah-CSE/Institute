@@ -50,7 +50,7 @@ export async function askSmartAgentAction(input: {
         if (profileRes.status === 'fulfilled' && profileRes.value.data) {
           userRole = normalizeAgentRole(profileRes.value.data.role);
         } else {
-          userRole = normalizeAgentRole(user.user_metadata?.role || 'student');
+          userRole = 'student';
         }
 
         if (studentRes.status === 'fulfilled') {

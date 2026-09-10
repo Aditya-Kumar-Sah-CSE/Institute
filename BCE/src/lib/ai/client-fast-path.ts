@@ -16,6 +16,7 @@ export interface ClientFastPathResult {
   isMatch: boolean;
   targetRoute?: string;
   expectedRoute?: string;
+  externalUrl?: string;
   expectedEntity?: {
     type: 'sheet' | 'problem' | 'course' | 'certificate';
     id: string;
@@ -554,15 +555,28 @@ export function resolveClientFastPath(
     };
   }
 
-  // 11. Recommendation & Learning Plan Queries (Hinglish Supported)
-  if (/\b(what\s+should\s+i\s+study|kya\s+padhun|aaj\tagya\spadhna|recommendation|my\s+plan|learning\s+plan|weak\s+topics|weakness|falling\s+behind|which\s+course\s+to\s+enroll|dsa\s+me\s+main\s+weak\s+hoon)\b/i.test(p)) {
+  // 12. YouTube & External Website Fast-Path (e.g. "open youtube", "youtube kholo", "search youtube for binary search")
+  const isYouTubeQuery = /\b(youtube|yt)\b/i.test(p);
+  if (isYouTubeQuery) {
+    const rawSearch = p.replace(/\b(open|kholo|search|search\s+for|on|par|in|video|videos|dsa|problem|find|yt|youtube)\b/gi, '').trim();
+    if (rawSearch.length > 2) {
+      const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(rawSearch)}`;
+      return {
+        isMatch: true,
+        clientAction: 'navigate',
+        externalUrl: searchUrl,
+        streamingMessage: `Searching YouTube for "${rawSearch}"...`,
+        successMessage: `YouTube search results opened for "${rawSearch}".`,
+        allowed: true,
+        language
+      };
+    }
     return {
       isMatch: true,
-      targetRoute: '/dashboard',
-      expectedHeading: 'Dashboard',
       clientAction: 'navigate',
-      streamingMessage: language === 'hinglish' ? 'Aapka learning profile aur recommendations analyze kar raha hoon...' : 'Analyzing your learning profile & recommendations...',
-      successMessage: 'Personalized recommendations retrieved.',
+      externalUrl: 'https://www.youtube.com',
+      streamingMessage: 'Opening YouTube...',
+      successMessage: 'YouTube opened.',
       allowed: true,
       language
     };

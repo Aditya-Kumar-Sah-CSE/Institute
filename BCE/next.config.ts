@@ -11,7 +11,13 @@ const nextConfig: NextConfig = {
           { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
           { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' }
         ]
-      }
+      },
+      {
+        source: '/sw.js',
+        headers: [
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' }
+        ]
+      },
     ];
   },
 

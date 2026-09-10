@@ -48,6 +48,27 @@ export interface LiveEntityProblem {
   slug?: string;
 }
 
+export interface ProblemExampleContext {
+  input: string;
+  output: string;
+  explanation?: string;
+}
+
+export interface ProblemContext {
+  title: string;
+  statement: string;
+  inputFormat: string;
+  outputFormat: string;
+  constraints: string;
+  examples: ProblemExampleContext[];
+  explanation: string;
+  starterCode?: Record<string, string>;
+  functionSignature?: string;
+  supportedLanguages?: string[];
+  selectedLanguage?: string;
+  editorContent?: string;
+}
+
 export interface LiveEntityCourse {
   id: string;
   title: string;
@@ -73,6 +94,7 @@ export interface LivePageContext {
   pageTitle?: string;
   visibleHeadings?: string[];
   visibleTextContent?: string;
+  problemContext?: ProblemContext;
   interactiveElements?: string[];
   interactiveElementsList?: InteractiveDOMElement[];
   importantIds?: Record<string, string>;

@@ -436,10 +436,22 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
     }
 
     let entityMessage = '';
-    if (expectedEntity && freshCtx.currentEntity) {
-      if (freshCtx.currentEntity.id === expectedEntity.id || freshCtx.currentEntity.title === expectedEntity.title) {
-        entityMessage = ` Verified: ${freshCtx.currentEntity.title}`;
+    if (expectedEntity) {
+      if (!freshCtx.currentEntity ||
+          (freshCtx.currentEntity.id !== expectedEntity.id && freshCtx.currentEntity.title !== expectedEntity.title)) {
+        return {
+          success: false,
+          message: `❌ Route loaded, but the expected ${expectedEntity.type} was not present in the live page DOM.`
+        };
       }
+      entityMessage = ` Verified: ${freshCtx.currentEntity.title}`;
+    }
+
+    if (freshCtx.loadState !== 'ready') {
+      return {
+        success: false,
+        message: `❌ Route matched, but the live page is not ready (state: ${freshCtx.loadState || 'unknown'}).`
+      };
     }
 
     return {
@@ -578,8 +590,10 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
             if (result.data.clientDOMAction) {
               const { actionType, query, valueToType, elementIndex } = result.data.clientDOMAction;
               const domRes = executeDOMActionOnPage(actionType, query, valueToType, elementIndex);
-              if (domRes.success) {
+              if (domRes.success && domRes.verified) {
                 executedContent = `✅ ${domRes.message}`;
+              } else if (domRes.success) {
+                executedContent = `⚠️ ${domRes.message}`;
               } else {
                 executedContent = `⚠️ ${domRes.message}`;
               }
@@ -930,6 +944,108 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         }
       }
 
+      // Tier 0.25: Stream the full autonomous coding pipeline into the drawer.
+      const isAutonomousCodingPrompt = /\b(make|build|create|fix)\s+(a\s+|an\s+)?(login\s+page|signup\s+page|page|component|feature|ui|landing\s+page)\b/i.test(promptText);
+      if (isAutonomousCodingPrompt && !confirmedTool) {
+        setExecutionState('EXECUTING');
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: '🤖 **Autonomous Coding Agent started**\n\nPreparing the workspace...',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }
+        ]);
+
+        try {
+          const response = await fetch('/api/ai/autonomous-coding', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: promptText, maxRetries: 3 }),
+            signal
+          });
+
+          if (!response.ok || !response.body) {
+            const payload = await response.json().catch(() => ({}));
+            throw new Error(payload.message || payload.error || `Autonomous coding request failed (${response.status})`);
+          }
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffered = '';
+          let finalReport: any = null;
+
+          const handleEvent = (event: any) => {
+            if (event.type === 'progress') {
+              const phase = String(event.phase || 'execution');
+              setExecutionState(
+                phase === 'browser_verification' ? 'VERIFYING' :
+                phase === 'completed' ? 'IDLE' : 'EXECUTING'
+              );
+              setMessages((prev) => [
+                ...prev,
+                {
+                  role: 'assistant',
+                  content: `${event.status === 'failed' ? '❌' : event.status === 'completed' ? '✅' : '⏳'} **${event.label}**${event.details ? `\n${String(event.details).slice(0, 500)}` : ''}`,
+                  toolExecuted: 'runAutonomousCodingAgent',
+                  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                }
+              ]);
+            } else if (event.type === 'complete') {
+              finalReport = event.report;
+            } else if (event.type === 'error') {
+              throw new Error(event.message || 'Autonomous coding task failed');
+            }
+          };
+
+          while (true) {
+            const { value, done } = await reader.read();
+            buffered += decoder.decode(value || new Uint8Array(), { stream: !done });
+            const lines = buffered.split('\n');
+            buffered = lines.pop() || '';
+            for (const line of lines) {
+              if (line.trim()) handleEvent(JSON.parse(line));
+            }
+            if (done) break;
+          }
+          if (buffered.trim()) handleEvent(JSON.parse(buffered));
+
+          if (!finalReport?.success) {
+            throw new Error(finalReport?.errorMessage || 'Autonomous coding could not complete successfully.');
+          }
+
+          setExecutionState('NAVIGATING');
+          await performRealNavigation(finalReport.targetRoute);
+          if (signal.aborted) return;
+          setExecutionState('VERIFYING');
+          const verification = await verifyPostActionState(finalReport.targetRoute);
+          const verificationMessage = verification.success
+            ? `✅ Autonomous coding complete. Generated ${finalReport.modifiedFiles?.join(', ') || 'the requested files'}, compiled successfully, opened ${finalReport.targetRoute}, and verified the rendered UI.`
+            : `⚠️ Code was generated and compiled, but browser verification failed: ${verification.message}`;
+
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: 'assistant',
+              content: verificationMessage,
+              navigationState: verification.success ? 'VERIFIED' : 'FAILED',
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            }
+          ]);
+          setExecutionState(verification.success ? 'IDLE' : 'FAILED');
+        } catch (error: any) {
+          if (error?.name === 'AbortError' || signal.aborted) return;
+          setMessages((prev) => [
+            ...prev,
+            { role: 'assistant', content: `❌ Autonomous coding failed: ${error?.message || 'Unknown error'}`, navigationState: 'FAILED' }
+          ]);
+          setExecutionState('FAILED');
+        }
+        setIsLoading(false);
+        tracker.finish();
+        return;
+      }
+
       // Tier 0.5: Autonomous Multi-Tool Loop (web research, file, terminal, memory, screen)
       if (isAutonomousIntent(promptText) && !confirmedTool) {
         const autonomousSteps = planAutonomousSteps(promptText, agentSessionStateRef.current);
@@ -1146,8 +1262,9 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
               }
             }
           } else {
-            const finalContent = domRes.success ? `✅ ${domRes.message}` : `⚠️ ${domRes.message}`;
-            commitAssistantResponse(finalContent, domRes.success ? 'VERIFIED' : 'FAILED');
+            const verified = domRes.success && domRes.verified === true;
+            const finalContent = verified ? `✅ ${domRes.message}` : `⚠️ ${domRes.message}`;
+            commitAssistantResponse(finalContent, verified ? 'VERIFIED' : 'FAILED');
           }
 
           setExecutionState('IDLE');
@@ -1177,6 +1294,17 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
             }
           }
 
+          setExecutionState('IDLE');
+          setIsLoading(false);
+          tracker.finish();
+          return;
+        }
+
+        if (fastPath.externalUrl) {
+          if (typeof window !== 'undefined') {
+            window.open(fastPath.externalUrl, '_blank');
+          }
+          commitAssistantResponse(`✅ ${fastPath.successMessage || 'Opened external site.'}`, 'VERIFIED');
           setExecutionState('IDLE');
           setIsLoading(false);
           tracker.finish();
@@ -1243,6 +1371,11 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         window.dispatchEvent(new CustomEvent('bce-update-latex', { detail: response.data }));
       }
 
+      const externalUrl = (response as any).externalUrl || (response.data as any)?.externalUrl || (response.data as any)?.searchUrl;
+      if (externalUrl && typeof window !== 'undefined') {
+        window.open(externalUrl, '_blank');
+      }
+
       if (!response.success) {
         const errorContent = `Sorry, ${response.message || "I couldn't read the current page. Please try again."}`;
         console.log('[Agent] response generated (error):', errorContent);
@@ -1265,8 +1398,10 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         tracker.recordDomScan();
         const { actionType, query, valueToType, elementIndex } = response.data.clientDOMAction;
         const domRes = executeDOMActionOnPage(actionType, query, valueToType, elementIndex);
-        if (domRes.success) {
+        if (domRes.success && domRes.verified) {
           displayMessage = `✅ ${domRes.message}`;
+        } else if (domRes.success) {
+          displayMessage = `⚠️ ${domRes.message}`;
         } else {
           displayMessage = `⚠️ ${domRes.message}`;
         }
@@ -1277,6 +1412,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
           ? response.actions[0].url
           : null
       );
+      let navigationVerified = false;
 
       if (targetRoute) {
         tracker.markStage('navigation');
@@ -1287,6 +1423,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
 
         tracker.markStage('verification');
         const verification = await verifyPostActionState(targetRoute, response.expectedEntity);
+        navigationVerified = verification.success;
         if (verification.success) {
           displayMessage = verification.message;
         } else {
@@ -1301,7 +1438,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         actions: response.actions,
         requiresConfirmation: response.requiresConfirmation,
         toolExecuted: response.toolExecuted,
-        navigationState: targetRoute ? 'VERIFIED' : undefined,
+        navigationState: targetRoute ? (navigationVerified ? 'VERIFIED' : 'FAILED') : undefined,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
 

@@ -13,10 +13,7 @@ import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 import { getIcon } from '@/lib/icon-mapper';
 import { signOut } from '@/features/auth/actions/auth';
 import { isAdminRole, isInstructorRole } from '@/lib/role-utils';
-import dynamic from 'next/dynamic';
 import { MoreVertical, ArrowLeft, Smartphone, Monitor, Sparkles } from 'lucide-react';
-
-const SmartAgentDrawer = dynamic(() => import('@/features/analytics/components/SmartAgentDrawer'), { ssr: false });
 
 const ITEM_GROUPS: Record<string, string> = {
   'Dashboard': 'Overview',
@@ -444,11 +441,6 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
         )}
       </div>
 
-      {profile && (
-        <>
-          <SmartAgentDrawer />
-        </>
-      )}
     </header>
   );
 }

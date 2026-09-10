@@ -422,7 +422,8 @@ export default function CourseManager({ courses, instructors = [], currentUserId
     const formData = new FormData();
     Object.entries(courseFormData).forEach(([k, v]) => {
       if (k === 'instructor_ids') {
-        formData.append(k, JSON.stringify(v || []));
+        const ids = Array.isArray(v) && v.length > 0 ? v : (currentUserId ? [currentUserId] : []);
+        formData.append(k, JSON.stringify(ids));
       } else {
         formData.append(k, String(v ?? ''));
       }

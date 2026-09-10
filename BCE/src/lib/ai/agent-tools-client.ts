@@ -42,7 +42,7 @@ const HIGH_RISK_TOOLS = new Set([
 ]);
 
 const TOOL_NAMES = [
-  'openDashboard', 'openProfile', 'openCourses', 'openMyCourses', 'openCourse',
+  'openDashboard', 'openProfile', 'openCourses', 'openMyCourses', 'openCourse', 'getCurrentCodingProblem',
   'openDSASheets', 'openDSASheet', 'getAvailableDSASheets', 'openDSAProblem',
   'queryLivePage', 'getCurrentPageContext', 'interactWithPageElement', 'fillFormInput',
   'scanLivePageElements', 'openWeakestDSAProblem', 'openCodingArena', 'openCodingProfile',
@@ -56,8 +56,10 @@ const TOOL_NAMES = [
   'createModule', 'createMCQ', 'openAdminDashboard', 'openAdminCourses', 'openAdminUsers',
   'openAdminNptel', 'openDeveloperPanel', 'getLeaderboardRank', 'webSearch', 'webScrape',
   'summarizeURL', 'readFile', 'writeFile', 'listDirectory', 'deleteFile', 'getSystemInfo',
-  'runTerminalCommand', 'captureScreenContext', 'readScreenRegion', 'saveToMemory',
-  'recallFromMemory', 'setReminder', 'listReminders', 'clearPersistentMemory'
+  'runTerminalCommand', 'runAutonomousCodingAgent', 'captureScreenContext', 'readScreenRegion', 'saveToMemory',
+  'recallFromMemory', 'setReminder', 'listReminders', 'clearPersistentMemory',
+  'inspectLocalComputer', 'launchPermittedApp', 'openBrowserUrl', 'observeBrowserState',
+  'readLocalWorkspaceFile', 'writeLocalWorkspaceFile'
 ] as const;
 
 const descriptions: Record<string, string> = {

@@ -65,6 +65,7 @@ export async function runSmartAgent(params: {
       id: liveCtx.currentEntity.id,
       title: liveCtx.currentEntity.title
     } : null,
+    problemContext: liveCtx.problemContext || null,
     visibleHeadings: liveCtx.visibleHeadings?.slice(0, 10) || [],
     fullPageText: liveCtx.visibleTextContent ? liveCtx.visibleTextContent.slice(0, 2000) : ''
   } : { route: pageContext?.route || '/' };
@@ -105,7 +106,8 @@ LIVE PAGE CONTEXT: ${safeStringify(agentContext)}
 
 RULES:
 1. User Role: "${userRole}". ONLY select tools allowed for this role.
-2. If user asks "isme kya hai?", "explain this page", inspect liveContext first.
+2. If user asks about a coding problem, use getCurrentCodingProblem before solving, explaining, generating code, or executing an action. Use only the returned rendered problem context; do not invent missing fields.
+3. If user asks "isme kya hai?", "explain this page", inspect liveContext first.
 3. Be concise (1-3 sentences). Match user language (Hinglish/English).`;
 
         const toolDeclarations = relevantToolsList.map(tool => ({

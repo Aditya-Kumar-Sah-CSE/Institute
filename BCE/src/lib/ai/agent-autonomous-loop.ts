@@ -99,6 +99,8 @@ const AUTO_APPROVE_TOOLS = new Set([
   'webSearch', 'webScrape', 'summarizeURL',
   'readFile', 'listDirectory', 'getSystemInfo',
   'captureScreenContext', 'readScreenRegion',
+  'inspectLocalComputer', 'readLocalWorkspaceFile',
+  'observeBrowserState',
   'recallFromMemory', 'listReminders',
   'openWeakestDSAProblem',
 ]);
@@ -107,6 +109,8 @@ const AUTO_APPROVE_TOOLS = new Set([
 const REQUIRE_CONFIRMATION_TOOLS = new Set([
   'writeFile', 'deleteFile',
   'runTerminalCommand',
+  'launchPermittedApp', 'writeLocalWorkspaceFile',
+  'openBrowserUrl',
   'clearMemory',
 ]);
 

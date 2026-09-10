@@ -1,0 +1,10 @@
+{
+  "name": "smart-learn-companion",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Local, allowlisted Smart Learn computer-control companion",
+  "main": "companion.js",
+  "scripts": {
+    "start": "node companion.js"
+  }
+}

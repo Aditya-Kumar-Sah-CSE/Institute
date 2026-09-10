@@ -308,7 +308,8 @@ export default function SmartAgentDrawer() {
     };
   }, []);
 
-  if (!isOpen || !mounted) return null;
+  if (!mounted) return null;
+  if (!isOpen && !isWrapped) return null;
 
   if (isWrapped && mounted) {
     const wrappedBarContent = (
@@ -478,8 +479,8 @@ export default function SmartAgentDrawer() {
               }
             : {
                 position: 'fixed',
-                right: 0,
-                top: '64px',
+              right: 0,
+              top: '64px',
                 bottom: 0,
                 width: '420px',
                 maxWidth: '90vw',

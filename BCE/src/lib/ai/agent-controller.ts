@@ -129,7 +129,11 @@ export class AgentController {
       }
 
       if (AGENT_TOOLS[toolName]) {
-        const result: AgentToolResult = await AGENT_TOOLS[toolName].execute(args, input.user || { id: 'guest' }, input.pageContext);
+        const result: AgentToolResult = await AGENT_TOOLS[toolName].execute(
+          args,
+          input.user || { id: 'guest' },
+          { ...(input.pageContext || {}), __agentConfirmation: true }
+        );
         const actions: Array<{ label: string; url: string; isExternal?: boolean }> = [];
         if (result.url && canAccessPage(userRole, result.url)) {
           actions.push({ label: 'Open Page', url: result.url });
@@ -306,6 +310,14 @@ export class AgentController {
       return this.formatToolResult(toolName, res, sessionState, userRole);
     };
 
+    // 0. AUTONOMOUS CODING AGENT INTENTS ("Make a login page", "create a page", "build a component", "fix component")
+    const isAutonomousCodingIntent = /\b(make|build|create|fix)\s+(a\s+|an\s+)?(login\s+page|signup\s+page|page|component|feature|ui|landing\s+page)\b/i.test(promptLower) ||
+                                     /^(make\s+a\s+login\s+page|create\s+login\s+page|build\s+login\s+page)$/i.test(promptLower.trim());
+
+    if (isAutonomousCodingIntent) {
+      return await executeWithPermission('runAutonomousCodingAgent', { prompt: promptRaw });
+    }
+
     // 0. Meta Realtime / Continuous Conversation / Speed Optimization Queries
     const isMetaOptimizationQuery = /\b(contineous|continuous|conversation|real\s*time|realtime|delay|latency|fast|slow|speed|optmize|optimize)\b/i.test(promptLower) &&
                                     /\b(nhi|nahi|kr|karo|batao|kya|h|hai|kardo)\b/i.test(promptLower);
@@ -323,7 +335,22 @@ export class AgentController {
       };
     }
 
+    // External browser navigation must use the paired browser controller, never a
+    // live DOM text match from the Smart Agent drawer.
+    if (/^(?:open|go to|visit|navigate to)\s+(?:youtube|youtube\.com)(?:\s+.*)?$/i.test(promptRaw)) {
+      return await executeWithPermission('openBrowserUrl', { url: 'https://www.youtube.com', app: 'chrome' });
+    }
+
     // 0. Live Current-Page Content Queries ("isme kya hai?", "is page par kya hai?", "yaha kya likha hai?", "explain this page", "full scroll read", "content access")
+    const resolverLiveContext = pageContext?.liveContext || pageContext;
+    const isCodingProblemUnderstandingQuery = userRole !== 'guest' &&
+      (sessionState.route.includes('/code-arena/problems/') || resolverLiveContext?.pageType === 'dsa_problem') &&
+      /\b(what\s+is\s+this\s+problem|what.*problem.*asking|explain.*problem|understand.*problem|solve.*problem|approach|constraints|input\s*(format)?|output\s*(format)?|examples?)\b/i.test(promptLower);
+
+    if (isCodingProblemUnderstandingQuery) {
+      return await executeWithPermission('getCurrentCodingProblem', {});
+    }
+
     const isCurrentPageQuery = /\b(isme|is\s+page|yaha|yahan|current\s+page|open\s+page|this\s+page|full\s+page|scroll|screen)\b/i.test(promptLower) &&
                                /\b(kya|what|explain|progress|detail|details|info|padho|read|list|batao|dikhao|content|access)\b/i.test(promptLower);
 
@@ -336,6 +363,46 @@ export class AgentController {
         const entityStr = live.currentEntity ? `Active Item: ${live.currentEntity.title} (${live.currentEntity.type})` : '';
 
         const snapshot = live.snapshot;
+
+    // Course lesson resources: use the rendered lesson tabs instead of treating
+    // a course video request as an external YouTube search.
+    const isCourseResourceIntent = /\b(video|videos|material|materials|notes|resource|resources|pdf)\b/i.test(promptLower) &&
+      /\b(open|kholo|khol|dikhao|show|play|view|dekhna|dekhao)\b/i.test(promptLower) &&
+      sessionState.route.startsWith('/courses/');
+
+    if (isCourseResourceIntent) {
+      const wantsMaterials = /\b(material|materials|pdf)\b/i.test(promptLower);
+      const liveElements = resolverLiveContext?.interactiveElementsList || [];
+      const resourceElement = liveElements.find((element: any) => {
+        const label = `${element.text || ''} ${element.ariaLabel || ''} ${element.dataAgentLabel || ''}`.toLowerCase();
+        return wantsMaterials
+          ? label.includes('material') || label.includes('pdf')
+          : label.includes('video') || label.includes('resource');
+      });
+
+      if (resourceElement) {
+        return await executeWithPermission('interactWithPageElement', {
+          actionType: 'click',
+          targetText: resourceElement.text || resourceElement.ariaLabel || (wantsMaterials ? 'Materials' : 'Video')
+        });
+      }
+
+      if (sessionState.route.split('/').filter(Boolean).length < 3) {
+        return {
+          success: false,
+          message: `Course page open hai, lekin koi lesson open nahi hai. Pehle lesson select kijiye, phir ${wantsMaterials ? 'Materials' : 'Video'} tab kholiye.`,
+          status: 'failed',
+          sessionState
+        };
+      }
+
+      return {
+        success: false,
+        message: `Is lesson me ${wantsMaterials ? 'materials/PDF' : 'video/resource'} tab available nahi mila.`,
+        status: 'failed',
+        sessionState
+      };
+    }
         const cardsSummary = snapshot && snapshot.cards.length > 0
           ? snapshot.cards.slice(0, 5).map((c: any) => `• **${c.title || 'Card'}**: ${c.subtitle || ''} ${c.metrics ? c.metrics.map((m: any) => `${m.label}: ${m.value}`).join(', ') : ''}`).join('\n')
           : '';

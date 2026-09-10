@@ -26,6 +26,22 @@ export default function ResizableIdeLayout({ problemData }: { problemData: Probl
           topic: problemData.source_type || 'DSA'
         }
       },
+      problemContext: {
+        title: problemData.title,
+        statement: problemData.statement || problemData.description || '',
+        inputFormat: problemData.input_format || problemData.inputDescription || '',
+        outputFormat: problemData.output_format || problemData.outputDescription || '',
+        constraints: problemData.constraints || '',
+        examples: (problemData.examples || problemData.samples || []).map(sample => ({
+          input: sample.input || '',
+          output: sample.output || sample.expected_output || '',
+          explanation: sample.explanation || undefined
+        })),
+        explanation: problemData.explanation || '',
+        starterCode: problemData.starterCode || undefined,
+        functionSignature: typeof problemData.signature === 'string' ? problemData.signature : undefined,
+        supportedLanguages: problemData.supported_languages || undefined
+      },
       availableActions: ['submit_code', 'run_tests', 'search_youtube', 'open_latex']
     });
   }, [problemData, setLiveContext]);

@@ -22,5 +22,10 @@ export function isAdminRole(role?: unknown): boolean {
 
 export function isInstructorRole(role?: unknown): boolean {
   const normalized = normalizeRole(role);
-  return isSuperAdminRole(normalized) || normalized === 'instructor' || normalized === 'admin' || normalized === 'developer';
+  return isSuperAdminRole(normalized) || normalized === 'instructor' || normalized === 'admin' || normalized === 'developer' || normalized === 'faculty' || normalized === 'teacher';
+}
+
+export function canCreateLearningContent(role?: unknown, status?: unknown): boolean {
+  const normalizedStatus = normalizeRole(status || 'active');
+  return normalizedStatus === 'active' && isInstructorRole(role);
 }

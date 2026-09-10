@@ -1,0 +1,70 @@
+# Smart Learn Autonomous Coding Agent Implementation Plan
+
+Implement the **Smart Learn Autonomous Coding Agent** end-to-end to execute autonomous software development workflows (such as **"Make a login page"**). The system will automatically understand user intent, inspect the workspace, query LLM providers (Gemini/OpenAI/Groq with fallback options), generate structured code, safely write files to local workspace sandbox with checkpointing, run TypeScript & Next.js compiler checks, execute an automated repair loop (max 3 retries) on diagnostics errors, verify DOM rendering via browser verification, and display live progress in `SmartAgentDrawer`.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Architecture & Safety Controls**:
+> - **Workspace Sandboxing**: Strict path validation prevents any file reads/writes outside the project root directory (`PermissionManager.resolveSafeWorkspacePath`).
+> - **Safety Checkpoint & Rollback**: Destructive or multi-file edits automatically generate a backup snapshot checkpoint (`WorkspaceManager.createCheckpoint`). If the repair loop exceeds maximum retries (3 iterations), changes automatically roll back.
+> - **Live Drawer Feedback**: Autonomous execution progress streams live updates into `SmartAgentDrawer` step cards.
+
+## Open Questions
+
+> [!NOTE]
+> No blocking open questions. All design requirements (LLM provider fallbacks, max retries, path safety, drawer visual progress, and build verification) are mapped cleanly into existing infrastructure.
+
+---
+
+## Proposed Changes
+
+### AI Autonomous Engine (`src/lib/ai/autonomous/`)
+
+#### [MODIFY] [llm-provider.ts](file:///d:/Institute/BCE/src/lib/ai/autonomous/llm-provider.ts)
+- Enhance `DefaultLLMBridge` to support Gemini 2.5/3.6, OpenAI API, Groq (`qwen/qwen3.6-27b`), and fallback scaffold generation.
+- Ensure structured JSON generation returns valid `plan`, `explanation`, `targetRoute`, and `files` array matching `WorkspaceFile` schema.
+- Update fallback scaffold generator for "Make a login page" to produce production-grade Next.js client component (`'use client';`) using Smart Learn design system (`email`, `password`, `Button`, error states, responsive container).
+
+#### [MODIFY] [agent-orchestrator.ts](file:///d:/Institute/BCE/src/lib/ai/autonomous/agent-orchestrator.ts)
+- Wire real-time `onProgress` step notifications so phase transitions (`intent_detection`, `planning`, `project_inspection`, `llm_generation`, `structured_patch_extraction`, `workspace_apply`, `compilation`, `repair_loop`, `browser_verification`, `completed`) trigger active action plan updates in UI.
+- Handle error diagnosis, checkpointing, repair loop retries (up to 3 iterations), rollback on persistent compilation failures, and browser verification.
+
+#### [MODIFY] [compiler-bridge.ts](file:///d:/Institute/BCE/src/lib/ai/autonomous/compiler-bridge.ts)
+- Ensure robust multi-platform execution for `npx tsc --noEmit` and `npm run build`.
+- Parse error outputs into structured `DiagnosticError` arrays for LLM fix requests.
+
+#### [MODIFY] [browser-verifier.ts](file:///d:/Institute/BCE/src/lib/ai/autonomous/browser-verifier.ts)
+- Implement DOM verification for routes (e.g. `/login` or `/auth/login`), validating input elements (`input[type="email"]`, `input[type="password"]`), buttons (`button[type="submit"]`), and console errors.
+
+---
+
+### AI Agent Controller & Server Tools
+
+#### [MODIFY] [agent-tools-server.ts](file:///d:/Institute/BCE/src/lib/ai/agent-tools-server.ts)
+- Update `runAutonomousCodingAgent` tool implementation to invoke `AgentOrchestrator.run(...)`.
+- Include `SYSTEM` category and `runAutonomousCodingAgent` in `selectRelevantTools` when coding/building keywords are present in user prompts.
+
+#### [MODIFY] [agent-controller.ts](file:///d:/Institute/BCE/src/lib/ai/agent-controller.ts)
+- Confirm fast-path regex routing for `isAutonomousCodingIntent` ("Make a login page", "create a page", "build a component").
+- Route execution cleanly into `runAutonomousCodingAgent`.
+
+---
+
+### UI & Progress Drawer (`src/features/analytics/`)
+
+#### [MODIFY] [SmartAgentSessionContext.tsx](file:///d:/Institute/BCE/src/features/analytics/context/SmartAgentSessionContext.tsx)
+- Integrate progress callbacks from `runAutonomousCodingAgent` into `activeActionPlan` state so `SmartAgentDrawer` renders step progress cards in real-time.
+
+---
+
+## Verification Plan
+
+### Automated Tests & Type Checking
+- Run `npx tsc --noEmit` to verify 0 TypeScript type errors.
+- Run `npm run build` to verify Next.js production build completion.
+
+### Manual Verification
+- Test `runAutonomousCodingAgent` with prompt **"Make a login page"**.
+- Verify step-by-step progress cards in `SmartAgentDrawer`.
+- Verify file creation at target path, successful compilation, repair loop handling if errors occur, and browser DOM verification for email input, password input, and login submit button.

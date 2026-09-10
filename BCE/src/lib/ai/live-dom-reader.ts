@@ -1,4 +1,4 @@
-import { LivePageContext, buildDefaultLiveContext, LiveEntityProblem, LiveEntitySheet, LiveEntityCourse, InteractiveDOMElement } from './live-page-context';
+import { LivePageContext, buildDefaultLiveContext, LiveEntityProblem, LiveEntitySheet, LiveEntityCourse, InteractiveDOMElement, ProblemContext, ProblemExampleContext } from './live-page-context';
 import {
   LiveUISnapshot,
   RuntimeAgentElement,
@@ -17,6 +17,47 @@ let cachedDOMContext: LivePageContext | null = null;
 let cachedDOMRoute: string | null = null;
 let lastDOMScanTimestamp = 0;
 const DOM_CACHE_TTL_MS = 2000; // Cache DOM index for 2s unless forced
+
+function readRenderedText(element: Element | null): string {
+  if (!element) return '';
+  const htmlElement = element as HTMLElement;
+  const text = typeof htmlElement.innerText === 'string' ? htmlElement.innerText : element.textContent || '';
+  return text.replace(/\u00a0/g, ' ').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function readProblemSection(root: Element, section: string): string {
+  return readRenderedText(root.querySelector(`[data-agent-problem-section="${section}"]`));
+}
+
+export function extractCodingProblemContext(root?: Element | null): ProblemContext | undefined {
+  if (typeof document === 'undefined') return undefined;
+  const problemRoot = root || document.querySelector('[data-agent-problem-root]');
+  if (!problemRoot || problemRoot.closest('.smart-agent-drawer, .smart-mentor-drawer')) return undefined;
+
+  const examples: ProblemExampleContext[] = Array.from(
+    problemRoot.querySelectorAll('[data-agent-problem-example]')
+  ).map(example => ({
+    input: readRenderedText(example.querySelector('[data-agent-example-part="input"]')),
+    output: readRenderedText(example.querySelector('[data-agent-example-part="output"]')),
+    explanation: readRenderedText(example.querySelector('[data-agent-example-part="explanation"]')) || undefined
+  })).filter(example => example.input || example.output || example.explanation);
+
+  const layoutRoot = problemRoot.closest('.resizable-ide') || document;
+  const languageSelect = layoutRoot.querySelector<HTMLSelectElement>('select[aria-label="Select programming language"]');
+  const editor = layoutRoot.querySelector<HTMLTextAreaElement>('.monaco-editor textarea, textarea[aria-label*="code" i]');
+
+  return {
+    title: readRenderedText(problemRoot.querySelector('[data-agent-problem-title]')) || readRenderedText(problemRoot.querySelector('h1')),
+    statement: readProblemSection(problemRoot, 'statement'),
+    inputFormat: readProblemSection(problemRoot, 'input'),
+    outputFormat: readProblemSection(problemRoot, 'output'),
+    constraints: readProblemSection(problemRoot, 'constraints'),
+    examples,
+    explanation: readProblemSection(problemRoot, 'explanation'),
+    selectedLanguage: languageSelect?.value || undefined,
+    editorContent: editor?.value || readRenderedText(editor) || undefined,
+  };
+}
 
 export const runtimeElementRegistry = new Map<string, HTMLElement>();
 export let isScanningDOM = false;
@@ -109,6 +150,7 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
   }
 
   const baseContext = buildDefaultLiveContext(route);
+  baseContext.problemContext = extractCodingProblemContext();
   isScanningDOM = true;
 
   try {

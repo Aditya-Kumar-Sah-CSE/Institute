@@ -6,6 +6,7 @@
     "dev": "npm --prefix BCE run dev",
     "build": "npm --prefix BCE run build",
     "start": "npm --prefix BCE run start",
-    "lint": "npm --prefix BCE run lint"
+    "lint": "npm --prefix BCE run lint",
+    "companion": "node tools/smart-learn-companion/companion.js"
   }
 }

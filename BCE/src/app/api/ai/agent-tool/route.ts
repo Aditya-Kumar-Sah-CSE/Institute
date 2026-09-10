@@ -4,7 +4,8 @@ import { AGENT_TOOLS, AgentToolResult } from '@/lib/ai/agent-tools-server';
 import { normalizeAgentRole, requireAgentPermission } from '@/lib/auth/agent-permissions';
 
 const CONFIRMATION_REQUIRED = new Set([
-  'writeFile', 'deleteFile', 'runTerminalCommand', 'clearPersistentMemory', 'clearMemory'
+  'writeFile', 'deleteFile', 'runTerminalCommand', 'clearPersistentMemory', 'clearMemory',
+  'launchPermittedApp', 'writeLocalWorkspaceFile'
 ]);
 
 export async function POST(request: Request) {
@@ -20,9 +21,9 @@ export async function POST(request: Request) {
           .select('role')
           .eq('id', user.id)
           .maybeSingle();
-        userRole = normalizeAgentRole(profile?.role || user.user_metadata?.role);
+        userRole = normalizeAgentRole(profile?.role || 'student');
       } catch {
-        userRole = normalizeAgentRole(user.user_metadata?.role || 'student');
+        userRole = 'student';
       }
     }
 
@@ -55,7 +56,11 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
-    const result: AgentToolResult = await tool.execute(args, user || { id: 'guest' }, pageContext);
+    const result: AgentToolResult = await tool.execute(
+      args,
+      user || { id: 'guest' },
+      { ...(pageContext || {}), __agentConfirmation: confirmed === true }
+    );
     return NextResponse.json({ success: true, toolName, result });
   } catch (error: any) {
     console.error('[Agent Tool API Error]:', error);

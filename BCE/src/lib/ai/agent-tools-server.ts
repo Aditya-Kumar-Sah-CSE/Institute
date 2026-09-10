@@ -6,9 +6,10 @@ import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createAdminClient } from '@/lib/supabase/server';
 import { getStudent360Profile, Student360Profile } from '@/features/analytics/services/student-intelligence';
-import { normalizeAgentRole, canUseTool } from '@/lib/auth/agent-permissions';
+import { AppRole, normalizeAgentRole, canUseTool, getRequiredRoleForTool } from '@/lib/auth/agent-permissions';
 import { resolveCourse, resolveDSASheet, resolveDSAProblem } from '@/lib/ai/entity-resolver';
 import { getFreshAgentPageContext } from '@/lib/ai/live-dom-reader';
+import { callLocalComputer } from '@/lib/ai/local-computer-controller';
 import { saveAgentFact, recallAgentFacts, clearAgentFacts, setAgentReminder, getActiveReminders } from '@/lib/ai/agent-persistent-memory';
 
 const AGENT_FILE_ROOT = path.join(/*turbopackIgnore: true*/ process.cwd(), 'agent-workspace');
@@ -60,6 +61,7 @@ export interface AgentToolDefinition {
   description: string;
   category: 'NAVIGATION' | 'COURSES' | 'DSA' | 'ANALYTICS' | 'ROUTINE_GOALS' | 'SEARCH' | 'TOOLS' | 'WEB' | 'SYSTEM' | 'SCREEN' | 'MEMORY';
   riskLevel: RiskLevel;
+  requiredPermission?: AppRole;
   parameters: {
     type: 'object';
     properties: Record<string, { type: string; description: string; enum?: string[] }>;
@@ -512,6 +514,32 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     }
   },
 
+  getCurrentCodingProblem: {
+    name: 'getCurrentCodingProblem',
+    description: 'Read the currently open coding problem from the rendered problem page. Returns the title, statement, input/output formats, constraints, examples, explanation, starter code, signature, and editor language. Use before solving or explaining a coding problem.',
+    category: 'DSA',
+    riskLevel: 'LOW',
+    requiredPermission: 'student',
+    parameters: { type: 'object', properties: {} },
+    execute: async (_, __, context) => {
+      const live = context?.liveContext || context;
+      const problem = live?.problemContext;
+      if (!problem || live?.pageType !== 'dsa_problem') {
+        return { success: false, message: 'No coding problem is currently open. Open a coding problem first.' };
+      }
+
+      const examples = problem.examples?.map((example: any, index: number) =>
+        `Example ${index + 1}:\nInput: ${example.input || 'Not provided'}\nOutput: ${example.output || 'Not provided'}${example.explanation ? `\nExplanation: ${example.explanation}` : ''}`
+      ).join('\n\n') || 'No examples provided.';
+
+      return {
+        success: true,
+        message: `Problem: ${problem.title}\n\nStatement:\n${problem.statement || 'Not provided.'}\n\nInput Format:\n${problem.inputFormat || 'Not provided.'}\n\nOutput Format:\n${problem.outputFormat || 'Not provided.'}\n\nConstraints:\n${problem.constraints || 'Not provided.'}\n\nExamples:\n${examples}\n\nExplanation:\n${problem.explanation || 'Not provided.'}\n\nFunction Signature:\n${problem.functionSignature || 'Not provided.'}\n\nSelected Language: ${problem.selectedLanguage || 'Not available'}`,
+        data: { problemContext: problem }
+      };
+    }
+  },
+
   queryLivePage: {
     name: 'queryLivePage',
     description: 'Answer questions about visible screen content, sheets count, problem counts, or available options. Use when student asks "Kaunsi sheets available hain?", "Is sheet me kitne problems hain?", "Yahan kya kya hai?". Strictly non-hallucinating.',
@@ -655,13 +683,30 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
       const actionType = args.actionType || 'click';
       const targetText = args.targetText || '';
 
+      const live = getLiveContextFromArgs(context);
+      const elements = live?.interactiveElementsList || live?.snapshot?.actionableElements || [];
+      const query = String(targetText).toLowerCase();
+      const target = elements.find((element: any) => {
+        const text = String(element.text || element.dataAgentLabel || element.ariaLabel || element.title || '').toLowerCase();
+        return element.visible !== false && element.disabled !== true &&
+          (String(element.id || '') === String(targetText) || text === query || text.includes(query));
+      });
+
+      if (!target) {
+        return {
+          success: false,
+          message: `Action rejected: "${targetText}" is not a visible interactive element in the current DOM snapshot.`,
+          data: { actionRejected: true, reason: 'TARGET_NOT_IN_CURRENT_DOM' }
+        };
+      }
+
       return {
         success: true,
-        message: `Executing ${actionType} on "${targetText}"...`,
+        message: `Executing ${actionType} on observed DOM element "${target.text || target.id}"...`,
         data: {
           clientDOMAction: {
             actionType,
-            query: targetText,
+            query: target.id,
             elementIndex: args.elementIndex
           }
         }
@@ -1317,6 +1362,7 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     description: 'Create a new DSA coding sheet. Use when user says "Advanced Graph sheet banao", "create DSA sheet named DP", "ek naya sheet bana do".',
     category: 'DSA',
     riskLevel: 'MEDIUM',
+    requiredPermission: 'instructor',
     parameters: {
       type: 'object',
       properties: {
@@ -1328,13 +1374,14 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     },
     examples: ['Advanced Graph sheet banao', 'create DSA sheet named DP', 'ek naya coding sheet bana do'],
     execute: async (args, user) => {
-      const adminClient = await createAdminClient();
+      const { createClient } = await import('@/lib/supabase/server');
+      const supabase = await createClient();
       const title = (args.title || '').trim();
       if (!title) return { success: false, message: 'Sheet title required hai.' };
 
       const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `sheet-${Date.now()}`;
       
-      const { data: newSheet, error } = await adminClient
+      const { data: newSheet, error } = await supabase
         .from('coding_sheets')
         .insert({
           title,
@@ -1350,7 +1397,7 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
 
       if (error) {
         if (error.code === '23505') {
-          const { data: existing } = await adminClient.from('coding_sheets').select('id, title').eq('slug', slug).single();
+          const { data: existing } = await supabase.from('coding_sheets').select('id, title').eq('slug', slug).single();
           if (existing) {
             return {
               success: true,
@@ -1744,6 +1791,7 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     description: 'Create a new course in the platform database for instructors and admins.',
     category: 'COURSES',
     riskLevel: 'MEDIUM',
+    requiredPermission: 'instructor',
     parameters: {
       type: 'object',
       properties: {
@@ -1754,15 +1802,16 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
       required: ['title']
     },
     execute: async (args, user) => {
-      const adminClient = await createAdminClient();
+      const { createClient } = await import('@/lib/supabase/server');
+      const supabase = await createClient();
       const slug = args.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-      const { data, error } = await adminClient
+      const { data, error } = await supabase
         .from('courses')
         .insert({
           title: args.title,
           slug,
           description: args.description || 'New Course',
-          instructor_id: user.id,
+          created_by: user.id,
           is_published: false
         })
         .select()
@@ -2184,6 +2233,123 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     }
   },
 
+  // ─── LOCAL COMPUTER COMPANION TOOLS ───
+
+  inspectLocalComputer: {
+    name: 'inspectLocalComputer',
+    description: 'Inspect the connected local Smart Learn Computer Companion and its explicitly enabled capabilities. Does not read the screen or control input unless a local adapter is configured.',
+    category: 'SCREEN',
+    riskLevel: 'LOW',
+    parameters: { type: 'object', properties: {} },
+    examples: ['check local computer companion', 'inspect my computer controller'],
+    execute: async () => callLocalComputer({ action: 'inspect' })
+  },
+
+  launchPermittedApp: {
+    name: 'launchPermittedApp',
+    description: 'Launch an explicitly allowlisted desktop application through the local companion. REQUIRES USER CONFIRMATION. Never launches arbitrary commands or paths.',
+    category: 'SYSTEM',
+    riskLevel: 'HIGH',
+    parameters: {
+      type: 'object',
+      properties: {
+        app: { type: 'string', description: 'Allowlisted application name, currently chrome or edge' },
+        args: { type: 'array', description: 'Safe browser arguments, without file, proxy, extension, or javascript URLs' }
+      },
+      required: ['app']
+    },
+    examples: ['open Chrome', 'launch Edge'],
+    execute: async (args, _user, context) => callLocalComputer({
+      action: 'launchApp',
+      app: args.app,
+      args: args.args,
+      confirmed: context?.__agentConfirmation === true
+    })
+  },
+
+  openBrowserUrl: {
+    name: 'openBrowserUrl',
+    description: 'Open an HTTP(S) URL in the paired local browser or web browser window.',
+    category: 'NAVIGATION',
+    riskLevel: 'MEDIUM',
+    parameters: {
+      type: 'object',
+      properties: {
+        url: { type: 'string', description: 'HTTP(S) URL to open' },
+        app: { type: 'string', description: 'Allowlisted browser, chrome or edge' }
+      },
+      required: ['url']
+    },
+    examples: ['open https://www.youtube.com'],
+    execute: async (args) => {
+      let url = (args.url || '').trim();
+      if (!url) return { success: false, message: 'Valid URL required.' };
+      if (url.toLowerCase() === 'youtube' || url.toLowerCase() === 'open youtube') {
+        url = 'https://www.youtube.com';
+      } else if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = `https://${url}`;
+      }
+
+      const res = await callLocalComputer({ action: 'browserNavigate', url, app: args.app });
+      if (!res.success && (res.message.includes('not configured') || res.message.includes('offline') || res.message.includes('failed'))) {
+        return {
+          success: true,
+          message: `🌐 Opening ${url}...`,
+          externalUrl: url,
+          data: { url }
+        };
+      }
+      return res;
+    }
+  },
+
+
+  observeBrowserState: {
+    name: 'observeBrowserState',
+    description: 'Observe the actual paired browser active tab URL, title, ready state, and visible DOM text.',
+    category: 'SCREEN',
+    riskLevel: 'LOW',
+    parameters: { type: 'object', properties: {} },
+    examples: ['verify the browser page'],
+    execute: async () => callLocalComputer({ action: 'browserObserve' })
+  },
+
+  readLocalWorkspaceFile: {
+    name: 'readLocalWorkspaceFile',
+    description: 'Read a file through the local companion, restricted to its configured workspace root.',
+    category: 'SYSTEM',
+    riskLevel: 'LOW',
+    parameters: {
+      type: 'object',
+      properties: { path: { type: 'string', description: 'Relative path inside the configured workspace' } },
+      required: ['path']
+    },
+    examples: ['read my local project package.json'],
+    execute: async (args) => callLocalComputer({ action: 'readWorkspaceFile', path: args.path })
+  },
+
+  writeLocalWorkspaceFile: {
+    name: 'writeLocalWorkspaceFile',
+    description: 'Write a file through the local companion inside its configured workspace root. REQUIRES USER CONFIRMATION.',
+    category: 'SYSTEM',
+    riskLevel: 'HIGH',
+    parameters: {
+      type: 'object',
+      properties: {
+        path: { type: 'string', description: 'Relative path inside the configured workspace' },
+        content: { type: 'string', description: 'File contents' }
+      },
+      required: ['path', 'content']
+    },
+    examples: ['create a local project file'],
+    execute: async (args, _user, context) => callLocalComputer({
+      action: 'writeWorkspaceFile',
+      path: args.path,
+      content: args.content,
+      confirmed: context?.__agentConfirmation === true
+    })
+  },
+
   // ─── FILE & SYSTEM TOOLS ───
 
   readFile: {
@@ -2559,6 +2725,50 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     execute: async (args, user) => {
       return await clearAgentFacts(user.id, args.category);
     }
+  },
+
+  // ─── AUTONOMOUS CODING AGENT ───
+
+  runAutonomousCodingAgent: {
+    name: 'runAutonomousCodingAgent',
+    description: 'Autonomously plan, inspect, generate code, apply workspace files, compile, repair errors, and verify pages in browser. Use when user asks to "Make a login page", "create a page", "build a component", "fix component", or requests full autonomous software engineering.',
+    category: 'SYSTEM',
+    riskLevel: 'HIGH',
+    parameters: {
+      type: 'object',
+      properties: {
+        prompt: { type: 'string', description: 'Coding prompt or feature description e.g. "Make a login page"' },
+        maxRetries: { type: 'number', description: 'Max repair loop iterations (default: 3)' }
+      },
+      required: ['prompt']
+    },
+    examples: ['Make a login page', 'create signup component', 'build a pricing page', 'fix profile page'],
+    execute: async (args, user, context) => {
+      const { AgentOrchestrator } = await import('@/lib/ai/autonomous/agent-orchestrator');
+      const prompt = args.prompt || 'Make a login page';
+
+      const report = await AgentOrchestrator.run({
+        prompt,
+        userRole: context?.userRole || 'student',
+        maxRetries: args.maxRetries || 3
+      });
+
+      return {
+        success: report.success,
+        message: report.success
+          ? `🚀 **Autonomous Coding Complete**: Successfully generated and verified "${prompt}" at route \`${report.targetRoute}\`.\n\n` +
+            `• **Files Modified**: ${report.modifiedFiles.join(', ')}\n` +
+            `• **Compilation**: Passed (0 errors)\n` +
+            `• **Repair Loop Iterations**: ${report.repairIterations}\n` +
+            `• **Browser Verification**: Verified (${report.browserVerification?.foundElements.join(', ')})`
+          : `⚠️ **Autonomous Coding Execution Failed**: ${report.errorMessage}`,
+        url: report.targetRoute,
+        pendingNavigation: report.success,
+        navigationId: report.success ? `nav_${Date.now()}_${Math.random().toString(36).substring(7)}` : undefined,
+        expectedRoute: report.targetRoute,
+        data: { report }
+      };
+    }
   }
 };
 
@@ -2641,7 +2851,14 @@ export function selectRelevantTools(userPrompt: string, pageContext?: any, userR
   }
 
   const allTools = Object.values(AGENT_TOOLS);
-  const filtered = allTools.filter(t => selectedCategories.has(t.category) && canUseTool(normalizedRole, t.name));
+  const filtered = allTools.filter(t => {
+    const requiredPermission = t.requiredPermission || getRequiredRoleForTool(t.name);
+    return selectedCategories.has(t.category) && canUseTool(normalizedRole, t.name) && Boolean(requiredPermission);
+  });
+
+  if (pageContext?.route?.includes('/code-arena/problems/') || pageContext?.liveContext?.pageType === 'dsa_problem') {
+    filtered.sort((a, b) => Number(b.name === 'getCurrentCodingProblem') - Number(a.name === 'getCurrentCodingProblem'));
+  }
 
   // Cap at 15 tools max to keep Groq prompt lean and fast
   return filtered.slice(0, 15);

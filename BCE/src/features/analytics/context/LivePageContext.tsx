@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, Suspense } from 'react';
-import { LivePageContext, buildDefaultLiveContext } from '@/lib/ai/live-page-context';
+import { LivePageContext, ProblemContext, buildDefaultLiveContext } from '@/lib/ai/live-page-context';
 import { extractLiveDOMContext, invalidateDOMCache, isScanningDOM } from '@/lib/ai/live-dom-reader';
 import { executeLiveDOMAction, DOMActionResult, WhitelistedActionType } from '@/lib/ai/live-dom-executor';
 import { usePathname, useSearchParams } from 'next/navigation';
@@ -26,6 +26,27 @@ function LivePageContextProviderInner({ children }: { children: ReactNode }) {
 
   const [contextState, setContextState] = useState<LivePageContext>(() => buildDefaultLiveContext(fullRoute));
 
+  const mergeProblemContext = useCallback((previous: ProblemContext | undefined, next: ProblemContext | undefined) => {
+    if (!previous) return next;
+    if (!next) return previous;
+    return {
+      ...previous,
+      ...next,
+      title: next.title || previous.title,
+      statement: next.statement || previous.statement,
+      inputFormat: next.inputFormat || previous.inputFormat,
+      outputFormat: next.outputFormat || previous.outputFormat,
+      constraints: next.constraints || previous.constraints,
+      examples: next.examples.length > 0 ? next.examples : previous.examples,
+      explanation: next.explanation || previous.explanation,
+      starterCode: next.starterCode || previous.starterCode,
+      functionSignature: next.functionSignature || previous.functionSignature,
+      supportedLanguages: next.supportedLanguages || previous.supportedLanguages,
+      selectedLanguage: next.selectedLanguage || previous.selectedLanguage,
+      editorContent: next.editorContent || previous.editorContent,
+    };
+  }, []);
+
   // 1. ROUTE CHANGE & INITIAL EXTRACTION EFFECT (Runs post-hydration to avoid attribute mutation mismatches)
   useEffect(() => {
     invalidateDOMCache();
@@ -33,7 +54,7 @@ function LivePageContextProviderInner({ children }: { children: ReactNode }) {
     // Defer DOM scanning slightly so React finishes initial hydration reconciliation first
     const timer = setTimeout(() => {
       const freshCtx = extractLiveDOMContext(fullRoute, true);
-      setContextState(freshCtx);
+      setContextState(previous => ({ ...freshCtx, problemContext: mergeProblemContext(previous.problemContext, freshCtx.problemContext) }));
     }, 250);
 
     return () => clearTimeout(timer);
@@ -68,7 +89,7 @@ function LivePageContextProviderInner({ children }: { children: ReactNode }) {
         if (isScanningDOM) return;
         invalidateDOMCache();
         const updatedCtx = extractLiveDOMContext(fullRoute, true);
-        setContextState(updatedCtx);
+        setContextState(previous => ({ ...updatedCtx, problemContext: mergeProblemContext(previous.problemContext, updatedCtx.problemContext) }));
       }, 120);
     });
 
@@ -89,6 +110,7 @@ function LivePageContextProviderInner({ children }: { children: ReactNode }) {
     setContextState(prev => ({
       ...prev,
       ...newCtx,
+      problemContext: mergeProblemContext(prev.problemContext, newCtx.problemContext),
       route: newCtx.route || fullRoute,
       timestamp: Date.now()
     }));
@@ -97,14 +119,14 @@ function LivePageContextProviderInner({ children }: { children: ReactNode }) {
   const resetLiveContext = useCallback(() => {
     invalidateDOMCache();
     const fresh = extractLiveDOMContext(fullRoute, true);
-    setContextState(fresh);
+    setContextState(previous => ({ ...fresh, problemContext: mergeProblemContext(previous.problemContext, fresh.problemContext) }));
   }, [fullRoute]);
 
   // On-demand tool invocation helper to fetch fresh live DOM context
   const getCurrentPageContext = useCallback((): LivePageContext => {
     invalidateDOMCache();
     const fresh = extractLiveDOMContext(fullRoute, true);
-    setContextState(fresh);
+    setContextState(previous => ({ ...fresh, problemContext: mergeProblemContext(previous.problemContext, fresh.problemContext) }));
     return fresh;
   }, [fullRoute]);
 

@@ -1101,7 +1101,7 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
   const platStyle = getPlatformBadgeStyle(platformName);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+    <div data-agent-problem-root="true" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
       {/* Premium Problem Navigation Bar */}
       {navigation && navigation.totalProblems > 0 && (
         <div style={{
@@ -1261,7 +1261,7 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
 
           {/* Problem Title & ID & Action Buttons */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', margin: '4px 0 8px 0' }}>
-            <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
+            <h1 data-agent-problem-title="true" style={{ fontSize: 'var(--text-xl)', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
               {problem.title.startsWith(externalId || '___') ? problem.title : `${externalId ? `${externalId} — ` : ''}${problem.title}`}
             </h1>
             
@@ -1484,7 +1484,7 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
 
       {/* Problem Statement Section */}
       {!isContentEmpty && (
-        <section style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <section data-agent-problem-section="statement" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', borderLeft: '3px solid var(--neon-cyan)', paddingLeft: '10px', letterSpacing: '0.5px' }}>
             <FileText size={14} style={{ color: 'var(--neon-cyan)' }} /> Problem Statement
           </div>
@@ -1531,7 +1531,7 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
 
       {/* Input Section */}
       {(problem.input_format || problem.inputDescription) && (
-        <section style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-xs)' }}>
+        <section data-agent-problem-section="input" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-xs)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', borderLeft: '3px solid var(--neon-cyan)', paddingLeft: '10px', letterSpacing: '0.5px' }}>
             <FileText size={14} style={{ color: 'var(--neon-cyan)' }} /> Input
           </div>
@@ -1541,7 +1541,7 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
 
       {/* Output Section */}
       {(problem.output_format || problem.outputDescription) && (
-        <section style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-xs)' }}>
+        <section data-agent-problem-section="output" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-xs)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', borderLeft: '3px solid var(--neon-pink)', paddingLeft: '10px', letterSpacing: '0.5px' }}>
             <FileText size={14} style={{ color: 'var(--neon-pink)' }} /> Output
           </div>
@@ -1550,7 +1550,7 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
       )}
 
       {/* Constraints Section */}
-      <section style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-xs)' }}>
+      <section data-agent-problem-section="constraints" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-xs)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', borderLeft: '3px solid var(--neon-gold)', paddingLeft: '10px', letterSpacing: '0.5px' }}>
           <ListChecks size={14} style={{ color: 'var(--neon-gold)' }} /> Constraints
         </div>
@@ -1579,7 +1579,7 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
 
       {/* Notes / Explanation Section */}
       {problem.explanation && (
-        <section style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-xs)' }}>
+        <section data-agent-problem-section="explanation" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-xs)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', borderLeft: '3px solid var(--neon-purple)', paddingLeft: '10px', letterSpacing: '0.5px' }}>
             <FileText size={14} style={{ color: 'var(--neon-purple)' }} /> Notes (Explanation)
           </div>
@@ -1588,7 +1588,7 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
       )}
 
       {/* Examples / Samples Section */}
-      <section style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: 'var(--space-xs)' }}>
+      <section data-agent-problem-section="examples" style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: 'var(--space-xs)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', borderLeft: '3px solid var(--neon-pink)', paddingLeft: '10px', letterSpacing: '0.5px' }}>
           <Braces size={14} style={{ color: 'var(--neon-pink)' }} /> Examples ({examplesList.length})
         </div>
@@ -1597,6 +1597,7 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {examplesList.map((sample, idx) => (
               <div
+                data-agent-problem-example="true"
                 key={idx}
                 style={{
                   background: 'var(--bg-elevated)',
@@ -1608,10 +1609,10 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
                 <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--neon-cyan)', display: 'block', marginBottom: '6px' }}>
                   {sample.sample_name || `Example ${idx + 1}`}
                 </span>
-                <ExampleCopyBlock label="Input" content={sample.input} />
-                <ExampleCopyBlock label="Output" content={sample.output || sample.expected_output || ''} />
+                <div data-agent-example-part="input"><ExampleCopyBlock label="Input" content={sample.input} /></div>
+                <div data-agent-example-part="output"><ExampleCopyBlock label="Output" content={sample.output || sample.expected_output || ''} /></div>
                 {sample.explanation && (
-                  <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  <div data-agent-example-part="explanation" style={{ marginTop: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
                     <strong style={{ color: 'var(--text-muted)' }}>Explanation: </strong> 
                     <span dangerouslySetInnerHTML={{ __html: cleanMathNotationHtml(sample.explanation) }} />
                   </div>

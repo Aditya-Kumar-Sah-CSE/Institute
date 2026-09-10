@@ -17,9 +17,9 @@ export async function POST(request: Request) {
           .eq('id', user.id)
           .maybeSingle();
 
-        userRole = normalizeAgentRole(profile?.role || user.user_metadata?.role);
+        userRole = normalizeAgentRole(profile?.role || 'student');
       } catch (err) {
-        userRole = normalizeAgentRole(user.user_metadata?.role || 'student');
+        userRole = 'student';
       }
     }
 

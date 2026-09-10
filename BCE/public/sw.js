@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'smartlearn-v12';
+const CACHE_VERSION = 'smartlearn-v13';
 const CACHE_STATIC = `smartlearn-static-${CACHE_VERSION}`;
 const CACHE_COURSE = `smartlearn-course-${CACHE_VERSION}`;
 const CACHE_MEDIA = `smartlearn-media-${CACHE_VERSION}`;
@@ -95,20 +95,20 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 5. Next.js Static Chunks (_next/static/) -> Cache-First for JS (bypass for CSS to let immutable browser HTTP cache handle preloads without Chrome cross-world SW warnings)
+  // 5. Next.js Static Chunks (_next/static/) -> Network-First to prevent stale
+  // module graphs from mixing with a newer App Router page.
   if (url.pathname.startsWith('/_next/static/')) {
-    if (url.pathname.endsWith('.css') || event.request.destination === 'style') {
-      return;
-    }
     event.respondWith(
-      caches.match(event.request).then((cached) => {
-        if (cached) return cached;
-        return fetch(event.request).then((res) => {
-          if (res && res.status === 200) {
-            const clone = res.clone();
-            caches.open(CACHE_STATIC).then((cache) => cache.put(event.request, clone));
-          }
-          return res;
+      fetch(event.request).then((res) => {
+        if (res && res.status === 200) {
+          const clone = res.clone();
+          caches.open(CACHE_STATIC).then((cache) => cache.put(event.request, clone));
+        }
+        return res;
+      }).catch(() => {
+        return caches.match(event.request).then((cached) => {
+          if (cached) return cached;
+          return new Response(null, { status: 503 });
         });
       })
     );
