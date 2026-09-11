@@ -22,6 +22,7 @@ const COMMON_SITE_MAP: Record<string, { url: string; displayName: string }> = {
   'github.com': { url: 'https://github.com', displayName: 'GitHub' },
   'www.github.com': { url: 'https://github.com', displayName: 'GitHub' },
 
+  'gpt': { url: 'https://chatgpt.com', displayName: 'ChatGPT' },
   'chatgpt': { url: 'https://chatgpt.com', displayName: 'ChatGPT' },
   'chat gpt': { url: 'https://chatgpt.com', displayName: 'ChatGPT' },
   'chatgpt.com': { url: 'https://chatgpt.com', displayName: 'ChatGPT' },
@@ -57,10 +58,29 @@ const COMMON_SITE_MAP: Record<string, { url: string; displayName: string }> = {
 };
 
 /**
+ * Detects if a prompt contains task/action verbs or complex intent alongside website names.
+ * Examples: "search", "find", "solve", "solution", "code", "copy", "paste", "explain", "how to", "what is", "ask"
+ */
+export function hasComplexTaskIntent(input: string): boolean {
+  if (!input || typeof input !== 'string') return false;
+  const lower = input.trim().toLowerCase();
+
+  const taskKeywordsRegex = /\b(search|find|query|ask|solve|solution|code|copy|paste|explain|how\s+to|what\s+is|look\s*up|get|answer|write|generate|debug|fix|create|run|execute|analyze|summarize|detail|details|two\s*sum|dsa|problem|python|javascript|cpp|java)\b/i;
+
+  return taskKeywordsRegex.test(lower);
+}
+
+/**
  * Resolves arbitrary natural language intent, raw domain, or URL into a safe, fully-qualified HTTP/HTTPS URL.
+ * Returns null if the input contains a complex task intent (e.g. "go to gpt and search two sum").
  */
 export function resolveTargetUrl(input: string): ResolvedUrlResult | null {
   if (!input || typeof input !== 'string') return null;
+
+  // Bypasses pure URL resolution if user prompt contains complex task/action instructions
+  if (hasComplexTaskIntent(input)) {
+    return null;
+  }
 
   const raw = input.trim();
   const lower = raw.toLowerCase();

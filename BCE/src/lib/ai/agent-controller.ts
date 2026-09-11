@@ -93,11 +93,14 @@ export class AgentController {
 
     // Update active session state from input pageContext
     const liveCtx = input.pageContext?.liveContext || (input.pageContext?.snapshot || input.pageContext?.route ? input.pageContext : null);
+    const activeRoute = input.pageContext?.route || liveCtx?.route || input.sessionState?.route || '/dashboard';
+    const routeSheetMatch = activeRoute.match(/\/code-arena\/sheets\/([a-f0-9\-]+)/i);
+
     const activeState: AgentSessionState = {
-      route: input.pageContext?.route || liveCtx?.route || input.sessionState?.route || '/dashboard',
+      route: activeRoute,
       sheetId: liveCtx?.currentEntity?.type === 'sheet'
         ? liveCtx.currentEntity.id
-        : input.sessionState?.sheetId,
+        : (input.sessionState?.sheetId || (routeSheetMatch ? routeSheetMatch[1] : undefined)),
       sheetTitle: liveCtx?.currentEntity?.type === 'sheet'
         ? liveCtx.currentEntity.title
         : input.sessionState?.sheetTitle,
@@ -337,7 +340,7 @@ export class AgentController {
     }
 
     // 3. Platform actions, tools, navigation, and code problem execution keywords
-    const toolActionRegex = /\b(open|kholo|dikhao|show|create|banao|make|edit|update|delete|save|click|press|tap|submit|fill|type|daalo|add|insert|solve|approach|code|compile|run|execute|read\s+page|scan|this\s+page|isme|is\s+page|yaha|leaderboard|rank|notice|announcement|sheet|sheets|dsa|course|courses|module|mcq|quiz|routine|timetable|schedule|goal|targets|latex|resume|360|weakest|youtube|search|video|browser)\b/i;
+    const toolActionRegex = /\b(open|kholo|dikhao|show|create|banao|make|edit|update|delete|save|click|press|tap|submit|fill|type|daalo|add|insert|solve|approach|code|compile|run|execute|read\s+page|scan|this\s+page|isme|is\s+page|yaha|leaderboard|rank|notice|announcement|problem|problems|sheet|sheets|dsa|course|courses|module|mcq|quiz|routine|timetable|schedule|goal|targets|latex|resume|360|weakest|youtube|search|video|browser)\b/i;
 
     if (toolActionRegex.test(pLower)) {
       return {
@@ -412,6 +415,34 @@ export class AgentController {
         toolExecuted: 'systemOptimizationCheck',
         sessionState
       };
+    }
+
+    // 0. External Search & Code Solve Intents ("go to gpt and search two sum", "ask chatgpt how binary search works", "search two sum in python and copy solution")
+    const isExternalSearchSolveIntent = /\b(gpt|chatgpt|google|web|search|find|query|ask|copy|paste|solve|solution)\b/i.test(promptLower) &&
+      /\b(search|solve|find|solution|code|how\s+to|what\s+is|ask|copy|paste|two\s*sum|dsa|problem|python|javascript|cpp|java)\b/i.test(promptLower);
+
+    if (isExternalSearchSolveIntent && (promptLower.includes('gpt') || promptLower.includes('search') || promptLower.includes('solve') || promptLower.includes('solution') || promptLower.includes('find') || promptLower.includes('ask'))) {
+      let targetSite = 'chatgpt';
+      if (promptLower.includes('google')) targetSite = 'google';
+      else if (promptLower.includes('youtube')) targetSite = 'youtube';
+
+      let cleanedQuery = promptRaw
+        .replace(/^(?:go\s+to|visit|open|ask)\s+(?:gpt|chatgpt|google|web|site)?\s*(?:and|to)?\s*/i, '')
+        .replace(/(?:and\s+)?(?:copy|paste|bring|put)\s+(?:the\s+)?(?:solution|code|answer|result|text)?\s*(?:to|in|into)?\s*(?:chat|here|smart\s*learn)?/gi, '')
+        .replace(/^(?:search|find|solve|query|get|ask)\s+(?:for\s+)?/i, '')
+        .trim();
+
+      if (!cleanedQuery || cleanedQuery.length < 3) {
+        cleanedQuery = promptRaw;
+      }
+
+      const language = promptLower.includes('python') ? 'python' : promptLower.includes('java') ? 'java' : promptLower.includes('cpp') || promptLower.includes('c++') ? 'cpp' : 'python';
+
+      return await executeWithPermission('searchWebAndSolve', {
+        query: cleanedQuery,
+        targetSite,
+        language
+      });
     }
 
     // External browser navigation must use the paired browser controller
@@ -772,13 +803,13 @@ export class AgentController {
       }
     }
 
-    // D. Direct Problem Number Navigation ("Problem 5 kholo", "problem 4", "p5")
-    const probNumMatch = promptLower.match(/^(?:open\s+)?(?:problem|p)\s*(\d+)(?:\s+kholo|\s+open)?$/i) ||
-                         promptLower.match(/^(\d+)(?:st|nd|rd|th)?\s+problem(?:\s+kholo|\s+open)?$/i);
+    // D. Direct Problem Number Navigation ("Problem 5 kholo", "problem 4", "p5", "problem 3. valid Sudoku")
+    const probNumMatch = promptLower.match(/^(?:open\s+)?(?:problem|p)\s*#?\s*(\d+)(?:[\s.:\-]+.*)?$/i) ||
+                         promptLower.match(/^(\d+)(?:st|nd|rd|th)?\s+(?:problem|p)(?:[\s.:\-]+.*)?$/i);
     if (probNumMatch) {
       const targetNum = parseInt(probNumMatch[1], 10);
       if (!isNaN(targetNum)) {
-        const res = await executeWithPermission('openDSAProblem', { problemIndex: targetNum, sheetId: sessionState.sheetId, problemId: sessionState.problemId });
+        const res = await executeWithPermission('openDSAProblem', { problemIndex: targetNum, sheetId: sessionState.sheetId, problemId: sessionState.problemId, query: promptRaw });
         if (res.success && res.data?.number) {
           sessionState.problemNumber = res.data.number;
           sessionState.problemId = res.data.problemId;

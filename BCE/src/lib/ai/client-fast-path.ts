@@ -1,7 +1,7 @@
 import { AppRole, canAccessPage, normalizeAgentRole } from '@/lib/auth/agent-permissions';
 import { LivePageContext } from '@/lib/ai/live-page-context';
 import { setAgentVisualState } from './agent-visual-state';
-import { resolveTargetUrl } from './url-resolver';
+import { resolveTargetUrl, hasComplexTaskIntent } from './url-resolver';
 
 export interface NavigationTelemetry {
   intentResolutionMs: number;
@@ -557,6 +557,10 @@ export function resolveClientFastPath(
   }
 
   // 12. Generic Web Navigation & External Sites Fast-Path (e.g. "open google", "open github", "open chatgpt", "open gmail", "open youtube", "open example.com")
+  if (hasComplexTaskIntent(p)) {
+    return { isMatch: false, allowed: true, language };
+  }
+
   const resolvedTarget = resolveTargetUrl(p);
   if (resolvedTarget) {
     // Preserve YouTube search query behavior if specific search terms exist

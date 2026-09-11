@@ -227,7 +227,20 @@ const TOOL_DECLARATIONS: ToolDeclaration[] = [
       required: ['query']
     }
   },
-  // ─── WEB RESEARCH TOOLS ───
+  // ─── WEB RESEARCH & SOLVER TOOLS ───
+  {
+    name: 'searchWebAndSolve',
+    description: 'Search external sources (ChatGPT, Google, Web) for a coding problem solution, concept explanation, or research query, extract structured code/answer, and output directly to Smart Learn chat.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Search or coding query e.g. "Two Sum problem in Python"' },
+        targetSite: { type: 'string', description: 'Optional target site e.g. "chatgpt", "google", "web"' },
+        language: { type: 'string', description: 'Programming language if code is requested e.g. "python", "cpp", "java", "javascript"' }
+      },
+      required: ['query']
+    }
+  },
   {
     name: 'webSearch',
     description: 'Search the web for information. Returns search results with titles, snippets, and URLs.',
