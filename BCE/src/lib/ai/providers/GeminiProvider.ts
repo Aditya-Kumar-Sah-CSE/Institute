@@ -2,7 +2,7 @@ import { GoogleGenAI } from '@google/genai';
 import { AIProvider, AIProviderName, AIProviderResponse, AIProviderToolDeclaration } from './types';
 import { AgentChatMessage } from '../agent';
 
-const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.0-flash-lite'];
 
 export class GeminiProvider implements AIProvider {
   public readonly name: AIProviderName = 'gemini';
@@ -59,12 +59,14 @@ export class GeminiProvider implements AIProvider {
     for (const modelName of GEMINI_MODELS) {
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
+          // Attempt 1: with tools (if tools present) or without tools
+          const useTools = functionDeclarations.length > 0 && attempt === 0;
           const res: any = await this.client.models.generateContent({
             model: modelName,
             contents,
             config: {
               systemInstruction,
-              tools: functionDeclarations.length > 0 ? [{ functionDeclarations: functionDeclarations as any }] : undefined
+              tools: useTools ? [{ functionDeclarations: functionDeclarations as any }] : undefined
             }
           });
 
@@ -154,10 +156,6 @@ export class GeminiProvider implements AIProvider {
             await this.delay(1000);
             continue;
           }
-          if (this.isHighDemandOrRetryable(err)) {
-            break;
-          }
-          break;
         }
       }
     }
