@@ -1805,29 +1805,36 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     execute: async (args, user) => {
       const { createClient } = await import('@/lib/supabase/server');
       const supabase = await createClient();
-      const slug = args.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
       const { data, error } = await supabase
         .from('courses')
         .insert({
           title: args.title,
-          slug,
           description: args.description || 'New Course',
           created_by: user.id,
-          is_published: false
+          is_published: false,
+          enrollment_restriction: 'any'
         })
-        .select()
+        .select('id, title')
         .single();
 
       if (error) {
         return { success: false, message: `Course create nahi ho paya: ${error.message}` };
       }
 
+      // Link course_instructors for the creator
+      if (data?.id) {
+        await supabase.from('course_instructors').insert({
+          course_id: data.id,
+          instructor_id: user.id
+        });
+      }
+
       return {
         success: true,
-        message: `Course "${data.title}" successfully create ho gaya!`,
-        url: `/instructor/courses/${data.id}`,
+        message: `Course "${data.title}" successfully create ho gaya! Opening builder...`,
+        url: `/instructor/courses/${data.id}/builder`,
         pendingNavigation: true,
-        expectedRoute: `/instructor/courses/${data.id}`,
+        expectedRoute: `/instructor/courses/${data.id}/builder`,
         data: { courseId: data.id, courseTitle: data.title }
       };
     }
