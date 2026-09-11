@@ -109,6 +109,8 @@ export const TOOL_PERMISSIONS: Record<string, AppRole> = {
   external_web_task: 'guest',
   copy_content: 'guest',
   paste_content: 'guest',
+  interact_external_ui: 'guest',
+  read_visible_external_content: 'guest',
 
   // Student tools
   openDashboard: 'student',

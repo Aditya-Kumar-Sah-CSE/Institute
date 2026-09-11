@@ -12,6 +12,7 @@ import { getFreshAgentPageContext } from '@/lib/ai/live-dom-reader';
 import { callLocalComputer } from '@/lib/ai/local-computer-controller';
 import { saveAgentFact, recallAgentFacts, clearAgentFacts, setAgentReminder, getActiveReminders } from '@/lib/ai/agent-persistent-memory';
 import { resolveTargetUrl, verifyUrlHostnameMatch } from '@/lib/ai/url-resolver';
+import { ChatGPTAdapter } from '@/lib/ai/chatgpt-adapter';
 
 const AGENT_FILE_ROOT = path.join(/*turbopackIgnore: true*/ process.cwd(), 'agent-workspace');
 
@@ -2099,6 +2100,25 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
       const targetSite = (args.targetSite || 'chatgpt').toLowerCase();
       const language = args.language || (query.toLowerCase().includes('python') ? 'python' : query.toLowerCase().includes('java') ? 'java' : query.toLowerCase().includes('c++') || query.toLowerCase().includes('cpp') ? 'cpp' : 'python');
 
+      if (targetSite.includes('gpt')) {
+        const adapterRes = await ChatGPTAdapter.executeTask(query, language);
+        if (adapterRes.success && adapterRes.data) {
+          return {
+            success: true,
+            message: adapterRes.message,
+            data: adapterRes.data,
+            externalUrl: adapterRes.data.externalUrl || 'https://chatgpt.com'
+          };
+        }
+        if (adapterRes.errorStep) {
+          return {
+            success: false,
+            message: adapterRes.message,
+            data: adapterRes.data
+          };
+        }
+      }
+
       let solutionCode = '';
       let explanation = '';
       let title = query;
@@ -2322,6 +2342,79 @@ std::vector<int> twoSum(std::vector<int>& nums, int target) {
     examples: ['execute copy two sum task on chatgpt'],
     execute: async (args, user, context) => {
       return await AGENT_TOOLS.searchWebAndSolve.execute({ query: args.taskName, targetSite: args.targetApp }, user, context);
+    }
+  },
+
+  interact_external_ui: {
+    name: 'interact_external_ui',
+    description: 'Interact with external UI (focus, type, click element) on supported external sites like ChatGPT.',
+    category: 'WEB',
+    riskLevel: 'MEDIUM',
+    parameters: {
+      type: 'object',
+      properties: {
+        action: { type: 'string', description: 'Action type e.g. "focus", "type", "click", "submit"' },
+        targetApp: { type: 'string', description: 'Target app e.g. "chatgpt"' },
+        selector: { type: 'string', description: 'Optional element selector' },
+        text: { type: 'string', description: 'Text to type if action is "type"' }
+      },
+      required: ['action']
+    },
+    examples: ['interact with ChatGPT UI input'],
+    execute: async (args) => {
+      const action = (args.action || 'focus').toLowerCase();
+      if (action === 'focus' || action === 'type' || action === 'click' || action === 'submit') {
+        const inputRes = await ChatGPTAdapter.findPromptInput();
+        if (!inputRes.success) {
+          return {
+            success: false,
+            message: 'ChatGPT opened, but its input could not be detected.'
+          };
+        }
+        if (action === 'type' || action === 'submit') {
+          const subRes = await ChatGPTAdapter.submitQuery(args.text || 'Two Sum in Python', inputRes.selector);
+          return {
+            success: true,
+            message: subRes.message,
+            data: { selector: inputRes.selector, action }
+          };
+        }
+        return {
+          success: true,
+          message: `Focused external element (${inputRes.selector}).`,
+          data: { selector: inputRes.selector, action }
+        };
+      }
+      return { success: false, message: `Unsupported UI interaction action: ${action}` };
+    }
+  },
+
+  read_visible_external_content: {
+    name: 'read_visible_external_content',
+    description: 'Read visible response content from external application or browser tab.',
+    category: 'WEB',
+    riskLevel: 'LOW',
+    parameters: {
+      type: 'object',
+      properties: {
+        targetApp: { type: 'string', description: 'Target app e.g. "chatgpt"' },
+        selector: { type: 'string', description: 'Optional response container selector' }
+      }
+    },
+    examples: ['read visible response from ChatGPT'],
+    execute: async () => {
+      const readRes = await ChatGPTAdapter.readResponse();
+      if (!readRes.success || !readRes.rawText) {
+        return {
+          success: false,
+          message: 'ChatGPT opened and search was submitted, but response could not be read.'
+        };
+      }
+      return {
+        success: true,
+        message: readRes.message,
+        data: { text: readRes.rawText }
+      };
     }
   },
 

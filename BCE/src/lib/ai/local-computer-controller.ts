@@ -1,12 +1,34 @@
 import 'server-only';
 
 export interface LocalComputerRequest {
-  action: 'inspect' | 'launchApp' | 'browserNavigate' | 'browserObserve' | 'getDesktopContext' | 'readWorkspaceFile' | 'writeWorkspaceFile';
+  action: 
+    | 'inspect' 
+    | 'launchApp' 
+    | 'browserNavigate' 
+    | 'browserObserve' 
+    | 'getDesktopContext' 
+    | 'readWorkspaceFile' 
+    | 'writeWorkspaceFile'
+    | 'openExternalApp'
+    | 'findElement'
+    | 'clickElement'
+    | 'focusElement'
+    | 'typeText'
+    | 'pressKey'
+    | 'waitForElement'
+    | 'readVisibleText'
+    | 'copyText'
+    | 'pasteText'
+    | 'interactExternalUI';
   app?: string;
   url?: string;
   args?: string[];
   path?: string;
   content?: string;
+  selector?: string;
+  text?: string;
+  key?: string;
+  timeoutMs?: number;
   confirmed?: boolean;
 }
 

@@ -301,6 +301,31 @@ const TOOL_DECLARATIONS: ToolDeclaration[] = [
     }
   },
   {
+    name: 'interact_external_ui',
+    description: 'Interact with external UI (focus, type, click element) on supported external sites like ChatGPT.',
+    parameters: {
+      type: 'object',
+      properties: {
+        action: { type: 'string', description: 'Action type e.g. "focus", "type", "click", "submit"' },
+        targetApp: { type: 'string', description: 'Target app e.g. "chatgpt"' },
+        selector: { type: 'string', description: 'Optional element selector' },
+        text: { type: 'string', description: 'Text to type if action is "type"' }
+      },
+      required: ['action']
+    }
+  },
+  {
+    name: 'read_visible_external_content',
+    description: 'Read visible response content from external application or browser tab.',
+    parameters: {
+      type: 'object',
+      properties: {
+        targetApp: { type: 'string', description: 'Target app e.g. "chatgpt"' },
+        selector: { type: 'string', description: 'Optional response container selector' }
+      }
+    }
+  },
+  {
     name: 'webSearch',
     description: 'Search the web for information. Returns search results with titles, snippets, and URLs.',
     parameters: {
