@@ -417,11 +417,15 @@ export class AgentController {
       };
     }
 
-    // 0. External Search & Code Solve Intents ("go to gpt and search two sum", "ask chatgpt how binary search works", "search two sum in python and copy solution")
-    const isExternalSearchSolveIntent = /\b(gpt|chatgpt|gemini|google|github|web|search|find|query|ask|copy|paste|solve|solution)\b/i.test(promptLower) &&
-      /\b(search|solve|find|solution|code|how\s+to|what\s+is|ask|copy|paste|two\s*sum|dsa|problem|python|javascript|cpp|java)\b/i.test(promptLower);
+    // 0. External Search & Code Solve Intents MUST have BOTH:
+    //    1. An explicit action verb ("open", "go to", "visit", "navigate to", "search", "ask", "find", "type into", "copy from", "paste into")
+    //    2. An explicit external target ("chatgpt", "gpt", "gemini", "google gemini", "google", "github")
+    const hasExplicitExternalAction = /\b(open|go\s+to|visit|navigate\s+to|search|ask|find|type|copy|paste)\b/i.test(promptLower);
+    const hasExplicitExternalTargetSite = /\b(chatgpt|gpt|chat\s*gpt|gemini|google\s+gemini|google|github)\b/i.test(promptLower);
 
-    if (isExternalSearchSolveIntent && (promptLower.includes('gpt') || promptLower.includes('gemini') || promptLower.includes('search') || promptLower.includes('solve') || promptLower.includes('solution') || promptLower.includes('find') || promptLower.includes('ask'))) {
+    const isExplicitExternalSearchSolveIntent = hasExplicitExternalAction && hasExplicitExternalTargetSite;
+
+    if (isExplicitExternalSearchSolveIntent) {
       let targetSite = 'chatgpt';
       if (/\b(gemini|google\s+gemini)\b/i.test(promptLower)) {
         targetSite = 'gemini';

@@ -214,18 +214,28 @@ async function getActiveCDPPage(targetUrl = null) {
     throw new Error('No active page tab available in browser.');
   }
 
+  let selectedTab = null;
+
   if (targetUrl) {
-    const targetMatch = webPages.find((tab) => matchesHostname(targetUrl, tab.url));
-    if (targetMatch) return targetMatch;
+    selectedTab = webPages.find((tab) => matchesHostname(targetUrl, tab.url));
   }
 
-  const chatGptMatch = webPages.find((tab) => matchesHostname('https://chatgpt.com', tab.url));
-  if (chatGptMatch) return chatGptMatch;
+  if (!selectedTab) {
+    selectedTab = webPages.find((tab) => matchesHostname('https://chatgpt.com', tab.url));
+  }
 
-  const httpTabs = webPages.filter((tab) => tab.url.startsWith('http'));
-  if (httpTabs.length > 0) return httpTabs[0];
+  if (!selectedTab) {
+    const httpTabs = webPages.filter((tab) => tab.url.startsWith('http'));
+    selectedTab = httpTabs.length > 0 ? httpTabs[0] : webPages[0];
+  }
 
-  return webPages[0];
+  if (selectedTab && selectedTab.id) {
+    try {
+      await fetch(`http://${HOST}:${BROWSER_PORT}/json/activate/${selectedTab.id}`);
+    } catch {}
+  }
+
+  return selectedTab;
 }
 
 async function observeBrowser(targetUrl = null) {
@@ -778,6 +788,19 @@ async function pingCompanion() {
 async function getActiveBrowserPage(targetUrl = null) {
   try {
     const page = await getActiveCDPPage(targetUrl);
+    if (targetUrl && !matchesHostname(targetUrl, page.url)) {
+      return {
+        success: false,
+        message: `Expected ${new URL(targetUrl).hostname} page, but active browser page is ${page.url}`,
+        data: {
+          activeBrowserPage: page.url,
+          expectedUrl: targetUrl,
+          title: page.title || 'Unknown',
+          pageId: page.id || null,
+          tabId: page.id || null
+        }
+      };
+    }
     const obs = await observeBrowser(page.url);
     if (obs.success) {
       return {

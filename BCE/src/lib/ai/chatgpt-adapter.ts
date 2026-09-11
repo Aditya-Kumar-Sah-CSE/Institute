@@ -207,6 +207,36 @@ export class ChatGPTAdapter {
     message: string;
     diagnostics: any;
   }> {
+    // 1. Verify active browser tab is attached to chatgpt.com
+    const activePageRes = await callLocalComputer({
+      action: 'getActiveBrowserPage',
+      url: this.CHATGPT_URL
+    });
+
+    if (!activePageRes.success) {
+      const failureReason = activePageRes.message || `Expected ChatGPT page, but active browser page is unknown`;
+      console.error('[ChatGPTAdapter] ACTIVE_PAGE_MISMATCH:', activePageRes);
+      return {
+        success: false,
+        message: failureReason,
+        diagnostics: {
+          target: 'ChatGPT',
+          activeBrowserPage: (activePageRes.data as any)?.activeBrowserPage || 'unknown',
+          url: (activePageRes.data as any)?.activeBrowserPage || 'unknown',
+          title: (activePageRes.data as any)?.title || 'Unknown',
+          pageId: (activePageRes.data as any)?.pageId || null,
+          companionAvailable: true,
+          automationAttached: false,
+          domSnapshotAvailable: false,
+          visibleElementCount: 0,
+          assistantCandidateCount: 0,
+          codeBlockCount: 0,
+          responseLength: 0,
+          readFailureReason: failureReason
+        }
+      };
+    }
+
     const pollStartTime = Date.now();
     const MAX_POLL_MS = 15000;
     const INTERVAL_MS = 500;
@@ -236,7 +266,6 @@ export class ChatGPTAdapter {
 
           // If text length remains identical over 2 consecutive intervals (1s) or code block detected
           if (stableCount >= 2 || (codeBlocks.length > 0 && stableCount >= 1)) {
-            // Find code block matching preferred language
             const extracted = this.extractCodeFromSnapshot(lastSnapshot, preferredLang);
 
             return {
@@ -255,7 +284,9 @@ export class ChatGPTAdapter {
                 automationAttached: true,
                 domSnapshotAvailable: true,
                 visibleElementCount: (lastSnapshot.elements || []).length,
-                codeBlockCount: codeBlocks.length
+                assistantCandidateCount: codeBlocks.length > 0 ? codeBlocks.length : 1,
+                codeBlockCount: codeBlocks.length,
+                responseLength: currentText.length
               }
             };
           }
@@ -265,7 +296,7 @@ export class ChatGPTAdapter {
       await new Promise((r) => setTimeout(r, INTERVAL_MS));
     }
 
-    // Fallback if stabilization deadline exceeded but snapshot was obtained
+    // Bounded deadline fallback if snapshot obtained
     if (lastSnapshot && (lastSnapshot.visibleText?.length > 10 || (lastSnapshot.codeBlocks || []).length > 0)) {
       const extracted = this.extractCodeFromSnapshot(lastSnapshot, preferredLang);
       return {
@@ -284,7 +315,9 @@ export class ChatGPTAdapter {
           automationAttached: true,
           domSnapshotAvailable: true,
           visibleElementCount: (lastSnapshot.elements || []).length,
-          codeBlockCount: (lastSnapshot.codeBlocks || []).length
+          assistantCandidateCount: (lastSnapshot.codeBlocks || []).length,
+          codeBlockCount: (lastSnapshot.codeBlocks || []).length,
+          responseLength: (lastSnapshot.visibleText || '').length
         }
       };
     }
@@ -292,14 +325,17 @@ export class ChatGPTAdapter {
     // Diagnostic failure logging
     const failureReason = 'ChatGPT opened and search was submitted, but response could not be read from real browser tab.';
     console.error('[ChatGPTAdapter] READ_FAILURE_DIAGNOSTIC:', {
-      activeBrowserPage: lastSnapshot?.url || this.CHATGPT_URL,
-      url: lastSnapshot?.url || this.CHATGPT_URL,
+      target: 'ChatGPT',
+      activeBrowserPage: lastSnapshot?.url || (activePageRes.data as any)?.url || this.CHATGPT_URL,
+      url: lastSnapshot?.url || (activePageRes.data as any)?.url || this.CHATGPT_URL,
       title: lastSnapshot?.title || 'Unknown',
       pageId: lastSnapshot?.pageId || null,
       automationAttached: Boolean(lastSnapshot),
       domSnapshotAvailable: Boolean(lastSnapshot),
       visibleElementCount: (lastSnapshot?.elements || []).length,
+      assistantCandidateCount: (lastSnapshot?.codeBlocks || []).length,
       codeBlockCount: (lastSnapshot?.codeBlocks || []).length,
+      responseLength: (lastSnapshot?.visibleText || '').length,
       readFailureReason: failureReason
     });
 
@@ -308,15 +344,17 @@ export class ChatGPTAdapter {
       message: `FAILED: ${failureReason}`,
       diagnostics: {
         target: 'ChatGPT',
-        activeBrowserPage: lastSnapshot?.url || this.CHATGPT_URL,
-        url: lastSnapshot?.url || this.CHATGPT_URL,
+        activeBrowserPage: lastSnapshot?.url || (activePageRes.data as any)?.url || this.CHATGPT_URL,
+        url: lastSnapshot?.url || (activePageRes.data as any)?.url || this.CHATGPT_URL,
         title: lastSnapshot?.title || 'Unknown',
         pageId: lastSnapshot?.pageId || null,
         companionAvailable: true,
         automationAttached: Boolean(lastSnapshot),
         domSnapshotAvailable: Boolean(lastSnapshot),
         visibleElementCount: (lastSnapshot?.elements || []).length,
+        assistantCandidateCount: (lastSnapshot?.codeBlocks || []).length,
         codeBlockCount: (lastSnapshot?.codeBlocks || []).length,
+        responseLength: (lastSnapshot?.visibleText || '').length,
         readFailureReason: failureReason
       }
     };
@@ -336,10 +374,13 @@ export class ChatGPTAdapter {
         return { code: exactMatch.code, language: exactMatch.language };
       }
 
-      // Return first available valid code block without forcing Python tag on C/C++
+      // Check first code block language without mislabeling C/C++ as Python
       const first = codeBlocks[0];
       if (first && first.code) {
-        return { code: first.code, language: first.language || targetLang };
+        const snippet = first.code;
+        const isCpp = snippet.includes('#include') || snippet.includes('std::') || snippet.includes('int main(') || snippet.includes('printf(');
+        const actualLang = isCpp ? 'cpp' : (first.language || targetLang);
+        return { code: snippet, language: actualLang };
       }
     }
 
@@ -362,9 +403,11 @@ export class ChatGPTAdapter {
       const codeSnippet = (match[2] || '').trim();
 
       if (codeSnippet.length > 0) {
+        const isCpp = codeSnippet.includes('#include') || codeSnippet.includes('std::') || codeSnippet.includes('int main(');
+        const actualLang = isCpp ? 'cpp' : (langTag || preferredLang);
         if (!bestCode || langTag === preferredLang.toLowerCase()) {
           bestCode = codeSnippet;
-          if (langTag) detectedLang = langTag;
+          detectedLang = actualLang;
         }
       }
     }
