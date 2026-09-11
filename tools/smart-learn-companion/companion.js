@@ -49,10 +49,42 @@ const ALLOWED_APPS = new Map([
 ]);
 const BLOCKED_ARGS = /(?:--load-extension|--user-data-dir|--proxy-server|javascript:|file:|data:)/i;
 
+const DEFAULT_ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3001'
+];
+const EXTRA_ORIGINS = (process.env.SMART_LEARN_ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+const ALLOWED_ORIGINS = new Set([...DEFAULT_ALLOWED_ORIGINS, ...EXTRA_ORIGINS]);
+
+function isOriginAllowed(origin) {
+  if (!origin) return true;
+  if (ALLOWED_ORIGINS.has(origin)) return true;
+  try {
+    const u = new URL(origin);
+    if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') return true;
+  } catch {}
+  return false;
+}
+
 let cdpSequenceId = 1;
 
-function json(res, status, body) {
-  res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
+function json(res, status, body, requestOrigin = null) {
+  const headers = {
+    'content-type': 'application/json; charset=utf-8',
+    'cache-control': 'no-store'
+  };
+  if (requestOrigin && isOriginAllowed(requestOrigin)) {
+    headers['Access-Control-Allow-Origin'] = requestOrigin;
+    headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS';
+    headers['Access-Control-Allow-Headers'] = 'Content-Type, X-Smart-Learn-Token, X-Smart-Learn-Confirmed, Authorization';
+    headers['Access-Control-Max-Age'] = '86400';
+  }
+  res.writeHead(status, headers);
   res.end(JSON.stringify(body));
 }
 
@@ -697,9 +729,11 @@ async function inspect() {
   } catch {}
 
   return {
+    ok: true,
     success: true,
     companionConnected: true,
     browserAvailable: true,
+    browserAutomation: browserAutomationAvailable,
     browserAutomationAvailable,
     activeBrowser,
     activePage,
@@ -711,6 +745,8 @@ async function inspect() {
       desktopOverlayActive: true,
       activeBrowser,
       activePage,
+      browserAutomation: browserAutomationAvailable,
+      browserAutomationAvailable,
       capabilities: ['launchAllowlistedApp', 'browserNavigate', 'browserObserve', 'getDesktopContext', 'workspaceFiles', 'auditLog', 'cdpAutomation', 'externalDOMSnapshot']
     }
   };
@@ -844,15 +880,45 @@ async function handle(request, body) {
 const server = http.createServer(async (request, response) => {
   const reqId = 'req_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6);
   const startTime = Date.now();
+  const origin = request.headers.origin;
+
+  // Handle preflight OPTIONS requests immediately
+  if (request.method === 'OPTIONS') {
+    if (origin && !isOriginAllowed(origin)) {
+      console.warn(`[Companion] CORS: rejected origin=${origin}`);
+      response.writeHead(403, { 'content-type': 'application/json' });
+      return response.end(JSON.stringify({ success: false, message: 'Origin not allowed' }));
+    }
+    const headers = {
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, X-Smart-Learn-Token, X-Smart-Learn-Confirmed, Authorization',
+      'Access-Control-Max-Age': '86400'
+    };
+    if (origin) headers['Access-Control-Allow-Origin'] = origin;
+    response.writeHead(204, headers);
+    return response.end();
+  }
 
   try {
     if (request.socket.remoteAddress !== '127.0.0.1' && request.socket.remoteAddress !== '::1') {
-      return json(response, 403, { success: false, message: 'Local connections only.' });
+      return json(response, 403, { success: false, message: 'Local connections only.' }, origin);
     }
+
+    if (origin && !isOriginAllowed(origin)) {
+      console.warn(`[Companion] CORS: rejected origin=${origin}`);
+      return json(response, 403, { success: false, message: 'Origin not allowed' }, origin);
+    }
+
     if (request.url === '/health' && request.method === 'GET') {
-      return json(response, 200, await inspect());
+      console.log(`[Companion] health check started`);
+      const healthData = await inspect();
+      console.log(`[Companion] health check: 200`);
+      console.log(`[Companion] CORS: allowed origin=${origin || 'http://localhost:3000'}`);
+      console.log(`[Companion] browserAutomation=${healthData.browserAutomation}`);
+      return json(response, 200, healthData, origin);
     }
-    if (request.headers['x-smart-learn-token'] !== TOKEN) return json(response, 401, { success: false, message: 'Invalid companion token.' });
+
+    if (request.headers['x-smart-learn-token'] !== TOKEN) return json(response, 401, { success: false, message: 'Invalid companion token.' }, origin);
     
     let raw = '';
     for await (const chunk of request) raw += chunk;
@@ -865,12 +931,12 @@ const server = http.createServer(async (request, response) => {
     console.log(`[ExternalUI] RESPONSE_RETURNED ${reqId} status=${result.success ? 'SUCCESS' : 'FAILED'} duration=${duration}ms`);
 
     await audit(body.action || 'unknown', { path: body.path, app: body.app }, result.success ? 'success' : 'rejected');
-    return json(response, result.status || (result.success ? 200 : 400), { ...result, requestId: reqId, durationMs: duration });
+    return json(response, result.status || (result.success ? 200 : 400), { ...result, requestId: reqId, durationMs: duration }, origin);
   } catch (error) {
     const duration = Date.now() - startTime;
     console.error(`[ExternalUI] COMPANION_ERROR ${reqId} duration=${duration}ms error=${error.message}`);
     await audit('error', {}, error.message);
-    return json(response, 500, { success: false, requestId: reqId, message: 'Companion action failed.' });
+    return json(response, 500, { success: false, requestId: reqId, message: 'Companion action failed.' }, origin);
   }
 });
 
