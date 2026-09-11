@@ -109,6 +109,20 @@ async function observeBrowser() {
   return { success: true, message: 'Browser state observed from the active tab.', data: { ...JSON.parse(state), tabUrl: page.url } };
 }
 
+function matchesHostname(targetUrl, observedUrl) {
+  if (!targetUrl || !observedUrl) return false;
+  try {
+    const tHost = new URL(targetUrl).hostname.toLowerCase().replace(/^www\./, '');
+    const oHost = new URL(observedUrl).hostname.toLowerCase().replace(/^www\./, '');
+    if (tHost === oHost) return true;
+    if (oHost.endsWith('.' + tHost) || tHost.endsWith('.' + oHost)) return true;
+    const getBase = (h) => h.split('.').slice(-2).join('.');
+    return getBase(tHost) === getBase(oHost);
+  } catch {
+    return false;
+  }
+}
+
 async function navigateBrowser(body) {
   const target = String(body.url || '').trim();
   let parsed;
@@ -139,16 +153,16 @@ async function navigateBrowser(body) {
         await fetch(`http://${HOST}:${BROWSER_PORT}/json/activate/${page.id}`);
         const state = await cdpEvaluate(page.webSocketDebuggerUrl, `location.href = ${JSON.stringify(target)}; 'navigation-started'`);
         if (state === 'navigation-started') {
-          await new Promise((resolve) => setTimeout(resolve, 500));
+          await new Promise((resolve) => setTimeout(resolve, 800));
           const observed = await observeBrowser();
-          if (observed.success && observed.data.url.includes(parsed.hostname)) {
-            return { success: true, message: `Browser verified ${parsed.hostname}.`, data: observed.data };
+          if (observed.success && matchesHostname(target, observed.data.url)) {
+            return { success: true, message: `Browser verified ${parsed.hostname} (${observed.data.title || 'Page loaded'}).`, data: observed.data };
           }
-          lastError = observed.message;
+          lastError = observed.message || `Observed URL: ${observed.data?.url || 'unknown'}`;
         }
       }
     } catch (error) { lastError = error.message; }
-    await new Promise((resolve) => setTimeout(resolve, 250));
+    await new Promise((resolve) => setTimeout(resolve, 300));
   }
   return { success: false, message: `Browser navigation failed verification: ${lastError}` };
 }

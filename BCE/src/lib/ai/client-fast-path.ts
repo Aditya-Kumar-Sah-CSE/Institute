@@ -1,6 +1,7 @@
 import { AppRole, canAccessPage, normalizeAgentRole } from '@/lib/auth/agent-permissions';
 import { LivePageContext } from '@/lib/ai/live-page-context';
 import { setAgentVisualState } from './agent-visual-state';
+import { resolveTargetUrl } from './url-resolver';
 
 export interface NavigationTelemetry {
   intentResolutionMs: number;
@@ -555,28 +556,32 @@ export function resolveClientFastPath(
     };
   }
 
-  // 12. YouTube & External Website Fast-Path (e.g. "open youtube", "youtube kholo", "search youtube for binary search")
-  const isYouTubeQuery = /\b(youtube|yt)\b/i.test(p);
-  if (isYouTubeQuery) {
-    const rawSearch = p.replace(/\b(open|kholo|search|search\s+for|on|par|in|video|videos|dsa|problem|find|yt|youtube)\b/gi, '').trim();
-    if (rawSearch.length > 2) {
-      const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(rawSearch)}`;
-      return {
-        isMatch: true,
-        clientAction: 'navigate',
-        externalUrl: searchUrl,
-        streamingMessage: `Searching YouTube for "${rawSearch}"...`,
-        successMessage: `YouTube search results opened for "${rawSearch}".`,
-        allowed: true,
-        language
-      };
+  // 12. Generic Web Navigation & External Sites Fast-Path (e.g. "open google", "open github", "open chatgpt", "open gmail", "open youtube", "open example.com")
+  const resolvedTarget = resolveTargetUrl(p);
+  if (resolvedTarget) {
+    // Preserve YouTube search query behavior if specific search terms exist
+    if (/\b(youtube|yt)\b/i.test(p)) {
+      const rawSearch = p.replace(/\b(open|kholo|search|search\s+for|on|par|in|video|videos|dsa|problem|find|yt|youtube)\b/gi, '').trim();
+      if (rawSearch.length > 2) {
+        const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(rawSearch)}`;
+        return {
+          isMatch: true,
+          clientAction: 'navigate',
+          externalUrl: searchUrl,
+          streamingMessage: `Searching YouTube for "${rawSearch}"...`,
+          successMessage: `YouTube search results opened for "${rawSearch}".`,
+          allowed: true,
+          language
+        };
+      }
     }
+
     return {
       isMatch: true,
       clientAction: 'navigate',
-      externalUrl: 'https://www.youtube.com',
-      streamingMessage: 'Opening YouTube...',
-      successMessage: 'YouTube opened.',
+      externalUrl: resolvedTarget.url,
+      streamingMessage: `Opening ${resolvedTarget.displayName}...`,
+      successMessage: `${resolvedTarget.displayName} opened.`,
       allowed: true,
       language
     };

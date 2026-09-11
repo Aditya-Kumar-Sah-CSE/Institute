@@ -11,6 +11,7 @@ import { resolveCourse, resolveDSASheet, resolveDSAProblem } from '@/lib/ai/enti
 import { getFreshAgentPageContext } from '@/lib/ai/live-dom-reader';
 import { callLocalComputer } from '@/lib/ai/local-computer-controller';
 import { saveAgentFact, recallAgentFacts, clearAgentFacts, setAgentReminder, getActiveReminders } from '@/lib/ai/agent-persistent-memory';
+import { resolveTargetUrl, verifyUrlHostnameMatch } from '@/lib/ai/url-resolver';
 
 const AGENT_FILE_ROOT = path.join(/*turbopackIgnore: true*/ process.cwd(), 'agent-workspace');
 
@@ -2269,36 +2270,55 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
 
   openBrowserUrl: {
     name: 'openBrowserUrl',
-    description: 'Open an HTTP(S) URL in the paired local browser or web browser window.',
+    description: 'Open an HTTP(S) URL or natural-language site name in the paired local browser or web browser window.',
     category: 'NAVIGATION',
     riskLevel: 'MEDIUM',
     parameters: {
       type: 'object',
       properties: {
-        url: { type: 'string', description: 'HTTP(S) URL to open' },
+        url: { type: 'string', description: 'HTTP(S) URL or website name to open' },
         app: { type: 'string', description: 'Allowlisted browser, chrome or edge' }
       },
       required: ['url']
     },
-    examples: ['open https://www.youtube.com'],
+    examples: ['open https://www.youtube.com', 'open Google', 'open GitHub', 'open ChatGPT'],
     execute: async (args) => {
-      let url = (args.url || '').trim();
-      if (!url) return { success: false, message: 'Valid URL required.' };
-      if (url.toLowerCase() === 'youtube' || url.toLowerCase() === 'open youtube') {
-        url = 'https://www.youtube.com';
-      } else if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        url = `https://${url}`;
+      const resolved = resolveTargetUrl(args.url || '');
+      if (!resolved) {
+        return {
+          success: false,
+          message: `Invalid or unsafe URL / site name: "${args.url}". Only valid HTTP/HTTPS URLs are permitted.`
+        };
       }
 
-      const res = await callLocalComputer({ action: 'browserNavigate', url, app: args.app });
+      const targetUrl = resolved.url;
+      const res = await callLocalComputer({ action: 'browserNavigate', url: targetUrl, app: args.app });
+
       if (!res.success && (res.message.includes('not configured') || res.message.includes('offline') || res.message.includes('failed'))) {
         return {
           success: true,
-          message: `🌐 Opening ${url}...`,
-          externalUrl: url,
-          data: { url }
+          message: `🌐 Opening ${resolved.displayName} (${targetUrl})...`,
+          externalUrl: targetUrl,
+          data: { url: targetUrl, hostname: resolved.hostname }
         };
       }
+
+      if (res.success && res.data) {
+        const obsUrl = res.data.url || targetUrl;
+        const obsTitle = res.data.title || resolved.displayName;
+        return {
+          success: true,
+          message: `Browser verified ${resolved.displayName}: "${obsTitle}" (${obsUrl})`,
+          externalUrl: targetUrl,
+          data: {
+            url: obsUrl,
+            title: obsTitle,
+            hostname: resolved.hostname,
+            verified: true
+          }
+        };
+      }
+
       return res;
     }
   },

@@ -3,6 +3,7 @@ import { runSmartAgent, AgentChatMessage, AgentResponse } from './agent';
 import { AgentPageContext } from './agent-context';
 import { normalizeAgentRole, canUseTool, canAccessPage, requireAgentPermission, AppRole } from '@/lib/auth/agent-permissions';
 import { resolveCourse, resolveDSASheet, resolveDSAProblem } from '@/lib/ai/entity-resolver';
+import { resolveTargetUrl } from '@/lib/ai/url-resolver';
 
 export interface LatencyTelemetry {
   speech_final?: number;
@@ -335,10 +336,10 @@ export class AgentController {
       };
     }
 
-    // External browser navigation must use the paired browser controller, never a
-    // live DOM text match from the Smart Agent drawer.
-    if (/^(?:open|go to|visit|navigate to)\s+(?:youtube|youtube\.com)(?:\s+.*)?$/i.test(promptRaw)) {
-      return await executeWithPermission('openBrowserUrl', { url: 'https://www.youtube.com', app: 'chrome' });
+    // External browser navigation must use the paired browser controller
+    const genericWebTarget = resolveTargetUrl(promptRaw);
+    if (genericWebTarget && genericWebTarget.isExternal) {
+      return await executeWithPermission('openBrowserUrl', { url: genericWebTarget.url, app: 'chrome' });
     }
 
     // 0. Live Current-Page Content Queries ("isme kya hai?", "is page par kya hai?", "yaha kya likha hai?", "explain this page", "full scroll read", "content access")
