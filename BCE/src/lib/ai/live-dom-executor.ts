@@ -544,6 +544,13 @@ export function executeLiveDOMAction(
       }
     }
 
+    // Parent anchor link resolution: If target DOM node is wrapped inside an <a> tag (like <Link><Card></Link>),
+    // or if parent anchor exists, resolve the anchor element as effective target to ensure Next.js router handles navigation
+    const parentAnchor = targetDomNode.closest('a[href]') as HTMLElement | null;
+    if (parentAnchor && !childActionResolved) {
+      effectiveClickTarget = parentAnchor;
+    }
+
     // Visual Cursor Non-Blocking Movement:
     // 1) First emit card target highlight if card container
     if (childActionResolved && targetDomNode !== effectiveClickTarget) {
@@ -554,7 +561,7 @@ export function executeLiveDOMAction(
       });
     }
 
-    // 2) Emit action target highlight on effective click element (e.g. View Sheet button)
+    // 2) Emit action target highlight on effective click element (e.g. View Sheet button or <a> link)
     const effectiveLabelText = effectiveClickTarget.textContent?.trim() || labelText;
     setAgentVisualState('targeting', {
       targetText: effectiveLabelText,
@@ -575,7 +582,7 @@ export function executeLiveDOMAction(
     }
 
     // Extract expected route & entity if target is a link or contains href
-    const hrefAttr = effectiveClickTarget.getAttribute('href') || effectiveClickTarget.closest('a')?.getAttribute('href');
+    const hrefAttr = effectiveClickTarget.getAttribute('href') || effectiveClickTarget.closest('a')?.getAttribute('href') || targetDomNode.closest('a')?.getAttribute('href');
     let expectedRoute: string | undefined = undefined;
     let expectedEntity: DOMActionResult['expectedEntity'] = undefined;
 
@@ -593,7 +600,7 @@ export function executeLiveDOMAction(
       }
     }
 
-    // Dispatch Event Sequence
+    // Dispatch Event Sequence on effective click target and targetDomNode
     effectiveClickTarget.focus();
     effectiveClickTarget.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true, cancelable: true }));
     effectiveClickTarget.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
@@ -607,6 +614,15 @@ export function executeLiveDOMAction(
       effectiveClickTarget.click();
     } else {
       effectiveClickTarget.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    }
+
+    // Also trigger targetDomNode if effectiveClickTarget was parent/child link
+    if (targetDomNode !== effectiveClickTarget) {
+      try {
+        targetDomNode.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+      } catch {
+        // Fallback
+      }
     }
 
     executionTimeMs = Date.now() - execStart;
@@ -647,10 +663,13 @@ export function executeLiveDOMAction(
       setAgentVisualState('navigating', { targetText: effectiveLabelText, targetDomNode: effectiveClickTarget });
       setTimeout(() => {
         const pathNow = window.location.pathname + window.location.search;
-        if (pathNow !== expectedRoute && !pathNow.startsWith(expectedRoute)) {
+        if (pathNow !== expectedRoute) {
+          if (process.env.NODE_ENV !== 'production') {
+            console.log('[DOM Executor] Client router click pending. Triggering fallback navigation to:', expectedRoute);
+          }
           window.location.assign(expectedRoute);
         }
-      }, 150);
+      }, 200);
     }
 
     // 5. POST-ACTION VERIFICATION
