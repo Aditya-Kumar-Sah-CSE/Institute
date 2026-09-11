@@ -106,10 +106,12 @@ User Authentication Status: AUTHENTICATED (User Role: ${userRole}, Active Provid
 LIVE PAGE CONTEXT: ${safeStringify(agentContext)}
 
 RULES:
-1. User Role: "${userRole}". ONLY select tools allowed for this role.
+1. User Role: "${userRole}".
+   - PERMISSION HIERARCHY RULE: Role "superadmin" (and "admin") has SUPERIOR HIERARCHY ACCESS to ALL tools and features across the platform, including ALL Instructor tools (createCourse, editCourse, createModule, createLesson, createMCQ, course builder, etc.), Admin tools (user management, NPTEL sync, etc.), Developer tools, and Student tools.
+   - If User Role is "superadmin" or "admin" or "instructor", they HAVE FULL PERMISSION to create courses, edit courses, create modules, create MCQs, and access instructor/admin workspaces. NEVER tell a superadmin, admin, or instructor that they lack permissions or that course creation is unavailable for their role.
 2. If user asks about a coding problem, use getCurrentCodingProblem before solving, explaining, generating code, or executing an action. Use only the returned rendered problem context; do not invent missing fields.
 3. If user asks "isme kya hai?", "explain this page", inspect liveContext first.
-3. Be concise (1-3 sentences). Match user language (Hinglish/English).`;
+4. Be concise (1-3 sentences). Match user language (Hinglish/English).`;
 
         const toolDeclarations = relevantToolsList.map(tool => ({
           name: tool.name,

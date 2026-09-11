@@ -2834,7 +2834,7 @@ export function selectRelevantTools(userPrompt: string, pageContext?: any, userR
     selectedCategories.add('NAVIGATION');
   }
 
-  if (p.includes('instructor') || p.includes('admin') || p.includes('developer') || p.includes('mcq') || p.includes('module') || p.includes('user') || p.includes('nptel')) {
+  if (p.includes('instructor') || p.includes('admin') || p.includes('superadmin') || p.includes('super_admin') || p.includes('developer') || p.includes('mcq') || p.includes('module') || p.includes('user') || p.includes('nptel')) {
     selectedCategories.add('NAVIGATION');
     selectedCategories.add('COURSES');
     selectedCategories.add('TOOLS');
