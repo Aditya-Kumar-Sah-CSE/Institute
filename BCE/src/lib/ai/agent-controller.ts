@@ -483,7 +483,7 @@ export class AgentController {
     const resolverLiveContext = pageContext?.liveContext || pageContext;
     const isCodingProblemUnderstandingQuery = userRole !== 'guest' &&
       (sessionState.route.includes('/code-arena/problems/') || resolverLiveContext?.pageType === 'dsa_problem') &&
-      /\b(what\s+is\s+this\s+problem|what.*problem.*asking|explain.*problem|understand.*problem|solve.*problem|approach|constraints|input\s*(format)?|output\s*(format)?|examples?)\b/i.test(promptLower);
+      /\b(explain|explain\s+this|samjha\s*do|batao|kaise\s+hoga|approach|solution|hint|hints|how\s+to\s+solve|what\s+to\s+do|what\s+is\s+this\s+problem|what.*problem.*asking|explain.*problem|understand.*problem|solve.*problem|constraints|input\s*(format)?|output\s*(format)?|examples?)\b/i.test(promptLower);
 
     if (isCodingProblemUnderstandingQuery) {
       return await executeWithPermission('getCurrentCodingProblem', {});
