@@ -1,6 +1,7 @@
 import 'server-only';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { spawn } from 'node:child_process';
 
 export interface LocalComputerRequest {
   action: 
@@ -43,21 +44,24 @@ export interface LocalComputerResult {
 }
 
 const DEFAULT_COMPANION_URL = 'http://127.0.0.1:43127';
+let companionSpawnPromise: Promise<boolean> | null = null;
 
 function getCompanionToken(): string {
   if (process.env.SMART_LEARN_COMPANION_TOKEN) {
     return process.env.SMART_LEARN_COMPANION_TOKEN;
   }
   try {
-    const primaryPath = path.join(process.cwd(), '.smart-learn', 'companion-token');
-    if (fs.existsSync(primaryPath)) {
-      const token = fs.readFileSync(primaryPath, 'utf8').trim();
-      if (token) return token;
-    }
-    const parentPath = path.join(process.cwd(), '..', '.smart-learn', 'companion-token');
-    if (fs.existsSync(parentPath)) {
-      const token = fs.readFileSync(parentPath, 'utf8').trim();
-      if (token) return token;
+    const candidatePaths = [
+      path.join(process.cwd(), '.smart-learn', 'companion-token'),
+      path.join(process.cwd(), '..', '.smart-learn', 'companion-token'),
+      path.join(process.cwd(), 'tools', 'smart-learn-companion', '.smart-learn', 'companion-token'),
+      path.join(process.cwd(), '..', 'tools', 'smart-learn-companion', '.smart-learn', 'companion-token')
+    ];
+    for (const p of candidatePaths) {
+      if (fs.existsSync(p)) {
+        const token = fs.readFileSync(p, 'utf8').trim();
+        if (token) return token;
+      }
     }
   } catch {}
   return 'smart-learn-companion-token-default';
@@ -79,13 +83,74 @@ export async function checkCompanionHealth(): Promise<{ connected: boolean; mess
   } catch (err: any) {
     const code = err?.cause?.code || err?.code || '';
     if (code === 'ECONNREFUSED' || err?.message?.includes('fetch failed')) {
-      return { connected: false, message: `Companion is not running at ${baseUrl}. Run 'npm run companion'.` };
+      return { connected: false, message: `Companion is not running at ${baseUrl}.` };
     }
     return { connected: false, message: `Companion health check failed: ${err.message || 'Offline'}` };
   }
 }
 
+async function ensureCompanionRunning(): Promise<boolean> {
+  const health = await checkCompanionHealth();
+  if (health.connected) return true;
+
+  if (companionSpawnPromise) return companionSpawnPromise;
+
+  companionSpawnPromise = (async () => {
+    try {
+      const candidateScripts = [
+        path.join(process.cwd(), 'tools', 'smart-learn-companion', 'companion.js'),
+        path.join(process.cwd(), '..', 'tools', 'smart-learn-companion', 'companion.js'),
+        path.join(__dirname, '..', '..', '..', 'tools', 'smart-learn-companion', 'companion.js')
+      ];
+
+      const scriptPath = candidateScripts.find((p) => fs.existsSync(p));
+      if (!scriptPath) {
+        console.error('Companion script companion.js not found in candidates:', candidateScripts);
+        return false;
+      }
+
+      const workspaceDir = path.resolve(path.dirname(scriptPath), '..', '..');
+
+      const child = spawn(process.execPath, [scriptPath], {
+        detached: true,
+        stdio: 'ignore',
+        windowsHide: false,
+        env: {
+          ...process.env,
+          SMART_LEARN_WORKSPACE: workspaceDir
+        }
+      });
+      child.unref();
+
+      const deadline = Date.now() + 5000;
+      while (Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 400));
+        const res = await checkCompanionHealth();
+        if (res.connected) {
+          companionSpawnPromise = null;
+          return true;
+        }
+      }
+    } catch (err) {
+      console.error('Failed to auto-start companion:', err);
+    }
+    companionSpawnPromise = null;
+    return false;
+  })();
+
+  return companionSpawnPromise;
+}
+
 export async function callLocalComputer(request: LocalComputerRequest): Promise<LocalComputerResult> {
+  const isRunning = await ensureCompanionRunning();
+  if (!isRunning) {
+    return {
+      success: false,
+      companionConnected: false,
+      message: 'FAILED: Could not auto-start Smart Learn Companion process on port 43127.'
+    };
+  }
+
   const token = getCompanionToken();
   const baseUrl = process.env.SMART_LEARN_COMPANION_URL || DEFAULT_COMPANION_URL;
 
@@ -134,16 +199,7 @@ export async function callLocalComputer(request: LocalComputerRequest): Promise<
       message: payload.message || `Companion rejected the action (HTTP ${response.status}).`
     };
   } catch (err: any) {
-    const code = err?.cause?.code || err?.code || '';
     const errMessage = err?.message || '';
-
-    if (code === 'ECONNREFUSED' || errMessage.includes('fetch failed')) {
-      return {
-        success: false,
-        companionConnected: false,
-        message: `FAILED: External browser automation is not available. Smart Learn Companion is not running at ${baseUrl}. Ensure Companion is running (npm run companion).`
-      };
-    }
 
     if (err.name === 'TimeoutError' || errMessage.includes('timeout')) {
       return {
