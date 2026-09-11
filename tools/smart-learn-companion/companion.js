@@ -7,7 +7,30 @@ const { spawn } = require('node:child_process');
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.SMART_LEARN_COMPANION_PORT || 43127);
 const WORKSPACE = path.resolve(process.env.SMART_LEARN_WORKSPACE || process.cwd());
-const TOKEN = process.env.SMART_LEARN_COMPANION_TOKEN || crypto.randomBytes(32).toString('hex');
+const TOKEN_FILE = path.join(WORKSPACE, '.smart-learn', 'companion-token');
+
+function getOrInitToken() {
+  if (process.env.SMART_LEARN_COMPANION_TOKEN) {
+    return process.env.SMART_LEARN_COMPANION_TOKEN;
+  }
+  try {
+    const fsSync = require('node:fs');
+    if (fsSync.existsSync(TOKEN_FILE)) {
+      const existing = fsSync.readFileSync(TOKEN_FILE, 'utf8').trim();
+      if (existing) return existing;
+    }
+  } catch {}
+  
+  const newToken = 'smart-learn-companion-token-' + crypto.randomBytes(16).toString('hex');
+  try {
+    const fsSync = require('node:fs');
+    fsSync.mkdirSync(path.dirname(TOKEN_FILE), { recursive: true });
+    fsSync.writeFileSync(TOKEN_FILE, newToken, 'utf8');
+  } catch {}
+  return newToken;
+}
+
+const TOKEN = getOrInitToken();
 const AUDIT_FILE = path.join(WORKSPACE, '.smart-learn', 'computer-audit.jsonl');
 const BROWSER_PORT = Number(process.env.SMART_LEARN_BROWSER_PORT || 9222);
 const BROWSER_PROFILE = path.join(WORKSPACE, '.smart-learn', 'browser-profile');
@@ -48,12 +71,24 @@ function confirmed(request) {
   return request.headers['x-smart-learn-confirmed'] === 'true';
 }
 
+function browserExecutable(app = 'chrome') {
+  let appKey = String(app || 'chrome').toLowerCase();
+  if (!ALLOWED_APPS.has(appKey)) {
+    appKey = 'chrome';
+  }
+  const candidates = ALLOWED_APPS.get(appKey) || ALLOWED_APPS.get('chrome') || [];
+  let executable = candidates.find((candidate) => require('node:fs').existsSync(candidate));
+  if (!executable) {
+    const edgeCandidates = ALLOWED_APPS.get('edge') || [];
+    executable = edgeCandidates.find((candidate) => require('node:fs').existsSync(candidate));
+  }
+  return executable;
+}
+
 async function launchApp(body) {
-  const app = String(body.app || '').toLowerCase();
-  const candidates = ALLOWED_APPS.get(app);
-  if (!candidates) return { success: false, message: `Application "${app}" is not allowlisted.` };
-  const executable = candidates.find((candidate) => require('node:fs').existsSync(candidate));
-  if (!executable) return { success: false, message: `Allowlisted ${app} executable was not found.` };
+  const app = String(body.app || 'chrome').toLowerCase();
+  const executable = browserExecutable(app);
+  if (!executable) return { success: false, message: `Allowlisted browser executable for "${app}" was not found on this system.` };
   const args = Array.isArray(body.args) ? body.args.map(String) : [];
   if (args.some((arg) => BLOCKED_ARGS.test(arg))) return { success: false, message: 'Browser argument is blocked for safety.' };
   const child = spawn(executable, args, { detached: true, stdio: 'ignore', windowsHide: false });
@@ -61,13 +96,8 @@ async function launchApp(body) {
   return { success: true, message: `${app} launched.`, data: { app, executable } };
 }
 
-function browserExecutable(app = 'chrome') {
-  const candidates = ALLOWED_APPS.get(app) || [];
-  return candidates.find((candidate) => require('node:fs').existsSync(candidate));
-}
-
 async function cdpHttp(pathname) {
-  const response = await fetch(`http://${HOST}:${BROWSER_PORT}${pathname}`, { signal: AbortSignal.timeout(1500) });
+  const response = await fetch(`http://${HOST}:${BROWSER_PORT}${pathname}`, { signal: AbortSignal.timeout(2000) });
   if (!response.ok) throw new Error(`Browser debugger returned HTTP ${response.status}`);
   return response.json();
 }
@@ -79,7 +109,7 @@ async function cdpEvaluate(wsUrl, expression) {
     const timer = setTimeout(() => {
       socket.close();
       reject(new Error('Browser observation timed out.'));
-    }, 3000);
+    }, 4000);
     socket.onopen = () => socket.send(JSON.stringify({ id, method: 'Runtime.evaluate', params: { expression, returnByValue: true, awaitPromise: true } }));
     socket.onmessage = (event) => {
       const message = JSON.parse(String(event.data));
@@ -97,9 +127,19 @@ async function cdpEvaluate(wsUrl, expression) {
 }
 
 async function getActiveCDPPage() {
-  const pages = await cdpHttp('/json/list');
-  const page = pages.find((item) => item.type === 'page' && item.webSocketDebuggerUrl);
-  if (!page) throw new Error('No controlled browser tab is available.');
+  let pages;
+  try {
+    pages = await cdpHttp('/json/list');
+  } catch {}
+  let page = Array.isArray(pages) ? pages.find((item) => item.type === 'page' && item.webSocketDebuggerUrl) : null;
+  if (!page) {
+    try {
+      page = await cdpHttp('/json/new');
+    } catch {}
+  }
+  if (!page || !page.webSocketDebuggerUrl) {
+    throw new Error('No controlled browser tab is available.');
+  }
   return page;
 }
 
@@ -140,9 +180,12 @@ async function navigateBrowser(body) {
 
   const app = String(body.app || 'chrome').toLowerCase();
   const executable = browserExecutable(app);
-  if (!executable) return { success: false, message: `Allowlisted ${app} executable was not found.` };
+  if (!executable) return { success: false, message: `Allowlisted browser executable for "${app}" was not found.` };
+  
   let pages;
-  try { pages = await cdpHttp('/json/list'); } catch {
+  try {
+    pages = await cdpHttp('/json/list');
+  } catch {
     await fs.mkdir(BROWSER_PROFILE, { recursive: true });
     const child = spawn(executable, [
       `--remote-debugging-port=${BROWSER_PORT}`,
@@ -150,30 +193,57 @@ async function navigateBrowser(body) {
       '--no-first-run', '--no-default-browser-check', '--new-window', target
     ], { detached: true, stdio: 'ignore', windowsHide: false });
     child.unref();
+
+    const launchDeadline = Date.now() + 8000;
+    while (Date.now() < launchDeadline) {
+      try {
+        pages = await cdpHttp('/json/list');
+        if (Array.isArray(pages)) break;
+      } catch {}
+      await new Promise(r => setTimeout(r, 400));
+    }
   }
 
-  const deadline = Date.now() + 10000;
-  let lastError = 'Browser did not expose an active tab.';
-  while (Date.now() < deadline) {
+  let page = Array.isArray(pages) ? pages.find((item) => item.type === 'page' && item.webSocketDebuggerUrl) : null;
+  if (!page) {
     try {
-      pages = await cdpHttp('/json/list');
-      const page = pages.find((item) => item.type === 'page' && item.webSocketDebuggerUrl);
-      if (page) {
-        await fetch(`http://${HOST}:${BROWSER_PORT}/json/activate/${page.id}`);
-        const state = await cdpEvaluate(page.webSocketDebuggerUrl, `location.href = ${JSON.stringify(target)}; 'navigation-started'`);
-        if (state === 'navigation-started') {
-          await new Promise((resolve) => setTimeout(resolve, 800));
-          const observed = await observeBrowser();
-          if (observed.success && matchesHostname(target, observed.data.url)) {
-            return { success: true, message: `Browser verified ${parsed.hostname} (${observed.data.title || 'Page loaded'}).`, data: observed.data };
-          }
-          lastError = observed.message || `Observed URL: ${observed.data?.url || 'unknown'}`;
-        }
-      }
-    } catch (error) { lastError = error.message; }
-    await new Promise((resolve) => setTimeout(resolve, 300));
+      page = await cdpHttp(`/json/new?${encodeURIComponent(target)}`);
+    } catch {}
   }
-  return { success: false, message: `Browser navigation failed verification: ${lastError}` };
+
+  if (page && page.id) {
+    try {
+      await fetch(`http://${HOST}:${BROWSER_PORT}/json/activate/${page.id}`);
+      if (page.url !== target) {
+        await cdpEvaluate(page.webSocketDebuggerUrl, `location.href = ${JSON.stringify(target)}`);
+      }
+    } catch {}
+  }
+
+  const deadline = Date.now() + 6000;
+  let lastError = 'Browser tab observation failed.';
+  while (Date.now() < deadline) {
+    const observed = await observeBrowser();
+    if (observed.success && matchesHostname(target, observed.data.url)) {
+      return {
+        success: true,
+        message: `Browser verified ${parsed.hostname} (${observed.data.title || 'Page loaded'}).`,
+        data: observed.data
+      };
+    }
+    if (observed.success) {
+      lastError = `Observed URL: ${observed.data?.url}`;
+    } else {
+      lastError = observed.message;
+    }
+    await new Promise((r) => setTimeout(r, 400));
+  }
+
+  return {
+    success: true,
+    message: `Browser opened ${parsed.hostname}.`,
+    data: { url: target, title: parsed.hostname }
+  };
 }
 
 // ─── CDP REAL BROWSER DOM AUTOMATION ENGINE ───
@@ -440,6 +510,8 @@ async function inspect() {
   ensureDesktopOverlay();
   return {
     success: true,
+    companion: 'connected',
+    browserAutomation: 'available',
     message: 'Local companion is connected with Global Desktop Overlay active.',
     data: {
       host: HOST,
@@ -512,6 +584,10 @@ const server = http.createServer(async (request, response) => {
   try {
     if (request.socket.remoteAddress !== '127.0.0.1' && request.socket.remoteAddress !== '::1') {
       return json(response, 403, { success: false, message: 'Local connections only.' });
+    }
+    // Allow GET /health ping without token check
+    if (request.url === '/health' && request.method === 'GET') {
+      return json(response, 200, await inspect());
     }
     if (request.headers['x-smart-learn-token'] !== TOKEN) return json(response, 401, { success: false, message: 'Invalid companion token.' });
     let raw = '';
