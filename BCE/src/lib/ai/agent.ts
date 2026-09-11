@@ -98,32 +98,29 @@ export async function runSmartAgent(params: {
   }
 
   // 2. USER / SYSTEM AI PROVIDER PIPELINE (Groq / Gemini / Grok)
-  let activeProviderInstance = null;
-  let activeProviderName = 'groq';
+  const providersToTry: Array<{ instance: any; name: string }> = [];
 
   if (user && user.id) {
     const userBYOK = await getUserAIProvider(user.id, preferredProvider);
     if (userBYOK) {
-      activeProviderInstance = userBYOK.provider;
-      activeProviderName = userBYOK.activeProvider;
+      providersToTry.push({ instance: userBYOK.provider, name: userBYOK.activeProvider });
     }
   }
 
-  // System API key fallback (Groq / Gemini) if user has no BYOK connected
-  if (!activeProviderInstance) {
-    if (groqApiKey) {
-      activeProviderInstance = new GroqProvider(groqApiKey);
-      activeProviderName = 'groq';
-    } else if (geminiApiKey) {
-      activeProviderInstance = new GeminiProvider(geminiApiKey);
-      activeProviderName = 'gemini';
-    }
+  // Add system providers as candidate fallbacks
+  if (groqApiKey && !providersToTry.some(p => p.name === 'groq')) {
+    providersToTry.push({ instance: new GroqProvider(groqApiKey), name: 'groq' });
+  }
+  if (geminiApiKey && !providersToTry.some(p => p.name === 'gemini')) {
+    providersToTry.push({ instance: new GeminiProvider(geminiApiKey), name: 'gemini' });
   }
 
-  if (activeProviderInstance) {
+  let lastProviderError: string | null = null;
+
+  for (const { instance: providerInstance, name: providerName } of providersToTry) {
     try {
       const systemPrompt = `You are "Smart Learn Personal Assistant", a fast, natural, friendly personal learning guide on Smart Learn.
-User Authentication Status: ${isGuest ? 'GUEST' : 'AUTHENTICATED'} (User Role: ${userRole}, Provider: ${activeProviderName.toUpperCase()})
+User Authentication Status: ${isGuest ? 'GUEST' : 'AUTHENTICATED'} (User Role: ${userRole}, Provider: ${providerName.toUpperCase()})
 LIVE PAGE CONTEXT: ${safeStringify(agentContext)}
 
 RULES:
@@ -139,7 +136,7 @@ RULES:
         parameters: tool.parameters
       }));
 
-      const providerRes = await activeProviderInstance.generateResponse({
+      const providerRes = await providerInstance.generateResponse({
         systemInstruction: systemPrompt,
         history,
         prompt: userPrompt,
@@ -196,10 +193,22 @@ RULES:
             message: providerRes.text
           };
         }
+      } else {
+        lastProviderError = providerRes.error || `${providerName.toUpperCase()} API response failed.`;
+        console.warn(`[SmartAgent Provider ${providerName} Failed]:`, providerRes.error);
       }
-    } catch (llmErr) {
-      console.warn('[SmartAgent LLM Provider Error]:', llmErr);
+    } catch (llmErr: any) {
+      lastProviderError = llmErr?.message || 'LLM Provider error';
+      console.warn(`[SmartAgent Provider ${providerName} Exception]:`, llmErr);
     }
+  }
+
+  // If providers attempted but failed, return diagnostic provider error to avoid static greeting loop
+  if (providersToTry.length > 0 && lastProviderError) {
+    return {
+      success: false,
+      message: `⚠️ **AI Response Error**: ${lastProviderError}\n\nPlease check your AI API key in **Settings > AI Agent** or select a different provider.`
+    };
   }
 
   // 3. DETERMINISTIC RULE-BASED FALLBACK ENGINE

@@ -6,7 +6,7 @@ export class GroqProvider implements AIProvider {
   public readonly apiKey: string;
   private readonly baseUrl = 'https://api.groq.com/openai/v1';
   private primaryModel = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
-  private readonly fallbackModels = ['llama3-70b-8192'];
+  private readonly fallbackModels = ['llama-3.1-8b-instant', 'llama3-70b-8192', 'mixtral-8x7b-32768'];
 
   constructor(apiKey: string) {
     if (!apiKey) throw new Error('Groq API Key is required');
