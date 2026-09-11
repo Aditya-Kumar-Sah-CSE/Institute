@@ -2110,13 +2110,11 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
             externalUrl: adapterRes.data.externalUrl || 'https://chatgpt.com'
           };
         }
-        if (adapterRes.errorStep) {
-          return {
-            success: false,
-            message: adapterRes.message,
-            data: adapterRes.data
-          };
-        }
+        return {
+          success: false,
+          message: adapterRes.message || 'FAILED: External browser automation is not available. Ensure Smart Learn Companion is running (npm run companion).',
+          data: adapterRes.data
+        };
       }
 
       let solutionCode = '';
@@ -2200,28 +2198,30 @@ std::vector<int> twoSum(std::vector<int>& nums, int target) {
         }
       }
 
+      const targetUrl = targetSite.includes('gpt') ? 'https://chatgpt.com' : `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+
       const structuredResult = {
         title,
         explanation: explanation || `Solution retrieved for "${query}".`,
         code: solutionCode || undefined,
         language: language || 'python',
-        source: targetSite.includes('gpt') ? 'ChatGPT (Searched & Verified)' : 'Web Search',
-        confidence: 0.98
+        source: targetSite.includes('gpt') ? 'ChatGPT (Web Search & Code Solver)' : 'Web Search',
+        confidence: 0.98,
+        externalUrl: targetUrl
       };
-
-      const targetUrl = targetSite.includes('gpt') ? 'https://chatgpt.com' : `https://www.google.com/search?q=${encodeURIComponent(query)}`;
 
       const formattedMsg = `🔍 **Source**: ${structuredResult.source}\n` +
         `💡 **Title**: ${structuredResult.title}\n\n` +
         `📝 **Explanation**:\n${structuredResult.explanation}\n\n` +
         (solutionCode ? `💻 **Solution (${structuredResult.language})**:\n\`\`\`${structuredResult.language}\n${solutionCode}\n\`\`\`\n\n` : '') +
-        `✅ **Status**: Solution successfully extracted and displayed in Smart Learn chat.`;
+        `🌐 **Action**: Opening ${targetSite.toUpperCase()} (${targetUrl})...`;
 
       return {
         success: true,
         message: formattedMsg,
         data: structuredResult,
-        externalUrl: targetUrl
+        externalUrl: targetUrl,
+        actions: [{ label: `Open ${targetSite.toUpperCase()}`, url: targetUrl }]
       };
     }
   },

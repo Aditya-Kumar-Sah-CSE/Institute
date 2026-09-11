@@ -11,6 +11,13 @@ export interface ChatGPTTaskResult {
     language?: string;
     verified?: boolean;
     externalUrl?: string;
+    diagnostics?: {
+      target: string;
+      companionAvailable: boolean;
+      windowDetected: boolean;
+      candidateInputsCount: number;
+      diagnosticReason: string;
+    };
   };
   errorStep?: 'OPEN' | 'INPUT_NOT_FOUND' | 'RESPONSE_UNREADABLE' | 'PASTE_FAILED';
 }
@@ -18,7 +25,6 @@ export interface ChatGPTTaskResult {
 export class ChatGPTAdapter {
   /**
    * Resilient dynamic selectors and accessibility attributes for ChatGPT UI.
-   * Uses multiple fallback strategies to prevent breakage on UI updates.
    */
   private static INPUT_SELECTORS = [
     '#prompt-textarea',
@@ -26,11 +32,12 @@ export class ChatGPTAdapter {
     'textarea[placeholder*="Ask"]',
     'textarea[placeholder*="Message"]',
     'textarea[placeholder*="ChatGPT"]',
+    'textarea[placeholder*="Send a message"]',
+    'textarea:not([disabled])',
     'div[contenteditable="true"][data-placeholder]',
     'div[contenteditable="true"]',
-    '[aria-label*="Ask ChatGPT"]',
-    '[aria-label*="Message ChatGPT"]',
-    '[aria-label*="Send a message"]',
+    '[role="textbox"][contenteditable="true"]',
+    '[role="textbox"]',
     'textarea'
   ];
 
@@ -38,7 +45,6 @@ export class ChatGPTAdapter {
     'button[data-testid="send-button"]',
     'button[aria-label*="Send"]',
     'button[aria-label*="Submit"]',
-    'button:has(svg[viewBox])',
     'form button[type="submit"]'
   ];
 
@@ -51,72 +57,88 @@ export class ChatGPTAdapter {
   ];
 
   /**
-   * Step 1: Open ChatGPT in Desktop/Browser Companion or default URL
+   * Step 1: Open ChatGPT in controlled external browser (Chrome via Companion)
    */
-  static async openChatGPT(): Promise<{ success: boolean; url: string; message: string }> {
+  static async openChatGPT(): Promise<{ success: boolean; url: string; message: string; companionConnected: boolean }> {
     const compRes = await callLocalComputer({
       action: 'openExternalApp',
       app: 'chatgpt',
       url: 'https://chatgpt.com'
     });
 
-    if (compRes.success && compRes.data) {
+    if (compRes.success) {
       return {
         success: true,
         url: (compRes.data as any)?.url || 'https://chatgpt.com',
-        message: 'ChatGPT opened in desktop companion.'
+        message: 'ChatGPT opened in real browser (Chrome).',
+        companionConnected: true
       };
     }
 
     return {
-      success: true,
+      success: false,
       url: 'https://chatgpt.com',
-      message: 'ChatGPT target URL resolved.'
+      message: 'FAILED: External browser automation is not available. Ensure Smart Learn Companion is running (npm run companion).',
+      companionConnected: false
     };
   }
 
   /**
-   * Step 2: Locate prompt input element using dynamic accessibility & text criteria
+   * Step 2: Locate prompt input element using dynamic accessibility selectors via CDP
    */
-  static async findPromptInput(): Promise<{ success: boolean; selector?: string; message: string }> {
+  static async findPromptInput(): Promise<{ 
+    success: boolean; 
+    selector?: string; 
+    message: string;
+    diagnostics: {
+      target: string;
+      companionAvailable: boolean;
+      windowDetected: boolean;
+      candidateInputsCount: number;
+      diagnosticReason: string;
+    };
+  }> {
+    // Companion CDP Inspection
     for (const selector of this.INPUT_SELECTORS) {
       const compRes = await callLocalComputer({
         action: 'findElement',
         selector,
-        timeoutMs: 2000
+        timeoutMs: 1500
       });
 
       if (compRes.success && compRes.data) {
         return {
           success: true,
           selector,
-          message: `Found ChatGPT prompt input matching "${selector}".`
+          message: `Found ChatGPT prompt input matching "${selector}" in real Chrome browser.`,
+          diagnostics: {
+            target: 'ChatGPT',
+            companionAvailable: true,
+            windowDetected: true,
+            candidateInputsCount: 1,
+            diagnosticReason: 'Target input found via companion CDP.'
+          }
         };
       }
     }
 
-    // Client DOM fallback check if running in browser window
-    if (typeof document !== 'undefined') {
-      for (const selector of this.INPUT_SELECTORS) {
-        const el = document.querySelector(selector) as HTMLElement | null;
-        if (el) {
-          return {
-            success: true,
-            selector,
-            message: `Found ChatGPT prompt input in client DOM ("${selector}").`
-          };
-        }
-      }
-    }
+    const diagReason = 'FAILED: External browser automation is not available or prompt input could not be detected in real Chrome browser.';
 
     return {
       success: false,
-      message: 'ChatGPT opened, but its input could not be detected.'
+      message: diagReason,
+      diagnostics: {
+        target: 'ChatGPT',
+        companionAvailable: false,
+        windowDetected: false,
+        candidateInputsCount: 0,
+        diagnosticReason: diagReason
+      }
     };
   }
 
   /**
-   * Step 3: Type search query and submit to ChatGPT UI
+   * Step 3: Type search query and submit to ChatGPT UI in real Chrome browser
    */
   static async submitQuery(
     query: string,
@@ -130,7 +152,7 @@ export class ChatGPTAdapter {
       selector: targetSelector
     });
 
-    // Type query
+    // Type query into real browser
     const typeRes = await callLocalComputer({
       action: 'typeText',
       selector: targetSelector,
@@ -138,16 +160,10 @@ export class ChatGPTAdapter {
     });
 
     if (!typeRes.success) {
-      // Fallback client DOM execution
-      if (typeof document !== 'undefined') {
-        const inputEl = document.querySelector(targetSelector) as HTMLInputElement | HTMLTextAreaElement | null;
-        if (inputEl) {
-          inputEl.focus();
-          if ('value' in inputEl) inputEl.value = query;
-          inputEl.dispatchEvent(new Event('input', { bubbles: true }));
-          inputEl.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-      }
+      return {
+        success: false,
+        message: `FAILED: Typing query into real browser input failed: ${typeRes.message}`
+      };
     }
 
     // Submit via Send button or Enter key
@@ -166,19 +182,19 @@ export class ChatGPTAdapter {
 
     return {
       success: true,
-      message: `Submitted search query "${query}" to ChatGPT UI.`
+      message: `Submitted query "${query}" to ChatGPT in real browser.`
     };
   }
 
   /**
-   * Step 4 & 5: Wait for response and read visible response text
+   * Step 4 & 5: Wait for response and read visible text from real browser
    */
   static async readResponse(): Promise<{ success: boolean; rawText?: string; message: string }> {
-    // Wait for response to render
-    const waitRes = await callLocalComputer({
+    // Wait for response to render in real browser
+    await callLocalComputer({
       action: 'waitForElement',
       selector: this.RESPONSE_CONTAINER_SELECTORS[0],
-      timeoutMs: 8000
+      timeoutMs: 10000
     });
 
     for (const selector of this.RESPONSE_CONTAINER_SELECTORS) {
@@ -193,38 +209,20 @@ export class ChatGPTAdapter {
           return {
             success: true,
             rawText: text,
-            message: 'Successfully read ChatGPT response.'
+            message: 'Successfully read ChatGPT response from real browser tab.'
           };
-        }
-      }
-    }
-
-    // Client DOM fallback reading
-    if (typeof document !== 'undefined') {
-      for (const selector of this.RESPONSE_CONTAINER_SELECTORS) {
-        const els = document.querySelectorAll(selector);
-        if (els.length > 0) {
-          const lastEl = els[els.length - 1];
-          const text = lastEl.textContent?.trim() || '';
-          if (text.length > 10) {
-            return {
-              success: true,
-              rawText: text,
-              message: 'Successfully read ChatGPT response from DOM.'
-            };
-          }
         }
       }
     }
 
     return {
       success: false,
-      message: 'ChatGPT opened and search was submitted, but response could not be read.'
+      message: 'FAILED: ChatGPT opened and search was submitted, but response could not be read from real browser tab.'
     };
   }
 
   /**
-   * Step 6: Cleanly extract Python/code block from raw response text
+   * Step 6: Extract Python/code block from raw response text
    */
   static extractCodeSolution(
     rawText: string,
@@ -246,7 +244,7 @@ export class ChatGPTAdapter {
       };
     }
 
-    // Fallback: search for inline function definition e.g. def twoSum(...)
+    // Fallback: search for inline function definition e.g. def reverse_number(...) or def twoSum(...)
     const defMatch = rawText.match(/(def\s+[a-zA-Z0-9_]+\([\s\S]*?\):[\s\S]*?(?=\n\n|\n[A-Z]|$))/i);
     if (defMatch && defMatch[0]) {
       return {
@@ -263,7 +261,7 @@ export class ChatGPTAdapter {
   }
 
   /**
-   * Step 7 & 8: Copy code, paste into Smart Learn chat input, and verify change
+   * Step 7 & 8: Copy code to system clipboard and paste into Smart Learn chat input
    */
   static async copyAndPasteToSmartLearn(
     codeText: string
@@ -276,13 +274,13 @@ export class ChatGPTAdapter {
       };
     }
 
-    // Copy action
+    // Copy action via system clipboard
     await callLocalComputer({
       action: 'copyText',
       text: codeText
     });
 
-    // Client DOM Paste & Verification
+    // Client DOM Paste & Verification inside Smart Learn
     if (typeof document !== 'undefined') {
       const chatInput = document.querySelector(
         'textarea[placeholder*="Ask"], textarea[placeholder*="Smart"], textarea[placeholder*="Message"], input[type="text"]'
@@ -290,7 +288,6 @@ export class ChatGPTAdapter {
 
       if (chatInput) {
         chatInput.focus();
-        const initialVal = chatInput.value || '';
         chatInput.value = codeText;
 
         chatInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -309,7 +306,7 @@ export class ChatGPTAdapter {
       }
     }
 
-    // Desktop Companion Paste attempt
+    // Companion Paste fallback
     const compPaste = await callLocalComputer({
       action: 'pasteText',
       text: codeText
@@ -318,49 +315,91 @@ export class ChatGPTAdapter {
     if (compPaste.success) {
       return {
         success: true,
-        message: 'Successfully copied solution and pasted via desktop companion.',
+        message: 'Successfully copied solution and pasted into input content.',
         verified: true
       };
     }
 
     return {
       success: false,
-      message: 'Solution retrieved, but paste verification failed.',
+      message: 'FAILED: Solution retrieved, but paste verification into destination failed.',
       verified: false
     };
   }
 
   /**
-   * Complete Pipeline Execution with Fallback Strategy
+   * Complete Real Execution Pipeline
    */
   static async executeTask(
     query: string,
     requestedLanguage: string = 'python'
   ): Promise<ChatGPTTaskResult> {
     const openRes = await this.openChatGPT();
+    if (!openRes.success) {
+      return {
+        success: false,
+        message: openRes.message,
+        errorStep: 'OPEN',
+        data: {
+          source: 'chatgpt',
+          query,
+          externalUrl: openRes.url
+        }
+      };
+    }
 
-    // Check input detection
-    const inputRes = await this.findPromptInput();
+    // Bounded UI Readiness Delay (1.5s) to allow page/window hydration
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    // Check input detection with 2-pass scan
+    let inputRes = await this.findPromptInput();
+    if (!inputRes.success) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      inputRes = await this.findPromptInput();
+    }
+
     if (!inputRes.success) {
       return {
         success: false,
-        message: 'ChatGPT opened, but its input could not be detected.',
+        message: inputRes.message,
         errorStep: 'INPUT_NOT_FOUND',
-        data: { source: 'chatgpt', query, externalUrl: openRes.url }
+        data: {
+          source: 'chatgpt',
+          query,
+          externalUrl: openRes.url,
+          diagnostics: inputRes.diagnostics
+        }
       };
     }
 
     // Submit query
-    await this.submitQuery(query, inputRes.selector);
+    const submitRes = await this.submitQuery(query, inputRes.selector);
+    if (!submitRes.success) {
+      return {
+        success: false,
+        message: submitRes.message,
+        errorStep: 'INPUT_NOT_FOUND',
+        data: {
+          source: 'chatgpt',
+          query,
+          externalUrl: openRes.url
+        }
+      };
+    }
 
     // Read response
     const responseRes = await this.readResponse();
     if (!responseRes.success || !responseRes.rawText) {
       return {
         success: false,
-        message: 'ChatGPT opened and search was submitted, but response could not be read.',
+        message: responseRes.message,
         errorStep: 'RESPONSE_UNREADABLE',
-        data: { source: 'chatgpt', query, externalUrl: openRes.url }
+        data: {
+          source: 'chatgpt',
+          query,
+          externalUrl: openRes.url,
+          diagnostics: inputRes.diagnostics
+        }
       };
     }
 
@@ -375,7 +414,7 @@ export class ChatGPTAdapter {
       if (!pasteRes.success) {
         return {
           success: false,
-          message: 'Solution retrieved, but paste verification failed.',
+          message: pasteRes.message,
           errorStep: 'PASTE_FAILED',
           data: {
             source: 'chatgpt',
@@ -384,17 +423,18 @@ export class ChatGPTAdapter {
             code: extracted.code,
             language: extracted.language,
             verified: false,
-            externalUrl: openRes.url
+            externalUrl: openRes.url,
+            diagnostics: inputRes.diagnostics
           }
         };
       }
     }
 
-    const formattedMsg = `🔍 **Source**: ChatGPT (UI Verified Automation)\n` +
+    const formattedMsg = `🔍 **Source**: ChatGPT (Real Chrome Browser Verified Automation)\n` +
       `💡 **Query**: ${query}\n\n` +
       `📝 **Explanation**:\n${extracted.explanation}\n\n` +
       (extracted.code ? `💻 **Solution (${extracted.language})**:\n\`\`\`${extracted.language}\n${extracted.code}\n\`\`\`\n\n` : '') +
-      `✅ **Status**: Solution successfully extracted and verified in Smart Learn chat.`;
+      `✅ **Status**: Solution successfully extracted and verified from real Chrome browser.`;
 
     return {
       success: true,
@@ -406,7 +446,8 @@ export class ChatGPTAdapter {
         code: extracted.code,
         language: extracted.language,
         verified: pasteVerified,
-        externalUrl: openRes.url
+        externalUrl: openRes.url,
+        diagnostics: inputRes.diagnostics
       }
     };
   }

@@ -79,8 +79,8 @@ async function cdpEvaluate(wsUrl, expression) {
     const timer = setTimeout(() => {
       socket.close();
       reject(new Error('Browser observation timed out.'));
-    }, 2000);
-    socket.onopen = () => socket.send(JSON.stringify({ id, method: 'Runtime.evaluate', params: { expression, returnByValue: true } }));
+    }, 3000);
+    socket.onopen = () => socket.send(JSON.stringify({ id, method: 'Runtime.evaluate', params: { expression, returnByValue: true, awaitPromise: true } }));
     socket.onmessage = (event) => {
       const message = JSON.parse(String(event.data));
       if (message.id !== id) return;
@@ -96,17 +96,26 @@ async function cdpEvaluate(wsUrl, expression) {
   });
 }
 
-async function observeBrowser() {
+async function getActiveCDPPage() {
   const pages = await cdpHttp('/json/list');
   const page = pages.find((item) => item.type === 'page' && item.webSocketDebuggerUrl);
-  if (!page) return { success: false, message: 'No controlled browser tab is available.' };
-  const state = await cdpEvaluate(page.webSocketDebuggerUrl, `JSON.stringify({
-    url: location.href,
-    title: document.title,
-    readyState: document.readyState,
-    visibleText: (document.body && document.body.innerText || '').slice(0, 3000)
-  })`);
-  return { success: true, message: 'Browser state observed from the active tab.', data: { ...JSON.parse(state), tabUrl: page.url } };
+  if (!page) throw new Error('No controlled browser tab is available.');
+  return page;
+}
+
+async function observeBrowser() {
+  try {
+    const page = await getActiveCDPPage();
+    const state = await cdpEvaluate(page.webSocketDebuggerUrl, `JSON.stringify({
+      url: location.href,
+      title: document.title,
+      readyState: document.readyState,
+      visibleText: (document.body && document.body.innerText || '').slice(0, 3000)
+    })`);
+    return { success: true, message: 'Browser state observed from active tab.', data: { ...JSON.parse(state), tabUrl: page.url } };
+  } catch (err) {
+    return { success: false, message: `Browser observation failed: ${err.message}` };
+  }
 }
 
 function matchesHostname(targetUrl, observedUrl) {
@@ -165,6 +174,194 @@ async function navigateBrowser(body) {
     await new Promise((resolve) => setTimeout(resolve, 300));
   }
   return { success: false, message: `Browser navigation failed verification: ${lastError}` };
+}
+
+// ─── CDP REAL BROWSER DOM AUTOMATION ENGINE ───
+
+async function findElementCDP(selector) {
+  try {
+    const page = await getActiveCDPPage();
+    const script = `(() => {
+      const el = document.querySelector(${JSON.stringify(selector)});
+      if (!el) return null;
+      const rect = el.getBoundingClientRect();
+      const isVisible = rect.width > 0 && rect.height > 0 && window.getComputedStyle(el).visibility !== 'hidden';
+      return {
+        found: true,
+        tagName: el.tagName,
+        id: el.id,
+        className: el.className,
+        isVisible,
+        value: typeof el.value === 'string' ? el.value : (el.innerText || ''),
+        rect: { x: Math.round(rect.left), y: Math.round(rect.top), width: Math.round(rect.width), height: Math.round(rect.height) }
+      };
+    })()`;
+    const res = await cdpEvaluate(page.webSocketDebuggerUrl, script);
+    if (res && res.found) {
+      return { success: true, message: `Found element matching "${selector}" in browser.`, data: res };
+    }
+    return { success: false, message: `Element matching "${selector}" was not found in browser.` };
+  } catch (err) {
+    return { success: false, message: `CDP findElement failed: ${err.message}` };
+  }
+}
+
+async function focusElementCDP(selector) {
+  try {
+    const page = await getActiveCDPPage();
+    const script = `(() => {
+      const el = document.querySelector(${JSON.stringify(selector)});
+      if (!el) return false;
+      el.focus();
+      return document.activeElement === el || el.contains(document.activeElement);
+    })()`;
+    const focused = await cdpEvaluate(page.webSocketDebuggerUrl, script);
+    if (focused) return { success: true, message: `Focused element "${selector}" in browser.` };
+    return { success: false, message: `Failed to focus element "${selector}" in browser.` };
+  } catch (err) {
+    return { success: false, message: `CDP focusElement failed: ${err.message}` };
+  }
+}
+
+async function clickElementCDP(selector) {
+  try {
+    const page = await getActiveCDPPage();
+    const script = `(() => {
+      const el = document.querySelector(${JSON.stringify(selector)});
+      if (!el) return false;
+      el.scrollIntoView({ block: 'center', inline: 'center' });
+      el.focus();
+      el.click();
+      el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+      return true;
+    })()`;
+    const clicked = await cdpEvaluate(page.webSocketDebuggerUrl, script);
+    if (clicked) return { success: true, message: `Clicked element "${selector}" in real browser.` };
+    return { success: false, message: `Click failed for element "${selector}".` };
+  } catch (err) {
+    return { success: false, message: `CDP clickElement failed: ${err.message}` };
+  }
+}
+
+async function typeTextCDP(selector, text) {
+  try {
+    const page = await getActiveCDPPage();
+    const script = `(() => {
+      const sel = ${JSON.stringify(selector)};
+      const txt = ${JSON.stringify(text)};
+      const el = document.querySelector(sel);
+      if (!el) return { success: false, reason: 'Element not found' };
+
+      el.scrollIntoView({ block: 'center' });
+      el.focus();
+
+      if ('value' in el) {
+        const proto = el.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+        const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+        if (setter) {
+          setter.call(el, txt);
+        } else {
+          el.value = txt;
+        }
+      } else if (el.isContentEditable) {
+        el.innerText = txt;
+      }
+
+      el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: txt }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+
+      const currentVal = typeof el.value === 'string' ? el.value : el.innerText;
+      const verified = Boolean(currentVal && currentVal.includes(txt.slice(0, 10)));
+      return { success: verified, content: currentVal };
+    })()`;
+    const res = await cdpEvaluate(page.webSocketDebuggerUrl, script);
+    if (res && res.success) {
+      return { success: true, message: `Typed into "${selector}" and verified content in browser.`, data: res };
+    }
+    return { success: false, message: `Failed to type text or verify input content for "${selector}".` };
+  } catch (err) {
+    return { success: false, message: `CDP typeText failed: ${err.message}` };
+  }
+}
+
+async function pressKeyCDP(selector, key = 'Enter') {
+  try {
+    const page = await getActiveCDPPage();
+    const script = `(() => {
+      const k = ${JSON.stringify(key)};
+      const sel = ${JSON.stringify(selector || 'textarea')};
+      const el = document.querySelector(sel) || document.activeElement;
+      if (!el) return false;
+
+      const form = el.closest('form');
+      const submitBtn = form?.querySelector('button[type="submit"], button[aria-label*="Send"], button[data-testid="send-button"]');
+      if (submitBtn) {
+        submitBtn.click();
+        return true;
+      }
+
+      el.dispatchEvent(new KeyboardEvent('keydown', { key: k, code: k, keyCode: 13, which: 13, bubbles: true }));
+      el.dispatchEvent(new KeyboardEvent('keypress', { key: k, code: k, keyCode: 13, which: 13, bubbles: true }));
+      el.dispatchEvent(new KeyboardEvent('keyup', { key: k, code: k, keyCode: 13, which: 13, bubbles: true }));
+      if (form && typeof form.requestSubmit === 'function') {
+        form.requestSubmit();
+      }
+      return true;
+    })()`;
+    const res = await cdpEvaluate(page.webSocketDebuggerUrl, script);
+    if (res) return { success: true, message: `Pressed key "${key}" in browser.` };
+    return { success: false, message: `Failed to press key "${key}" in browser.` };
+  } catch (err) {
+    return { success: false, message: `CDP pressKey failed: ${err.message}` };
+  }
+}
+
+async function waitForElementCDP(selector, timeoutMs = 5000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const res = await findElementCDP(selector);
+      if (res.success && res.data?.isVisible) {
+        return { success: true, message: `Element "${selector}" appeared in browser.`, data: res.data };
+      }
+    } catch { }
+    await new Promise((r) => setTimeout(r, 400));
+  }
+  return { success: false, message: `Timed out waiting for element "${selector}" in browser after ${timeoutMs}ms.` };
+}
+
+async function readVisibleTextCDP(selector) {
+  try {
+    const page = await getActiveCDPPage();
+    const script = `(() => {
+      const sel = ${JSON.stringify(selector)};
+      const els = document.querySelectorAll(sel);
+      if (!els || els.length === 0) return null;
+      const last = els[els.length - 1];
+      return (last.innerText || last.textContent || '').trim();
+    })()`;
+    const text = await cdpEvaluate(page.webSocketDebuggerUrl, script);
+    if (typeof text === 'string' && text.length > 0) {
+      return { success: true, message: `Read text from browser element "${selector}".`, data: { text } };
+    }
+    return { success: false, message: `No visible text found in element "${selector}".` };
+  } catch (err) {
+    return { success: false, message: `CDP readVisibleText failed: ${err.message}` };
+  }
+}
+
+async function copyTextSystem(text) {
+  if (!text) return { success: false, message: 'No text to copy.' };
+  if (process.platform === 'win32') {
+    return new Promise((resolve) => {
+      const proc = spawn('powershell', ['-NoProfile', '-Command', `Set-Clipboard -Value ${JSON.stringify(text)}`]);
+      proc.on('close', (code) => {
+        if (code === 0) resolve({ success: true, message: 'Copied text to system clipboard.' });
+        else resolve({ success: false, message: 'Failed to copy text to system clipboard.' });
+      });
+    });
+  }
+  return { success: true, message: 'Text staged for clipboard.' };
 }
 
 let overlayProcess = null;
@@ -249,23 +446,19 @@ async function inspect() {
       port: PORT,
       workspace: WORKSPACE,
       desktopOverlayActive: true,
-      capabilities: ['launchAllowlistedApp', 'browserNavigate', 'browserObserve', 'getDesktopContext', 'workspaceFiles', 'auditLog']
+      capabilities: ['launchAllowlistedApp', 'browserNavigate', 'browserObserve', 'getDesktopContext', 'workspaceFiles', 'auditLog', 'cdpAutomation']
     }
   };
 }
 
 async function toggleSmartAgent() {
   try {
-    const pages = await cdpHttp('/json/list');
-    const page = pages.find((item) => item.type === 'page' && item.webSocketDebuggerUrl);
-    if (page) {
-      await fetch(`http://${HOST}:${BROWSER_PORT}/json/activate/${page.id}`);
-      await cdpEvaluate(page.webSocketDebuggerUrl, `window.postMessage({ type: 'TOGGLE_SMART_AGENT' }, '*')`);
-      return { success: true, message: 'Smart Agent toggled in active tab.' };
-    }
+    const page = await getActiveCDPPage();
+    await fetch(`http://${HOST}:${BROWSER_PORT}/json/activate/${page.id}`);
+    await cdpEvaluate(page.webSocketDebuggerUrl, `window.postMessage({ type: 'TOGGLE_SMART_AGENT' }, '*')`);
+    return { success: true, message: 'Smart Agent toggled in active tab.' };
   } catch { }
 
-  // Fallback: launch allowlisted browser window to Smart Learn Dashboard
   return launchApp({ app: 'chrome', args: ['http://127.0.0.1:3000/dashboard'] });
 }
 
@@ -274,19 +467,37 @@ async function handle(request, body) {
   if (request.url === '/toggle-agent' && request.method === 'POST') return toggleSmartAgent();
   if (request.url === '/desktop-context' && request.method === 'GET') return getDesktopContext();
   if (request.method !== 'POST') return { status: 405, success: false, message: 'POST required.' };
-  if (body.action === 'inspect') return inspect();
-  if (body.action === 'launchApp') return launchApp(body);
-  if (body.action === 'browserNavigate') return navigateBrowser(body);
-  if (body.action === 'browserObserve') return observeBrowser();
-  if (body.action === 'getDesktopContext') return getDesktopContext();
-  if (body.action === 'readWorkspaceFile') {
+
+  const action = body.action || '';
+  if (action === 'inspect') return inspect();
+  if (action === 'launchApp') return launchApp(body);
+  if (action === 'browserNavigate') return navigateBrowser(body);
+  if (action === 'openExternalApp') {
+    const targetUrl = body.url || (body.app === 'chatgpt' ? 'https://chatgpt.com' : 'https://www.google.com');
+    return navigateBrowser({ app: body.app || 'chrome', url: targetUrl });
+  }
+  if (action === 'browserObserve') return observeBrowser();
+  if (action === 'getDesktopContext') return getDesktopContext();
+
+  // CDP Real Browser DOM Automation
+  if (action === 'findElement') return findElementCDP(body.selector);
+  if (action === 'focusElement') return focusElementCDP(body.selector);
+  if (action === 'clickElement') return clickElementCDP(body.selector);
+  if (action === 'typeText') return typeTextCDP(body.selector, body.text);
+  if (action === 'pressKey') return pressKeyCDP(body.selector, body.key);
+  if (action === 'waitForElement') return waitForElementCDP(body.selector, body.timeoutMs);
+  if (action === 'readVisibleText') return readVisibleTextCDP(body.selector);
+  if (action === 'copyText') return copyTextSystem(body.text);
+  if (action === 'pasteText') return typeTextCDP(body.selector || 'textarea', body.text);
+
+  if (action === 'readWorkspaceFile') {
     const target = safePath(body.path);
     if (!target) return { success: false, message: 'Path must stay inside the configured workspace.' };
     const stat = await fs.stat(target);
     if (stat.size > 1_000_000) return { success: false, message: 'File exceeds the 1MB companion limit.' };
     return { success: true, message: 'Workspace file read.', data: { path: body.path, content: await fs.readFile(target, 'utf8') } };
   }
-  if (body.action === 'writeWorkspaceFile') {
+  if (action === 'writeWorkspaceFile') {
     if (!confirmed(request)) return { status: 403, success: false, message: 'Explicit confirmation required before writing a file.' };
     const target = safePath(body.path);
     if (!target || typeof body.content !== 'string') return { success: false, message: 'Invalid workspace file request.' };
@@ -294,7 +505,7 @@ async function handle(request, body) {
     await fs.writeFile(target, body.content, 'utf8');
     return { success: true, message: 'Workspace file written.', data: { path: body.path, bytes: Buffer.byteLength(body.content) } };
   }
-  return { status: 404, success: false, message: `Unsupported companion action: ${body.action || 'unknown'}` };
+  return { status: 404, success: false, message: `Unsupported companion action: ${action}` };
 }
 
 const server = http.createServer(async (request, response) => {

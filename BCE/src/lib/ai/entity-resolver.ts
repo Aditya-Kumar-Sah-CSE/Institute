@@ -259,25 +259,48 @@ async function getCachedDSAProblems(sheetId?: string): Promise<DSAProblemEntity[
   }
 
   const adminClient = await createAdminClient();
-  let query = adminClient
-    .from('coding_problems')
-    .select('id, title, slug, sheet_id, order_index');
 
   if (sheetId) {
-    query = query.eq('sheet_id', sheetId);
+    const { data, error } = await adminClient
+      .from('coding_sheet_problems')
+      .select('order_index, coding_problems(id, title, slug)')
+      .eq('sheet_id', sheetId)
+      .order('order_index', { ascending: true });
+
+    if (error) {
+      console.error('[getCachedDSAProblems Error]:', error);
+    }
+
+    const problems: DSAProblemEntity[] = (data || [])
+      .filter((sp: any) => sp.coding_problems)
+      .map((sp: any, idx: number) => ({
+        id: sp.coding_problems.id,
+        title: sp.coding_problems.title,
+        slug: sp.coding_problems.slug,
+        sheetId: sheetId,
+        orderIndex: typeof sp.order_index === 'number' ? sp.order_index : idx + 1
+      }));
+
+    problemCacheMap.set(cacheKey, { timestamp: now, data: problems });
+    return problems;
+  } else {
+    const { data, error } = await adminClient
+      .from('coding_problems')
+      .select('id, title, slug');
+
+    if (error) {
+      console.error('[getCachedDSAProblems All Error]:', error);
+    }
+
+    const problems: DSAProblemEntity[] = (data || []).map((p: any) => ({
+      id: p.id,
+      title: p.title,
+      slug: p.slug
+    }));
+
+    problemCacheMap.set(cacheKey, { timestamp: now, data: problems });
+    return problems;
   }
-
-  const { data } = await query;
-  const problems: DSAProblemEntity[] = (data || []).map((p: any) => ({
-    id: p.id,
-    title: p.title,
-    slug: p.slug,
-    sheetId: p.sheet_id,
-    orderIndex: p.order_index
-  }));
-
-  problemCacheMap.set(cacheKey, { timestamp: now, data: problems });
-  return problems;
 }
 
 // ─── PUBLIC RESOLVER APIs ───
