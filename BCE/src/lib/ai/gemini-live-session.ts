@@ -87,6 +87,20 @@ export class GeminiLiveSession {
       }
       const tokenData = parsedToken.data;
 
+      // Ensure token has auth_tokens/ prefix for @google/genai SDK compatibility
+      const rawTokenString: string = tokenData.token;
+      const normalizedTokenString = rawTokenString.startsWith('authTokens/')
+        ? rawTokenString.replace(/^authTokens\//, 'auth_tokens/')
+        : rawTokenString.startsWith('auth_tokens/')
+          ? rawTokenString
+          : `auth_tokens/${rawTokenString}`;
+
+      console.log('[GeminiLive] token received', {
+        rawPrefix: rawTokenString.substring(0, 12),
+        normalizedPrefix: normalizedTokenString.substring(0, 12),
+        sessionId: this.sessionId
+      });
+
       if (this.isStopped) return;
 
       // 3. Initialize Audio Player with shared AudioContext
@@ -111,14 +125,16 @@ export class GeminiLiveSession {
 
       // 6. Connect to Gemini Live WebSocket
       const clientAi = new GoogleGenAI({
-        apiKey: tokenData.token,
+        apiKey: normalizedTokenString,
         httpOptions: { apiVersion: 'v1alpha' }
       });
 
-      console.log('[GEMINI WS] created', {
+      console.log('[GeminiLive] create', {
         model: 'gemini-2.5-flash-native-audio-latest',
-        apiVersion: 'v1alpha'
+        apiVersion: 'v1alpha',
+        sessionId: this.sessionId
       });
+      console.log('[GeminiLive] websocket connecting');
 
       this.session = await clientAi.live.connect({
         model: 'gemini-2.5-flash-native-audio-latest',
@@ -131,27 +147,27 @@ export class GeminiLiveSession {
         },
         callbacks: {
           onopen: () => {
-            console.log('[GEMINI WS] OPEN');
-            console.log('[GEMINI WS] setup sent');
+            console.log('[GeminiLive] websocket open');
+            console.log('[GeminiLive] setup sent');
             this.callbacks.onConnectionStateChange?.('connected');
-            if (!this.isStopped) {
-              // Mark session ready to transmit microphone PCM stream
-              this.isReady = true;
-              this.callbacks.onConnectionStateChange?.('ready');
-              this.callbacks.onStateChange?.('LISTENING');
-            }
+            // NOTE: Do NOT set this.isReady = true here.
+            // Microphone PCM audio streaming MUST wait for setupComplete from server.
           },
           onmessage: (msg: any) => {
             this.handleServerMessage(msg);
           },
           onerror: (err: any) => {
-            console.error('[GEMINI WS] ERROR:', err);
+            console.error('[GeminiLive] websocket error:', err);
             this.isReady = false;
             this.callbacks.onConnectionStateChange?.('error');
             this.callbacks.onError?.(err?.message || 'Realtime session connection error.');
           },
           onclose: (e: any) => {
-            console.log('[GEMINI WS] CLOSED', { code: e?.code, reason: e?.reason });
+            console.log('[GeminiLive] websocket closed', {
+              code: e?.code ?? 'unknown',
+              reason: e?.reason || 'none',
+              wasClean: e?.wasClean ?? false
+            });
             this.isReady = false;
             this.callbacks.onConnectionStateChange?.('closed');
             if (!this.isStopped) {
@@ -189,7 +205,7 @@ export class GeminiLiveSession {
       const audioTracks = this.mediaStream?.getAudioTracks();
       const activeTrack = audioTracks && audioTracks.length > 0 ? audioTracks[0] : null;
 
-      console.log('[MIC]', {
+      console.log('[GeminiLive] microphone acquired', {
         exists: !!this.mediaStream,
         audioTrackCount: audioTracks?.length || 0,
         readyState: activeTrack?.readyState || null,
@@ -311,17 +327,20 @@ export class GeminiLiveSession {
 
     // Handle setupComplete
     if (msg.setupComplete) {
-      console.log('[GEMINI RECV] setupComplete', msg.setupComplete);
-      this.isReady = true;
-      this.callbacks.onConnectionStateChange?.('ready');
-      this.callbacks.onStateChange?.('LISTENING');
+      console.log('[GeminiLive] setup acknowledged', msg.setupComplete);
+      if (!this.isStopped) {
+        this.isReady = true;
+        console.log('[GeminiLive] microphone streaming started');
+        this.callbacks.onConnectionStateChange?.('ready');
+        this.callbacks.onStateChange?.('LISTENING');
+      }
       return;
     }
 
     // Handle serverContent (Interrupted, modelTurn, turnComplete)
     if (msg.serverContent) {
       if (msg.serverContent.interrupted) {
-        console.log('[GEMINI RECV] interrupted');
+        console.log('[GeminiLive] interrupted');
         this.audioPlayer?.stop();
         this.callbacks.onStateChange?.('LISTENING');
         return;
@@ -330,7 +349,7 @@ export class GeminiLiveSession {
       if (msg.serverContent.modelTurn?.parts) {
         for (const part of msg.serverContent.modelTurn.parts) {
           if (process.env.NODE_ENV !== 'production' && (part.text || part.inlineData)) {
-            console.log('[GEMINI RESPONSE]', {
+            console.log('[GeminiLive] server content part', {
               textLength: part.text?.length || 0,
               audioChunks: part.inlineData ? 1 : 0,
               audioBytes: part.inlineData?.data?.length || 0
@@ -338,11 +357,11 @@ export class GeminiLiveSession {
           }
           if (part.inlineData && part.inlineData.data) {
             const chunkBytes = part.inlineData.data.length;
-            console.log('[GEMINI RECV] audio chunk', { bytes: chunkBytes });
+            console.log('[GeminiLive] audio received', { bytes: chunkBytes });
             this.audioPlayer?.playChunk(part.inlineData.data);
           }
           if (part.text) {
-            console.log('[GEMINI RECV] output transcript chunk:', part.text);
+            console.log('[GeminiLive] output transcript chunk:', part.text);
             this.currentAssistantText += part.text;
             this.callbacks.onAssistantTextChunk?.(part.text);
           }

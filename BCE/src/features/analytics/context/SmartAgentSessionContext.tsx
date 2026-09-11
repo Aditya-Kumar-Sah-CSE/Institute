@@ -601,9 +601,14 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
           }
 
           const targetRoute = result.expectedRoute || result.url;
-          if (targetRoute) {
+          const targetExternal = result.externalUrl;
+
+          if (targetExternal && typeof window !== 'undefined') {
+            window.open(targetExternal, '_blank');
+          } else if (targetRoute) {
             performRealNavigation(targetRoute);
           }
+
           if (result.pendingNavigation && result.navigationId && targetRoute) {
             setPendingVerification({
               navigationId: result.navigationId,
@@ -620,7 +625,9 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
               role: 'assistant',
               content: executedContent,
               toolExecuted: toolName,
-              actions: result.url ? [{ label: `Open ${toolName}`, url: result.url }] : undefined
+              actions: (result.url || result.externalUrl)
+                ? [{ label: `Open ${toolName === 'searchYouTube' ? 'YouTube' : toolName === 'searchWeb' ? 'Search' : toolName}`, url: result.url || result.externalUrl }]
+                : undefined
             }
           ]);
         },

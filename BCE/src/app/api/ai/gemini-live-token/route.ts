@@ -51,9 +51,22 @@ export async function POST() {
       throw new Error('Failed to obtain ephemeral token from Gemini');
     }
 
+    // Normalize token format to start with 'auth_tokens/' prefix as expected by @google/genai SDK
+    const rawToken = tokenResponse.name;
+    const normalizedToken = rawToken.startsWith('authTokens/')
+      ? rawToken.replace(/^authTokens\//, 'auth_tokens/')
+      : rawToken.startsWith('auth_tokens/')
+        ? rawToken
+        : `auth_tokens/${rawToken}`;
+
+    console.log('[GeminiLiveToken] Token generated successfully:', {
+      rawTokenPrefix: rawToken.substring(0, 12),
+      normalizedPrefix: normalizedToken.substring(0, 12)
+    });
+
     return NextResponse.json({
       success: true,
-      token: tokenResponse.name,
+      token: normalizedToken,
       userId: user.id
     });
   } catch (error: any) {

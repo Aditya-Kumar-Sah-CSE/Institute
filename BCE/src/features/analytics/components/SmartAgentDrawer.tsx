@@ -811,35 +811,61 @@ export default function SmartAgentDrawer() {
         {/* REAL-TIME DUAL AUDIO ANALYZER BARS */}
         <DualAudioVisualizer />
 
-        {/* VOICE SESSION STOP BUTTON (WHEN ACTIVE) */}
+        {/* VOICE SESSION STOP & DIAGNOSTIC PANEL */}
         {realtimeVoiceState !== 'STOPPED' && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 6px' }}>
-            <span style={{ fontSize: '11px', color: connectionState === 'error' ? '#ff6666' : 'var(--text-secondary)' }}>
-              {connectionState === 'starting' || connectionState === 'connecting'
-                ? 'Connecting to voice agent…'
-                : connectionState === 'error'
-                ? 'Voice agent connection failed'
-                : 'Live Voice Session Active'}
-            </span>
-            <button
-              type="button"
-              onClick={stopVoiceSession}
-              style={{
-                background: 'rgba(255, 68, 68, 0.15)',
-                border: '1px solid rgba(255, 68, 68, 0.4)',
-                color: '#ff6666',
-                borderRadius: '6px',
-                padding: '4px 10px',
-                fontSize: '11px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              <Square size={12} /> Stop Voice Session
-            </button>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px',
+            padding: '8px 10px',
+            background: connectionState === 'error' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(0, 229, 255, 0.05)',
+            border: `1px solid ${connectionState === 'error' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(0, 229, 255, 0.2)'}`,
+            borderRadius: '8px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '11px', fontWeight: 'bold', color: connectionState === 'error' ? '#ef4444' : connectionState === 'ready' ? '#10b981' : '#06b6d4' }}>
+                {connectionState === 'starting' || connectionState === 'connecting'
+                  ? '⚡ Connecting to Gemini Live…'
+                  : connectionState === 'connected'
+                  ? '⌛ Waiting for setup acknowledgement…'
+                  : connectionState === 'ready'
+                  ? '🎙️ Gemini Live Active (Listening & Ready)'
+                  : connectionState === 'error'
+                  ? '❌ Gemini Live Error'
+                  : 'Live Voice Session Active'}
+              </span>
+              <button
+                type="button"
+                onClick={stopVoiceSession}
+                style={{
+                  background: 'rgba(255, 68, 68, 0.15)',
+                  border: '1px solid rgba(255, 68, 68, 0.4)',
+                  color: '#ff6666',
+                  borderRadius: '6px',
+                  padding: '3px 8px',
+                  fontSize: '10px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <Square size={10} /> Stop Voice
+              </button>
+            </div>
+
+            {/* TELEMETRY METRICS */}
+            <div style={{ display: 'flex', gap: '12px', fontSize: '10px', color: 'var(--text-secondary)' }}>
+              <span>State: <strong style={{ color: 'var(--neon-cyan)' }}>{realtimeVoiceState}</strong></span>
+              <span>WS: <strong style={{ color: connectionState === 'ready' ? '#10b981' : '#f59e0b' }}>{connectionState}</strong></span>
+            </div>
+
+            {voiceNotice && (
+              <div style={{ fontSize: '10px', color: '#ef4444', fontStyle: 'italic' }}>
+                Notice: {voiceNotice}
+              </div>
+            )}
           </div>
         )}
 
