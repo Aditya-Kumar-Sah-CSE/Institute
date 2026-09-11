@@ -33,6 +33,7 @@ import Modal from '@/components/ui/Modal';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useSmartAgentSession } from '@/features/analytics/context/SmartAgentSessionContext';
 
 export interface ProblemSample {
   input: string;
@@ -877,6 +878,7 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const navigation = problem.navigation;
+  const smartAgentSession = useSmartAgentSession();
 
   // Prefetch adjacent problem pages
   useEffect(() => {
@@ -959,48 +961,62 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
   };
 
   const handleAskSmartLearnAI = () => {
-    setIsAiDrawerOpen(true);
-    if (chatMessages.length === 0) {
-      setChatMessages([
-        {
-          sender: 'assistant',
-          text: `Hello! I am your Smart Learn AI assistant. I have analyzed the problem **"${problem.title}"** and loaded its context (statement, constraints, examples, and C++17 workspace language).\n\nHow can I help you today? You can choose one of the quick options below or ask a question.`
-        }
-      ]);
+    if (smartAgentSession?.openDrawer) {
+      smartAgentSession.openDrawer(`I am analyzing the problem "${problem.title}". Can you explain the problem statement, constraints, and suggest the optimal approach?`);
+    } else {
+      setIsAiDrawerOpen(true);
+      if (chatMessages.length === 0) {
+        setChatMessages([
+          {
+            sender: 'assistant',
+            text: `Hello! I am your Smart Learn AI assistant. I have analyzed the problem **"${problem.title}"** and loaded its context (statement, constraints, examples, and C++17 workspace language).\n\nHow can I help you today? You can choose one of the quick options below or ask a question.`
+          }
+        ]);
+      }
     }
   };
 
   const handleActionChipClick = (actionText: string) => {
+    if (smartAgentSession?.openDrawer) {
+      smartAgentSession.openDrawer(`${actionText} for problem "${problem.title}"`);
+      return;
+    }
     if (isTyping) return;
     
     // Add user message
     const userMsg = { sender: 'user', text: actionText };
-    setChatMessages((prev) => [...prev, userMsg]);
+    setChatMessages((prev: any) => [...prev, userMsg]);
     
     // Trigger AI typing
     setIsTyping(true);
     
     setTimeout(() => {
       const responseText = getSimulatedAiResponse(actionText, problem);
-      setChatMessages((prev) => [...prev, { sender: 'assistant', text: responseText }]);
+      setChatMessages((prev: any) => [...prev, { sender: 'assistant', text: responseText }]);
       setIsTyping(false);
     }, 1200);
   };
 
   const handleSendCustomQuery = () => {
-    if (!customQuery.trim() || isTyping) return;
+    if (!customQuery.trim()) return;
     
     const query = customQuery.trim();
     setCustomQuery('');
     
+    if (smartAgentSession?.openDrawer) {
+      smartAgentSession.openDrawer(`${query} (regarding problem "${problem.title}")`);
+      return;
+    }
+    if (isTyping) return;
+    
     // Add user message
-    setChatMessages((prev) => [...prev, { sender: 'user', text: query }]);
+    setChatMessages((prev: any) => [...prev, { sender: 'user', text: query }]);
     
     setIsTyping(true);
     
     setTimeout(() => {
       const responseText = getSimulatedAiResponse(query, problem);
-      setChatMessages((prev) => [...prev, { sender: 'assistant', text: responseText }]);
+      setChatMessages((prev: any) => [...prev, { sender: 'assistant', text: responseText }]);
       setIsTyping(false);
     }, 1200);
   };
