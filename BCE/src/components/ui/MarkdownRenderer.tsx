@@ -22,6 +22,7 @@ import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 interface MarkdownRendererProps {
   content: string;
+  compact?: boolean;
 }
 
 function isImageUrl(url?: string): boolean {
@@ -179,7 +180,7 @@ function CodeBlockWrapper({ language, code }: { language: string; code: string }
   );
 }
 
-export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
+export default function MarkdownRenderer({ content, compact = false }: MarkdownRendererProps) {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -194,7 +195,7 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
 
   if (!content) {
     return (
-      <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', padding: '12px 0' }}>
+      <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', padding: compact ? '4px 0' : '12px 0', fontSize: compact ? '12px' : '14px' }}>
         No content provided.
       </div>
     );
@@ -218,14 +219,21 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
         className="markdown-body solution-editorial-preview"
         style={{
           color: 'var(--text-primary, #e2e8f0)',
-          fontSize: '15px',
-          lineHeight: '1.7',
+          fontSize: compact ? '12.5px' : '15px',
+          lineHeight: compact ? '1.45' : '1.7',
           fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         }}
       >
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{
+            p({ node, children, ...props }: any) {
+              return (
+                <p {...props} style={{ margin: compact ? '4px 0' : '0.75rem 0' }}>
+                  {children}
+                </p>
+              );
+            },
             code({ node, inline, className, children, ...props }: any) {
               const match = /language-(\w+)/.exec(className || '');
               const lang = match ? match[1] : '';
@@ -243,9 +251,9 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
                     background: 'rgba(255, 255, 255, 0.08)',
                     border: '1px solid rgba(255, 255, 255, 0.12)',
                     color: 'var(--neon-cyan, #06b6d4)',
-                    padding: '2px 6px',
+                    padding: compact ? '1px 5px' : '2px 6px',
                     borderRadius: '4px',
-                    fontSize: '0.9em',
+                    fontSize: compact ? '0.85em' : '0.9em',
                     fontFamily: "'Fira Code', 'Cascadia Code', Consolas, monospace",
                   }}
                 >
@@ -257,13 +265,13 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
               <h1
                 {...props}
                 style={{
-                  fontSize: '1.65rem',
+                  fontSize: compact ? '1.15rem' : '1.65rem',
                   fontWeight: 800,
-                  marginTop: '1.5rem',
-                  marginBottom: '0.75rem',
+                  marginTop: compact ? '0.6rem' : '1.5rem',
+                  marginBottom: compact ? '0.3rem' : '0.75rem',
                   color: 'var(--text-main, #ffffff)',
                   borderBottom: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
-                  paddingBottom: '0.4rem',
+                  paddingBottom: compact ? '0.2rem' : '0.4rem',
                 }}
               >
                 {children}
@@ -273,13 +281,13 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
               <h2
                 {...props}
                 style={{
-                  fontSize: '1.35rem',
+                  fontSize: compact ? '1.05rem' : '1.35rem',
                   fontWeight: 700,
-                  marginTop: '1.25rem',
-                  marginBottom: '0.6rem',
+                  marginTop: compact ? '0.5rem' : '1.25rem',
+                  marginBottom: compact ? '0.25rem' : '0.6rem',
                   color: 'var(--text-main, #ffffff)',
                   borderBottom: '1px solid var(--glass-border, rgba(255, 255, 255, 0.08))',
-                  paddingBottom: '0.3rem',
+                  paddingBottom: compact ? '0.15rem' : '0.3rem',
                 }}
               >
                 {children}
@@ -289,10 +297,10 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
               <h3
                 {...props}
                 style={{
-                  fontSize: '1.15rem',
+                  fontSize: compact ? '0.95rem' : '1.15rem',
                   fontWeight: 700,
-                  marginTop: '1.1rem',
-                  marginBottom: '0.5rem',
+                  marginTop: compact ? '0.4rem' : '1.1rem',
+                  marginBottom: compact ? '0.2rem' : '0.5rem',
                   color: 'var(--neon-cyan, #06b6d4)',
                 }}
               >
@@ -303,8 +311,8 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
               <blockquote
                 {...props}
                 style={{
-                  margin: '1rem 0',
-                  padding: '10px 16px',
+                  margin: compact ? '4px 0' : '1rem 0',
+                  padding: compact ? '6px 10px' : '10px 16px',
                   background: 'rgba(6, 182, 212, 0.04)',
                   borderLeft: '4px solid var(--neon-cyan, #06b6d4)',
                   borderRadius: '0 8px 8px 0',
@@ -316,13 +324,13 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
               </blockquote>
             ),
             table: ({ node, children, ...props }) => (
-              <div style={{ overflowX: 'auto', margin: '1rem 0' }}>
+              <div style={{ overflowX: 'auto', margin: compact ? '0.4rem 0' : '1rem 0' }}>
                 <table
                   {...props}
                   style={{
                     width: '100%',
                     borderCollapse: 'collapse',
-                    fontSize: '14px',
+                    fontSize: compact ? '12px' : '14px',
                     border: '1px solid var(--glass-border, rgba(255,255,255,0.12))',
                     borderRadius: '8px',
                     overflow: 'hidden',
@@ -337,7 +345,7 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
                 {...props}
                 style={{
                   background: 'rgba(255, 255, 255, 0.06)',
-                  padding: '8px 12px',
+                  padding: compact ? '5px 8px' : '8px 12px',
                   textAlign: 'left',
                   fontWeight: 700,
                   borderBottom: '1px solid var(--glass-border, rgba(255,255,255,0.12))',
@@ -351,7 +359,7 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
               <td
                 {...props}
                 style={{
-                  padding: '8px 12px',
+                  padding: compact ? '5px 8px' : '8px 12px',
                   borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
                   color: 'var(--text-secondary, #cbd5e1)',
                 }}
@@ -360,17 +368,17 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
               </td>
             ),
             ul: ({ node, children, ...props }) => (
-              <ul {...props} style={{ paddingLeft: '1.5rem', margin: '0.75rem 0' }}>
+              <ul {...props} style={{ paddingLeft: compact ? '1.1rem' : '1.5rem', margin: compact ? '4px 0' : '0.75rem 0' }}>
                 {children}
               </ul>
             ),
             ol: ({ node, children, ...props }) => (
-              <ol {...props} style={{ paddingLeft: '1.5rem', margin: '0.75rem 0' }}>
+              <ol {...props} style={{ paddingLeft: compact ? '1.1rem' : '1.5rem', margin: compact ? '4px 0' : '0.75rem 0' }}>
                 {children}
               </ol>
             ),
             li: ({ node, children, ...props }) => (
-              <li {...props} style={{ marginBottom: '0.35rem' }}>
+              <li {...props} style={{ marginBottom: compact ? '0.15rem' : '0.35rem' }}>
                 {children}
               </li>
             ),

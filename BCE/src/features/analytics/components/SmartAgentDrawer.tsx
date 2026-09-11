@@ -6,6 +6,7 @@ import Button from '@/components/ui/Button';
 import Link from 'next/link';
 import { useSmartAgentSession } from '../context/SmartAgentSessionContext';
 import DualAudioVisualizer from './DualAudioVisualizer';
+import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import { 
   X, Send, Mic, MicOff, Sparkles, Bot, User, ArrowRight, RefreshCw, 
   ExternalLink, AlertTriangle, Terminal, HelpCircle, Loader2, Volume2, VolumeX, Square, Trash2, CheckCircle2, AlertCircle, Maximize2, Minimize2, Database, ChevronDown, ChevronUp
@@ -45,8 +46,12 @@ function AgentActivityCard({ msg }: { msg: any }) {
       .trim();
 
     if (cleanStr.length > 0) {
-      targetName = cleanStr;
+      const firstLine = cleanStr.split('\n')[0].trim();
+      targetName = firstLine.length > 35 ? `${firstLine.slice(0, 35)}...` : firstLine;
     }
+  }
+  if (targetName && targetName.length > 35) {
+    targetName = targetName.split('\n')[0].slice(0, 35) + '...';
   }
 
   const isSheetAction = toolName === 'openDSASheet' || msg.expectedEntity?.type === 'sheet' || /sheet/i.test(targetName);
@@ -57,30 +62,30 @@ function AgentActivityCard({ msg }: { msg: any }) {
     <div style={{
       background: 'rgba(6, 182, 212, 0.08)',
       border: '1px solid rgba(6, 182, 212, 0.3)',
-      borderRadius: '8px',
-      padding: '10px 12px',
-      fontSize: '12px',
+      borderRadius: '6px',
+      padding: '6px 10px',
+      fontSize: '11px',
       color: '#e0f7fa',
       width: '100%',
-      marginBottom: '6px'
+      marginBottom: '4px'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', color: '#06b6d4', marginBottom: '8px' }}>
-        <Bot size={15} /> Smart Agent Activity
+      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 'bold', color: '#06b6d4', marginBottom: '4px', fontSize: '11px' }}>
+        <Bot size={13} /> Smart Agent Activity
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '2px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', paddingLeft: '2px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
           <span>🎯</span> <strong>Target found:</strong> <span style={{ color: '#a5f3fc' }}>{targetName}</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
           <span>👆</span> <strong>Action:</strong> {actionLabel}
         </div>
         {isNav && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#67e8f9' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#67e8f9' }}>
             <span>🚀</span> <strong>Opening:</strong> {targetName}
           </div>
         )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#4ade80' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#4ade80' }}>
           <span>✓</span> <strong>Status:</strong> Verified successfully
         </div>
       </div>
@@ -507,7 +512,7 @@ export default function SmartAgentDrawer() {
         {/* HEADER */}
         <div 
           style={{
-            padding: 'var(--space-sm) var(--space-md)',
+            padding: '6px 10px',
             background: 'var(--bg-primary)',
             borderBottom: '1px solid var(--glass-border)',
             display: 'flex',
@@ -646,10 +651,10 @@ export default function SmartAgentDrawer() {
         style={{
           flex: 1,
           overflowY: 'auto',
-          padding: 'var(--space-md)',
+          padding: '8px 10px',
           display: 'flex',
           flexDirection: 'column',
-          gap: 'var(--space-md)'
+          gap: '6px'
         }}
       >
         {/* ACTIVE ACTION PLAN CARD */}
@@ -664,22 +669,22 @@ export default function SmartAgentDrawer() {
               display: 'flex',
               flexDirection: 'column',
               alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start',
-              gap: '4px'
+              gap: '2px'
             }}
           >
             <div 
               style={{
                 display: 'flex',
-                gap: '8px',
-                maxWidth: '92%',
+                gap: '6px',
+                maxWidth: '94%',
                 alignItems: 'flex-start',
                 flexDirection: msg.role === 'user' ? 'row-reverse' : 'row'
               }}
             >
               <div 
                 style={{
-                  width: '28px',
-                  height: '28px',
+                  width: '24px',
+                  height: '24px',
                   borderRadius: '50%',
                   background: msg.role === 'user' ? 'var(--neon-cyan)' : 'rgba(0, 229, 255, 0.15)',
                   color: msg.role === 'user' ? '#000' : 'var(--neon-cyan)',
@@ -687,24 +692,23 @@ export default function SmartAgentDrawer() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
-                  fontSize: '12px',
+                  fontSize: '11px',
                   fontWeight: 'bold',
                   border: msg.role === 'user' ? 'none' : '1px solid rgba(0, 229, 255, 0.3)'
                 }}
               >
-                {msg.role === 'user' ? <User size={14} /> : <Bot size={16} />}
+                {msg.role === 'user' ? <User size={13} /> : <Bot size={14} />}
               </div>
 
               <div 
                 style={{
                   background: msg.role === 'user' ? 'rgba(0, 229, 255, 0.15)' : 'var(--bg-input)',
                   border: msg.role === 'user' ? '1px solid var(--neon-cyan)' : '1px solid var(--glass-border)',
-                  borderRadius: 'var(--radius-md)',
-                  padding: '10px 14px',
+                  borderRadius: '6px',
+                  padding: '6px 10px',
                   color: 'var(--text-primary)',
-                  fontSize: 'var(--text-sm)',
-                  lineHeight: 1.5,
-                  whiteSpace: 'pre-wrap'
+                  fontSize: '12.5px',
+                  lineHeight: 1.45
                 }}
               >
                 {/* USER-FRIENDLY AGENT ACTIVITY CARD FOR TOOL EXECUTION */}
@@ -713,21 +717,21 @@ export default function SmartAgentDrawer() {
                 ) : (
                   <>
                     {msg.navigationState === 'VERIFIED' && (
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#00ff88', background: 'rgba(0, 255, 136, 0.1)', padding: '2px 8px', borderRadius: '4px', marginBottom: '6px' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#00ff88', background: 'rgba(0, 255, 136, 0.1)', padding: '2px 6px', borderRadius: '4px', marginBottom: '4px' }}>
                         <CheckCircle2 size={10} /> Verified Page Navigation
                       </div>
                     )}
                     {msg.navigationState === 'FAILED' && (
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#ff6666', background: 'rgba(255, 102, 102, 0.1)', padding: '2px 8px', borderRadius: '4px', marginBottom: '6px' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#ff6666', background: 'rgba(255, 102, 102, 0.1)', padding: '2px 6px', borderRadius: '4px', marginBottom: '4px' }}>
                         <AlertCircle size={10} /> Verification Failed
                       </div>
                     )}
                     {msg.navigationState === 'NOT_FOUND' && (
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#ffcc00', background: 'rgba(255, 204, 0, 0.1)', padding: '2px 8px', borderRadius: '4px', marginBottom: '6px' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#ffcc00', background: 'rgba(255, 204, 0, 0.1)', padding: '2px 6px', borderRadius: '4px', marginBottom: '4px' }}>
                         <AlertTriangle size={10} /> 404 Page Not Found
                       </div>
                     )}
-                    {msg.content}
+                    <MarkdownRenderer content={msg.content} compact />
                   </>
                 )}
 
@@ -873,11 +877,11 @@ export default function SmartAgentDrawer() {
       </div>
 
       {/* QUICK COMMANDS DISCOVERY CHIPS */}
-      <div style={{ padding: '8px 12px', background: 'var(--bg-primary)', borderTop: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-        <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <HelpCircle size={10} /> Things I can do:
+      <div style={{ padding: '4px 8px', background: 'var(--bg-primary)', borderTop: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        <div style={{ fontSize: '9.5px', color: 'var(--text-muted)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <HelpCircle size={10} /> Quick suggestions:
         </div>
-        <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
+        <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '2px' }}>
           {QUICK_COMMANDS.map((cmdText, idx) => (
             <button
               key={idx}
@@ -885,12 +889,12 @@ export default function SmartAgentDrawer() {
               onClick={() => handleSendPrompt(cmdText.replace(/^•\s*/, ''))}
               disabled={isLoading || isListening || isTranscribing}
               style={{
-                fontSize: '11px',
+                fontSize: '10px',
                 background: 'rgba(255, 255, 255, 0.04)',
                 border: '1px solid var(--glass-border)',
                 color: 'var(--neon-cyan)',
-                padding: '4px 10px',
-                borderRadius: '12px',
+                padding: '2px 8px',
+                borderRadius: '10px',
                 whiteSpace: 'nowrap',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease'
@@ -911,11 +915,11 @@ export default function SmartAgentDrawer() {
           handleSendPrompt();
         }}
         style={{
-          padding: 'var(--space-md)',
+          padding: '6px 10px',
           background: 'var(--bg-primary)',
           borderTop: '1px solid var(--glass-border)',
           display: 'flex',
-          gap: '8px'
+          gap: '6px'
         }}
       >
         <input
@@ -926,12 +930,12 @@ export default function SmartAgentDrawer() {
           disabled={isLoading || isListening || isTranscribing}
           style={{
             flex: 1,
-            padding: '10px 14px',
+            padding: '6px 10px',
             background: 'var(--bg-input)',
             border: '1px solid var(--glass-border)',
-            borderRadius: 'var(--radius-md)',
+            borderRadius: '6px',
             color: 'var(--text-primary)',
-            fontSize: 'var(--text-sm)',
+            fontSize: '12px',
             outline: 'none'
           }}
         />
@@ -944,13 +948,14 @@ export default function SmartAgentDrawer() {
           disabled={isLoading}
           title={isListening ? "Stop Voice Listening" : "Start Live Voice Assistant"}
           style={{
-            padding: '0 12px',
+            padding: '0 10px',
+            height: '32px',
             color: isListening ? '#00ff88' : isVoiceMode ? 'var(--neon-cyan)' : 'var(--text-muted)',
             borderColor: isListening ? 'rgba(0, 255, 136, 0.5)' : isVoiceMode ? 'rgba(0, 229, 255, 0.4)' : 'var(--glass-border)',
             background: isListening ? 'rgba(0, 255, 136, 0.15)' : undefined
           }}
         >
-          {isListening ? <Square size={16} /> : isVoiceMode ? <Mic size={16} /> : <MicOff size={16} />}
+          {isListening ? <Square size={14} /> : isVoiceMode ? <Mic size={14} /> : <MicOff size={14} />}
         </Button>
 
         <Button 
@@ -958,9 +963,9 @@ export default function SmartAgentDrawer() {
           variant="primary" 
           size="sm" 
           disabled={(isLoading && !isVoiceMode) || !inputVal.trim()}
-          style={{ padding: '0 16px' }}
+          style={{ padding: '0 12px', height: '32px' }}
         >
-          <Send size={16} />
+          <Send size={14} />
         </Button>
       </form>
 
