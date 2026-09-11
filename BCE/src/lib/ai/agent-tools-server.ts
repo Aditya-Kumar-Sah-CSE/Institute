@@ -2289,6 +2289,73 @@ std::vector<int> twoSum(std::vector<int>& nums, int target) {
     }
   },
 
+  ping_companion: {
+    name: 'ping_companion',
+    description: 'Ping Smart Learn Companion bridge to verify connection status.',
+    category: 'SYSTEM',
+    riskLevel: 'LOW',
+    parameters: { type: 'object', properties: {} },
+    examples: ['ping companion', 'check companion status'],
+    execute: async () => {
+      const res = await callLocalComputer({ action: 'PING_COMPANION' });
+      return {
+        success: res.success,
+        message: res.success ? `🏓 **Companion Ping Success** (RequestId: \`${res.requestId}\`): pong` : `❌ **Companion Ping Failed**: ${res.message}`,
+        data: res.data
+      };
+    }
+  },
+
+  get_active_browser_page: {
+    name: 'get_active_browser_page',
+    description: 'Get real active browser page URL, title, and metadata.',
+    category: 'WEB',
+    riskLevel: 'LOW',
+    parameters: { type: 'object', properties: {} },
+    examples: ['get active browser page', 'get current tab info'],
+    execute: async () => {
+      const res = await callLocalComputer({ action: 'GET_ACTIVE_BROWSER_PAGE' });
+      return {
+        success: res.success,
+        message: res.success ? `🌐 **Active Browser Page**:\n- **Title**: ${(res.data as any)?.title || 'Unknown'}\n- **URL**: ${(res.data as any)?.url || 'Unknown'}\n- **Browser**: ${(res.data as any)?.browser || 'Chrome'}` : `❌ **Browser Page Check Failed**: ${res.message}`,
+        data: res.data
+      };
+    }
+  },
+
+  focus_browser: {
+    name: 'focus_browser',
+    description: 'Focus real browser window and bring active tab to foreground.',
+    category: 'SYSTEM',
+    riskLevel: 'LOW',
+    parameters: { type: 'object', properties: {} },
+    examples: ['focus browser', 'bring chrome to front'],
+    execute: async () => {
+      const res = await callLocalComputer({ action: 'FOCUS_BROWSER' });
+      return {
+        success: res.success,
+        message: res.success ? `🖥️ **Browser Focused**: Brought controlled Chrome tab to foreground.` : `❌ **Browser Focus Failed**: ${res.message}`
+      };
+    }
+  },
+
+  find_visible_textbox: {
+    name: 'find_visible_textbox',
+    description: 'Scan active browser page for visible prompt input/textbox elements.',
+    category: 'WEB',
+    riskLevel: 'LOW',
+    parameters: { type: 'object', properties: {} },
+    examples: ['find visible textbox', 'find chatgpt input'],
+    execute: async () => {
+      const res = await callLocalComputer({ action: 'FIND_VISIBLE_TEXTBOX' });
+      return {
+        success: res.success,
+        message: res.success ? `🔍 **Visible Textbox Found**:\n- **Matched Selector**: ${(res.data as any)?.matchedSelector || (res.data as any)?.selector}\n- **Tab URL**: ${(res.data as any)?.tabUrl || 'Active Tab'}` : `❌ **Textbox Search Failed**: ${res.message}`,
+        data: res.data
+      };
+    }
+  },
+
   open_external_app: {
     name: 'open_external_app',
     description: 'Open authorized external website or desktop application.',

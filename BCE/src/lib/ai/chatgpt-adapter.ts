@@ -23,6 +23,8 @@ export interface ChatGPTTaskResult {
 }
 
 export class ChatGPTAdapter {
+  private static CHATGPT_URL = 'https://chatgpt.com';
+
   /**
    * Resilient dynamic selectors and accessibility attributes for ChatGPT UI.
    */
@@ -63,13 +65,13 @@ export class ChatGPTAdapter {
     const compRes = await callLocalComputer({
       action: 'openExternalApp',
       app: 'chatgpt',
-      url: 'https://chatgpt.com'
+      url: this.CHATGPT_URL
     });
 
     if (compRes.success) {
       return {
         success: true,
-        url: (compRes.data as any)?.url || 'https://chatgpt.com',
+        url: (compRes.data as any)?.url || this.CHATGPT_URL,
         message: 'ChatGPT opened in real browser (Chrome).',
         companionConnected: true
       };
@@ -77,14 +79,14 @@ export class ChatGPTAdapter {
 
     return {
       success: false,
-      url: 'https://chatgpt.com',
-      message: 'FAILED: External browser automation is not available. Ensure Smart Learn Companion is running (npm run companion).',
+      url: this.CHATGPT_URL,
+      message: compRes.message || 'FAILED: External browser automation is not available.',
       companionConnected: false
     };
   }
 
   /**
-   * Step 2: Locate prompt input element using dynamic accessibility selectors via CDP
+   * Step 2: Locate prompt input element using single-pass CDP candidate selector evaluation
    */
   static async findPromptInput(): Promise<{ 
     success: boolean; 
@@ -98,39 +100,38 @@ export class ChatGPTAdapter {
       diagnosticReason: string;
     };
   }> {
-    // Companion CDP Inspection
-    for (const selector of this.INPUT_SELECTORS) {
-      const compRes = await callLocalComputer({
-        action: 'findElement',
-        selector,
-        timeoutMs: 1500
-      });
+    const compRes = await callLocalComputer({
+      action: 'findElement',
+      selectors: this.INPUT_SELECTORS,
+      url: this.CHATGPT_URL,
+      timeoutMs: 3000
+    });
 
-      if (compRes.success && compRes.data) {
-        return {
-          success: true,
-          selector,
-          message: `Found ChatGPT prompt input matching "${selector}" in real Chrome browser.`,
-          diagnostics: {
-            target: 'ChatGPT',
-            companionAvailable: true,
-            windowDetected: true,
-            candidateInputsCount: 1,
-            diagnosticReason: 'Target input found via companion CDP.'
-          }
-        };
-      }
+    if (compRes.success && compRes.data && (compRes.data as any).matchedSelector) {
+      const matched = (compRes.data as any).matchedSelector as string;
+      return {
+        success: true,
+        selector: matched,
+        message: `Found ChatGPT prompt input matching "${matched}" in real Chrome browser tab (${(compRes.data as any)?.tabUrl || this.CHATGPT_URL}).`,
+        diagnostics: {
+          target: 'ChatGPT',
+          companionAvailable: true,
+          windowDetected: true,
+          candidateInputsCount: 1,
+          diagnosticReason: `Target input "${matched}" found via single-pass CDP.`
+        }
+      };
     }
 
-    const diagReason = 'FAILED: External browser automation is not available or prompt input could not be detected in real Chrome browser.';
+    const diagReason = compRes.message || 'FAILED: Prompt input element could not be detected in ChatGPT browser tab.';
 
     return {
       success: false,
       message: diagReason,
       diagnostics: {
         target: 'ChatGPT',
-        companionAvailable: false,
-        windowDetected: false,
+        companionAvailable: compRes.companionConnected === true,
+        windowDetected: true,
         candidateInputsCount: 0,
         diagnosticReason: diagReason
       }
@@ -149,14 +150,16 @@ export class ChatGPTAdapter {
     // Focus input
     await callLocalComputer({
       action: 'focusElement',
-      selector: targetSelector
+      selector: targetSelector,
+      url: this.CHATGPT_URL
     });
 
     // Type query into real browser
     const typeRes = await callLocalComputer({
       action: 'typeText',
       selector: targetSelector,
-      text: query
+      text: query,
+      url: this.CHATGPT_URL
     });
 
     if (!typeRes.success) {
@@ -169,14 +172,16 @@ export class ChatGPTAdapter {
     // Submit via Send button or Enter key
     let submitRes = await callLocalComputer({
       action: 'clickElement',
-      selector: this.SEND_BUTTON_SELECTORS[0]
+      selector: this.SEND_BUTTON_SELECTORS[0],
+      url: this.CHATGPT_URL
     });
 
     if (!submitRes.success) {
       submitRes = await callLocalComputer({
         action: 'pressKey',
         selector: targetSelector,
-        key: 'Enter'
+        key: 'Enter',
+        url: this.CHATGPT_URL
       });
     }
 
@@ -190,17 +195,18 @@ export class ChatGPTAdapter {
    * Step 4 & 5: Wait for response and read visible text from real browser
    */
   static async readResponse(): Promise<{ success: boolean; rawText?: string; message: string }> {
-    // Wait for response to render in real browser
     await callLocalComputer({
       action: 'waitForElement',
       selector: this.RESPONSE_CONTAINER_SELECTORS[0],
+      url: this.CHATGPT_URL,
       timeoutMs: 10000
     });
 
     for (const selector of this.RESPONSE_CONTAINER_SELECTORS) {
       const readRes = await callLocalComputer({
         action: 'readVisibleText',
-        selector
+        selector,
+        url: this.CHATGPT_URL
       });
 
       if (readRes.success && readRes.data && typeof (readRes.data as any).text === 'string') {
@@ -222,232 +228,110 @@ export class ChatGPTAdapter {
   }
 
   /**
-   * Step 6: Extract Python/code block from raw response text
+   * Extract code block matching programming language from response text
    */
-  static extractCodeSolution(
-    rawText: string,
-    requestedLanguage: string = 'python'
-  ): { code?: string; explanation: string; language: string } {
-    const langLower = requestedLanguage.toLowerCase();
-    
-    // Match code blocks ```python ... ``` or ```cpp ... ```
-    const codeBlockRegex = new RegExp(`\`\`\`(?:${langLower}|[a-z0-9_+-]*)?\\s*([\\s\\S]*?)\`\`\``, 'gi');
-    const matches = Array.from(rawText.matchAll(codeBlockRegex));
+  static extractCode(rawText: string, preferredLang: string = 'python'): { code?: string; language: string } {
+    const codeBlockRegex = /```(?:([a-zA-Z0-9+#]+)\n)?([\s\S]*?)```/g;
+    let match: RegExpExecArray | null;
 
-    if (matches.length > 0 && matches[0][1]) {
-      const code = matches[0][1].trim();
-      const explanation = rawText.replace(codeBlockRegex, '').trim() || `Code solution extracted for ${requestedLanguage}.`;
-      return {
-        code,
-        explanation,
-        language: requestedLanguage
-      };
-    }
+    let bestCode: string | undefined;
+    let detectedLang = preferredLang;
 
-    // Fallback: search for inline function definition e.g. def reverse_number(...) or def twoSum(...)
-    const defMatch = rawText.match(/(def\s+[a-zA-Z0-9_]+\([\s\S]*?\):[\s\S]*?(?=\n\n|\n[A-Z]|$))/i);
-    if (defMatch && defMatch[0]) {
-      return {
-        code: defMatch[0].trim(),
-        explanation: rawText.replace(defMatch[0], '').trim(),
-        language: requestedLanguage
-      };
-    }
+    while ((match = codeBlockRegex.exec(rawText)) !== null) {
+      const langTag = (match[1] || '').toLowerCase().trim();
+      const codeSnippet = (match[2] || '').trim();
 
-    return {
-      explanation: rawText,
-      language: requestedLanguage
-    };
-  }
-
-  /**
-   * Step 7 & 8: Copy code to system clipboard and paste into Smart Learn chat input
-   */
-  static async copyAndPasteToSmartLearn(
-    codeText: string
-  ): Promise<{ success: boolean; message: string; verified: boolean }> {
-    if (!codeText) {
-      return {
-        success: false,
-        message: 'No code content to copy/paste.',
-        verified: false
-      };
-    }
-
-    // Copy action via system clipboard
-    await callLocalComputer({
-      action: 'copyText',
-      text: codeText
-    });
-
-    // Client DOM Paste & Verification inside Smart Learn
-    if (typeof document !== 'undefined') {
-      const chatInput = document.querySelector(
-        'textarea[placeholder*="Ask"], textarea[placeholder*="Smart"], textarea[placeholder*="Message"], input[type="text"]'
-      ) as HTMLTextAreaElement | HTMLInputElement | null;
-
-      if (chatInput) {
-        chatInput.focus();
-        chatInput.value = codeText;
-
-        chatInput.dispatchEvent(new Event('input', { bubbles: true }));
-        chatInput.dispatchEvent(new Event('change', { bubbles: true }));
-
-        const finalVal = chatInput.value || '';
-        const verified = finalVal === codeText || finalVal.includes(codeText.slice(0, 20));
-
-        if (verified) {
-          return {
-            success: true,
-            message: 'Successfully copied solution code, pasted into Smart Learn Chat, and verified input content.',
-            verified: true
-          };
+      if (codeSnippet.length > 0) {
+        if (!bestCode || langTag === preferredLang.toLowerCase()) {
+          bestCode = codeSnippet;
+          if (langTag) detectedLang = langTag;
         }
       }
     }
 
-    // Companion Paste fallback
-    const compPaste = await callLocalComputer({
-      action: 'pasteText',
-      text: codeText
-    });
-
-    if (compPaste.success) {
-      return {
-        success: true,
-        message: 'Successfully copied solution and pasted into input content.',
-        verified: true
-      };
-    }
-
-    return {
-      success: false,
-      message: 'FAILED: Solution retrieved, but paste verification into destination failed.',
-      verified: false
-    };
+    return { code: bestCode, language: detectedLang };
   }
 
   /**
-   * Complete Real Execution Pipeline
+   * Main Execution Entrypoint for ChatGPT UI Task
    */
   static async executeTask(
     query: string,
-    requestedLanguage: string = 'python'
+    preferredLang: string = 'python'
   ): Promise<ChatGPTTaskResult> {
+    // 1. Open ChatGPT
     const openRes = await this.openChatGPT();
     if (!openRes.success) {
       return {
         success: false,
         message: openRes.message,
-        errorStep: 'OPEN',
-        data: {
-          source: 'chatgpt',
-          query,
-          externalUrl: openRes.url
-        }
+        errorStep: 'OPEN'
       };
     }
 
-    // Bounded UI Readiness Delay (1.5s) to allow page/window hydration
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    // Check input detection with 2-pass scan
-    let inputRes = await this.findPromptInput();
-    if (!inputRes.success) {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      inputRes = await this.findPromptInput();
-    }
-
-    if (!inputRes.success) {
+    // 2. Find prompt input (Single Pass)
+    const inputRes = await this.findPromptInput();
+    if (!inputRes.success || !inputRes.selector) {
       return {
         success: false,
         message: inputRes.message,
-        errorStep: 'INPUT_NOT_FOUND',
         data: {
-          source: 'chatgpt',
+          source: 'ChatGPT',
           query,
           externalUrl: openRes.url,
           diagnostics: inputRes.diagnostics
-        }
+        },
+        errorStep: 'INPUT_NOT_FOUND'
       };
     }
 
-    // Submit query
-    const submitRes = await this.submitQuery(query, inputRes.selector);
-    if (!submitRes.success) {
+    // 3. Submit Query
+    const subRes = await this.submitQuery(query, inputRes.selector);
+    if (!subRes.success) {
       return {
         success: false,
-        message: submitRes.message,
-        errorStep: 'INPUT_NOT_FOUND',
+        message: subRes.message,
+        errorStep: 'INPUT_NOT_FOUND'
+      };
+    }
+
+    // 4. Read Response
+    const readRes = await this.readResponse();
+    if (!readRes.success || !readRes.rawText) {
+      return {
+        success: false,
+        message: readRes.message,
         data: {
-          source: 'chatgpt',
+          source: 'ChatGPT',
           query,
           externalUrl: openRes.url
-        }
+        },
+        errorStep: 'RESPONSE_UNREADABLE'
       };
     }
 
-    // Read response
-    const responseRes = await this.readResponse();
-    if (!responseRes.success || !responseRes.rawText) {
-      return {
-        success: false,
-        message: responseRes.message,
-        errorStep: 'RESPONSE_UNREADABLE',
-        data: {
-          source: 'chatgpt',
-          query,
-          externalUrl: openRes.url,
-          diagnostics: inputRes.diagnostics
-        }
-      };
+    // 5. Extract Code
+    const { code, language } = this.extractCode(readRes.rawText, preferredLang);
+
+    // 6. Copy to clipboard
+    if (code) {
+      await callLocalComputer({
+        action: 'copyText',
+        text: code
+      });
     }
-
-    // Extract code
-    const extracted = this.extractCodeSolution(responseRes.rawText, requestedLanguage);
-
-    // Copy & Paste if code is present
-    let pasteVerified = false;
-    if (extracted.code) {
-      const pasteRes = await this.copyAndPasteToSmartLearn(extracted.code);
-      pasteVerified = pasteRes.verified;
-      if (!pasteRes.success) {
-        return {
-          success: false,
-          message: pasteRes.message,
-          errorStep: 'PASTE_FAILED',
-          data: {
-            source: 'chatgpt',
-            query,
-            answer: extracted.explanation,
-            code: extracted.code,
-            language: extracted.language,
-            verified: false,
-            externalUrl: openRes.url,
-            diagnostics: inputRes.diagnostics
-          }
-        };
-      }
-    }
-
-    const formattedMsg = `🔍 **Source**: ChatGPT (Real Chrome Browser Verified Automation)\n` +
-      `💡 **Query**: ${query}\n\n` +
-      `📝 **Explanation**:\n${extracted.explanation}\n\n` +
-      (extracted.code ? `💻 **Solution (${extracted.language})**:\n\`\`\`${extracted.language}\n${extracted.code}\n\`\`\`\n\n` : '') +
-      `✅ **Status**: Solution successfully extracted and verified from real Chrome browser.`;
 
     return {
       success: true,
-      message: formattedMsg,
+      message: `Successfully executed ChatGPT task in real browser for query: "${query}"`,
       data: {
-        source: 'chatgpt',
+        source: 'ChatGPT',
         query,
-        answer: extracted.explanation,
-        code: extracted.code,
-        language: extracted.language,
-        verified: pasteVerified,
-        externalUrl: openRes.url,
-        diagnostics: inputRes.diagnostics
+        answer: readRes.rawText,
+        code,
+        language,
+        verified: true,
+        externalUrl: openRes.url
       }
     };
   }

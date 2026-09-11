@@ -22,13 +22,18 @@ export interface LocalComputerRequest {
     | 'readVisibleText'
     | 'copyText'
     | 'pasteText'
-    | 'interactExternalUI';
+    | 'interactExternalUI'
+    | 'PING_COMPANION'
+    | 'GET_ACTIVE_BROWSER_PAGE'
+    | 'FOCUS_BROWSER'
+    | 'FIND_VISIBLE_TEXTBOX';
   app?: string;
   url?: string;
   args?: string[];
   path?: string;
   content?: string;
   selector?: string;
+  selectors?: string[];
   text?: string;
   key?: string;
   timeoutMs?: number;
@@ -38,6 +43,9 @@ export interface LocalComputerRequest {
 export interface LocalComputerResult {
   success: boolean;
   message: string;
+  requestId?: string;
+  stage?: string;
+  durationMs?: number;
   data?: Record<string, unknown>;
   companionConnected?: boolean;
   browserAutomation?: boolean;
@@ -73,7 +81,7 @@ export async function checkCompanionHealth(): Promise<{ connected: boolean; mess
     const res = await fetch(`${baseUrl}/health`, {
       method: 'GET',
       cache: 'no-store',
-      signal: AbortSignal.timeout(2000)
+      signal: AbortSignal.timeout(1500)
     });
     if (res.ok) {
       const data = await res.json();
@@ -142,17 +150,27 @@ async function ensureCompanionRunning(): Promise<boolean> {
 }
 
 export async function callLocalComputer(request: LocalComputerRequest): Promise<LocalComputerResult> {
+  const reqId = 'req_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6);
+  const startTime = Date.now();
+
+  console.log(`[ExternalUI] REQUEST ${reqId} action=${request.action}`);
+
   const isRunning = await ensureCompanionRunning();
   if (!isRunning) {
+    console.error(`[ExternalUI] FAILED_HEALTH_CHECK ${reqId} Companion offline.`);
     return {
       success: false,
+      requestId: reqId,
+      stage: 'COMPANION_HEALTH_CHECK',
       companionConnected: false,
-      message: 'FAILED: Could not auto-start Smart Learn Companion process on port 43127.'
+      message: 'FAILED: Smart Learn Companion is offline or unreachable on port 43127.'
     };
   }
 
   const token = getCompanionToken();
   const baseUrl = process.env.SMART_LEARN_COMPANION_URL || DEFAULT_COMPANION_URL;
+
+  console.log(`[ExternalUI] SENT_TO_COMPANION ${reqId}`);
 
   try {
     const response = await fetch(baseUrl, {
@@ -164,30 +182,31 @@ export async function callLocalComputer(request: LocalComputerRequest): Promise<
       },
       body: JSON.stringify(request),
       cache: 'no-store',
-      signal: AbortSignal.timeout(12000)
+      signal: AbortSignal.timeout(6000)
     });
 
     const payload = await response.json() as LocalComputerResult;
+    const durationMs = Date.now() - startTime;
+
+    console.log(`[ExternalUI] RESPONSE_RETURNED ${reqId} status=${response.ok ? 'SUCCESS' : 'FAILED'} duration=${durationMs}ms`);
 
     if (response.status === 401) {
       return {
         success: false,
+        requestId: reqId,
+        stage: 'AUTH_CHECK',
+        durationMs,
         companionConnected: false,
         message: 'FAILED: Companion token mismatch between Web App and Companion process.'
-      };
-    }
-
-    if (response.status === 403) {
-      return {
-        success: false,
-        companionConnected: false,
-        message: 'FAILED: Access denied by Companion (local connections only).'
       };
     }
 
     if (payload.success === true) {
       return {
         ...payload,
+        requestId: reqId,
+        stage: 'COMPLETED',
+        durationMs,
         companionConnected: true,
         browserAutomation: true
       };
@@ -195,22 +214,34 @@ export async function callLocalComputer(request: LocalComputerRequest): Promise<
 
     return {
       success: false,
+      requestId: reqId,
+      stage: 'COMPANION_REJECTED',
+      durationMs,
       companionConnected: true,
       message: payload.message || `Companion rejected the action (HTTP ${response.status}).`
     };
   } catch (err: any) {
+    const durationMs = Date.now() - startTime;
     const errMessage = err?.message || '';
 
     if (err.name === 'TimeoutError' || errMessage.includes('timeout')) {
+      console.error(`[ExternalUI] TIMEOUT ${reqId} stage=BROWSER_EXECUTION duration=${durationMs}ms`);
       return {
         success: false,
-        companionConnected: false,
-        message: 'FAILED: External browser automation request timed out after 12 seconds.'
+        requestId: reqId,
+        stage: 'BROWSER_EXECUTION_TIMEOUT',
+        durationMs,
+        companionConnected: true,
+        message: `External automation timeout (stage: BROWSER_EXECUTION, requestId: ${reqId}).`
       };
     }
 
+    console.error(`[ExternalUI] ERROR ${reqId} stage=TRANSPORT duration=${durationMs}ms err=${errMessage}`);
     return {
       success: false,
+      requestId: reqId,
+      stage: 'TRANSPORT_ERROR',
+      durationMs,
       companionConnected: false,
       message: `FAILED: External browser automation error: ${errMessage || 'Companion connection failed.'}`
     };
