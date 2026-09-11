@@ -68,36 +68,43 @@ export class GroqProvider implements AIProvider {
       let groqResponse: Response | null = null;
 
       for (const modelName of candidateModels) {
-        const res = await fetch(`${this.baseUrl}/chat/completions`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: modelName,
-            messages,
-            tools: toolDefs.length > 0 ? toolDefs : undefined,
-            tool_choice: toolDefs.length > 0 ? 'auto' : undefined,
-            temperature: 0.2,
-            max_tokens: 400
-          }),
-          signal: AbortSignal.timeout(8000)
-        });
+        // Pass 1: Try with tools (if present). Pass 2: Try without tools if tools cause 400 schema error.
+        const passes = toolDefs.length > 0 ? [true, false] : [false];
 
-        if (res.ok) {
-          this.primaryModel = modelName;
-          groqResponse = res;
-          break;
+        for (const withTools of passes) {
+          const res = await fetch(`${this.baseUrl}/chat/completions`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${this.apiKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: modelName,
+              messages,
+              tools: withTools ? toolDefs : undefined,
+              tool_choice: withTools ? 'auto' : undefined,
+              temperature: 0.2,
+              max_tokens: 400
+            }),
+            signal: AbortSignal.timeout(8000)
+          });
+
+          if (res.ok) {
+            this.primaryModel = modelName;
+            groqResponse = res;
+            break;
+          }
+
+          const errText = await res.text();
+          lastErrorStatus = res.status;
+          lastErrorText = errText;
+
+          if (res.status === 401 || res.status === 403 || res.status === 429) {
+            throw new Error(this.formatErrorMessage(res.status, errText));
+          }
         }
 
-        const errText = await res.text();
-        lastErrorStatus = res.status;
-        lastErrorText = errText;
-
-        if (res.status === 401 || res.status === 403 || res.status === 429) {
-          throw new Error(this.formatErrorMessage(res.status, errText));
-        }
+        if (groqResponse) break;
       }
 
       if (!groqResponse) {
