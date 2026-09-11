@@ -284,6 +284,129 @@ async function navigateBrowser(body) {
   };
 }
 
+// ─── CDP EXTERNAL BROWSER SNAPSHOT & CODE BLOCK EXTRACTION ENGINE ───
+
+async function getExternalDOMSnapshot(targetUrl = null) {
+  try {
+    const page = await getActiveCDPPage(targetUrl);
+    
+    const snapshotScript = `(() => {
+      const isElementVisible = (el) => {
+        if (!el) return false;
+        const rect = el.getBoundingClientRect();
+        if (rect.width === 0 && rect.height === 0) return false;
+        const style = window.getComputedStyle(el);
+        return style.visibility !== 'hidden' && style.display !== 'none' && style.opacity !== '0';
+      };
+
+      // 1. Gather filtered interactive elements
+      const elementNodes = Array.from(document.querySelectorAll('a, button, input, textarea, select, [role="button"], [role="textbox"], [role="link"], [contenteditable="true"]'));
+      const elements = elementNodes.slice(0, 50).map(el => {
+        return {
+          role: el.getAttribute('role') || el.tagName.toLowerCase(),
+          tag: el.tagName.toLowerCase(),
+          text: (el.innerText || el.value || el.textContent || '').trim().slice(0, 100),
+          ariaLabel: el.getAttribute('aria-label') || undefined,
+          placeholder: el.getAttribute('placeholder') || undefined,
+          contenteditable: el.isContentEditable || el.getAttribute('contenteditable') === 'true',
+          visible: isElementVisible(el),
+          enabled: !el.disabled
+        };
+      }).filter(e => e.visible);
+
+      // 2. Extract code blocks from assistant turns, pre, and code elements
+      const codeBlocks = [];
+      const assistantTurns = document.querySelectorAll('div[data-message-author-role="assistant"], .markdown.prose, div[class*="agent-turn"], div[class*="assistant-message"]');
+      const targetContainers = assistantTurns.length > 0 ? Array.from(assistantTurns) : [document.body];
+
+      targetContainers.forEach(container => {
+        const preElements = container.querySelectorAll('pre');
+        preElements.forEach(pre => {
+          const codeEl = pre.querySelector('code') || pre;
+          let codeText = (codeEl.innerText || codeEl.textContent || '').trim();
+          if (!codeText) return;
+
+          // Detect language from class names (e.g. language-python, hljs python, python)
+          let language = 'python';
+          const classStr = (pre.className + ' ' + codeEl.className).toLowerCase();
+          const langMatch = classStr.match(/\b(?:language-|lang-)?(python|py|cpp|c\+\+|c|javascript|js|typescript|ts|html|css|java|sql|json|bash|sh|powershell)\b/);
+          if (langMatch) {
+            const rawLang = langMatch[1];
+            if (['python', 'py'].includes(rawLang)) language = 'python';
+            else if (['cpp', 'c++', 'c'].includes(rawLang)) language = 'cpp';
+            else if (['javascript', 'js'].includes(rawLang)) language = 'javascript';
+            else if (['typescript', 'ts'].includes(rawLang)) language = 'typescript';
+            else language = rawLang;
+          } else {
+            // Heuristic detection based on code features
+            if (/def\s+\w+\(/.test(codeText) || /print\(/.test(codeText) || /import\s+\w+/.test(codeText)) {
+              language = 'python';
+            } else if (/#include\s*</.test(codeText) || /std::/.test(codeText) || /int\s+main\(/.test(codeText)) {
+              language = 'cpp';
+            } else if (/const\s+\w+\s*=/.test(codeText) || /function\s+\w+\(/.test(codeText) || /console\.log/.test(codeText)) {
+              language = 'javascript';
+            }
+          }
+
+          // Detect copy button
+          const copyBtn = pre.querySelector('button') || pre.parentElement?.querySelector('button');
+
+          codeBlocks.push({
+            language,
+            code: codeText,
+            source: 'chatgpt',
+            hasCopyButton: Boolean(copyBtn)
+          });
+        });
+      });
+
+      // 3. Main visible text content (excluding scripts/styles/nav)
+      const clone = document.body.cloneNode(true);
+      clone.querySelectorAll('script, style, noscript, svg, nav, header, footer').forEach(n => n.remove());
+      const visibleText = (clone.innerText || clone.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 3000);
+
+      return {
+        url: location.href,
+        title: document.title,
+        visibleText,
+        elements,
+        codeBlocks
+      };
+    })()`;
+
+    const snapshotRes = await cdpEvaluate(page.webSocketDebuggerUrl, snapshotScript);
+    const parsed = typeof snapshotRes === 'string' ? JSON.parse(snapshotRes) : snapshotRes;
+
+    return {
+      success: true,
+      message: `Retrieved external DOM snapshot from ${page.url}`,
+      data: {
+        ...parsed,
+        pageId: page.id,
+        tabId: page.id,
+        automationAttached: true
+      }
+    };
+  } catch (err) {
+    return {
+      success: false,
+      message: `getExternalDOMSnapshot failed: ${err.message}`,
+      data: {
+        activeBrowserPage: targetUrl || 'Unknown',
+        url: targetUrl || 'Unknown',
+        title: 'Unknown',
+        pageId: null,
+        tabId: null,
+        automationAttached: false,
+        domSnapshotAvailable: false,
+        visibleElementCount: 0,
+        codeBlockCount: 0,
+        readFailureReason: err.message
+      }
+    };
+  }
+}
+
 // ─── CDP BROWSER AUTOMATION ENGINE WITH MULTI-SELECTOR BATCHING ───
 
 async function findElementCDP(selectorInput, targetUrl = null) {
@@ -588,7 +711,7 @@ async function inspect() {
       desktopOverlayActive: true,
       activeBrowser,
       activePage,
-      capabilities: ['launchAllowlistedApp', 'browserNavigate', 'browserObserve', 'getDesktopContext', 'workspaceFiles', 'auditLog', 'cdpAutomation']
+      capabilities: ['launchAllowlistedApp', 'browserNavigate', 'browserObserve', 'getDesktopContext', 'workspaceFiles', 'auditLog', 'cdpAutomation', 'externalDOMSnapshot']
     }
   };
 }
@@ -616,9 +739,9 @@ async function pingCompanion() {
   };
 }
 
-async function getActiveBrowserPage() {
+async function getActiveBrowserPage(targetUrl = null) {
   try {
-    const page = await getActiveCDPPage();
+    const page = await getActiveCDPPage(targetUrl);
     const obs = await observeBrowser(page.url);
     if (obs.success) {
       return {
@@ -628,6 +751,8 @@ async function getActiveBrowserPage() {
           browser: 'Chrome',
           url: obs.data.url,
           title: obs.data.title,
+          pageId: page.id,
+          tabId: page.id,
           readyState: obs.data.readyState
         }
       };
@@ -672,7 +797,8 @@ async function handle(request, body) {
 
   // Minimal Test Tools
   if (action === 'PING_COMPANION' || action === 'ping') return pingCompanion();
-  if (action === 'GET_ACTIVE_BROWSER_PAGE' || action === 'getActiveBrowserPage') return getActiveBrowserPage();
+  if (action === 'GET_ACTIVE_BROWSER_PAGE' || action === 'getActiveBrowserPage') return getActiveBrowserPage(targetUrl);
+  if (action === 'GET_EXTERNAL_DOM_SNAPSHOT' || action === 'externalDOMSnapshot') return getExternalDOMSnapshot(targetUrl);
   if (action === 'FOCUS_BROWSER' || action === 'focusBrowser') return focusBrowser();
   if (action === 'FIND_VISIBLE_TEXTBOX' || action === 'findVisibleTextbox') return findVisibleTextbox(targetUrl);
 
@@ -680,7 +806,7 @@ async function handle(request, body) {
   if (action === 'launchApp') return launchApp(body);
   if (action === 'browserNavigate') return navigateBrowser(body);
   if (action === 'openExternalApp') {
-    const destUrl = body.url || (body.app === 'chatgpt' ? 'https://chatgpt.com' : 'https://www.google.com');
+    const destUrl = body.url || (body.app === 'chatgpt' ? 'https://chatgpt.com' : body.app === 'gemini' ? 'https://gemini.google.com' : 'https://www.google.com');
     return navigateBrowser({ app: body.app || 'chrome', url: destUrl });
   }
   if (action === 'browserObserve') return observeBrowser(targetUrl);

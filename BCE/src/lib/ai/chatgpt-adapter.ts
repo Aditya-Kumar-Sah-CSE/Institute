@@ -13,10 +13,17 @@ export interface ChatGPTTaskResult {
     externalUrl?: string;
     diagnostics?: {
       target: string;
+      activeBrowserPage?: string;
+      url?: string;
+      title?: string;
+      pageId?: string | null;
       companionAvailable: boolean;
-      windowDetected: boolean;
-      candidateInputsCount: number;
-      diagnosticReason: string;
+      automationAttached: boolean;
+      domSnapshotAvailable: boolean;
+      visibleElementCount: number;
+      codeBlockCount: number;
+      readFailureReason?: string;
+      diagnosticReason?: string;
     };
   };
   errorStep?: 'OPEN' | 'INPUT_NOT_FOUND' | 'RESPONSE_UNREADABLE' | 'PASTE_FAILED';
@@ -92,13 +99,7 @@ export class ChatGPTAdapter {
     success: boolean; 
     selector?: string; 
     message: string;
-    diagnostics: {
-      target: string;
-      companionAvailable: boolean;
-      windowDetected: boolean;
-      candidateInputsCount: number;
-      diagnosticReason: string;
-    };
+    diagnostics: any;
   }> {
     const compRes = await callLocalComputer({
       action: 'findElement',
@@ -116,8 +117,10 @@ export class ChatGPTAdapter {
         diagnostics: {
           target: 'ChatGPT',
           companionAvailable: true,
-          windowDetected: true,
-          candidateInputsCount: 1,
+          automationAttached: true,
+          domSnapshotAvailable: true,
+          visibleElementCount: 1,
+          codeBlockCount: 0,
           diagnosticReason: `Target input "${matched}" found via single-pass CDP.`
         }
       };
@@ -131,9 +134,11 @@ export class ChatGPTAdapter {
       diagnostics: {
         target: 'ChatGPT',
         companionAvailable: compRes.companionConnected === true,
-        windowDetected: true,
-        candidateInputsCount: 0,
-        diagnosticReason: diagReason
+        automationAttached: false,
+        domSnapshotAvailable: false,
+        visibleElementCount: 0,
+        codeBlockCount: 0,
+        readFailureReason: diagReason
       }
     };
   }
@@ -192,43 +197,158 @@ export class ChatGPTAdapter {
   }
 
   /**
-   * Step 4 & 5: Wait for response and read visible text from real browser
+   * Step 4: Wait for assistant response text/code to stabilize via bounded DOM polling
    */
-  static async readResponse(): Promise<{ success: boolean; rawText?: string; message: string }> {
-    await callLocalComputer({
-      action: 'waitForElement',
-      selector: this.RESPONSE_CONTAINER_SELECTORS[0],
-      url: this.CHATGPT_URL,
-      timeoutMs: 10000
-    });
+  static async readResponse(preferredLang: string = 'python'): Promise<{
+    success: boolean;
+    rawText?: string;
+    code?: string;
+    language?: string;
+    message: string;
+    diagnostics: any;
+  }> {
+    const pollStartTime = Date.now();
+    const MAX_POLL_MS = 15000;
+    const INTERVAL_MS = 500;
 
-    for (const selector of this.RESPONSE_CONTAINER_SELECTORS) {
-      const readRes = await callLocalComputer({
-        action: 'readVisibleText',
-        selector,
+    let previousLength = 0;
+    let stableCount = 0;
+    let lastSnapshot: any = null;
+
+    while (Date.now() - pollStartTime < MAX_POLL_MS) {
+      const snapRes = await callLocalComputer({
+        action: 'GET_EXTERNAL_DOM_SNAPSHOT',
         url: this.CHATGPT_URL
       });
 
-      if (readRes.success && readRes.data && typeof (readRes.data as any).text === 'string') {
-        const text = ((readRes.data as any).text as string).trim();
-        if (text.length > 10) {
-          return {
-            success: true,
-            rawText: text,
-            message: 'Successfully read ChatGPT response from real browser tab.'
-          };
+      if (snapRes.success && snapRes.data) {
+        lastSnapshot = snapRes.data;
+        const currentText = (lastSnapshot.visibleText || '').trim();
+        const codeBlocks = lastSnapshot.codeBlocks || [];
+
+        if (currentText.length > 20 || codeBlocks.length > 0) {
+          if (currentText.length === previousLength && currentText.length > 0) {
+            stableCount++;
+          } else {
+            stableCount = 0;
+            previousLength = currentText.length;
+          }
+
+          // If text length remains identical over 2 consecutive intervals (1s) or code block detected
+          if (stableCount >= 2 || (codeBlocks.length > 0 && stableCount >= 1)) {
+            // Find code block matching preferred language
+            const extracted = this.extractCodeFromSnapshot(lastSnapshot, preferredLang);
+
+            return {
+              success: true,
+              rawText: currentText,
+              code: extracted.code,
+              language: extracted.language,
+              message: `Successfully read ChatGPT response from real browser tab (${lastSnapshot.url || this.CHATGPT_URL}).`,
+              diagnostics: {
+                target: 'ChatGPT',
+                activeBrowserPage: lastSnapshot.url,
+                url: lastSnapshot.url,
+                title: lastSnapshot.title,
+                pageId: lastSnapshot.pageId,
+                companionAvailable: true,
+                automationAttached: true,
+                domSnapshotAvailable: true,
+                visibleElementCount: (lastSnapshot.elements || []).length,
+                codeBlockCount: codeBlocks.length
+              }
+            };
+          }
         }
       }
+
+      await new Promise((r) => setTimeout(r, INTERVAL_MS));
     }
+
+    // Fallback if stabilization deadline exceeded but snapshot was obtained
+    if (lastSnapshot && (lastSnapshot.visibleText?.length > 10 || (lastSnapshot.codeBlocks || []).length > 0)) {
+      const extracted = this.extractCodeFromSnapshot(lastSnapshot, preferredLang);
+      return {
+        success: true,
+        rawText: lastSnapshot.visibleText,
+        code: extracted.code,
+        language: extracted.language,
+        message: 'Read response from browser DOM (stabilization bounded timeout reached).',
+        diagnostics: {
+          target: 'ChatGPT',
+          activeBrowserPage: lastSnapshot.url,
+          url: lastSnapshot.url,
+          title: lastSnapshot.title,
+          pageId: lastSnapshot.pageId,
+          companionAvailable: true,
+          automationAttached: true,
+          domSnapshotAvailable: true,
+          visibleElementCount: (lastSnapshot.elements || []).length,
+          codeBlockCount: (lastSnapshot.codeBlocks || []).length
+        }
+      };
+    }
+
+    // Diagnostic failure logging
+    const failureReason = 'ChatGPT opened and search was submitted, but response could not be read from real browser tab.';
+    console.error('[ChatGPTAdapter] READ_FAILURE_DIAGNOSTIC:', {
+      activeBrowserPage: lastSnapshot?.url || this.CHATGPT_URL,
+      url: lastSnapshot?.url || this.CHATGPT_URL,
+      title: lastSnapshot?.title || 'Unknown',
+      pageId: lastSnapshot?.pageId || null,
+      automationAttached: Boolean(lastSnapshot),
+      domSnapshotAvailable: Boolean(lastSnapshot),
+      visibleElementCount: (lastSnapshot?.elements || []).length,
+      codeBlockCount: (lastSnapshot?.codeBlocks || []).length,
+      readFailureReason: failureReason
+    });
 
     return {
       success: false,
-      message: 'FAILED: ChatGPT opened and search was submitted, but response could not be read from real browser tab.'
+      message: `FAILED: ${failureReason}`,
+      diagnostics: {
+        target: 'ChatGPT',
+        activeBrowserPage: lastSnapshot?.url || this.CHATGPT_URL,
+        url: lastSnapshot?.url || this.CHATGPT_URL,
+        title: lastSnapshot?.title || 'Unknown',
+        pageId: lastSnapshot?.pageId || null,
+        companionAvailable: true,
+        automationAttached: Boolean(lastSnapshot),
+        domSnapshotAvailable: Boolean(lastSnapshot),
+        visibleElementCount: (lastSnapshot?.elements || []).length,
+        codeBlockCount: (lastSnapshot?.codeBlocks || []).length,
+        readFailureReason: failureReason
+      }
     };
   }
 
   /**
-   * Extract code block matching programming language from response text
+   * Step 5: Extract code from DOM snapshot, preferring requested language without mislabeling C/C++
+   */
+  private static extractCodeFromSnapshot(snapshot: any, preferredLang: string = 'python'): { code?: string; language: string } {
+    const codeBlocks = Array.isArray(snapshot?.codeBlocks) ? snapshot.codeBlocks : [];
+    const targetLang = preferredLang.toLowerCase().trim();
+
+    if (codeBlocks.length > 0) {
+      // Look for exact language match
+      const exactMatch = codeBlocks.find((cb: any) => (cb.language || '').toLowerCase() === targetLang);
+      if (exactMatch && exactMatch.code) {
+        return { code: exactMatch.code, language: exactMatch.language };
+      }
+
+      // Return first available valid code block without forcing Python tag on C/C++
+      const first = codeBlocks[0];
+      if (first && first.code) {
+        return { code: first.code, language: first.language || targetLang };
+      }
+    }
+
+    // Fallback: Regex markdown code block parsing from raw text
+    return this.extractCode(snapshot?.visibleText || '', preferredLang);
+  }
+
+  /**
+   * Fallback markdown regex code extraction
    */
   static extractCode(rawText: string, preferredLang: string = 'python'): { code?: string; language: string } {
     const codeBlockRegex = /```(?:([a-zA-Z0-9+#]+)\n)?([\s\S]*?)```/g;
@@ -295,29 +415,38 @@ export class ChatGPTAdapter {
       };
     }
 
-    // 4. Read Response
-    const readRes = await this.readResponse();
-    if (!readRes.success || !readRes.rawText) {
+    // 4. Read Response & Extract Code
+    const readRes = await this.readResponse(preferredLang);
+    if (!readRes.success || (!readRes.rawText && !readRes.code)) {
       return {
         success: false,
         message: readRes.message,
         data: {
           source: 'ChatGPT',
           query,
-          externalUrl: openRes.url
+          externalUrl: openRes.url,
+          diagnostics: readRes.diagnostics
         },
         errorStep: 'RESPONSE_UNREADABLE'
       };
     }
 
-    // 5. Extract Code
-    const { code, language } = this.extractCode(readRes.rawText, preferredLang);
+    const finalCode = readRes.code;
+    const finalLang = readRes.language || preferredLang;
 
-    // 6. Copy to clipboard
-    if (code) {
+    // 5. Try Copy Button click or direct DOM extraction to clipboard
+    if (finalCode) {
+      // Click ChatGPT copy code button if present
+      await callLocalComputer({
+        action: 'clickElement',
+        selector: 'button[aria-label*="Copy"]',
+        url: this.CHATGPT_URL
+      });
+
+      // Direct copy fallback
       await callLocalComputer({
         action: 'copyText',
-        text: code
+        text: finalCode
       });
     }
 
@@ -328,10 +457,11 @@ export class ChatGPTAdapter {
         source: 'ChatGPT',
         query,
         answer: readRes.rawText,
-        code,
-        language,
+        code: finalCode,
+        language: finalLang,
         verified: true,
-        externalUrl: openRes.url
+        externalUrl: openRes.url,
+        diagnostics: readRes.diagnostics
       }
     };
   }

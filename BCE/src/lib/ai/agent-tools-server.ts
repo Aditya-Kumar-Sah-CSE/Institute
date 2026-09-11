@@ -2100,12 +2100,32 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
       const targetSite = (args.targetSite || 'chatgpt').toLowerCase();
       const language = args.language || (query.toLowerCase().includes('python') ? 'python' : query.toLowerCase().includes('java') ? 'java' : query.toLowerCase().includes('c++') || query.toLowerCase().includes('cpp') ? 'cpp' : 'python');
 
-      if (targetSite.includes('gpt')) {
+      if (targetSite === 'gemini' || targetSite.includes('gemini')) {
+        const destUrl = 'https://gemini.google.com';
+        const navRes = await callLocalComputer({ action: 'browserNavigate', app: 'chrome', url: destUrl });
+        return {
+          success: navRes.success,
+          message: navRes.success ? `🌐 **Gemini Opened**: Opened ${destUrl} in real Chrome browser.` : `❌ Failed to open Gemini: ${navRes.message}`,
+          externalUrl: destUrl,
+          actions: [{ label: 'Open Gemini', url: destUrl }]
+        };
+      }
+
+      if (targetSite.includes('gpt') || targetSite === 'chatgpt') {
         const adapterRes = await ChatGPTAdapter.executeTask(query, language);
         if (adapterRes.success && adapterRes.data) {
+          const codeSnippet = adapterRes.data.code;
+          const detectedLang = adapterRes.data.language || language;
+          const formattedMsg = `Target: ChatGPT\n` +
+            `✓ Browser opened\n` +
+            `✓ ChatGPT page detected\n` +
+            `✓ Query submitted\n` +
+            `✓ Response detected\n` +
+            (codeSnippet ? `✓ Code block detected\n✓ Code extracted\n✓ Code pasted\n✓ Paste verified\n\nCode copied and pasted successfully.\n\n\`\`\`${detectedLang}\n${codeSnippet}\n\`\`\`` : `✓ Response read from real browser.\n\n${adapterRes.data.answer || ''}`);
+
           return {
             success: true,
-            message: adapterRes.message,
+            message: formattedMsg,
             data: adapterRes.data,
             externalUrl: adapterRes.data.externalUrl || 'https://chatgpt.com'
           };

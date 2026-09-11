@@ -18,6 +18,10 @@ const COMMON_SITE_MAP: Record<string, { url: string; displayName: string }> = {
   'google.com': { url: 'https://www.google.com', displayName: 'Google' },
   'www.google.com': { url: 'https://www.google.com', displayName: 'Google' },
   
+  'gemini': { url: 'https://gemini.google.com', displayName: 'Gemini' },
+  'google gemini': { url: 'https://gemini.google.com', displayName: 'Gemini' },
+  'gemini.google.com': { url: 'https://gemini.google.com', displayName: 'Gemini' },
+
   'github': { url: 'https://github.com', displayName: 'GitHub' },
   'github.com': { url: 'https://github.com', displayName: 'GitHub' },
   'www.github.com': { url: 'https://github.com', displayName: 'GitHub' },

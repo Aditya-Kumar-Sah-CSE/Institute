@@ -418,16 +418,25 @@ export class AgentController {
     }
 
     // 0. External Search & Code Solve Intents ("go to gpt and search two sum", "ask chatgpt how binary search works", "search two sum in python and copy solution")
-    const isExternalSearchSolveIntent = /\b(gpt|chatgpt|google|web|search|find|query|ask|copy|paste|solve|solution)\b/i.test(promptLower) &&
+    const isExternalSearchSolveIntent = /\b(gpt|chatgpt|gemini|google|github|web|search|find|query|ask|copy|paste|solve|solution)\b/i.test(promptLower) &&
       /\b(search|solve|find|solution|code|how\s+to|what\s+is|ask|copy|paste|two\s*sum|dsa|problem|python|javascript|cpp|java)\b/i.test(promptLower);
 
-    if (isExternalSearchSolveIntent && (promptLower.includes('gpt') || promptLower.includes('search') || promptLower.includes('solve') || promptLower.includes('solution') || promptLower.includes('find') || promptLower.includes('ask'))) {
+    if (isExternalSearchSolveIntent && (promptLower.includes('gpt') || promptLower.includes('gemini') || promptLower.includes('search') || promptLower.includes('solve') || promptLower.includes('solution') || promptLower.includes('find') || promptLower.includes('ask'))) {
       let targetSite = 'chatgpt';
-      if (promptLower.includes('google')) targetSite = 'google';
-      else if (promptLower.includes('youtube')) targetSite = 'youtube';
+      if (/\b(gemini|google\s+gemini)\b/i.test(promptLower)) {
+        targetSite = 'gemini';
+      } else if (/\b(google)\b/i.test(promptLower) && !/\b(gemini)\b/i.test(promptLower)) {
+        targetSite = 'google';
+      } else if (/\b(youtube|yt)\b/i.test(promptLower)) {
+        targetSite = 'youtube';
+      } else if (/\b(github)\b/i.test(promptLower)) {
+        targetSite = 'github';
+      } else if (/\b(gpt|chatgpt)\b/i.test(promptLower)) {
+        targetSite = 'chatgpt';
+      }
 
       let cleanedQuery = promptRaw
-        .replace(/^(?:go\s+to|visit|open|ask)\s+(?:gpt|chatgpt|google|web|site)?\s*(?:and|to)?\s*/i, '')
+        .replace(/^(?:go\s+to|visit|open|ask)\s+(?:gpt|chatgpt|gemini|google|web|site)?\s*(?:and|to)?\s*/i, '')
         .replace(/(?:and\s+)?(?:copy|paste|bring|put)\s+(?:the\s+)?(?:solution|code|answer|result|text)?\s*(?:to|in|into)?\s*(?:chat|here|smart\s*learn)?/gi, '')
         .replace(/^(?:search|find|solve|query|get|ask)\s+(?:for\s+)?/i, '')
         .trim();
