@@ -103,6 +103,12 @@ export const TOOL_PERMISSIONS: Record<string, AppRole> = {
   interactWithPageElement: 'guest',
   fillFormInput: 'guest',
   readPageContent: 'guest',
+  searchWebAndSolve: 'guest',
+  open_external_app: 'guest',
+  external_search: 'guest',
+  external_web_task: 'guest',
+  copy_content: 'guest',
+  paste_content: 'guest',
 
   // Student tools
   openDashboard: 'student',

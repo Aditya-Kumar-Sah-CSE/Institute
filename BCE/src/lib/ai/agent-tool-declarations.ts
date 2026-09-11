@@ -242,6 +242,65 @@ const TOOL_DECLARATIONS: ToolDeclaration[] = [
     }
   },
   {
+    name: 'copy_content',
+    description: 'Copy text content into memory/clipboard for external application workflows.',
+    parameters: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Content text to copy' },
+        label: { type: 'string', description: 'Label or identifier for content' }
+      },
+      required: ['text']
+    }
+  },
+  {
+    name: 'paste_content',
+    description: 'Paste copied text content into a target element or output channel.',
+    parameters: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Content text to paste' },
+        targetApp: { type: 'string', description: 'Target application name e.g. "chatgpt", "browser", "chat"' }
+      },
+      required: ['text']
+    }
+  },
+  {
+    name: 'open_external_app',
+    description: 'Open authorized external website or desktop application.',
+    parameters: {
+      type: 'object',
+      properties: {
+        appName: { type: 'string', description: 'Application or website name e.g. "chatgpt", "google"' }
+      },
+      required: ['appName']
+    }
+  },
+  {
+    name: 'external_search',
+    description: 'Perform authorized search on external platform.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Search query' },
+        platform: { type: 'string', description: 'Target platform e.g. "chatgpt", "google", "youtube"' }
+      },
+      required: ['query']
+    }
+  },
+  {
+    name: 'external_web_task',
+    description: 'Execute authorized external web or browser task.',
+    parameters: {
+      type: 'object',
+      properties: {
+        taskName: { type: 'string', description: 'Task description' },
+        targetApp: { type: 'string', description: 'Target application' }
+      },
+      required: ['taskName']
+    }
+  },
+  {
     name: 'webSearch',
     description: 'Search the web for information. Returns search results with titles, snippets, and URLs.',
     parameters: {

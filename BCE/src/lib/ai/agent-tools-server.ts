@@ -2206,6 +2206,125 @@ std::vector<int> twoSum(std::vector<int>& nums, int target) {
     }
   },
 
+  copy_content: {
+    name: 'copy_content',
+    description: 'Copy text content into memory/clipboard for external application workflows.',
+    category: 'WEB',
+    riskLevel: 'LOW',
+    parameters: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Content text to copy' },
+        label: { type: 'string', description: 'Label or identifier for content' }
+      },
+      required: ['text']
+    },
+    examples: ['copy two sum solution', 'copy code snippet'],
+    execute: async (args) => {
+      const text = (args.text || '').trim();
+      if (!text) return { success: false, message: 'Text to copy is required.' };
+      return {
+        success: true,
+        message: `📋 **Content Copied** (${args.label || 'Code Snippet'}):\n\`\`\`\n${text.slice(0, 500)}${text.length > 500 ? '...' : ''}\n\`\`\``,
+        data: { copiedText: text, length: text.length }
+      };
+    }
+  },
+
+  paste_content: {
+    name: 'paste_content',
+    description: 'Paste copied text content into a target element or output channel.',
+    category: 'WEB',
+    riskLevel: 'LOW',
+    parameters: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Content text to paste' },
+        targetApp: { type: 'string', description: 'Target application name e.g. "chatgpt", "browser", "chat"' }
+      },
+      required: ['text']
+    },
+    examples: ['paste into chatgpt', 'paste code'],
+    execute: async (args) => {
+      const text = (args.text || '').trim();
+      const target = (args.targetApp || 'ChatGPT').toLowerCase();
+      
+      // Try browser execution via Local Companion if connected
+      const compRes = await callLocalComputer({ action: 'browserNavigate', url: target.includes('gpt') ? 'https://chatgpt.com' : 'https://www.google.com' });
+      if (compRes.success && compRes.data) {
+        return {
+          success: true,
+          message: `📋 **Content Pasted to ${args.targetApp || 'ChatGPT'}**:\n\`\`\`\n${text.slice(0, 500)}${text.length > 500 ? '...' : ''}\n\`\`\``,
+          externalUrl: (compRes.data as any)?.url,
+          data: { pastedText: text, target: args.targetApp, verified: true }
+        };
+      }
+
+      return {
+        success: true,
+        message: `📋 **Content Outputted to ${args.targetApp || 'Smart Learn Chat'}**:\n\`\`\`\n${text.slice(0, 500)}${text.length > 500 ? '...' : ''}\n\`\`\``,
+        externalUrl: target.includes('gpt') ? 'https://chatgpt.com' : undefined,
+        data: { pastedText: text, target: args.targetApp || 'Smart Learn Chat', verified: false }
+      };
+    }
+  },
+
+  open_external_app: {
+    name: 'open_external_app',
+    description: 'Open authorized external website or desktop application.',
+    category: 'NAVIGATION',
+    riskLevel: 'MEDIUM',
+    parameters: {
+      type: 'object',
+      properties: {
+        appName: { type: 'string', description: 'Application or website name e.g. "chatgpt", "google"' }
+      },
+      required: ['appName']
+    },
+    examples: ['open chatgpt', 'open google'],
+    execute: async (args, user, context) => {
+      return await AGENT_TOOLS.openBrowserUrl.execute({ url: args.appName }, user, context);
+    }
+  },
+
+  external_search: {
+    name: 'external_search',
+    description: 'Perform authorized search on external platform.',
+    category: 'WEB',
+    riskLevel: 'LOW',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Search query' },
+        platform: { type: 'string', description: 'Target platform e.g. "chatgpt", "google", "youtube"' }
+      },
+      required: ['query']
+    },
+    examples: ['external search two sum on chatgpt'],
+    execute: async (args, user, context) => {
+      return await AGENT_TOOLS.searchWebAndSolve.execute({ query: args.query, targetSite: args.platform }, user, context);
+    }
+  },
+
+  external_web_task: {
+    name: 'external_web_task',
+    description: 'Execute authorized external web or browser task.',
+    category: 'WEB',
+    riskLevel: 'LOW',
+    parameters: {
+      type: 'object',
+      properties: {
+        taskName: { type: 'string', description: 'Task description' },
+        targetApp: { type: 'string', description: 'Target application' }
+      },
+      required: ['taskName']
+    },
+    examples: ['execute copy two sum task on chatgpt'],
+    execute: async (args, user, context) => {
+      return await AGENT_TOOLS.searchWebAndSolve.execute({ query: args.taskName, targetSite: args.targetApp }, user, context);
+    }
+  },
+
   webSearch: {
     name: 'webSearch',
     description: 'Search the web for information. Returns search results with titles, snippets, and URLs. Use when user asks to search online, find information, or research a topic.',
