@@ -272,11 +272,15 @@ export class AgentController {
     });
     const llmEnd = Date.now();
 
-    tracker.markTTFT();
-    tracker.setSuccess(llmResult.success);
-    tracker.finish();
+    console.log('[AgentRouter]', {
+      input: promptRaw,
+      intent: llmResult.toolExecuted ? 'SMART_LEARN_ACTION' : 'NORMAL_CHAT',
+      provider: classification.preferredProvider,
+      tool: llmResult.toolExecuted || null,
+      externalAutomation: false
+    });
 
-    const response = this.formatToolResult(llmResult.toolExecuted || 'agent', llmResult, activeState, userRole);
+    const response = this.formatToolResult(llmResult.toolExecuted || '', llmResult, activeState, userRole);
     const endTime = Date.now();
     response.latencyMetrics = {
       speech_final: input.timestamps?.speech_final || startTime,
@@ -451,6 +455,12 @@ export class AgentController {
 
       const language = promptLower.includes('python') ? 'python' : promptLower.includes('java') ? 'java' : promptLower.includes('cpp') || promptLower.includes('c++') ? 'cpp' : 'python';
 
+      console.log('[AgentRouter]', {
+        input: promptRaw,
+        intent: 'EXTERNAL_BROWSER_TASK',
+        target: targetSite
+      });
+
       return await executeWithPermission('searchWebAndSolve', {
         query: cleanedQuery,
         targetSite,
@@ -461,6 +471,11 @@ export class AgentController {
     // External browser navigation must use the paired browser controller
     const genericWebTarget = resolveTargetUrl(promptRaw);
     if (genericWebTarget && genericWebTarget.isExternal) {
+      console.log('[AgentRouter]', {
+        input: promptRaw,
+        intent: 'EXTERNAL_BROWSER_TASK',
+        target: genericWebTarget.url
+      });
       return await executeWithPermission('openBrowserUrl', { url: genericWebTarget.url, app: 'chrome' });
     }
 
@@ -978,7 +993,7 @@ export class AgentController {
       success: result.success,
       message: result.message,
       actions: actions.length > 0 ? actions : undefined,
-      toolExecuted: toolName,
+      toolExecuted: (toolName && toolName !== 'agent') ? toolName : undefined,
       pendingNavigation: result.pendingNavigation ?? (result.url ? true : false),
       navigationId: result.navigationId || (result.url ? `nav_${Date.now()}_${Math.random().toString(36).substring(7)}` : undefined),
       expectedRoute: result.expectedRoute || result.url,

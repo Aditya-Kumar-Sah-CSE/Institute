@@ -1,18 +1,36 @@
 /**
- * Regression Test Suite for Agent Intent Classification & Conversational Routing.
- * Ensures normal conversational queries NEVER route to external browser automation or require tool permissions,
- * while explicit external browser actions correctly trigger searchWebAndSolve / openBrowserUrl.
+ * Regression Test Suite for Agent Intent Classification Architecture.
+ * Strictly verifies 3-tier intent isolation:
+ * 1. NORMAL_CHAT (hii, hello, write code, what is ChatGPT) -> LLM Chat (No tool, No View Sheet)
+ * 2. SMART_LEARN_ACTION (open my DSA sheet, open courses) -> Smart Learn Tool
+ * 3. EXTERNAL_BROWSER_TASK (open chatgpt, open gemini) -> External Browser Automation
  */
 
-function isExplicitExternalSearchSolveIntent(prompt: string): boolean {
+function classifyIntent(prompt: string): 'NORMAL_CHAT' | 'SMART_LEARN_ACTION' | 'EXTERNAL_BROWSER_TASK' {
   const promptLower = prompt.trim().toLowerCase();
+
+  // 1. Explicit External Browser Action check
   const hasExplicitExternalAction = /\b(open|go\s+to|visit|navigate\s+to|search|ask|find|type|copy|paste)\b/i.test(promptLower);
   const hasExplicitExternalTargetSite = /\b(chatgpt|gpt|chat\s*gpt|gemini|google\s+gemini|google|github)\b/i.test(promptLower);
-  return hasExplicitExternalAction && hasExplicitExternalTargetSite;
+
+  if (hasExplicitExternalAction && hasExplicitExternalTargetSite) {
+    return 'EXTERNAL_BROWSER_TASK';
+  }
+
+  // 2. Explicit Smart Learn Action check
+  const isExplicitSmartLearnAction = /\b(open|kholo|show|dikhao|view|create|banao|run|execute)\b/i.test(promptLower) &&
+    /\b(dsa|sheet|sheets|coding|routine|schedule|goals?|latex|student360|intelligence|profile|course|courses|module|lesson|mcq|quiz)\b/i.test(promptLower);
+
+  if (isExplicitSmartLearnAction) {
+    return 'SMART_LEARN_ACTION';
+  }
+
+  // 3. Normal Conversational Chat (DEFAULT)
+  return 'NORMAL_CHAT';
 }
 
 async function runIntentRoutingTests() {
-  console.log('=== Running Agent Intent Classification & Conversational Routing Tests ===\n');
+  console.log('=== Running 3-Tier Agent Intent Routing Tests ===\n');
 
   let passed = 0;
   let total = 0;
@@ -27,45 +45,68 @@ async function runIntentRoutingTests() {
     }
   }
 
-  // 1. Test Normal Conversational Queries (MUST NOT trigger external browser tasks)
-  const conversationalQueries = [
-    { prompt: 'hii', expectedExternal: false },
-    { prompt: 'hello', expectedExternal: false },
-    { prompt: 'hi how are you', expectedExternal: false },
-    { prompt: 'how are you?', expectedExternal: false },
-    { prompt: 'good morning', expectedExternal: false },
-    { prompt: 'thanks', expectedExternal: false },
-    { prompt: 'what can you do?', expectedExternal: false },
-    { prompt: 'write a python program for palindrome', expectedExternal: false },
-    { prompt: 'what is binary search?', expectedExternal: false },
-    { prompt: 'how do I solve two sum?', expectedExternal: false },
-    { prompt: 'what is ChatGPT?', expectedExternal: false }
+  // 1. NORMAL_CHAT Tests
+  const chatQueries = [
+    'hii',
+    'hi',
+    'hello',
+    'hey',
+    'how are you',
+    'how are you?',
+    'good morning',
+    'thanks',
+    'what can you do?',
+    'who are you?',
+    'write python code for palindrome',
+    'explain binary search',
+    'what is two sum?',
+    'what is ChatGPT?',
+    'what is Gemini?'
   ];
 
-  for (const tc of conversationalQueries) {
-    const isExternal = isExplicitExternalSearchSolveIntent(tc.prompt);
+  for (const prompt of chatQueries) {
+    const intent = classifyIntent(prompt);
     assert(
-      isExternal === tc.expectedExternal,
-      `Conversational CHAT query: "${tc.prompt}"`,
-      `isExternal = ${isExternal}, expected = ${tc.expectedExternal}`
+      intent === 'NORMAL_CHAT',
+      `NORMAL_CHAT: "${prompt}"`,
+      `intent = ${intent}, expected = NORMAL_CHAT`
     );
   }
 
-  // 2. Test Explicit External Browser Tasks (MUST trigger external browser pipeline)
-  const externalTasks = [
-    { prompt: 'open chatgpt', expectedExternal: true },
-    { prompt: 'open chatgpt and search two sum', expectedExternal: true },
-    { prompt: 'open gemini', expectedExternal: true },
-    { prompt: 'go to google and search binary search', expectedExternal: true },
-    { prompt: 'find code on chatgpt', expectedExternal: true }
+  // 2. SMART_LEARN_ACTION Tests
+  const smartLearnActions = [
+    'open my DSA sheet',
+    'open courses',
+    'open routine',
+    'open goals',
+    'open latex editor',
+    'show Student360'
   ];
 
-  for (const tc of externalTasks) {
-    const isExternal = isExplicitExternalSearchSolveIntent(tc.prompt);
+  for (const prompt of smartLearnActions) {
+    const intent = classifyIntent(prompt);
     assert(
-      isExternal === tc.expectedExternal,
-      `Explicit External Task: "${tc.prompt}"`,
-      `isExternal = ${isExternal}, expected = ${tc.expectedExternal}`
+      intent === 'SMART_LEARN_ACTION',
+      `SMART_LEARN_ACTION: "${prompt}"`,
+      `intent = ${intent}, expected = SMART_LEARN_ACTION`
+    );
+  }
+
+  // 3. EXTERNAL_BROWSER_TASK Tests
+  const externalTasks = [
+    'open chatgpt',
+    'open chatgpt and search two sum',
+    'open gemini',
+    'go to google and search binary search',
+    'find code on chatgpt'
+  ];
+
+  for (const prompt of externalTasks) {
+    const intent = classifyIntent(prompt);
+    assert(
+      intent === 'EXTERNAL_BROWSER_TASK',
+      `EXTERNAL_BROWSER_TASK: "${prompt}"`,
+      `intent = ${intent}, expected = EXTERNAL_BROWSER_TASK`
     );
   }
 

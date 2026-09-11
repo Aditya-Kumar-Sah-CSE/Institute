@@ -5,6 +5,8 @@ import { GoogleGenAI } from '@google/genai';
 import { normalizeAgentRole, requireAgentPermission, canAccessPage, canUseTool } from '@/lib/auth/agent-permissions';
 import { safeStringify } from './safe-stringify';
 import { getUserAIProvider } from './providers/factory';
+import { GroqProvider } from './providers/GroqProvider';
+import { GeminiProvider } from './providers/GeminiProvider';
 
 export interface AgentChatMessage {
   role: 'user' | 'assistant';
@@ -95,109 +97,112 @@ export async function runSmartAgent(params: {
     });
   }
 
-  // 2. USER BYOK AI PROVIDER PIPELINE (Gemini / Grok)
+  // 2. USER / SYSTEM AI PROVIDER PIPELINE (Groq / Gemini / Grok)
+  let activeProviderInstance = null;
+  let activeProviderName = 'groq';
+
   if (user && user.id) {
     const userBYOK = await getUserAIProvider(user.id, preferredProvider);
-
     if (userBYOK) {
-      try {
-        const systemPrompt = `You are "Smart Learn Personal Assistant", a fast, natural, friendly personal learning guide on Smart Learn.
-User Authentication Status: AUTHENTICATED (User Role: ${userRole}, Active Provider: ${userBYOK.activeProvider.toUpperCase()})
+      activeProviderInstance = userBYOK.provider;
+      activeProviderName = userBYOK.activeProvider;
+    }
+  }
+
+  // System API key fallback (Groq / Gemini) if user has no BYOK connected
+  if (!activeProviderInstance) {
+    if (groqApiKey) {
+      activeProviderInstance = new GroqProvider(groqApiKey);
+      activeProviderName = 'groq';
+    } else if (geminiApiKey) {
+      activeProviderInstance = new GeminiProvider(geminiApiKey);
+      activeProviderName = 'gemini';
+    }
+  }
+
+  if (activeProviderInstance) {
+    try {
+      const systemPrompt = `You are "Smart Learn Personal Assistant", a fast, natural, friendly personal learning guide on Smart Learn.
+User Authentication Status: ${isGuest ? 'GUEST' : 'AUTHENTICATED'} (User Role: ${userRole}, Provider: ${activeProviderName.toUpperCase()})
 LIVE PAGE CONTEXT: ${safeStringify(agentContext)}
 
 RULES:
 1. User Role: "${userRole}".
    - PERMISSION HIERARCHY RULE: Role "superadmin" (and "admin") has SUPERIOR HIERARCHY ACCESS to ALL tools and features across the platform, including ALL Instructor tools (createCourse, editCourse, createModule, createLesson, createMCQ, course builder, etc.), Admin tools (user management, NPTEL sync, etc.), Developer tools, and Student tools.
-   - If User Role is "superadmin" or "admin" or "instructor", they HAVE FULL PERMISSION to create courses, edit courses, create modules, create MCQs, and access instructor/admin workspaces. NEVER tell a superadmin, admin, or instructor that they lack permissions or that course creation is unavailable for their role.
 2. If user asks about a coding problem, use getCurrentCodingProblem before solving, explaining, generating code, or executing an action. Use only the returned rendered problem context; do not invent missing fields.
 3. If user asks "isme kya hai?", "explain this page", inspect liveContext first.
 4. Be concise (1-3 sentences). Match user language (Hinglish/English).`;
 
-        const toolDeclarations = relevantToolsList.map(tool => ({
-          name: tool.name,
-          description: tool.description,
-          parameters: tool.parameters
-        }));
+      const toolDeclarations = relevantToolsList.map(tool => ({
+        name: tool.name,
+        description: tool.description,
+        parameters: tool.parameters
+      }));
 
-        const providerRes = await userBYOK.provider.generateResponse({
-          systemInstruction: systemPrompt,
-          history,
-          prompt: userPrompt,
-          tools: toolDeclarations
-        });
+      const providerRes = await activeProviderInstance.generateResponse({
+        systemInstruction: systemPrompt,
+        history,
+        prompt: userPrompt,
+        tools: toolDeclarations
+      });
 
-        if (providerRes.success) {
-          if (providerRes.toolCalls && providerRes.toolCalls.length > 0) {
-            const accumulatedActions: Array<{ label: string; url: string; isExternal?: boolean }> = [];
-            let lastExecutedTool: string | undefined = undefined;
+      if (providerRes.success) {
+        if (providerRes.toolCalls && providerRes.toolCalls.length > 0) {
+          const accumulatedActions: Array<{ label: string; url: string; isExternal?: boolean }> = [];
+          let lastExecutedTool: string | undefined = undefined;
 
-            for (const call of providerRes.toolCalls) {
-              const toolName = call.name;
-              const parsedArgs = call.args || {};
+          for (const call of providerRes.toolCalls) {
+            const toolName = call.name;
+            const parsedArgs = call.args || {};
 
-              // Permission Check Before Execution
-              const permCheck = requireAgentPermission(user, userRole, 'tool', toolName);
-              if (!permCheck.allowed) {
-                return {
-                  success: false,
-                  message: permCheck.reason || 'Please log in first. This section is available to authenticated users.',
-                  toolExecuted: toolName
-                };
-              }
-
-              if (AGENT_TOOLS[toolName]) {
-                lastExecutedTool = toolName;
-                const result: AgentToolResult = await AGENT_TOOLS[toolName].execute(parsedArgs, user, pageContext);
-
-                if (result.url && canAccessPage(userRole, result.url)) {
-                  accumulatedActions.push({ label: 'Open Page', url: result.url });
-                }
-                if (result.externalUrl) {
-                  accumulatedActions.push({ label: 'View External Link', url: result.externalUrl, isExternal: true });
-                }
-
-                return {
-                  success: result.success,
-                  message: result.message,
-                  actions: accumulatedActions.length > 0 ? accumulatedActions : undefined,
-                  requiresConfirmation: result.requiresConfirmation,
-                  toolExecuted: lastExecutedTool,
-                  pendingNavigation: result.pendingNavigation,
-                  navigationId: result.navigationId,
-                  expectedRoute: result.expectedRoute,
-                  expectedEntity: result.expectedEntity,
-                  successMessage: result.successMessage,
-                  data: result.data
-                };
-              }
+            const permCheck = requireAgentPermission(user, userRole, 'tool', toolName);
+            if (!permCheck.allowed) {
+              return {
+                success: false,
+                message: permCheck.reason || 'Please log in first. This section is available to authenticated users.',
+                toolExecuted: toolName
+              };
             }
-          } else if (providerRes.text) {
-            return {
-              success: true,
-              message: providerRes.text
-            };
-          }
-        }
-      } catch (byokErr) {
-        console.warn('[SmartAgent BYOK Provider Error]:', byokErr);
-      }
-    } else {
-      // User is logged in but has no BYOK provider connected
-      // Check if command is handled by deterministic fast-path navigation rule
-      const fallbackRes = await resolveFallbackAgentCommand(userPrompt, user, userRole, studentProfile, pageContext, requestId, startTime);
-      if (fallbackRes.toolExecuted || fallbackRes.pendingNavigation) {
-        return fallbackRes;
-      }
 
-      return {
-        success: false,
-        message: 'Connect Gemini or Grok to start your AI Agent.',
-        actions: [{ label: 'Connect AI', url: '/settings/ai-agent' }]
-      };
+            if (AGENT_TOOLS[toolName]) {
+              lastExecutedTool = toolName;
+              const result: AgentToolResult = await AGENT_TOOLS[toolName].execute(parsedArgs, user || { id: 'guest' }, pageContext);
+
+              if (result.url && canAccessPage(userRole, result.url)) {
+                accumulatedActions.push({ label: 'Open Page', url: result.url });
+              }
+              if (result.externalUrl) {
+                accumulatedActions.push({ label: 'View External Link', url: result.externalUrl, isExternal: true });
+              }
+
+              return {
+                success: result.success,
+                message: result.message,
+                actions: accumulatedActions.length > 0 ? accumulatedActions : undefined,
+                requiresConfirmation: result.requiresConfirmation,
+                toolExecuted: lastExecutedTool,
+                pendingNavigation: result.pendingNavigation,
+                navigationId: result.navigationId,
+                expectedRoute: result.expectedRoute,
+                expectedEntity: result.expectedEntity,
+                successMessage: result.successMessage,
+                data: result.data
+              };
+            }
+          }
+        } else if (providerRes.text) {
+          return {
+            success: true,
+            message: providerRes.text
+          };
+        }
+      }
+    } catch (llmErr) {
+      console.warn('[SmartAgent LLM Provider Error]:', llmErr);
     }
   }
 
-  // 3. DETERMINISTIC RULE-BASED FALLBACK ENGINE FOR GUEST USERS
+  // 3. DETERMINISTIC RULE-BASED FALLBACK ENGINE
   return await resolveFallbackAgentCommand(userPrompt, user, userRole, studentProfile, pageContext, requestId, startTime);
 }
 
@@ -252,13 +257,14 @@ async function resolveFallbackAgentCommand(
     return {
       success: true,
       message: isHinglish
-        ? 'Please log in first. This section is available to authenticated users.'
-        : 'Please log in first. This section is available to authenticated users.'
+        ? 'Namaste! Main aapka Smart Learn AI Assistant hoon. Padhai shuru karne ke liye please login kijiye.'
+        : 'Hello! I am your Smart Learn AI Assistant. Please log in to access your learning dashboard.'
     };
   }
 
-  // DSA Problem / Sheets
-  if (p.includes('dsa') || p.includes('sheet') || p.includes('coding')) {
+  // Specific Smart Learn Tool Commands (DSA Sheets / Courses / Routine)
+  const isExplicitSheetCommand = /\b(open|kholo|show|dikhao)\b/i.test(p) && /\b(dsa|sheet|sheets|coding)\b/i.test(p);
+  if (isExplicitSheetCommand) {
     if (!canUseTool(userRole, 'openDSASheets')) {
       return { success: false, message: `Access denied. Using this section requires student permissions.` };
     }
@@ -276,11 +282,11 @@ async function resolveFallbackAgentCommand(
     };
   }
 
-  // Default Fallback
+  // Default Conversational Fallback for Normal Chat (No tool executed)
   return {
     success: true,
     message: isHinglish
-      ? `Main is command ko samajh nahi paaya. Aap mujhse DSA sheet, courses, routine, goals, latex editor open karne ya Student360 analytics pooch sakte hain.`
-      : `I couldn't understand that request. You can ask me to open courses, DSA sheets, routine, goals, LaTeX editor, or analyze your learning score.`
+      ? 'Namaste! Main aapka Smart Learn AI Assistant hoon. Main aapki DSA questions, courses, routine, aur learning score me kaise madad kar sakta hoon?'
+      : 'Hello! I am your Smart Learn AI Assistant. How can I help you with your DSA problems, courses, routine, or learning progress today?'
   };
 }
