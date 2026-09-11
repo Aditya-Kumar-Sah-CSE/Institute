@@ -3,6 +3,7 @@ import { decryptKey } from '@/lib/security/encryption';
 import { AIProvider, AIProviderName } from './types';
 import { GeminiProvider } from './GeminiProvider';
 import { GrokProvider } from './GrokProvider';
+import { GroqProvider } from './GroqProvider';
 
 export interface UserAIProviderInfo {
   provider: AIProvider;
@@ -19,9 +20,10 @@ export interface ConnectedProviderStatus {
 
 /**
  * Loads the active connected BYOK AI Provider for the authenticated user.
- * Returns null if user has not connected any API key.
+ * Optional targetProvider parameter allows specifically requesting Groq, Gemini, or Grok.
+ * Returns null if user has not connected any API key for the requested or default provider.
  */
-export async function getUserAIProvider(userId: string): Promise<UserAIProviderInfo | null> {
+export async function getUserAIProvider(userId: string, targetProvider?: AIProviderName | null): Promise<UserAIProviderInfo | null> {
   if (!userId || userId === 'guest') return null;
 
   try {
@@ -34,7 +36,8 @@ export async function getUserAIProvider(userId: string): Promise<UserAIProviderI
       .eq('user_id', userId)
       .maybeSingle();
 
-    const preferredProvider: AIProviderName | null = setting?.active_provider || null;
+    const activeSettingProvider: AIProviderName | null = setting?.active_provider || null;
+    const preferredProvider: AIProviderName | null = targetProvider || activeSettingProvider;
 
     // 2. Fetch user's API key record
     let providerRecord = null;
@@ -49,7 +52,7 @@ export async function getUserAIProvider(userId: string): Promise<UserAIProviderI
       providerRecord = rec;
     }
 
-    // Fallback: If preferred provider record is missing, pick any provider record connected by user
+    // Fallback: If target/preferred provider record is missing, pick any provider record connected by user
     if (!providerRecord) {
       const { data: anyRec } = await admin
         .from('user_ai_providers')
@@ -70,7 +73,9 @@ export async function getUserAIProvider(userId: string): Promise<UserAIProviderI
 
     // 4. Instantiate provider
     let providerInstance: AIProvider;
-    if (providerName === 'grok') {
+    if (providerName === 'groq') {
+      providerInstance = new GroqProvider(plainApiKey);
+    } else if (providerName === 'grok') {
       providerInstance = new GrokProvider(plainApiKey);
     } else {
       providerInstance = new GeminiProvider(plainApiKey);

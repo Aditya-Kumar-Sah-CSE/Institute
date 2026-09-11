@@ -171,7 +171,7 @@ interface SmartAgentSessionContextValue {
   startVoiceListening: () => Promise<void>;
   stopVoiceRecordingAndSend: () => Promise<void>;
   toggleVoiceRecording: () => Promise<void>;
-  activeProvider: 'gemini' | 'grok' | null;
+  activeProvider: 'gemini' | 'grok' | 'groq' | null;
   refreshProviderStatus: () => Promise<void>;
   memorySummary: string | null;
   activeActionPlan: AgentActionPlan | null;
@@ -226,26 +226,26 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
   const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
   const [memorySummary, setMemorySummary] = useState<string | null>(null);
 
-  const [activeProvider, setActiveProvider] = useState<'gemini' | 'grok' | null>(null);
+  const [activeProvider, setActiveProvider] = useState<'gemini' | 'grok' | 'groq' | null>(null);
   const [activeActionPlan, setActiveActionPlan] = useState<AgentActionPlan | null>(null);
 
   const refreshProviderStatus = useCallback(async () => {
     try {
       const res = await getAIProviderStatusAction();
       if (res.success) {
-        setActiveProvider(res.activeProvider as 'gemini' | 'grok' | null);
+        setActiveProvider(res.activeProvider as 'gemini' | 'grok' | 'groq' | null);
         if (!res.activeProvider) {
           setMessages([
             {
               role: 'assistant',
-              content: 'Connect Gemini or Grok to start your AI Agent.',
+              content: 'Connect Gemini, Groq, or Grok to start your AI Agent.',
               actions: [
                 { label: 'Connect AI', url: '/settings/ai-agent' }
               ]
             }
           ]);
         } else {
-          const providerTitle = res.activeProvider === 'gemini' ? 'Gemini' : 'Grok';
+          const providerTitle = res.activeProvider === 'gemini' ? 'Gemini' : res.activeProvider === 'groq' ? 'Groq' : 'Grok';
           const mem = loadAgentMemory();
           if (!mem || !mem.summary) {
             setMessages([

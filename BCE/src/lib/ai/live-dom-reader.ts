@@ -185,7 +185,7 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
     );
 
     textNodes.forEach((el) => {
-      if (el.closest('.smart-agent-drawer, .smart-mentor-drawer, style, script, noscript, svg')) return;
+      if (el.closest('.smart-agent-drawer, .smart-mentor-drawer, .smart-agent-container, style, script, noscript, svg')) return;
 
       const hasChildTextElements = el.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, td, th, label, span, code').length > 0;
       const isLeaf = !hasChildTextElements || ['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'TD', 'TH', 'LABEL', 'SPAN', 'CODE', 'B', 'STRONG'].includes(el.tagName);
@@ -219,7 +219,7 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
     let elementCounter = 1;
 
     candidateNodes.forEach((el) => {
-      const isDrawerChild = Boolean(el.closest('.smart-agent-drawer, .smart-mentor-drawer'));
+      const isDrawerChild = Boolean(el.closest('.smart-agent-drawer, .smart-mentor-drawer, .smart-agent-container'));
       if (isDrawerChild) return; // Do not index the agent's own drawer controls as target page elements
 
       const rect = el.getBoundingClientRect();

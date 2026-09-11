@@ -5,7 +5,15 @@ import { encryptKey, decryptKey, maskKey } from '@/lib/security/encryption';
 import { AIProviderName } from '@/lib/ai/providers/types';
 import { GeminiProvider } from '@/lib/ai/providers/GeminiProvider';
 import { GrokProvider } from '@/lib/ai/providers/GrokProvider';
+import { GroqProvider } from '@/lib/ai/providers/GroqProvider';
 import { getUserConnectedProvidersStatus } from '@/lib/ai/providers/factory';
+
+function getProviderTitle(provider: AIProviderName): string {
+  if (provider === 'gemini') return 'Google Gemini';
+  if (provider === 'grok') return 'xAI Grok';
+  if (provider === 'groq') return 'Groq API';
+  return provider;
+}
 
 export async function getAIProviderStatusAction() {
   const user = await getUser();
@@ -34,7 +42,7 @@ export async function saveAIProviderKeyAction(params: {
     const { provider, apiKey } = params;
     const cleanKey = (apiKey || '').trim();
 
-    if (!provider || (provider !== 'gemini' && provider !== 'grok')) {
+    if (!provider || (provider !== 'gemini' && provider !== 'grok' && provider !== 'groq')) {
       return { success: false, message: 'Invalid AI provider selected.' };
     }
 
@@ -44,7 +52,9 @@ export async function saveAIProviderKeyAction(params: {
 
     // 1. Test key connection BEFORE saving
     let testProvider;
-    if (provider === 'grok') {
+    if (provider === 'groq') {
+      testProvider = new GroqProvider(cleanKey);
+    } else if (provider === 'grok') {
       testProvider = new GrokProvider(cleanKey);
     } else {
       testProvider = new GeminiProvider(cleanKey);
@@ -76,7 +86,10 @@ export async function saveAIProviderKeyAction(params: {
 
     if (providerError) {
       console.error('[saveAIProviderKeyAction DB Error]:', providerError);
-      return { success: false, message: 'Failed to save API key to secure storage.' };
+      return { 
+        success: false, 
+        message: `Failed to save API key to secure storage: ${providerError.message || providerError.details || 'Database constraint error.'}` 
+      };
     }
 
     // 4. Set as active provider
@@ -88,10 +101,10 @@ export async function saveAIProviderKeyAction(params: {
         updated_at: new Date().toISOString()
       }, { onConflict: 'user_id' });
 
-    const providerTitle = provider === 'gemini' ? 'Gemini' : 'Grok';
+    const title = getProviderTitle(provider);
     return {
       success: true,
-      message: `✓ ${providerTitle} connected. Your AI Agent is ready.`,
+      message: `✓ ${title} connected. Your AI Agent is ready.`,
       activeProvider: provider,
       keyMask
     };
@@ -112,7 +125,7 @@ export async function setActiveProviderAction(params: { provider: AIProviderName
     }
 
     const { provider } = params;
-    if (provider !== 'gemini' && provider !== 'grok') {
+    if (provider !== 'gemini' && provider !== 'grok' && provider !== 'groq') {
       return { success: false, message: 'Invalid AI provider.' };
     }
 
@@ -129,7 +142,7 @@ export async function setActiveProviderAction(params: { provider: AIProviderName
     if (!keyRecord) {
       return {
         success: false,
-        message: `Please connect your ${provider === 'gemini' ? 'Google Gemini' : 'xAI Grok'} API key first.`
+        message: `Please connect your ${getProviderTitle(provider)} API key first.`
       };
     }
 
@@ -141,10 +154,10 @@ export async function setActiveProviderAction(params: { provider: AIProviderName
         updated_at: new Date().toISOString()
       }, { onConflict: 'user_id' });
 
-    const providerTitle = provider === 'gemini' ? 'Google Gemini' : 'xAI Grok';
+    const title = getProviderTitle(provider);
     return {
       success: true,
-      message: `Active provider changed to ${providerTitle}.`,
+      message: `Active provider changed to ${title}.`,
       activeProvider: provider
     };
   } catch (err: any) {
@@ -197,10 +210,10 @@ export async function removeAIProviderKeyAction(params: { provider: AIProviderNa
         .eq('user_id', user.id);
     }
 
-    const providerTitle = provider === 'gemini' ? 'Gemini' : 'Grok';
+    const title = getProviderTitle(provider);
     return {
       success: true,
-      message: `${providerTitle} API key removed completely.`,
+      message: `${title} API key removed completely.`,
       activeProvider: nextActive
     };
   } catch (err: any) {
@@ -234,14 +247,16 @@ export async function testAIProviderConnectionAction(params: {
       if (!rec || !rec.encrypted_api_key) {
         return {
           success: false,
-          message: `No connected key found for ${provider === 'gemini' ? 'Gemini' : 'Grok'}.`
+          message: `No connected key found for ${getProviderTitle(provider)}.`
         };
       }
       keyToTest = decryptKey(rec.encrypted_api_key);
     }
 
     let testInstance;
-    if (provider === 'grok') {
+    if (provider === 'groq') {
+      testInstance = new GroqProvider(keyToTest);
+    } else if (provider === 'grok') {
       testInstance = new GrokProvider(keyToTest);
     } else {
       testInstance = new GeminiProvider(keyToTest);

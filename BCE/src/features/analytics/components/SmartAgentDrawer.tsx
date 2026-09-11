@@ -527,7 +527,7 @@ export default function SmartAgentDrawer() {
 
                 {activeProvider ? (
                   <span style={{ fontSize: '10px', color: '#00ff88', background: 'rgba(0, 255, 136, 0.12)', border: '1px solid rgba(0, 255, 136, 0.3)', padding: '1px 6px', borderRadius: '10px', fontWeight: 'bold' }}>
-                    ✓ {activeProvider === 'gemini' ? 'Gemini' : 'Grok'}
+                    ✓ {activeProvider === 'gemini' ? 'Gemini' : activeProvider === 'groq' ? 'Groq' : 'Grok'}
                   </span>
                 ) : (
                   <Link href="/settings/ai-agent" style={{ textDecoration: 'none' }} onClick={closeDrawer}>
@@ -538,7 +538,7 @@ export default function SmartAgentDrawer() {
                 )}
               </div>
               <p style={{ margin: 0, fontSize: '10px', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {isMaximized ? 'Full-Screen AI Workspace' : activeProvider ? `BYOK Active (${activeProvider.toUpperCase()})` : 'Connect Gemini or Grok'}
+                {isMaximized ? 'Full-Screen AI Workspace' : activeProvider ? `BYOK Active (${activeProvider.toUpperCase()})` : 'Connect Gemini, Groq, or Grok'}
               </p>
             </div>
           </div>

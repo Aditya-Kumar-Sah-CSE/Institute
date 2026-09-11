@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS public.user_ai_providers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  provider VARCHAR(20) NOT NULL CHECK (provider IN ('gemini', 'grok')),
+  provider VARCHAR(20) NOT NULL CHECK (provider IN ('gemini', 'grok', 'groq')),
   encrypted_api_key TEXT NOT NULL,
   key_mask VARCHAR(20) NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS public.user_ai_providers (
 
 CREATE TABLE IF NOT EXISTS public.user_ai_settings (
   user_id UUID PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
-  active_provider VARCHAR(20) CHECK (active_provider IN ('gemini', 'grok')),
+  active_provider VARCHAR(20) CHECK (active_provider IN ('gemini', 'grok', 'groq')),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 

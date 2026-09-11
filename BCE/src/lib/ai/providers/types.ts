@@ -1,6 +1,6 @@
 import { AgentChatMessage } from '../agent';
 
-export type AIProviderName = 'gemini' | 'grok';
+export type AIProviderName = 'gemini' | 'grok' | 'groq';
 
 export interface AIProviderToolDeclaration {
   name: string;

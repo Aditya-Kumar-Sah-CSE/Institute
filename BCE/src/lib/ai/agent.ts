@@ -42,10 +42,11 @@ export async function runSmartAgent(params: {
   prompt: string;
   history?: AgentChatMessage[];
   pageContext?: AgentPageContext;
+  preferredProvider?: 'groq' | 'gemini' | 'grok';
 }): Promise<AgentResponse> {
   const startTime = Date.now();
   const requestId = Math.random().toString(36).substring(7);
-  const { user, studentProfile, prompt, history = [], pageContext } = params;
+  const { user, studentProfile, prompt, history = [], pageContext, preferredProvider } = params;
   const userRole = normalizeAgentRole(params.userRole);
   const userPrompt = prompt.trim();
   const groqApiKey = process.env.GROQ_API_KEY;
@@ -96,7 +97,7 @@ export async function runSmartAgent(params: {
 
   // 2. USER BYOK AI PROVIDER PIPELINE (Gemini / Grok)
   if (user && user.id) {
-    const userBYOK = await getUserAIProvider(user.id);
+    const userBYOK = await getUserAIProvider(user.id, preferredProvider);
 
     if (userBYOK) {
       try {

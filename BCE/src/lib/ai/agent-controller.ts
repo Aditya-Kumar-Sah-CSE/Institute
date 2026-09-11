@@ -4,6 +4,7 @@ import { AgentPageContext } from './agent-context';
 import { normalizeAgentRole, canUseTool, canAccessPage, requireAgentPermission, AppRole } from '@/lib/auth/agent-permissions';
 import { resolveCourse, resolveDSASheet, resolveDSAProblem } from '@/lib/ai/entity-resolver';
 import { resolveTargetUrl } from '@/lib/ai/url-resolver';
+import { LatencyTracker } from './latency-telemetry';
 
 export interface LatencyTelemetry {
   speech_final?: number;
@@ -241,7 +242,21 @@ export class AgentController {
       return fastPathResult;
     }
 
-    // 4. LLM Intent & Tool Calling Fallback
+    // 4. Sub-Millisecond Intelligent Intent & Complexity Router
+    const routerStart = Date.now();
+    const classification = this.classifyRequestComplexity(
+      processedPromptLower,
+      input.pageContext,
+      input.confirmedTool,
+      input.history
+    );
+    const routerMs = Date.now() - routerStart;
+
+    const tracker = new LatencyTracker(promptRaw);
+    tracker.setFastPath(classification.routePath);
+    tracker.markStage('router_ms');
+
+    // 5. LLM Intent & Provider Execution (Groq Fast Path vs Gemini Reasoning Path)
     const llmStart = Date.now();
     const llmResult = await runSmartAgent({
       user: input.user,
@@ -249,9 +264,14 @@ export class AgentController {
       studentProfile: input.studentProfile,
       prompt: promptRaw,
       history: input.history,
-      pageContext: input.pageContext
+      pageContext: input.pageContext,
+      preferredProvider: classification.preferredProvider
     });
     const llmEnd = Date.now();
+
+    tracker.markTTFT();
+    tracker.setSuccess(llmResult.success);
+    tracker.finish();
 
     const response = this.formatToolResult(llmResult.toolExecuted || 'agent', llmResult, activeState, userRole);
     const endTime = Date.now();
@@ -277,6 +297,64 @@ export class AgentController {
     };
     actionLockMap.set(lockKey, { timestamp: Date.now(), result: response });
     return response;
+  }
+
+  /**
+   * Deterministic, sub-millisecond intent & complexity router.
+   * Directs simple conversational Q&A to Groq fast path, and tool/DOM-heavy requests to Gemini reasoning agent.
+   */
+  public static classifyRequestComplexity(
+    prompt: string,
+    pageContext?: AgentPageContext,
+    confirmedTool?: { toolName: string; args: any },
+    history?: AgentChatMessage[]
+  ): {
+    routePath: 'groq_fast' | 'gemini_agent';
+    preferredProvider: 'groq' | 'gemini';
+    reason: string;
+    isToolRequired: boolean;
+  } {
+    const pLower = (prompt || '').trim().toLowerCase();
+
+    // 1. Confirmed tool -> Gemini agent tool execution path
+    if (confirmedTool) {
+      return {
+        routePath: 'gemini_agent',
+        preferredProvider: 'gemini',
+        reason: 'Confirmed tool execution requires agent tool pipeline',
+        isToolRequired: true
+      };
+    }
+
+    // 2. Multimodal image or voice live context -> Gemini
+    if ((pageContext as any)?.imageInput || (pageContext as any)?.hasMultimodal) {
+      return {
+        routePath: 'gemini_agent',
+        preferredProvider: 'gemini',
+        reason: 'Multimodal input requires Gemini vision model',
+        isToolRequired: false
+      };
+    }
+
+    // 3. Platform actions, tools, navigation, and code problem execution keywords
+    const toolActionRegex = /\b(open|kholo|dikhao|show|create|banao|make|edit|update|delete|save|click|press|tap|submit|fill|type|daalo|add|insert|solve|approach|code|compile|run|execute|read\s+page|scan|this\s+page|isme|is\s+page|yaha|leaderboard|rank|notice|announcement|sheet|sheets|dsa|course|courses|module|mcq|quiz|routine|timetable|schedule|goal|targets|latex|resume|360|weakest|youtube|search|video|browser)\b/i;
+
+    if (toolActionRegex.test(pLower)) {
+      return {
+        routePath: 'gemini_agent',
+        preferredProvider: 'gemini',
+        reason: 'Platform navigation or tool action intent detected',
+        isToolRequired: true
+      };
+    }
+
+    // 4. Default: Groq Fast Path for fast conversational Q&A, conceptual explanations, greetings, and short answers
+    return {
+      routePath: 'groq_fast',
+      preferredProvider: 'groq',
+      reason: 'Pure conversational Q&A or explanation request',
+      isToolRequired: false
+    };
   }
 
   /**
