@@ -5,12 +5,34 @@ export class GrokProvider implements AIProvider {
   public readonly name: AIProviderName = 'grok';
   public readonly apiKey: string;
   private readonly baseUrl = 'https://api.x.ai/v1';
-  private primaryModel = 'grok-2-1212';
-  private readonly fallbackModels = ['grok-2', 'grok-beta'];
+  private primaryModel = process.env.XAI_MODEL || 'grok-2-1212';
+  private readonly fallbackModels = ['grok-2'];
 
   constructor(apiKey: string) {
     if (!apiKey) throw new Error('Grok API Key is required');
     this.apiKey = apiKey;
+  }
+
+  private formatErrorMessage(status: number, errText: string): string {
+    let detail = '';
+    try {
+      const json = JSON.parse(errText);
+      detail = json.error?.message || json.error || json.message || '';
+    } catch (e) {}
+
+    if (status === 401 || errText.includes('api_key') || errText.includes('Unauthorized')) {
+      return 'Invalid xAI Grok API key. Please check your key in xAI Console and try again.';
+    }
+    if (status === 403 || errText.includes('Forbidden') || errText.includes('access_denied')) {
+      return 'Access denied or model forbidden for this xAI Grok API key (403).';
+    }
+    if (status === 429 || errText.includes('rate_limit') || errText.includes('quota')) {
+      return 'xAI Grok API rate limit or quota exceeded. Please check your account usage (429).';
+    }
+    if (status === 400) {
+      return `xAI Grok model or configuration error (400): ${detail || errText || 'Invalid Request'}`;
+    }
+    return `xAI Grok connection failed (${status}): ${detail || errText || 'API Request Failed'}`;
   }
 
   public async generateResponse(params: {
@@ -38,6 +60,7 @@ export class GrokProvider implements AIProvider {
       ];
 
       const candidateModels = Array.from(new Set([this.primaryModel, ...this.fallbackModels]));
+      let lastErrorStatus = 500;
       let lastErrorText = '';
       let grokResponse: Response | null = null;
 
@@ -66,16 +89,17 @@ export class GrokProvider implements AIProvider {
         }
 
         const errText = await res.text();
+        lastErrorStatus = res.status;
         lastErrorText = errText;
 
-        // If authentication error, fail immediately
-        if (res.status === 401 || res.status === 403) {
-          throw new Error(`xAI Grok API error (${res.status}): ${errText}`);
+        // If auth / forbidden / rate limit error, fail immediately
+        if (res.status === 401 || res.status === 403 || res.status === 429) {
+          throw new Error(this.formatErrorMessage(res.status, errText));
         }
       }
 
       if (!grokResponse) {
-        throw new Error(`xAI Grok API error: ${lastErrorText}`);
+        throw new Error(this.formatErrorMessage(lastErrorStatus, lastErrorText));
       }
 
       const data = await grokResponse.json();
@@ -137,11 +161,16 @@ export class GrokProvider implements AIProvider {
           : [];
 
         if (availableModelIds.length > 0) {
-          const matched = availableModelIds.find(id =>
-            id === 'grok-2-1212' || id === 'grok-2' || id === 'grok-beta' || id.includes('grok')
-          );
-          if (matched) {
-            this.primaryModel = matched;
+          const envModel = process.env.XAI_MODEL;
+          if (envModel && availableModelIds.includes(envModel)) {
+            this.primaryModel = envModel;
+          } else {
+            const matched = availableModelIds.find(id =>
+              id === 'grok-2-1212' || id === 'grok-2' || id.includes('grok')
+            );
+            if (matched) {
+              this.primaryModel = matched;
+            }
           }
         }
 
@@ -182,17 +211,17 @@ export class GrokProvider implements AIProvider {
         lastStatus = chatRes.status;
         lastErrText = await chatRes.text();
 
-        if (chatRes.status === 401 || chatRes.status === 403 || lastErrText.includes('api_key') || lastErrText.includes('Unauthorized')) {
+        if (chatRes.status === 401 || chatRes.status === 403 || chatRes.status === 429) {
           return {
             success: false,
-            message: 'Invalid xAI Grok API key. Please check your key in xAI Console and try again.'
+            message: this.formatErrorMessage(chatRes.status, lastErrText)
           };
         }
       }
 
       return {
         success: false,
-        message: `Grok connection failed (${lastStatus}): ${lastErrText || 'Invalid API Key'}`
+        message: this.formatErrorMessage(lastStatus, lastErrText)
       };
     } catch (err: any) {
       return {

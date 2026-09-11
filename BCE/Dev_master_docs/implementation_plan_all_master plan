@@ -15,7 +15,7 @@ Create a code-grounded, 46-file **Smart Learn Architecture Documentation System*
   - Tool Registry: `src/lib/ai/agent-tools.ts` (30+ tools), `agent-tool-declarations.ts`
   - Context & Memory: `src/lib/ai/live-dom-reader.ts`, `live-dom-executor.ts`, `agent-memory.ts`
   - Live Voice & VAD: `gemini-live-session.ts`, `adaptive-vad.ts`, `speech-recorder.ts`, `speech-synthesizer.ts`, `gemini-audio-player.ts`
-  - BYOK Providers: `GeminiProvider.ts` (`gemini-3.6-flash`), `GrokProvider.ts` (`grok-2-latest`), `factory.ts`
+  - BYOK Providers: `GeminiProvider.ts` (`gemini-3.6-flash`), `GrokProvider.ts` (`grok-2-1212` / `XAI_MODEL`), `factory.ts`
 - **Standalone In-Browser / Backend Engines**:
   - **In-Browser SQL Engine**: `src/lib/sql/` (`parser.ts`, `executor.ts`, `tokenizer.ts`, `formatter.ts`, `sampleDatasets.ts`)
   - **Code Execution & Judge Engine**: `src/features/code-arena/` (`execution-engine.ts`, `harness.ts`, `judge.ts`, `workspace-db.ts`)
