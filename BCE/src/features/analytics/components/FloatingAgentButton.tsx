@@ -25,6 +25,7 @@ function clampPosition(position: ButtonPosition, width: number, height: number):
 export default function FloatingAgentButton() {
   const { isOpen, toggleDrawer } = useSmartAgentSession();
   const [mounted, setMounted] = useState(false);
+  const [desktopOverlayActive, setDesktopOverlayActive] = useState(false);
   const [position, setPosition] = useState<ButtonPosition>({ left: MARGIN, top: DESKTOP_TOP_SAFE_AREA });
   const [dragging, setDragging] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -45,6 +46,31 @@ export default function FloatingAgentButton() {
   }, []);
 
   useEffect(() => {
+    if (!mounted) return;
+    let isMounted = true;
+    const checkCompanionOverlay = async () => {
+      try {
+        const res = await fetch('http://127.0.0.1:43127/health', { credentials: 'omit', signal: AbortSignal.timeout(1500) });
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted && data.data?.desktopOverlayActive) {
+            setDesktopOverlayActive(true);
+          }
+        }
+      } catch {
+        if (isMounted) setDesktopOverlayActive(false);
+      }
+    };
+
+    checkCompanionOverlay();
+    const interval = setInterval(checkCompanionOverlay, 10000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [mounted]);
+
+  useEffect(() => {
     if (!mounted || !buttonRef.current) return;
     const updatePosition = () => setPosition(previous => clampPosition(previous, buttonRef.current?.offsetWidth || 140, buttonRef.current?.offsetHeight || 40));
     updatePosition();
@@ -59,7 +85,6 @@ export default function FloatingAgentButton() {
     } catch {
       // Ignore unavailable local storage.
     }
-
   }, [mounted, position]);
 
   const handlePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
@@ -93,6 +118,10 @@ export default function FloatingAgentButton() {
     }
     toggleDrawer();
   };
+
+  if (desktopOverlayActive) {
+    return <SmartAgentDrawer />;
+  }
 
   return (
     <>

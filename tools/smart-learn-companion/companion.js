@@ -167,21 +167,118 @@ async function navigateBrowser(body) {
   return { success: false, message: `Browser navigation failed verification: ${lastError}` };
 }
 
-async function inspect() {
+let overlayProcess = null;
+
+function ensureDesktopOverlay() {
+  if (process.platform !== 'win32') return;
+  if (overlayProcess && !overlayProcess.killed && overlayProcess.exitCode === null) return;
+  const overlayScript = path.join(__dirname, 'desktop-overlay.ps1');
+  try {
+    overlayProcess = spawn('powershell', ['-ExecutionPolicy', 'Bypass', '-File', overlayScript], {
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: false
+    });
+    overlayProcess.unref();
+  } catch (err) {
+    console.error('Failed to spawn desktop overlay:', err);
+  }
+}
+
+async function getDesktopContext() {
+  let activeApp = 'Desktop';
+  let windowTitle = 'Windows Desktop';
+
+  if (process.platform === 'win32') {
+    try {
+      const psScript = `$code = @"
+using System;
+using System.Text;
+using System.Runtime.InteropServices;
+public class Win32 {
+    [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll", CharSet = CharSet.Auto)] public static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
+    [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+}
+"@
+Add-Type -TypeDefinition $code -ErrorAction SilentlyContinue
+$hwnd = [Win32]::GetForegroundWindow()
+$sb = New-Object System.Text.StringBuilder(256)
+[Win32]::GetWindowText($hwnd, $sb, 256) | Out-Null
+$pid = 0
+[Win32]::GetWindowThreadProcessId($hwnd, [ref]$pid) | Out-Null
+$proc = Get-Process -Id $pid -ErrorAction SilentlyContinue
+@{ app = if ($proc) { $proc.ProcessName } else { "Unknown" }; title = $sb.ToString() } | ConvertTo-Json`;
+
+      const ps = spawn('powershell', ['-NoProfile', '-Command', psScript]);
+      let out = '';
+      for await (const chunk of ps) out += chunk;
+      if (out.trim()) {
+        const parsed = JSON.parse(out.trim());
+        activeApp = parsed.app || activeApp;
+        windowTitle = parsed.title || windowTitle;
+      }
+    } catch { }
+  }
+
+  let browserState = null;
+  try {
+    const obs = await observeBrowser();
+    if (obs.success) browserState = obs.data;
+  } catch { }
+
   return {
     success: true,
-    message: 'Local companion is connected. Desktop OCR and raw input adapters are disabled until explicitly configured.',
-    data: { host: HOST, port: PORT, workspace: WORKSPACE, capabilities: ['launchAllowlistedApp', 'browserNavigate', 'browserObserve', 'workspaceFiles', 'auditLog'] }
+    message: 'Active desktop context retrieved.',
+    data: {
+      activeApp,
+      windowTitle,
+      browserState,
+      timestamp: new Date().toISOString()
+    }
   };
+}
+
+async function inspect() {
+  ensureDesktopOverlay();
+  return {
+    success: true,
+    message: 'Local companion is connected with Global Desktop Overlay active.',
+    data: {
+      host: HOST,
+      port: PORT,
+      workspace: WORKSPACE,
+      desktopOverlayActive: true,
+      capabilities: ['launchAllowlistedApp', 'browserNavigate', 'browserObserve', 'getDesktopContext', 'workspaceFiles', 'auditLog']
+    }
+  };
+}
+
+async function toggleSmartAgent() {
+  try {
+    const pages = await cdpHttp('/json/list');
+    const page = pages.find((item) => item.type === 'page' && item.webSocketDebuggerUrl);
+    if (page) {
+      await fetch(`http://${HOST}:${BROWSER_PORT}/json/activate/${page.id}`);
+      await cdpEvaluate(page.webSocketDebuggerUrl, `window.postMessage({ type: 'TOGGLE_SMART_AGENT' }, '*')`);
+      return { success: true, message: 'Smart Agent toggled in active tab.' };
+    }
+  } catch { }
+
+  // Fallback: launch allowlisted browser window to Smart Learn Dashboard
+  return launchApp({ app: 'chrome', args: ['http://127.0.0.1:3000/dashboard'] });
 }
 
 async function handle(request, body) {
   if (request.url === '/health' && request.method === 'GET') return inspect();
+  if (request.url === '/toggle-agent' && request.method === 'POST') return toggleSmartAgent();
+  if (request.url === '/desktop-context' && request.method === 'GET') return getDesktopContext();
   if (request.method !== 'POST') return { status: 405, success: false, message: 'POST required.' };
   if (body.action === 'inspect') return inspect();
   if (body.action === 'launchApp') return launchApp(body);
   if (body.action === 'browserNavigate') return navigateBrowser(body);
   if (body.action === 'browserObserve') return observeBrowser();
+  if (body.action === 'getDesktopContext') return getDesktopContext();
   if (body.action === 'readWorkspaceFile') {
     const target = safePath(body.path);
     if (!target) return { success: false, message: 'Path must stay inside the configured workspace.' };
@@ -222,4 +319,5 @@ server.listen(PORT, HOST, () => {
   console.log(`Smart Learn Companion listening on http://${HOST}:${PORT}`);
   console.log(`Workspace: ${WORKSPACE}`);
   console.log(`Token: ${TOKEN}`);
+  ensureDesktopOverlay();
 });

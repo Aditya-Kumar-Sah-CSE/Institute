@@ -1,7 +1,7 @@
 import 'server-only';
 
 export interface LocalComputerRequest {
-  action: 'inspect' | 'launchApp' | 'browserNavigate' | 'browserObserve' | 'readWorkspaceFile' | 'writeWorkspaceFile';
+  action: 'inspect' | 'launchApp' | 'browserNavigate' | 'browserObserve' | 'getDesktopContext' | 'readWorkspaceFile' | 'writeWorkspaceFile';
   app?: string;
   url?: string;
   args?: string[];
