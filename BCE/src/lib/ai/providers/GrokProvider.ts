@@ -5,6 +5,8 @@ export class GrokProvider implements AIProvider {
   public readonly name: AIProviderName = 'grok';
   public readonly apiKey: string;
   private readonly baseUrl = 'https://api.x.ai/v1';
+  private primaryModel = 'grok-2-1212';
+  private readonly fallbackModels = ['grok-2', 'grok-beta'];
 
   constructor(apiKey: string) {
     if (!apiKey) throw new Error('Grok API Key is required');
@@ -35,26 +37,45 @@ export class GrokProvider implements AIProvider {
         { role: 'user', content: prompt }
       ];
 
-      const grokResponse = await fetch(`${this.baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'grok-2-latest',
-          messages,
-          tools: toolDefs.length > 0 ? toolDefs : undefined,
-          tool_choice: toolDefs.length > 0 ? 'auto' : undefined,
-          temperature: 0.2,
-          max_tokens: 400
-        }),
-        signal: AbortSignal.timeout(5000)
-      });
+      const candidateModels = Array.from(new Set([this.primaryModel, ...this.fallbackModels]));
+      let lastErrorText = '';
+      let grokResponse: Response | null = null;
 
-      if (!grokResponse.ok) {
-        const errorText = await grokResponse.text();
-        throw new Error(`xAI Grok API error (${grokResponse.status}): ${errorText}`);
+      for (const modelName of candidateModels) {
+        const res = await fetch(`${this.baseUrl}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: modelName,
+            messages,
+            tools: toolDefs.length > 0 ? toolDefs : undefined,
+            tool_choice: toolDefs.length > 0 ? 'auto' : undefined,
+            temperature: 0.2,
+            max_tokens: 400
+          }),
+          signal: AbortSignal.timeout(5000)
+        });
+
+        if (res.ok) {
+          this.primaryModel = modelName;
+          grokResponse = res;
+          break;
+        }
+
+        const errText = await res.text();
+        lastErrorText = errText;
+
+        // If authentication error, fail immediately
+        if (res.status === 401 || res.status === 403) {
+          throw new Error(`xAI Grok API error (${res.status}): ${errText}`);
+        }
+      }
+
+      if (!grokResponse) {
+        throw new Error(`xAI Grok API error: ${lastErrorText}`);
       }
 
       const data = await grokResponse.json();
@@ -110,45 +131,68 @@ export class GrokProvider implements AIProvider {
       });
 
       if (modelsRes.ok) {
+        const modelsData = await modelsRes.json().catch(() => null);
+        const availableModelIds: string[] = Array.isArray(modelsData?.data)
+          ? modelsData.data.map((m: any) => m.id)
+          : [];
+
+        if (availableModelIds.length > 0) {
+          const matched = availableModelIds.find(id =>
+            id === 'grok-2-1212' || id === 'grok-2' || id === 'grok-beta' || id.includes('grok')
+          );
+          if (matched) {
+            this.primaryModel = matched;
+          }
+        }
+
         return {
           success: true,
           message: '✓ Grok connection successful! API key is active and ready.'
         };
       }
 
-      // Fallback: Test chat completions with 1 token output
-      const chatRes = await fetch(`${this.baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'grok-2-latest',
-          messages: [{ role: 'user', content: 'Ping' }],
-          max_tokens: 5
-        }),
-        signal: AbortSignal.timeout(5000)
-      });
+      // Fallback: Test chat completions with candidate models
+      const candidateModels = Array.from(new Set([this.primaryModel, ...this.fallbackModels]));
+      let lastStatus = 400;
+      let lastErrText = '';
 
-      if (chatRes.ok) {
-        return {
-          success: true,
-          message: '✓ Grok connection successful! API key is active and ready.'
-        };
-      }
+      for (const modelName of candidateModels) {
+        const chatRes = await fetch(`${this.baseUrl}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: modelName,
+            messages: [{ role: 'user', content: 'Ping' }],
+            max_tokens: 5
+          }),
+          signal: AbortSignal.timeout(5000)
+        });
 
-      const errText = await chatRes.text();
-      if (chatRes.status === 401 || chatRes.status === 403 || errText.includes('api_key') || errText.includes('Unauthorized')) {
-        return {
-          success: false,
-          message: 'Invalid xAI Grok API key. Please check your key in xAI Console and try again.'
-        };
+        if (chatRes.ok) {
+          this.primaryModel = modelName;
+          return {
+            success: true,
+            message: '✓ Grok connection successful! API key is active and ready.'
+          };
+        }
+
+        lastStatus = chatRes.status;
+        lastErrText = await chatRes.text();
+
+        if (chatRes.status === 401 || chatRes.status === 403 || lastErrText.includes('api_key') || lastErrText.includes('Unauthorized')) {
+          return {
+            success: false,
+            message: 'Invalid xAI Grok API key. Please check your key in xAI Console and try again.'
+          };
+        }
       }
 
       return {
         success: false,
-        message: `Grok connection failed (${chatRes.status}): ${errText || 'Invalid API Key'}`
+        message: `Grok connection failed (${lastStatus}): ${lastErrText || 'Invalid API Key'}`
       };
     } catch (err: any) {
       return {
