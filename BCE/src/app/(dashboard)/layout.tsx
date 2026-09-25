@@ -13,7 +13,6 @@ import {
   DynamicXpCelebrator as XpCelebrator
 } from '@/components/DynamicWrappers';
 import { Analytics } from "@vercel/analytics/react";
-import FloatingAgentButtonClient from '@/features/analytics/components/FloatingAgentButtonClient';
 
 import MobileBottomNav from '@/components/layout/MobileBottomNav';
 import Footer from '@/components/layout/Footer';

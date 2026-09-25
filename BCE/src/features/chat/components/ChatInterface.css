@@ -71,17 +71,40 @@
 /* Chat Layout Base Classes */
 .chat-container {
   display: flex;
-  height: calc(100dvh - 84px);
+  height: calc(100dvh - 64px);
   width: 100%;
   background: radial-gradient(circle at center 20%, rgba(0, 240, 255, 0.04), transparent 60%), var(--bg-card);
-  border-radius: 20px;
+  border-radius: 0;
   overflow: hidden;
-  border: 1px solid var(--glass-border);
-  box-shadow: 0 10px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
+  border: none;
+  border-top: 1px solid var(--border-divider);
   font-family: var(--font-sans);
   position: relative;
+  margin: 0 !important;
   margin-bottom: 0 !important;
   padding-bottom: 0 !important;
+}
+
+/* Override parent dashboard layout padding and height on all screen sizes to remove bottom gap */
+.dashboard-shell:has(.chat-container) .dashboard-main,
+.dashboard-layout:has(.chat-container) .dashboard-main,
+.dashboard-shell:has(.chat-container) .dashboard-content,
+.dashboard-layout:has(.chat-container) .dashboard-content,
+.content-wrapper:has(.chat-container) .dashboard-content,
+.content-wrapper:has(.chat-container),
+body:has(.chat-container) .dashboard-content {
+  padding: 0 !important;
+  margin: 0 !important;
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+  min-height: calc(100dvh - 64px) !important;
+  height: calc(100dvh - 64px) !important;
+}
+
+.dashboard-shell:has(.chat-container) .app-global-footer,
+.content-wrapper:has(.chat-container) .app-global-footer,
+body:has(.chat-container) .app-global-footer {
+  display: none !important;
 }
 
 .chat-sidebar {
@@ -111,18 +134,6 @@
 
 /* Mobile Responsive Overrides */
 @media (max-width: 768px) {
-  /* Override parent dashboard layout padding which causes gaps */
-  .dashboard-shell:has(.chat-container) .dashboard-main,
-  .dashboard-layout:has(.chat-container) .dashboard-main,
-  .dashboard-shell:has(.chat-container) .dashboard-content,
-  .dashboard-layout:has(.chat-container) .dashboard-content,
-  .content-wrapper:has(.chat-container) {
-    padding: 0 !important;
-    margin: 0 !important;
-    padding-bottom: 0 !important;
-    margin-bottom: 0 !important;
-  }
-
   .chat-container {
     height: calc(100dvh - 64px - 56px);
     margin: 0 !important;
@@ -131,6 +142,14 @@
     border-radius: 0;
     border: none;
     border-top: 1px solid var(--border-divider);
+  }
+
+  .dashboard-shell:has(.chat-container) .dashboard-content,
+  .dashboard-layout:has(.chat-container) .dashboard-content,
+  .content-wrapper:has(.chat-container) .dashboard-content,
+  body:has(.chat-container) .dashboard-content {
+    min-height: calc(100dvh - 64px - 56px) !important;
+    height: calc(100dvh - 64px - 56px) !important;
   }
 
   .chat-sidebar {

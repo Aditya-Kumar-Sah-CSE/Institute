@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import './Footer.css';
 
@@ -9,6 +10,7 @@ interface FooterProps {
 }
 
 export default function Footer({ companyName: initialCompanyName }: FooterProps) {
+  const pathname = usePathname();
   const [companyName, setCompanyName] = useState<string>(initialCompanyName || '');
 
   useEffect(() => {
@@ -37,6 +39,11 @@ export default function Footer({ companyName: initialCompanyName }: FooterProps)
 
     fetchCompanyName();
   }, [initialCompanyName]);
+
+  // Hide footer on chat to give full height to conversation interface with no bottom gap
+  if (pathname?.includes('/chat')) {
+    return null;
+  }
 
   const displayName = companyName || 'smart learn';
 

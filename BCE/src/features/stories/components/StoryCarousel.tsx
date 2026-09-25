@@ -115,11 +115,11 @@ export default function StoryCarousel({ currentUserId, currentUserAvatar }: { cu
   return (
     <>
       <div className="relative mb-6 w-full">
-        <h3 className="text-[16px] font-medium text-slate-700 dark:text-slate-200 mb-2 px-1">Status</h3>
+        <h3 className="text-[16px] font-medium text-slate-700 dark:text-slate-200 mb-2 px-1">Progress</h3>
         
         <div className="story-carousel-container w-full overflow-x-auto no-scrollbar flex items-center gap-3 py-1 relative z-10 pl-1 pb-4 border-b border-slate-200 dark:border-slate-800" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', overflowX: 'auto', scrollSnapType: 'x mandatory' }}>
           
-          {/* My Status */}
+          {/* My Progress */}
           <div 
             className={`relative w-[105px] h-[155px] rounded-2xl overflow-hidden flex-shrink-0 cursor-pointer group shadow-sm bg-slate-800 transition-all ${hasMyStory ? 'ring-2 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 ring-[#25D366]' : 'border border-slate-200 dark:border-slate-700'}`}
             style={{ position: 'relative', width: '105px', height: '155px', borderRadius: '1rem', overflow: 'hidden', flexShrink: 0 }}
@@ -139,7 +139,7 @@ export default function StoryCarousel({ currentUserId, currentUserAvatar }: { cu
                return (
                  <>
                    {(hasMyStory && feed.myStory?.items?.[0]?.media_url && feed.myStory.items[0].media_type === 'image') ? (
-                      <Image src={feed.myStory.items[0].media_url} alt="My Status" fill className="object-cover opacity-80" style={{ objectFit: 'cover', opacity: 0.8 }} unoptimized />
+                      <Image src={feed.myStory.items[0].media_url} alt="My Progress" fill className="object-cover opacity-80" style={{ objectFit: 'cover', opacity: 0.8 }} unoptimized />
                    ) : myAvatar ? (
                       <Image src={myAvatar} alt="My Avatar" fill className="object-cover opacity-60 backdrop-blur-sm grayscale-[30%]" style={{ objectFit: 'cover', opacity: 0.6, filter: 'blur(4px) grayscale(30%)' }} unoptimized />
                    ) : null}
@@ -185,7 +185,7 @@ export default function StoryCarousel({ currentUserId, currentUserAvatar }: { cu
                );
              })()}
 
-             <span className="absolute bottom-2 left-2 text-[13px] font-medium text-white drop-shadow-md z-30" style={{ position: 'absolute', bottom: '0.5rem', left: '0.5rem', fontSize: '13px', fontWeight: 500, color: 'white', zIndex: 30, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>My status</span>
+             <span className="absolute bottom-2 left-2 text-[13px] font-medium text-white drop-shadow-md z-30" style={{ position: 'absolute', bottom: '0.5rem', left: '0.5rem', fontSize: '13px', fontWeight: 500, color: 'white', zIndex: 30, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>My progress</span>
           </div>
 
           {/* Active Stories */}
@@ -205,7 +205,7 @@ export default function StoryCarousel({ currentUserId, currentUserAvatar }: { cu
               >
                 {/* Background Media */}
                 {(firstItem?.media_url && firstItem.media_type === 'image') ? (
-                  <Image src={firstItem.media_url} alt="Status" fill className="object-cover" unoptimized />
+                  <Image src={firstItem.media_url} alt="Progress" fill className="object-cover" unoptimized />
                 ) : firstItem?.media_type === 'video' && firstItem.media_url ? (
                   <video src={firstItem.media_url} className="w-full h-full object-cover opacity-90" muted playsInline />
                 ) : story.profile?.avatar_url ? (

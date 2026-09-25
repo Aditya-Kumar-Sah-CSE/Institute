@@ -304,7 +304,7 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
                   </button>
                 ) : (
                   <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-neon-cyan to-neon-purple">
-                    Create Status
+                    Share Progress
                   </h2>
                 )}
 

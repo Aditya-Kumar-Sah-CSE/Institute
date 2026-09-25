@@ -137,7 +137,7 @@ export default function StoryRepliesSheet({
                 <MessageCircle size={20} style={{ color: '#22d3ee' }} />
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'white' }}>
-                    {storyOwnerName ? `Replies to ${storyOwnerName}'s Status` : 'Status Replies'}
+                    {storyOwnerName ? `Replies to ${storyOwnerName}'s Progress` : 'Progress Replies'}
                   </h3>
                   <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.6)' }}>
                     {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
@@ -298,7 +298,7 @@ export default function StoryRepliesSheet({
                     handleSendReply();
                   }
                 }}
-                placeholder="Reply to this status..."
+                placeholder="Reply to this progress..."
                 style={{
                   flex: 1,
                   padding: '0.75rem',

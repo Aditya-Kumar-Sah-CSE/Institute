@@ -261,7 +261,7 @@ export default function StoryViewerCanvas({
 
           {/* Header */}
           {(() => {
-            const authorName = activeStory.profile?.name || (isMyStory ? 'My Status' : 'User');
+            const authorName = activeStory.profile?.name || (isMyStory ? 'My Progress' : 'User');
             const authorAvatar = activeStory.profile?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName)}&background=0D8ABC&color=fff`;
             const timeFormatted = new Date(currentItem.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -717,7 +717,7 @@ export default function StoryViewerCanvas({
                 </h3>
 
                 <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8', lineHeight: 1.4, marginBottom: '1.5rem' }}>
-                  Are you sure you want to delete this status update? This action cannot be undone.
+                  Are you sure you want to delete this progress update? This action cannot be undone.
                 </p>
 
                 <div style={{ display: 'flex', gap: '0.75rem', width: '100%' }}>
