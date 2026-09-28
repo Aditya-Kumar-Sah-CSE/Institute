@@ -3,13 +3,14 @@ import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import Button from '@/components/ui/Button';
-import Card from '@/components/ui/Card';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { getDifficultyColor } from '@/lib/utils';
 import { enrollInCourseFormAction, reapplyEnrollmentFormAction } from '@/features/courses/actions/enroll';
 import LeaveCourseButton from '@/features/courses/components/LeaveCourseButton';
 import ShareCourseButton from '@/features/courses/components/ShareCourseButton';
 import CoursePollsSection from '@/features/courses/components/CoursePollsSection';
+import CourseDetailTabs from '@/features/courses/components/CourseDetailTabs';
+import CourseContentTabs from '@/features/courses/components/CourseContentTabs';
 import CourseDoubtsSection from '@/features/courses/components/CourseDoubtsSection';
 import CourseMcqsSection from '@/features/courses/components/CourseMcqsSection';
 import CurriculumListClient from '@/features/courses/components/CurriculumListClient';
@@ -34,7 +35,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
   // Fetch course with explicit foreign key relationship and robust fallback to prevent false 404s
   let course: any = null;
 
-  const { data: primaryCourse, error: primaryErr } = await supabase
+  const { data: primaryCourse } = await supabase
     .from('courses')
     .select('*, profiles!courses_created_by_fkey(name)')
     .eq('id', courseId)
@@ -78,6 +79,14 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
   }
 
   if (!course) notFound();
+
+  const { data: courseFacultyAssignment } = await supabase
+    .from('course_instructors')
+    .select('instructor_id')
+    .eq('course_id', courseId)
+    .eq('instructor_id', user.id)
+    .maybeSingle();
+  const isAssignedCourseFaculty = !!courseFacultyAssignment;
 
   // Fetch lessons
   const { data: lessons } = await supabase
@@ -139,40 +148,56 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
           <CoursePollsSection 
             courseId={courseId} 
             currentUserId={user.id} 
-            isEnrolledOrFaculty={course.created_by === user.id || !!(enrollment && enrollment.status === 'approved')} 
+            isEnrolledOrFaculty={course.created_by === user.id || isAssignedCourseFaculty || currentUserProfile?.role === 'admin' || !!(enrollment && enrollment.status === 'approved')}
+            isAssignedFaculty={isAssignedCourseFaculty}
           />
         </div>
       </div>
 
-      <div className="lessons-section">
-        <h2 className="section-title">Course Curriculum</h2>
-        
-        {(() => {
-          if (!lessons || lessons.length === 0) return null;
-          
-          const groupedLessons = lessons.reduce((acc, lesson) => {
-            const dateStr = new Date(lesson.created_at || Date.now()).toLocaleDateString(undefined, {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
-            });
-            if (!acc[dateStr]) acc[dateStr] = [];
-            acc[dateStr].push(lesson);
-            return acc;
-          }, {} as Record<string, typeof lessons>);
-          
-          const sortedDates = Object.keys(groupedLessons).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-          return (
-            <CurriculumListClient 
-              courseId={courseId}
-              groupedLessons={groupedLessons}
-              sortedDates={sortedDates}
-              completedLessonIds={Array.from(completedLessonIds)}
-              isApproved={!!(enrollment && enrollment.status === 'approved')}
-            />
-          );
-        })()}
-      </div>
+      <CourseContentTabs
+        curriculum={(
+          <div className="lessons-section">
+            <h2 className="section-title">Course Curriculum</h2>
+            {(() => {
+              if (!lessons || lessons.length === 0) return null;
+              const groupedLessons = lessons.reduce((acc, lesson) => {
+                const dateStr = new Date(lesson.created_at || Date.now()).toLocaleDateString(undefined, {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                });
+                if (!acc[dateStr]) acc[dateStr] = [];
+                acc[dateStr].push(lesson);
+                return acc;
+              }, {} as Record<string, typeof lessons>);
+              const sortedDates = Object.keys(groupedLessons).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+              return (
+                <CurriculumListClient
+                  courseId={courseId}
+                  groupedLessons={groupedLessons}
+                  sortedDates={sortedDates}
+                  completedLessonIds={Array.from(completedLessonIds)}
+                  isApproved={!!(enrollment && enrollment.status === 'approved')}
+                />
+              );
+            })()}
+          </div>
+        )}
+        doubts={(
+          <CourseDoubtsSection
+            courseId={courseId}
+            isEnrolledOrFaculty={course.created_by === user.id || !!(enrollment && enrollment.status === 'approved')}
+          />
+        )}
+        mcqs={(
+          <CourseMcqsSection
+            courseId={courseId}
+            currentUserId={user.id}
+            isStaff={Boolean(isStaffUser || course.created_by === user.id)}
+            isEnrolledOrFaculty={Boolean(isStaffUser || course.created_by === user.id || (enrollment && enrollment.status === 'approved'))}
+          />
+        )}
+      />
 
       {/* End of Course Feedback Prompt */}
       {isEnrolled && isCourseCompleted && (
@@ -186,37 +211,11 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
         </div>
       )}
 
-      {/* Course Public Reviews Section */}
       <div style={{ marginTop: 'var(--space-2xl)' }}>
-        <CourseReviewsSection 
-          courseId={courseId} 
-          currentUserId={user.id} 
-          isEnrolled={isEnrolled} 
-          isStaff={Boolean(isStaffUser || course.created_by === user.id)} 
-          reviews={reviewsData.reviews} 
-          userReview={reviewsData.userReview || null} 
-          stats={reviewsData.stats} 
-        />
-      </div>
-
-      <div style={{ marginTop: 'var(--space-2xl)' }}>
-        <CourseDoubtsSection 
-          courseId={courseId} 
-          isEnrolledOrFaculty={course.created_by === user.id || !!(enrollment && enrollment.status === 'approved')} 
-        />
-      </div>
-
-      <div style={{ marginTop: 'var(--space-2xl)' }}>
-        <CourseMcqsSection 
-          courseId={courseId}
-          currentUserId={user.id}
-          isStaff={Boolean(isStaffUser || course.created_by === user.id)}
-          isEnrolledOrFaculty={Boolean(isStaffUser || course.created_by === user.id || (enrollment && enrollment.status === 'approved'))}
-        />
-      </div>
-
-      <div style={{ marginTop: 'var(--space-2xl)' }}>
-        <CourseHeroCard courseTitle={course.title} instructorName={course.profiles?.name}>
+        <CourseHeroCard courseTitle={course.title} instructorName={course.profiles?.name} initialCollapsed={false}>
+          <CourseDetailTabs
+            detail={(
+              <>
           <div className="course-hero-content">
             <div 
               className="course-difficulty-badge"
@@ -358,17 +357,33 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
               />
             </div>
           )}
+              </>
+            )}
+            feedback={(
+              <CourseReviewsSection
+              courseId={courseId}
+              currentUserId={user.id}
+              isEnrolled={isEnrolled}
+              isStaff={Boolean(isStaffUser || course.created_by === user.id)}
+              reviews={reviewsData.reviews}
+              userReview={reviewsData.userReview || null}
+              stats={reviewsData.stats}
+            />
+            )}
+            students={(
+              <section id="joined-students">
+                <h2 className="section-title" style={{ marginBottom: 'var(--space-md)' }}>Joined Students</h2>
+                <JoinedStudentsList
+                  enrollments={enrolledStudents || []}
+                  currentUserId={user.id}
+                  isStaff={Boolean(isStaffUser || course.created_by === user.id)}
+                />
+              </section>
+            )}
+          />
         </CourseHeroCard>
       </div>
 
-      <div id="joined-students" className="enrolled-students-section" style={{ marginTop: 'var(--space-2xl)' }}>
-        <h2 className="section-title" style={{ marginBottom: 'var(--space-md)' }}>Joined Students</h2>
-        <JoinedStudentsList 
-          enrollments={enrolledStudents || []} 
-          currentUserId={user.id} 
-          isStaff={Boolean(isStaffUser || course.created_by === user.id)} 
-        />
-      </div>
     </div>
   );
 }

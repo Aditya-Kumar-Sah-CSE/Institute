@@ -46,7 +46,7 @@ export default function CollapsibleInteractionsWrapper({ children, courseId }: C
           </div>
           <div>
             <h3>Course Interactions</h3>
-            <p>Emergency Alerts & Polls</p>
+            <p>Alerts, Polls & Notices</p>
           </div>
         </div>
         

@@ -5,14 +5,17 @@ import CoursePollsClient from './CoursePollsClient';
 import CreatePollWidget from './CreatePollWidget';
 import CreateAlertSection from './CreateAlertSection';
 import CollapsibleInteractionsWrapper from './CollapsibleInteractionsWrapper';
+import CourseNoticesSection from './CourseNoticesSection';
+import CourseInteractionTabs from './CourseInteractionTabs';
 
 interface CoursePollsSectionProps {
   courseId: string;
   currentUserId: string;
   isEnrolledOrFaculty: boolean;
+  isAssignedFaculty: boolean;
 }
 
-export default async function CoursePollsSection({ courseId, currentUserId, isEnrolledOrFaculty }: CoursePollsSectionProps) {
+export default async function CoursePollsSection({ courseId, currentUserId, isEnrolledOrFaculty, isAssignedFaculty }: CoursePollsSectionProps) {
   if (!isEnrolledOrFaculty) return null; // Only enrolled students/faculty can see polls
 
   const supabase = await createClient();
@@ -38,19 +41,11 @@ export default async function CoursePollsSection({ courseId, currentUserId, isEn
 
   return (
     <CollapsibleInteractionsWrapper courseId={courseId}>
-      {/* Desktop: 50/50 two-column layout for Alert + Polls creation */}
-      <div className="polls-desktop-grid">
-        {/* Left column: Emergency Alert */}
-        {canAlert && (
-          <div className="polls-desktop-col-left">
-            <CreateAlertSection courseId={courseId} />
-          </div>
-        )}
-
-        {/* Right column: Course Polls creation & List */}
-        <div className={`polls-desktop-col-right ${!canAlert ? 'polls-desktop-col-full' : ''}`}>
+      <CourseInteractionTabs
+        alert={canAlert ? <CreateAlertSection courseId={courseId} /> : <p style={{ color: 'var(--text-muted)' }}>Only course members can create an alert.</p>}
+        poll={(
+          <div className="polls-desktop-col-right polls-desktop-col-full">
           <CreatePollWidget courseId={courseId} />
-          
           {hasPollContent ? (
             <div style={{ marginTop: 'var(--space-md)' }}>
               <CoursePollsClient polls={polls} currentUserId={currentUserId} isFaculty={isFaculty} />
@@ -60,8 +55,10 @@ export default async function CoursePollsSection({ courseId, currentUserId, isEn
               <p style={{ color: 'var(--text-muted)', margin: 0 }}>No active polls for this course.</p>
             </div>
           )}
-        </div>
-      </div>
+          </div>
+        )}
+        notice={<CourseNoticesSection courseId={courseId} canPost={isCreator || isAssignedFaculty || profile?.role === 'admin'} />}
+      />
     </CollapsibleInteractionsWrapper>
   );
 }

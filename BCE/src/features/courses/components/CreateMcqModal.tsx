@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input, { TextArea } from '@/components/ui/Input';
 import { createCourseMcqAction, updateCourseMcqAction } from '@/features/courses/actions/mcqs';
 import type { CourseMCQ, MCQSourceType } from '@/types/database';
-import { X, Upload, Image as ImageIcon, CheckCircle, FileText } from 'lucide-react';
+import { X, Upload, Image as ImageIcon, FileText } from 'lucide-react';
 
 interface CreateMcqModalProps {
   courseId: string;
@@ -35,6 +36,11 @@ export default function CreateMcqModal({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (editingMcq) {
@@ -78,7 +84,7 @@ export default function CreateMcqModal({
     });
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !isMounted) return null;
 
   const handleSourceTypeSwitch = (type: MCQSourceType) => {
     setSourceType(type);
@@ -181,7 +187,7 @@ export default function CreateMcqModal({
     }
   };
 
-  return (
+  return createPortal((
     <div 
       style={{
         position: 'fixed',
@@ -546,5 +552,5 @@ export default function CreateMcqModal({
         </form>
       </Card>
     </div>
-  );
+  ), document.body);
 }
