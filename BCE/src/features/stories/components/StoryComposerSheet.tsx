@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import NextImage from 'next/image';
 import { 
@@ -82,6 +83,7 @@ type Mode = 'choose' | 'gallery' | 'gallery_preview' | 'text';
 export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: StoryComposerSheetProps) {
   const [mode, setMode] = useState<Mode>('choose');
   const [isUploading, setIsUploading] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number }>({ current: 0, total: 0 });
   const [error, setError] = useState<string | null>(null);
   
@@ -102,6 +104,10 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
   const [textDrafts, setTextDrafts] = useState<TextDraft[]>([]);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleClose = () => {
     if (isUploading) return;
@@ -265,7 +271,9 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
     }
   };
 
-  return (
+  if (!isMounted) return null;
+
+  return createPortal((
     <AnimatePresence>
       {isOpen && (
         <>
@@ -275,7 +283,7 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={handleClose}
-            style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000000 }}
+            style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 110000 }}
           />
           
           {/* Bottom Sheet */}
@@ -284,7 +292,7 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            style={{ position: 'fixed', bottom: 0, left: 0, right: 0, maxWidth: '36rem', margin: '0 auto', borderRadius: '1.5rem 1.5rem 0 0', zIndex: 1000001, overflow: 'hidden' }}
+            style={{ position: 'fixed', bottom: 0, left: 0, right: 0, width: '100%', maxWidth: '36rem', maxHeight: 'min(90dvh, 760px)', margin: '0 auto', borderRadius: '1.5rem 1.5rem 0 0', zIndex: 120000, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
             className="bg-slate-100 dark:bg-slate-900 shadow-[0_-10px_40px_rgba(0,0,0,0.3)]"
           >
             {/* Handle Bar */}
@@ -292,7 +300,7 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
               <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full" />
             </div>
             
-            <div style={{ padding: '0.5rem 1.5rem max(1.5rem, env(safe-area-inset-bottom, 1.5rem))' }}>
+            <div style={{ flex: '1 1 auto', padding: '0.5rem clamp(0.75rem, 4vw, 1.5rem) 0', display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
               {/* Header */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 {mode !== 'choose' ? (
@@ -380,7 +388,7 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
                 </>
               ) : mode === 'gallery_preview' ? (
                 /* ─── Gallery Preview Mode ─────────────────────────── */
-                <div style={{ maxHeight: '75vh', overflowY: 'auto', paddingRight: '4px' }}>
+                <div style={{ flex: '1 1 auto', minHeight: 0, maxHeight: 'calc(90dvh - 140px)', overflowY: 'auto', paddingRight: '4px' }}>
                   {/* Current Active Media Large Preview */}
                   {mediaDrafts[activeMediaIndex] && (
                     <div style={{ position: 'relative', width: '100%', height: '14rem', borderRadius: '1rem', overflow: 'hidden', marginBottom: '1rem', backgroundColor: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -490,7 +498,11 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
                     disabled={!mediaDrafts.length}
                     style={{
                       width: '100%',
-                      padding: '0.75rem',
+                      position: 'sticky',
+                      bottom: 0,
+                      zIndex: 2,
+                      marginTop: '0.75rem',
+                      padding: '0.75rem 0 max(0.75rem, env(safe-area-inset-bottom, 0.75rem))',
                       borderRadius: '0.75rem',
                       border: 'none',
                       fontWeight: 700,
@@ -509,7 +521,7 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
                 </div>
               ) : (
                 /* ─── Text Status Mode ─────────────────────────────── */
-                <div style={{ maxHeight: '75vh', overflowY: 'auto', paddingRight: '4px' }}>
+                <div style={{ flex: '1 1 auto', minHeight: 0, maxHeight: 'calc(90dvh - 140px)', overflowY: 'auto', paddingRight: '4px' }}>
                   {/* Text Drafts Queue Bar */}
                   {textDrafts.length > 0 && (
                     <div style={{ marginBottom: '0.75rem' }}>
@@ -822,7 +834,7 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
                   </div>
 
                   {/* Action Buttons */}
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <div style={{ position: 'sticky', bottom: 0, zIndex: 2, display: 'flex', gap: '0.5rem', marginTop: '0.75rem', padding: '0.5rem 0 max(0.75rem, env(safe-area-inset-bottom, 0.75rem))', background: 'linear-gradient(180deg, rgba(15,23,42,0.92), rgba(15,23,42,1))' }}>
                     <button
                       onClick={handleAddTextSlide}
                       disabled={!textContent.trim()}
@@ -869,5 +881,5 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
         </>
       )}
     </AnimatePresence>
-  );
+  ), document.body);
 }
