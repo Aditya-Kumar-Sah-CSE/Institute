@@ -34,7 +34,7 @@ export async function getStudent360Profile(userId: string): Promise<Student360Pr
   const [
     { data: enrollments, error: coursesError },
     { data: attempts, error: attemptsError },
-    { data: sheetEnrollments, error: codingError },
+    { data: acceptedSubmissions, error: codingError },
     { data: certificates, error: certificatesError },
     { data: badges, error: badgesError },
     { data: routines },
@@ -42,7 +42,7 @@ export async function getStudent360Profile(userId: string): Promise<Student360Pr
   ] = await Promise.all([
     supabase.from('enrollments').select('course_id, progress, status, courses(title)').eq('user_id', userId).eq('status', 'approved'),
     supabase.from('course_mcq_attempts').select('score, total').eq('user_id', userId),
-    supabase.from('coding_sheet_enrollments').select('solved_problem_ids').eq('student_id', userId),
+    supabase.from('coding_submissions').select('problem_id').eq('student_id', userId).eq('status', 'ACCEPTED'),
     supabase.from('certificates').select('id').eq('user_id', userId),
     supabase.from('user_badges').select('id').eq('user_id', userId),
     supabase.from('daily_routines').select('time_slot, task_name, sort_order').eq('user_id', userId).order('sort_order', { ascending: true }),
@@ -62,12 +62,11 @@ export async function getStudent360Profile(userId: string): Promise<Student360Pr
   const quizAccuracyPercent = (attempts?.length || 0) > 0 && totalQuizMaximum > 0
     ? Math.round((totalQuizScore / totalQuizMaximum) * 100)
     : null;
-  const uniqueSolvedIds = new Set<string>();
-  (sheetEnrollments || []).forEach((row: any) => {
-    if (Array.isArray(row.solved_problem_ids)) {
-      row.solved_problem_ids.forEach((id: unknown) => uniqueSolvedIds.add(String(id)));
-    }
-  });
+  // Match Code Arena's BCE solved metric, counting distinct problems with an
+  // accepted submission (rather than sheet enrollment progress snapshots).
+  const uniqueSolvedIds = new Set<string>(
+    (acceptedSubmissions || []).map((submission: any) => String(submission.problem_id)),
+  );
 
   const coverage = {
     coursesCount: courseRows.length,
