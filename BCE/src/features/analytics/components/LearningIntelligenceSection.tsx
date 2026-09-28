@@ -10,9 +10,6 @@ export default async function LearningIntelligenceSection({ userId }: LearningIn
   const profile = await getStudent360Profile(userId);
 
   return (
-    <LearningIntelligenceClient 
-      userId={userId} 
-      initialProfile={profile} 
-    />
+    <LearningIntelligenceClient initialProfile={profile} />
   );
 }

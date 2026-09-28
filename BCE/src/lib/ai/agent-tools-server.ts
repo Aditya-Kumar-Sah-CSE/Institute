@@ -5,7 +5,7 @@ import path from 'node:path';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createAdminClient } from '@/lib/supabase/server';
-import { getStudent360Profile, Student360Profile } from '@/features/analytics/services/student-intelligence';
+import { getStudent360Profile } from '@/features/analytics/services/student-intelligence';
 import { AppRole, normalizeAgentRole, canUseTool, getRequiredRoleForTool } from '@/lib/auth/agent-permissions';
 import { resolveCourse, resolveDSASheet, resolveDSAProblem } from '@/lib/ai/entity-resolver';
 import { getFreshAgentPageContext } from '@/lib/ai/live-dom-reader';
@@ -777,35 +777,18 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
 
   openWeakestDSAProblem: {
     name: 'openWeakestDSAProblem',
-    description: 'Find student weakest topic using Student360 analytics and open a matching DSA problem. Examples: "meri weakest DSA problem kholo", "open problem for weak topic".',
+    description: 'Open coding sheets. Topic-level weakest-area analysis is unavailable because incorrect answers are not tracked by topic.',
     category: 'DSA',
     riskLevel: 'LOW',
     parameters: { type: 'object', properties: {} },
     examples: ['meri weakest DSA problem kholo', 'open weak topic problem'],
     execute: async (_, user) => {
       const profile = await getStudent360Profile(user.id);
-      const weakTopic = profile.weakAreas[0] || 'DSA';
-
-      const adminClient = await createAdminClient();
-      const { data: matchedProblem } = await adminClient
-        .from('coding_problems')
-        .select('id, title, tags')
-        .limit(1)
-        .maybeSingle();
-
-      if (matchedProblem) {
-        return {
-          success: true,
-          message: `Your weak area is ${weakTopic}. Opened matching problem: ${matchedProblem.title}.`,
-          url: `/code-arena/problems/${matchedProblem.id}`,
-          data: { problemId: matchedProblem.id, problemTitle: matchedProblem.title }
-        };
-      }
-
       return {
         success: true,
-        message: `Your weak area is ${weakTopic}. Opening DSA sheets to practice.`,
-        url: '/code-arena/sheets'
+        message: 'Topic-level incorrect-answer data is not available, so I cannot identify a weakest DSA topic. You can browse coding sheets and choose what to practice.',
+        url: '/code-arena/sheets',
+        data: { dsaSolvedCount: profile.dataCoverage.dsaSolvedCount }
       };
     }
   },
@@ -1085,33 +1068,32 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
       const profile = await getStudent360Profile(user.id);
       return {
         success: true,
-        message: `Overall Score: ${profile.overallLearningScore}/100. Academic: ${profile.academicScore}%, Coding: ${profile.codingScore}%, Assessment: ${profile.assessmentScore}%.`,
-        data: profile
+        message: `Recorded activity: ${profile.dataCoverage.coursesCount} enrolled courses, average course progress ${profile.courseProgressPercent === null ? 'unavailable' : `${profile.courseProgressPercent}%`}, ${profile.dataCoverage.assessmentsCount} course quiz attempts, quiz accuracy ${profile.quizAccuracyPercent === null ? 'unavailable' : `${profile.quizAccuracyPercent}%`}, and ${profile.dataCoverage.dsaSolvedCount} unique DSA problems solved. No combined readiness score is calculated.`,
+        data: { courseProgressPercent: profile.courseProgressPercent, quizAccuracyPercent: profile.quizAccuracyPercent, dataCoverage: profile.dataCoverage, dataAvailability: profile.dataAvailability, enrolledCourses: profile.enrolledCoursesData }
       };
     }
   },
 
   getWeakAreas: {
     name: 'getWeakAreas',
-    description: 'Fetch student weak areas and identified skill gaps from Student360 analytics. Use when student asks "meri weakest skill kya hai?", "weak topics dikhao", "where am I lacking?".',
+    description: 'Report aggregate recorded activity and explain that topic-level weak areas are not measured.',
     category: 'ANALYTICS',
     riskLevel: 'LOW',
     parameters: { type: 'object', properties: {} },
     examples: ['meri weakest skill kya hai?', 'weak areas dikhao', 'skill gaps kya hain'],
     execute: async (_, user) => {
       const profile = await getStudent360Profile(user.id);
-      const weakList = profile.weakAreas.length > 0 ? profile.weakAreas.join(', ') : 'DBMS, DSA Problem Solving';
       return {
         success: true,
-        message: `Tumhara biggest gap ${weakList} hai. Is par focus karke accuracy improve kar sakte ho.`,
-        data: profile.weakAreas
+        message: 'Topic-wise weak areas cannot be determined from aggregate records. Course progress and quiz accuracy are available, but they do not identify which specific topics need work.',
+        data: { courseProgressPercent: profile.courseProgressPercent, quizAccuracyPercent: profile.quizAccuracyPercent, quizAttempts: profile.dataCoverage.assessmentsCount, dsaSolvedCount: profile.dataCoverage.dsaSolvedCount }
       };
     }
   },
 
   getRecommendations: {
     name: 'getRecommendations',
-    description: 'Fetch student-aware recommendations, weak areas, next best action, and 7-day learning plan. Use when user asks "what should I study?", "why are you recommending this?", "make me a 7-day plan".',
+    description: 'Return a next step only when course enrollment records support one; do not infer skill scores or a study plan.',
     category: 'ANALYTICS',
     riskLevel: 'LOW',
     parameters: { type: 'object', properties: {} },
@@ -1119,33 +1101,18 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     execute: async (_, user) => {
       const profile = await getStudent360Profile(user.id);
       const nextAction = profile.nextBestAction;
-      const recCourse = profile.recommendedCourse;
-      const plan = profile.personalizedPlan;
-
-      let msg = `✦ **Personalized Recommendation Breakdown**:\n\n`;
-      if (nextAction) {
-        msg += `⚡ **NEXT BEST ACTION**: ${nextAction.title}\n• **Why**: ${nextAction.evidenceWhy.replace(/^Why\?\s*/i, '')}\n\n`;
-      }
-      if (recCourse) {
-        msg += `📘 **RECOMMENDED COURSE**: ${recCourse.title} (${recCourse.matchScore}% Match)\n• **Why**: ${recCourse.whyReason}\n\n`;
-      }
-      if (plan && plan.today && plan.today.length > 0) {
-        msg += `📅 **TODAY'S PLAN**:\n${plan.today.map(t => `• ${t.title}: ${t.detail}`).join('\n')}\n\n`;
-      }
-      msg += `Weak Areas: ${profile.weakAreas.join(', ') || 'None'}. Overall Readiness Score: ${profile.overallLearningScore}/100.`;
-
+      const message = nextAction
+        ? `Based on recorded activity: ${nextAction.title}. ${nextAction.description}`
+        : 'There is not enough recorded course activity to suggest a specific next step. No personalized score or study plan has been inferred.';
       return {
         success: true,
-        message: msg,
-        url: nextAction?.actionUrl || '/courses',
+        message,
+        url: nextAction?.actionUrl,
         data: {
           nextBestAction: nextAction,
-          recommendedCourse: recCourse,
-          personalizedPlan: plan,
-          weakAreas: profile.weakAreas,
-          strengths: profile.strengths,
-          skillGaps: profile.skillGaps,
-          overallLearningScore: profile.overallLearningScore
+          courseProgressPercent: profile.courseProgressPercent,
+          quizAccuracyPercent: profile.quizAccuracyPercent,
+          dataCoverage: profile.dataCoverage
         }
       };
     }
@@ -1154,7 +1121,7 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
 
   getMyDSAProgress: {
     name: 'getMyDSAProgress',
-    description: 'Fetch student DSA solved count, coding XP, and score.',
+    description: 'Fetch the count of unique DSA problems marked solved in coding sheets.',
     category: 'DSA',
     riskLevel: 'LOW',
     parameters: { type: 'object', properties: {} },
@@ -1163,8 +1130,8 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
       const profile = await getStudent360Profile(user.id);
       return {
         success: true,
-        message: `DSA Problems Solved: ${profile.dataCoverage.dsaSolvedCount}. Coding Score: ${profile.codingScore}/100.`,
-        data: { dsaSolved: profile.dataCoverage.dsaSolvedCount, codingScore: profile.codingScore }
+        message: `Unique DSA problems marked solved: ${profile.dataCoverage.dsaSolvedCount}.`,
+        data: { dsaSolved: profile.dataCoverage.dsaSolvedCount, codingRecordsAvailable: profile.dataAvailability.coding }
       };
     }
   },
@@ -1196,7 +1163,7 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
 
   generateTomorrowRoutine: {
     name: 'generateTomorrowRoutine',
-    description: 'Dynamically generate and save a personalized daily routine for tomorrow based on existing routine items, active goals, Student360 weak areas, and enrolled courses. Use when student asks "kal meri routine bana do" or "generate tomorrow routine".',
+    description: 'Create routine tasks only from incomplete enrollments, active goals, and recorded activity. Does not infer weak topics.',
     category: 'ROUTINE_GOALS',
     riskLevel: 'MEDIUM',
     parameters: { type: 'object', properties: {} },
@@ -1205,23 +1172,27 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
       const profile = await getStudent360Profile(user.id);
       const adminClient = await createAdminClient();
 
-      const weakTopic = profile.weakAreas[0] || 'DSA Graphs & Trees';
-      const activeGoalText = profile.activeGoals[0]?.goal_text || 'Solve DSA problems';
-      const courseTitle = profile.enrolledCoursesData[0]?.title || 'ITW Course Revision';
-
       // Smart dynamic slot allocation avoiding conflict with existing slots
       const existingSlots = new Set(profile.dailyRoutines.map(r => r.time_slot));
 
+      const inProgressCourse = profile.enrolledCoursesData.find(course => course.progress < 100);
       const candidateSlots = [
-        { slot: '08:00 AM', task: `DSA Weak Area Practice: ${weakTopic}` },
-        { slot: '02:00 PM', task: `Enrolled Course Study: ${courseTitle}` },
-        { slot: '06:00 PM', task: `Goal Focus: ${activeGoalText}` },
-        { slot: '09:00 PM', task: `Daily Revision & Quiz` }
+        ...(inProgressCourse ? [{ slot: '02:00 PM', task: `Continue course: ${inProgressCourse.title}` }] : []),
+        ...(profile.activeGoals[0] ? [{ slot: '06:00 PM', task: `Work on goal: ${profile.activeGoals[0].goal_text}` }] : []),
+        ...(profile.dataCoverage.coursesCount > 0 && profile.dataCoverage.assessmentsCount === 0
+          ? [{ slot: '08:00 PM', task: 'Try an available course quiz' }]
+          : []),
+        ...(profile.dataCoverage.dsaSolvedCount === 0 && profile.dataAvailability.coding
+          ? [{ slot: '09:00 AM', task: 'Try your first coding sheet problem' }]
+          : [])
       ];
+      if (candidateSlots.length === 0) {
+        return { success: false, message: 'No incomplete enrolled course, active goal, or untried activity was found to build a data-based routine.' };
+      }
 
       const slotsToInsert = candidateSlots.filter(c => !existingSlots.has(c.slot));
       if (slotsToInsert.length === 0) {
-        slotsToInsert.push({ slot: '10:00 PM', task: `Night Review: ${weakTopic}` });
+        return { success: false, message: 'Your routine already uses the suggested time slots. No extra task was added.' };
       }
 
       let currentSort = profile.dailyRoutines.length;
