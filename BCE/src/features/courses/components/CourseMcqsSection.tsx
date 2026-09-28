@@ -132,6 +132,7 @@ export default function CourseMcqsSection({
 
   return (
     <Card 
+      className="course-mcqs-card"
       variant="glass" 
       padding="lg"
       style={{

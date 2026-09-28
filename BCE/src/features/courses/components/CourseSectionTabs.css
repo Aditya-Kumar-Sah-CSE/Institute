@@ -1,0 +1,123 @@
+.course-section-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  padding: 4px 0 12px;
+  border-bottom: 1px solid var(--border-divider);
+}
+
+.course-section-tabs__button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  padding: 9px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-divider);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: 1.25;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.course-section-tabs__button svg {
+  flex: 0 0 auto;
+}
+
+.course-section-tabs__button.is-active {
+  border-color: var(--neon-cyan);
+  background: rgba(0, 240, 255, 0.1);
+  color: var(--neon-cyan);
+  font-weight: 700;
+}
+
+.course-section-tab-panel {
+  min-width: 0;
+  padding-top: var(--space-md);
+}
+
+.course-content-tabs {
+  margin-top: var(--space-xl);
+}
+
+@media (max-width: 520px) {
+  .course-content-tabs {
+    margin-top: var(--space-md) !important;
+  }
+
+  .course-section-tabs {
+    gap: 6px;
+    padding-bottom: 10px;
+  }
+
+  .course-section-tabs__button {
+    flex-direction: column;
+    gap: 4px;
+    min-height: 62px;
+    padding: 7px 4px;
+    font-size: 0.72rem;
+  }
+
+  .course-section-tab-panel {
+    padding-top: var(--space-sm);
+  }
+}
+
+.course-notices-section {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  margin-top: var(--space-md);
+  padding: clamp(12px, 3vw, 24px);
+}
+
+.course-notices-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-sm);
+  width: 100%;
+  min-width: 0;
+  margin-bottom: var(--space-lg);
+}
+
+.course-notices-form input,
+.course-notices-form textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.course-notice-card {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding: clamp(10px, 2.5vw, 16px);
+}
+
+.course-mcqs-card {
+  padding: clamp(12px, 3vw, 24px) !important;
+}
+
+.course-alert-card {
+  padding: clamp(12px, 3vw, 24px) !important;
+}
+
+.joined-students-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)) !important;
+}
+
+@media (max-width: 520px) {
+  .joined-students-grid {
+    gap: var(--space-sm) !important;
+  }
+}

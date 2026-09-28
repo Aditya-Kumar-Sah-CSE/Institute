@@ -83,7 +83,7 @@ export default function JoinedStudentsList({ enrollments, currentUserId: propUse
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 'var(--space-md)' }}>
+      <div className="joined-students-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 'var(--space-md)' }}>
         {visibleEnrollments.map((enrollment: any) => {
           const studentUserId = enrollment.user_id || enrollment.profiles?.id;
           const studentName = enrollment.profiles?.name || 'Unknown User';

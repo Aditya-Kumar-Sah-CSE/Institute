@@ -211,7 +211,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
         </div>
       )}
 
-      <div style={{ marginTop: 'var(--space-2xl)' }}>
+      <div className="course-detail-card-container" style={{ marginTop: 'var(--space-2xl)' }}>
         <CourseHeroCard courseTitle={course.title} instructorName={course.profiles?.name} initialCollapsed={false}>
           <CourseDetailTabs
             detail={(

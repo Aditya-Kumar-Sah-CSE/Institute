@@ -2,6 +2,7 @@
 
 import { ReactNode, useState } from 'react';
 import { BookOpen, MessageSquareText, UsersRound } from 'lucide-react';
+import './CourseSectionTabs.css';
 
 type DetailTab = 'detail' | 'feedback' | 'students';
 
@@ -24,8 +25,8 @@ export default function CourseDetailTabs({
   const content = { detail, feedback, students }[activeTab];
 
   return (
-    <div>
-      <div role="tablist" aria-label="Course details" style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '4px 2px 12px', borderBottom: '1px solid var(--border-divider)' }}>
+    <div style={{ minWidth: 0 }}>
+      <div className="course-section-tabs" role="tablist" aria-label="Course details">
         {tabs.map(({ id, label, icon: Icon }) => {
           const selected = activeTab === id;
           return (
@@ -37,27 +38,14 @@ export default function CourseDetailTabs({
               aria-selected={selected}
               aria-controls="course-detail-panel"
               onClick={() => setActiveTab(id)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                flex: '0 0 auto',
-                padding: '10px 14px',
-                borderRadius: 'var(--radius-md)',
-                border: `1px solid ${selected ? 'var(--neon-cyan)' : 'var(--border-divider)'}`,
-                background: selected ? 'rgba(0, 240, 255, 0.1)' : 'var(--bg-secondary)',
-                color: selected ? 'var(--neon-cyan)' : 'var(--text-secondary)',
-                fontWeight: selected ? 700 : 500,
-                cursor: 'pointer',
-              }}
+              className={`course-section-tabs__button${selected ? ' is-active' : ''}`}
             >
               <Icon size={17} />{label}
             </button>
           );
         })}
       </div>
-      <div id="course-detail-panel" role="tabpanel" aria-labelledby={`course-detail-tab-${activeTab}`} style={{ paddingTop: 'var(--space-lg)' }}>
+      <div className="course-section-tab-panel" id="course-detail-panel" role="tabpanel" aria-labelledby={`course-detail-tab-${activeTab}`}>
         {content}
       </div>
     </div>
