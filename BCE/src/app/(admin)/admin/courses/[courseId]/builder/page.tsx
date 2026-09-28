@@ -2,7 +2,6 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { notFound, redirect } from 'next/navigation';
 import CurriculumBuilder from '@/features/admin/components/CurriculumBuilder';
 import Link from 'next/link';
-import JoinedStudentsList from '@/features/admin/components/JoinedStudentsList';
 
 export default async function CourseBuilderPage({ params }: { params: Promise<{ courseId: string }> }) {
   const { courseId } = await params;
@@ -64,12 +63,6 @@ export default async function CourseBuilderPage({ params }: { params: Promise<{ 
     .eq('course_id', courseId)
     .order('sort_order', { ascending: true });
 
-  // Fetch enrolled students
-  const { data: enrollments } = await adminSupabase
-    .from('enrollments')
-    .select('*, profiles(name, email, avatar_url, institute_id)')
-    .eq('course_id', courseId);
-
   // Fetch submissions for assignments in this course
   const assignmentIds = lessons?.flatMap(l => l.assignments?.map((a: any) => a.id) || []) || [];
   let submissions: any[] = [];
@@ -92,11 +85,6 @@ export default async function CourseBuilderPage({ params }: { params: Promise<{ 
       </div>
       
       <CurriculumBuilder course={course} lessons={lessons || []} submissions={submissions} />
-
-      <div style={{ marginTop: 'var(--space-xl)' }}>
-        <h2 style={{ fontSize: 'var(--text-xl)', marginBottom: 'var(--space-md)' }}>Joined Students</h2>
-        <JoinedStudentsList enrollments={enrollments || []} />
-      </div>
     </div>
   );
 }
