@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input, { TextArea } from '@/components/ui/Input';
-import { createNotice, deleteNotice } from '../actions';
+import { createNotice, deleteNotice, updateNotice } from '../actions';
 import type { Notice } from './NoticeBoard';
 import { parseAttachmentUrls } from '@/lib/attachments';
 
@@ -56,6 +56,7 @@ export default function NoticeManager({ notices, currentUserId, currentUserRole 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [editingNoticeId, setEditingNoticeId] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -79,6 +80,16 @@ export default function NoticeManager({ notices, currentUserId, currentUserRole 
         alert(result.error);
       }
     }
+  };
+
+  const handleEdit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    const result = await updateNotice(new FormData(e.currentTarget));
+    if (result.error) setError(result.error);
+    else setEditingNoticeId(null);
+    setLoading(false);
   };
 
   return (
@@ -108,12 +119,26 @@ export default function NoticeManager({ notices, currentUserId, currentUserRole 
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
               {notices.map((notice) => {
-                const canDelete = currentUserRole === 'admin' || notice.author_id === currentUserId;
+                const canManage = ['admin', 'super_admin', 'superadmin', 'developer'].includes(currentUserRole.toLowerCase()) || notice.author_id === currentUserId;
                 
                 return (
                   <Card key={notice.id} variant="glass" padding="md">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div style={{ flex: 1 }}>
+                        {editingNoticeId === notice.id ? (
+                          <form onSubmit={handleEdit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)', marginBottom: 'var(--space-md)' }}>
+                            <input type="hidden" name="id" value={notice.id} />
+                            <Input name="title" label="Notice Title" required defaultValue={notice.title} />
+                            <Input type="datetime-local" name="expires_at" label="Expiration Date (optional)" defaultValue={notice.expires_at ? new Date(new Date(notice.expires_at).getTime() - new Date(notice.expires_at).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ''} />
+                            <TextArea name="content" label="Notice Content" required defaultValue={notice.content} style={{ minHeight: '100px' }} />
+                            {error && <p style={{ color: 'var(--neon-red)', margin: 0 }}>{error}</p>}
+                            <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
+                              <Button type="submit" variant="primary" disabled={loading}>{loading ? 'Saving...' : 'Save Changes'}</Button>
+                              <Button type="button" variant="secondary" onClick={() => { setEditingNoticeId(null); setError(null); }}>Cancel</Button>
+                            </div>
+                          </form>
+                        ) : (
+                          <>
                         <h3 style={{ color: 'var(--neon-cyan)', margin: '0 0 var(--space-xs) 0' }}>{notice.title}</h3>
                         <NoticeContentText content={notice.content} />
                         {(() => {
@@ -136,11 +161,14 @@ export default function NoticeManager({ notices, currentUserId, currentUserRole 
                         <div suppressHydrationWarning style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
                           Posted by {notice.profiles.name} ({notice.profiles.role}) on {new Date(notice.created_at).toLocaleString()}
                         </div>
+                          </>
+                        )}
                       </div>
-                      {canDelete && (
-                        <Button variant="secondary" onClick={() => handleDelete(notice.id)} style={{ padding: 'var(--space-xs) var(--space-sm)' }}>
-                          Delete
-                        </Button>
+                      {canManage && editingNoticeId !== notice.id && (
+                        <div style={{ display: 'flex', gap: 'var(--space-xs)', marginLeft: 'var(--space-sm)', flexWrap: 'wrap' }}>
+                          <Button variant="secondary" onClick={() => { setEditingNoticeId(notice.id); setError(null); }} style={{ padding: 'var(--space-xs) var(--space-sm)' }}>Edit</Button>
+                          <Button variant="secondary" onClick={() => handleDelete(notice.id)} style={{ padding: 'var(--space-xs) var(--space-sm)' }}>Delete</Button>
+                        </div>
                       )}
                     </div>
                   </Card>

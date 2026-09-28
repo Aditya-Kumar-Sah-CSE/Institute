@@ -122,8 +122,49 @@ export async function createNotice(formData: FormData) {
   return { success: true };
 }
 
+async function canManageNotice(supabase: Awaited<ReturnType<typeof createClient>>, id: string, userId: string) {
+  const [{ data: notice }, { data: profile }] = await Promise.all([
+    supabase.from('notices').select('author_id').eq('id', id).maybeSingle(),
+    supabase.from('profiles').select('role').eq('id', userId).maybeSingle(),
+  ]);
+  if (!notice) return false;
+  const role = (profile?.role || '').toLowerCase();
+  return notice.author_id === userId || ['admin', 'super_admin', 'superadmin', 'developer'].includes(role);
+}
+
+export async function updateNotice(formData: FormData) {
+  const id = String(formData.get('id') || '');
+  const title = String(formData.get('title') || '').trim();
+  const content = String(formData.get('content') || '').trim();
+  const expiresAtValue = String(formData.get('expires_at') || '').trim();
+  if (!id || !title || !content) return { error: 'Title and content are required' };
+
+  let expires_at: string | null = null;
+  if (expiresAtValue) {
+    const date = new Date(expiresAtValue);
+    if (Number.isNaN(date.getTime())) return { error: 'Invalid expiration date' };
+    expires_at = date.toISOString();
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+  if (!await canManageNotice(supabase, id, user.id)) return { error: 'You are not allowed to edit this notice' };
+
+  const { error } = await supabase.from('notices').update({ title, content, expires_at }).eq('id', id);
+  if (error) return { error: error.message };
+  revalidatePath('/dashboard');
+  revalidatePath('/notices');
+  revalidatePath('/admin/notices');
+  revalidatePath('/instructor/notices');
+  return { success: true };
+}
+
 export async function deleteNotice(id: string) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+  if (!await canManageNotice(supabase, id, user.id)) return { error: 'You are not allowed to delete this notice' };
   const { error } = await supabase.from('notices').delete().eq('id', id);
   
   if (error) {
