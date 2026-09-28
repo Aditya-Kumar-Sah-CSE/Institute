@@ -38,12 +38,20 @@ export default function LearningIntelligenceClient({ initialProfile }: LearningI
     if (count === 0) return 'No records';
     return value;
   };
+  const displayMetric = (metric: { value: number | null; status: string; unit: string }) => {
+    if (metric.status === 'unavailable') return 'Unavailable';
+    if (metric.status === 'no_data' || metric.value === null) return 'No data';
+    if (metric.unit === 'percent') return `${metric.value}%`;
+    if (metric.unit === 'cgpa') return `${metric.value} CGPA`;
+    return String(metric.value);
+  };
 
   const metrics = [
     {
       label: 'Average course progress',
       value: metricValue(profile.dataAvailability.courses, profile.dataCoverage.coursesCount, profile.courseProgressPercent === null ? 'Unavailable' : `${profile.courseProgressPercent}%`),
-      detail: profile.dataAvailability.courses ? `${profile.dataCoverage.coursesCount} enrolled course${profile.dataCoverage.coursesCount === 1 ? '' : 's'}` : 'Course records could not be loaded',
+      detail: profile.dataAvailability.courses ? `${profile.dataCoverage.completedCoursesCount} completed of ${profile.dataCoverage.coursesCount} approved course${profile.dataCoverage.coursesCount === 1 ? '' : 's'}` : 'Course records could not be loaded',
+      progressValue: profile.courseProgressPercent,
       icon: <BookOpen size={18} />,
       color: 'var(--neon-cyan)',
     },
@@ -55,13 +63,15 @@ export default function LearningIntelligenceClient({ initialProfile }: LearningI
           ? 'No attempts'
           : profile.quizAccuracyPercent === null ? 'Score unavailable' : `${profile.quizAccuracyPercent}%`,
       detail: profile.dataAvailability.assessments ? `${profile.dataCoverage.assessmentsCount} recorded attempt${profile.dataCoverage.assessmentsCount === 1 ? '' : 's'}` : 'Quiz records could not be loaded',
+      progressValue: profile.quizAccuracyPercent,
       icon: <CheckCircle2 size={18} />,
       color: 'var(--neon-lime)',
     },
     {
-      label: 'DSA problems solved',
-      value: metricValue(profile.dataAvailability.coding, profile.dataCoverage.dsaSolvedCount, String(profile.dataCoverage.dsaSolvedCount)),
-      detail: profile.dataAvailability.coding ? 'Unique solved problems in coding sheets' : 'Coding records could not be loaded',
+      label: 'DSA accepted submissions',
+      value: metricValue(profile.dataAvailability.coding, profile.dataCoverage.codingSubmissionsCount, String(profile.dataCoverage.dsaSolvedCount)),
+      detail: profile.dataAvailability.coding ? 'Accepted Code Arena submissions, matching the BCE profile count' : 'Coding records could not be loaded',
+      progressValue: null,
       icon: <Activity size={18} />,
       color: 'var(--neon-magenta)',
     },
@@ -69,6 +79,7 @@ export default function LearningIntelligenceClient({ initialProfile }: LearningI
       label: 'Certificates earned',
       value: metricValue(profile.dataAvailability.certificates, profile.dataCoverage.certificatesCount, String(profile.dataCoverage.certificatesCount)),
       detail: profile.dataAvailability.certificates ? 'Issued certificates on this account' : 'Certificate records could not be loaded',
+      progressValue: null,
       icon: <Trophy size={18} />,
       color: 'var(--neon-gold)',
     },
@@ -76,8 +87,33 @@ export default function LearningIntelligenceClient({ initialProfile }: LearningI
       label: 'Badges earned',
       value: metricValue(profile.dataAvailability.badges, profile.dataCoverage.badgesCount, String(profile.dataCoverage.badgesCount)),
       detail: profile.dataAvailability.badges ? 'Badges recorded on this account' : 'Badge records could not be loaded',
+      progressValue: null,
       icon: <Award size={18} />,
       color: 'var(--neon-purple)',
+    },
+    {
+      label: 'Coding acceptance rate',
+      value: displayMetric(profile.dimensions.coding),
+      detail: profile.dimensions.coding.detail,
+      progressValue: profile.codingAcceptancePercent,
+      icon: <Activity size={18} />,
+      color: 'var(--neon-magenta)',
+    },
+    {
+      label: 'Academic profile',
+      value: displayMetric(profile.dimensions.academic),
+      detail: profile.dimensions.academic.detail,
+      progressValue: null,
+      icon: <BookOpen size={18} />,
+      color: 'var(--neon-cyan)',
+    },
+    {
+      label: 'Skills mastery',
+      value: displayMetric(profile.dimensions.skills),
+      detail: profile.dimensions.skills.detail,
+      progressValue: null,
+      icon: <CheckCircle2 size={18} />,
+      color: 'var(--neon-lime)',
     },
   ];
 
@@ -88,7 +124,7 @@ export default function LearningIntelligenceClient({ initialProfile }: LearningI
           <Activity size={22} style={{ color: 'var(--neon-cyan)' }} />
           <div>
             <h2 className="section-title" style={{ margin: 0 }}>Learning Activity</h2>
-            <span className="text-secondary" style={{ fontSize: 'var(--text-xs)' }}>Only recorded course, quiz, and coding data</span>
+            <span className="text-secondary" style={{ fontSize: 'var(--text-xs)' }}>Based on saved profile, course, coding, and assessment records</span>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
@@ -113,9 +149,51 @@ export default function LearningIntelligenceClient({ initialProfile }: LearningI
                 </div>
                 <div style={{ marginTop: 10, color: 'var(--text-primary)', fontSize: '1.4rem', fontWeight: 800, overflowWrap: 'anywhere' }}>{metric.value}</div>
                 <div className="text-secondary" style={{ marginTop: 4, fontSize: 'var(--text-xs)' }}>{metric.detail}</div>
+                {metric.progressValue !== undefined && metric.progressValue !== null && (
+                  <div role="progressbar" aria-label={`${metric.label} ${metric.progressValue}%`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={metric.progressValue} style={{ height: 5, marginTop: 10, overflow: 'hidden', borderRadius: 999, background: 'var(--bg-elevated)' }}>
+                    <div style={{ height: '100%', width: `${Math.max(0, Math.min(100, metric.progressValue))}%`, background: metric.color, borderRadius: 999 }} />
+                  </div>
+                )}
               </div>
             ))}
           </div>
+
+          <section style={{ padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', background: 'var(--bg-primary)', border: '1px solid var(--glass-border)' }}>
+            <h3 style={{ margin: '0 0 6px', fontSize: 'var(--text-md)' }}>Learning readiness</h3>
+            <strong className="text-secondary">{displayMetric(profile.readiness)}</strong>
+            <p className="text-secondary" style={{ margin: '6px 0 0', fontSize: 'var(--text-sm)' }}>{profile.readiness.detail}</p>
+          </section>
+
+          {(profile.strengths.length > 0 || profile.improvementAreas.length > 0) && (
+            <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 'var(--space-md)' }}>
+              {profile.strengths.length > 0 && (
+                <div style={{ padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', background: 'var(--bg-primary)', border: '1px solid var(--glass-border)' }}>
+                  <h3 style={{ margin: '0 0 var(--space-sm)', fontSize: 'var(--text-md)' }}>Strengths from recorded activity</h3>
+                  {profile.strengths.map(item => <p key={item.id} style={{ margin: '8px 0 0' }}><strong>{item.label}</strong><span className="text-secondary" style={{ display: 'block', fontSize: 'var(--text-xs)' }}>{item.reason} {item.evidence}</span></p>)}
+                </div>
+              )}
+              {profile.improvementAreas.length > 0 && (
+                <div style={{ padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', background: 'var(--bg-primary)', border: '1px solid var(--glass-border)' }}>
+                  <h3 style={{ margin: '0 0 var(--space-sm)', fontSize: 'var(--text-md)' }}>Areas to improve</h3>
+                  {profile.improvementAreas.map(item => <p key={item.id} style={{ margin: '8px 0 0' }}><strong>{item.label}</strong><span className="text-secondary" style={{ display: 'block', fontSize: 'var(--text-xs)' }}>{item.reason} {item.evidence}</span></p>)}
+                </div>
+              )}
+            </section>
+          )}
+
+          <section style={{ padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', background: 'var(--bg-primary)', border: '1px solid var(--glass-border)' }}>
+            <h3 style={{ margin: '0 0 var(--space-sm)', fontSize: 'var(--text-md)' }}>Capability targets</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 'var(--space-sm)' }}>
+              {profile.capabilityGaps.map(gap => (
+                <div key={gap.id} style={{ padding: 'var(--space-sm)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--glass-border)' }}>
+                  <strong>{gap.label}</strong>
+                  <p className="text-secondary" style={{ margin: '4px 0 0', fontSize: 'var(--text-xs)' }}>
+                    Current: {displayMetric(gap.current)} · Target: {gap.target === null ? 'Not configured' : `${gap.target}%`}{gap.gap === null ? '' : ` · Gap: ${gap.gap > 0 ? '+' : ''}${gap.gap}%`}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
 
           {profile.enrolledCoursesData.length > 0 && (
             <section>
@@ -144,14 +222,28 @@ export default function LearningIntelligenceClient({ initialProfile }: LearningI
             </div>
           )}
 
+          {profile.personalizedPlan.length > 0 && (
+            <section>
+              <h3 style={{ margin: '0 0 var(--space-sm)', fontSize: 'var(--text-md)' }}>Today’s learning plan</h3>
+              <div style={{ display: 'grid', gap: 'var(--space-sm)' }}>
+                {profile.personalizedPlan.map(item => (
+                  <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-sm)', padding: 'var(--space-sm) var(--space-md)', borderRadius: 'var(--radius-sm)', background: 'var(--bg-primary)' }}>
+                    <div><strong>{item.title}</strong><div className="text-secondary" style={{ fontSize: 'var(--text-xs)' }}>{item.detail}</div></div>
+                    <Link href={item.actionUrl} className="btn btn-secondary btn-sm">{item.actionText}</Link>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           {!profile.hasSufficientData && (
             <p className="text-secondary" style={{ margin: 0, fontSize: 'var(--text-sm)' }}>
-              No course, quiz, or coding activity is recorded yet. Metrics will appear after your first recorded activity.
+              No course, quiz, coding, or badge activity is recorded yet. Metrics will appear after the relevant activity is saved.
             </p>
           )}
 
           <p className="text-secondary" style={{ margin: 0, fontSize: 'var(--text-xs)' }}>
-            Empty or unavailable data is shown as such; no combined readiness score or inferred skill rating is calculated.
+            Readiness and skill mastery are left unscored until Smart Learn has a validated rubric and stored mastery data.
           </p>
         </div>
       )}
