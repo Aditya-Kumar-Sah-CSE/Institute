@@ -65,7 +65,7 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
   const [isInstallable, setIsInstallable] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [isNavWrapped, setIsNavWrapped] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({ Study: true, Coding: true, Games: true, General: true });
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({ Study: false, Coding: false, Games: false, General: false });
 
   useEffect(() => {
     if (isCollapsed) {

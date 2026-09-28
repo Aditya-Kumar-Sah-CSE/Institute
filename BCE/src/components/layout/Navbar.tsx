@@ -58,7 +58,7 @@ interface NavbarProps {
 
 export default function Navbar({ title, companyName, companyLogo, profile, currentView = 'student' }: NavbarProps) {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
-  const [expandedGroups, setExpandedGroups] = React.useState<Record<string, boolean>>({ Study: true, Coding: true, Games: true, General: true });
+  const [expandedGroups, setExpandedGroups] = React.useState<Record<string, boolean>>({ Study: false, Coding: false, Games: false, General: false });
 
   const pathname = usePathname();
   const router = useRouter();
