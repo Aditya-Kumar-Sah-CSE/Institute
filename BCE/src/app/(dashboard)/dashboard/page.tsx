@@ -8,9 +8,10 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { getDashboardPolls } from '@/features/courses/actions/polls';
 import { getGlobalPolls } from '@/features/polls/actions';
 import DashboardGlobalPolls from './components/DashboardGlobalPolls';
-import { Zap, Flame, CheckCircle, Award, GraduationCap, BookOpen, Download } from 'lucide-react';
+import { Zap, Flame, CheckCircle, Award, GraduationCap, BookOpen } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import AddGoalDashboardCard from '@/features/goals/components/AddGoalDashboardCard';
+import DashboardContestCard from './components/DashboardContestCard';
 import { Suspense } from 'react';
 
 const NoticeBoard = dynamic(() => import('@/features/notices/components/NoticeBoard'), { loading: () => <div className="skeleton-dash" style={{ height: '300px', borderRadius: '12px' }}></div> });
@@ -98,19 +99,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
             </Card>
           </Link>
 
-          <Link href="/code-arena/problems" style={{ textDecoration: 'none' }} title="Import Problem">
-            <Card variant="glass" padding="lg" className="stat-card hover-lift">
-              <div className="stat-card-icon" style={{ background: 'rgba(255, 0, 255, 0.1)', color: 'var(--neon-magenta)' }}>
-                <Download size={24} />
-              </div>
-              <div className="stat-card-content">
-                <div className="stat-card-value" style={{ color: 'var(--neon-magenta)', fontSize: '1.4rem', fontWeight: 800 }}>
-                  Import <span style={{ fontSize: '0.8rem', fontWeight: 600, opacity: 0.85 }}>New</span>
-                </div>
-                <div className="text-secondary stat-card-label">Add a Problem</div>
-              </div>
-            </Card>
-          </Link>
+          <DashboardContestCard />
 
           <AddGoalDashboardCard initialGoal={activeGoal} />
         </div>
