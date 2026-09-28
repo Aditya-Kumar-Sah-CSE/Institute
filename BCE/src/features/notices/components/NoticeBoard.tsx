@@ -13,6 +13,7 @@ export interface Notice {
   created_at: string;
   expires_at?: string;
   image_url?: string;
+  noticeScope?: string;
   profiles: {
     name: string;
     role: string;
@@ -146,7 +147,7 @@ export default function NoticeBoard({ notices, emptyMessage = 'No notices availa
           gap: var(--space-md);
           min-width: 0;
           width: 100%;
-          max-width: 50%;
+          max-width: 100%;
         }
         @media (max-width: 768px) {
           .notice-board-wrapper {
@@ -158,7 +159,10 @@ export default function NoticeBoard({ notices, emptyMessage = 'No notices availa
         {displayedNotices.map((notice) => (
           <Card key={notice.id} variant="glass" padding="md">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: 'var(--space-sm)' }}>
-              <h3 style={{ color: 'var(--neon-cyan)', margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>{notice.title}</h3>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
+                <h3 style={{ color: 'var(--neon-cyan)', margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>{notice.title}</h3>
+                {notice.noticeScope && <span style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-xs)' }}>{notice.noticeScope}</span>}
+              </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                 <span suppressHydrationWarning style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
                   {new Date(notice.created_at).toLocaleDateString(undefined, {

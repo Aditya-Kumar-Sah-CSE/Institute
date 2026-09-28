@@ -7,7 +7,7 @@ import type { Course } from '@/types';
 import { createAdminClient } from '@/lib/supabase/server';
 import { getDashboardPolls } from '@/features/courses/actions/polls';
 import { getGlobalPolls } from '@/features/polls/actions';
-import GlobalPollCard from '@/features/polls/components/GlobalPollCard';
+import DashboardGlobalPolls from './components/DashboardGlobalPolls';
 import { Zap, Flame, CheckCircle, Award, GraduationCap, BookOpen, Download } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import AddGoalDashboardCard from '@/features/goals/components/AddGoalDashboardCard';
@@ -121,21 +121,15 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
         </Suspense>
 
         <div className="dashboard-bottom-row">
-          <div className="dashboard-bottom-col">
-            <Suspense fallback={<div className="skeleton-dash" style={{ height: '220px', borderRadius: '12px' }}></div>}>
-              <DeferredGlobalPolls userId={user.id} role={profile?.role || 'student'} email={profile?.email} />
-            </Suspense>
-
-            <Suspense fallback={<div className="skeleton-dash" style={{ height: '220px', borderRadius: '12px' }}></div>}>
-              <DeferredDashboardPolls userId={user.id} />
-            </Suspense>
-          </div>
-          
-          <div className="dashboard-bottom-col">
-            <Suspense fallback={<div className="skeleton-dash" style={{ height: '300px', borderRadius: '12px' }}></div>}>
-              <DeferredNotices />
-            </Suspense>
-          </div>
+          <Suspense fallback={<div className="skeleton-dash" style={{ height: '220px', borderRadius: '12px' }}></div>}>
+            <DeferredGlobalPolls userId={user.id} role={profile?.role || 'student'} email={profile?.email} />
+          </Suspense>
+          <Suspense fallback={<div className="skeleton-dash" style={{ height: '220px', borderRadius: '12px' }}></div>}>
+            <DeferredDashboardPolls userId={user.id} />
+          </Suspense>
+          <Suspense fallback={<div className="skeleton-dash" style={{ height: '300px', borderRadius: '12px' }}></div>}>
+            <DeferredNotices />
+          </Suspense>
         </div>
       </div>
     </div>
@@ -151,25 +145,7 @@ async function DeferredGlobalPolls({ userId, role, email }: { userId: string; ro
   );
 
   if (!activeGlobalPolls || activeGlobalPolls.length === 0) return null;
-  return (
-    <div style={{ marginBottom: 'var(--space-2xl)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-lg)' }}>
-        <h2 className="section-title" style={{ margin: 0 }}>Active Global Polls</h2>
-        <Link href="/polls" style={{ color: 'var(--neon-cyan)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)', whiteSpace: 'nowrap' }}>View all polls →</Link>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
-        {activeGlobalPolls.map((poll: any) => (
-          <GlobalPollCard 
-            key={poll.id} 
-            poll={poll} 
-            currentUserId={userId} 
-            currentUserRole={role} 
-            currentUserEmail={email}
-          />
-        ))}
-      </div>
-    </div>
-  );
+  return <DashboardGlobalPolls polls={activeGlobalPolls} currentUserId={userId} currentUserRole={role} currentUserEmail={email} />;
 }
 
 async function DeferredDashboardPolls({ userId }: { userId: string }) {
@@ -189,8 +165,29 @@ async function DeferredDashboardPolls({ userId }: { userId: string }) {
 }
 
 async function DeferredNotices() {
-  const notices = await getNotices(2);
-  if (!notices || notices.length === 0) return null;
+  const supabase = await createClient();
+  const user = await getUser();
+  if (!user) return null;
+  const [{ data: enrollments }, globalNotices] = await Promise.all([
+    supabase.from('enrollments').select('course_id').eq('user_id', user.id).eq('status', 'approved'),
+    getNotices(10),
+  ]);
+  const courseIds = enrollments?.map(enrollment => enrollment.course_id) || [];
+  const { data: courseNotices } = courseIds.length > 0
+    ? await supabase.from('course_notices')
+      .select('id, course_id, title, content, created_by, created_at, profiles:created_by(name, role, email), courses:course_id(title)')
+      .in('course_id', courseIds)
+      .order('created_at', { ascending: false })
+      .limit(10)
+    : { data: [] };
+  const notices = [
+    ...(globalNotices || []).map(notice => ({ ...notice, noticeScope: 'Global' })),
+    ...(courseNotices || []).map(notice => {
+      const course = Array.isArray(notice.courses) ? notice.courses[0] : notice.courses;
+      return { ...notice, noticeScope: course?.title || 'Enrolled course' };
+    }),
+  ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 6);
+  if (notices.length === 0) return null;
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-lg)' }}>
