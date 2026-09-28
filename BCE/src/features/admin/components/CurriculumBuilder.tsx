@@ -14,7 +14,6 @@ import {
 import { reviewSubmissionAction } from '@/features/admin/actions/submissions';
 import { completeCourseAndIssueCertificates } from '@/features/courses/actions/certificates';
 import type { Course, Lesson, Assignment, Badge } from '@/types';
-import CreatePollWidget from '@/features/courses/components/CreatePollWidget';
 import CreateMcqModal from '@/features/courses/components/CreateMcqModal';
 import { parseAttachmentUrls } from '@/lib/attachments';
 import { Edit, Trash2, ChevronDown, ChevronUp, HelpCircle } from 'lucide-react';
@@ -345,20 +344,6 @@ export default function CurriculumBuilder({ course, lessons, submissions = [] }:
         </div>
       </div>
 
-      {/* INSTRUCTOR COURSE POLL PANEL */}
-      {!course.is_completed && (
-        <div className="curriculum-polls-panel" style={{ padding: 'var(--space-lg)', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(255,255,255,0.05)' }}>
-          <div className="curriculum-polls-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-md)', flexWrap: 'wrap', gap: 'var(--space-sm)' }}>
-            <h2 className="section-title" style={{ margin: 0 }}>Course Polls</h2>
-            <Link href={`/courses/${course.id}`} style={{ textDecoration: 'none' }}>
-              <Button variant="success" size="sm" style={{ padding: '8px 12px', fontSize: '0.85rem', fontWeight: 'var(--weight-bold)' }}>
-                View Polls & Doubts
-              </Button>
-            </Link>
-          </div>
-          <CreatePollWidget courseId={course.id} hideHeading={true} />
-        </div>
-      )}
       </div>
 
       {!course.is_completed && (
