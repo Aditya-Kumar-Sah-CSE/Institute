@@ -65,6 +65,7 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
   const [isInstallable, setIsInstallable] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [isNavWrapped, setIsNavWrapped] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({ Study: true, Coding: true, Games: true, General: true });
 
   useEffect(() => {
     if (isCollapsed) {
@@ -334,10 +335,19 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
               {groupName !== 'Overview' && (
                 <>
                   <hr className="sidebar-divider" />
-                  <div className="sidebar-group-title">{groupName}</div>
+                  <button
+                    type="button"
+                    className="sidebar-group-title"
+                    aria-expanded={expandedGroups[groupName]}
+                    onClick={() => setExpandedGroups(current => ({ ...current, [groupName]: !current[groupName] }))}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 0, textAlign: 'left', cursor: 'pointer' }}
+                  >
+                    {groupName}
+                    <ChevronDown size={14} style={{ transform: expandedGroups[groupName] ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 160ms ease' }} />
+                  </button>
                 </>
               )}
-              {itemsInGroup.map((item) => (
+              {(groupName === 'Overview' || expandedGroups[groupName]) && itemsInGroup.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}

@@ -13,7 +13,7 @@ import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 import { getIcon } from '@/lib/icon-mapper';
 import { signOut } from '@/features/auth/actions/auth';
 import { isAdminRole, isInstructorRole } from '@/lib/role-utils';
-import { MoreVertical, ArrowLeft, Smartphone, Monitor, Sparkles } from 'lucide-react';
+import { MoreVertical, ArrowLeft, Smartphone, Monitor, Sparkles, ChevronDown } from 'lucide-react';
 
 const ITEM_GROUPS: Record<string, string> = {
   'Dashboard': 'Overview',
@@ -58,6 +58,7 @@ interface NavbarProps {
 
 export default function Navbar({ title, companyName, companyLogo, profile, currentView = 'student' }: NavbarProps) {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const [expandedGroups, setExpandedGroups] = React.useState<Record<string, boolean>>({ Study: true, Coding: true, Games: true, General: true });
 
   const pathname = usePathname();
   const router = useRouter();
@@ -385,8 +386,20 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
                   return (
                     <React.Fragment key={groupName}>
                       {(idx > 0 || panelItems.length > 0) && <div className="mobile-divider" />}
-                      <div className="mobile-group-title">{groupName}</div>
-                      {itemsInGroup.map((item) => (
+                      {groupName === 'Overview' ? (
+                        <div className="mobile-group-title">{groupName}</div>
+                      ) : (
+                        <button
+                          type="button"
+                          className="mobile-group-title mobile-group-toggle"
+                          aria-expanded={expandedGroups[groupName]}
+                          onClick={() => setExpandedGroups(current => ({ ...current, [groupName]: !current[groupName] }))}
+                        >
+                          {groupName}
+                          <ChevronDown size={15} style={{ transform: expandedGroups[groupName] ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 160ms ease' }} />
+                        </button>
+                      )}
+                      {(groupName === 'Overview' || expandedGroups[groupName]) && itemsInGroup.map((item) => (
                         <Link
                           key={item.href}
                           href={item.href}

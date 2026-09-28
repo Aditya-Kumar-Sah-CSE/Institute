@@ -192,6 +192,20 @@
   opacity: 0.7;
 }
 
+.mobile-group-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 10px;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
 .mobile-dropdown a, .mobile-logout-btn {
   display: flex;
   align-items: center;
