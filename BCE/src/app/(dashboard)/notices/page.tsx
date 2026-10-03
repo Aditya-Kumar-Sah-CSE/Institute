@@ -13,7 +13,10 @@ export default async function NoticesPage() {
 
   if (!user) return null;
 
-  const notices = await getNotices();
+  const [notices, { data: profile }] = await Promise.all([
+    getNotices(),
+    supabase.from('profiles').select('role').eq('id', user.id).maybeSingle(),
+  ]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
@@ -26,7 +29,7 @@ export default async function NoticesPage() {
         </p>
       </div>
 
-      <NoticeBoard notices={notices as Notice[]} />
+      <NoticeBoard notices={notices as Notice[]} currentUserId={user.id} currentUserRole={profile?.role} />
     </div>
   );
 }

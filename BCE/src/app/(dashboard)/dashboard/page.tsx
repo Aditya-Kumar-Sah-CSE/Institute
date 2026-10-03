@@ -16,7 +16,6 @@ import { Suspense } from 'react';
 
 const NoticeBoard = dynamic(() => import('@/features/notices/components/NoticeBoard'), { loading: () => <div className="skeleton-dash" style={{ height: '300px', borderRadius: '12px' }}></div> });
 const DashboardPolls = dynamic(() => import('./components/DashboardPolls'), { loading: () => <div className="skeleton-dash" style={{ height: '200px', borderRadius: '12px' }}></div> });
-import LearningIntelligenceSection from '@/features/analytics/components/LearningIntelligenceSection';
 
 interface DashboardEnrollment {
   progress: number;
@@ -105,10 +104,6 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
         </div>
 
 
-        <Suspense fallback={<div className="skeleton-dash" style={{ height: '320px', borderRadius: '12px' }}></div>}>
-          <LearningIntelligenceSection userId={user.id} />
-        </Suspense>
-
         <div className="dashboard-bottom-row">
           <Suspense fallback={<div className="skeleton-dash" style={{ height: '220px', borderRadius: '12px' }}></div>}>
             <DeferredGlobalPolls userId={user.id} role={profile?.role || 'student'} email={profile?.email} />
@@ -157,9 +152,10 @@ async function DeferredNotices() {
   const supabase = await createClient();
   const user = await getUser();
   if (!user) return null;
-  const [{ data: enrollments }, globalNotices] = await Promise.all([
+  const [{ data: enrollments }, globalNotices, { data: profile }] = await Promise.all([
     supabase.from('enrollments').select('course_id').eq('user_id', user.id).eq('status', 'approved'),
     getNotices(10),
+    supabase.from('profiles').select('role').eq('id', user.id).maybeSingle(),
   ]);
   const courseIds = enrollments?.map(enrollment => enrollment.course_id) || [];
   const { data: courseNotices } = courseIds.length > 0
@@ -173,7 +169,7 @@ async function DeferredNotices() {
     ...(globalNotices || []).map(notice => ({ ...notice, noticeScope: 'Global' })),
     ...(courseNotices || []).map(notice => {
       const course = Array.isArray(notice.courses) ? notice.courses[0] : notice.courses;
-      return { ...notice, noticeScope: course?.title || 'Enrolled course' };
+      return { ...notice, author_id: notice.created_by, noticeScope: course?.title || 'Enrolled course' };
     }),
   ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 6);
   if (notices.length === 0) return null;
@@ -183,7 +179,7 @@ async function DeferredNotices() {
         <h2 style={{ fontSize: 'var(--text-2xl)', margin: 0 }}>Recent Notices</h2>
         <Link href="/notices" style={{ color: 'var(--neon-cyan)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)', whiteSpace: 'nowrap' }}>View all notices →</Link>
       </div>
-      <NoticeBoard notices={notices as Notice[]} />
+      <NoticeBoard notices={notices as Notice[]} currentUserId={user.id} currentUserRole={profile?.role} />
     </div>
   );
 }

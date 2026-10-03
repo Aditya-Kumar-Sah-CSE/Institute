@@ -1,8 +1,13 @@
 import { getCourseNotices } from '../actions/notices';
+import { createClient } from '@/lib/supabase/server';
 import CourseNoticesClient from './CourseNoticesClient';
 
 export default async function CourseNoticesSection({ courseId, canPost }: { courseId: string; canPost: boolean }) {
-  const { data, error } = await getCourseNotices(courseId);
+  const supabase = await createClient();
+  const [{ data: { user } }, { data, error }] = await Promise.all([
+    supabase.auth.getUser(),
+    getCourseNotices(courseId),
+  ]);
   if (error) {
     console.error(`Error fetching course notices (${error.code || 'unknown'}): ${error.message}`);
     const migrationMissing = error.code === 'PGRST205' || error.code === '42P01';
@@ -14,5 +19,5 @@ export default async function CourseNoticesSection({ courseId, canPost }: { cour
       </section>
     );
   }
-  return <CourseNoticesClient courseId={courseId} canPost={canPost} notices={data || []} />;
+  return <CourseNoticesClient courseId={courseId} canPost={canPost} currentUserId={user?.id} notices={data || []} />;
 }

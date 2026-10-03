@@ -23,6 +23,7 @@ import TagsManager from './components/TagsManager';
 import ExternalCertificatesManager from './components/ExternalCertificatesManager';
 import RecentActivity from './components/RecentActivity';
 import StorageUsageIndicator from '@/components/shared/StorageUsageIndicator';
+import LearningIntelligenceSection from '@/features/analytics/components/LearningIntelligenceSection';
 import { Suspense } from 'react';
 import './Profile.css';
 
@@ -311,6 +312,12 @@ export default async function ProfilePage() {
             </Suspense>
           </Card>
         </div>
+      </div>
+
+      <div style={{ marginTop: 'var(--space-xl)' }}>
+        <Suspense fallback={<div className="skeleton-dash" style={{ height: '320px', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--glass-border)' }}></div>}>
+          <LearningIntelligenceSection userId={user.id} />
+        </Suspense>
       </div>
     </div>
   );
