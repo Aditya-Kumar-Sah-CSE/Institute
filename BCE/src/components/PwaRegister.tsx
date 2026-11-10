@@ -75,11 +75,8 @@ export default function PwaRegister() {
         });
     };
 
-    if (document.readyState === 'complete') {
-      registerSw();
-    } else {
-      window.addEventListener('load', registerSw);
-    }
+    // Register immediately so SW is active and precaches app shell for <300ms launch
+    registerSw();
 
     const onControllerChange = () => {
       if (isSafeToReloadForSwChange()) {

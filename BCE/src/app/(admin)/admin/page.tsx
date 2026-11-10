@@ -179,7 +179,7 @@ export default async function AdminDashboardPage() {
               <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}><Users className="w-5 h-5 text-neon-magenta" /></span>
               <span style={{ whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.4' }}>User Administration</span>
             </a>
-            <hr style={{ border: 'none', borderBottom: '1px solid var(--glass-border)', margin: 'var(--space-xs) 0' }} />
+            <hr style={{ borderTop: 'none', borderLeft: 'none', borderRight: 'none', borderBottom: '1px solid var(--glass-border)', margin: 'var(--space-xs) 0' }} />
             <form action={toggleAdmissionPin} style={{ width: '100%', display: 'flex' }}>
               <button type="submit" className="btn btn-secondary btn-md" style={{ width: '100%', justifyContent: 'flex-start', gap: '12px', background: settings?.is_admission_pinned ? 'rgba(255, 0, 0, 0.1)' : 'rgba(0, 242, 254, 0.1)', border: settings?.is_admission_pinned ? '1px solid var(--neon-red)' : '1px solid var(--neon-cyan)', color: settings?.is_admission_pinned ? 'var(--neon-red)' : 'var(--neon-cyan)', cursor: 'pointer', height: 'auto', minHeight: '40px', padding: '12px 16px', textAlign: 'left' }}>
                 <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>

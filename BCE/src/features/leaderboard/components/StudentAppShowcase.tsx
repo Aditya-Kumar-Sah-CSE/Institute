@@ -7,10 +7,11 @@ import Input, { TextArea } from '@/components/ui/Input';
 import { 
   Rocket, Link as LinkIcon, Smartphone, FileText, 
   CheckCircle, XCircle, Clock, Trash2, ShieldCheck, 
-  ExternalLink, Upload, AlertCircle, Sparkles, ChevronDown, ChevronUp, Eye
+  ExternalLink, Upload, AlertCircle, Sparkles, ChevronDown, ChevronUp, Eye,
+  Pencil
 } from 'lucide-react';
 import { 
-  submitStudentApp, approveStudentApp, rejectStudentApp, deleteStudentApp 
+  submitStudentApp, updateStudentApp, approveStudentApp, rejectStudentApp, deleteStudentApp 
 } from '../actions/showcase-actions';
 import Image from 'next/image';
 
@@ -61,11 +62,88 @@ export default function StudentAppShowcase({
   const [appLogoFile, setAppLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
+  // Edit Form states
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingAppId, setEditingAppId] = useState<string | null>(null);
+  const [editAppName, setEditAppName] = useState('');
+  const [editStudentName, setEditStudentName] = useState('');
+  const [editMobileNo, setEditMobileNo] = useState('');
+  const [editBatch, setEditBatch] = useState('');
+  const [editProblemAddressing, setEditProblemAddressing] = useState('');
+  const [editSolution, setEditSolution] = useState('');
+  const [editWorkingUrl, setEditWorkingUrl] = useState('');
+  const [editLogoFile, setEditLogoFile] = useState<File | null>(null);
+  const [editLogoPreview, setEditLogoPreview] = useState<string | null>(null);
+  const [currentLogoUrl, setCurrentLogoUrl] = useState<string | null>(null);
+
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setAppLogoFile(file);
       setLogoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleEditLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setEditLogoFile(file);
+      setEditLogoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleOpenEdit = (sub: any) => {
+    setEditingAppId(sub.id);
+    setEditAppName(sub.app_name || '');
+    setEditStudentName(sub.student_name || '');
+    setEditMobileNo(sub.mobile_no || '');
+    setEditBatch(sub.batch || '');
+    setEditProblemAddressing(sub.problem_addressing || '');
+    setEditSolution(sub.solution || '');
+    setEditWorkingUrl(sub.working_url || '');
+    setCurrentLogoUrl(sub.app_logo_url || null);
+    setEditLogoFile(null);
+    setEditLogoPreview(null);
+    setError(null);
+    setSuccess(null);
+    setShowEditModal(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingAppId) return;
+    setError(null);
+    setSuccess(null);
+    setIsSubmitting(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('id', editingAppId);
+      formData.append('app_name', editAppName);
+      formData.append('student_name', editStudentName);
+      formData.append('mobile_no', editMobileNo);
+      formData.append('batch', editBatch);
+      formData.append('problem_addressing', editProblemAddressing);
+      formData.append('solution', editSolution);
+      formData.append('working_url', editWorkingUrl);
+      if (editLogoFile) {
+        formData.append('app_logo', editLogoFile);
+      }
+
+      const res = await updateStudentApp(formData);
+      if (res.error) {
+        setError(res.error);
+      } else {
+        setSuccess('Showcase submission updated successfully!');
+        setTimeout(() => {
+          setShowEditModal(false);
+          setSuccess(null);
+        }, 1800);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Update failed.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -236,6 +314,28 @@ export default function StudentAppShowcase({
                           <XCircle size={13} /> Rejected
                         </span>
                       )}
+                      <button 
+                        type="button"
+                        onClick={() => handleOpenEdit(sub)} 
+                        style={{ 
+                          border: '1px solid rgba(0, 240, 255, 0.4)', 
+                          background: 'rgba(0, 240, 255, 0.1)', 
+                          color: '#00f0ff', 
+                          cursor: 'pointer', 
+                          display: 'inline-flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '6px',
+                          padding: 0,
+                          transition: 'all 0.2s'
+                        }} 
+                        title="Edit submission"
+                        aria-label="Edit submission"
+                      >
+                        <Pencil size={13} />
+                      </button>
                       <button onClick={() => handleDelete(sub.id)} style={{ border: 'none', background: 'transparent', color: 'rgba(239, 68, 68, 0.7)', cursor: 'pointer', display: 'flex', padding: 0 }} title="Delete submission">
                         <Trash2 size={15} />
                       </button>
@@ -487,6 +587,79 @@ export default function StudentAppShowcase({
                 </Button>
                 <Button type="submit" variant="primary" isLoading={isSubmitting}>
                   Submit Application
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
+
+      {/* Edit Submission Modal Sheet */}
+      {showEditModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(6px)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--space-md)' }}>
+          <div style={{ position: 'fixed', inset: 0 }} onClick={() => { if (!isSubmitting) setShowEditModal(false); }} />
+          <Card variant="glass" style={{ width: '100%', maxWidth: '580px', background: 'var(--bg-secondary)', zIndex: 2001, maxHeight: '90vh', overflowY: 'auto', position: 'relative' }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: 'var(--text-lg)', margin: '0 0 16px 0' }}>
+              <Pencil className="text-neon-cyan" size={20} /> Edit App Showcase
+            </h2>
+            
+            <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {error && <div style={{ color: 'var(--neon-red)', fontSize: '13px', background: 'rgba(239, 68, 68, 0.1)', padding: '8px 12px', borderRadius: '6px', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', gap: '6px' }}><AlertCircle size={15} /> {error}</div>}
+              {success && <div style={{ color: 'var(--neon-emerald)', fontSize: '13px', background: 'rgba(34, 197, 94, 0.1)', padding: '8px 12px', borderRadius: '6px', border: '1px solid rgba(34,197,94,0.2)', display: 'flex', alignItems: 'center', gap: '6px' }}><CheckCircle size={15} /> {success}</div>}
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <Input label="App / Project Name" name="app_name" value={editAppName} onChange={(e) => setEditAppName(e.target.value)} required placeholder="e.g. Smart Doubt Solver" />
+                <Input label="Student Name" name="student_name" value={editStudentName} onChange={(e) => setEditStudentName(e.target.value)} required placeholder="Your full name" />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <Input label="Mobile No" name="mobile_no" value={editMobileNo} onChange={(e) => setEditMobileNo(e.target.value)} required placeholder="e.g. 9876543210" />
+                <Input label="Batch / Year" name="batch" value={editBatch} onChange={(e) => setEditBatch(e.target.value)} required placeholder="e.g. CSE 2026, sem 3" />
+              </div>
+
+              <TextArea label="What Problem is this app addressing?" name="problem_addressing" value={editProblemAddressing} onChange={(e) => setEditProblemAddressing(e.target.value)} required placeholder="Describe the problem area your app targets..." rows={2} />
+              
+              <TextArea label="What is your Solution?" name="solution" value={editSolution} onChange={(e) => setEditSolution(e.target.value)} required placeholder="Explain your implementation, tools used, and solution details..." rows={2} />
+
+              <Input label="Working Website / PlayStore App URL" name="working_url" type="url" value={editWorkingUrl} onChange={(e) => setEditWorkingUrl(e.target.value)} required placeholder="https://my-app.vercel.app" />
+
+              {/* Logo Upload Box */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>App Icon / Logo</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  {editLogoPreview ? (
+                    <img src={editLogoPreview} alt="Logo preview" style={{ width: '48px', height: '48px', borderRadius: '10px', objectFit: 'cover', border: '1px solid var(--neon-cyan)' }} />
+                  ) : currentLogoUrl ? (
+                    <img src={currentLogoUrl} alt="Current logo" style={{ width: '48px', height: '48px', borderRadius: '10px', objectFit: 'cover', border: '1px solid var(--glass-border)' }} />
+                  ) : (
+                    <div style={{ width: '48px', height: '48px', borderRadius: '10px', border: '1px dashed var(--glass-border)', display: 'grid', placeItems: 'center', color: 'var(--text-muted)' }}>
+                      <Smartphone size={20} />
+                    </div>
+                  )}
+                  <label style={{
+                    padding: '8px 16px',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--glass-border)',
+                    background: 'var(--bg-elevated)',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <Upload size={14} /> Change Logo (Optional)
+                    <input type="file" accept="image/*" onChange={handleEditLogoChange} style={{ display: 'none' }} />
+                  </label>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '12px' }}>
+                <Button type="button" variant="ghost" onClick={() => setShowEditModal(false)} disabled={isSubmitting}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" isLoading={isSubmitting}>
+                  Save Changes
                 </Button>
               </div>
             </form>

@@ -104,7 +104,9 @@ export default function LessonPageClient({
       {/* Section Content */}
       <div style={{
         background: 'var(--bg-elevated)',
-        border: '1px solid var(--glass-border)',
+        borderBottom: '1px solid var(--glass-border)',
+        borderLeft: '1px solid var(--glass-border)',
+        borderRight: '1px solid var(--glass-border)',
         borderTop: 'none',
         borderRadius: '0 0 var(--radius-lg) var(--radius-lg)',
         padding: 'var(--space-xl)',

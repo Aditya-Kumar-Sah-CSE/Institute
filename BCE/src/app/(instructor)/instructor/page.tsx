@@ -69,6 +69,18 @@ export default async function InstructorDashboardPage() {
     }
   }
 
+    // Include pending student app showcase reviews
+  try {
+    const serviceRoleClient = await createAdminClient();
+    const { count: pendingAppsCount } = await serviceRoleClient
+      .from('student_apps')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending');
+    pendingReviewsCount += pendingAppsCount || 0;
+  } catch (error) {
+    console.error("Failed to fetch pending student apps count:", error);
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
       <div className="page-header" style={{ marginBottom: 0 }}>

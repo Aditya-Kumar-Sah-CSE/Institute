@@ -71,8 +71,10 @@ export default function DiscussionThread({ doubt, replies, currentUser }: any) {
         padding: isNested ? 0 : 'clamp(var(--space-sm), 3vw, var(--space-md))',
         background: isNested ? 'transparent' : 'rgba(255,255,255,0.02)',
         borderRadius: '12px',
-        border: reply.is_accepted ? '2px solid var(--neon-green)' : (isNested ? 'none' : '1px solid rgba(255,255,255,0.1)'),
-        borderLeft: isNested ? '2px solid rgba(255,255,255,0.1)' : undefined,
+        borderTop: reply.is_accepted ? '2px solid var(--neon-green)' : (isNested ? 'none' : '1px solid rgba(255,255,255,0.1)'),
+        borderRight: reply.is_accepted ? '2px solid var(--neon-green)' : (isNested ? 'none' : '1px solid rgba(255,255,255,0.1)'),
+        borderBottom: reply.is_accepted ? '2px solid var(--neon-green)' : (isNested ? 'none' : '1px solid rgba(255,255,255,0.1)'),
+        borderLeft: isNested ? '2px solid rgba(255,255,255,0.1)' : (reply.is_accepted ? '2px solid var(--neon-green)' : '1px solid rgba(255,255,255,0.1)'),
         paddingLeft: isNested ? 'clamp(8px, 3vw, var(--space-md))' : 'clamp(var(--space-sm), 3vw, var(--space-md))'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-sm)' }}>

@@ -226,7 +226,8 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
   }
 
   const isChatRoute = pathname ? pathname.includes('/chat') : false;
-  const logoHref = currentView === 'admin' ? '/admin' : currentView === 'instructor' ? '/instructor' : '/dashboard';
+  // Logo always redirects to public landing page
+  const logoHref = '/';
 
   const sidebarClasses = [
     'sidebar',

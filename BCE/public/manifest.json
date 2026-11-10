@@ -2,11 +2,9 @@
   "name": "Smart Learn",
   "short_name": "Smart Learn",
   "description": "Smart Hybrid Learning & Student Engagement Platform",
-
   "start_url": "/pwa-start",
   "id": "/pwa-start",
   "scope": "/",
-
   "display": "standalone",
   "display_override": [
     "standalone",
@@ -16,8 +14,10 @@
   "orientation": "any",
   "background_color": "#0b0f19",
   "theme_color": "#0b0f19",
-  "categories": ["education", "productivity"],
-
+  "categories": [
+    "education",
+    "productivity"
+  ],
   "share_target": {
     "action": "/api/pwa-share-target",
     "method": "POST",
@@ -44,31 +44,44 @@
       ]
     }
   },
-
   "shortcuts": [
     {
       "name": "Dashboard",
       "short_name": "Dashboard",
       "description": "Open student learning dashboard",
       "url": "/dashboard",
-      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "Courses",
       "short_name": "Courses",
       "description": "Browse active courses and lessons",
       "url": "/courses",
-      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
-      "name": "Coding Battle",
-      "short_name": "Battles",
-      "description": "Join live coding challenges",
-      "url": "/battles",
-      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+      "name": "Code Arena",
+      "short_name": "Arena",
+      "description": "Practice coding questions and contests",
+      "url": "/code-arena",
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ],
-
   "icons": [
     {
       "src": "/icon-192x192.png",

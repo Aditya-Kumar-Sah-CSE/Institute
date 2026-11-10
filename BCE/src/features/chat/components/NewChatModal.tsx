@@ -137,7 +137,8 @@ export default function NewChatModal({ isOpen, onClose, onChatCreated }: NewChat
             style={{
               flex: 1, padding: '10px 0', fontWeight: 'bold', fontSize: 'var(--text-sm)',
               background: 'transparent', cursor: 'pointer',
-              border: 'none', borderBottom: mode === m ? '2px solid var(--neon-cyan)' : '2px solid transparent',
+              borderTop: 'none', borderLeft: 'none', borderRight: 'none',
+              borderBottom: mode === m ? '2px solid var(--neon-cyan)' : '2px solid transparent',
               color: mode === m ? 'var(--neon-cyan)' : 'var(--text-secondary)',
               transition: 'all 0.2s'
             }}

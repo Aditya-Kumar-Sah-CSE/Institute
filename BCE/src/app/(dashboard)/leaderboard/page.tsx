@@ -29,7 +29,7 @@ export default async function LeaderboardPage({
     const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single();
     userProfile = p;
   }
-  const isShowcaseAdmin = userProfile && ['admin', 'developer'].includes(userProfile.role);
+  const isShowcaseAdmin = userProfile && ['admin', 'super_admin', 'instructor', 'developer'].includes(userProfile.role);
 
   // Load student app showcase data
   const { data: approvedApps } = await supabase

@@ -171,7 +171,9 @@ export default function InstructorCodeArenaClient({
           onClick={() => setActiveTab('BATTLES')}
           style={{
             background: 'transparent',
-            border: 'none',
+            borderTop: 'none',
+            borderLeft: 'none',
+            borderRight: 'none',
             borderBottom: activeTab === 'BATTLES' ? '2px solid var(--neon-cyan)' : '2px solid transparent',
             color: activeTab === 'BATTLES' ? 'var(--neon-cyan)' : 'var(--text-muted)',
             padding: '10px 16px',
@@ -190,7 +192,9 @@ export default function InstructorCodeArenaClient({
           onClick={() => setActiveTab('PROBLEMS')}
           style={{
             background: 'transparent',
-            border: 'none',
+            borderTop: 'none',
+            borderLeft: 'none',
+            borderRight: 'none',
             borderBottom: activeTab === 'PROBLEMS' ? '2px solid var(--neon-cyan)' : '2px solid transparent',
             color: activeTab === 'PROBLEMS' ? 'var(--neon-cyan)' : 'var(--text-muted)',
             padding: '10px 16px',

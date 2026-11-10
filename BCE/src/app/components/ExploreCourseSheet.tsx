@@ -709,3 +709,4 @@ export default function ExploreCourseSheet({ courseId, onClose }: ExploreCourseS
 
   return createPortal(content, document.body);
 }
+

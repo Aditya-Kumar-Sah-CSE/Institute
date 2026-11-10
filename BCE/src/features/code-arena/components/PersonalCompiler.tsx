@@ -327,7 +327,7 @@ function ExplorerActionsMenu({
           {isLocalMode && (
             <button
               onClick={(e) => handleAction(e, onCloseFolder)}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', background: 'none', border: 'none', color: 'var(--text-main)', cursor: 'pointer', textAlign: 'left', borderRadius: '4px', fontSize: '12px', borderTop: '1px solid var(--glass-border)', marginTop: '2px', paddingTop: '6px' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', background: 'none', borderBottom: 'none', borderLeft: 'none', borderRight: 'none', borderTop: '1px solid var(--glass-border)', color: 'var(--text-main)', cursor: 'pointer', textAlign: 'left', borderRadius: '4px', fontSize: '12px', marginTop: '2px', paddingTop: '6px' }}
               onMouseOver={e => e.currentTarget.style.background = 'rgba(239,68,68,0.1)'}
               onMouseOut={e => e.currentTarget.style.background = 'none'}
             >

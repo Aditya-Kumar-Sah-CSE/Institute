@@ -5,7 +5,7 @@ import { awardXP } from '@/features/auth/actions/auth';
 import { revalidatePath } from 'next/cache';
 
 import Link from 'next/link';
-import SubmissionsListClient from '@/features/admin/components/SubmissionsListClient';
+import SubmissionsReviewTabs from '@/features/admin/components/SubmissionsReviewTabs';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,6 +33,11 @@ export default async function SubmissionsPage(props: {
     .range(start, end);
 
   const { data: submissions, count } = await query;
+  const { data: pendingApps } = await adminSupabase
+    .from('student_apps')
+    .select('*')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
   const totalPages = Math.ceil((count || 0) / limit);
 
   async function reviewSubmission(formData: FormData) {
@@ -71,27 +76,14 @@ export default async function SubmissionsPage(props: {
         <h1 className="text-gradient">Review Submissions</h1>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
-        <SubmissionsListClient submissions={submissions || []} reviewSubmissionAction={reviewSubmission} />
-
-        {totalPages > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 'var(--space-sm)', marginTop: 'var(--space-lg)' }}>
-            {page > 1 && (
-              <Link href={`/admin/submissions?page=${page - 1}`}>
-                <Button variant="secondary" size="sm">Previous Page</Button>
-              </Link>
-            )}
-            <span style={{ padding: 'var(--space-xs) var(--space-sm)', color: 'var(--text-secondary)' }}>
-              Page {page} of {totalPages}
-            </span>
-            {page < totalPages && (
-              <Link href={`/admin/submissions?page=${page + 1}`}>
-                <Button variant="secondary" size="sm">Next Page</Button>
-              </Link>
-            )}
-          </div>
-        )}
-      </div>
+      <SubmissionsReviewTabs
+        submissions={submissions || []}
+        reviewSubmissionAction={reviewSubmission}
+        pendingApps={pendingApps || []}
+        totalPages={totalPages}
+        currentPage={page}
+        basePath="/admin/submissions"
+      />
     </div>
   );
 }

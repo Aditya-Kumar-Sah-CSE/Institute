@@ -3138,8 +3138,10 @@ export default function GamePage() {
                   style={{
                     flex: 1,
                     background: 'transparent',
-                    border: 'none',
-                    borderBottom: leaderboardTab === tab ? '2px solid #a855f7' : 'none',
+                    borderTop: 'none',
+                    borderLeft: 'none',
+                    borderRight: 'none',
+                    borderBottom: leaderboardTab === tab ? '2px solid #a855f7' : '2px solid transparent',
                     color: leaderboardTab === tab ? '#c084fc' : '#64748b',
                     fontWeight: 800,
                     fontSize: '11px',

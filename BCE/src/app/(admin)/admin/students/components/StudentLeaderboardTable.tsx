@@ -564,7 +564,7 @@ export default function StudentLeaderboardTable({ students, isInstructor, curren
               </a>
             </div>
 
-            <hr style={{ border: 'none', borderBottom: '1px solid var(--border-color)', margin: 0 }} />
+            <hr style={{ borderTop: 'none', borderLeft: 'none', borderRight: 'none', borderBottom: '1px solid var(--border-color)', margin: 0 }} />
 
             {/* Enrolled Courses Section */}
             <div>

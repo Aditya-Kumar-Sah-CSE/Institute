@@ -171,9 +171,9 @@ export default function StoryViewerCanvas({
       await deleteStoryItem(currentItem.id);
       onRefreshFeed();
       onClose();
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert('Failed to delete story');
+      alert(e?.message || 'Failed to delete story');
     } finally {
       setIsDeleting(false);
       setShowDeleteConfirm(false);
@@ -740,11 +740,11 @@ export default function StoryViewerCanvas({
                 inset: 0,
                 backgroundColor: 'rgba(0, 0, 0, 0.8)',
                 backdropFilter: 'blur(8px)',
-                zIndex: 10000
+                zIndex: 100000003
               }}
             />
 
-            <div style={{ position: 'fixed', inset: 0, zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', pointerEvents: 'none' }}>
+            <div style={{ position: 'fixed', inset: 0, zIndex: 100000004, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', pointerEvents: 'none' }}>
               <motion.div
                 initial={{ opacity: 0, scale: 0.85, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}

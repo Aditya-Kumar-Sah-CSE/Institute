@@ -321,7 +321,9 @@ export default function ChatComposer({
           background: 'var(--bg-card)',
           padding: '4px 12px',
           borderRadius: '12px 12px 0 0',
-          border: '1px solid var(--border-divider)',
+          borderTop: '1px solid var(--border-divider)',
+          borderLeft: '1px solid var(--border-divider)',
+          borderRight: '1px solid var(--border-divider)',
           borderBottom: 'none'
         }}>
           <Loader2 size={12} className="animate-spin" />

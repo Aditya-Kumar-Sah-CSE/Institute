@@ -213,8 +213,30 @@ export async function deleteStory(storyId: string) {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData?.user) throw new Error('Not authenticated');
 
+  const adminSb = await createAdminClient();
+
+  // Verify ownership or privileged role
+  const { data: story } = await adminSb
+    .from('stories')
+    .select('id, user_id')
+    .eq('id', storyId)
+    .single();
+
+  if (!story) return true;
+
+  const { data: profile } = await adminSb
+    .from('profiles')
+    .select('role')
+    .eq('id', userData.user.id)
+    .single();
+
+  const isPrivileged = profile && ['admin', 'super_admin', 'instructor', 'developer'].includes(profile.role);
+  if (story.user_id !== userData.user.id && !isPrivileged) {
+    throw new Error('Forbidden: you do not own this story');
+  }
+
   // Delete all items under this story container first
-  const { data: items } = await supabase
+  const { data: items } = await adminSb
     .from('story_items')
     .select('id')
     .eq('story_id', storyId);
@@ -229,21 +251,21 @@ export async function deleteStory(storyId: string) {
     }
   }
 
-  const { error } = await supabase
+  const { error } = await adminSb
     .from('stories')
     .delete()
-    .eq('id', storyId)
-    .eq('user_id', userData.user.id);
+    .eq('id', storyId);
 
   if (error) {
-    await supabase
+    await adminSb
       .from('stories')
       .update({ deleted_at: new Date().toISOString() })
-      .eq('id', storyId)
-      .eq('user_id', userData.user.id);
+      .eq('id', storyId);
   }
 
   revalidatePath('/dashboard');
+  revalidatePath('/leaderboard');
+  revalidatePath('/');
   return true;
 }
 
@@ -252,54 +274,80 @@ export async function deleteStoryItem(itemId: string) {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData?.user) throw new Error('Not authenticated');
 
-  // Explicitly verify that this item belongs to the current user via story ownership
-  // Prevents enumeration attacks where a user deletes others' story items by ID
-  const { data: item } = await supabase
+  const adminSb = await createAdminClient();
+
+  // Explicitly verify that this item belongs to the current user via story ownership or privileged role
+  const { data: item } = await adminSb
     .from('story_items')
-    .select('id, media_url, story:stories(user_id)')
+    .select('id, media_url, story_id, story:stories(user_id)')
     .eq('id', itemId)
     .single();
 
   if (!item) throw new Error('Story item not found');
 
   const ownerId = (item.story as any)?.user_id;
-  if (ownerId !== userData.user.id) throw new Error('Forbidden: you do not own this item');
 
-  // 1. Delete dependent child records to prevent foreign key constraint failures
-  await supabase.from('story_views').delete().eq('story_item_id', itemId);
-  await supabase.from('story_reactions').delete().eq('story_item_id', itemId);
-  await supabase.from('story_replies').delete().eq('story_item_id', itemId);
+  const { data: profile } = await adminSb
+    .from('profiles')
+    .select('role')
+    .eq('id', userData.user.id)
+    .single();
+
+  const isPrivileged = profile && ['admin', 'super_admin', 'instructor', 'developer'].includes(profile.role);
+  if (ownerId !== userData.user.id && !isPrivileged) {
+    throw new Error('Forbidden: you do not own this item');
+  }
+
+  // 1. Delete dependent child records with admin client to bypass foreign key and RLS blocks
+  await adminSb.from('story_views').delete().eq('story_item_id', itemId);
+  await adminSb.from('story_reactions').delete().eq('story_item_id', itemId);
+  await adminSb.from('story_replies').delete().eq('story_item_id', itemId);
 
   // 2. Remove media file from Supabase storage if present
   if (item.media_url) {
     try {
       const match = item.media_url.match(/\/storage\/v1\/object\/public\/story_media\/(.+)$/);
       if (match && match[1]) {
-        await supabase.storage.from(STORY_BUCKET).remove([decodeURIComponent(match[1])]);
+        await adminSb.storage.from(STORY_BUCKET).remove([decodeURIComponent(match[1])]);
       }
     } catch (e) {
       console.warn('Notice cleaning up storage during story delete:', e);
     }
   }
 
-  // 3. Delete story item row directly
-  const { error } = await supabase
+  // 3. Delete story item row directly with admin client
+  const { error } = await adminSb
     .from('story_items')
     .delete()
     .eq('id', itemId);
 
   if (error) {
-    // Fallback: soft delete if column exists
-    const { error: updateErr } = await supabase
+    // Fallback: soft delete
+    const { error: updateErr } = await adminSb
       .from('story_items')
       .update({ deleted_at: new Date().toISOString() })
       .eq('id', itemId);
 
     if (updateErr) throw error;
   }
+
+  // 4. If story container has no items left, clean it up
+  if (item.story_id) {
+    const { count } = await adminSb
+      .from('story_items')
+      .select('id', { count: 'exact', head: true })
+      .eq('story_id', item.story_id)
+      .is('deleted_at', null);
+
+    if (!count || count === 0) {
+      await adminSb.from('stories').delete().eq('id', item.story_id);
+    }
+  }
   
   // Revalidate to ensure UI refreshes immediately
   revalidatePath('/dashboard');
+  revalidatePath('/leaderboard');
+  revalidatePath('/');
   return true;
 }
 

@@ -188,16 +188,8 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
                     pathname.startsWith('/leaderboard') ? 'Leaderboard' :
                     pathname.startsWith('/profile') ? 'Profile' : '');
 
-  let homeLink = '/';
-  if (profile) {
-    if (isAdminRole(profile.role)) {
-      homeLink = '/admin';
-    } else if (isInstructorRole(profile.role) && profile.status === 'active') {
-      homeLink = '/instructor';
-    } else {
-      homeLink = '/dashboard';
-    }
-  }
+  // Logo always redirects to public landing page
+  const homeLink = '/';
 
   // Build role switchers (Panels)
   const panelItems: { href: string; label: string; icon: string; style?: React.CSSProperties }[] = [];

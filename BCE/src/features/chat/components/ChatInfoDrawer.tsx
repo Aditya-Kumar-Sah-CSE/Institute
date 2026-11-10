@@ -196,7 +196,9 @@ export default function ChatInfoDrawer({
             fontSize: '12px',
             fontWeight: 600,
             background: 'none',
-            border: 'none',
+            borderTop: 'none',
+            borderLeft: 'none',
+            borderRight: 'none',
             borderBottom: activeTab === 'info' ? '2px solid var(--neon-cyan)' : '2px solid transparent',
             color: activeTab === 'info' ? 'var(--neon-cyan)' : 'var(--text-muted)',
             cursor: 'pointer'
@@ -212,7 +214,9 @@ export default function ChatInfoDrawer({
             fontSize: '12px',
             fontWeight: 600,
             background: 'none',
-            border: 'none',
+            borderTop: 'none',
+            borderLeft: 'none',
+            borderRight: 'none',
             borderBottom: activeTab === 'media' ? '2px solid var(--neon-cyan)' : '2px solid transparent',
             color: activeTab === 'media' ? 'var(--neon-cyan)' : 'var(--text-muted)',
             cursor: 'pointer'
@@ -228,7 +232,9 @@ export default function ChatInfoDrawer({
             fontSize: '12px',
             fontWeight: 600,
             background: 'none',
-            border: 'none',
+            borderTop: 'none',
+            borderLeft: 'none',
+            borderRight: 'none',
             borderBottom: activeTab === 'docs' ? '2px solid var(--neon-cyan)' : '2px solid transparent',
             color: activeTab === 'docs' ? 'var(--neon-cyan)' : 'var(--text-muted)',
             cursor: 'pointer'
@@ -244,7 +250,9 @@ export default function ChatInfoDrawer({
             fontSize: '12px',
             fontWeight: 600,
             background: 'none',
-            border: 'none',
+            borderTop: 'none',
+            borderLeft: 'none',
+            borderRight: 'none',
             borderBottom: activeTab === 'pins' ? '2px solid var(--neon-cyan)' : '2px solid transparent',
             color: activeTab === 'pins' ? 'var(--neon-cyan)' : 'var(--text-muted)',
             cursor: 'pointer'

@@ -105,9 +105,12 @@ export default function StoryViewsSheet({ storyItemId, totalViews, isOpen, onClo
                   style={{
                     fontSize: '0.9rem', fontWeight: 600,
                     color: tab === 'views' ? '#22d3ee' : 'rgba(255,255,255,0.5)',
+                    borderTop: 'none',
+                    borderLeft: 'none',
+                    borderRight: 'none',
                     borderBottom: tab === 'views' ? '2px solid #22d3ee' : '2px solid transparent',
                     paddingBottom: '0.4rem',
-                    background: 'none', border: 'none', cursor: 'pointer',
+                    background: 'none', cursor: 'pointer',
                     display: 'flex', alignItems: 'center', gap: '0.35rem',
                     transition: 'color 0.2s'
                   }}
@@ -119,9 +122,12 @@ export default function StoryViewsSheet({ storyItemId, totalViews, isOpen, onClo
                   style={{
                     fontSize: '0.9rem', fontWeight: 600,
                     color: tab === 'replies' ? '#a78bfa' : 'rgba(255,255,255,0.5)',
+                    borderTop: 'none',
+                    borderLeft: 'none',
+                    borderRight: 'none',
                     borderBottom: tab === 'replies' ? '2px solid #a78bfa' : '2px solid transparent',
                     paddingBottom: '0.4rem',
-                    background: 'none', border: 'none', cursor: 'pointer',
+                    background: 'none', cursor: 'pointer',
                     display: 'flex', alignItems: 'center', gap: '0.35rem',
                     transition: 'color 0.2s'
                   }}
