@@ -335,21 +335,21 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
           <div className="stat-card-content">
             <div className="stat-card-value" style={{ color: 'var(--neon-cyan)', fontSize: '1.2rem', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center' }}>
               {activeSession ? (
-                <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
                    <span style={{ fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text-main)' }}>{activeSession.task_name || 'Active Focus'}</span>
-                   <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--neon-cyan)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                   <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--neon-cyan)', marginTop: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
                       ⏱️ {timeLeftStr || '00:00'} remaining
                    </span>
                 </div>
               ) : routines.length > 0 ? (
                 dueTask ? (
-                  <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                  <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'center', textAlign: 'center' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
                       <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }}>
                         {dueTask.task_name}
                       </span>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '9.5px', color: 'var(--text-muted)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '9.5px', color: 'var(--text-muted)', alignItems: 'center', textAlign: 'center' }}>
                       <span>Task {taskIdx + 1} of {sortedRoutines.length}</span>
                       <span style={{ color: isOverdue ? 'var(--neon-magenta)' : 'var(--neon-cyan)', fontWeight: 'bold' }}>
                         {formatTime12h(dueTask.time_slot)} &bull; {statusText}
@@ -357,20 +357,20 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
                     </div>
                   </div>
                 ) : (
-                  <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <span style={{ fontSize: '13px', color: 'var(--neon-lime)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center', textAlign: 'center' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--neon-lime)', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                       <Check size={14} /> Routine Completed
                     </span>
                     <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>All routines completed today!</span>
                   </div>
                 )
               ) : (
-                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--neon-cyan)' }}>
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--neon-cyan)', textAlign: 'center', width: '100%' }}>
                   Set Routine
                 </div>
               )}
             </div>
-            <div className="text-secondary stat-card-label">
+            <div className="text-secondary stat-card-label" style={{ textAlign: 'center', width: '100%' }}>
               {activeSession ? "Active Session" : routines.length > 0 ? (dueTask ? "Scheduled Routine" : "Daily Routine") : "Daily Routine"}
             </div>
           </div>

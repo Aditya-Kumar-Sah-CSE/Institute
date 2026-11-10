@@ -1,7 +1,9 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+
+const ALLOWED_ADMIN_ROLES = ['super_admin', 'superadmin', 'admin', 'instructor', 'developer', 'platform_owner'];
 
 export async function getAllPendingEnrollments() {
   const supabase = await createClient();
@@ -32,18 +34,21 @@ export async function adminApproveEnrollment(enrollmentId: string) {
     .eq('id', user.id)
     .single();
 
-  if (!profile || (profile.role !== 'admin' && profile.role !== 'instructor' && profile.role !== 'developer')) {
+  const role = (profile?.role || '').toLowerCase();
+  if (!profile || !ALLOWED_ADMIN_ROLES.includes(role)) {
     return { error: 'Unauthorized: admin, instructor, or developer role required' };
   }
 
-  const { error } = await supabase
+  const adminSupabase = await createAdminClient();
+
+  const { error } = await adminSupabase
     .from('enrollments')
     .update({ status: 'approved' })
     .eq('id', enrollmentId);
 
   let courseId = '';
   if (!error) {
-    const { data: enrollment } = await supabase
+    const { data: enrollment } = await adminSupabase
       .from('enrollments')
       .select('user_id, course_id, courses(title)')
       .eq('id', enrollmentId)
@@ -52,12 +57,16 @@ export async function adminApproveEnrollment(enrollmentId: string) {
     if (enrollment) {
       courseId = enrollment.course_id;
       const courseTitle = Array.isArray(enrollment.courses) ? enrollment.courses[0]?.title : (enrollment.courses as { title: string } | null)?.title || 'the course';
-      await supabase.from('notifications').insert({
-        user_id: enrollment.user_id,
-        type: 'system',
-        message: `Congratulations! Your enrollment in ${courseTitle} has been approved.`,
-        link: `/courses/${courseId}`
-      });
+      try {
+        await adminSupabase.from('notifications').insert({
+          user_id: enrollment.user_id,
+          type: 'system',
+          message: `Congratulations! Your enrollment in ${courseTitle} has been approved.`,
+          link: `/courses/${courseId}`
+        });
+      } catch (notifErr) {
+        console.warn('Non-critical notification insert warning:', notifErr);
+      }
     }
   }
 
@@ -68,10 +77,10 @@ export async function adminApproveEnrollment(enrollmentId: string) {
   }
   revalidatePath('/admin/enrollments');
   revalidatePath('/admin/students');
+  revalidatePath('/instructor/enrollments');
   revalidatePath('/instructor/students');
   revalidatePath('/courses');
   revalidatePath('/dashboard');
-  revalidatePath('/', 'layout');
   return { success: true };
 }
 
@@ -86,29 +95,36 @@ export async function adminRejectEnrollment(enrollmentId: string) {
     .eq('id', user.id)
     .single();
 
-  if (!profile || (profile.role !== 'admin' && profile.role !== 'instructor' && profile.role !== 'developer')) {
+  const role = (profile?.role || '').toLowerCase();
+  if (!profile || !ALLOWED_ADMIN_ROLES.includes(role)) {
     return { error: 'Unauthorized: admin, instructor, or developer role required' };
   }
   
-  const { data: enrollment } = await supabase
+  const adminSupabase = await createAdminClient();
+
+  const { data: enrollment } = await adminSupabase
     .from('enrollments')
     .select('user_id, course_id, courses(title)')
     .eq('id', enrollmentId)
     .single();
 
-  const { error } = await supabase
+  const { error } = await adminSupabase
     .from('enrollments')
     .update({ status: 'rejected' })
     .eq('id', enrollmentId);
 
   if (!error && enrollment) {
     const courseTitle = Array.isArray(enrollment.courses) ? enrollment.courses[0]?.title : (enrollment.courses as { title: string } | null)?.title || 'the course';
-    await supabase.from('notifications').insert({
-      user_id: enrollment.user_id,
-      type: 'system',
-      message: `Your enrollment in ${courseTitle} has been rejected.`,
-      link: `/catalog`
-    });
+    try {
+      await adminSupabase.from('notifications').insert({
+        user_id: enrollment.user_id,
+        type: 'system',
+        message: `Your enrollment in ${courseTitle} has been rejected.`,
+        link: `/catalog`
+      });
+    } catch (notifErr) {
+      console.warn('Non-critical notification insert warning:', notifErr);
+    }
   }
 
   if (error) return { error: error.message };
@@ -118,10 +134,10 @@ export async function adminRejectEnrollment(enrollmentId: string) {
   }
   revalidatePath('/admin/enrollments');
   revalidatePath('/admin/students');
+  revalidatePath('/instructor/enrollments');
   revalidatePath('/instructor/students');
   revalidatePath('/courses');
   revalidatePath('/dashboard');
-  revalidatePath('/', 'layout');
   return { success: true };
 }
 

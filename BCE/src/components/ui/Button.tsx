@@ -27,13 +27,15 @@ export default function Button({
 }: ButtonProps) {
   const [showConfirm, setShowConfirm] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const isConfirmedRef = useRef(false);
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (confirmMessage) {
+    if (confirmMessage && !isConfirmedRef.current) {
       e.preventDefault();
       setShowConfirm(true);
       return;
     }
+    isConfirmedRef.current = false;
     if (onClick) {
       onClick(e);
     }
@@ -41,28 +43,10 @@ export default function Button({
 
   const handleConfirm = () => {
     setShowConfirm(false);
+    isConfirmedRef.current = true;
     
-    if (props.type === 'submit' && buttonRef.current) {
-      const form = buttonRef.current.closest('form');
-      if (form) {
-        if (props.name) {
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = props.name;
-          input.value = props.value ? String(props.value) : '';
-          form.appendChild(input);
-        }
-        
-        setTimeout(() => {
-          form.requestSubmit();
-        }, 10);
-        return;
-      }
-    }
-    
-    if (onClick) {
-      const mockEvent = { preventDefault: () => {}, stopPropagation: () => {} } as React.MouseEvent<HTMLButtonElement>;
-      onClick(mockEvent);
+    if (buttonRef.current) {
+      buttonRef.current.click();
     }
   };
 
@@ -82,7 +66,7 @@ export default function Button({
       </button>
 
       {confirmMessage && (
-        <Modal isOpen={showConfirm} onClose={() => setShowConfirm(false)} title="Smart Learning App says:">
+        <Modal isOpen={showConfirm} onClose={() => setShowConfirm(false)} title="Confirmation">
           <div style={{ marginBottom: 'var(--space-lg)', color: 'var(--text-primary)' }}>
             <p>{confirmMessage}</p>
           </div>

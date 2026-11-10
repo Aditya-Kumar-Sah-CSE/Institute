@@ -257,28 +257,64 @@ small, .caption {
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .dashboard-stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-sm);
   }
   
   .stat-card {
-    padding: var(--space-md) !important;
-    gap: var(--space-sm) !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: var(--space-md) var(--space-xs) !important;
+    gap: var(--space-xs) !important;
   }
 
   .stat-card-icon {
-    width: 36px;
-    height: 36px;
+    width: 40px !important;
+    height: 40px !important;
+    margin: 0 auto !important;
+    flex-shrink: 0;
   }
   
+  .stat-card-content {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
   .stat-card-value {
-    font-size: var(--text-xl);
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    width: 100% !important;
+    font-size: 1.15rem !important;
+    line-height: 1.25 !important;
   }
-  
+
+  .stat-card-value * {
+    text-align: center !important;
+    justify-content: center !important;
+  }
+
   .stat-card-label {
-    font-size: 9px;
+    text-align: center !important;
+    width: 100% !important;
+    font-size: 9.5px !important;
+    letter-spacing: 0.04em !important;
+  }
+
+  .stat-card-meta {
+    justify-content: center !important;
+    text-align: center !important;
+    width: 100% !important;
   }
 }
 

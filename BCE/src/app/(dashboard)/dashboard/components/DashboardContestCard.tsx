@@ -70,7 +70,7 @@ export default function DashboardContestCard() {
           <div className="stat-card-value" style={{ color: 'var(--neon-gold)', fontSize: '1.2rem', fontWeight: 800 }}>Contest</div>
           <div className="text-secondary stat-card-label">{loading ? 'Loading contests…' : contest ? `${getPlatformName(contest.platform)} · ${contest.title}` : 'No upcoming CC / CF / GFG contest'}</div>
           {contest && now > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 5, color: isLive ? 'var(--neon-lime)' : 'var(--neon-cyan)', fontSize: 'var(--text-xs)', fontWeight: 700 }}>
+            <div className="stat-card-meta" style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 5, color: isLive ? 'var(--neon-lime)' : 'var(--neon-cyan)', fontSize: 'var(--text-xs)', fontWeight: 700 }}>
               <Clock3 size={13} />
               {isLive ? 'Ends in' : 'Starts in'} {formatTimeLeft(timeLeft)}
             </div>
