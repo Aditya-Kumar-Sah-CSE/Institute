@@ -2,8 +2,9 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { Lock, Code, Shield, FolderGit2, Star, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Lock, Code, Shield, FolderGit2, Star, ChevronLeft, ChevronRight, Compass } from 'lucide-react';
 import { getPreviewDSASheets } from './LandingPreviewActions';
+import ExploreDSASheet from './ExploreDSASheet';
 
 export default function LandingDSAClient({ 
   initialSheets 
@@ -15,6 +16,7 @@ export default function LandingDSAClient({
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(initialSheets.length === 100);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [exploringSheetId, setExploringSheetId] = useState<string | null>(null);
   
   const observerRef = useRef<IntersectionObserver | null>(null);
   const carouselRef = useRef<HTMLDivElement | null>(null);
@@ -310,26 +312,39 @@ export default function LandingDSAClient({
                   <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500, marginTop: '2px' }}>Problems</span>
                 </div>
 
-                {/* CTA Button */}
-                <Link href="/login" style={{ width: '100%', textDecoration: 'none' }}>
-                  <div className="preview-dsa-btn" style={{ 
-                    width: '100%', 
-                    height: '44px',
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    gap: '8px', 
-                    borderRadius: '24px', 
-                    border: '1px solid rgba(6, 182, 212, 0.4)',
-                    background: 'rgba(6, 182, 212, 0.06)',
-                    color: 'var(--text-primary)',
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}>
-                    <Lock size={15} style={{ opacity: 0.8 }} /> Login to Practice
-                  </div>
-                </Link>
+                {/* CTA Buttons: Explore & Login */}
+                <div style={{ display: 'flex', gap: '8px', width: '100%', marginTop: 'auto' }}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setExploringSheetId(sheet.id);
+                    }}
+                    className="explore-card-btn"
+                    style={{ flex: 1 }}
+                  >
+                    <Compass size={15} /> Explore
+                  </button>
+                  <Link href="/login" style={{ flex: 1, textDecoration: 'none' }}>
+                    <div className="preview-dsa-btn" style={{ 
+                      width: '100%', 
+                      height: '44px',
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      gap: '6px', 
+                      borderRadius: '24px', 
+                      border: '1px solid rgba(6, 182, 212, 0.4)',
+                      background: 'rgba(6, 182, 212, 0.06)',
+                      color: 'var(--text-primary)',
+                      fontSize: '13.5px',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}>
+                      <Lock size={14} style={{ opacity: 0.8 }} /> Login
+                    </div>
+                  </Link>
+                </div>
               </div>
             );
           })}
@@ -349,6 +364,12 @@ export default function LandingDSAClient({
         )}
       </>
       )}
+
+      {/* Explore DSA Sheet Drawer */}
+      <ExploreDSASheet 
+        sheetId={exploringSheetId} 
+        onClose={() => setExploringSheetId(null)} 
+      />
     </>
   );
 }

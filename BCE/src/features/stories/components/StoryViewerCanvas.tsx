@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronLeft, ChevronRight, Heart, MoreVertical, Play, Pause, Trash2, Eye, Send, Smile, Plus, Loader2, MessageCircle, Volume2, VolumeX } from 'lucide-react';
 import Image from 'next/image';
@@ -49,6 +50,16 @@ export default function StoryViewerCanvas({
   // Replies/DMs Sheet
   const [repliesOpen, setRepliesOpen] = useState(false);
   const [replyCount, setReplyCount] = useState(0);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, []);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const replyInputRef = useRef<HTMLInputElement>(null);
@@ -203,27 +214,26 @@ export default function StoryViewerCanvas({
   const myReaction = currentItem?.reactions?.find(r => r.user_id === currentUserId);
   const totalReactions = currentItem?.reactions?.length || 0;
 
-  if (!activeStory || !currentItem) return null;
+  if (!mounted || !activeStory || !currentItem) return null;
 
-  return (
+  return createPortal(
     <>
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
+        initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
+        exit={{ opacity: 0, scale: 0.98 }}
         transition={{ type: 'spring', damping: 30, stiffness: 400 }}
         style={{
           position: 'fixed',
           inset: 0,
-          zIndex: 1000000,
-          backgroundColor: '#0f172a',
+          zIndex: 99999999,
+          backgroundColor: '#050811',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           padding: 0,
-          backdropFilter: 'blur(16px)',
           width: '100vw',
-          height: '100vh'
+          height: '100dvh'
         }}
         className="touch-none"
       >
@@ -232,18 +242,13 @@ export default function StoryViewerCanvas({
             position: 'relative',
             width: '100%',
             height: '100%',
-            maxWidth: '430px',
-            maxHeight: '100vh',
-            backgroundColor: '#0f172a',
-            borderRadius: 0,
+            backgroundColor: '#050811',
             overflow: 'hidden',
-            boxShadow: 'none',
             display: 'flex',
             flexDirection: 'column',
             margin: '0 auto',
-            aspectRatio: '9/16',
           }}
-          className="touch-pan-y md:rounded-3xl md:shadow-2xl"
+          className="touch-pan-y md:max-w-[430px] md:max-h-[92vh] md:aspect-[9/16] md:rounded-3xl md:shadow-2xl"
         >
           {/* Segment Progress Bars */}
           <div style={{ position: 'absolute', top: 'clamp(0.5rem, 3vw, 1rem)', left: 0, width: '100%', display: 'flex', gap: '0.25rem', padding: 'clamp(0.5rem, 2vw, 1rem)', zIndex: 50 }}>
@@ -397,7 +402,17 @@ export default function StoryViewerCanvas({
 
           {/* Media Container */}
           <div 
-            style={{ position: 'absolute', inset: 0, backgroundColor: '#0f172a', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+            style={{ 
+              position: 'absolute', 
+              inset: 0, 
+              backgroundColor: '#050811', 
+              zIndex: 10, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              overflow: 'hidden'
+            }}
             onPointerDown={(e) => { 
               if (e.clientY > 100 && e.clientY < window.innerHeight - 100 && !showEmojiPicker) {
                 setIsPaused(true); 
@@ -406,33 +421,73 @@ export default function StoryViewerCanvas({
             onPointerUp={() => setIsPaused(false)}
             onPointerLeave={() => setIsPaused(false)}
           >
-             {currentItem.media_type === 'video' && currentItem.media_url ? (
-               <video 
-                 ref={videoRef}
-                 src={currentItem.media_url}
-                 autoPlay
-                 playsInline
-                 muted={isAudioMuted}
-                 className="w-full h-full object-contain"
-                 onEnded={goToNext}
-                 onCanPlay={(e) => {
-                   if (!isAudioMuted) {
-                     e.currentTarget.muted = false;
-                     e.currentTarget.volume = 1.0;
-                   }
-                   e.currentTarget.play().catch(console.error);
+             {/* Ambient backdrop to eliminate harsh empty bars without stretching the main media */}
+             {currentItem.media_url && (
+               <div 
+                 style={{ 
+                   position: 'absolute', 
+                   inset: -20, 
+                   filter: 'blur(35px) brightness(0.55)', 
+                   transform: 'scale(1.2)', 
+                   pointerEvents: 'none', 
+                   zIndex: 1,
+                   overflow: 'hidden'
                  }}
-               />
+               >
+                 {currentItem.media_type === 'video' ? (
+                   <video 
+                     src={currentItem.media_url} 
+                     autoPlay 
+                     playsInline 
+                     muted 
+                     loop 
+                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                   />
+                 ) : (
+                   <Image 
+                     src={currentItem.media_url} 
+                     alt="" 
+                     fill 
+                     style={{ objectFit: 'cover' }} 
+                     unoptimized 
+                     priority
+                   />
+                 )}
+               </div>
+             )}
+
+             {/* Main Foreground Media: Perfectly centered, never stretched, preserves natural aspect ratio */}
+             {currentItem.media_type === 'video' && currentItem.media_url ? (
+               <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
+                 <video 
+                   ref={videoRef}
+                   src={currentItem.media_url}
+                   autoPlay
+                   playsInline
+                   muted={isAudioMuted}
+                   style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                   onEnded={goToNext}
+                   onCanPlay={(e) => {
+                     if (!isAudioMuted) {
+                       e.currentTarget.muted = false;
+                       e.currentTarget.volume = 1.0;
+                     }
+                     e.currentTarget.play().catch(console.error);
+                   }}
+                 />
+               </div>
              ) : currentItem.media_url ? (
-               <Image 
-                 src={currentItem.media_url} 
-                 alt="Story Media" 
-                 fill 
-                 className="object-contain" 
-                 draggable={false}
-                 priority
-                 unoptimized
-               />
+               <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
+                 <Image 
+                   src={currentItem.media_url} 
+                   alt="Story Media" 
+                   fill 
+                   style={{ objectFit: 'contain' }}
+                   draggable={false}
+                   priority
+                   unoptimized
+                 />
+               </div>
              ) : (() => {
                let parsed: any = { text: currentItem.caption };
                if (currentItem.caption && currentItem.caption.startsWith('{') && currentItem.caption.endsWith('}')) {
@@ -443,6 +498,8 @@ export default function StoryViewerCanvas({
                    className="w-full h-full flex items-center justify-center p-8"
                    style={{ 
                      background: parsed.bg || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                     zIndex: 2,
+                     position: 'relative'
                    }}
                  >
                    <p 
@@ -776,6 +833,7 @@ export default function StoryViewerCanvas({
           </>
         )}
       </AnimatePresence>
-    </>
+    </>,
+    document.body
   );
 }

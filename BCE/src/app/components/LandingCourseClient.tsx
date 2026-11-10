@@ -2,8 +2,9 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { Lock, BookOpen, Layers, Star, ChevronLeft, ChevronRight, User } from 'lucide-react';
+import { Lock, BookOpen, Layers, Star, ChevronLeft, ChevronRight, User, Compass } from 'lucide-react';
 import { getPreviewCourses } from './LandingPreviewActions';
+import ExploreCourseSheet from './ExploreCourseSheet';
 
 function getInstructorNames(course: any): string[] {
   const names: string[] = [];
@@ -48,6 +49,7 @@ export default function LandingCourseClient({
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(initialCourses.length === 100);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [exploringCourseId, setExploringCourseId] = useState<string | null>(null);
   
   const observerRef = useRef<IntersectionObserver | null>(null);
   const carouselRef = useRef<HTMLDivElement | null>(null);
@@ -383,26 +385,39 @@ export default function LandingCourseClient({
                   </div>
                 </div>
 
-                {/* CTA Button */}
-                <Link href="/login" style={{ width: '100%', textDecoration: 'none' }}>
-                  <div className="preview-course-btn" style={{ 
-                    width: '100%', 
-                    height: '44px',
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    gap: '8px', 
-                    borderRadius: '24px', 
-                    border: '1px solid rgba(99, 102, 241, 0.4)',
-                    background: 'rgba(99, 102, 241, 0.06)',
-                    color: 'var(--text-primary)',
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}>
-                    <Lock size={15} style={{ opacity: 0.8 }} /> Login to Access
-                  </div>
-                </Link>
+                {/* CTA Buttons: Explore & Login */}
+                <div style={{ display: 'flex', gap: '8px', width: '100%', marginTop: 'auto' }}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setExploringCourseId(course.id);
+                    }}
+                    className="explore-card-btn"
+                    style={{ flex: 1 }}
+                  >
+                    <Compass size={15} /> Explore
+                  </button>
+                  <Link href="/login" style={{ flex: 1, textDecoration: 'none' }}>
+                    <div className="preview-course-btn" style={{ 
+                      width: '100%', 
+                      height: '44px',
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      gap: '6px', 
+                      borderRadius: '24px', 
+                      border: '1px solid rgba(99, 102, 241, 0.4)',
+                      background: 'rgba(99, 102, 241, 0.06)',
+                      color: 'var(--text-primary)',
+                      fontSize: '13.5px',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}>
+                      <Lock size={14} style={{ opacity: 0.8 }} /> Login
+                    </div>
+                  </Link>
+                </div>
               </div>
             );
           })}
@@ -422,6 +437,12 @@ export default function LandingCourseClient({
         )}
       </>
       )}
+
+      {/* Explore Course Sheet Drawer */}
+      <ExploreCourseSheet 
+        courseId={exploringCourseId} 
+        onClose={() => setExploringCourseId(null)} 
+      />
     </>
   );
 }

@@ -283,7 +283,7 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={handleClose}
-            style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 110000 }}
+            style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 100000001 }}
           />
           
           {/* Bottom Sheet */}
@@ -292,7 +292,7 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            style={{ position: 'fixed', bottom: 0, left: 0, right: 0, width: '100%', maxWidth: '36rem', maxHeight: 'min(90dvh, 760px)', margin: '0 auto', borderRadius: '1.5rem 1.5rem 0 0', zIndex: 120000, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+            style={{ position: 'fixed', bottom: 0, left: 0, right: 0, width: '100%', maxWidth: '36rem', maxHeight: 'min(90dvh, 760px)', margin: '0 auto', borderRadius: '1.5rem 1.5rem 0 0', zIndex: 100000002, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
             className="bg-slate-100 dark:bg-slate-900 shadow-[0_-10px_40px_rgba(0,0,0,0.3)]"
           >
             {/* Handle Bar */}
