@@ -13,7 +13,8 @@ import {
   FileCheck,
   Code,
   GraduationCap,
-  UserCheck
+  UserCheck,
+  User
 } from 'lucide-react';
 import './MobileBottomNav.css';
 
@@ -27,7 +28,7 @@ const studentItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Courses', href: '/courses', icon: BookOpen },
   { label: 'Leaderboard', href: '/leaderboard', icon: Trophy },
-  { label: 'Doubts', href: '/doubts', icon: HelpCircle },
+  { label: 'Profile', href: '/code-arena/profile', icon: User },
   { label: 'Chat', href: '/dashboard/chat', icon: MessageSquare },
 ];
 
@@ -86,7 +87,7 @@ export default function MobileBottomNav({ view }: MobileBottomNavProps) {
             item.href !== '/dashboard' && 
             item.href !== '/instructor' && 
             item.href !== '/admin' && 
-            pathname.startsWith(item.href)
+            (pathname.startsWith(item.href) || (item.href === '/code-arena/profile' && pathname.startsWith('/profile')))
           );
 
           return (

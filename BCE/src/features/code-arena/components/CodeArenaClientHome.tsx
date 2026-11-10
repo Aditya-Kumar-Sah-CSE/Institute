@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import { 
   Swords, Plus, Code2, Trophy, ArrowRight, 
-  User, Flame, CheckCircle2, Circle, Activity, Trash2, BookOpen, BarChart2
+  User, Flame, Activity, Trash2, BookOpen, BarChart2
 } from 'lucide-react';
 import CreateBattleWizard from './CreateBattleWizard';
 import BattleRegistrationModal from './BattleRegistrationModal';
@@ -50,7 +50,6 @@ export default function CodeArenaClientHome({
   const [joinedBattleIds, setJoinedBattleIds] = useState<string[]>(userJoinedBattleIds);
   const [registrationBattle, setRegistrationBattle] = useState<any | null>(null);
   const [analyticsBattle, setAnalyticsBattle] = useState<any | null>(null);
-  const [visibleProblemsCount, setVisibleProblemsCount] = useState(6);
 
   const handleDeleteBattle = async (battleId: string) => {
     if (!window.confirm('Are you sure you want to delete this battle? This action cannot be undone.')) {
@@ -457,134 +456,7 @@ export default function CodeArenaClientHome({
         )}
       </section>
 
-      {/* 7. Grid Columns (70/30) - Curated Problems + Progress Sidebar */}
-      <div className="arena-split-layout">
-        
-        {/* Left main content - 70% */}
-        <div className="arena-main-column">
-          <section className="arena-problems-section">
-            <h2 className="split-sect-title">Curated Practice Problems</h2>
-            <p className="subtitle-desc-sm">Hand-picked coding problems to build your algorithmic fundamentals.</p>
-
-            <div className="practice-rows-list">
-              {initialProblems.slice(0, visibleProblemsCount).map((problem) => (
-                <Link 
-                  key={problem.id} 
-                  href={`/code-arena/problems/${problem.id}`}
-                  className="practice-row-item"
-                >
-                  <div className="row-item-left">
-                    <div className="solve-status-box">
-                      {problem.solved ? (
-                        <CheckCircle2 size={16} className="text-neon-cyan" />
-                      ) : (
-                        <Circle size={16} className="text-muted" />
-                      )}
-                    </div>
-                    <div className="row-problem-meta">
-                      <span className="row-problem-title">{problem.title}</span>
-                      <div className="row-tags-group">
-                        <span className="source-label">{problem.source_type}</span>
-                        {problem.tags?.slice(0, 3).map((tag: string) => (
-                          <span key={tag} className="tag-pill">#{tag}</span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="row-item-right">
-                    <span suppressHydrationWarning className={`difficulty-badge-styled difficulty-${problem.difficulty}`}>
-                      {problem.difficulty}
-                    </span>
-                    <ArrowRight size={14} className="row-hover-arrow" />
-                  </div>
-                </Link>
-              ))}
-            </div>
-
-            {visibleProblemsCount < initialProblems.length && (
-              <div style={{ textAlign: 'center', marginTop: 'var(--space-md)' }}>
-                <button
-                  onClick={() => setVisibleProblemsCount((c) => c + 6)}
-                  style={{
-                    background: 'rgba(6, 182, 212, 0.08)',
-                    border: '1px solid rgba(6, 182, 212, 0.3)',
-                    color: 'var(--neon-cyan)',
-                    padding: '10px 28px',
-                    borderRadius: 'var(--radius-md)',
-                    cursor: 'pointer',
-                    fontWeight: 700,
-                    fontSize: 'var(--text-sm)',
-                    transition: 'all 0.2s ease',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(6, 182, 212, 0.18)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(6, 182, 212, 0.08)'; }}
-                >
-                  Show More ({initialProblems.length - visibleProblemsCount} remaining)
-                </button>
-              </div>
-            )}
-          </section>
-        </div>
-
-        {/* Right side content - 30% */}
-        <div className="arena-sidebar-column">
-          <div className="arena-sidebar-widget">
-            <h2 className="sidebar-widget-title">Your Progress</h2>
-            
-            <div className="sidebar-streak-row">
-              <Flame size={20} className="text-neon-orange animate-pulse" />
-              <div>
-                <span className="streak-title">Daily Streak</span>
-                <span className="streak-value" suppressHydrationWarning>{profile?.streak_days || 0} Days</span>
-              </div>
-            </div>
-
-            <div className="stats-list-box">
-              <div className="stat-list-item">
-                <span className="lbl">SL Solved</span>
-                <span className="val text-neon-cyan">{bceSolved}</span>
-              </div>
-              <div className="stat-list-item">
-                <span className="lbl">CodeChef Rating</span>
-                <span className="val" style={{ color: '#f59e0b' }}>{ccAccount ? ccAccount.rating || '—' : 'Unlinked'}</span>
-              </div>
-              <div className="stat-list-item">
-                <span className="lbl">CodeChef Solved</span>
-                <span className="val" style={{ color: '#f59e0b' }}>{ccAccount ? ccAccount.problems_solved || 0 : 'Unlinked'}</span>
-              </div>
-              <div className="stat-list-item">
-                <span className="lbl">Codeforces Rating</span>
-                <span className="val text-neon-purple">{cfAccount ? cfAccount.rating || '—' : 'Unlinked'}</span>
-              </div>
-              <div className="stat-list-item">
-                <span className="lbl">CF Solved</span>
-                <span className="val text-neon-purple">{cfAccount ? cfAccount.problems_solved || 0 : 'Unlinked'}</span>
-              </div>
-              <div className="stat-list-item">
-                <span className="lbl">LeetCode Solved</span>
-                <span className="val text-neon-yellow">{lcAccount ? lcAccount.problems_solved || 0 : 'Unlinked'}</span>
-              </div>
-            </div>
-
-            {!lcAccount && (
-              <div className="connect-link-warning">
-                <p>Connect LeetCode profile to aggregate stats and unlock ratings achievements.</p>
-                <Link href="/code-arena/profile" className="connect-action-btn-sm">
-                  Connect LeetCode →
-                </Link>
-              </div>
-            )}
-
-            <div className="sidebar-widget-footer">
-              <Link href="/code-arena/profile" className="btn-widget-link">
-                View Detailed Profile <ArrowRight size={12} />
-              </Link>
-            </div>
-          </div>
-        </div>
-
-      </div>
+{/* Curated Practice Problems section removed */}
 
       {/* Pre-Battle Registration Modal */}
       {registrationBattle && (
