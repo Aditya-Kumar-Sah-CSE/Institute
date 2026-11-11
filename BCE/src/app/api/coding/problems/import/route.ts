@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { input, platform: platformHint } = body;
+    const { input, platform: platformHint, persist = false } = body;
 
     if (!input || typeof input !== 'string') {
       return NextResponse.json(
@@ -40,6 +40,85 @@ export async function POST(request: Request) {
     } else if (identifier.platform === 'LEETCODE' && identifier.slug) {
       externalProblemId = identifier.slug;
     }
+
+    // User requirement: Do NOT save imported problems into Supabase! Store in client device storage instead.
+    if (!persist) {
+      let externalProblem;
+      try {
+        externalProblem = await fetchExternalProblem(input, platformHint);
+      } catch (err: any) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: 'FETCH_FAILED',
+              message: `Could not fetch this ${externalPlatform} problem: ${err.message || 'External server unavailable'}`,
+            },
+          },
+          { status: 502 }
+        );
+      }
+
+      const localId = `local-${externalProblem.platform.toLowerCase()}-${externalProblem.externalId}`;
+      const baseSlug = slugifyProblem(`${externalProblem.platform}-${externalProblem.externalId}-${externalProblem.title}`);
+
+      const problemData = {
+        id: localId,
+        title: externalProblem.title,
+        slug: baseSlug,
+        description: externalProblem.statement,
+        statement: externalProblem.statement,
+        difficulty: externalProblem.difficulty,
+        tags: externalProblem.tags || [],
+        constraints: externalProblem.constraints || null,
+        input_format: externalProblem.inputFormat || null,
+        output_format: externalProblem.outputFormat || null,
+        explanation: externalProblem.explanation || null,
+        time_limit_ms: 2000,
+        memory_limit_mb: 256,
+        supported_languages: ['cpp17', 'c', 'java', 'python', 'javascript'],
+        source_type: externalProblem.platform,
+        external_platform: externalProblem.platform,
+        external_problem_id: externalProblem.externalId,
+        external_url: externalProblem.officialUrl,
+        signature: externalProblem.signature || null,
+        starter_code: externalProblem.starterCode || {},
+        starterCode: externalProblem.starterCode || {},
+        examples: externalProblem.examples || [],
+        samples: (externalProblem.examples || []).map((ex: any, idx: number) => ({
+          input: ex.input,
+          expected_output: ex.output,
+          output: ex.output,
+          sample_name: `Sample #${idx + 1}`,
+          order_index: idx,
+        })),
+        hints: externalProblem.hints || [],
+        follow_up: externalProblem.followUp || null,
+        is_premium: !!externalProblem.isPremium,
+        metadata: externalProblem.metadata || {},
+        isLocal: true,
+      };
+
+      const testCases = (externalProblem.examples || []).map((example: any, idx: number) => ({
+        id: `${localId}-sample-${idx}`,
+        problem_id: localId,
+        input: example.input,
+        expected_output: example.output,
+        is_hidden: false,
+        sample_name: `Sample ${idx + 1}`,
+        order_index: idx,
+      }));
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          problem: problemData,
+          testCases: testCases,
+          isLocal: true,
+        },
+      });
+    }
+
 
     // 2. Check Database Cache First
     const { data: cachedProblem } = await supabase

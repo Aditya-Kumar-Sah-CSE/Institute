@@ -1,9 +1,5 @@
-import { getCodeArenaActor } from '@/features/code-arena/server';
-import ProblemHubClient from '@/features/code-arena/components/ProblemHubClient';
-import '@/features/code-arena/components/CodeArena.css';
+import { redirect } from 'next/navigation';
 
-export default async function ProblemHubPage() {
-  const { user } = await getCodeArenaActor();
-  if (!user) return null;
-  return <ProblemHubClient userId={user.id} />;
+export default function ProblemHubPage() {
+  redirect('/code-arena/compiler');
 }

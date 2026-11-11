@@ -131,8 +131,8 @@ export default function CodeArenaClientHome({
       {/* 1. Premium Top Navigation */}
       <nav className="arena-top-navbar" style={{ justifyContent: 'center', padding: '10px 16px' }}>
         <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
-          <Link href="/code-arena/problems" className="navbar-link">
-            <Trophy size={13} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'text-bottom' }} /> Problem Hub
+          <Link href="/code-arena/compiler" className="navbar-link">
+            <Code2 size={13} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'text-bottom' }} /> Compiler
           </Link>
           <span style={{ color: 'rgba(255,255,255,0.1)' }}>|</span>
           <Link href="/code-arena/sheets" className="navbar-link">

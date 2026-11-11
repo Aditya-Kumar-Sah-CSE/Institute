@@ -177,7 +177,7 @@ export class GeminiLiveSession {
         }
       });
     } catch (err: any) {
-      console.error('[GeminiLiveSession] Start failed:', err);
+      console.warn('[GeminiLiveSession] Start failed:', err?.message || err);
       this.callbacks.onConnectionStateChange?.('error');
       this.callbacks.onError?.(err?.message || 'Failed to start Gemini Live voice session.');
       this.stop();

@@ -13,6 +13,7 @@ import { unstable_cache } from 'next/cache';
 import { codeforcesAdapter } from '@/lib/coding-platforms/codeforces';
 import { leetcodeAdapter } from '@/lib/coding-platforms/leetcode';
 import { gfgAdapter } from '@/lib/coding-platforms/gfg';
+import LocalProblemSolver from '@/features/code-arena/components/LocalProblemSolver';
 import '@/features/code-arena/components/CodeArena.css';
 
 // Cache Codeforces problem data for 1 hour
@@ -108,7 +109,9 @@ export default async function CodeProblemPage({ params, searchParams }: { params
     .eq('is_published', true)
     .single();
 
-  if (!problem) notFound();
+  if (!problem) {
+    return <LocalProblemSolver problemId={id} />;
+  }
 
   let sheetData: { id: string; title: string; slug?: string } | null = null;
   let text_solution = null;
@@ -355,6 +358,14 @@ export default async function CodeProblemPage({ params, searchParams }: { params
       {/* Compact IDE Header Bar */}
       <header className="code-arena-header-compact">
         <div className="code-arena-header-left">
+          <Link
+            href="/code-arena/compiler"
+            className="oj-icon-btn"
+            title="Back to Compiler"
+            style={{ display: 'inline-flex', alignItems: 'center', color: 'inherit', textDecoration: 'none', marginRight: '6px' }}
+          >
+            <ArrowLeft size={16} />
+          </Link>
           <div className="code-arena-logo-box">
             <Trophy size={18} />
           </div>

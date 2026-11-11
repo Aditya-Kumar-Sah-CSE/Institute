@@ -659,7 +659,11 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
     );
 
     geminiLiveSessionRef.current = session;
-    await session.start();
+    try {
+      await session.start();
+    } catch (err: any) {
+      console.warn('[SmartAgent] Voice session start handled:', err?.message || err);
+    }
   };
 
   const stopVoiceRecordingAndSend = async () => {

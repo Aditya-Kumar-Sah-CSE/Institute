@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import {
-  Search, SlidersHorizontal, Tag, Trophy, Flame, X,
-  ChevronLeft, ChevronRight, Code2, Swords, Plus,
+  Search, SlidersHorizontal, Trophy, Flame, X,
+  ChevronLeft, Plus, Trash2, ArrowRight, Download, Upload, Code2
 } from 'lucide-react';
 import ProblemCard from './ProblemCard';
 import type { ProblemCardData } from './ProblemCard';
@@ -12,11 +12,10 @@ import MobileCodeArenaToggle from './MobileCodeArenaToggle';
 import Modal from '@/components/ui/Modal';
 import './CodeArena.css';
 
-const PLATFORMS = ['All', 'CODEFORCES', 'LEETCODE', 'CODECHEF', 'GEEKSFORGEEKS', 'SL'] as const;
+const PLATFORMS = ['All', 'CODEFORCES', 'LEETCODE', 'CODECHEF', 'GEEKSFORGEEKS'] as const;
 const DIFFICULTIES = ['All', 'EASY', 'MEDIUM', 'HARD'] as const;
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export default function ProblemHubClient({ userId }: { userId: string }) {
+export default function ProblemHubClient({ userId: _userId }: { userId?: string }) {
   const [problems, setProblems] = useState<ProblemCardData[]>([]);
   const [loading, setLoading] = useState(true);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -24,16 +23,38 @@ export default function ProblemHubClient({ userId }: { userId: string }) {
   const [importProblemId, setImportProblemId] = useState('');
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState('');
-  const [visibleCount, setVisibleCount] = useState(4);
 
-  const handleImport = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const [search, setSearch] = useState('');
+  const [platform, setPlatform] = useState('All');
+  const [difficulty, setDifficulty] = useState('All');
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Load imported problems from client Device Storage (LocalStorage)
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('sl_imported_problems');
+      if (stored) {
+        setProblems(JSON.parse(stored));
+      } else {
+        setProblems([]);
+      }
+    } catch (e) {
+      console.error('Failed to load local problems:', e);
+      setProblems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const handleImport = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!importProblemId.trim()) {
-      setImportError('Problem identifier or URL is required.');
+      setImportError('Problem URL or identifier is required.');
       return;
     }
     setImporting(true);
     setImportError('');
+
     try {
       const res = await fetch('/api/coding/problems/import', {
         method: 'POST',
@@ -41,97 +62,85 @@ export default function ProblemHubClient({ userId }: { userId: string }) {
         body: JSON.stringify({
           input: importProblemId.trim(),
           platform: importPlatform,
+          persist: false, // ZERO save on Supabase!
         }),
       });
+
       const json = await res.json();
       if (!res.ok || !json.success) {
         throw new Error(json.error?.message || 'Failed to import problem from external platform.');
       }
-      window.location.href = `/code-arena/problems/${json.data.problem.id}`;
+
+      const importedProblem = json.data.problem;
+
+      // Save into client localStorage
+      try {
+        const stored: ProblemCardData[] = JSON.parse(localStorage.getItem('sl_imported_problems') || '[]');
+        const updated = [importedProblem, ...stored.filter((p) => p.id !== importedProblem.id)];
+        localStorage.setItem('sl_imported_problems', JSON.stringify(updated));
+        localStorage.setItem(`sl_problem_${importedProblem.id}`, JSON.stringify(importedProblem));
+        setProblems(updated);
+      } catch (storageErr) {
+        console.error('LocalStorage write failed:', storageErr);
+      }
+
+      setShowImportModal(false);
+      setImportProblemId('');
+      window.location.href = `/code-arena/problems/${importedProblem.id}`;
     } catch (err: any) {
       setImportError(err.message || 'An error occurred during import.');
       setImporting(false);
     }
   };
-  const [search, setSearch] = useState('');
-  const [platform, setPlatform] = useState('');
-  const [difficulty, setDifficulty] = useState('');
-  const [selectedTag, setSelectedTag] = useState('');
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [availableTags, setAvailableTags] = useState<string[]>([]);
-  const [showFilters, setShowFilters] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const fetchProblems = useCallback(async (searchVal: string, platformVal: string, difficultyVal: string, tagVal: string, pageVal: number) => {
-    setLoading(true);
+  const handleDeleteProblem = (id: string) => {
     try {
-      const params = new URLSearchParams();
-      if (searchVal) params.set('q', searchVal);
-      if (platformVal && platformVal !== 'All') {
-        params.set('platform', platformVal === 'SL' || platformVal === 'BCE' ? 'INTERNAL' : platformVal);
-      }
-      if (difficultyVal && difficultyVal !== 'All') params.set('difficulty', difficultyVal);
-      if (tagVal) params.set('tag', tagVal);
-      params.set('page', String(pageVal));
-      params.set('limit', '20');
-
-      const res = await fetch(`/api/coding/problems/hub?${params.toString()}`);
-      const json = await res.json();
-      if (res.ok) {
-        setProblems(json.data || []);
-        setTotalPages(json.pagination?.totalPages || 1);
-        setTotal(json.pagination?.total || 0);
-        setVisibleCount(4);
-        if (json.availableTags) setAvailableTags(json.availableTags);
-      }
+      const stored: ProblemCardData[] = JSON.parse(localStorage.getItem('sl_imported_problems') || '[]');
+      const updated = stored.filter((p) => p.id !== id);
+      localStorage.setItem('sl_imported_problems', JSON.stringify(updated));
+      localStorage.removeItem(`sl_problem_${id}`);
+      setProblems(updated);
     } catch (e) {
-      console.error('Problem hub fetch error:', e);
-    } finally {
-      setLoading(false);
+      console.error('Failed to delete problem:', e);
     }
-  }, []);
-
-  // Initial load
-  useEffect(() => {
-    fetchProblems('', '', '', '', 1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Debounced search
-  const handleSearchChange = (val: string) => {
-    setSearch(val);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setPage(1);
-      fetchProblems(val, platform, difficulty, selectedTag, 1);
-    }, 300);
   };
 
-  const applyFilter = (newPlatform: string, newDifficulty: string, newTag: string) => {
-    setPlatform(newPlatform);
-    setDifficulty(newDifficulty);
-    setSelectedTag(newTag);
-    setPage(1);
-    fetchProblems(search, newPlatform, newDifficulty, newTag, 1);
+  const handleClearAll = () => {
+    if (!window.confirm('Clear all imported problems from your device storage?')) return;
+    try {
+      localStorage.removeItem('sl_imported_problems');
+      setProblems([]);
+    } catch (e) {
+      console.error('Failed to clear problems:', e);
+    }
   };
 
-  const handlePageChange = (newPage: number) => {
-    setPage(newPage);
-    fetchProblems(search, platform, difficulty, selectedTag, newPage);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const activeFilterCount = [
-    platform && platform !== 'All' ? 1 : 0,
-    difficulty && difficulty !== 'All' ? 1 : 0,
-    selectedTag ? 1 : 0,
-  ].reduce((a, b) => a + b, 0);
+  // Filtered problems list
+  const filteredProblems = useMemo(() => {
+    return problems.filter((p) => {
+      if (search) {
+        const q = search.toLowerCase();
+        const matchesTitle = p.title.toLowerCase().includes(q);
+        const matchesId = p.external_problem_id?.toLowerCase().includes(q);
+        const matchesTags = p.tags?.some((t) => t.toLowerCase().includes(q));
+        if (!matchesTitle && !matchesId && !matchesTags) return false;
+      }
+      if (platform !== 'All') {
+        const pPlatform = (p.external_platform || p.source_type || '').toUpperCase();
+        if (pPlatform !== platform) return false;
+      }
+      if (difficulty !== 'All') {
+        const pDiff = (p.difficulty || 'EASY').toUpperCase();
+        if (pDiff !== difficulty) return false;
+      }
+      return true;
+    });
+  }, [problems, search, platform, difficulty]);
 
   return (
-    <div className="code-arena-page" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)', paddingBottom: '1rem', marginBottom: '1rem' }}>
+    <div className="code-arena-page" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)', paddingBottom: '2rem' }}>
       <MobileCodeArenaToggle />
+
       {/* Hero Header */}
       <header className="hub-hero">
         <div>
@@ -141,329 +150,317 @@ export default function ProblemHubClient({ userId }: { userId: string }) {
             </Link>
             <Trophy size={14} /> Code Arena
           </div>
-          <h1 className="hub-title">Competitive Programming Hub</h1>
+          <h1 className="hub-title">Problem Hub</h1>
           <p className="hub-subtitle">
-            Practice Codeforces, LeetCode and SL problems directly inside Smart Learn.
+            Import and practice problems on demand. Everything is saved directly to your device storage with zero cloud persistence.
           </p>
         </div>
         <div className="hub-hero-actions">
-          <button
-            type="button"
-            onClick={() => {
-              setShowImportModal(true);
-              setImportError('');
-              setImportProblemId('');
-            }}
-            className="btn btn-primary animate-pulse"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', height: '36px', padding: '0 16px' }}
-          >
-            <Plus size={14} /> Import Problem
-          </button>
           <Link href="/code-arena/profile" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', height: '36px', padding: '0 16px' }}>
             <Flame size={14} /> Profile
           </Link>
         </div>
       </header>
 
-      {/* Search + Filter Bar */}
-      <div className="hub-search-bar">
-        <div className="hub-search-input-wrapper">
-          <Search size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-          <input
-            className="hub-search-input"
-            placeholder="Search problems, IDs, tags, topics..."
-            value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
-          />
-          {search && (
-            <button type="button" className="oj-icon-btn" onClick={() => { setSearch(''); fetchProblems('', platform, difficulty, selectedTag, 1); }}>
-              <X size={13} />
-            </button>
-          )}
+      {/* Quick Import Box */}
+      <div style={{
+        background: 'rgba(20, 20, 28, 0.6)',
+        border: '1px solid var(--glass-border)',
+        borderRadius: '12px',
+        padding: '16px 20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Code2 size={18} className="text-neon-cyan" />
+            <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)' }}>
+              Import Problem to Practice
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {(['CODEFORCES', 'LEETCODE', 'CODECHEF', 'GEEKSFORGEEKS'] as const).map((plat) => (
+              <button
+                key={plat}
+                type="button"
+                onClick={() => setImportPlatform(plat)}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '16px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  border: importPlatform === plat ? '1px solid var(--neon-cyan)' : '1px solid rgba(255,255,255,0.1)',
+                  background: importPlatform === plat ? 'rgba(6, 182, 212, 0.15)' : 'transparent',
+                  color: importPlatform === plat ? 'var(--neon-cyan)' : 'var(--text-secondary)',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {plat === 'GEEKSFORGEEKS' ? 'GFG' : plat}
+              </button>
+            ))}
+          </div>
         </div>
-        <button type="button" className="hub-filter-toggle" onClick={() => setShowFilters(!showFilters)}>
-          <SlidersHorizontal size={15} />
-          Filters
-          {activeFilterCount > 0 && <span className="hub-filter-count">{activeFilterCount}</span>}
-        </button>
+
+        <form onSubmit={handleImport} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', width: '100%' }}>
+          <input
+            type="text"
+            value={importProblemId}
+            onChange={(e) => setImportProblemId(e.target.value)}
+            placeholder={
+              importPlatform === 'CODEFORCES'
+                ? 'e.g. 4A or https://codeforces.com/problemset/problem/4/A'
+                : importPlatform === 'LEETCODE'
+                ? 'e.g. two-sum or https://leetcode.com/problems/two-sum'
+                : 'Paste problem URL or ID...'
+            }
+            disabled={importing}
+            style={{
+              flex: '1 1 240px',
+              minWidth: '200px',
+              height: '42px',
+              background: 'var(--bg-input, rgba(0,0,0,0.3))',
+              border: '1px solid var(--border-default, rgba(255,255,255,0.12))',
+              borderRadius: '8px',
+              padding: '0 14px',
+              color: 'var(--text-main)',
+              fontSize: '13.5px',
+              outline: 'none',
+              boxSizing: 'border-box'
+            }}
+          />
+          <button
+            type="submit"
+            disabled={importing || !importProblemId.trim()}
+            style={{
+              height: '42px',
+              padding: '0 20px',
+              borderRadius: '8px',
+              background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))',
+              color: '#fff',
+              border: 'none',
+              fontWeight: 800,
+              fontSize: '13px',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              flexShrink: 0,
+              boxShadow: '0 4px 15px rgba(6,182,212,0.2)'
+            }}
+          >
+            {importing ? 'Importing...' : 'Import & Solve →'}
+          </button>
+        </form>
+
+        {importError && (
+          <div style={{ color: '#ef4444', fontSize: '12px', fontWeight: 600 }}>
+            ❌ {importError}
+          </div>
+        )}
       </div>
 
-      {/* Filters Panel */}
-      {showFilters && (
-        <div className="hub-filters-panel">
-          {/* Platform Filters */}
-          <div className="hub-filter-group">
-            <span className="hub-filter-label">Platform</span>
-            <div className="hub-filter-chips">
-              {PLATFORMS.map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  className={`hub-chip ${platform === p || (!platform && p === 'All') ? 'active' : ''}`}
-                  onClick={() => applyFilter(p === 'All' ? '' : p, difficulty, selectedTag)}
-                >
-                  {p === 'All' ? 'All' : p === 'SL' ? '● SL' : p === 'CODEFORCES' ? '● CF' : p === 'LEETCODE' ? '● LC' : p === 'CODECHEF' ? '● CC' : '● GFG'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Difficulty Filters */}
-          <div className="hub-filter-group">
-            <span className="hub-filter-label">Difficulty</span>
-            <div className="hub-filter-chips">
-              {DIFFICULTIES.map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  className={`hub-chip ${difficulty === d || (!difficulty && d === 'All') ? 'active' : ''} ${d !== 'All' ? `chip-${d}` : ''}`}
-                  onClick={() => applyFilter(platform, d === 'All' ? '' : d, selectedTag)}
-                >
-                  {d === 'All' ? 'All' : d}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Tag Filters */}
-          {availableTags.length > 0 && (
-            <div className="hub-filter-group">
-              <span className="hub-filter-label"><Tag size={12} /> Tags</span>
-              <div className="hub-filter-chips" style={{ maxHeight: '100px', overflowY: 'auto' }}>
-                <button
-                  type="button"
-                  className={`hub-chip ${!selectedTag ? 'active' : ''}`}
-                  onClick={() => applyFilter(platform, difficulty, '')}
-                >
-                  All
-                </button>
-                {availableTags.map((t) => (
+      {/* Search and Filters Bar (Only shown if problems exist) */}
+      {problems.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flex: '1 1 260px' }}>
+              <div style={{
+                position: 'relative',
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center'
+              }}>
+                <Search size={15} style={{ position: 'absolute', left: '12px', color: 'var(--text-muted)' }} />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search your imported problems..."
+                  style={{
+                    width: '100%',
+                    height: '38px',
+                    paddingLeft: '36px',
+                    paddingRight: '32px',
+                    background: 'var(--bg-input, rgba(0,0,0,0.3))',
+                    border: '1px solid var(--border-default, rgba(255,255,255,0.12))',
+                    borderRadius: '8px',
+                    color: 'var(--text-main)',
+                    fontSize: '13px',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                {search && (
                   <button
-                    key={t}
                     type="button"
-                    className={`hub-chip ${selectedTag === t ? 'active' : ''}`}
-                    onClick={() => applyFilter(platform, difficulty, t)}
+                    onClick={() => setSearch('')}
+                    style={{ position: 'absolute', right: '10px', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
                   >
-                    {t}
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowFilters(!showFilters)}
+                style={{
+                  height: '38px',
+                  padding: '0 14px',
+                  background: showFilters ? 'rgba(6,182,212,0.15)' : 'rgba(255,255,255,0.05)',
+                  border: showFilters ? '1px solid var(--neon-cyan)' : '1px solid var(--glass-border)',
+                  color: showFilters ? 'var(--neon-cyan)' : 'var(--text-secondary)',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '12.5px',
+                  fontWeight: 600
+                }}
+              >
+                <SlidersHorizontal size={14} /> Filters
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleClearAll}
+              style={{
+                height: '38px',
+                padding: '0 14px',
+                background: 'rgba(239, 68, 68, 0.08)',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                color: '#ef4444',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '12px',
+                fontWeight: 700
+              }}
+              title="Clear all problems from device storage"
+            >
+              <Trash2 size={13} /> Clear All
+            </button>
+          </div>
+
+          {/* Filter Chips Panel */}
+          {showFilters && (
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '12px',
+              padding: '12px 16px',
+              background: 'rgba(15, 18, 26, 0.6)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: '8px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Platform:</span>
+                {PLATFORMS.map((plat) => (
+                  <button
+                    key={plat}
+                    type="button"
+                    onClick={() => setPlatform(plat)}
+                    style={{
+                      padding: '3px 8px',
+                      borderRadius: '12px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      border: platform === plat ? '1px solid var(--neon-cyan)' : '1px solid transparent',
+                      background: platform === plat ? 'rgba(6, 182, 212, 0.2)' : 'rgba(255,255,255,0.05)',
+                      color: platform === plat ? 'var(--neon-cyan)' : 'var(--text-secondary)'
+                    }}
+                  >
+                    {plat}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>Difficulty:</span>
+                {DIFFICULTIES.map((diff) => (
+                  <button
+                    key={diff}
+                    type="button"
+                    onClick={() => setDifficulty(diff)}
+                    style={{
+                      padding: '3px 8px',
+                      borderRadius: '12px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      border: difficulty === diff ? '1px solid var(--neon-purple)' : '1px solid transparent',
+                      background: difficulty === diff ? 'rgba(124, 58, 237, 0.2)' : 'rgba(255,255,255,0.05)',
+                      color: difficulty === diff ? 'var(--neon-purple)' : 'var(--text-secondary)'
+                    }}
+                  >
+                    {diff}
                   </button>
                 ))}
               </div>
             </div>
           )}
-
-          {/* Clear All */}
-          {activeFilterCount > 0 && (
-            <button type="button" className="hub-clear-filters" onClick={() => applyFilter('', '', '')}>
-              <X size={12} /> Clear all filters
-            </button>
-          )}
         </div>
       )}
 
-      {/* Results Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-          {loading ? 'Loading...' : `${total} problem${total !== 1 ? 's' : ''} found`}
-        </span>
-        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-          Page {page} of {totalPages}
-        </span>
-      </div>
-
-      {/* Problem Cards Grid */}
+      {/* Problems Grid / Empty State */}
       {loading ? (
-        <div className="hub-loading">
-          <div className="hub-loading-spinner" />
-          <span>Loading problems...</span>
+        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+          Loading your device workspace...
         </div>
-      ) : problems.length === 0 ? (
-        <div className="hub-empty">
-          <Trophy size={36} style={{ color: 'var(--text-muted)' }} />
-          <h3>No problems found</h3>
-          <p>Try adjusting your search or filters.</p>
+      ) : filteredProblems.length === 0 ? (
+        <div style={{
+          minHeight: '40vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textAlign: 'center',
+          padding: '40px 20px',
+          background: 'rgba(20, 20, 28, 0.3)',
+          border: '1px dashed var(--glass-border)',
+          borderRadius: '16px',
+          gap: '12px'
+        }}>
+          <div style={{
+            width: '60px',
+            height: '60px',
+            borderRadius: '50%',
+            background: 'rgba(6, 182, 212, 0.1)',
+            border: '1px solid rgba(6, 182, 212, 0.3)',
+            display: 'grid',
+            placeItems: 'center',
+            color: 'var(--neon-cyan)'
+          }}>
+            <Code2 size={28} />
+          </div>
+
+          <h3 style={{ fontSize: '18px', fontWeight: 800, margin: '8px 0 0 0', color: 'var(--text-main)' }}>
+            {problems.length === 0 ? 'Your Problem Workspace is Clean' : 'No matching problems found'}
+          </h3>
+
+          <p style={{ color: 'var(--text-secondary)', maxWidth: '460px', fontSize: '13.5px', lineHeight: 1.5, margin: 0 }}>
+            {problems.length === 0
+              ? 'No problems are saved on the platform servers. Paste any LeetCode, Codeforces, or CodeChef problem link above to import and practice. Everything stays in your device storage.'
+              : 'Try clearing your search query or filters to view your imported problems.'}
+          </p>
         </div>
       ) : (
-        <>
-          <div className="hub-problem-grid">
-            {problems.slice(0, visibleCount).map((p) => (
-              <ProblemCard key={p.id} problem={p} />
-            ))}
-          </div>
-          {problems.length > visibleCount && (
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '12px', marginBottom: '16px' }}>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => setVisibleCount((prev) => Math.min(problems.length, prev + 8))}
-                style={{
-                  padding: '8px 24px',
-                  borderRadius: '20px',
-                  fontSize: 'var(--text-xs)',
-                  fontWeight: 'bold',
-                  boxShadow: '0 4px 15px rgba(6,182,212,0.2)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                }}
-              >
-                Show More
-              </button>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="hub-pagination">
-          <button
-            type="button"
-            className="hub-page-btn"
-            disabled={page <= 1}
-            onClick={() => handlePageChange(page - 1)}
-          >
-            <ChevronLeft size={16} /> Prev
-          </button>
-          <div className="hub-page-numbers">
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              let pageNum: number;
-              if (totalPages <= 5) {
-                pageNum = i + 1;
-              } else if (page <= 3) {
-                pageNum = i + 1;
-              } else if (page >= totalPages - 2) {
-                pageNum = totalPages - 4 + i;
-              } else {
-                pageNum = page - 2 + i;
-              }
-              return (
-                <button
-                  key={pageNum}
-                  type="button"
-                  className={`hub-page-num ${page === pageNum ? 'active' : ''}`}
-                  onClick={() => handlePageChange(pageNum)}
-                >
-                  {pageNum}
-                </button>
-              );
-            })}
-          </div>
-          <button
-            type="button"
-            className="hub-page-btn"
-            disabled={page >= totalPages}
-            onClick={() => handlePageChange(page + 1)}
-          >
-            Next <ChevronRight size={16} />
-          </button>
+        <div className="hub-problem-grid">
+          {filteredProblems.map((p) => (
+            <ProblemCard 
+              key={p.id} 
+              problem={p} 
+              onDelete={handleDeleteProblem}
+            />
+          ))}
         </div>
       )}
-
-      {/* Modal Import */}
-      <Modal isOpen={showImportModal} onClose={() => !importing && setShowImportModal(false)} title="Import CP Problem" size="md">
-        <form onSubmit={handleImport} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: 0 }}>
-            Enter a Codeforces ID (e.g., <code>4A</code>), LeetCode slug (e.g., <code>two-sum</code>), CodeChef code (e.g., <code>FLOW001</code>), or GFG slug (e.g., <code>k-largest-elements</code>), or paste the problem URL.
-          </p>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-            <span style={{ fontSize: '0.6875rem', fontWeight: 650, color: 'var(--text-muted)' }}>SELECT PLATFORM</span>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.375rem' }}>
-              <button
-                type="button"
-                className={`hub-chip ${importPlatform === 'CODEFORCES' ? 'active' : ''}`}
-                onClick={() => setImportPlatform('CODEFORCES')}
-                style={{ padding: '0.5rem', display: 'flex', justifyContent: 'center', fontWeight: 'bold', fontSize: '11px' }}
-              >
-                Codeforces
-              </button>
-              <button
-                type="button"
-                className={`hub-chip ${importPlatform === 'LEETCODE' ? 'active' : ''}`}
-                onClick={() => setImportPlatform('LEETCODE')}
-                style={{ padding: '0.5rem', display: 'flex', justifyContent: 'center', fontWeight: 'bold', fontSize: '11px' }}
-              >
-                LeetCode
-              </button>
-              <button
-                type="button"
-                className={`hub-chip ${importPlatform === 'CODECHEF' ? 'active' : ''}`}
-                onClick={() => setImportPlatform('CODECHEF')}
-                style={{ padding: '0.5rem', display: 'flex', justifyContent: 'center', fontWeight: 'bold', fontSize: '11px' }}
-              >
-                CodeChef
-              </button>
-              <button
-                type="button"
-                className={`hub-chip ${importPlatform === 'GEEKSFORGEEKS' ? 'active' : ''}`}
-                onClick={() => setImportPlatform('GEEKSFORGEEKS')}
-                style={{ padding: '0.5rem', display: 'flex', justifyContent: 'center', fontWeight: 'bold', fontSize: '11px' }}
-              >
-                GFG
-              </button>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-            <span style={{ fontSize: '0.6875rem', fontWeight: 650, color: 'var(--text-muted)' }}>PROBLEM ID OR URL</span>
-            <input
-              type="text"
-              placeholder={
-                importPlatform === 'CODEFORCES' ? "e.g., 4A, 1982B, or URL" :
-                importPlatform === 'LEETCODE' ? "e.g., two-sum, reverse-integer, or URL" :
-                importPlatform === 'CODECHEF' ? "e.g., FLOW001, TEST, or URL" :
-                "e.g., k-largest-elements, or URL"
-              }
-              value={importProblemId}
-              onChange={(e) => setImportProblemId(e.target.value)}
-              disabled={importing}
-              style={{
-                padding: '0.625rem 0.875rem',
-                borderRadius: 'var(--radius-md)',
-                background: 'rgba(0,0,0,0.2)',
-                border: '1px solid var(--glass-border)',
-                color: 'white',
-                fontSize: 'var(--text-sm)',
-                outline: 'none',
-                width: '100%',
-              }}
-            />
-          </div>
-
-          {importError && (
-            <div style={{ padding: '0.625rem', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 'var(--radius-md)', color: '#ef4444', fontSize: 'var(--text-xs)' }}>
-              {importError}
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => setShowImportModal(false)}
-              disabled={importing}
-              style={{ fontSize: 'var(--text-xs)', padding: '8px 20px', borderRadius: '20px' }}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={importing}
-              style={{ fontSize: 'var(--text-xs)', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '8px 20px', borderRadius: '20px' }}
-            >
-              {importing ? (
-                <>
-                  <div className="hub-loading-spinner" style={{ width: '0.75rem', height: '0.75rem', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white' }} />
-                  Importing...
-                </>
-              ) : (
-                'Import & Solve'
-              )}
-            </button>
-          </div>
-        </form>
-      </Modal>
     </div>
   );
 }

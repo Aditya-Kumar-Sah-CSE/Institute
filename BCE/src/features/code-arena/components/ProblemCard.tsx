@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { CheckCircle2, Circle, Dot, Clock, HardDrive, ExternalLink, Code2, Search } from 'lucide-react';
+import { CheckCircle2, Circle, Dot, Clock, HardDrive, ExternalLink, Code2, Search, Trash2 } from 'lucide-react';
 
 export interface ProblemCardData {
   id: string;
@@ -52,7 +52,13 @@ function SolvedStatusIcon({ status }: { status?: string }) {
   return <Circle size={14} className="solved-status-icon-styled" />;
 }
 
-export default function ProblemCard({ problem }: { problem: ProblemCardData }) {
+export default function ProblemCard({ 
+  problem,
+  onDelete
+}: { 
+  problem: ProblemCardData;
+  onDelete?: (id: string) => void;
+}) {
   const timeSec = problem.time_limit_ms ? `${(problem.time_limit_ms / 1000).toFixed(1)}s` : null;
   const memMb = problem.memory_limit_mb ? `${problem.memory_limit_mb} MB` : null;
   const tags = (problem.tags || []).slice(0, 4);
@@ -128,6 +134,21 @@ export default function ProblemCard({ problem }: { problem: ProblemCardData }) {
           >
             <ExternalLink size={13} />
           </a>
+        )}
+        {onDelete && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              onDelete(problem.id);
+            }}
+            className="hub-external-link"
+            aria-label="Delete from device storage"
+            title="Delete from device storage"
+            style={{ color: 'rgba(239, 68, 68, 0.7)', cursor: 'pointer', background: 'transparent', border: 'none' }}
+          >
+            <Trash2 size={13} />
+          </button>
         )}
       </div>
     </div>

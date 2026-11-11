@@ -32,8 +32,11 @@ import {
   Check,
   Settings,
   MoreVertical,
-  X
+  X,
+  Download,
+  Sparkles
 } from 'lucide-react';
+import ImportProblemModal from './ImportProblemModal';
 import { createClient } from '@/lib/supabase/client';
 import Modal from '@/components/ui/Modal';
 import type { CodeLanguage, NormalizedExecutionResult } from '../types';
@@ -374,6 +377,7 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
   // Health and screen modes
   const [engineHealth, setEngineHealth] = useState<'Ready' | 'Offline'>('Ready');
@@ -1480,7 +1484,7 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
         width: '100%',
         height: '100%',
         flex: 1,
-        minHeight: 'calc(100vh - 120px)',
+        minHeight: 0,
         position: 'relative',
         background: 'var(--bg-primary)',
         borderRadius: '8px',
@@ -1786,22 +1790,57 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
         className="compiler-main"
         style={{
           width: `${100 - explorerWidth}%`,
+          height: '100%',
           flexShrink: 0,
-          flexGrow: 0,
+          flexGrow: 1,
           minWidth: 0,
           display: 'flex',
           flexDirection: 'column',
         }}
       >
         <header className="code-editor-toolbar">
-          {/* Left part: filename */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-            <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--text-main)' }}>
+          {/* Left part: filename + Import & Solve */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
+            <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--text-main)', whiteSpace: 'nowrap' }}>
               {activeFile?.name || 'No file selected'}
             </span>
             {activeFile?.isDirty && (
-              <span style={{ color: 'var(--neon-gold)', fontSize: '10px' }}>● Unsaved</span>
+              <span style={{ color: 'var(--neon-gold)', fontSize: '10px', whiteSpace: 'nowrap' }}>● Unsaved</span>
             )}
+
+            {/* Import & Solve Button */}
+            <button
+              type="button"
+              onClick={() => setIsImportOpen(true)}
+              title="Import and practice problems on demand with local device storage"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '4px 10px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: 600,
+                background: 'linear-gradient(135deg, var(--neon-cyan, #06b6d4), var(--neon-purple, #8b5cf6))',
+                color: '#ffffff',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 0 10px rgba(6, 182, 212, 0.25)',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.opacity = '0.9';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.opacity = '1';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              <Download size={12} />
+              <span>Import &amp; Solve &rarr;</span>
+            </button>
           </div>
 
           {/* Center part: Toggle tabs (Testcase, Output, Error) */}
@@ -2579,6 +2618,11 @@ export default function PersonalCompiler({ initialSnippets }: { initialSnippets:
           </section>
         )}
       </section>
+
+      <ImportProblemModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+      />
 
       <ShareSnippetModal
         isOpen={shareOpen}
