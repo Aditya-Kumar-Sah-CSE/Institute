@@ -6,7 +6,7 @@ import Card from '@/components/ui/Card';
 import { Clock3, Trophy } from 'lucide-react';
 import type { UnifiedContest } from '@/app/api/coding/contests/route';
 
-const CONTEST_PLATFORMS = new Set(['CODECHEF', 'CODEFORCES', 'GEEKSFORGEEKS']);
+const CONTEST_PLATFORMS = new Set(['CODECHEF', 'CODEFORCES', 'GEEKSFORGEEKS', 'CODE360']);
 
 function formatTimeLeft(milliseconds: number) {
   const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
@@ -21,6 +21,7 @@ function getPlatformName(platform: UnifiedContest['platform']) {
   if (platform === 'CODECHEF') return 'CC';
   if (platform === 'CODEFORCES') return 'CF';
   if (platform === 'GEEKSFORGEEKS') return 'GFG';
+  if (platform === 'CODE360') return 'Code 360';
   return platform;
 }
 

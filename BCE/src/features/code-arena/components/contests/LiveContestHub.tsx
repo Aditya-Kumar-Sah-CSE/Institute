@@ -96,6 +96,8 @@ export default function LiveContestHub({ contest, onClose }: LiveContestHubProps
       submitUrl = contest.registerUrl;
     } else if (contest.platform === 'LEETCODE') {
       submitUrl = contest.registerUrl;
+    } else if (contest.platform === 'CODE360') {
+      submitUrl = contest.registerUrl;
     }
 
     window.open(submitUrl, '_blank', 'noopener,noreferrer');

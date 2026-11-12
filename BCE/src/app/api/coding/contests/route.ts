@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export interface UnifiedContest {
   id: string;
-  platform: 'CODECHEF' | 'CODEFORCES' | 'LEETCODE' | 'GEEKSFORGEEKS';
+  platform: 'CODECHEF' | 'CODEFORCES' | 'LEETCODE' | 'GEEKSFORGEEKS' | 'CODE360';
   title: string;
   startTime: number; // ms
   endTime: number; // ms
@@ -218,6 +218,60 @@ export async function GET() {
     }
   } catch (e) {
     console.warn('[CONTESTS API] GeeksforGeeks fetch error:', e);
+  }
+
+  // 5. Code 360 by Coding Ninjas Contests
+  try {
+    let cnRes = await fetch('https://api.codingninjas.com/api/v3/public_section/contest_list', {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+      next: { revalidate: 300 },
+    });
+    if (!cnRes.ok) {
+      cnRes = await fetch('https://www.naukri.com/code360/api/v3/public_section/contest_list', {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+        next: { revalidate: 300 },
+      });
+    }
+
+    if (cnRes.ok) {
+      const cnJson = await cnRes.json();
+      const eventsList = cnJson.data?.events || [];
+      if (Array.isArray(eventsList)) {
+        for (const ev of eventsList) {
+          if (!ev.event_start_time || !ev.event_end_time) continue;
+
+          const startTime = Number(ev.event_start_time) * 1000;
+          const endTime = Number(ev.event_end_time) * 1000;
+          if (isNaN(startTime) || isNaN(endTime)) continue;
+
+          // Only keep contests ending in the future or within the last hour
+          if (endTime < now - 3600 * 1000) continue;
+
+          const duration = Math.max(3600, Math.floor((endTime - startTime) / 1000));
+
+          let status: 'UPCOMING' | 'LIVE' | 'STARTING_SOON' = 'UPCOMING';
+          if (now >= startTime && now <= endTime) {
+            status = 'LIVE';
+          } else if (startTime - now <= 3 * 3600 * 1000 && startTime > now) {
+            status = 'STARTING_SOON';
+          }
+
+          const slug = ev.slug || String(ev.id);
+          contests.push({
+            id: `code360-${slug}`,
+            platform: 'CODE360',
+            title: ev.name || ev.short_title || 'Code 360 Contest',
+            startTime,
+            endTime,
+            duration,
+            registerUrl: `https://www.naukri.com/code360/contests/${slug}`,
+            status,
+          });
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[CONTESTS API] Code 360 fetch error:', e);
   }
 
   // Sort by startTime ascending
