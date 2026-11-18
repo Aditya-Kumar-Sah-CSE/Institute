@@ -39,6 +39,7 @@ export interface CodeExecutionRequest {
   language: CodeLanguage;
   sourceCode: string;
   testCases: { input: string; expectedOutput: string }[];
+  signature?: ProblemSignature | null;
   timeLimitMs: number;
   memoryLimitMb: number;
 }

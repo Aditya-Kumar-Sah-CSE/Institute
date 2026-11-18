@@ -40,8 +40,8 @@ export default function Footer({ companyName: initialCompanyName }: FooterProps)
     fetchCompanyName();
   }, [initialCompanyName]);
 
-  // Hide footer on chat to give full height to conversation interface with no bottom gap
-  if (pathname?.includes('/chat')) {
+  // Hide footer on chat and code-arena to give full height to IDE/conversation interface with no bottom gap
+  if (pathname?.includes('/chat') || pathname?.includes('/code-arena')) {
     return null;
   }
 

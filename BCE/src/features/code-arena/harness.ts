@@ -25,35 +25,172 @@ export function hasMainFunction(studentCode: string, language: string): boolean 
   return false;
 }
 
-export function wrapCodeWithHarness(studentCode: string, signature: any, language: string): string {
-  if (!signature || typeof signature !== 'object') {
-    return studentCode; // Safety fallback
+export function inferSignatureFromCode(code: string, language: string): any | null {
+  if (!code || typeof code !== 'string') return null;
+  const lang = (language || '').toLowerCase();
+
+  function normalizeType(raw: string): string {
+    let t = raw.replace(/^(?:public|private|protected)\s*:\s*/i, '');
+    t = t.replace(/&|\*/g, '').trim().toLowerCase();
+    if (t === 'int' || t === 'int32_t') return 'integer';
+    if (t === 'long' || t === 'long long' || t === 'int64_t') return 'long';
+    if (t === 'float') return 'float';
+    if (t === 'double') return 'double';
+    if (t === 'bool' || t === 'boolean') return 'boolean';
+    if (t === 'char' || t === 'character') return 'character';
+    if (t === 'string' || t === 'str') return 'string';
+    if (/vector<int>|int\[\]|list<int>/.test(t)) return 'integer[]';
+    if (/vector<long>|long\[\]|vector<long long>/.test(t)) return 'long[]';
+    if (/vector<string>|string\[\]/.test(t)) return 'string[]';
+    if (/vector<char>|char\[\]/.test(t)) return 'character[]';
+    if (/vector<bool>|bool\[\]/.test(t)) return 'boolean[]';
+    if (/vector<vector<int>>|int\[\]\[\]/.test(t)) return 'integer[][]';
+    if (t === 'listnode' || t === 'listnode*') return 'listnode';
+    if (t === 'treenode' || t === 'treenode*') return 'treenode';
+    return t || 'string';
   }
 
+  // C++ / C
+  if (lang.includes('cpp') || lang.includes('c') || lang.includes('gcc')) {
+    const fnRegex = /(?:public\s*:\s*|private\s*:\s*|protected\s*:\s*)?(?:virtual\s+)?([\w<>,:\s*&]+?)\s+(\w+)\s*\(([^)]*)\)\s*(?:const)?\s*\{/g;
+    let match;
+    while ((match = fnRegex.exec(code)) !== null) {
+      let rawRet = match[1].trim().replace(/^(?:public|private|protected)\s*:\s*/i, '').trim();
+      const fnName = match[2].trim();
+      const rawParams = match[3].trim();
+      if (['if', 'while', 'for', 'switch', 'catch', 'main', 'class', 'struct'].includes(fnName)) continue;
+
+      const params: any[] = [];
+      if (rawParams) {
+        const parts = rawParams.split(',');
+        for (const part of parts) {
+          const tokens = part.trim().split(/\s+/);
+          if (tokens.length >= 2) {
+            const pName = tokens[tokens.length - 1].replace(/&|\*/g, '').trim();
+            const pTypeRaw = tokens.slice(0, tokens.length - 1).join(' ').trim();
+            params.push({ name: pName, type: normalizeType(pTypeRaw) });
+          }
+        }
+      }
+
+      return {
+        name: fnName,
+        params,
+        return: { type: normalizeType(rawRet) },
+      };
+    }
+  }
+
+  // Python
+  if (lang.includes('python') || lang.includes('py')) {
+    const pyRegex = /def\s+([a-zA-Z_]\w*)\s*\(\s*self\s*(?:,\s*([^)]*))?\)\s*(?:->\s*([^:]+))?:/g;
+    let match = pyRegex.exec(code);
+    if (match) {
+      const fnName = match[1].trim();
+      const rawParams = match[2] ? match[2].trim() : '';
+      const rawRet = match[3] ? match[3].trim() : 'void';
+      const params: any[] = [];
+      if (rawParams) {
+        const parts = rawParams.split(',');
+        for (const part of parts) {
+          const segs = part.trim().split(':');
+          const pName = segs[0].trim();
+          const pType = segs[1] ? normalizeType(segs[1].trim()) : 'string';
+          params.push({ name: pName, type: pType });
+        }
+      }
+      return {
+        name: fnName,
+        params,
+        return: { type: normalizeType(rawRet) },
+      };
+    }
+  }
+
+  // Java
+  if (lang.includes('java')) {
+    const javaRegex = /public\s+([\w<>,\[\]]+)\s+(\w+)\s*\(([^)]*)\)\s*(?:throws\s+[\w,\s]+)?\s*\{/g;
+    let match;
+    while ((match = javaRegex.exec(code)) !== null) {
+      const rawRet = match[1].trim();
+      const fnName = match[2].trim();
+      const rawParams = match[3].trim();
+      if (['main', 'class', 'interface'].includes(fnName)) continue;
+
+      const params: any[] = [];
+      if (rawParams) {
+        const parts = rawParams.split(',');
+        for (const part of parts) {
+          const tokens = part.trim().split(/\s+/);
+          if (tokens.length >= 2) {
+            const pName = tokens[tokens.length - 1].trim();
+            const pTypeRaw = tokens.slice(0, tokens.length - 1).join(' ').trim();
+            params.push({ name: pName, type: normalizeType(pTypeRaw) });
+          }
+        }
+      }
+
+      return {
+        name: fnName,
+        params,
+        return: { type: normalizeType(rawRet) },
+      };
+    }
+  }
+
+  // JavaScript
+  if (lang.includes('javascript') || lang.includes('js')) {
+    const jsRegex = /(?:var|let|const)?\s*(\w+)\s*=\s*function\s*\(([^)]*)\)|function\s+(\w+)\s*\(([^)]*)\)/g;
+    let match;
+    while ((match = jsRegex.exec(code)) !== null) {
+      const fnName = (match[1] || match[3] || '').trim();
+      const rawParams = (match[2] || match[4] || '').trim();
+      if (!fnName || ['main', 'solve', 'if', 'for'].includes(fnName)) continue;
+
+      const params = rawParams ? rawParams.split(',').map(p => ({ name: p.trim(), type: 'string' })) : [];
+      return {
+        name: fnName,
+        params,
+        return: { type: 'string' },
+      };
+    }
+  }
+
+  return null;
+}
+
+export function wrapCodeWithHarness(studentCode: string, signature: any, language: string): string {
   // If student provided a complete program containing main(), do not wrap
   if (hasMainFunction(studentCode, language)) {
     return studentCode;
   }
 
-  const funcName = signature.name;
-  const params = signature.params || [];
-  const retType = signature.return?.type || 'void';
-
-  switch (language) {
-    case 'cpp17':
-    case 'cpp':
-      return generateCppHarness(studentCode, funcName, params, retType);
-    case 'python':
-    case 'python3':
-      return generatePythonHarness(studentCode, funcName, params, retType);
-    case 'javascript':
-    case 'js':
-      return generateJsHarness(studentCode, funcName, params, retType);
-    case 'java':
-      return generateJavaHarness(studentCode, funcName, params, retType);
-    default:
-      return studentCode;
+  let effectiveSig = signature;
+  if (!effectiveSig || typeof effectiveSig !== 'object') {
+    effectiveSig = inferSignatureFromCode(studentCode, language);
   }
+  if (!effectiveSig || typeof effectiveSig !== 'object') {
+    return studentCode; // Safety fallback
+  }
+
+  const funcName = effectiveSig.name;
+  const params = effectiveSig.params || [];
+  const retType = effectiveSig.return?.type || 'void';
+
+  const lang = (language || '').toLowerCase().trim();
+  if (lang.includes('cpp') || lang.includes('c++') || lang === 'c') {
+    return generateCppHarness(studentCode, funcName, params, retType);
+  }
+  if (lang.includes('python') || lang.includes('py')) {
+    return generatePythonHarness(studentCode, funcName, params, retType);
+  }
+  if (lang.includes('javascript') || lang.includes('js') || lang.includes('node')) {
+    return generateJsHarness(studentCode, funcName, params, retType);
+  }
+  if (lang.includes('java')) {
+    return generateJavaHarness(studentCode, funcName, params, retType);
+  }
+  return generateCppHarness(studentCode, funcName, params, retType);
 }
 
 function getCppParseFunc(type: string): string {

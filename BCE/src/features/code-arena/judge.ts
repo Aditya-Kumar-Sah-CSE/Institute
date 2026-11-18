@@ -174,7 +174,7 @@ export interface JudgeService {
 export const judgeService: JudgeService = {
   async execute(request) {
     const startTime = Date.now();
-    let { language, sourceCode, testCases, problemId } = request;
+    let { language, sourceCode, testCases, problemId, signature: reqSignature } = request;
 
     if (!testCases || testCases.length === 0) {
       return {
@@ -187,9 +187,9 @@ export const judgeService: JudgeService = {
 
     let mode: 'leetcode_function' | 'custom_program' = 'custom_program';
     let signatureLookupTime = 0;
-    let signature: ProblemSignature | null = null;
+    let signature: ProblemSignature | null = reqSignature || null;
 
-    if (problemId) {
+    if (!signature && problemId) {
       const sigStart = Date.now();
       signature = getCachedProblemSignature(problemId);
       if (!signature) {
@@ -206,18 +206,24 @@ export const judgeService: JudgeService = {
             signature = problem.signature;
             setCachedProblemSignature(problemId, signature);
           }
-        } catch (err) {
-          console.error('Error loading problem signature in judge service:', err);
+        } catch {
+          // Normal for local/imported problems
         }
       }
       signatureLookupTime = Date.now() - sigStart;
+    }
 
-      if (signature) {
-        const userHasMain = hasMainFunction(sourceCode, language);
-        if (!userHasMain) {
-          mode = 'leetcode_function';
-          sourceCode = wrapCodeWithHarness(sourceCode, signature, language);
-        }
+    // Auto-infer signature if missing and user has no main function (e.g. LeetCode solutions)
+    if (!signature) {
+      const { inferSignatureFromCode } = await import('./harness');
+      signature = inferSignatureFromCode(sourceCode, language);
+    }
+
+    if (signature) {
+      const userHasMain = hasMainFunction(sourceCode, language);
+      if (!userHasMain) {
+        mode = 'leetcode_function';
+        sourceCode = wrapCodeWithHarness(sourceCode, signature, language);
       }
     }
 

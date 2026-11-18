@@ -1256,15 +1256,18 @@ function getJSMethods(monaco: M): any[] {
 // REGISTRATION
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export function registerMonacoIntelliSense(monacoInstance: Parameters<NonNullable<Parameters<typeof import('@monaco-editor/react').default>[0]['beforeMount']>>[0]) {
-  if (registered) return;
-  registered = true;
+const TRIGGER_CHARS = ['.', '>', ':', '#', '<', '$', '@', '_', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
 
+export function registerMonacoIntelliSense(monacoInstance: Parameters<NonNullable<Parameters<typeof import('@monaco-editor/react').default>[0]['beforeMount']>>[0]) {
+  if (!monacoInstance) return;
   const m = monacoInstance as unknown as M;
+  if ((m as any).__bce_registered) return;
+  (m as any).__bce_registered = true;
+  registered = true;
 
   // ── C++ Completion Provider ─────────────────────────────────────────────────
   m.languages.registerCompletionItemProvider('cpp', {
-    triggerCharacters: ['.', '>', ':', '#', '<'],
+    triggerCharacters: TRIGGER_CHARS,
     provideCompletionItems(model, position) {
       const textUntilPosition = model.getValueInRange({
         startLineNumber: position.lineNumber,
@@ -1333,7 +1336,7 @@ export function registerMonacoIntelliSense(monacoInstance: Parameters<NonNullabl
 
   // ── C Completion Provider ───────────────────────────────────────────────────
   m.languages.registerCompletionItemProvider('c', {
-    triggerCharacters: ['.', '>', '#', '<'],
+    triggerCharacters: TRIGGER_CHARS,
     provideCompletionItems(model, position) {
       const textUntilPosition = model.getValueInRange({
         startLineNumber: position.lineNumber,
@@ -1393,7 +1396,7 @@ export function registerMonacoIntelliSense(monacoInstance: Parameters<NonNullabl
 
   // ── Python Completion Provider ──────────────────────────────────────────────
   m.languages.registerCompletionItemProvider('python', {
-    triggerCharacters: ['.'],
+    triggerCharacters: TRIGGER_CHARS,
     provideCompletionItems(model, position) {
       const textUntilPosition = model.getValueInRange({
         startLineNumber: position.lineNumber,
@@ -1437,7 +1440,7 @@ export function registerMonacoIntelliSense(monacoInstance: Parameters<NonNullabl
 
   // ── Java Completion Provider ────────────────────────────────────────────────
   m.languages.registerCompletionItemProvider('java', {
-    triggerCharacters: ['.'],
+    triggerCharacters: TRIGGER_CHARS,
     provideCompletionItems(model, position) {
       const textUntilPosition = model.getValueInRange({
         startLineNumber: position.lineNumber,
@@ -1482,7 +1485,7 @@ export function registerMonacoIntelliSense(monacoInstance: Parameters<NonNullabl
 
   // ── JavaScript Completion Provider ──────────────────────────────────────────
   m.languages.registerCompletionItemProvider('javascript', {
-    triggerCharacters: ['.'],
+    triggerCharacters: TRIGGER_CHARS,
     provideCompletionItems(model, position) {
       const textUntilPosition = model.getValueInRange({
         startLineNumber: position.lineNumber,
@@ -1680,13 +1683,26 @@ export function registerMonacoIntelliSense(monacoInstance: Parameters<NonNullabl
  * Merge these into the `options` prop of each <Editor>.
  */
 export const intelliSenseEditorOptions = {
-  quickSuggestions: true,
+  quickSuggestions: {
+    other: true,
+    comments: true,
+    strings: true,
+  },
   suggestOnTriggerCharacters: true,
   parameterHints: { enabled: true },
   wordBasedSuggestions: 'currentDocument' as const,
   suggest: {
     showSnippets: true,
     showKeywords: true,
+    showWords: true,
+    showFunctions: true,
+    showVariables: true,
+    showClasses: true,
+    showModules: true,
+    showProperties: true,
+    showMethods: true,
+    showValues: true,
+    showConstants: true,
     snippetsPreventQuickSuggestions: false,
     localityBonus: true,
     showIcons: true,
@@ -1695,5 +1711,9 @@ export const intelliSenseEditorOptions = {
   },
   tabCompletion: 'on' as const,
   acceptSuggestionOnEnter: 'on' as const,
-  snippetSuggestions: 'inline' as const,
+  snippetSuggestions: 'top' as const,
+  suggestSelection: 'first' as const,
+  autoClosingBrackets: 'always' as const,
+  autoClosingQuotes: 'always' as const,
+  formatOnType: true,
 };

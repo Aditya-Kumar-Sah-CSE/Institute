@@ -26,11 +26,30 @@
     flex-direction: column;
   }
 
+  .dashboard-shell:has(.code-arena-page.ide-mode) .content-wrapper,
+  .dashboard-shell:has(.code-arena-page.ide-mode) .main-layout {
+    height: calc(100vh - var(--navbar-height, 64px)) !important;
+    max-height: calc(100vh - var(--navbar-height, 64px)) !important;
+    overflow: hidden !important;
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+  .dashboard-shell:has(.code-arena-page.ide-mode) footer,
+  .content-wrapper:has(.code-arena-page.ide-mode) footer {
+    display: none !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
   .code-arena-page.ide-mode {
     height: 100% !important;
+    max-height: 100% !important;
     min-height: 0 !important;
-    overflow: hidden;
-    margin-top: 0;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding-bottom: 0 !important;
   }
 
   /* Non-IDE code arena pages (sheets, hub, details, etc.) must be fully scrollable */
@@ -4214,12 +4233,21 @@
    Desktop IDE Viewport Layout Refactor (>900px)
    ========================================================================== */
 @media (min-width: 901px) {
-  .code-arena-page {
-    height: calc(100vh - 120px);
+  .code-arena-page.ide-mode {
+    height: 100% !important;
+    max-height: 100% !important;
     display: flex;
     flex-direction: column;
     min-height: 0;
     overflow: hidden;
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+  .code-arena-page:not(.ide-mode) {
+    min-height: calc(100vh - 80px);
+    display: flex;
+    flex-direction: column;
   }
 
   .code-arena-ide-layout {
@@ -4481,12 +4509,12 @@
 /*  VERTICAL EDITOR / CONSOLE SLIDER        */
 /* ======================================== */
 .vertical-resizer-slider {
-  height: 10px;
+  height: 8px;
   width: 100%;
   cursor: row-resize;
-  background: rgba(15, 23, 42, 0.7);
-  border-top: 1px solid var(--glass-border);
-  border-bottom: 1px solid var(--glass-border);
+  background: rgba(15, 23, 42, 0.85);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4498,64 +4526,64 @@
 
 .vertical-resizer-slider:hover,
 .vertical-resizer-slider.active {
-  background: rgba(6, 182, 212, 0.2);
-  border-color: var(--neon-cyan);
+  background: rgba(6, 182, 212, 0.15);
+  border-color: rgba(6, 182, 212, 0.4);
 }
 
 .slider-handle-pill {
-  width: 48px;
+  width: 40px;
   height: 4px;
-  background: #ef4444; /* Red accent handle matching user prompt request */
-  border-radius: 2px;
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.8), 0 0 2px #ef4444;
+  background: linear-gradient(90deg, #38bdf8, #818cf8);
+  border-radius: 9999px;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
   transition: all 0.2s ease;
 }
 
 .vertical-resizer-slider:hover .slider-handle-pill,
 .vertical-resizer-slider.active .slider-handle-pill {
-  width: 64px;
-  background: var(--neon-cyan, #06b6d4);
-  box-shadow: 0 0 14px rgba(6, 182, 212, 0.9);
+  width: 60px;
+  background: linear-gradient(90deg, #06b6d4, #6366f1);
+  box-shadow: 0 0 14px rgba(6, 182, 212, 0.8);
 }
 
 /* Horizontal Resizer Drag Bar between Console Results & Testcases Panel */
 .console-testcase-resizer-slider {
-  height: 10px;
+  height: 8px;
   width: 100%;
   cursor: row-resize;
-  background: rgba(15, 23, 42, 0.7);
-  border-top: 1px solid var(--glass-border);
-  border-bottom: 1px solid var(--glass-border);
+  background: rgba(15, 23, 42, 0.85);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
   user-select: none;
   z-index: 25;
   flex-shrink: 0;
-  margin: 2px 0;
+  margin: 1px 0;
   transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 .console-testcase-resizer-slider:hover,
 .console-testcase-resizer-slider.active {
-  background: rgba(6, 182, 212, 0.2);
-  border-color: var(--neon-cyan);
+  background: rgba(6, 182, 212, 0.15);
+  border-color: rgba(6, 182, 212, 0.4);
 }
 
 .console-testcase-resizer-slider .slider-handle-pill {
-  width: 48px;
+  width: 40px;
   height: 4px;
-  background: #ef4444; /* Red accent handle matching user request */
-  border-radius: 2px;
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.8), 0 0 2px #ef4444;
+  background: linear-gradient(90deg, #38bdf8, #818cf8);
+  border-radius: 9999px;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
   transition: all 0.2s ease;
 }
 
 .console-testcase-resizer-slider:hover .slider-handle-pill,
 .console-testcase-resizer-slider.active .slider-handle-pill {
-  width: 64px;
-  background: var(--neon-cyan, #06b6d4);
-  box-shadow: 0 0 14px rgba(6, 182, 212, 0.9);
+  width: 60px;
+  background: linear-gradient(90deg, #06b6d4, #6366f1);
+  box-shadow: 0 0 14px rgba(6, 182, 212, 0.8);
 }
 
 /* ======================================== */

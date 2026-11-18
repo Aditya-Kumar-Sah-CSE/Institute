@@ -3,17 +3,6 @@ import type { ExecutionStatus, NormalizedExecutionResult } from '@/features/code
 import { checkRateLimit } from '@/lib/rate-limit';
 import { getCachedProblemSignature, setCachedProblemSignature } from '@/features/code-arena/judge';
 
-const WANDBOX_COMPILERS: Record<string, string> = {
-  cpp17: 'gcc-head',
-  cpp: 'gcc-head',
-  c: 'gcc-head-c',
-  java: 'openjdk-jdk-21+35',
-  python: 'cpython-3.12.7',
-  python3: 'cpython-3.12.7',
-  javascript: 'nodejs-20.17.0',
-  js: 'nodejs-20.17.0',
-};
-
 export async function POST(request: Request) {
   const reqStart = Date.now();
   try {
@@ -123,6 +112,7 @@ export async function POST(request: Request) {
           input: tc.input || '',
           expectedOutput: tc.expectedOutput || '',
         })),
+        signature: providedSignature || null,
         timeLimitMs: 2000,
         memoryLimitMb: 256,
       });
@@ -136,33 +126,32 @@ export async function POST(request: Request) {
     let codeToSend = code;
 
     // Single-run execution: check if harness wrapping is needed
-    if (problemId) {
-      let sig = providedSignature || getCachedProblemSignature(problemId);
-      if (!sig) {
-        try {
-          const { createAdminClient } = await import('@/lib/supabase/server');
-          const adminClient = await createAdminClient();
-          const { data: problem } = await adminClient
-            .from('coding_problems')
-            .select('signature')
-            .eq('id', problemId)
-            .single();
+    let sig = providedSignature || (problemId ? getCachedProblemSignature(problemId) : null);
+    if (!sig && problemId) {
+      try {
+        const { createAdminClient } = await import('@/lib/supabase/server');
+        const adminClient = await createAdminClient();
+        const { data: problem } = await adminClient
+          .from('coding_problems')
+          .select('signature')
+          .eq('id', problemId)
+          .single();
 
-          if (problem && problem.signature) {
-            sig = problem.signature;
-            setCachedProblemSignature(problemId, sig);
-          }
-        } catch (err) {
-          console.error('Error fetching problem signature in execute route:', err);
+        if (problem && problem.signature) {
+          sig = problem.signature;
+          setCachedProblemSignature(problemId, sig);
         }
+      } catch {
+        // Normal for local/imported problems
       }
+    }
 
-      if (sig) {
-        const { wrapCodeWithHarness, hasMainFunction } = await import('@/features/code-arena/harness');
-        if (!hasMainFunction(codeToSend, language)) {
-          codeToSend = wrapCodeWithHarness(codeToSend, sig, language);
-        }
-      }
+    const { wrapCodeWithHarness, hasMainFunction, inferSignatureFromCode } = await import('@/features/code-arena/harness');
+    if (!sig) {
+      sig = inferSignatureFromCode(codeToSend, language);
+    }
+    if (sig && !hasMainFunction(codeToSend, language)) {
+      codeToSend = wrapCodeWithHarness(codeToSend, sig, language);
     }
 
     const { executeCodeResiliently } = await import('@/features/code-arena/execution-engine');

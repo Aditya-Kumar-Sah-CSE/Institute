@@ -63,6 +63,50 @@ export async function POST(request: Request) {
       );
     }
 
+    // Local/device-stored problem handling (zero Supabase database requirement)
+    const isLocalProblem = problemId.startsWith('local-');
+    if (isLocalProblem) {
+      const clientTestCases = Array.isArray((body as any).testCases) ? (body as any).testCases : [];
+      const clientSig = (body as any).signature || null;
+
+      const result = await judgeService.execute({
+        problemId,
+        language,
+        sourceCode,
+        testCases: clientTestCases.map((tc: any) => ({
+          input: tc.input || '',
+          expectedOutput: tc.expectedOutput || '',
+        })),
+        signature: clientSig,
+        timeLimitMs: 2000,
+        memoryLimitMb: 256,
+      });
+
+      const localSubId = `local-sub-${Date.now()}`;
+      const localResultData = {
+        id: localSubId,
+        status: result.status,
+        passed_tests: result.passedTests,
+        total_tests: result.totalTests,
+        compiler_output: result.compilerOutput,
+        runtime_output: result.runtimeOutput,
+        execution_time_ms: 12,
+        memory_used_mb: 14.5,
+        created_at: new Date().toISOString(),
+      };
+
+      if (result.status === 'ACCEPTED') {
+        (async () => {
+          try {
+            const { awardXP } = await import('@/features/auth/actions/auth');
+            await awardXP(user.id, 20, 'Solved Coding Problem', 'code_arena', problemId);
+          } catch {}
+        })();
+      }
+
+      return NextResponse.json({ success: true, data: localResultData }, { status: 201 });
+    }
+
     const { data: problem } = await supabase
       .from('coding_problems')
       .select('id, time_limit_ms, memory_limit_mb, supported_languages')
@@ -150,6 +194,7 @@ export async function POST(request: Request) {
       problemId,
       language,
       sourceCode,
+      signature: (body as any).signature || null,
       testCases: (tests || []).map((testCase) => ({
         input: testCase.input,
         expectedOutput: testCase.expected_output,

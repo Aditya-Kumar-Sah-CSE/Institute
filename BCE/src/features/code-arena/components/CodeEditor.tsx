@@ -696,6 +696,11 @@ export default function CodeEditor({
           problemId,
           language,
           sourceCode: code,
+          signature: problem.signature || null,
+          testCases: testCases.map(tc => ({
+            input: tc.input,
+            expectedOutput: tc.expectedOutput
+          })),
         }),
       });
 
@@ -899,6 +904,7 @@ export default function CodeEditor({
               onMount={(editor, monaco) => {
                 editorRef.current = editor;
                 monacoRef.current = monaco;
+                registerMonacoIntelliSense(monaco);
               }}
               options={{
                 minimap: { enabled: false },
@@ -948,7 +954,7 @@ export default function CodeEditor({
           style={{
             flex: `0 0 calc(${consoleVsTestcasesSplit}% - 5px)`,
             height: `calc(${consoleVsTestcasesSplit}% - 5px)`,
-            minHeight: '60px',
+            minHeight: '100px',
             overflowY: 'auto'
           }}
         >
@@ -1207,7 +1213,15 @@ export default function CodeEditor({
                     {execResult.status === 'SUCCESS' ? '✓ Program Executed Successfully' : `● ${execResult.status}`}
                   </div>
                   <pre className="oj-code-block">
-                    {execResult.stdout ? execResult.stdout : <span className="text-secondary">Program executed cleanly with no stdout output.</span>}
+                    {execResult.stdout ? (
+                      execResult.stdout
+                    ) : execResult.status !== 'SUCCESS' ? (
+                      <span style={{ color: '#f87171' }}>
+                        {execResult.stderr || execResult.compileStderr || execResult.message || 'Execution error encountered.'}
+                      </span>
+                    ) : (
+                      <span className="text-secondary">Program executed cleanly with no stdout output.</span>
+                    )}
                   </pre>
                 </div>
               ) : submissionResult ? (
@@ -1456,7 +1470,7 @@ export default function CodeEditor({
             style={{
               flex: `0 0 calc(${100 - consoleVsTestcasesSplit}% - 5px)`,
               height: `calc(${100 - consoleVsTestcasesSplit}% - 5px)`,
-              minHeight: '60px',
+              minHeight: '140px',
               overflowY: 'auto'
             }}
           >
@@ -1564,33 +1578,72 @@ export default function CodeEditor({
 
             {/* Tab content */}
             {testCases[activeTestCaseIdx] && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minHeight: 0, marginTop: '4px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minHeight: 0 }}>
-                  <span style={{ fontSize: '10px', fontWeight: 650, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Input</span>
+              <div 
+                style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
+                  gap: '12px', 
+                  flex: 1, 
+                  minHeight: 0, 
+                  marginTop: '8px' 
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minHeight: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#38bdf8', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                      Input
+                    </span>
+                    <button
+                      type="button"
+                      style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '10px', cursor: 'pointer', padding: '0 4px' }}
+                      onClick={() => {
+                        const updated = [...testCases];
+                        updated[activeTestCaseIdx].input = '';
+                        setTestCases(updated);
+                      }}
+                    >
+                      Clear
+                    </button>
+                  </div>
                   <textarea
                     className="oj-input-textarea"
-                    style={{ flex: 1, minHeight: '60px', fontFamily: 'monospace' }}
+                    style={{ flex: 1, minHeight: '75px', fontFamily: 'monospace', fontSize: '12px', lineHeight: '1.4', background: 'rgba(0, 0, 0, 0.35)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '6px', padding: '8px' }}
                     value={testCases[activeTestCaseIdx].input}
                     onChange={(e) => {
                       const updated = [...testCases];
                       updated[activeTestCaseIdx].input = e.target.value;
                       setTestCases(updated);
                     }}
-                    placeholder="LeetCode inputs (arguments separated by lines, e.g. [2,7,11,15]\n9)"
+                    placeholder="LeetCode inputs (e.g. 2 or [2,7,11,15]\n9)"
                   />
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minHeight: 0 }}>
-                  <span style={{ fontSize: '10px', fontWeight: 650, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Expected Output (Optional)</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minHeight: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#a78bfa', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                      Expected Output (Optional)
+                    </span>
+                    <button
+                      type="button"
+                      style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '10px', cursor: 'pointer', padding: '0 4px' }}
+                      onClick={() => {
+                        const updated = [...testCases];
+                        updated[activeTestCaseIdx].expectedOutput = '';
+                        setTestCases(updated);
+                      }}
+                    >
+                      Clear
+                    </button>
+                  </div>
                   <textarea
                     className="oj-input-textarea"
-                    style={{ flex: 1, minHeight: '40px', fontFamily: 'monospace' }}
+                    style={{ flex: 1, minHeight: '75px', fontFamily: 'monospace', fontSize: '12px', lineHeight: '1.4', background: 'rgba(0, 0, 0, 0.35)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '6px', padding: '8px' }}
                     value={testCases[activeTestCaseIdx].expectedOutput}
                     onChange={(e) => {
                       const updated = [...testCases];
                       updated[activeTestCaseIdx].expectedOutput = e.target.value;
                       setTestCases(updated);
                     }}
-                    placeholder="Expected output (e.g. [0,1])"
+                    placeholder="Expected output (e.g. 2 or [0,1])"
                   />
                 </div>
               </div>
@@ -1602,7 +1655,7 @@ export default function CodeEditor({
             style={{
               flex: `0 0 calc(${100 - consoleVsTestcasesSplit}% - 5px)`,
               height: `calc(${100 - consoleVsTestcasesSplit}% - 5px)`,
-              minHeight: '60px',
+              minHeight: '120px',
               overflowY: 'auto'
             }}
           >
