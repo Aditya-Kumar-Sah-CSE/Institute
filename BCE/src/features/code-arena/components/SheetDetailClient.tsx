@@ -8,7 +8,6 @@ import {
   Lock, Shield, Globe, KeyRound, AlertCircle, Video, FileText, Share2, Check, BarChart2, Search, Image,
   RefreshCw, RotateCcw, Eye, Copy, ChevronLeft, ChevronRight, Star, Edit3
 } from 'lucide-react';
-import MobileCodeArenaToggle from './MobileCodeArenaToggle';
 import Card from '@/components/ui/Card';
 import { useRouter } from 'next/navigation';
 import CreateSheetWizard from './CreateSheetWizard';
@@ -526,20 +525,8 @@ export default function SheetDetailClient({
       )}
 
       {/* Hero Overview */}
-      <div 
-        style={{ 
-          background: 'rgba(20,20,25,0.4)', 
-          border: '1px solid var(--glass-border)',
-          borderRadius: 'var(--radius-lg)',
-          padding: '24px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '20px'
-        }}
-      >
-        <div style={{ flex: '1 1 260px', minWidth: 0 }}>
+      <div className="sheet-hero-overview">
+        <div className="sheet-hero-left">
           <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 800, margin: '0 0 6px 0' }} className="text-gradient">
             {sheet.title}
           </h2>
@@ -604,7 +591,10 @@ export default function SheetDetailClient({
             </div>
           )}
 
-          {/* Community Solver Stats Bar — Visible to Everyone */}
+          </div>
+
+        {/* Middle: Community Solver Stats Grid */}
+        <div className="sheet-hero-stats">
           <div className="sheet-stats-container">
             {/* Box 1: Enrolled */}
             <div 
@@ -678,12 +668,15 @@ export default function SheetDetailClient({
           </div>
         </div>
 
-        {/* Rating & Review Now Header Card — Red Box Area */}
-        <div 
-          style={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'flex-end', 
+        </div>
+
+        {/* Right: Rating & Review Now Header Card */}
+        <div className="sheet-hero-rating">
+          <div 
+            style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'flex-end', 
             gap: '10px', 
             padding: '16px 20px', 
             background: 'var(--bg-card)', 

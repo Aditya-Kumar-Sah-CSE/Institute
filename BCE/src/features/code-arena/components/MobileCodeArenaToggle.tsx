@@ -1,48 +1,5 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import './CodeArena.css';
-import { Trophy, Code2, User, BookOpen } from 'lucide-react';
-
 export default function MobileCodeArenaToggle() {
-  const pathname = usePathname();
-
-  const isArena = pathname === '/code-arena';
-  const isCompiler = pathname?.startsWith('/code-arena/compiler') ?? false;
-  const isSheets = pathname?.startsWith('/code-arena/sheets') ?? false;
-  const isProfile = pathname?.startsWith('/code-arena/profile') ?? false;
-
-  return (
-    <div className="mobile-arena-toggle-container">
-      <Link
-        href="/code-arena"
-        className={`mobile-arena-toggle-item ${isArena ? 'active' : ''}`}
-      >
-        <Trophy size={14} />
-        <span>Arena</span>
-      </Link>
-      <Link
-        href="/code-arena/compiler"
-        className={`mobile-arena-toggle-item ${isCompiler ? 'active' : ''}`}
-      >
-        <Code2 size={14} />
-        <span>Compiler</span>
-      </Link>
-      <Link
-        href="/code-arena/sheets"
-        className={`mobile-arena-toggle-item ${isSheets ? 'active' : ''}`}
-      >
-        <BookOpen size={14} />
-        <span>Sheets</span>
-      </Link>
-      <Link
-        href="/code-arena/profile"
-        className={`mobile-arena-toggle-item ${isProfile ? 'active' : ''}`}
-      >
-        <User size={14} />
-        <span>Profile</span>
-      </Link>
-    </div>
-  );
+  return null;
 }

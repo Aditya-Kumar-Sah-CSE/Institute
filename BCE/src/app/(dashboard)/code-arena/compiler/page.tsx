@@ -3,7 +3,6 @@ import { getCodeArenaActor } from '@/features/code-arena/server';
 import { isFeatureAllowed } from '@/lib/feature-flags';
 import LockedFeatureScreen from '@/components/ui/LockedFeatureScreen';
 import PersonalCompiler from '@/features/code-arena/components/PersonalCompiler';
-import MobileCodeArenaToggle from '@/features/code-arena/components/MobileCodeArenaToggle';
 import Link from 'next/link';
 import { ArrowLeft, Trophy } from 'lucide-react';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -45,8 +44,7 @@ export default async function CompilerPage() {
 
   return (
     <div className="code-arena-page ide-mode">
-      <MobileCodeArenaToggle />
-      
+            
       {/* Compact IDE Header Bar */}
       <header className="code-arena-header-compact" style={{ marginBottom: '6px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

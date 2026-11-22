@@ -8,7 +8,6 @@ import {
   Globe, Shield, Lock, Share2, Check, UserPlus, Loader2, Star
 } from 'lucide-react';
 import CreateSheetWizard from './CreateSheetWizard';
-import MobileCodeArenaToggle from './MobileCodeArenaToggle';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
@@ -178,15 +177,28 @@ export default function SheetsListClient({
 
   return (
     <div className="code-arena-page" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)', paddingBottom: '2rem' }}>
-      <MobileCodeArenaToggle />
-
+      
       {/* Header Bar */}
-      <header className="code-arena-header-compact">
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--neon-cyan)', background: 'rgba(6,182,212,0.1)', padding: '4px 10px', borderRadius: '12px', fontWeight: 600 }}>
-            <BookOpen size={13} /> Coding Practice Sheets
+      <header className="code-arena-header-compact" style={{ marginTop: '4px' }}>
+        <div className="code-arena-header-left">
+          <Link
+            href="/code-arena"
+            className="oj-icon-btn"
+            title="Back to Code Arena"
+            style={{ display: 'inline-flex', alignItems: 'center', color: 'inherit', textDecoration: 'none', marginRight: '6px' }}
+          >
+            <ArrowLeft size={16} />
+          </Link>
+          <div className="code-arena-logo-box">
+            <BookOpen size={18} />
           </div>
+          <h1 className="code-arena-header-title">
+            Coding Practice Sheets
+            <span className="code-arena-badge-sub">Code Arena</span>
+          </h1>
+        </div>
+
+        <div className="code-arena-header-actions">
           {isInstructor && (
             <Button size="sm" onClick={() => setShowWizard(true)}>
               <Plus size={14} /> New Sheet
@@ -228,7 +240,7 @@ export default function SheetsListClient({
           )}
         </Card>
       ) : (
-        <div className="problem-grid">
+        <div className="sheets-grid">
           {filteredSheets.map((sheet) => {
             const problemsList = sheet.coding_sheet_problems || [];
             const totalProblems = problemsList.length;
@@ -240,16 +252,10 @@ export default function SheetsListClient({
             const showEnroll = !isInstructor && !isEnrolled;
 
             return (
-              <Card
+              <div
                 key={sheet.id}
-                variant="glass"
-                className="problem-card"
+                className="sheet-card-item"
                 style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  gap: 'var(--space-md)',
-                  position: 'relative',
                   border: isCompleted ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid var(--glass-border)',
                   boxShadow: isCompleted ? '0 0 15px rgba(34, 197, 94, 0.1)' : 'none',
                 }}
@@ -408,7 +414,7 @@ export default function SheetsListClient({
                     </button>
                   )}
                 </div>
-              </Card>
+              </div>
             );
           })}
         </div>

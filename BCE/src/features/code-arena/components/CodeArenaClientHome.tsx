@@ -11,7 +11,6 @@ import {
 import CreateBattleWizard from './CreateBattleWizard';
 import BattleRegistrationModal from './BattleRegistrationModal';
 import BattleAnalyticsModal from './BattleAnalyticsModal';
-import MobileCodeArenaToggle from './MobileCodeArenaToggle';
 import UpcomingContestsAlert from './contests/UpcomingContestsAlert';
 import { resolveBattleStatus } from '../utils/battleUtils';
 import './CodeArena.css';
@@ -126,8 +125,7 @@ export default function CodeArenaClientHome({
 
   return (
     <div className="code-arena-page-container">
-      <MobileCodeArenaToggle />
-      
+            
       {/* 1. Premium Top Navigation */}
       <nav className="arena-top-navbar" style={{ justifyContent: 'center', padding: '10px 16px' }}>
         <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>

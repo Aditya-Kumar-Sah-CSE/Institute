@@ -9,7 +9,6 @@ import LeetCodeProfileCard from '@/features/code-arena/components/profile/LeetCo
 import CodeChefProfileCard from '@/features/code-arena/components/profile/CodeChefProfileCard';
 import GfgProfileCard from '@/features/code-arena/components/profile/GfgProfileCard';
 import RecentCodingActivity from '@/features/code-arena/components/profile/RecentCodingActivity';
-import MobileCodeArenaToggle from '@/features/code-arena/components/MobileCodeArenaToggle';
 import '@/features/code-arena/components/CodeArena.css';
 
 export const dynamic = 'force-dynamic';
@@ -111,8 +110,7 @@ export default async function CodingProfilePage({ searchParams }: { searchParams
 
   return (
     <div className="code-arena-profile-page" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
-      <MobileCodeArenaToggle />
-      
+            
       {/* Compact IDE Header Bar */}
       <header className="code-arena-header-compact" style={{ marginBottom: '4px' }}>
 
