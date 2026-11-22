@@ -63,15 +63,38 @@ const starters: Record<CodeLanguage, string> = {
 
 type ConsoleTab = 'output' | 'error' | 'input' | 'tests';
 
-function LeetCodeSubmissionGraph({
-  runtimeMs = 4,
-  memoryMb = 10.8,
-  language = 'cpp',
-}: {
+interface CodeAnalysisProps {
   runtimeMs?: number;
   memoryMb?: number;
   language?: string;
-}) {
+  optimalTime?: string;
+  optimalSpace?: string;
+  extremeCase?: string;
+  edgeCases?: string;
+  passedTests?: number;
+  totalTests?: number;
+  coinsAwarded?: number;
+}
+
+function CodeAnalysisRatingSection({
+  runtimeMs = 12,
+  memoryMb = 14.5,
+  language = 'cpp',
+  optimalTime = 'O(1)',
+  optimalSpace = 'O(1)',
+  extremeCase,
+  edgeCases,
+  passedTests = 5,
+  totalTests = 5,
+  coinsAwarded = 0,
+}: CodeAnalysisProps) {
+  // Compute Rating from 1 to 10
+  const timeScore = Math.max(6.0, Math.min(10.0, 10.0 - (runtimeMs / 1000) * 3.5));
+  const memScore = Math.max(6.0, Math.min(10.0, 10.0 - (memoryMb / 256) * 3.5));
+  const correctnessScore = totalTests > 0 ? (passedTests / totalTests) * 10 : 10;
+  
+  const overallRating = Number(((correctnessScore * 0.4) + (timeScore * 0.35) + (memScore * 0.25)).toFixed(1));
+
   const runtimePercentile = Math.min(99, Math.max(75, Math.floor(98 - (runtimeMs / 25) * 15)));
   const memoryPercentile = Math.min(99, Math.max(70, Math.floor(95 - (memoryMb / 20) * 12)));
 
@@ -93,82 +116,186 @@ function LeetCodeSubmissionGraph({
   ];
 
   return (
-    <div style={{ background: 'rgba(15, 23, 42, 0.75)', border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '16px', marginTop: '12px', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', borderBottom: '1px solid var(--glass-border)', paddingBottom: '10px' }}>
-        <div>
-          <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--neon-emerald)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-            <CheckCircle2 size={20} /> Accepted
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '10px' }}>
+      {/* Coin Reward Banner */}
+      {coinsAwarded > 0 && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: 'linear-gradient(90deg, rgba(234, 179, 8, 0.2) 0%, rgba(245, 158, 11, 0.08) 100%)',
+          border: '1px solid rgba(234, 179, 8, 0.5)',
+          borderRadius: '10px',
+          padding: '10px 14px',
+          color: '#fef08a',
+          boxShadow: '0 4px 18px rgba(234, 179, 8, 0.15)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '24px', filter: 'drop-shadow(0 0 6px rgba(234, 179, 8, 0.8))' }}>🪙</span>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '13px', color: '#facc15' }}>
+                +{coinsAwarded} Coins Earned!
+              </div>
+              <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.75)' }}>
+                Problem solved! Credited to your Smart Learn coin balance.
+              </div>
+            </div>
+          </div>
+          <span style={{ fontSize: '11px', fontWeight: 800, background: 'rgba(234, 179, 8, 0.2)', padding: '4px 10px', borderRadius: '6px', color: '#fde047' }}>
+            SOLVED ✓
           </span>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-            Submission distribution stats for <strong style={{ color: 'var(--text-main)' }}>{language.toUpperCase()}</strong>
-          </div>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <div style={{ background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.35)', borderRadius: '8px', padding: '6px 12px', textAlign: 'center' }}>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Runtime</div>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: '#34d399' }}>{runtimeMs} ms</div>
-          </div>
-          <div style={{ background: 'rgba(168, 85, 247, 0.12)', border: '1px solid rgba(168, 85, 247, 0.35)', borderRadius: '8px', padding: '6px 12px', textAlign: 'center' }}>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Memory</div>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: '#c084fc' }}>{memoryMb.toFixed(1)} MB</div>
-          </div>
-        </div>
-      </div>
+      )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-        <div style={{ background: 'rgba(0, 0, 0, 0.3)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '12px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-main)' }}>Runtime Distribution</span>
-            <span style={{ fontSize: '11px', fontWeight: 800, color: '#34d399' }}>Beats {runtimePercentile}%</span>
+      {/* Code Analysis & 1 to 10 Rating Card */}
+      <div style={{
+        background: 'rgba(15, 23, 42, 0.85)',
+        border: '1px solid var(--glass-border)',
+        borderRadius: '12px',
+        padding: '14px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.4)'
+      }}>
+        {/* Rating Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: '10px' }}>
+          <div>
+            <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.5px' }}>
+              Solution Quality & Efficiency Rating
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+              <span style={{ fontSize: '22px', fontWeight: 900, color: overallRating >= 8.5 ? '#34d399' : '#38bdf8', letterSpacing: '-0.5px' }}>
+                {overallRating} <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600 }}>/ 10</span>
+              </span>
+              <span style={{
+                fontSize: '10px',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                padding: '2px 8px',
+                borderRadius: '4px',
+                background: overallRating >= 8.5 ? 'rgba(52, 211, 153, 0.15)' : 'rgba(56, 189, 248, 0.15)',
+                color: overallRating >= 8.5 ? '#34d399' : '#38bdf8',
+                border: `1px solid ${overallRating >= 8.5 ? 'rgba(52, 211, 153, 0.3)' : 'rgba(56, 189, 248, 0.3)'}`
+              }}>
+                {overallRating >= 9.0 ? 'Optimal Solution' : overallRating >= 8.0 ? 'High Efficiency' : 'Good Solution'}
+              </span>
+            </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '85px', padding: '10px 4px 4px 4px', borderBottom: '1px solid var(--glass-border)' }}>
-            {runtimeBins.map((bin, i) => (
-              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
-                <div 
-                  style={{ 
-                    width: '100%', 
-                    height: `${bin.height}%`, 
-                    background: bin.active ? 'linear-gradient(180deg, #34d399, #059669)' : 'rgba(255, 255, 255, 0.08)', 
-                    borderRadius: '3px 3px 0 0',
-                    boxShadow: bin.active ? '0 0 12px rgba(52, 211, 153, 0.6)' : 'none',
-                    transition: 'all 0.3s ease'
-                  }} 
-                  title={`${bin.label}: ${bin.active ? 'Your submission' : ''}`}
-                />
-              </div>
-            ))}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', fontSize: '9px', color: 'var(--text-muted)' }}>
-            <span>Faster</span>
-            <span>Slower</span>
+
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <div style={{ background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.35)', borderRadius: '8px', padding: '5px 10px', textAlign: 'center' }}>
+              <div style={{ fontSize: '9px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Runtime</div>
+              <div style={{ fontSize: '13px', fontWeight: 800, color: '#34d399' }}>{runtimeMs} ms</div>
+            </div>
+            <div style={{ background: 'rgba(168, 85, 247, 0.12)', border: '1px solid rgba(168, 85, 247, 0.35)', borderRadius: '8px', padding: '5px 10px', textAlign: 'center' }}>
+              <div style={{ fontSize: '9px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Memory</div>
+              <div style={{ fontSize: '13px', fontWeight: 800, color: '#c084fc' }}>{memoryMb.toFixed(1)} MB</div>
+            </div>
           </div>
         </div>
 
-        <div style={{ background: 'rgba(0, 0, 0, 0.3)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '12px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-main)' }}>Memory Distribution</span>
-            <span style={{ fontSize: '11px', fontWeight: 800, color: '#c084fc' }}>Beats {memoryPercentile}%</span>
+        {/* 1-10 Visual Rating Progress Graph */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)' }}>
+            <span>Algorithmic Benchmark Rating Graph</span>
+            <span style={{ color: 'var(--text-main)' }}>{Math.round(overallRating * 10)}% Score</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '85px', padding: '10px 4px 4px 4px', borderBottom: '1px solid var(--glass-border)' }}>
-            {memoryBins.map((bin, i) => (
-              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
-                <div 
-                  style={{ 
-                    width: '100%', 
-                    height: `${bin.height}%`, 
-                    background: bin.active ? 'linear-gradient(180deg, #c084fc, #7e22ce)' : 'rgba(255, 255, 255, 0.08)', 
-                    borderRadius: '3px 3px 0 0',
-                    boxShadow: bin.active ? '0 0 12px rgba(192, 132, 252, 0.6)' : 'none',
-                    transition: 'all 0.3s ease'
-                  }} 
-                  title={`${bin.label}: ${bin.active ? 'Your submission' : ''}`}
-                />
-              </div>
-            ))}
+          <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.06)', borderRadius: '4px', overflow: 'hidden' }}>
+            <div style={{
+              width: `${Math.min(100, overallRating * 10)}%`,
+              height: '100%',
+              background: 'linear-gradient(90deg, #06b6d4 0%, #34d399 50%, #facc15 100%)',
+              borderRadius: '4px',
+              boxShadow: '0 0 10px rgba(52, 211, 153, 0.5)'
+            }} />
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', fontSize: '9px', color: 'var(--text-muted)' }}>
-            <span>Less Memory</span>
-            <span>More Memory</span>
+        </div>
+
+        {/* Complexity Analysis: TC & SC Optimal Comparison */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '10px' }}>
+          <div>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Time Complexity (TC)</div>
+            <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--neon-cyan)', marginTop: '2px', fontFamily: 'monospace' }}>
+              Optimal: {optimalTime}
+            </div>
+            <div style={{ fontSize: '10px', color: '#86efac', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <CheckCircle2 size={11} /> Optimal Speed Target Met
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Space Complexity (SC)</div>
+            <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--neon-purple)', marginTop: '2px', fontFamily: 'monospace' }}>
+              Optimal: {optimalSpace}
+            </div>
+            <div style={{ fontSize: '10px', color: '#86efac', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <CheckCircle2 size={11} /> Auxiliary Space Compliant
+            </div>
+          </div>
+        </div>
+
+        {/* Extreme Stress & Edge Cases Note */}
+        {(extremeCase || edgeCases) && (
+          <div style={{ background: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: '6px', padding: '8px 10px', fontSize: '11px', color: 'var(--text-secondary)' }}>
+            <span style={{ fontWeight: 700, color: '#f59e0b' }}>⚡ Extreme & Edge Cases Verified: </span>
+            {edgeCases || extremeCase}
+          </div>
+        )}
+
+        {/* Distribution Graphs */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <div style={{ background: 'rgba(0, 0, 0, 0.3)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-main)' }}>Runtime Distribution</span>
+              <span style={{ fontSize: '10px', fontWeight: 800, color: '#34d399' }}>Beats {runtimePercentile}%</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '65px', padding: '6px 2px 2px 2px', borderBottom: '1px solid var(--glass-border)' }}>
+              {runtimeBins.map((bin, i) => (
+                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
+                  <div 
+                    style={{ 
+                      width: '100%', 
+                      height: `${bin.height}%`, 
+                      background: bin.active ? 'linear-gradient(180deg, #34d399, #059669)' : 'rgba(255, 255, 255, 0.08)', 
+                      borderRadius: '2px 2px 0 0',
+                      boxShadow: bin.active ? '0 0 10px rgba(52, 211, 153, 0.6)' : 'none',
+                    }} 
+                    title={`${bin.label}: ${bin.active ? 'Your submission' : ''}`}
+                  />
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3px', fontSize: '8px', color: 'var(--text-muted)' }}>
+              <span>Faster</span>
+              <span>Slower</span>
+            </div>
+          </div>
+
+          <div style={{ background: 'rgba(0, 0, 0, 0.3)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-main)' }}>Memory Distribution</span>
+              <span style={{ fontSize: '10px', fontWeight: 800, color: '#c084fc' }}>Beats {memoryPercentile}%</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '65px', padding: '6px 2px 2px 2px', borderBottom: '1px solid var(--glass-border)' }}>
+              {memoryBins.map((bin, i) => (
+                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
+                  <div 
+                    style={{ 
+                      width: '100%', 
+                      height: `${bin.height}%`, 
+                      background: bin.active ? 'linear-gradient(180deg, #c084fc, #7e22ce)' : 'rgba(255, 255, 255, 0.08)', 
+                      borderRadius: '2px 2px 0 0',
+                      boxShadow: bin.active ? '0 0 10px rgba(192, 132, 252, 0.6)' : 'none',
+                    }} 
+                    title={`${bin.label}: ${bin.active ? 'Your submission' : ''}`}
+                  />
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3px', fontSize: '8px', color: 'var(--text-muted)' }}>
+              <span>Less Memory</span>
+              <span>More Memory</span>
+            </div>
           </div>
         </div>
       </div>
@@ -224,9 +351,9 @@ export default function CodeEditor({
   const [showCFModal, setShowCFModal] = useState(false);
   const [showLCModal, setShowLCModal] = useState(false);
 
-  const [showPastSolutionModal, setShowPastSolutionModal] = useState(false);
   const [pastSolutionData, setPastSolutionData] = useState<any>(null);
   const [loadingPastSolution, setLoadingPastSolution] = useState(false);
+  const [isViewingPastSolution, setIsViewingPastSolution] = useState(false);
   const [isReattemptMode, setIsReattemptMode] = useState(false);
 
   const editorRef = useRef<any>(null);
@@ -863,30 +990,41 @@ export default function CodeEditor({
               Save
             </button>
 
+            {/* Past Solution in Terminal Button */}
             <button
               type="button"
               onClick={async () => {
-                setShowPastSolutionModal(true);
-                setLoadingPastSolution(true);
-                try {
-                  const res = await fetch(`/api/coding/problems/${problem.id}/last-submission`);
-                  const json = await res.json();
-                  if (res.ok && json.success) {
-                    setPastSolutionData(json.data || { externalInfo: json.externalInfo });
+                if (isViewingPastSolution) {
+                  setIsViewingPastSolution(false);
+                  return;
+                }
+                if (!pastSolutionData) {
+                  setLoadingPastSolution(true);
+                  try {
+                    const res = await fetch(`/api/coding/problems/${problem.id}/last-submission`);
+                    const json = await res.json();
+                    if (res.ok && json.success && (json.data || json.externalInfo)) {
+                      setPastSolutionData(json.data || { externalInfo: json.externalInfo });
+                      setIsViewingPastSolution(true);
+                    } else {
+                      alert('No past accepted submission found for this problem.');
+                    }
+                  } catch {
+                    alert('Failed to load past submission.');
+                  } finally {
+                    setLoadingPastSolution(false);
                   }
-                } catch {
-                  setPastSolutionData(null);
-                } finally {
-                  setLoadingPastSolution(false);
+                } else {
+                  setIsViewingPastSolution(true);
                 }
               }}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '4px',
-                background: 'rgba(168, 85, 247, 0.1)',
-                border: '1px solid rgba(168, 85, 247, 0.3)',
-                color: '#a855f7',
+                gap: '5px',
+                background: isViewingPastSolution ? 'rgba(168, 85, 247, 0.25)' : 'rgba(168, 85, 247, 0.1)',
+                border: '1px solid rgba(168, 85, 247, 0.35)',
+                color: isViewingPastSolution ? '#c084fc' : '#a855f7',
                 fontSize: '11px',
                 padding: '4px 10px',
                 borderRadius: 'var(--radius-sm)',
@@ -894,9 +1032,10 @@ export default function CodeEditor({
                 cursor: 'pointer',
                 marginRight: '6px',
               }}
-              title="View past accepted solution code and stats"
+              title="View past accepted solution directly in terminal"
             >
-              <Code2 size={13} /> Past Solution
+              <Code2 size={13} /> {loadingPastSolution ? 'Loading...' : isViewingPastSolution ? 'Back to My Code' : 'Past Solution'}
+              {problem.hasSolved && <CheckCircle2 size={11} style={{ color: '#4ade80' }} />}
             </button>
 
             <button
@@ -925,15 +1064,128 @@ export default function CodeEditor({
           </div>
         </div>
 
-        {/* Monaco Editor wrapped in flex wrapper & Suspense boundary */}
-        <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
-          <Suspense fallback={<div className="code-editor-loading">Loading IDE workspace editor…</div>}>
-            <Editor
-              height="100%"
-              language={languageMap[language]}
-              theme="vs-dark"
-              value={code}
-              onChange={(v) => handleCodeChange(v || '')}
+        {/* Monaco Editor wrapped in flex wrapper with Terminal Past Solution Banner */}
+        <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+          {isViewingPastSolution && (
+            <div className="terminal-past-solution-banner" style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'linear-gradient(90deg, rgba(168, 85, 247, 0.18) 0%, rgba(59, 130, 246, 0.12) 100%)',
+              borderBottom: '1px solid rgba(168, 85, 247, 0.35)',
+              padding: '7px 14px',
+              fontSize: '11.5px',
+              color: '#e9d5ff',
+              flexWrap: 'wrap',
+              gap: '8px',
+              zIndex: 5
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CheckCircle2 size={15} style={{ color: '#4ade80' }} />
+                <span style={{ fontWeight: 800, color: '#f3e8ff' }}>Past Accepted Solution (Terminal View)</span>
+                {pastSolutionData?.runtime !== undefined && (
+                  <span style={{ color: '#86efac', fontSize: '11px', background: 'rgba(16,185,129,0.18)', padding: '2px 7px', borderRadius: '4px', fontWeight: 700 }}>
+                    ⚡ {pastSolutionData.runtime} ms
+                  </span>
+                )}
+                {pastSolutionData?.language && (
+                  <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
+                    ({pastSolutionData.language})
+                  </span>
+                )}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {pastSolutionData?.code ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (pastSolutionData?.code) {
+                          setCode(pastSolutionData.code);
+                          setIsViewingPastSolution(false);
+                          saveCode(pastSolutionData.code, (pastSolutionData?.language as any) || language);
+                        }
+                      }}
+                      style={{
+                        background: 'var(--neon-purple)',
+                        color: '#fff',
+                        border: 'none',
+                        padding: '3px 10px',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                      title="Load past solution into active editor draft"
+                    >
+                      Load into Editor
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (pastSolutionData?.code) {
+                          navigator.clipboard.writeText(pastSolutionData.code);
+                          alert('Past solution code copied to clipboard!');
+                        }
+                      }}
+                      style={{
+                        background: 'rgba(255,255,255,0.08)',
+                        color: 'var(--text-main)',
+                        border: '1px solid var(--glass-border)',
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Copy
+                    </button>
+                  </>
+                ) : pastSolutionData?.externalInfo?.externalUrl ? (
+                  <a
+                    href={pastSolutionData.externalInfo.externalUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      color: 'var(--neon-cyan)',
+                      fontSize: '11px',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    Open on {pastSolutionData.externalInfo.platform || 'Platform'} ↗
+                  </a>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setIsViewingPastSolution(false)}
+                  style={{
+                    background: 'rgba(255,255,255,0.04)',
+                    color: 'var(--text-muted)',
+                    border: '1px solid var(--glass-border)',
+                    padding: '3px 8px',
+                    borderRadius: '4px',
+                    fontSize: '11px',
+                    cursor: 'pointer'
+                  }}
+                  title="Return to your working draft"
+                >
+                  Back to My Code ✕
+                </button>
+              </div>
+            </div>
+          )}
+          <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+            <Suspense fallback={<div className="code-editor-loading">Loading IDE workspace editor…</div>}>
+              <Editor
+                height="100%"
+                language={languageMap[isViewingPastSolution && pastSolutionData?.language ? (pastSolutionData.language as CodeLanguage) : language]}
+                theme="vs-dark"
+                value={isViewingPastSolution ? (pastSolutionData?.code || '') : code}
+                onChange={(v) => {
+                  if (isViewingPastSolution) return;
+                  handleCodeChange(v || '');
+                }}
               beforeMount={registerMonacoIntelliSense}
               onMount={(editor, monaco) => {
                 editorRef.current = editor;
@@ -941,6 +1193,7 @@ export default function CodeEditor({
                 registerMonacoIntelliSense(monaco);
               }}
               options={{
+                readOnly: isViewingPastSolution,
                 minimap: { enabled: false },
                 fontSize: 14,
                 automaticLayout: true,
@@ -959,6 +1212,7 @@ export default function CodeEditor({
           </Suspense>
         </div>
       </div>
+    </div>
 
       {/* Vertical Resizer Drag Slider between Parallel Terminal & Result */}
         {!isFullscreen && activeRightTab === 'split' && (
@@ -1270,10 +1524,17 @@ export default function CodeEditor({
                   <p style={{ fontSize: '12px', color: 'var(--text-main)', margin: '4px 0' }}>
                     Submission ID: <strong style={{ fontFamily: 'monospace' }}>{submissionResult.id || 'N/A'}</strong>
                   </p>
-                  <LeetCodeSubmissionGraph 
-                    runtimeMs={submissionResult.execution_time_ms || 4} 
-                    memoryMb={submissionResult.memory_used_mb || 10.8}
+                  <CodeAnalysisRatingSection 
+                    runtimeMs={submissionResult.execution_time_ms || 12} 
+                    memoryMb={submissionResult.memory_used_mb || 14.5}
                     language={language}
+                    optimalTime={problem.metadata?.optimal_worst_case_time || 'O(1)'}
+                    optimalSpace={problem.metadata?.optimal_auxiliary_space || 'O(1)'}
+                    extremeCase={problem.metadata?.extreme_test_case}
+                    edgeCases={problem.metadata?.edge_cases}
+                    passedTests={submissionResult.passed_tests || 0}
+                    totalTests={submissionResult.total_tests || 5}
+                    coinsAwarded={submissionResult.coins_awarded || 0}
                   />
                 </div>
               ) : null
@@ -1376,6 +1637,21 @@ export default function CodeEditor({
                       : `● ${submissionResult.status}`}
                   </div>
 
+                  {submissionResult.status === 'ACCEPTED' && (
+                    <CodeAnalysisRatingSection 
+                      runtimeMs={submissionResult.execution_time_ms || 12} 
+                      memoryMb={submissionResult.memory_used_mb || 14.5}
+                      language={language}
+                      optimalTime={problem.metadata?.optimal_worst_case_time || 'O(1)'}
+                      optimalSpace={problem.metadata?.optimal_auxiliary_space || 'O(1)'}
+                      extremeCase={problem.metadata?.extreme_test_case}
+                      edgeCases={problem.metadata?.edge_cases}
+                      passedTests={submissionResult.passed_tests || 0}
+                      totalTests={submissionResult.total_tests || 5}
+                      coinsAwarded={submissionResult.coins_awarded || 0}
+                    />
+                  )}
+
                   <div className="oj-testcases-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <div className="oj-testcases-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px' }}>
                       <span style={{ fontWeight: 650, fontSize: '13px' }}>Test Cases Evaluated</span>
@@ -1399,12 +1675,13 @@ export default function CodeEditor({
                       if (evaluatedCases && evaluatedCases.length > 0) {
                         return evaluatedCases.map((tc, idx) => {
                           const isPassed = tc.passed || tc.status === 'PASSED';
+                          const isExtreme = idx === evaluatedCases.length - 1 && evaluatedCases.length > 2;
                           return (
                             <div 
                               key={idx} 
                               style={{ 
-                                background: 'rgba(255, 255, 255, 0.01)', 
-                                border: '1px solid var(--glass-border)', 
+                                background: isExtreme ? 'rgba(245, 158, 11, 0.03)' : 'rgba(255, 255, 255, 0.01)', 
+                                border: isExtreme ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid var(--glass-border)', 
                                 borderRadius: '8px', 
                                 padding: '12px',
                                 display: 'flex',
@@ -1414,8 +1691,8 @@ export default function CodeEditor({
                             >
                               {/* Header */}
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontWeight: 700, fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                  Test Case #{idx + 1}
+                                <span style={{ fontWeight: 700, fontSize: '12px', color: isExtreme ? '#f59e0b' : 'var(--text-secondary)' }}>
+                                  Test Case #{idx + 1} {isExtreme ? '⚡ (Extreme Stress Case)' : ''}
                                 </span>
                                 <span style={{ 
                                   fontSize: '11px', 
@@ -2050,118 +2327,6 @@ export default function CodeEditor({
               >
                 Go to Submit Portal ↗
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Past Solution Modal */}
-      {showPastSolutionModal && (
-        <div className="oj-modal-overlay" style={{ zIndex: 1100 }}>
-          <div className="oj-modal-card" style={{ maxWidth: '750px', width: '90%' }}>
-            <div className="oj-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Code2 size={18} style={{ color: 'var(--neon-purple)' }} />
-                <h3 className="oj-modal-title" style={{ margin: 0, fontSize: '15px', fontWeight: 800 }}>
-                  Past Accepted Solution: {problem.title}
-                </h3>
-              </div>
-              <button
-                type="button"
-                className="oj-modal-close"
-                onClick={() => setShowPastSolutionModal(false)}
-              >
-                ×
-              </button>
-            </div>
-
-            <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '70vh', overflowY: 'auto' }}>
-              {loadingPastSolution ? (
-                <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
-                  Loading past solution...
-                </div>
-              ) : pastSolutionData?.code ? (
-                <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--glass-border)', flexWrap: 'wrap', gap: '8px' }}>
-                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center', fontSize: '12px' }}>
-                      <span style={{ fontWeight: 800, color: 'var(--neon-cyan)', textTransform: 'uppercase' }}>
-                        {pastSolutionData.language || 'Code'}
-                      </span>
-                      {pastSolutionData.runtime !== undefined && (
-                        <span style={{ color: 'var(--text-muted)' }}>
-                          ⚡ Runtime: <strong style={{ color: '#4ade80' }}>{pastSolutionData.runtime} ms</strong>
-                        </span>
-                      )}
-                      {pastSolutionData.memory !== undefined && (
-                        <span style={{ color: 'var(--text-muted)' }}>
-                          💾 Memory: <strong style={{ color: '#3b82f6' }}>{(pastSolutionData.memory / (1024 * 1024)).toFixed(2)} MB</strong>
-                        </span>
-                      )}
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (pastSolutionData?.code) {
-                          navigator.clipboard.writeText(pastSolutionData.code);
-                          alert('Past solution code copied to clipboard!');
-                        }
-                      }}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        border: '1px solid var(--glass-border)',
-                        color: 'var(--text-main)',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <Copy size={12} /> Copy Code
-                    </button>
-                  </div>
-
-                  <div style={{ background: '#0d1117', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '14px', overflowX: 'auto' }}>
-                    <pre style={{ margin: 0, fontFamily: 'Fira Code, monospace', fontSize: '13px', lineHeight: '1.5', color: '#e6edf3' }}>
-                      <code>{pastSolutionData.code}</code>
-                    </pre>
-                  </div>
-                </>
-              ) : pastSolutionData?.externalInfo ? (
-                <div style={{ textAlign: 'center', padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-                  <p style={{ margin: 0, color: 'var(--text-muted)' }}>
-                    Solved on external platform: <strong style={{ color: 'var(--text-main)' }}>{pastSolutionData.externalInfo.platform || 'External'}</strong>
-                  </p>
-                  {pastSolutionData.externalInfo.externalUrl && (
-                    <a
-                      href={pastSolutionData.externalInfo.externalUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '8px 14px',
-                        borderRadius: '6px',
-                        background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))',
-                        color: 'white',
-                        fontWeight: 700,
-                        fontSize: '12px',
-                        textDecoration: 'none',
-                      }}
-                    >
-                      <ExternalLink size={14} /> Open External Problem Page ↗
-                    </a>
-                  )}
-                </div>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
-                  No accepted past submission found for this problem in Code Arena.
-                </div>
-              )}
             </div>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import '@/features/code-arena/components/CodeArena.css';
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { getCodeArenaActor } from '@/features/code-arena/server';

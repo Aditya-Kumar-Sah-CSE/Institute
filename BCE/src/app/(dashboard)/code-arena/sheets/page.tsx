@@ -1,3 +1,4 @@
+import '@/features/code-arena/components/CodeArena.css';
 import { getCodeArenaActor } from '@/features/code-arena/server';
 import SheetsListClient from '@/features/code-arena/components/SheetsListClient';
 

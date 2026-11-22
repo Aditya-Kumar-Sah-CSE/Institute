@@ -205,9 +205,9 @@ export default async function CodeProblemPage({ params, searchParams }: { params
     totalProblems: sheetProblems.length,
     prevProblemId: currentIndex > 0 ? sheetProblems[currentIndex - 1].problem_id : null,
     nextProblemId: currentIndex < sheetProblems.length - 1 ? sheetProblems[currentIndex + 1].problem_id : null,
-    firstProblemId: sheetProblems.length > 0 ? sheetProblems[0].problem_id : null,
-    lastProblemId: sheetProblems.length > 0 ? sheetProblems[sheetProblems.length - 1].problem_id : null,
-    sheetId: sheetId || null,
+    firstProblemId: null,
+    lastProblemId: null,
+    sheetId: sheetId || sheetData?.id || (sheetData as any)?.slug || null,
   } : null;
 
   const pAny = problem as any;
@@ -361,7 +361,7 @@ export default async function CodeProblemPage({ params, searchParams }: { params
         problem={problemData}
         profileName={profileName}
         profileAvatar={profileAvatar}
-        sheetId={sheetId}
+        sheetId={sheetId || sheetData?.id || (sheetData as any)?.slug || problemData.navigation?.sheetId || null}
       />
 
       {/* Resizable Desktop IDE Layout */}

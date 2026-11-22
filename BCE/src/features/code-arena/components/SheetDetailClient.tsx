@@ -391,9 +391,26 @@ export default function SheetDetailClient({
       <MobileCodeArenaToggle />
 
       {/* Header Bar */}
-      <header className="code-arena-header-compact">
+      <header className="code-arena-header-compact" style={{ marginTop: '4px' }}>
+        <div className="code-arena-header-left">
+          <Link
+            href="/code-arena/sheets"
+            className="oj-icon-btn"
+            title="Back to Sheets"
+            style={{ display: 'inline-flex', alignItems: 'center', color: 'inherit', textDecoration: 'none', marginRight: '6px' }}
+          >
+            <ArrowLeft size={16} />
+          </Link>
+          <div className="code-arena-logo-box">
+            <BookOpen size={18} />
+          </div>
+          <h1 className="code-arena-header-title">
+            DSA Sheet
+            <span className="code-arena-badge-sub">Code Arena</span>
+          </h1>
+        </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }} suppressHydrationWarning>
+        <div className="code-arena-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }} suppressHydrationWarning>
           <button
             type="button"
             onClick={handleSyncAccounts}

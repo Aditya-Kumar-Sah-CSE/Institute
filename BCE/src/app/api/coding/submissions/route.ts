@@ -182,23 +182,27 @@ export async function POST(request: Request) {
     if (!tests) {
       const { data: dbTests } = await supabase
         .from('coding_problem_test_cases')
-        .select('input, expected_output')
+        .select('input, expected_output, sample_name, is_hidden')
         .eq('problem_id', problemId)
-        .eq('is_hidden', false);
+        .order('order_index', { ascending: true });
 
       tests = dbTests || [];
       setCachedHiddenTests(problemId, tests);
     }
+
+    const testCasesToRun = (tests && tests.length > 0)
+      ? tests.map((testCase: any) => ({
+          input: testCase.input,
+          expectedOutput: testCase.expected_output || testCase.expectedOutput || '',
+        }))
+      : (Array.isArray((body as any).testCases) ? (body as any).testCases : []);
 
     const result = await judgeService.execute({
       problemId,
       language,
       sourceCode,
       signature: (body as any).signature || null,
-      testCases: (tests || []).map((testCase) => ({
-        input: testCase.input,
-        expectedOutput: testCase.expected_output,
-      })),
+      testCases: testCasesToRun,
       timeLimitMs: problem.time_limit_ms,
       memoryLimitMb: problem.memory_limit_mb,
     });
@@ -219,6 +223,12 @@ export async function POST(request: Request) {
       })
       .select('id, status, passed_tests, total_tests, compiler_output, runtime_output, created_at')
       .single();
+
+    let coinsAwarded = 0;
+    if (result.status === 'ACCEPTED') {
+      const diff = ((problem as any)?.difficulty || 'EASY').toUpperCase();
+      coinsAwarded = diff === 'HARD' ? 100 : diff === 'MEDIUM' ? 50 : 25;
+    }
 
     if (!error && data && data.status === 'ACCEPTED') {
       // Fire-and-forget post-submission processing asynchronously so HTTP response is instant
@@ -250,6 +260,17 @@ export async function POST(request: Request) {
           const tasks: Promise<any>[] = [];
 
           if (isNewSolve) {
+            const awardCoinsTask = (async () => {
+              try {
+                const { data: profile } = await adminClient.from('profiles').select('coins').eq('id', user.id).single();
+                const newCoins = (profile?.coins || 0) + coinsAwarded;
+                await adminClient.from('profiles').update({ coins: newCoins }).eq('id', user.id);
+              } catch (cErr) {
+                console.error('[COINS] Failed to award coins:', cErr);
+              }
+            })();
+            tasks.push(awardCoinsTask);
+
             const updateActivityTask = (async () => {
               const { data: profile } = await adminClient.from('profiles').select('institution_id').eq('id', user.id).single();
               const { data: currentActivity } = await adminClient
@@ -348,7 +369,7 @@ export async function POST(request: Request) {
 
     return error
       ? NextResponse.json({ success: false, error: { code: 'DATABASE_ERROR', message: error.message } }, { status: 400 })
-      : NextResponse.json({ success: true, data }, { status: 201 });
+      : NextResponse.json({ success: true, data: { ...data, coins_awarded: coinsAwarded } }, { status: 201 });
   } catch (err: any) {
     return NextResponse.json(
       { success: false, error: { code: 'SERVER_ERROR', message: err.message || 'Submission failed' } },

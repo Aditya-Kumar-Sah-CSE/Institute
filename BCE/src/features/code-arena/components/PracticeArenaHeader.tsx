@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, Trophy, Search, Sparkles, Brain, BookOpen, PlayCircle, Check, Copy, ExternalLink } from 'lucide-react';
 import { useSmartAgentSession } from '@/features/analytics/context/SmartAgentSessionContext';
 import SpotifyConnect from './SpotifyConnect';
@@ -24,13 +25,15 @@ export default function PracticeArenaHeader({
   profileAvatar,
   sheetId,
 }: PracticeArenaHeaderProps) {
+  const router = useRouter();
   const smartAgentSession = useSmartAgentSession();
   const [isGptModalOpen, setIsGptModalOpen] = useState(false);
   const [promptText, setPromptText] = useState('');
   const [copied, setCopied] = useState(false);
 
-  const backUrl = sheetId ? `/code-arena/sheets/${sheetId}` : '/code-arena/compiler';
-  const backTitle = sheetId ? 'Back to Sheet' : 'Back to Compiler';
+  const effectiveSheetId = sheetId || problem?.navigation?.sheetId || null;
+  const backUrl = effectiveSheetId ? `/code-arena/sheets/${effectiveSheetId}` : '/code-arena/sheets';
+  const backTitle = effectiveSheetId ? 'Back to Sheet' : 'Back to Sheets';
 
   const handleAskChatGPT = () => {
     const prompt = generateChatGPTPrompt(problem);

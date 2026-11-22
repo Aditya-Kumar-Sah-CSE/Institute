@@ -1154,32 +1154,8 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
           userSelect: 'none',
           boxSizing: 'border-box'
         }}>
-          {/* Left: First & Prev */}
+          {/* Left: Prev Problem */}
           <div style={{ display: 'flex', gap: '8px' }}>
-            <Link
-              href={navigation.firstProblemId ? `/code-arena/problems/${navigation.firstProblemId}${navigation.sheetId ? `?sheet=${navigation.sheetId}` : ''}` : '#'}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                color: navigation.currentIndex === 0 ? 'var(--text-muted)' : 'var(--text-primary)',
-                textDecoration: 'none',
-                opacity: navigation.currentIndex === 0 ? 0.3 : 1,
-                pointerEvents: navigation.currentIndex === 0 ? 'none' : 'auto',
-                transition: 'all 0.2s ease',
-                fontWeight: 600,
-                cursor: 'pointer'
-              }}
-              title="First Problem"
-              onMouseEnter={(e) => {
-                if (navigation.currentIndex > 0) e.currentTarget.style.color = 'var(--neon-cyan)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = navigation.currentIndex === 0 ? 'var(--text-muted)' : 'var(--text-primary)';
-              }}
-            >
-              <ChevronsLeft size={16} /> <span className="desktop-only">First</span>
-            </Link>
             <Link
               href={navigation.prevProblemId ? `/code-arena/problems/${navigation.prevProblemId}${navigation.sheetId ? `?sheet=${navigation.sheetId}` : ''}` : '#'}
               style={{
@@ -1211,7 +1187,7 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
             Problem {navigation.currentIndex + 1} / {navigation.totalProblems}
           </div>
 
-          {/* Right: Next & Last */}
+          {/* Right: Next Problem */}
           <div style={{ display: 'flex', gap: '8px' }}>
             <Link
               href={navigation.nextProblemId ? `/code-arena/problems/${navigation.nextProblemId}${navigation.sheetId ? `?sheet=${navigation.sheetId}` : ''}` : '#'}
@@ -1235,31 +1211,7 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
                 e.currentTarget.style.color = !navigation.nextProblemId ? 'var(--text-muted)' : 'var(--text-primary)';
               }}
             >
-              <span>Next</span> <ChevronLeft size={16} style={{ transform: 'rotate(180deg)' }} />
-            </Link>
-            <Link
-              href={navigation.lastProblemId ? `/code-arena/problems/${navigation.lastProblemId}${navigation.sheetId ? `?sheet=${navigation.sheetId}` : ''}` : '#'}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                color: navigation.currentIndex === navigation.totalProblems - 1 ? 'var(--text-muted)' : 'var(--text-primary)',
-                textDecoration: 'none',
-                opacity: navigation.currentIndex === navigation.totalProblems - 1 ? 0.3 : 1,
-                pointerEvents: navigation.currentIndex === navigation.totalProblems - 1 ? 'none' : 'auto',
-                transition: 'all 0.2s ease',
-                fontWeight: 600,
-                cursor: 'pointer'
-              }}
-              title="Last Problem"
-              onMouseEnter={(e) => {
-                if (navigation.currentIndex < navigation.totalProblems - 1) e.currentTarget.style.color = 'var(--neon-cyan)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = navigation.currentIndex === navigation.totalProblems - 1 ? 'var(--text-muted)' : 'var(--text-primary)';
-              }}
-            >
-              <span className="desktop-only">Last</span> <ChevronsRight size={16} />
+              <span>Next</span> <ChevronRight size={16} />
             </Link>
           </div>
         </div>
@@ -1377,49 +1329,9 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
         </div>
       )}
 
-      {/* Problem Statement Section */}
+      {/* Problem Description Section */}
       {!isContentEmpty && (
         <section data-agent-problem-section="statement" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', borderLeft: '3px solid var(--neon-cyan)', paddingLeft: '10px', letterSpacing: '0.5px' }}>
-            <FileText size={14} style={{ color: 'var(--neon-cyan)' }} /> Problem Statement
-          </div>
-
-          {/* 2 Premium Metric Boxes */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '8px',
-            margin: '8px 0 12px 0'
-          }}>
-            {[
-              { label: 'Time Limit', value: parsedTime, color: 'var(--neon-cyan)' },
-              { label: 'Memory Limit', value: parsedMemory, color: 'var(--neon-purple)' },
-            ].map((box, idx) => (
-              <div
-                key={idx}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.02)',
-                  border: '1px solid var(--glass-border)',
-                  borderRadius: '6px',
-                  padding: '8px 10px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '2px',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  textAlign: 'center',
-                }}
-              >
-                <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  {box.label}
-                </span>
-                <span style={{ fontSize: '12px', fontWeight: 800, color: box.color }}>
-                  {box.value}
-                </span>
-              </div>
-            ))}
-          </div>
-
           <SafeContentRenderer rawContent={rawStatement} isMainStatement={true} />
         </section>
       )}
@@ -1428,7 +1340,7 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
       {(problem.input_format || problem.inputDescription) && (
         <section data-agent-problem-section="input" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-xs)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', borderLeft: '3px solid var(--neon-cyan)', paddingLeft: '10px', letterSpacing: '0.5px' }}>
-            <FileText size={14} style={{ color: 'var(--neon-cyan)' }} /> Input
+            <FileText size={14} style={{ color: 'var(--neon-cyan)' }} /> Input Format
           </div>
           <SafeContentRenderer rawContent={problem.input_format || problem.inputDescription || ''} />
         </section>
@@ -1438,51 +1350,13 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
       {(problem.output_format || problem.outputDescription) && (
         <section data-agent-problem-section="output" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-xs)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', borderLeft: '3px solid var(--neon-pink)', paddingLeft: '10px', letterSpacing: '0.5px' }}>
-            <FileText size={14} style={{ color: 'var(--neon-pink)' }} /> Output
+            <FileText size={14} style={{ color: 'var(--neon-pink)' }} /> Output Format
           </div>
           <SafeContentRenderer rawContent={problem.output_format || problem.outputDescription || ''} />
         </section>
       )}
 
-      {/* Constraints Section */}
-      <section data-agent-problem-section="constraints" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-xs)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', borderLeft: '3px solid var(--neon-gold)', paddingLeft: '10px', letterSpacing: '0.5px' }}>
-          <ListChecks size={14} style={{ color: 'var(--neon-gold)' }} /> Constraints
-        </div>
-        {rawConstraints ? (
-          <pre
-            style={{
-              fontSize: '12px',
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--glass-border)',
-              padding: '10px 12px',
-              borderRadius: 'var(--radius-sm)',
-              color: 'var(--text-main)',
-              whiteSpace: 'pre-wrap',
-              margin: 0,
-              fontFamily: 'monospace',
-            }}
-          >
-            {rawConstraints}
-          </pre>
-        ) : (
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>Not provided by source.</span>
-        )}
-      </section>
-
-
-
-      {/* Notes / Explanation Section */}
-      {problem.explanation && (
-        <section data-agent-problem-section="explanation" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-xs)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', borderLeft: '3px solid var(--neon-purple)', paddingLeft: '10px', letterSpacing: '0.5px' }}>
-            <FileText size={14} style={{ color: 'var(--neon-purple)' }} /> Notes (Explanation)
-          </div>
-          <SafeContentRenderer rawContent={problem.explanation} />
-        </section>
-      )}
-
-      {/* Examples / Samples Section */}
+      {/* Examples / Samples Section (Test Cases) */}
       <section data-agent-problem-section="examples" style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: 'var(--space-xs)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', borderLeft: '3px solid var(--neon-pink)', paddingLeft: '10px', letterSpacing: '0.5px' }}>
           <Braces size={14} style={{ color: 'var(--neon-pink)' }} /> Examples ({examplesList.length})
@@ -1519,6 +1393,75 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
           <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>No sample cases available.</span>
         )}
       </section>
+
+      {/* Constraints & Resource Limits Section (Rendered after Test Cases / Examples) */}
+      <section data-agent-problem-section="constraints" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-xs)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', borderLeft: '3px solid var(--neon-gold)', paddingLeft: '10px', letterSpacing: '0.5px' }}>
+          <ListChecks size={14} style={{ color: 'var(--neon-gold)' }} /> Constraints
+        </div>
+        {rawConstraints ? (
+          <pre
+            style={{
+              fontSize: '12px',
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--glass-border)',
+              padding: '10px 12px',
+              borderRadius: 'var(--radius-sm)',
+              color: 'var(--text-main)',
+              whiteSpace: 'pre-wrap',
+              margin: 0,
+              fontFamily: 'monospace',
+            }}
+          >
+            {rawConstraints}
+          </pre>
+        ) : null}
+
+        {/* Dynamic Limits as Constraints (Not hardcoded at top) */}
+        <div style={{
+          display: 'flex',
+          gap: '10px',
+          flexWrap: 'wrap',
+          marginTop: '4px'
+        }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: 'rgba(255, 255, 255, 0.02)',
+            border: '1px solid var(--glass-border)',
+            borderRadius: '6px',
+            padding: '6px 12px',
+            fontSize: '11px',
+          }}>
+            <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Time Limit:</span>
+            <strong style={{ color: 'var(--neon-cyan)', fontFamily: 'monospace' }}>{parsedTime || '2s'}</strong>
+          </div>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: 'rgba(255, 255, 255, 0.02)',
+            border: '1px solid var(--glass-border)',
+            borderRadius: '6px',
+            padding: '6px 12px',
+            fontSize: '11px',
+          }}>
+            <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Memory Limit:</span>
+            <strong style={{ color: 'var(--neon-purple)', fontFamily: 'monospace' }}>{parsedMemory || '256 MB'}</strong>
+          </div>
+        </div>
+      </section>
+
+      {/* Notes / Explanation Section */}
+      {problem.explanation && (
+        <section data-agent-problem-section="explanation" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-xs)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', borderLeft: '3px solid var(--neon-purple)', paddingLeft: '10px', letterSpacing: '0.5px' }}>
+            <FileText size={14} style={{ color: 'var(--neon-purple)' }} /> Notes (Explanation)
+          </div>
+          <SafeContentRenderer rawContent={problem.explanation} />
+        </section>
+      )}
 
       {/* Follow-up Section */}
       {problem.follow_up && (
