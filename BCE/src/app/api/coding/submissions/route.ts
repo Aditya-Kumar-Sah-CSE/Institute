@@ -92,6 +92,7 @@ export async function POST(request: Request) {
         runtime_output: result.runtimeOutput,
         execution_time_ms: 12,
         memory_used_mb: 14.5,
+        xp_awarded: 25,
         created_at: new Date().toISOString(),
       };
 
@@ -224,10 +225,10 @@ export async function POST(request: Request) {
       .select('id, status, passed_tests, total_tests, compiler_output, runtime_output, created_at')
       .single();
 
-    let coinsAwarded = 0;
+    let xpAwarded = 0;
     if (result.status === 'ACCEPTED') {
       const diff = ((problem as any)?.difficulty || 'EASY').toUpperCase();
-      coinsAwarded = diff === 'HARD' ? 100 : diff === 'MEDIUM' ? 50 : 25;
+      xpAwarded = diff === 'HARD' ? 100 : diff === 'MEDIUM' ? 50 : 25;
     }
 
     if (!error && data && data.status === 'ACCEPTED') {
@@ -260,16 +261,15 @@ export async function POST(request: Request) {
           const tasks: Promise<any>[] = [];
 
           if (isNewSolve) {
-            const awardCoinsTask = (async () => {
+            const awardXpTask = (async () => {
               try {
-                const { data: profile } = await adminClient.from('profiles').select('coins').eq('id', user.id).single();
-                const newCoins = (profile?.coins || 0) + coinsAwarded;
-                await adminClient.from('profiles').update({ coins: newCoins }).eq('id', user.id);
-              } catch (cErr) {
-                console.error('[COINS] Failed to award coins:', cErr);
+                const { awardXP } = await import('@/features/auth/actions/auth');
+                await awardXP(user.id, xpAwarded, `Solved Coding Problem: ${(problem as any)?.title || problemId}`, 'code_arena', problemId);
+              } catch (xErr) {
+                console.error('[XP] Failed to award XP:', xErr);
               }
             })();
-            tasks.push(awardCoinsTask);
+            tasks.push(awardXpTask);
 
             const updateActivityTask = (async () => {
               const { data: profile } = await adminClient.from('profiles').select('institution_id').eq('id', user.id).single();
@@ -290,12 +290,6 @@ export async function POST(request: Request) {
               }
             })();
             tasks.push(updateActivityTask);
-
-            const awardXpTask = (async () => {
-               const { awardXP } = await import('@/features/auth/actions/auth');
-               await awardXP(user.id, 20, 'Solved Coding Problem', 'code_arena', problemId);
-            })();
-            tasks.push(awardXpTask);
           }
 
           const updateSolvedTask = (async () => {
@@ -369,7 +363,7 @@ export async function POST(request: Request) {
 
     return error
       ? NextResponse.json({ success: false, error: { code: 'DATABASE_ERROR', message: error.message } }, { status: 400 })
-      : NextResponse.json({ success: true, data: { ...data, coins_awarded: coinsAwarded } }, { status: 201 });
+      : NextResponse.json({ success: true, data: { ...data, xp_awarded: xpAwarded, coins_awarded: 0 } }, { status: 201 });
   } catch (err: any) {
     return NextResponse.json(
       { success: false, error: { code: 'SERVER_ERROR', message: err.message || 'Submission failed' } },

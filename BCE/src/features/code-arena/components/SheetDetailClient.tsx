@@ -248,6 +248,23 @@ export default function SheetDetailClient({
   // Motivational Engine State
   const [activityLog, setActivityLog] = useState<{date: string, problems_solved: number}[]>([]);
   const [analytics, setAnalytics] = useState<any>(null);
+  const [avgTimeSolveStr, setAvgTimeSolveStr] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('smartlearn_solved_problem_times');
+      if (raw) {
+        const map = JSON.parse(raw);
+        const times = (Object.values(map) as any[]).map(i => Number(i.timeSeconds) || 0).filter(t => t > 0);
+        if (times.length > 0) {
+          const avg = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
+          const mins = Math.floor(avg / 60);
+          const secs = avg % 60;
+          setAvgTimeSolveStr(mins > 0 ? `${mins}m ${secs}s` : `${secs}s`);
+        }
+      }
+    } catch {}
+  }, []);
 
   const problems = sheet.problems || [];
   const totalProblems = problems.length;
@@ -677,6 +694,12 @@ export default function SheetDetailClient({
                         <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>TGT TODAY</div>
                         <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--neon-cyan)' }}>{analytics.targetToday} Problems</div>
                      </div>
+                     {avgTimeSolveStr && (
+                        <div>
+                           <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>AVG. SOLVE TIME</div>
+                           <div style={{ fontSize: '15px', fontWeight: 800, color: '#34d399' }}>{avgTimeSolveStr} / prob</div>
+                        </div>
+                     )}
                      <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>EXP. FINISH</div>
                         <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-main)' }}>{analytics.expectedFinishDate}</div>

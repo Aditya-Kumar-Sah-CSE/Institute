@@ -19,6 +19,10 @@ import {
   Zap,
   SlidersHorizontal,
   ExternalLink,
+  Clock,
+  Trophy,
+  ArrowRight,
+  Award,
 } from 'lucide-react';
 import type { CodeLanguage, NormalizedExecutionResult } from '../types';
 import { useRouter } from 'next/navigation';
@@ -73,21 +77,99 @@ interface CodeAnalysisProps {
   edgeCases?: string;
   passedTests?: number;
   totalTests?: number;
-  coinsAwarded?: number;
+  xpAwarded?: number;
+  solveTimeSeconds?: number;
+  code?: string;
+  metadata?: any;
+}
+
+export function analyzeCodeComplexity(code: string = '', language: string = 'cpp', metadata?: any) {
+  const metaTime = metadata?.optimal_worst_case_time || metadata?.time_complexity;
+  const metaSpace = metadata?.optimal_auxiliary_space || metadata?.space_complexity;
+
+  const cleanCode = (code || '')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/.*/g, '');
+
+  const forMatches = cleanCode.match(/for\s*\([^)]*\)/g) || [];
+  const whileMatches = cleanCode.match(/while\s*\([^)]*\)/g) || [];
+  const totalLoops = forMatches.length + whileMatches.length;
+
+  const nestedLoopRegex = /(?:for|while)\s*\([^)]*\)\s*\{[^{}]*(?:for|while)\s*\([^)]*\)/;
+  const tripleNestedRegex = /(?:for|while)\s*\([^)]*\)\s*\{[^{}]*(?:for|while)\s*\([^)]*\)\s*\{[^{}]*(?:for|while)/;
+
+  const hasSort = /\b(?:sort|stable_sort|qsort|Arrays\.sort|Collections\.sort|\.sort)\b/.test(cleanCode);
+  const hasBinarySearch = /\b(?:binary_search|lower_bound|upper_bound)\b/.test(cleanCode) || 
+    (/(?:low|left)\s*<=\s*(?:high|right)/.test(cleanCode) && /(?:>>\s*1|\/\s*2)/.test(cleanCode));
+  const hasRecursion = /\b([a-zA-Z_]\w*)\s*\([^)]*\)\s*\{[\s\S]*?\b\1\s*\(/.test(cleanCode);
+
+  let analyzedTime = 'O(1)';
+  let timeExplanation = 'Constant Time: Direct scalar operations';
+
+  if (tripleNestedRegex.test(cleanCode)) {
+    analyzedTime = 'O(N³)';
+    timeExplanation = 'Cubic Time: 3 levels of nested loops';
+  } else if (nestedLoopRegex.test(cleanCode)) {
+    analyzedTime = 'O(N²)';
+    timeExplanation = 'Quadratic Time: Nested iteration loops';
+  } else if (hasSort) {
+    analyzedTime = 'O(N log N)';
+    timeExplanation = 'Log-Linear Time: Sorting operations detected';
+  } else if (hasBinarySearch) {
+    analyzedTime = 'O(log N)';
+    timeExplanation = 'Logarithmic Time: Binary search / bisection detected';
+  } else if (totalLoops > 0) {
+    analyzedTime = 'O(N)';
+    timeExplanation = 'Linear Time: Single traversal loop detected';
+  } else if (hasRecursion) {
+    analyzedTime = 'O(N)';
+    timeExplanation = 'Recursive call stack traversal';
+  }
+
+  const has2DStructure = /vector\s*<\s*vector|\[\]\s*\[\]|\bnew\s+\w+\s*\[[^\]]+\]\s*\[/.test(cleanCode);
+  const hasCollections = /\b(?:vector|set|unordered_set|map|unordered_map|queue|priority_queue|stack|list|ArrayList|HashMap|HashSet|Array\(|\[\])\b/.test(cleanCode);
+
+  let analyzedSpace = 'O(1)';
+  let spaceExplanation = 'Constant Space: Uses only scalar variables';
+
+  if (has2DStructure) {
+    analyzedSpace = 'O(N²)';
+    spaceExplanation = 'Quadratic Space: 2D matrix or nested collections';
+  } else if (hasCollections) {
+    analyzedSpace = 'O(N)';
+    spaceExplanation = 'Linear Space: Dynamic collection / buffer memory';
+  }
+
+  const optimalTime = metaTime || analyzedTime;
+  const optimalSpace = metaSpace || analyzedSpace;
+
+  return {
+    analyzedTime,
+    timeExplanation,
+    analyzedSpace,
+    spaceExplanation,
+    optimalTime,
+    optimalSpace
+  };
 }
 
 function CodeAnalysisRatingSection({
   runtimeMs = 12,
   memoryMb = 14.5,
   language = 'cpp',
-  optimalTime = 'O(1)',
-  optimalSpace = 'O(1)',
+  optimalTime,
+  optimalSpace,
   extremeCase,
   edgeCases,
   passedTests = 5,
   totalTests = 5,
-  coinsAwarded = 0,
+  xpAwarded = 25,
+  solveTimeSeconds = 0,
+  code = '',
+  metadata,
 }: CodeAnalysisProps) {
+  const complexity = analyzeCodeComplexity(code, language, metadata);
+
   // Compute Rating from 1 to 10
   const timeScore = Math.max(6.0, Math.min(10.0, 10.0 - (runtimeMs / 1000) * 3.5));
   const memScore = Math.max(6.0, Math.min(10.0, 10.0 - (memoryMb / 256) * 3.5));
@@ -117,35 +199,49 @@ function CodeAnalysisRatingSection({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '10px' }}>
-      {/* Coin Reward Banner */}
-      {coinsAwarded > 0 && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          background: 'linear-gradient(90deg, rgba(234, 179, 8, 0.2) 0%, rgba(245, 158, 11, 0.08) 100%)',
-          border: '1px solid rgba(234, 179, 8, 0.5)',
-          borderRadius: '10px',
-          padding: '10px 14px',
-          color: '#fef08a',
-          boxShadow: '0 4px 18px rgba(234, 179, 8, 0.15)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '24px', filter: 'drop-shadow(0 0 6px rgba(234, 179, 8, 0.8))' }}>🪙</span>
-            <div>
-              <div style={{ fontWeight: 800, fontSize: '13px', color: '#facc15' }}>
-                +{coinsAwarded} Coins Earned!
-              </div>
-              <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.75)' }}>
-                Problem solved! Credited to your Smart Learn coin balance.
-              </div>
+      {/* XP Reward Banner */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        background: 'linear-gradient(90deg, rgba(139, 92, 246, 0.18) 0%, rgba(6, 182, 212, 0.12) 100%)',
+        border: '1px solid rgba(139, 92, 246, 0.45)',
+        borderRadius: '10px',
+        padding: '10px 14px',
+        color: '#e0e7ff',
+        boxShadow: '0 4px 18px rgba(139, 92, 246, 0.15)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 0 10px rgba(139, 92, 246, 0.6)'
+          }}>
+            <Zap size={18} style={{ color: '#ffffff', fill: '#ffffff' }} />
+          </div>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: '13px', color: '#c084fc', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              +{xpAwarded} XP Earned!
+              {solveTimeSeconds > 0 && (
+                <span style={{ fontSize: '11px', color: 'var(--neon-cyan)', fontWeight: 600 }}>
+                  • ⏱️ {Math.floor(solveTimeSeconds / 60)}m {solveTimeSeconds % 60}s
+                </span>
+              )}
+            </div>
+            <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.75)' }}>
+              Problem solved! Credited to your Smart Learn profile XP & Level.
             </div>
           </div>
-          <span style={{ fontSize: '11px', fontWeight: 800, background: 'rgba(234, 179, 8, 0.2)', padding: '4px 10px', borderRadius: '6px', color: '#fde047' }}>
-            SOLVED ✓
-          </span>
         </div>
-      )}
+        <span style={{ fontSize: '11px', fontWeight: 800, background: 'rgba(16, 185, 129, 0.2)', border: '1px solid rgba(16, 185, 129, 0.4)', padding: '4px 10px', borderRadius: '6px', color: '#34d399' }}>
+          SOLVED ✓
+        </span>
+      </div>
 
       {/* Code Analysis & 1 to 10 Rating Card */}
       <div style={{
@@ -212,24 +308,24 @@ function CodeAnalysisRatingSection({
           </div>
         </div>
 
-        {/* Complexity Analysis: TC & SC Optimal Comparison */}
+        {/* Real Complexity Analysis: TC & SC */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '10px' }}>
           <div>
             <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Time Complexity (TC)</div>
-            <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--neon-cyan)', marginTop: '2px', fontFamily: 'monospace' }}>
-              Optimal: {optimalTime}
+            <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--neon-cyan)', marginTop: '2px', fontFamily: 'monospace' }}>
+              {complexity.analyzedTime}
             </div>
-            <div style={{ fontSize: '10px', color: '#86efac', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <CheckCircle2 size={11} /> Optimal Speed Target Met
+            <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>
+              {complexity.timeExplanation}
             </div>
           </div>
           <div>
             <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Space Complexity (SC)</div>
-            <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--neon-purple)', marginTop: '2px', fontFamily: 'monospace' }}>
-              Optimal: {optimalSpace}
+            <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--neon-purple)', marginTop: '2px', fontFamily: 'monospace' }}>
+              {complexity.analyzedSpace}
             </div>
-            <div style={{ fontSize: '10px', color: '#86efac', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <CheckCircle2 size={11} /> Auxiliary Space Compliant
+            <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>
+              {complexity.spaceExplanation}
             </div>
           </div>
         </div>
@@ -350,6 +446,9 @@ export default function CodeEditor({
   const [submissionResult, setSubmissionResult] = useState<any | null>(null);
   const [showCFModal, setShowCFModal] = useState(false);
   const [showLCModal, setShowLCModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [lastSolveTime, setLastSolveTime] = useState<number>(0);
+  const sessionStartTimeRef = useRef<number>(Date.now());
 
   const [pastSolutionData, setPastSolutionData] = useState<any>(null);
   const [loadingPastSolution, setLoadingPastSolution] = useState(false);
@@ -844,8 +943,50 @@ export default function CodeEditor({
         setSubmissionResult({ error: payload.error?.message || payload.error || 'Submission failed' });
         setActiveTab('error');
       } else {
-        setSubmissionResult(payload.data);
+        const subData = payload.data;
+        setSubmissionResult(subData);
         setActiveTab('tests');
+
+        if (subData?.status === 'ACCEPTED') {
+          const durationSeconds = Math.max(5, Math.round((Date.now() - sessionStartTimeRef.current) / 1000));
+          setLastSolveTime(durationSeconds);
+
+          try {
+            const problemRecord = {
+              problemId: problem.id,
+              title: problem.title,
+              difficulty: problem.difficulty || 'Easy',
+              sheetId: problem.navigation?.sheetId || null,
+              nextProblemId: problem.navigation?.nextProblemId || null,
+              solveTimeSeconds: durationSeconds,
+              solvedAt: new Date().toISOString()
+            };
+
+            // 1. Last solved problem record
+            localStorage.setItem('smartlearn_last_solved_problem', JSON.stringify(problemRecord));
+
+            // 2. Solved problems history map
+            const historyRaw = localStorage.getItem('smartlearn_solved_problem_times');
+            let historyMap: Record<string, any> = {};
+            if (historyRaw) {
+              try { historyMap = JSON.parse(historyRaw); } catch {}
+            }
+            historyMap[problem.id] = {
+              timeSeconds: durationSeconds,
+              solvedAt: new Date().toISOString(),
+              title: problem.title
+            };
+            localStorage.setItem('smartlearn_solved_problem_times', JSON.stringify(historyMap));
+
+            // 3. Dispatch global event
+            window.dispatchEvent(new CustomEvent('smartlearn:problem-solved', { detail: problemRecord }));
+          } catch (e) {
+            console.error('Failed to save solve time stats', e);
+          }
+
+          // Open the real analysis celebration popup modal!
+          setShowSuccessModal(true);
+        }
       }
     } catch {
       setSubmissionResult({ error: 'Unable to submit solution. Please check network connection.' });
@@ -1528,13 +1669,16 @@ export default function CodeEditor({
                     runtimeMs={submissionResult.execution_time_ms || 12} 
                     memoryMb={submissionResult.memory_used_mb || 14.5}
                     language={language}
-                    optimalTime={problem.metadata?.optimal_worst_case_time || 'O(1)'}
-                    optimalSpace={problem.metadata?.optimal_auxiliary_space || 'O(1)'}
+                    optimalTime={problem.metadata?.optimal_worst_case_time}
+                    optimalSpace={problem.metadata?.optimal_auxiliary_space}
                     extremeCase={problem.metadata?.extreme_test_case}
                     edgeCases={problem.metadata?.edge_cases}
                     passedTests={submissionResult.passed_tests || 0}
                     totalTests={submissionResult.total_tests || 5}
-                    coinsAwarded={submissionResult.coins_awarded || 0}
+                    xpAwarded={submissionResult.xp_awarded || 25}
+                    solveTimeSeconds={lastSolveTime}
+                    code={code}
+                    metadata={problem.metadata}
                   />
                 </div>
               ) : null
@@ -1642,13 +1786,16 @@ export default function CodeEditor({
                       runtimeMs={submissionResult.execution_time_ms || 12} 
                       memoryMb={submissionResult.memory_used_mb || 14.5}
                       language={language}
-                      optimalTime={problem.metadata?.optimal_worst_case_time || 'O(1)'}
-                      optimalSpace={problem.metadata?.optimal_auxiliary_space || 'O(1)'}
+                      optimalTime={problem.metadata?.optimal_worst_case_time}
+                      optimalSpace={problem.metadata?.optimal_auxiliary_space}
                       extremeCase={problem.metadata?.extreme_test_case}
                       edgeCases={problem.metadata?.edge_cases}
                       passedTests={submissionResult.passed_tests || 0}
                       totalTests={submissionResult.total_tests || 5}
-                      coinsAwarded={submissionResult.coins_awarded || 0}
+                      xpAwarded={submissionResult.xp_awarded || 25}
+                      solveTimeSeconds={lastSolveTime}
+                      code={code}
+                      metadata={problem.metadata}
                     />
                   )}
 
@@ -2326,6 +2473,183 @@ export default function CodeEditor({
                 onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
               >
                 Go to Submit Portal ↗
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Submission Success Celebration & Real Code Analysis Popup */}
+      {showSuccessModal && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(3, 7, 18, 0.88)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99999,
+            padding: '20px',
+            animation: 'fadeIn 0.2s ease-out'
+          }}
+          onClick={() => setShowSuccessModal(false)}
+        >
+          <div 
+            style={{
+              background: 'linear-gradient(180deg, #0f172a 0%, #090d16 100%)',
+              border: '1px solid rgba(6, 182, 212, 0.45)',
+              borderRadius: '20px',
+              maxWidth: '620px',
+              width: '100%',
+              maxHeight: '92vh',
+              overflowY: 'auto',
+              boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.9), 0 0 35px rgba(6, 182, 212, 0.25)',
+              padding: '24px',
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '14px',
+              boxSizing: 'border-box'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button 
+              type="button"
+              onClick={() => setShowSuccessModal(false)}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+            >
+              <X size={16} />
+            </button>
+
+            {/* Celebration Header */}
+            <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+              <div 
+                style={{
+                  width: '54px',
+                  height: '54px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(6, 182, 212, 0.35))',
+                  border: '2px solid rgba(52, 211, 153, 0.6)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 0 25px rgba(52, 211, 153, 0.45)',
+                }}
+              >
+                <Trophy size={26} style={{ color: '#34d399' }} />
+              </div>
+
+              <h3 style={{ fontSize: '1.35rem', fontWeight: 900, margin: '4px 0 0 0', color: '#f8fafc' }}>
+                Problem Solved!
+              </h3>
+              
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(90deg, rgba(139, 92, 246, 0.25), rgba(6, 182, 212, 0.25))', border: '1px solid rgba(139, 92, 246, 0.5)', borderRadius: '9999px', padding: '4px 14px', marginTop: '2px' }}>
+                <Zap size={14} style={{ color: '#c084fc', fill: '#c084fc' }} />
+                <span style={{ fontSize: '13px', fontWeight: 800, color: '#e0e7ff' }}>
+                  +{submissionResult?.xp_awarded || 25} XP Credited!
+                </span>
+              </div>
+              
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0 0', fontWeight: 600 }}>
+                {problem.title}
+              </p>
+
+              {lastSolveTime > 0 && (
+                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--neon-cyan)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  <Clock size={12} /> Solved in {Math.floor(lastSolveTime / 60)}m {lastSolveTime % 60}s
+                </div>
+              )}
+            </div>
+
+            {/* Real Code Analysis Rating Section inside Modal */}
+            <CodeAnalysisRatingSection
+              runtimeMs={submissionResult?.execution_time_ms || 12}
+              memoryMb={submissionResult?.memory_used_mb || 14.5}
+              language={language}
+              optimalTime={problem.metadata?.optimal_worst_case_time}
+              optimalSpace={problem.metadata?.optimal_auxiliary_space}
+              extremeCase={problem.metadata?.extreme_test_case}
+              edgeCases={problem.metadata?.edge_cases}
+              passedTests={submissionResult?.passed_tests || 5}
+              totalTests={submissionResult?.total_tests || 5}
+              xpAwarded={submissionResult?.xp_awarded || 25}
+              solveTimeSeconds={lastSolveTime}
+              code={code}
+              metadata={problem.metadata}
+            />
+
+            {/* Bottom Actions */}
+            <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+              {problem.navigation?.nextProblemId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSuccessModal(false);
+                    const sheetParam = problem.navigation?.sheetId ? `?sheet=${problem.navigation.sheetId}` : '';
+                    router.push(`/code-arena/problems/${problem.navigation?.nextProblemId}${sheetParam}`);
+                  }}
+                  style={{
+                    flex: 1,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    padding: '11px 18px',
+                    borderRadius: '10px',
+                    background: 'linear-gradient(135deg, #06b6d4, #3b82f6)',
+                    color: '#ffffff',
+                    fontSize: '13px',
+                    fontWeight: 800,
+                    border: 'none',
+                    cursor: 'pointer',
+                    boxShadow: '0 0 16px rgba(6, 182, 212, 0.4)',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  Next Problem <ArrowRight size={14} />
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setShowSuccessModal(false)}
+                style={{
+                  flex: problem.navigation?.nextProblemId ? '0 0 auto' : '1',
+                  padding: '11px 18px',
+                  borderRadius: '10px',
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  color: 'var(--text-main)',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                Close & Continue
               </button>
             </div>
           </div>

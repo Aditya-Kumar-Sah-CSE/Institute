@@ -12,6 +12,7 @@ import { Zap, Flame, CheckCircle, Award, GraduationCap, BookOpen } from 'lucide-
 import dynamic from 'next/dynamic';
 import AddGoalDashboardCard from '@/features/goals/components/AddGoalDashboardCard';
 import DashboardContestCard from './components/DashboardContestCard';
+import DashboardSheetsCard from '@/features/code-arena/components/DashboardSheetsCard';
 import { Suspense } from 'react';
 
 const NoticeBoard = dynamic(() => import('@/features/notices/components/NoticeBoard'), { loading: () => <div className="skeleton-dash" style={{ height: '300px', borderRadius: '12px' }}></div> });
@@ -84,19 +85,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
             </Card>
           </Link>
           
-          <Link href="/code-arena/sheets" style={{ textDecoration: 'none' }} title="View Coding Sheets">
-            <Card variant="glass" padding="lg" className="stat-card hover-lift">
-              <div className="stat-card-icon" style={{ background: 'rgba(57, 255, 20, 0.1)', color: 'var(--neon-lime)' }}>
-                <BookOpen size={24} />
-              </div>
-              <div className="stat-card-content">
-                <div className="stat-card-value" style={{ color: 'var(--neon-lime)', fontSize: '1.4rem', fontWeight: 800 }}>
-                  Sheets <span style={{ fontSize: '0.8rem', fontWeight: 600, opacity: 0.85 }}>Solve</span>
-                </div>
-                <div className="text-secondary stat-card-label">DSA Sheets</div>
-              </div>
-            </Card>
-          </Link>
+          <DashboardSheetsCard />
 
           <DashboardContestCard />
 
