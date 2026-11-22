@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import './CodeArena.css';
 import { Trophy, Code2, User, BookOpen } from 'lucide-react';
 
 export default function MobileCodeArenaToggle() {
@@ -13,7 +14,7 @@ export default function MobileCodeArenaToggle() {
   const isProfile = pathname?.startsWith('/code-arena/profile') ?? false;
 
   return (
-    <div className="mobile-arena-toggle-container md:hidden">
+    <div className="mobile-arena-toggle-container">
       <Link
         href="/code-arena"
         className={`mobile-arena-toggle-item ${isArena ? 'active' : ''}`}

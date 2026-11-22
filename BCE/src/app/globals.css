@@ -515,3 +515,14 @@ small, .caption {
   background: var(--neon-purple);
   color: white;
 }
+
+
+/* Global Mobile Code Arena Segmented Bar Fallback */
+.mobile-arena-toggle-container {
+  display: none !important;
+}
+@media (max-width: 768px) {
+  .mobile-arena-toggle-container {
+    display: flex !important;
+  }
+}

@@ -388,8 +388,6 @@ export default function SheetDetailClient({
 
   return (
     <div className="code-arena-page" suppressHydrationWarning style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)', paddingBottom: '2rem' }}>
-      <MobileCodeArenaToggle />
-
       {/* Header Bar */}
       <header className="code-arena-header-compact" style={{ marginTop: '4px' }}>
         <div className="code-arena-header-left">
