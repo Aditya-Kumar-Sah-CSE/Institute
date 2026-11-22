@@ -1323,11 +1323,10 @@ export function registerMonacoIntelliSense(monacoInstance: Parameters<NonNullabl
         return { suggestions };
       }
 
-      // Default: keywords + std functions + snippets + user symbols
+      // Default: keywords + std functions + user symbols
       for (const k of CPP_KEYWORDS) suggestions.push({ ...kw(m, k), range });
       for (const s of getCppStdMembers(m)) suggestions.push({ ...s, range });
       for (const s of getCFunctions(m)) suggestions.push({ ...s, range });
-      for (const s of getCppCPSnippets(m)) suggestions.push({ ...s, range });
       for (const s of extractUserSymbols(m, fullText, 'cpp')) suggestions.push({ ...s, range });
 
       return { suggestions };
@@ -1431,7 +1430,6 @@ export function registerMonacoIntelliSense(monacoInstance: Parameters<NonNullabl
       for (const k of PYTHON_KEYWORDS) suggestions.push({ ...kw(m, k), range });
       for (const s of getPythonBuiltins(m)) suggestions.push({ ...s, range });
       for (const s of getPythonImports(m)) suggestions.push({ ...s, range });
-      for (const s of getPythonCPSnippets(m)) suggestions.push({ ...s, range });
       for (const s of extractUserSymbols(m, fullText, 'python')) suggestions.push({ ...s, range });
 
       return { suggestions };
@@ -1475,7 +1473,6 @@ export function registerMonacoIntelliSense(monacoInstance: Parameters<NonNullabl
       for (const k of JAVA_KEYWORDS) suggestions.push({ ...kw(m, k), range });
       for (const s of getJavaStdLib(m)) suggestions.push({ ...s, range });
       for (const s of getJavaMethods(m)) suggestions.push({ ...s, range });
-      for (const s of getJavaCPSnippets(m)) suggestions.push({ ...s, range });
       for (const s of getJavaImports(m)) suggestions.push({ ...s, range });
       for (const s of extractUserSymbols(m, fullText, 'java')) suggestions.push({ ...s, range });
 
@@ -1685,14 +1682,14 @@ export function registerMonacoIntelliSense(monacoInstance: Parameters<NonNullabl
 export const intelliSenseEditorOptions = {
   quickSuggestions: {
     other: true,
-    comments: true,
-    strings: true,
+    comments: false,
+    strings: false,
   },
   suggestOnTriggerCharacters: true,
   parameterHints: { enabled: true },
   wordBasedSuggestions: 'currentDocument' as const,
   suggest: {
-    showSnippets: true,
+    showSnippets: false,
     showKeywords: true,
     showWords: true,
     showFunctions: true,
@@ -1706,12 +1703,15 @@ export const intelliSenseEditorOptions = {
     snippetsPreventQuickSuggestions: false,
     localityBonus: true,
     showIcons: true,
-    preview: true,
+    preview: false,
     filterGraceful: true,
+  },
+  inlineSuggest: {
+    enabled: false,
   },
   tabCompletion: 'on' as const,
   acceptSuggestionOnEnter: 'on' as const,
-  snippetSuggestions: 'top' as const,
+  snippetSuggestions: 'none' as const,
   suggestSelection: 'first' as const,
   autoClosingBrackets: 'always' as const,
   autoClosingQuotes: 'always' as const,

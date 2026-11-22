@@ -14,6 +14,7 @@ import { codeforcesAdapter } from '@/lib/coding-platforms/codeforces';
 import { leetcodeAdapter } from '@/lib/coding-platforms/leetcode';
 import { gfgAdapter } from '@/lib/coding-platforms/gfg';
 import LocalProblemSolver from '@/features/code-arena/components/LocalProblemSolver';
+import PracticeArenaHeader from '@/features/code-arena/components/PracticeArenaHeader';
 import '@/features/code-arena/components/CodeArena.css';
 
 // Cache Codeforces problem data for 1 hour
@@ -355,41 +356,13 @@ export default async function CodeProblemPage({ params, searchParams }: { params
 
   return (
     <div className="code-arena-page ide-mode">
-      {/* Compact IDE Header Bar */}
-      <header className="code-arena-header-compact">
-        <div className="code-arena-header-left">
-          <Link
-            href="/code-arena/compiler"
-            className="oj-icon-btn"
-            title="Back to Compiler"
-            style={{ display: 'inline-flex', alignItems: 'center', color: 'inherit', textDecoration: 'none', marginRight: '6px' }}
-          >
-            <ArrowLeft size={16} />
-          </Link>
-          <div className="code-arena-logo-box">
-            <Trophy size={18} />
-          </div>
-          <h1 className="code-arena-header-title">
-            Practice Arena
-            <span className="code-arena-badge-sub">Code Arena</span>
-          </h1>
-        </div>
-
-        <div className="code-arena-header-controls">
-          <SpotifyConnect />
-          <FocusTimer />
-          
-          <Link
-            href="/profile"
-            className="oj-icon-btn profile-avatar-btn"
-            style={{ overflow: 'hidden', position: 'relative', width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0 }}
-            title={`View Profile: ${profileName}`}
-            aria-label="View Profile"
-          >
-            <UserAvatar url={profileAvatar} name={profileName} size={32} />
-          </Link>
-        </div>
-      </header>
+      {/* Practice Arena Header with Top Action Controls */}
+      <PracticeArenaHeader
+        problem={problemData}
+        profileName={profileName}
+        profileAvatar={profileAvatar}
+        sheetId={sheetId}
+      />
 
       {/* Resizable Desktop IDE Layout */}
       <div className="code-arena-workspace-container">

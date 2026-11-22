@@ -17,6 +17,7 @@ import {
   X,
   Code2,
   Zap,
+  SlidersHorizontal,
   ExternalLink,
 } from 'lucide-react';
 import type { CodeLanguage, NormalizedExecutionResult } from '../types';
@@ -33,7 +34,7 @@ import {
   restoreBackupIfNewer,
   VersionTracker,
 } from '../lib/saveManager';
-import { practiceAndBattleClipboardProps } from '../lib/clipboardPolicy';
+import { practiceAndBattleClipboardProps, recordInternalCopy, isInternalPaste, showExternalPasteWarning } from '../lib/clipboardPolicy';
 import { highlightErrorInMonaco } from '../lib/errorHighlighter';
 
 
@@ -214,7 +215,7 @@ export default function CodeEditor({
   const [customInput, setCustomInput] = useState(samples[0]?.input || '');
   const [isFullscreen, setIsFullscreen] = useState(false); // Do not open fullscreen by default
   const [activeTab, setActiveTab] = useState<ConsoleTab>('output');
-  const [activeRightTab, setActiveRightTab] = useState<'editor' | 'results'>('editor');
+  const [activeRightTab, setActiveRightTab] = useState<'split' | 'editor' | 'results'>('split');
 
   const [running, setRunning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -471,19 +472,20 @@ export default function CodeEditor({
   const [activeResultCaseIdx, setActiveResultCaseIdx] = useState(0);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Vertical Resizable Splitter State (Editor vs Console Section)
-  const [editorHeightPct, setEditorHeightPct] = useState<number>(55);
+  // Vertical Resizable Splitter State (Terminal vs Result Columns in Parallel Screen)
+  const [editorWidthPct, setEditorWidthPct] = useState<number>(50);
   const [isResizingVertical, setIsResizingVertical] = useState<boolean>(false);
   const workspaceSectionRef = useRef<HTMLElement>(null);
-  const editorHeightPctRef = useRef(editorHeightPct);
-  editorHeightPctRef.current = editorHeightPct;
+  const workspaceBodyRef = useRef<HTMLDivElement>(null);
+  const editorWidthPctRef = useRef(editorWidthPct);
+  editorWidthPctRef.current = editorWidthPct;
 
   useEffect(() => {
-    const saved = localStorage.getItem('bce:code-editor-vertical-height');
-    if (saved) {
-      const parsed = parseFloat(saved);
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('bce:code-editor-parallel-width');
+      const parsed = parseFloat(saved || '');
       if (!isNaN(parsed) && parsed >= 20 && parsed <= 80) {
-        setEditorHeightPct(parsed);
+        setEditorWidthPct(parsed);
       }
     }
   }, []);
@@ -495,19 +497,25 @@ export default function CodeEditor({
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizingVertical || !workspaceSectionRef.current) return;
-      const rect = workspaceSectionRef.current.getBoundingClientRect();
-      const relativeY = e.clientY - rect.top;
-      const percentage = (relativeY / rect.height) * 100;
+      if (!isResizingVertical || !workspaceBodyRef.current) return;
+      const rect = workspaceBodyRef.current.getBoundingClientRect();
+      const relativeX = e.clientX - rect.left;
+      const percentage = (relativeX / rect.width) * 100;
       if (percentage >= 20 && percentage <= 80) {
-        setEditorHeightPct(percentage);
+        setEditorWidthPct(percentage);
+        if (editorRef.current) {
+          editorRef.current.layout();
+        }
       }
     };
 
     const handleMouseUp = () => {
       if (isResizingVertical) {
         setIsResizingVertical(false);
-        localStorage.setItem('bce:code-editor-vertical-height', editorHeightPctRef.current.toFixed(2));
+        localStorage.setItem('bce:code-editor-parallel-width', editorWidthPctRef.current.toFixed(2));
+        if (editorRef.current) {
+          editorRef.current.layout();
+        }
       }
     };
 
@@ -600,7 +608,7 @@ export default function CodeEditor({
     setExecResult(null);
     setBatchResult(null);
     setSubmissionResult(null);
-    setActiveRightTab('results');
+    if (activeRightTab === 'editor') setActiveRightTab('split');
 
     try {
       const body: any = {
@@ -686,7 +694,7 @@ export default function CodeEditor({
     setSubmitting(true);
     setSubmissionResult(null);
     setExecResult(null);
-    setActiveRightTab('results');
+    if (activeRightTab === 'editor') setActiveRightTab('split');
 
     try {
       const res = await fetch('/api/coding/submissions', {
@@ -750,31 +758,57 @@ export default function CodeEditor({
       : 0;
 
   return (
-    <section ref={workspaceSectionRef} className={`code-workspace-panel ${activeRightTab === 'editor' ? 'show-editor' : 'show-results'}`} aria-label="Coding Workspace">
+    <section ref={workspaceSectionRef} className={`code-workspace-panel ${activeRightTab === 'editor' ? 'show-editor' : activeRightTab === 'results' ? 'show-results' : 'show-split'}`} aria-label="Coding Workspace">
       {/* Right panel view toggle */}
       <div className="right-panel-view-toggle">
         <button 
           type="button"
-          className={`view-toggle-btn ${activeRightTab === 'editor' ? 'active' : ''}`}
-          onClick={() => setActiveRightTab('editor')}
+          className={`view-toggle-btn ${activeRightTab === 'split' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveRightTab('split');
+            setTimeout(() => editorRef.current?.layout(), 50);
+          }}
+          title="Parallel Screen (Terminal & Result with Vertical Slider)"
         >
-          Terminal
+          <SlidersHorizontal size={12} /> Split
+        </button>
+        <button 
+          type="button"
+          className={`view-toggle-btn ${activeRightTab === 'editor' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveRightTab('editor');
+            setTimeout(() => editorRef.current?.layout(), 50);
+          }}
+          title="Maximize Terminal (Code Editor)"
+        >
+          <Terminal size={12} /> Terminal
         </button>
         <button 
           type="button"
           className={`view-toggle-btn ${activeRightTab === 'results' ? 'active' : ''}`}
           onClick={() => setActiveRightTab('results')}
+          title="Maximize Result (Console & Testcases)"
         >
-          Result
+          <Play size={12} /> Result
         </button>
       </div>
-      {/* Monaco Container with Fullscreen Toggle and Event Captures */}
+      {/* Parallel Screen Split Body Container */}
       <div 
-        className={`code-monaco-wrapper ${isFullscreen ? 'code-editor-fullscreen' : ''}`}
-        style={{
-          flex: (isFullscreen || activeRightTab === 'editor') ? '1 1 100%' : `0 0 ${editorHeightPct}%`,
-          height: (isFullscreen || activeRightTab === 'editor') ? '100%' : `${editorHeightPct}%`
-        }}
+        ref={workspaceBodyRef} 
+        className="code-workspace-body-split"
+      >
+        {/* Monaco Container with Fullscreen Toggle and Event Captures */}
+        <div 
+          className={`code-monaco-wrapper ${isFullscreen ? 'code-editor-fullscreen' : ''}`}
+          style={{
+            flex: isFullscreen ? '1 1 100%' : activeRightTab === 'editor' ? '1 1 100%' : activeRightTab === 'results' ? '0 0 0' : `0 0 ${editorWidthPct}%`,
+            width: isFullscreen ? '100%' : activeRightTab === 'editor' ? '100%' : activeRightTab === 'results' ? '0' : `${editorWidthPct}%`,
+            height: '100%',
+            minWidth: 0,
+            display: (!isFullscreen && activeRightTab === 'results') ? 'none' : 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}
         {...practiceAndBattleClipboardProps}
       >
         {/* Editor Toolbar */}
@@ -910,6 +944,9 @@ export default function CodeEditor({
                 minimap: { enabled: false },
                 fontSize: 14,
                 automaticLayout: true,
+                wordWrap: 'on',
+                wrappingStrategy: 'advanced',
+                wrappingIndent: 'same',
                 scrollBeyondLastLine: false,
                 lineNumbers: 'on',
                 renderLineHighlight: 'all',
@@ -923,31 +960,32 @@ export default function CodeEditor({
         </div>
       </div>
 
-      {/* Vertical Resizer Drag Slider */}
-      {!isFullscreen && (
-        <div
-          className={`vertical-resizer-slider ${isResizingVertical ? 'active' : ''}`}
-          onMouseDown={handleVerticalMouseDown}
-          title="Drag up or down to resize Code Editor & Testcases Console"
-        >
-          <div className="slider-handle-pill" />
-        </div>
-      )}
+      {/* Vertical Resizer Drag Slider between Parallel Terminal & Result */}
+        {!isFullscreen && activeRightTab === 'split' && (
+          <div
+            className={`vertical-resizer-slider ${isResizingVertical ? 'active' : ''}`}
+            onMouseDown={handleVerticalMouseDown}
+            title="Drag left or right to resize Terminal & Result (Slider 2)"
+          >
+            <div className="slider-handle-pill" />
+          </div>
+        )}
 
-      {/* Console & Testcases Split Container */}
-      <div 
-        ref={consoleParentContainerRef}
-        className="console-testcases-container"
-        style={{
-          flex: isFullscreen ? '0 0 0' : `1 1 calc(${100 - editorHeightPct}% - 10px)`,
-          height: isFullscreen ? '0' : `calc(${100 - editorHeightPct}% - 10px)`,
-          minHeight: 0,
-          display: isFullscreen ? 'none' : 'flex',
-          flexDirection: 'column',
-          gap: 0,
-          overflow: 'hidden'
-        }}
-      >
+        {/* Console & Testcases Split Container */}
+        <div 
+          ref={consoleParentContainerRef}
+          className="console-testcases-container"
+          style={{
+            flex: isFullscreen ? '0 0 0' : activeRightTab === 'results' ? '1 1 100%' : activeRightTab === 'editor' ? '0 0 0' : `1 1 calc(${100 - editorWidthPct}% - 8px)`,
+            width: isFullscreen ? '0' : activeRightTab === 'results' ? '100%' : activeRightTab === 'editor' ? '0' : `calc(${100 - editorWidthPct}% - 8px)`,
+            height: '100%',
+            minWidth: 0,
+            display: (isFullscreen || activeRightTab === 'editor') ? 'none' : 'flex',
+            flexDirection: 'column',
+            gap: 0,
+            overflow: 'hidden'
+          }}
+        >
         {/* Console & Test Results Tabbed Section */}
         <div
           className="oj-console-wrapper"
@@ -971,7 +1009,7 @@ export default function CodeEditor({
                 onClick={runCode}
               >
                 {running ? <LoaderCircle size={15} className="animate-spin" /> : <Play size={15} />}
-                {running ? 'Running...' : 'Run Code'}
+                {running ? 'Running...' : 'Run'}
               </button>
 
               {problem.source_type === 'CODEFORCES' && (
@@ -1048,7 +1086,7 @@ export default function CodeEditor({
                 onClick={submitCode}
               >
                 {submitting ? <LoaderCircle size={15} className="animate-spin" /> : <Send size={15} />}
-                {submitting ? 'Judging...' : 'Submit Solution'}
+                {submitting ? 'Judging...' : 'Submit'}
               </button>
             </div>
           </div>
@@ -1205,7 +1243,7 @@ export default function CodeEditor({
                     </span>
                   </div>
                   <p className="oj-empty-title">Console ready</p>
-                  <p className="oj-empty-sub">Click “Run Code” or “Submit Solution” to inspect output and judge evaluation results.</p>
+                  <p className="oj-empty-sub">Click “Run” or “Submit” to inspect output and judge evaluation results.</p>
                 </div>
               ) : execResult ? (
                 <div>
@@ -1725,6 +1763,7 @@ export default function CodeEditor({
             />
           </div>
         )}
+      </div>
       </div>
 
       {showCFModal && (

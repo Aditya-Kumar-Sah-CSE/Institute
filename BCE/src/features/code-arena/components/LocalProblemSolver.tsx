@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, Trophy, AlertCircle } from 'lucide-react';
 import ResizableIdeLayout from '@/features/code-arena/components/ResizableIdeLayout';
+import PracticeArenaHeader from '@/features/code-arena/components/PracticeArenaHeader';
 import type { ProblemData } from '@/features/code-arena/components/ProblemStatementRenderer';
 import FocusTimer from '@/features/code-arena/components/FocusTimer';
 import SpotifyConnect from '@/features/code-arena/components/SpotifyConnect';
@@ -65,36 +66,12 @@ export default function LocalProblemSolver({ problemId }: { problemId: string })
 
   return (
     <div className="code-arena-page ide-mode">
-      {/* Compact IDE Header Bar */}
-      <header className="code-arena-header-compact">
-        <div className="code-arena-header-left">
-          <Link 
-            href="/code-arena/compiler" 
-            className="oj-icon-btn" 
-            title="Back to Compiler" 
-            style={{ display: 'inline-flex', alignItems: 'center', color: 'inherit', textDecoration: 'none', marginRight: '6px' }}
-          >
-            <ChevronLeft size={18} />
-          </Link>
-          <div className="code-arena-logo-box">
-            <Trophy size={18} />
-          </div>
-          <h1 className="code-arena-header-title">
-            {problemData.title}
-            <span 
-              className="code-arena-badge-sub" 
-              style={{ background: 'rgba(6, 182, 212, 0.15)', color: '#00f0ff', border: '1px solid rgba(6, 182, 212, 0.3)' }}
-            >
-              Device Storage
-            </span>
-          </h1>
-        </div>
-
-        <div className="code-arena-header-controls">
-          <SpotifyConnect />
-          <FocusTimer />
-        </div>
-      </header>
+      {/* Practice Arena Header with Top Action Controls */}
+      <PracticeArenaHeader
+        problem={problemData}
+        profileName="User"
+        profileAvatar={null}
+      />
 
       {/* Resizable Desktop IDE Layout */}
       <div className="code-arena-workspace-container">

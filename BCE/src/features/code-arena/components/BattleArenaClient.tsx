@@ -1740,7 +1740,7 @@ export default function BattleArenaClient({
                         onClick={handleRunCode}
                       >
                         {running ? <LoaderCircle size={15} className="animate-spin" /> : <Play size={15} />}
-                        {running ? 'Running...' : 'Run Code'}
+                        {running ? 'Running...' : 'Run'}
                       </button>
 
                       <button
@@ -1750,7 +1750,7 @@ export default function BattleArenaClient({
                         onClick={handleSubmitCode}
                       >
                         {submitting ? <LoaderCircle size={15} className="animate-spin" /> : <Send size={15} />}
-                        {submitting ? 'Judging...' : 'Submit Solution'}
+                        {submitting ? 'Judging...' : 'Submit'}
                       </button>
                     </div>
                   </div>

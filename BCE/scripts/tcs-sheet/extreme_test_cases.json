@@ -1,0 +1,2207 @@
+{
+  "title": "TCS 220 Coding Problems — Extreme Test Cases & Complexity",
+  "language": "C++17",
+  "count": 220,
+  "items": [
+    {
+      "id": 1,
+      "topic": "Programming Fundamentals & Patterns",
+      "problem": "Print a message and read input in the required format",
+      "extreme_test_case": "Input: the longest allowed line (e.g. 1,000,000 characters), leading/trailing spaces, empty line if permitted. Verify exact output and newline handling.",
+      "edge_cases": "Empty input / whitespace-only input; malformed token count.",
+      "optimal_worst_case_time": "O(1)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 2,
+      "topic": "Programming Fundamentals & Patterns",
+      "problem": "Add, subtract, multiply and divide two numbers",
+      "extreme_test_case": "a = 2,147,483,647; b = -2,147,483,648. Test addition/subtraction overflow, multiplication overflow, and division by zero separately; use 64-bit or wider arithmetic.",
+      "edge_cases": "Zero divisor; 0/0 policy; negative operands and overflow boundary.",
+      "optimal_worst_case_time": "O(1)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 3,
+      "topic": "Programming Fundamentals & Patterns",
+      "problem": "Swap two numbers (with and without a temporary variable)",
+      "extreme_test_case": "a = -2,147,483,648; b = 2,147,483,647. Verify swap preserves exact values and no arithmetic-swap overflow.",
+      "edge_cases": "Equal values; zero and signed integer limits.",
+      "optimal_worst_case_time": "O(1)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 4,
+      "topic": "Programming Fundamentals & Patterns",
+      "problem": "Find the largest of three numbers",
+      "extreme_test_case": "a = 2,147,483,647; b = 2,147,483,646; c = -2,147,483,648. Also test all three equal.",
+      "edge_cases": "All equal; two-way tie; negative values.",
+      "optimal_worst_case_time": "O(1)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 5,
+      "topic": "Programming Fundamentals & Patterns",
+      "problem": "Check whether a number is even or odd",
+      "extreme_test_case": "n = -2,147,483,648 and n = 2,147,483,647; also n = 0.",
+      "edge_cases": "Zero and negative integers.",
+      "optimal_worst_case_time": "O(1)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 6,
+      "topic": "Programming Fundamentals & Patterns",
+      "problem": "Check positive, negative or zero",
+      "extreme_test_case": "n = -2,147,483,648, 0, 2,147,483,647.",
+      "edge_cases": "Exactly zero.",
+      "optimal_worst_case_time": "O(1)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 7,
+      "topic": "Programming Fundamentals & Patterns",
+      "problem": "Calculate simple and compound interest",
+      "extreme_test_case": "Principal = 10^12, rate = 100.0%, years = 10^4 (if allowed). Check precision, overflow and zero years.",
+      "edge_cases": "Zero principal/rate/time; fractional rate; rounding.",
+      "optimal_worst_case_time": "O(1)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 8,
+      "topic": "Programming Fundamentals & Patterns",
+      "problem": "Convert Celsius to Fahrenheit and vice versa",
+      "extreme_test_case": "Temperatures = -273.15°C, 0°C, and a large magnitude allowed by constraints; verify decimal precision.",
+      "edge_cases": "Absolute zero; negative temperature; precision.",
+      "optimal_worst_case_time": "O(1)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 9,
+      "topic": "Programming Fundamentals & Patterns",
+      "problem": "Find the ASCII value of a character",
+      "extreme_test_case": "Characters: 'A', 'z', '0', space, newline, and highest supported byte/Unicode code point according to input contract.",
+      "edge_cases": "Whitespace and non-ASCII policy.",
+      "optimal_worst_case_time": "O(1)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 10,
+      "topic": "Programming Fundamentals & Patterns",
+      "problem": "Check whether a character is an alphabet, digit or special character",
+      "extreme_test_case": "Test 'A', 'z', '9', '0', '#', space, and non-ASCII input if supported.",
+      "edge_cases": "Boundary ASCII letters/digits; punctuation; whitespace.",
+      "optimal_worst_case_time": "O(1)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 11,
+      "topic": "Programming Fundamentals & Patterns",
+      "problem": "Print numbers from 1 to N",
+      "extreme_test_case": "N = maximum allowed (suggested 10^6); output itself is O(N), so verify buffering and exact count.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(N) or O(N²) when printing N-row patterns",
+      "optimal_auxiliary_space": "O(1) excluding output",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 12,
+      "topic": "Programming Fundamentals & Patterns",
+      "problem": "Print all even and odd numbers in a range",
+      "extreme_test_case": "Range [1, 10^6], then a single-value range [10^6,10^6] and reversed/empty range if contract allows.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(N) or O(N²) when printing N-row patterns",
+      "optimal_auxiliary_space": "O(1) excluding output",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 13,
+      "topic": "Programming Fundamentals & Patterns",
+      "problem": "Find the sum of first N natural numbers",
+      "extreme_test_case": "N = 10^9; expected sum exceeds 32-bit. Use formula and 64-bit/wider intermediate.",
+      "edge_cases": "N=0; negative N policy; overflow.",
+      "optimal_worst_case_time": "O(1)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 14,
+      "topic": "Programming Fundamentals & Patterns",
+      "problem": "Generate multiplication table of a number",
+      "extreme_test_case": "Multiplier = 2,147,483,647; verify product overflow and fixed number of rows.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(N) or O(N²) when printing N-row patterns",
+      "optimal_auxiliary_space": "O(1) excluding output",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 15,
+      "topic": "Programming Fundamentals & Patterns",
+      "problem": "Print star and number triangle patterns",
+      "extreme_test_case": "N = 2,000 rows (if output cap allows); test N=1 and N=0. Output size dominates runtime.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(N) or O(N²) when printing N-row patterns",
+      "optimal_auxiliary_space": "O(1) excluding output",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 16,
+      "topic": "Programming Fundamentals & Patterns",
+      "problem": "Print pyramid, inverted pyramid and diamond patterns",
+      "extreme_test_case": "N = 1,000 (if output cap allows); test odd/even widths and N=1. Ensure no negative spacing or overflow.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(N) or O(N²) when printing N-row patterns",
+      "optimal_auxiliary_space": "O(1) excluding output",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 17,
+      "topic": "Programming Fundamentals & Patterns",
+      "problem": "Print Floyd's triangle",
+      "extreme_test_case": "N = 1,000 rows; total printed values N(N+1)/2, so test output limit and integer type.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(N) or O(N²) when printing N-row patterns",
+      "optimal_auxiliary_space": "O(1) excluding output",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 18,
+      "topic": "Programming Fundamentals & Patterns",
+      "problem": "Print Pascal's triangle",
+      "extreme_test_case": "N = 1,000 rows; values near row 1,000 exceed 32-bit. Test big-integer/overflow handling.",
+      "edge_cases": "N=0; large coefficients.",
+      "optimal_worst_case_time": "O(N) or O(N²) when printing N-row patterns",
+      "optimal_auxiliary_space": "O(1) excluding output",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 19,
+      "topic": "Programming Fundamentals & Patterns",
+      "problem": "Find factorial using iteration",
+      "extreme_test_case": "N = 20,000; factorial is far beyond 64-bit. Either use big integers or define overflow behavior; also test 0 and 1.",
+      "edge_cases": "0! and 1!.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 20,
+      "topic": "Programming Fundamentals & Patterns",
+      "problem": "Build a menu-driven calculator using switch",
+      "extreme_test_case": "Run 100,000 menu operations in a scripted sequence; include invalid option, division by zero, and operands at integer limits.",
+      "edge_cases": "Invalid menu choice; divide by zero.",
+      "optimal_worst_case_time": "O(1)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 21,
+      "topic": "Number Theory & Digit Problems",
+      "problem": "Count digits in an integer",
+      "extreme_test_case": "n = -9,223,372,036,854,775,808 (if signed 64-bit); count digits safely without abs(LLONG_MIN) overflow. Also n=0.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(log N) to O(√N), depending on operation",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 22,
+      "topic": "Number Theory & Digit Problems",
+      "problem": "Find sum of digits",
+      "extreme_test_case": "n = 9,223,372,036,854,775,807; expected digit sum = 87. Also test negative input and zero.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(log N) to O(√N), depending on operation",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 23,
+      "topic": "Number Theory & Digit Problems",
+      "problem": "Reverse a number",
+      "extreme_test_case": "n = 9,223,372,036,854,775,807; reverse may overflow 64-bit. Test trailing zeroes (1200), negative and zero.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(log N) to O(√N), depending on operation",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 24,
+      "topic": "Number Theory & Digit Problems",
+      "problem": "Check numeric palindrome",
+      "extreme_test_case": "n = 9,223,372,036,854,775,807; test 0, single digit, negative palindrome policy, and trailing zero (10).",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(log N) to O(√N), depending on operation",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 25,
+      "topic": "Number Theory & Digit Problems",
+      "problem": "Check Armstrong number",
+      "extreme_test_case": "Test 0, 1, 153, 9474, and a 19-digit maximum value; ensure digit-power multiplication does not overflow.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(log N) to O(√N), depending on operation",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 26,
+      "topic": "Number Theory & Digit Problems",
+      "problem": "Check prime number",
+      "extreme_test_case": "n = 2,147,483,647 (prime), 2,147,483,646 (composite), 1, 0, and negative values.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(log N) to O(√N), depending on operation",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 27,
+      "topic": "Number Theory & Digit Problems",
+      "problem": "Print prime numbers in a range",
+      "extreme_test_case": "Range [1, 10^7] for sieve stress; also [10^7,10^7] and empty/reversed range. Trial division per number will be too slow.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(N√N) for range/factor trial methods; O(√N) for one value where applicable",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 28,
+      "topic": "Number Theory & Digit Problems",
+      "problem": "Find GCD / HCF using Euclid's algorithm",
+      "extreme_test_case": "a = 9,223,372,036,854,775,807; b = 9,223,372,036,854,775,806; also (0,0), (0,x), negatives.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(log N) to O(√N), depending on operation",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 29,
+      "topic": "Number Theory & Digit Problems",
+      "problem": "Find LCM of two numbers",
+      "extreme_test_case": "a = 4,000,000,000; b = 3,000,000,000. LCM exceeds 32-bit; divide by GCD before multiplying.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(log N) to O(√N), depending on operation",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 30,
+      "topic": "Number Theory & Digit Problems",
+      "problem": "Find all factors of a number",
+      "extreme_test_case": "n = 2,147,483,647 (prime: only 1 and n); n = 3,600,000,000 (many factor pairs if 64-bit allowed); n=1.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(N√N) for range/factor trial methods; O(√N) for one value where applicable",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 31,
+      "topic": "Number Theory & Digit Problems",
+      "problem": "Check perfect number",
+      "extreme_test_case": "n = 33,550,336 (perfect number), 1, 0, and a large prime. Avoid O(N) divisor scan.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(N√N) for range/factor trial methods; O(√N) for one value where applicable",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 32,
+      "topic": "Number Theory & Digit Problems",
+      "problem": "Check strong number",
+      "extreme_test_case": "n = 1,453 (strong number), 2,147,483,647 and 0; precompute digit factorials.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(N√N) for range/factor trial methods; O(√N) for one value where applicable",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 33,
+      "topic": "Number Theory & Digit Problems",
+      "problem": "Check automorphic number",
+      "extreme_test_case": "n = 25 (5² ends in 25), 76 (76² ends in 76), 10^9 and 0.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(log N) to O(√N), depending on operation",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 34,
+      "topic": "Number Theory & Digit Problems",
+      "problem": "Check Harshad / Niven number",
+      "extreme_test_case": "n = 2,147,483,647; test 18 (Harshad), 19 (not), 0 and negative policy; guard digit sum zero.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(log N) to O(√N), depending on operation",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 35,
+      "topic": "Number Theory & Digit Problems",
+      "problem": "Check neon number",
+      "extreme_test_case": "n = 9 (9²=81, digit sum 9), 0 and 2,147,483,647; square in 64-bit.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(log N) to O(√N), depending on operation",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 36,
+      "topic": "Number Theory & Digit Problems",
+      "problem": "Check happy number",
+      "extreme_test_case": "n = 19 (happy), 2 (unhappy), 1, 0, and a large value; detect cycles.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(N√N) for range/factor trial methods; O(√N) for one value where applicable",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 37,
+      "topic": "Number Theory & Digit Problems",
+      "problem": "Find factorial trailing zeroes",
+      "extreme_test_case": "N = 10^18; count trailing zeroes without computing N!. Also N=0.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(log₅ N)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 38,
+      "topic": "Number Theory & Digit Problems",
+      "problem": "Find the nth Fibonacci number",
+      "extreme_test_case": "n = 92 (exceeds signed 64-bit Fibonacci); test n=0,1,2 and overflow/big-integer policy.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(N) with iterative generation; O(1) auxiliary for nth Fibonacci",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 39,
+      "topic": "Number Theory & Digit Problems",
+      "problem": "Print Fibonacci series up to N terms",
+      "extreme_test_case": "N = 100,000 terms; output size is linear and values overflow quickly. Use big integers or explicit modulo.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(N) with iterative generation; O(1) auxiliary for nth Fibonacci",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 40,
+      "topic": "Number Theory & Digit Problems",
+      "problem": "Find power a^b efficiently",
+      "extreme_test_case": "a = 2, b = 10^18; a = -2 with odd/even exponent; exponent 0; negative exponent policy and modular overflow.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(log |b|)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 41,
+      "topic": "Number Theory & Digit Problems",
+      "problem": "Convert decimal to binary",
+      "extreme_test_case": "n = 2,147,483,647; binary representation length 31; test n=0.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(log N)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 42,
+      "topic": "Number Theory & Digit Problems",
+      "problem": "Convert binary to decimal",
+      "extreme_test_case": "Binary string of 64 ones; detect overflow. Also leading zeroes and invalid digit '2'.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(log N)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 43,
+      "topic": "Number Theory & Digit Problems",
+      "problem": "Convert decimal to octal and hexadecimal",
+      "extreme_test_case": "n = 2,147,483,647; verify no leading/trailing formatting errors and n=0.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(log N)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 44,
+      "topic": "Number Theory & Digit Problems",
+      "problem": "Count set bits in an integer",
+      "extreme_test_case": "x = 2,147,483,647 (31 set bits), x=0, and signed minimum; define unsigned bit interpretation.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(1) for fixed-width integer; O(number of bits) for arbitrary precision",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 45,
+      "topic": "Number Theory & Digit Problems",
+      "problem": "Check whether a number is a power of two",
+      "extreme_test_case": "Test 0, 1, 2^30, 2^30-1, and signed minimum; ensure zero is not treated as power of two.",
+      "edge_cases": "0, 1, negative input, smallest/largest supported integer, and overflow boundary.",
+      "optimal_worst_case_time": "O(log N) to O(√N), depending on operation",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 46,
+      "topic": "Arrays — Core",
+      "problem": "Find minimum and maximum element",
+      "extreme_test_case": "N=200,000; all values = 2,147,483,647, then one value = -2,147,483,648 at the end. Test N=1.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 47,
+      "topic": "Arrays — Core",
+      "problem": "Find second largest distinct element",
+      "extreme_test_case": "N=200,000; all equal, then [INT_MIN, INT_MAX] (only one distinct pair). Ensure 'distinct' is respected.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 48,
+      "topic": "Arrays — Core",
+      "problem": "Find second smallest distinct element",
+      "extreme_test_case": "N=200,000; all equal, then [INT_MIN, INT_MAX]. Ensure no second distinct value is reported.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 49,
+      "topic": "Arrays — Core",
+      "problem": "Calculate sum and average of array elements",
+      "extreme_test_case": "N=200,000; every element = 2,147,483,647. Sum exceeds 32-bit; use 64-bit and floating average.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 50,
+      "topic": "Arrays — Core",
+      "problem": "Reverse an array in-place",
+      "extreme_test_case": "N=200,000; reverse-sorted and all-equal arrays. Verify in-place and no extra O(N) buffer.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 51,
+      "topic": "Arrays — Core",
+      "problem": "Check whether an array is sorted",
+      "extreme_test_case": "N=200,000; sorted ascending, sorted descending, and one inversion at final pair.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 52,
+      "topic": "Arrays — Core",
+      "problem": "Count even and odd elements",
+      "extreme_test_case": "N=200,000; alternating INT_MIN and INT_MAX, plus zero.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 53,
+      "topic": "Arrays — Core",
+      "problem": "Count positive, negative and zero values",
+      "extreme_test_case": "N=200,000; half INT_MIN, half INT_MAX, include many zeroes.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 54,
+      "topic": "Arrays — Core",
+      "problem": "Copy one array into another",
+      "extreme_test_case": "N=200,000; verify first/last values and no truncation; also empty and one-element input.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 55,
+      "topic": "Arrays — Core",
+      "problem": "Remove duplicates from a sorted array",
+      "extreme_test_case": "N=200,000; all equal, all distinct, and duplicates only at the end; return correct new logical length.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 56,
+      "topic": "Arrays — Core",
+      "problem": "Find frequency of every element",
+      "extreme_test_case": "N=200,000; all unique (hash worst-case considerations) and all identical; include negative and extreme values.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N) expected with hash map",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 57,
+      "topic": "Arrays — Core",
+      "problem": "Find the element with maximum frequency",
+      "extreme_test_case": "N=200,000; all values distinct (tie policy), then one value repeated 100,001 times.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N) expected with hash map",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 58,
+      "topic": "Arrays — Core",
+      "problem": "Find the element with minimum frequency",
+      "extreme_test_case": "N=200,000; all values distinct and all equal; verify tie policy for minimum frequency.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N) expected with hash map",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 59,
+      "topic": "Arrays — Core",
+      "problem": "Find the missing number from 1 to N",
+      "extreme_test_case": "N=200,000; missing value is 1, N, and middle; values near N and sum overflow case.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 60,
+      "topic": "Arrays — Core",
+      "problem": "Find the duplicate element",
+      "extreme_test_case": "N=200,000; one duplicate repeated many times; also duplicate at first/last positions.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N) expected with hash map",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 61,
+      "topic": "Arrays — Core",
+      "problem": "Find all duplicate elements",
+      "extreme_test_case": "N=200,000; all values duplicated in pairs, then one value repeated N/2 times.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N) expected with hash map",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 62,
+      "topic": "Arrays — Core",
+      "problem": "Move all zeroes to the end",
+      "extreme_test_case": "N=200,000; zeroes at beginning, middle and end; all zeroes and no zeroes.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 63,
+      "topic": "Arrays — Core",
+      "problem": "Move negative numbers to one side",
+      "extreme_test_case": "N=200,000; alternating INT_MIN and INT_MAX; all negative, all positive, and zeroes.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 64,
+      "topic": "Arrays — Core",
+      "problem": "Left rotate an array by one position",
+      "extreme_test_case": "N=200,000; test one rotation, N=1, and repeated equal values.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 65,
+      "topic": "Arrays — Core",
+      "problem": "Rotate an array by K positions",
+      "extreme_test_case": "N=200,000; K=10^18 (reduce K modulo N), K=0, K=N, and negative K if supported.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 66,
+      "topic": "Arrays — Core",
+      "problem": "Merge two sorted arrays",
+      "extreme_test_case": "Two sorted arrays of 100,000 elements each, with disjoint and fully overlapping ranges; include INT_MIN/INT_MAX.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N + M)",
+      "optimal_auxiliary_space": "O(N + M) for returned output; O(1) auxiliary for in-place merge variants",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 67,
+      "topic": "Arrays — Core",
+      "problem": "Find the union of two sorted arrays",
+      "extreme_test_case": "Two arrays of 100,000 elements each, all equal vs disjoint; duplicate handling must match set-union contract.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N + M)",
+      "optimal_auxiliary_space": "O(N + M) for returned output; O(1) auxiliary for in-place merge variants",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 68,
+      "topic": "Arrays — Core",
+      "problem": "Find the intersection of two arrays",
+      "extreme_test_case": "Two arrays of 100,000 elements each, all equal vs disjoint; verify unique/intersection multiplicity contract.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N + M)",
+      "optimal_auxiliary_space": "O(N + M) for returned output; O(1) auxiliary for in-place merge variants",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 69,
+      "topic": "Arrays — Core",
+      "problem": "Find pair with a given sum",
+      "extreme_test_case": "N=200,000; target sum near 2*INT_MAX and duplicates; include no pair and pair at last positions.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N) expected with hashing; O(N log N) deterministic sorting approach",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 70,
+      "topic": "Arrays — Core",
+      "problem": "Find triplets with a given sum",
+      "extreme_test_case": "N=5,000 with many duplicate values; target has zero, one or many triplets. O(N²) expected optimized approach.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N²)",
+      "optimal_auxiliary_space": "O(1) auxiliary, excluding result",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 71,
+      "topic": "Arrays — Core",
+      "problem": "Find leaders in an array",
+      "extreme_test_case": "N=200,000; strictly increasing, strictly decreasing, and all equal arrays.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 72,
+      "topic": "Arrays — Core",
+      "problem": "Find equilibrium index",
+      "extreme_test_case": "N=200,000; equilibrium only at index 0, only at last index, multiple matches and no match.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 73,
+      "topic": "Arrays — Core",
+      "problem": "Find maximum difference arr[j] - arr[i] where j > i",
+      "extreme_test_case": "N=200,000; strictly decreasing (best difference negative), increasing with extremes, and N=1.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 74,
+      "topic": "Arrays — Core",
+      "problem": "Find maximum subarray sum (Kadane)",
+      "extreme_test_case": "N=200,000; all -1, all +1, alternating large magnitudes; test all-negative handling.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 75,
+      "topic": "Arrays — Core",
+      "problem": "Find maximum product subarray",
+      "extreme_test_case": "N=200,000; alternating 0, -2, 2 and INT_MIN/INT_MAX; products overflow 64-bit, define numeric constraints.",
+      "edge_cases": "Empty array if allowed, N=1, all equal, duplicates, sorted/reverse-sorted, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 76,
+      "topic": "Strings — Core to Intermediate",
+      "problem": "Find string length without using a library function",
+      "extreme_test_case": "String length = 1,000,000 characters; include empty string and embedded spaces.",
+      "edge_cases": "Empty string, one character, all same, all distinct, whitespace-only, mismatch at final character.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) if a new output string is built; O(1) auxiliary if in-place",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 77,
+      "topic": "Strings — Core to Intermediate",
+      "problem": "Reverse a string",
+      "extreme_test_case": "String length = 1,000,000; all same, alternating characters and full printable ASCII.",
+      "edge_cases": "Empty string, one character, all same, all distinct, whitespace-only, mismatch at final character.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) if a new output string is built; O(1) auxiliary if in-place",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 78,
+      "topic": "Strings — Core to Intermediate",
+      "problem": "Check whether a string is palindrome",
+      "extreme_test_case": "Length = 1,000,000; palindrome, mismatch only at final character, empty and one character.",
+      "edge_cases": "Empty string, one character, all same, all distinct, whitespace-only, mismatch at final character.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) if a new output string is built; O(1) auxiliary if in-place",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 79,
+      "topic": "Strings — Core to Intermediate",
+      "problem": "Count vowels, consonants, digits and spaces",
+      "extreme_test_case": "Length = 1,000,000; mix vowels, consonants, digits, whitespace, punctuation and non-ASCII policy.",
+      "edge_cases": "Empty string, one character, all same, all distinct, whitespace-only, mismatch at final character.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) if a new output string is built; O(1) auxiliary if in-place",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 80,
+      "topic": "Strings — Core to Intermediate",
+      "problem": "Toggle the case of each character",
+      "extreme_test_case": "Length = 1,000,000; alternating upper/lower, digits and punctuation (must remain unchanged).",
+      "edge_cases": "Empty string, one character, all same, all distinct, whitespace-only, mismatch at final character.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) if a new output string is built; O(1) auxiliary if in-place",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 81,
+      "topic": "Strings — Core to Intermediate",
+      "problem": "Convert lowercase to uppercase and vice versa",
+      "extreme_test_case": "Length = 1,000,000; include mixed case, digits, punctuation and locale/non-ASCII policy.",
+      "edge_cases": "Empty string, one character, all same, all distinct, whitespace-only, mismatch at final character.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) if a new output string is built; O(1) auxiliary if in-place",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 82,
+      "topic": "Strings — Core to Intermediate",
+      "problem": "Count frequency of each character",
+      "extreme_test_case": "Length = 1,000,000; all same character and all distinct possible byte values; test signed-char indexing.",
+      "edge_cases": "Empty string, one character, all same, all distinct, whitespace-only, mismatch at final character.",
+      "optimal_worst_case_time": "O(N + Σ)",
+      "optimal_auxiliary_space": "O(Σ), where Σ is alphabet size",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 83,
+      "topic": "Strings — Core to Intermediate",
+      "problem": "Find the first non-repeating character",
+      "extreme_test_case": "Length = 1,000,000; all same (no unique char), unique char only at final position, empty string.",
+      "edge_cases": "Empty string, one character, all same, all distinct, whitespace-only, mismatch at final character.",
+      "optimal_worst_case_time": "O(N + Σ)",
+      "optimal_auxiliary_space": "O(Σ), where Σ is alphabet size",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 84,
+      "topic": "Strings — Core to Intermediate",
+      "problem": "Find the first repeating character",
+      "extreme_test_case": "Length = 1,000,000; first repeated character occurs at final position; all characters unique within alphabet.",
+      "edge_cases": "Empty string, one character, all same, all distinct, whitespace-only, mismatch at final character.",
+      "optimal_worst_case_time": "O(N + Σ)",
+      "optimal_auxiliary_space": "O(Σ), where Σ is alphabet size",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 85,
+      "topic": "Strings — Core to Intermediate",
+      "problem": "Remove duplicate characters",
+      "extreme_test_case": "Length = 1,000,000; all same and all distinct; preserve first-occurrence order.",
+      "edge_cases": "Empty string, one character, all same, all distinct, whitespace-only, mismatch at final character.",
+      "optimal_worst_case_time": "O(N + Σ)",
+      "optimal_auxiliary_space": "O(Σ), where Σ is alphabet size",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 86,
+      "topic": "Strings — Core to Intermediate",
+      "problem": "Remove spaces from a string",
+      "extreme_test_case": "Length = 1,000,000; all spaces, no spaces, leading/trailing and repeated whitespace.",
+      "edge_cases": "Empty string, one character, all same, all distinct, whitespace-only, mismatch at final character.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) if a new output string is built; O(1) auxiliary if in-place",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 87,
+      "topic": "Strings — Core to Intermediate",
+      "problem": "Remove all occurrences of a given character",
+      "extreme_test_case": "Length = 1,000,000; target absent, every character equals target, target only at last position.",
+      "edge_cases": "Empty string, one character, all same, all distinct, whitespace-only, mismatch at final character.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) if a new output string is built; O(1) auxiliary if in-place",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 88,
+      "topic": "Strings — Core to Intermediate",
+      "problem": "Check whether two strings are anagrams",
+      "extreme_test_case": "Two strings of length 1,000,000; anagrams with reordered characters and one-character mismatch.",
+      "edge_cases": "Empty string, one character, all same, all distinct, whitespace-only, mismatch at final character.",
+      "optimal_worst_case_time": "O(N) expected / O(N)",
+      "optimal_auxiliary_space": "O(1) to O(N), depending on implementation",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 89,
+      "topic": "Strings — Core to Intermediate",
+      "problem": "Check whether one string is a rotation of another",
+      "extreme_test_case": "Two strings of length 1,000,000; exact rotation, non-rotation with one mismatch, empty strings.",
+      "edge_cases": "Empty string, one character, all same, all distinct, whitespace-only, mismatch at final character.",
+      "optimal_worst_case_time": "O(N) expected / O(N)",
+      "optimal_auxiliary_space": "O(1) to O(N), depending on implementation",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 90,
+      "topic": "Strings — Core to Intermediate",
+      "problem": "Count words in a sentence",
+      "extreme_test_case": "Sentence with 100,000 words, multiple spaces/tabs/newlines and leading/trailing whitespace.",
+      "edge_cases": "Empty string, one character, all same, all distinct, whitespace-only, mismatch at final character.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) if a new output string is built; O(1) auxiliary if in-place",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 91,
+      "topic": "Strings — Core to Intermediate",
+      "problem": "Reverse each word in a sentence",
+      "extreme_test_case": "100,000 words, each very long; repeated spaces and punctuation boundaries.",
+      "edge_cases": "Empty string, one character, all same, all distinct, whitespace-only, mismatch at final character.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) if a new output string is built; O(1) auxiliary if in-place",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 92,
+      "topic": "Strings — Core to Intermediate",
+      "problem": "Reverse the order of words in a sentence",
+      "extreme_test_case": "100,000 words with mixed whitespace; verify exact spacing policy and punctuation preservation.",
+      "edge_cases": "Empty string, one character, all same, all distinct, whitespace-only, mismatch at final character.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) if a new output string is built; O(1) auxiliary if in-place",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 93,
+      "topic": "Strings — Core to Intermediate",
+      "problem": "Find the longest word in a sentence",
+      "extreme_test_case": "100,000 words; longest word at first/last position and ties.",
+      "edge_cases": "Empty string, one character, all same, all distinct, whitespace-only, mismatch at final character.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) if a new output string is built; O(1) auxiliary if in-place",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 94,
+      "topic": "Strings — Core to Intermediate",
+      "problem": "Find the smallest and largest word",
+      "extreme_test_case": "100,000 words; all same length, empty tokens via repeated spaces, longest/shortest at end.",
+      "edge_cases": "Empty string, one character, all same, all distinct, whitespace-only, mismatch at final character.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) if a new output string is built; O(1) auxiliary if in-place",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 95,
+      "topic": "Strings — Core to Intermediate",
+      "problem": "Find the most frequent character",
+      "extreme_test_case": "Length = 1,000,000; all characters same, frequency ties, and high-byte input.",
+      "edge_cases": "Empty string, one character, all same, all distinct, whitespace-only, mismatch at final character.",
+      "optimal_worst_case_time": "O(N + Σ)",
+      "optimal_auxiliary_space": "O(Σ), where Σ is alphabet size",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 96,
+      "topic": "Strings — Core to Intermediate",
+      "problem": "Check whether a string contains only digits",
+      "extreme_test_case": "Length = 1,000,000; all digits, invalid character at final position, empty string.",
+      "edge_cases": "Empty string, one character, all same, all distinct, whitespace-only, mismatch at final character.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) if a new output string is built; O(1) auxiliary if in-place",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 97,
+      "topic": "Strings — Core to Intermediate",
+      "problem": "Run-length encode a string (e.g. aaabb → a3b2)",
+      "extreme_test_case": "Length = 1,000,000; one repeated run, alternating characters (output expands), run count >9.",
+      "edge_cases": "Empty string, one character, all same, all distinct, whitespace-only, mismatch at final character.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) output",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 98,
+      "topic": "Strings — Core to Intermediate",
+      "problem": "Find the longest common prefix",
+      "extreme_test_case": "100,000 strings each length 1,000; common prefix length 999, and mismatch at first character.",
+      "edge_cases": "Empty string, one character, all same, all distinct, whitespace-only, mismatch at final character.",
+      "optimal_worst_case_time": "O(N) expected / O(N)",
+      "optimal_auxiliary_space": "O(1) to O(N), depending on implementation",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 99,
+      "topic": "Strings — Core to Intermediate",
+      "problem": "Check whether two strings are isomorphic",
+      "extreme_test_case": "Two strings length = 1,000,000; long repeating pattern and mismatch at final mapping.",
+      "edge_cases": "Empty string, one character, all same, all distinct, whitespace-only, mismatch at final character.",
+      "optimal_worst_case_time": "O(N) expected / O(N)",
+      "optimal_auxiliary_space": "O(1) to O(N), depending on implementation",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 100,
+      "topic": "Strings — Core to Intermediate",
+      "problem": "Find the longest substring without repeating characters",
+      "extreme_test_case": "Length = 1,000,000; all unique only up to alphabet, all same, and duplicate at final character.",
+      "edge_cases": "Empty string, one character, all same, all distinct, whitespace-only, mismatch at final character.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(min(N, alphabet))",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 101,
+      "topic": "Sorting, Searching & STL",
+      "problem": "Implement linear search",
+      "extreme_test_case": "N=200,000; target absent (worst scan), target at final index, duplicates at all positions.",
+      "edge_cases": "Empty input, N=1, target absent, target at boundaries, duplicates, already/reverse sorted.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 102,
+      "topic": "Sorting, Searching & STL",
+      "problem": "Implement binary search iteratively",
+      "extreme_test_case": "N=1,000,000 sorted values; target absent and at either boundary; include overflow-safe mid calculation.",
+      "edge_cases": "Empty input, N=1, target absent, target at boundaries, duplicates, already/reverse sorted.",
+      "optimal_worst_case_time": "O(log N)",
+      "optimal_auxiliary_space": "O(1) iterative; O(log N) recursive",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 103,
+      "topic": "Sorting, Searching & STL",
+      "problem": "Implement binary search recursively",
+      "extreme_test_case": "N=1,000,000 sorted values; target absent and worst recursion depth; use iterative for stack safety.",
+      "edge_cases": "Empty input, N=1, target absent, target at boundaries, duplicates, already/reverse sorted.",
+      "optimal_worst_case_time": "O(log N)",
+      "optimal_auxiliary_space": "O(1) iterative; O(log N) recursive",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 104,
+      "topic": "Sorting, Searching & STL",
+      "problem": "Find first and last occurrence of a target",
+      "extreme_test_case": "N=200,000; all equal, target absent, target at first/last positions.",
+      "edge_cases": "Empty input, N=1, target absent, target at boundaries, duplicates, already/reverse sorted.",
+      "optimal_worst_case_time": "O(log N)",
+      "optimal_auxiliary_space": "O(1) iterative; O(log N) recursive",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 105,
+      "topic": "Sorting, Searching & STL",
+      "problem": "Count occurrences of a target in a sorted array",
+      "extreme_test_case": "N=200,000; all equal and target absent; count must be 0 or N.",
+      "edge_cases": "Empty input, N=1, target absent, target at boundaries, duplicates, already/reverse sorted.",
+      "optimal_worst_case_time": "O(log N)",
+      "optimal_auxiliary_space": "O(1) iterative; O(log N) recursive",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 106,
+      "topic": "Sorting, Searching & STL",
+      "problem": "Find lower_bound and upper_bound positions",
+      "extreme_test_case": "N=1,000,000; all values equal, target below minimum and above maximum.",
+      "edge_cases": "Empty input, N=1, target absent, target at boundaries, duplicates, already/reverse sorted.",
+      "optimal_worst_case_time": "O(log N)",
+      "optimal_auxiliary_space": "O(1) iterative; O(log N) recursive",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 107,
+      "topic": "Sorting, Searching & STL",
+      "problem": "Implement bubble sort",
+      "extreme_test_case": "N=50,000 reverse-sorted (quadratic worst case); also already sorted for early-exit variant.",
+      "edge_cases": "Empty input, N=1, target absent, target at boundaries, duplicates, already/reverse sorted.",
+      "optimal_worst_case_time": "O(N²) worst case",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 108,
+      "topic": "Sorting, Searching & STL",
+      "problem": "Implement selection sort",
+      "extreme_test_case": "N=50,000; reverse-sorted and all equal; selection sort remains quadratic.",
+      "edge_cases": "Empty input, N=1, target absent, target at boundaries, duplicates, already/reverse sorted.",
+      "optimal_worst_case_time": "O(N²) worst case",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 109,
+      "topic": "Sorting, Searching & STL",
+      "problem": "Implement insertion sort",
+      "extreme_test_case": "N=50,000 reverse-sorted; quadratic shifts; also already sorted.",
+      "edge_cases": "Empty input, N=1, target absent, target at boundaries, duplicates, already/reverse sorted.",
+      "optimal_worst_case_time": "O(N²) worst case",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 110,
+      "topic": "Sorting, Searching & STL",
+      "problem": "Implement merge sort",
+      "extreme_test_case": "N=1,000,000; reverse-sorted, all equal and duplicate-heavy; recursion depth should stay logarithmic.",
+      "edge_cases": "Empty input, N=1, target absent, target at boundaries, duplicates, already/reverse sorted.",
+      "optimal_worst_case_time": "O(N log N)",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 111,
+      "topic": "Sorting, Searching & STL",
+      "problem": "Implement quicksort",
+      "extreme_test_case": "N=200,000 already sorted, reverse-sorted, all equal and adversarial pivot arrangement; avoid O(N²) recursion.",
+      "edge_cases": "Empty input, N=1, target absent, target at boundaries, duplicates, already/reverse sorted.",
+      "optimal_worst_case_time": "O(N log N) average; O(N²) worst case without robust pivot strategy",
+      "optimal_auxiliary_space": "O(log N) average recursion; O(N) worst case",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 112,
+      "topic": "Sorting, Searching & STL",
+      "problem": "Sort an array of 0s, 1s and 2s",
+      "extreme_test_case": "N=200,000; all 0s, all 1s, all 2s and alternating 0/2.",
+      "edge_cases": "Empty input, N=1, target absent, target at boundaries, duplicates, already/reverse sorted.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 113,
+      "topic": "Sorting, Searching & STL",
+      "problem": "Find kth smallest element",
+      "extreme_test_case": "N=1,000,000; k=1, k=N, duplicates around kth boundary, INT_MIN/INT_MAX.",
+      "edge_cases": "Empty input, N=1, target absent, target at boundaries, duplicates, already/reverse sorted.",
+      "optimal_worst_case_time": "O(N) expected with selection; O(N log N) using sorting",
+      "optimal_auxiliary_space": "O(N) or O(1), depending on method",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 114,
+      "topic": "Sorting, Searching & STL",
+      "problem": "Find kth largest element",
+      "extreme_test_case": "N=1,000,000; k=1, k=N and duplicate-heavy values.",
+      "edge_cases": "Empty input, N=1, target absent, target at boundaries, duplicates, already/reverse sorted.",
+      "optimal_worst_case_time": "O(N) expected with selection; O(N log N) using sorting",
+      "optimal_auxiliary_space": "O(N) or O(1), depending on method",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 115,
+      "topic": "Sorting, Searching & STL",
+      "problem": "Search in a rotated sorted array",
+      "extreme_test_case": "N=200,000; pivot at index 0, one element, duplicates if supported, target absent and rotation by N-1.",
+      "edge_cases": "Empty input, N=1, target absent, target at boundaries, duplicates, already/reverse sorted.",
+      "optimal_worst_case_time": "O(log N)",
+      "optimal_auxiliary_space": "O(1) iterative; O(log N) recursive",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 116,
+      "topic": "Matrix Problems",
+      "problem": "Find sum of all matrix elements",
+      "extreme_test_case": "1000×1000 matrix; every cell = 2,147,483,647. Sum needs 64-bit; also 1×1 matrix.",
+      "edge_cases": "1×1, 1×N, N×1, odd/even square, negative values and duplicate values.",
+      "optimal_worst_case_time": "O(R×C)",
+      "optimal_auxiliary_space": "O(1) auxiliary; O(R+C) if row/column results stored",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 117,
+      "topic": "Matrix Problems",
+      "problem": "Find row-wise and column-wise sums",
+      "extreme_test_case": "1000×1000 matrix; row/column sums exceed 32-bit; test 1×N and N×1.",
+      "edge_cases": "1×1, 1×N, N×1, odd/even square, negative values and duplicate values.",
+      "optimal_worst_case_time": "O(R×C)",
+      "optimal_auxiliary_space": "O(1) auxiliary; O(R+C) if row/column results stored",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 118,
+      "topic": "Matrix Problems",
+      "problem": "Find largest element in each row",
+      "extreme_test_case": "1000×1000; each row ascending then descending, duplicate maxima and negative-only rows.",
+      "edge_cases": "1×1, 1×N, N×1, odd/even square, negative values and duplicate values.",
+      "optimal_worst_case_time": "O(R×C)",
+      "optimal_auxiliary_space": "O(1) auxiliary; O(R+C) if row/column results stored",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 119,
+      "topic": "Matrix Problems",
+      "problem": "Print primary and secondary diagonals",
+      "extreme_test_case": "1000×1000; odd/even N; verify center counted once only if contract says both diagonals combined.",
+      "edge_cases": "1×1, 1×N, N×1, odd/even square, negative values and duplicate values.",
+      "optimal_worst_case_time": "O(R×C)",
+      "optimal_auxiliary_space": "O(1) auxiliary; O(R+C) if row/column results stored",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 120,
+      "topic": "Matrix Problems",
+      "problem": "Find sum of both diagonals",
+      "extreme_test_case": "1000×1000 with extreme values; odd N center intersection must not be double-counted.",
+      "edge_cases": "1×1, 1×N, N×1, odd/even square, negative values and duplicate values.",
+      "optimal_worst_case_time": "O(R×C)",
+      "optimal_auxiliary_space": "O(1) auxiliary; O(R+C) if row/column results stored",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 121,
+      "topic": "Matrix Problems",
+      "problem": "Transpose a matrix",
+      "extreme_test_case": "1000×1000; rectangular 1×1000 and 1000×1 too; verify dimensions swap.",
+      "edge_cases": "1×1, 1×N, N×1, odd/even square, negative values and duplicate values.",
+      "optimal_worst_case_time": "O(R×C)",
+      "optimal_auxiliary_space": "O(1) auxiliary; O(R+C) if row/column results stored",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 122,
+      "topic": "Matrix Problems",
+      "problem": "Rotate a square matrix by 90 degrees",
+      "extreme_test_case": "1000×1000; all equal, unique labels, and N=1; verify clockwise direction.",
+      "edge_cases": "1×1, 1×N, N×1, odd/even square, negative values and duplicate values.",
+      "optimal_worst_case_time": "O(N²)",
+      "optimal_auxiliary_space": "O(1) auxiliary for in-place rotation; O(N²) otherwise",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 123,
+      "topic": "Matrix Problems",
+      "problem": "Check whether a matrix is symmetric",
+      "extreme_test_case": "1000×1000 symmetric, one mismatched mirrored pair at final positions, non-square input.",
+      "edge_cases": "1×1, 1×N, N×1, odd/even square, negative values and duplicate values.",
+      "optimal_worst_case_time": "O(N²)",
+      "optimal_auxiliary_space": "O(1) auxiliary for in-place rotation; O(N²) otherwise",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 124,
+      "topic": "Matrix Problems",
+      "problem": "Search in a row-wise and column-wise sorted matrix",
+      "extreme_test_case": "1000×1000 sorted matrix; target absent, top-left, bottom-right, duplicates if allowed.",
+      "edge_cases": "1×1, 1×N, N×1, odd/even square, negative values and duplicate values.",
+      "optimal_worst_case_time": "O(R+C)",
+      "optimal_auxiliary_space": "O(1)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 125,
+      "topic": "Matrix Problems",
+      "problem": "Print matrix in spiral order",
+      "extreme_test_case": "1000×1000; rectangular 1×N, N×1, 2×N and N×2; avoid duplicate boundary printing.",
+      "edge_cases": "1×1, 1×N, N×1, odd/even square, negative values and duplicate values.",
+      "optimal_worst_case_time": "O(R×C)",
+      "optimal_auxiliary_space": "O(1) auxiliary, excluding output",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 126,
+      "topic": "Hashing, Prefix Sum & Subarrays",
+      "problem": "Build a frequency map for an array",
+      "extreme_test_case": "N=200,000 all distinct (largest map), then all equal; values span INT_MIN to INT_MAX.",
+      "edge_cases": "N=0/1, K=0/1/N/N+1, no solution, multiple solutions, negative values where allowed.",
+      "optimal_worst_case_time": "O(N) expected with hashing / prefix sums; O(N log N) for ordered maps",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 127,
+      "topic": "Hashing, Prefix Sum & Subarrays",
+      "problem": "Find two-sum using a hash map",
+      "extreme_test_case": "N=200,000; no pair, pair only at final scan, duplicate values and sum beyond 32-bit.",
+      "edge_cases": "N=0/1, K=0/1/N/N+1, no solution, multiple solutions, negative values where allowed.",
+      "optimal_worst_case_time": "O(N) expected with hashing / prefix sums; O(N log N) for ordered maps",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 128,
+      "topic": "Hashing, Prefix Sum & Subarrays",
+      "problem": "Find the majority element",
+      "extreme_test_case": "N=200,000; one candidate appears exactly floor(N/2)+1, then no majority and tied frequencies.",
+      "edge_cases": "N=0/1, K=0/1/N/N+1, no solution, multiple solutions, negative values where allowed.",
+      "optimal_worst_case_time": "O(N) expected with hashing / prefix sums; O(N log N) for ordered maps",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 129,
+      "topic": "Hashing, Prefix Sum & Subarrays",
+      "problem": "Find elements occurring more than N/3 times",
+      "extreme_test_case": "N=200,000; two values exceed N/3, then no qualifying value; duplicates at boundaries.",
+      "edge_cases": "N=0/1, K=0/1/N/N+1, no solution, multiple solutions, negative values where allowed.",
+      "optimal_worst_case_time": "O(N) expected with hashing / prefix sums; O(N log N) for ordered maps",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 130,
+      "topic": "Hashing, Prefix Sum & Subarrays",
+      "problem": "Find the longest subarray with sum K (positive values)",
+      "extreme_test_case": "N=200,000 positive values; K=1, K=sum(all), K>sum(all); all ones stresses longest window.",
+      "edge_cases": "N=0/1, K=0/1/N/N+1, no solution, multiple solutions, negative values where allowed.",
+      "optimal_worst_case_time": "O(N) expected with hashing / prefix sums; O(N log N) for ordered maps",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 131,
+      "topic": "Hashing, Prefix Sum & Subarrays",
+      "problem": "Find the longest subarray with sum K (including negatives)",
+      "extreme_test_case": "N=200,000 values including negatives; long zero-sum prefix, repeated prefix sums and K=0.",
+      "edge_cases": "N=0/1, K=0/1/N/N+1, no solution, multiple solutions, negative values where allowed.",
+      "optimal_worst_case_time": "O(N) expected with hashing / prefix sums; O(N log N) for ordered maps",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 132,
+      "topic": "Hashing, Prefix Sum & Subarrays",
+      "problem": "Count subarrays with sum K",
+      "extreme_test_case": "N=200,000 all zero with K=0; answer N(N+1)/2 exceeds 32-bit.",
+      "edge_cases": "N=0/1, K=0/1/N/N+1, no solution, multiple solutions, negative values where allowed.",
+      "optimal_worst_case_time": "O(N) expected with hashing / prefix sums; O(N log N) for ordered maps",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 133,
+      "topic": "Hashing, Prefix Sum & Subarrays",
+      "problem": "Find the maximum length subarray with equal 0s and 1s",
+      "extreme_test_case": "N=200,000 alternating 0/1, all 0s, all 1s; longest balanced range at full length.",
+      "edge_cases": "N=0/1, K=0/1/N/N+1, no solution, multiple solutions, negative values where allowed.",
+      "optimal_worst_case_time": "O(N) expected with hashing / prefix sums; O(N log N) for ordered maps",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 134,
+      "topic": "Hashing, Prefix Sum & Subarrays",
+      "problem": "Find the count of distinct elements in every window",
+      "extreme_test_case": "N=200,000; window k=1, k=N, all unique and all equal.",
+      "edge_cases": "N=0/1, K=0/1/N/N+1, no solution, multiple solutions, negative values where allowed.",
+      "optimal_worst_case_time": "O(N) expected with hashing / prefix sums; O(N log N) for ordered maps",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 135,
+      "topic": "Hashing, Prefix Sum & Subarrays",
+      "problem": "Find the longest consecutive sequence",
+      "extreme_test_case": "N=200,000 consecutive sequence shuffled, plus INT_MIN/INT_MAX and duplicates.",
+      "edge_cases": "N=0/1, K=0/1/N/N+1, no solution, multiple solutions, negative values where allowed.",
+      "optimal_worst_case_time": "O(N) expected with hashing / prefix sums; O(N log N) for ordered maps",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 136,
+      "topic": "Two Pointers & Sliding Window",
+      "problem": "Pair sum in a sorted array using two pointers",
+      "extreme_test_case": "N=200,000 sorted; pair absent, pair at extremes and many duplicates.",
+      "edge_cases": "N=0/1, K=0/1/N/N+1, no solution, multiple solutions, negative values where allowed.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) worst case for window/deque/hash structures; O(1) for in-place two-pointer variants",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 137,
+      "topic": "Two Pointers & Sliding Window",
+      "problem": "Remove duplicates from a sorted array in-place",
+      "extreme_test_case": "N=200,000 all equal and all distinct; verify returned logical length and untouched suffix policy.",
+      "edge_cases": "N=0/1, K=0/1/N/N+1, no solution, multiple solutions, negative values where allowed.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) worst case for window/deque/hash structures; O(1) for in-place two-pointer variants",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 138,
+      "topic": "Two Pointers & Sliding Window",
+      "problem": "Container with most water",
+      "extreme_test_case": "N=200,000 heights all 1, then two tall endpoints with low interior; area requires 64-bit.",
+      "edge_cases": "N=0/1, K=0/1/N/N+1, no solution, multiple solutions, negative values where allowed.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) worst case for window/deque/hash structures; O(1) for in-place two-pointer variants",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 139,
+      "topic": "Two Pointers & Sliding Window",
+      "problem": "Three-sum",
+      "extreme_test_case": "N=5,000 duplicate-heavy values; zero-sum and no-solution cases; ensure unique triplets.",
+      "edge_cases": "N=0/1, K=0/1/N/N+1, no solution, multiple solutions, negative values where allowed.",
+      "optimal_worst_case_time": "O(N²) for 3-sum; O(N³) for 4-sum",
+      "optimal_auxiliary_space": "O(1) auxiliary excluding result; O(number of results) output",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 140,
+      "topic": "Two Pointers & Sliding Window",
+      "problem": "Four-sum",
+      "extreme_test_case": "N=1,000 duplicate-heavy values; many quadruplets and no-solution case; output may be large.",
+      "edge_cases": "N=0/1, K=0/1/N/N+1, no solution, multiple solutions, negative values where allowed.",
+      "optimal_worst_case_time": "O(N²) for 3-sum; O(N³) for 4-sum",
+      "optimal_auxiliary_space": "O(1) auxiliary excluding result; O(number of results) output",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 141,
+      "topic": "Two Pointers & Sliding Window",
+      "problem": "Sort an array containing negative, zero and positive values",
+      "extreme_test_case": "N=200,000 alternating INT_MIN, 0, INT_MAX; verify partition invariant.",
+      "edge_cases": "N=0/1, K=0/1/N/N+1, no solution, multiple solutions, negative values where allowed.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) worst case for window/deque/hash structures; O(1) for in-place two-pointer variants",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 142,
+      "topic": "Two Pointers & Sliding Window",
+      "problem": "Maximum sum subarray of size K",
+      "extreme_test_case": "N=200,000; k=1, k=N, all negative and k=0/greater-than-N invalid cases.",
+      "edge_cases": "N=0/1, K=0/1/N/N+1, no solution, multiple solutions, negative values where allowed.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) worst case for window/deque/hash structures; O(1) for in-place two-pointer variants",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 143,
+      "topic": "Two Pointers & Sliding Window",
+      "problem": "First negative number in every window of size K",
+      "extreme_test_case": "N=200,000; no negatives, every value negative, negatives at window boundaries; k=1 and k=N.",
+      "edge_cases": "N=0/1, K=0/1/N/N+1, no solution, multiple solutions, negative values where allowed.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) worst case for window/deque/hash structures; O(1) for in-place two-pointer variants",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 144,
+      "topic": "Two Pointers & Sliding Window",
+      "problem": "Longest substring with at most K distinct characters",
+      "extreme_test_case": "String length=1,000,000; k=1, k=alphabet size, and all unique/repeated patterns.",
+      "edge_cases": "N=0/1, K=0/1/N/N+1, no solution, multiple solutions, negative values where allowed.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) worst case for window/deque/hash structures; O(1) for in-place two-pointer variants",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 145,
+      "topic": "Two Pointers & Sliding Window",
+      "problem": "Minimum size subarray sum",
+      "extreme_test_case": "N=200,000 positive values; target=1, target greater than total sum, and one huge element.",
+      "edge_cases": "N=0/1, K=0/1/N/N+1, no solution, multiple solutions, negative values where allowed.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) worst case for window/deque/hash structures; O(1) for in-place two-pointer variants",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 146,
+      "topic": "Two Pointers & Sliding Window",
+      "problem": "Longest repeating character replacement",
+      "extreme_test_case": "String length=1,000,000; all same, alternating two chars, and replacement budget 0 or >=N.",
+      "edge_cases": "N=0/1, K=0/1/N/N+1, no solution, multiple solutions, negative values where allowed.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) worst case for window/deque/hash structures; O(1) for in-place two-pointer variants",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 147,
+      "topic": "Two Pointers & Sliding Window",
+      "problem": "Permutation / anagram check in a sliding window",
+      "extreme_test_case": "Text length=1,000,000 and pattern length=500,000; match at final window and no match.",
+      "edge_cases": "N=0/1, K=0/1/N/N+1, no solution, multiple solutions, negative values where allowed.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) worst case for window/deque/hash structures; O(1) for in-place two-pointer variants",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 148,
+      "topic": "Two Pointers & Sliding Window",
+      "problem": "Maximum of all subarrays of size K",
+      "extreme_test_case": "N=200,000; k=1, k=N, strictly increasing/decreasing, duplicate maxima.",
+      "edge_cases": "N=0/1, K=0/1/N/N+1, no solution, multiple solutions, negative values where allowed.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) worst case for window/deque/hash structures; O(1) for in-place two-pointer variants",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 149,
+      "topic": "Two Pointers & Sliding Window",
+      "problem": "Count subarrays with exactly K distinct integers",
+      "extreme_test_case": "N=200,000 all distinct and all equal; k=1, k=N, exactly K vs K-1 distinct.",
+      "edge_cases": "N=0/1, K=0/1/N/N+1, no solution, multiple solutions, negative values where allowed.",
+      "optimal_worst_case_time": "O(N) expected",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 150,
+      "topic": "Two Pointers & Sliding Window",
+      "problem": "Minimum window substring",
+      "extreme_test_case": "S length=1,000,000, T length=500,000; no window, exact full-string window, repeated chars.",
+      "edge_cases": "N=0/1, K=0/1/N/N+1, no solution, multiple solutions, negative values where allowed.",
+      "optimal_worst_case_time": "O(N + M + Σ)",
+      "optimal_auxiliary_space": "O(Σ), where Σ is alphabet size",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 151,
+      "topic": "Recursion & Backtracking",
+      "problem": "Find factorial using recursion",
+      "extreme_test_case": "n=100,000: recursion depth/overflow stress; expected factorial requires big integers. Test 0 and 1.",
+      "edge_cases": "Empty input, smallest valid input, no solution, multiple solutions, duplicate candidates.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) call stack",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 152,
+      "topic": "Recursion & Backtracking",
+      "problem": "Find Fibonacci using recursion and memoization",
+      "extreme_test_case": "n=1,000,000 with memoization/iterative DP; naive recursion at n=45 demonstrates exponential blow-up.",
+      "edge_cases": "Empty input, smallest valid input, no solution, multiple solutions, duplicate candidates.",
+      "optimal_worst_case_time": "O(N) with memoization",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 153,
+      "topic": "Recursion & Backtracking",
+      "problem": "Calculate sum of array recursively",
+      "extreme_test_case": "Array length=200,000; recursion depth may overflow stack; use iterative or divide-and-conquer.",
+      "edge_cases": "Empty input, smallest valid input, no solution, multiple solutions, duplicate candidates.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) call stack",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 154,
+      "topic": "Recursion & Backtracking",
+      "problem": "Reverse a string recursively",
+      "extreme_test_case": "String length=200,000; recursion depth stack stress; test empty and one character.",
+      "edge_cases": "Empty input, smallest valid input, no solution, multiple solutions, duplicate candidates.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) call stack",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 155,
+      "topic": "Recursion & Backtracking",
+      "problem": "Check palindrome recursively",
+      "extreme_test_case": "String length=200,000; mismatch at final pair and full palindrome; recursion depth stress.",
+      "edge_cases": "Empty input, smallest valid input, no solution, multiple solutions, duplicate candidates.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) call stack",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 156,
+      "topic": "Recursion & Backtracking",
+      "problem": "Generate all subsequences of a string",
+      "extreme_test_case": "String length=20; 2^20 subsequences output stress; include repeated characters and empty string.",
+      "edge_cases": "Empty input, smallest valid input, no solution, multiple solutions, duplicate candidates.",
+      "optimal_worst_case_time": "O(2^N × N) including materializing outputs (subsets/subsequences)",
+      "optimal_auxiliary_space": "O(N) recursion, excluding output",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 157,
+      "topic": "Recursion & Backtracking",
+      "problem": "Generate all subsets of an array",
+      "extreme_test_case": "N=20; 2^20 subsets; include duplicate values and empty array.",
+      "edge_cases": "Empty input, smallest valid input, no solution, multiple solutions, duplicate candidates.",
+      "optimal_worst_case_time": "O(2^N × N) including materializing outputs (subsets/subsequences)",
+      "optimal_auxiliary_space": "O(N) recursion, excluding output",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 158,
+      "topic": "Recursion & Backtracking",
+      "problem": "Generate all permutations of an array",
+      "extreme_test_case": "N=10; 10! permutations output; duplicate values and verify uniqueness policy.",
+      "edge_cases": "Empty input, smallest valid input, no solution, multiple solutions, duplicate candidates.",
+      "optimal_worst_case_time": "O(N×N!) including output",
+      "optimal_auxiliary_space": "O(N) recursion, excluding output",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 159,
+      "topic": "Recursion & Backtracking",
+      "problem": "Generate balanced parentheses",
+      "extreme_test_case": "N=15 pairs; Catalan output count is large; test n=0 and balanced generation.",
+      "edge_cases": "Empty input, smallest valid input, no solution, multiple solutions, duplicate candidates.",
+      "optimal_worst_case_time": "O(2^N × N) including materializing outputs (subsets/subsequences)",
+      "optimal_auxiliary_space": "O(N) recursion, excluding output",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 160,
+      "topic": "Recursion & Backtracking",
+      "problem": "Combination Sum",
+      "extreme_test_case": "Candidates=[2,3,5,7], target=100; many combinations; include candidate 1 and zero/negative policy.",
+      "edge_cases": "Empty input, smallest valid input, no solution, multiple solutions, duplicate candidates.",
+      "optimal_worst_case_time": "Exponential in worst case; depends on candidates, target and pruning",
+      "optimal_auxiliary_space": "O(target/minCandidate) recursion depth, excluding output",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 161,
+      "topic": "Recursion & Backtracking",
+      "problem": "Subsets with duplicate elements",
+      "extreme_test_case": "N=20 duplicate-heavy array; output unique subsets only; all equal and all distinct.",
+      "edge_cases": "Empty input, smallest valid input, no solution, multiple solutions, duplicate candidates.",
+      "optimal_worst_case_time": "O(2^N × N) including materializing outputs (subsets/subsequences)",
+      "optimal_auxiliary_space": "O(N) recursion, excluding output",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 162,
+      "topic": "Recursion & Backtracking",
+      "problem": "Rat in a Maze",
+      "extreme_test_case": "1000×1000 maze with long winding path, no path, start=end, blocked start/end.",
+      "edge_cases": "Empty input, smallest valid input, no solution, multiple solutions, duplicate candidates.",
+      "optimal_worst_case_time": "O(R×C) in typical visited-state DFS; Word Search worst-case O(R×C×4^L)",
+      "optimal_auxiliary_space": "O(R×C) visited/recursion",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 163,
+      "topic": "Recursion & Backtracking",
+      "problem": "Word Search in a grid",
+      "extreme_test_case": "12×12 board, word length=144, near-match failing at final character; repeated letters.",
+      "edge_cases": "Empty input, smallest valid input, no solution, multiple solutions, duplicate candidates.",
+      "optimal_worst_case_time": "O(R×C) in typical visited-state DFS; Word Search worst-case O(R×C×4^L)",
+      "optimal_auxiliary_space": "O(R×C) visited/recursion",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 164,
+      "topic": "Recursion & Backtracking",
+      "problem": "N-Queens",
+      "extreme_test_case": "N=14 for practical search stress; also N=1,2 and known unsatisfiable N=2,3.",
+      "edge_cases": "Empty input, smallest valid input, no solution, multiple solutions, duplicate candidates.",
+      "optimal_worst_case_time": "O(N!) worst case",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 165,
+      "topic": "Recursion & Backtracking",
+      "problem": "Sudoku Solver",
+      "extreme_test_case": "Hard 9×9 Sudoku with minimal clues, invalid duplicate clues, already solved and unsolvable board.",
+      "edge_cases": "Empty input, smallest valid input, no solution, multiple solutions, duplicate candidates.",
+      "optimal_worst_case_time": "O(9^E) upper-bound style search; pruning strongly reduces practical work",
+      "optimal_auxiliary_space": "O(81) board plus recursion",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 166,
+      "topic": "Stack & Queue",
+      "problem": "Implement stack using an array",
+      "extreme_test_case": "Perform 1,000,000 mixed push/pop operations; overflow, underflow and capacity boundary.",
+      "edge_cases": "Empty structure, one item, underflow/overflow, malformed expression and duplicate values.",
+      "optimal_worst_case_time": "O(1) per push/pop/enqueue/dequeue; O(N) for processing N operations",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 167,
+      "topic": "Stack & Queue",
+      "problem": "Implement queue using an array",
+      "extreme_test_case": "1,000,000 enqueue/dequeue operations; empty/full transitions and wrap-around if circular implementation.",
+      "edge_cases": "Empty structure, one item, underflow/overflow, malformed expression and duplicate values.",
+      "optimal_worst_case_time": "O(1) per push/pop/enqueue/dequeue; O(N) for processing N operations",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 168,
+      "topic": "Stack & Queue",
+      "problem": "Implement circular queue",
+      "extreme_test_case": "Capacity=1 and capacity=200,000; repeated wrap-around, full then dequeue then enqueue.",
+      "edge_cases": "Empty structure, one item, underflow/overflow, malformed expression and duplicate values.",
+      "optimal_worst_case_time": "O(1) per push/pop/enqueue/dequeue; O(N) for processing N operations",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 169,
+      "topic": "Stack & Queue",
+      "problem": "Implement stack using queues",
+      "extreme_test_case": "1,000,000 alternating push/pop; test empty stack and worst-case queue-transfer sequence.",
+      "edge_cases": "Empty structure, one item, underflow/overflow, malformed expression and duplicate values.",
+      "optimal_worst_case_time": "O(1) amortized or O(N) per operation depending on chosen two-queue/two-stack design",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 170,
+      "topic": "Stack & Queue",
+      "problem": "Implement queue using stacks",
+      "extreme_test_case": "1,000,000 alternating enqueue/dequeue; test transfer amortization and empty queue.",
+      "edge_cases": "Empty structure, one item, underflow/overflow, malformed expression and duplicate values.",
+      "optimal_worst_case_time": "O(1) amortized or O(N) per operation depending on chosen two-queue/two-stack design",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 171,
+      "topic": "Stack & Queue",
+      "problem": "Check balanced parentheses",
+      "extreme_test_case": "String length=1,000,000; deeply nested valid brackets and mismatch only at final character.",
+      "edge_cases": "Empty structure, one item, underflow/overflow, malformed expression and duplicate values.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 172,
+      "topic": "Stack & Queue",
+      "problem": "Next greater element",
+      "extreme_test_case": "N=200,000 strictly decreasing (no next greater), strictly increasing, duplicates.",
+      "edge_cases": "Empty structure, one item, underflow/overflow, malformed expression and duplicate values.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 173,
+      "topic": "Stack & Queue",
+      "problem": "Next smaller element",
+      "extreme_test_case": "N=200,000 strictly increasing (no next smaller), strictly decreasing, duplicates.",
+      "edge_cases": "Empty structure, one item, underflow/overflow, malformed expression and duplicate values.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 174,
+      "topic": "Stack & Queue",
+      "problem": "Stock span problem",
+      "extreme_test_case": "N=200,000 strictly decreasing prices (span grows to N), increasing prices and equal prices.",
+      "edge_cases": "Empty structure, one item, underflow/overflow, malformed expression and duplicate values.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 175,
+      "topic": "Stack & Queue",
+      "problem": "Evaluate a postfix expression",
+      "extreme_test_case": "Expression with 200,000 tokens; deep stack, negative operands, division by zero and malformed expression.",
+      "edge_cases": "Empty structure, one item, underflow/overflow, malformed expression and duplicate values.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) stack",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 176,
+      "topic": "Linked Lists",
+      "problem": "Create and traverse a singly linked list",
+      "extreme_test_case": "N=200,000 nodes; traverse full list; empty list and one node.",
+      "edge_cases": "Empty list, one node, two nodes, head/tail target, repeated values and cycle/no-cycle.",
+      "optimal_worst_case_time": "O(N) worst case; O(1) for head insertion/deletion when node known",
+      "optimal_auxiliary_space": "O(1) iterative; O(N) recursive or merge output depending on implementation",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 177,
+      "topic": "Linked Lists",
+      "problem": "Insert a node at head, tail and a given position",
+      "extreme_test_case": "N=200,000; insert at head, tail, middle, position 0 and position N+1 invalid.",
+      "edge_cases": "Empty list, one node, two nodes, head/tail target, repeated values and cycle/no-cycle.",
+      "optimal_worst_case_time": "O(N) worst case; O(1) for head insertion/deletion when node known",
+      "optimal_auxiliary_space": "O(1) iterative; O(N) recursive or merge output depending on implementation",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 178,
+      "topic": "Linked Lists",
+      "problem": "Delete head, tail and a node by value",
+      "extreme_test_case": "N=200,000; delete head, tail, absent value, repeated values and empty list.",
+      "edge_cases": "Empty list, one node, two nodes, head/tail target, repeated values and cycle/no-cycle.",
+      "optimal_worst_case_time": "O(N) worst case; O(1) for head insertion/deletion when node known",
+      "optimal_auxiliary_space": "O(1) iterative; O(N) recursive or merge output depending on implementation",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 179,
+      "topic": "Linked Lists",
+      "problem": "Find the middle of a linked list",
+      "extreme_test_case": "N=200,000 even and odd lengths; verify which middle is returned for even length.",
+      "edge_cases": "Empty list, one node, two nodes, head/tail target, repeated values and cycle/no-cycle.",
+      "optimal_worst_case_time": "O(N) worst case; O(1) for head insertion/deletion when node known",
+      "optimal_auxiliary_space": "O(1) iterative; O(N) recursive or merge output depending on implementation",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 180,
+      "topic": "Linked Lists",
+      "problem": "Reverse a linked list iteratively",
+      "extreme_test_case": "N=200,000; reverse, reverse empty and single-node lists; verify no cycle introduced.",
+      "edge_cases": "Empty list, one node, two nodes, head/tail target, repeated values and cycle/no-cycle.",
+      "optimal_worst_case_time": "O(N) worst case; O(1) for head insertion/deletion when node known",
+      "optimal_auxiliary_space": "O(1) iterative; O(N) recursive or merge output depending on implementation",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 181,
+      "topic": "Linked Lists",
+      "problem": "Reverse a linked list recursively",
+      "extreme_test_case": "N=50,000 recursive nodes; stack overflow stress; test empty and single node.",
+      "edge_cases": "Empty list, one node, two nodes, head/tail target, repeated values and cycle/no-cycle.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) call stack",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 182,
+      "topic": "Linked Lists",
+      "problem": "Detect a cycle using Floyd's algorithm",
+      "extreme_test_case": "N=200,000; no cycle, self-loop, cycle at head and cycle at tail.",
+      "edge_cases": "Empty list, one node, two nodes, head/tail target, repeated values and cycle/no-cycle.",
+      "optimal_worst_case_time": "O(N) worst case; O(1) for head insertion/deletion when node known",
+      "optimal_auxiliary_space": "O(1) iterative; O(N) recursive or merge output depending on implementation",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 183,
+      "topic": "Linked Lists",
+      "problem": "Find the starting node of a cycle",
+      "extreme_test_case": "N=200,000; cycle entry at head, middle, last node; cycle length 1 and whole list.",
+      "edge_cases": "Empty list, one node, two nodes, head/tail target, repeated values and cycle/no-cycle.",
+      "optimal_worst_case_time": "O(N) worst case; O(1) for head insertion/deletion when node known",
+      "optimal_auxiliary_space": "O(1) iterative; O(N) recursive or merge output depending on implementation",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 184,
+      "topic": "Linked Lists",
+      "problem": "Merge two sorted linked lists",
+      "extreme_test_case": "Two lists of 100,000 nodes; disjoint, fully interleaved, one empty, duplicates.",
+      "edge_cases": "Empty list, one node, two nodes, head/tail target, repeated values and cycle/no-cycle.",
+      "optimal_worst_case_time": "O(N) worst case; O(1) for head insertion/deletion when node known",
+      "optimal_auxiliary_space": "O(1) iterative; O(N) recursive or merge output depending on implementation",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 185,
+      "topic": "Linked Lists",
+      "problem": "Remove the Nth node from the end",
+      "extreme_test_case": "N=200,000; n=1, n=N, n>N invalid, and remove head from one-node list.",
+      "edge_cases": "Empty list, one node, two nodes, head/tail target, repeated values and cycle/no-cycle.",
+      "optimal_worst_case_time": "O(N) worst case; O(1) for head insertion/deletion when node known",
+      "optimal_auxiliary_space": "O(1) iterative; O(N) recursive or merge output depending on implementation",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 186,
+      "topic": "Trees & BST",
+      "problem": "Implement preorder, inorder and postorder traversals",
+      "extreme_test_case": "Skewed tree with 200,000 nodes; recursive traversal stack risk; empty and single-node tree.",
+      "edge_cases": "Empty tree, one node, skewed tree, duplicate keys, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(H) recursion stack; O(N) worst case",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 187,
+      "topic": "Trees & BST",
+      "problem": "Perform level-order traversal",
+      "extreme_test_case": "Complete tree with 200,000 nodes (wide queue), then skewed tree; output order.",
+      "edge_cases": "Empty tree, one node, skewed tree, duplicate keys, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(H) recursion stack; O(N) worst case",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 188,
+      "topic": "Trees & BST",
+      "problem": "Find height / maximum depth of a binary tree",
+      "extreme_test_case": "Skewed 200,000-node tree; height should be N; recursion stack stress.",
+      "edge_cases": "Empty tree, one node, skewed tree, duplicate keys, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(H) recursion stack; O(N) worst case",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 189,
+      "topic": "Trees & BST",
+      "problem": "Count leaf nodes",
+      "extreme_test_case": "200,000-node full tree, skewed tree, and empty tree.",
+      "edge_cases": "Empty tree, one node, skewed tree, duplicate keys, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(H) recursion stack; O(N) worst case",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 190,
+      "topic": "Trees & BST",
+      "problem": "Check whether two trees are identical",
+      "extreme_test_case": "Two 200,000-node trees identical except final leaf value; shape mismatch at deepest level.",
+      "edge_cases": "Empty tree, one node, skewed tree, duplicate keys, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(H) recursion stack; O(N) worst case",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 191,
+      "topic": "Trees & BST",
+      "problem": "Check whether a binary tree is balanced",
+      "extreme_test_case": "Skewed tree of 200,000 nodes and balanced tree; detect imbalance without O(N²).",
+      "edge_cases": "Empty tree, one node, skewed tree, duplicate keys, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(H) recursion stack; O(N) worst case",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 192,
+      "topic": "Trees & BST",
+      "problem": "Find diameter of a binary tree",
+      "extreme_test_case": "200,000-node chain (diameter N-1) and star-like tree; test edge-count vs node-count convention.",
+      "edge_cases": "Empty tree, one node, skewed tree, duplicate keys, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(H) recursion stack; O(N) worst case",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 193,
+      "topic": "Trees & BST",
+      "problem": "Find lowest common ancestor in a BST",
+      "extreme_test_case": "BST height=200,000 (degenerate), LCA at root, same node, absent key.",
+      "edge_cases": "Empty tree, one node, skewed tree, duplicate keys, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(H)",
+      "optimal_auxiliary_space": "O(H) recursion; O(1) iterative",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 194,
+      "topic": "Trees & BST",
+      "problem": "Search, insert and delete in a BST",
+      "extreme_test_case": "Insert sorted 200,000 keys (degenerate BST), delete root/leaf/one-child/two-child nodes.",
+      "edge_cases": "Empty tree, one node, skewed tree, duplicate keys, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(H) average; O(N) worst case for unbalanced BST",
+      "optimal_auxiliary_space": "O(H)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 195,
+      "topic": "Trees & BST",
+      "problem": "Validate whether a binary tree is a BST",
+      "extreme_test_case": "Tree with invalid BST pair only at deepest level; INT_MIN/INT_MAX boundary values and duplicates policy.",
+      "edge_cases": "Empty tree, one node, skewed tree, duplicate keys, INT_MIN/INT_MAX.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(H) recursion stack; O(N) worst case",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 196,
+      "topic": "Graphs",
+      "problem": "Represent a graph using adjacency list and matrix",
+      "extreme_test_case": "V=200,000, E=500,000 sparse graph; also dense small graph to expose O(V²) matrix memory.",
+      "edge_cases": "V=0/1, disconnected graph, isolated node, self-loop, parallel edges and cycle/DAG boundary.",
+      "optimal_worst_case_time": "O(V+E) adjacency list; O(V²) adjacency matrix construction/storage",
+      "optimal_auxiliary_space": "O(V+E) list; O(V²) matrix",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 197,
+      "topic": "Graphs",
+      "problem": "Implement BFS traversal",
+      "extreme_test_case": "V=200,000, E=500,000; disconnected graph, isolated vertices, self-loop and parallel-edge policy.",
+      "edge_cases": "V=0/1, disconnected graph, isolated node, self-loop, parallel edges and cycle/DAG boundary.",
+      "optimal_worst_case_time": "O(V+E) or O(R×C) for grid problems",
+      "optimal_auxiliary_space": "O(V) or O(R×C)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 198,
+      "topic": "Graphs",
+      "problem": "Implement DFS traversal",
+      "extreme_test_case": "Deep chain of 200,000 vertices; iterative DFS avoids call-stack overflow; disconnected components.",
+      "edge_cases": "V=0/1, disconnected graph, isolated node, self-loop, parallel edges and cycle/DAG boundary.",
+      "optimal_worst_case_time": "O(V+E) or O(R×C) for grid problems",
+      "optimal_auxiliary_space": "O(V) or O(R×C)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 199,
+      "topic": "Graphs",
+      "problem": "Count connected components in an undirected graph",
+      "extreme_test_case": "V=200,000 with 200,000 isolated vertices, one giant component and many small components.",
+      "edge_cases": "V=0/1, disconnected graph, isolated node, self-loop, parallel edges and cycle/DAG boundary.",
+      "optimal_worst_case_time": "O(V+E) or O(R×C) for grid problems",
+      "optimal_auxiliary_space": "O(V) or O(R×C)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 200,
+      "topic": "Graphs",
+      "problem": "Detect cycle in an undirected graph",
+      "extreme_test_case": "Undirected chain, one back edge closing a cycle, self-loop and parallel-edge cases.",
+      "edge_cases": "V=0/1, disconnected graph, isolated node, self-loop, parallel edges and cycle/DAG boundary.",
+      "optimal_worst_case_time": "O(V+E) or O(R×C) for grid problems",
+      "optimal_auxiliary_space": "O(V) or O(R×C)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 201,
+      "topic": "Graphs",
+      "problem": "Detect cycle in a directed graph",
+      "extreme_test_case": "Directed DAG, one back edge creating cycle, disconnected graph and self-loop.",
+      "edge_cases": "V=0/1, disconnected graph, isolated node, self-loop, parallel edges and cycle/DAG boundary.",
+      "optimal_worst_case_time": "O(V+E) or O(R×C) for grid problems",
+      "optimal_auxiliary_space": "O(V) or O(R×C)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 202,
+      "topic": "Graphs",
+      "problem": "Find shortest path in an unweighted graph",
+      "extreme_test_case": "Unweighted chain of 200,000 vertices; unreachable target and multiple shortest paths.",
+      "edge_cases": "V=0/1, disconnected graph, isolated node, self-loop, parallel edges and cycle/DAG boundary.",
+      "optimal_worst_case_time": "O(V+E) or O(R×C) for grid problems",
+      "optimal_auxiliary_space": "O(V) or O(R×C)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 203,
+      "topic": "Graphs",
+      "problem": "Implement Dijkstra's shortest path",
+      "extreme_test_case": "V=200,000, E=500,000; disconnected vertices, zero-weight edges, large weights and overflow-safe distances.",
+      "edge_cases": "V=0/1, disconnected graph, isolated node, self-loop, parallel edges and cycle/DAG boundary.",
+      "optimal_worst_case_time": "O((V+E) log V) with binary heap",
+      "optimal_auxiliary_space": "O(V+E)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 204,
+      "topic": "Graphs",
+      "problem": "Topological sort using Kahn's algorithm",
+      "extreme_test_case": "DAG with 200,000 vertices and 500,000 edges; multiple valid orders and cycle detection.",
+      "edge_cases": "V=0/1, disconnected graph, isolated node, self-loop, parallel edges and cycle/DAG boundary.",
+      "optimal_worst_case_time": "O(V+E) or O(R×C) for grid problems",
+      "optimal_auxiliary_space": "O(V) or O(R×C)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 205,
+      "topic": "Graphs",
+      "problem": "Find number of islands in a grid",
+      "extreme_test_case": "1000×1000 all land, all water, checkerboard islands, one giant island.",
+      "edge_cases": "V=0/1, disconnected graph, isolated node, self-loop, parallel edges and cycle/DAG boundary.",
+      "optimal_worst_case_time": "O(V+E) or O(R×C) for grid problems",
+      "optimal_auxiliary_space": "O(V) or O(R×C)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 206,
+      "topic": "Greedy & Dynamic Programming",
+      "problem": "Climbing stairs",
+      "extreme_test_case": "n=1,000,000; compare iterative O(N) with naive exponential recursion; test n=0,1.",
+      "edge_cases": "N=0/1, target/capacity=0, impossible instance, duplicate values and numeric overflow.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) DP; O(1) with rolling variables where applicable",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 207,
+      "topic": "Greedy & Dynamic Programming",
+      "problem": "Minimum cost climbing stairs",
+      "extreme_test_case": "cost array length=200,000; alternating 0 and 10^9, start-at-0/start-at-1 choice.",
+      "edge_cases": "N=0/1, target/capacity=0, impossible instance, duplicate values and numeric overflow.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) DP; O(1) with rolling variables where applicable",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 208,
+      "topic": "Greedy & Dynamic Programming",
+      "problem": "House Robber",
+      "extreme_test_case": "N=200,000; all positive, all negative, alternating huge values; ensure no adjacent picks.",
+      "edge_cases": "N=0/1, target/capacity=0, impossible instance, duplicate values and numeric overflow.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) DP; O(1) with rolling variables where applicable",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 209,
+      "topic": "Greedy & Dynamic Programming",
+      "problem": "Coin Change — minimum coins",
+      "extreme_test_case": "amount=100,000 and coin set [1,3,4]; impossible amount with coins [2,4]; coin=1 stress.",
+      "edge_cases": "N=0/1, target/capacity=0, impossible instance, duplicate values and numeric overflow.",
+      "optimal_worst_case_time": "O(amount × number_of_coins)",
+      "optimal_auxiliary_space": "O(amount)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 210,
+      "topic": "Greedy & Dynamic Programming",
+      "problem": "Coin Change — number of ways",
+      "extreme_test_case": "amount=1,000 and many coin denominations; count can exceed 64-bit; define modulo/big-int behavior.",
+      "edge_cases": "N=0/1, target/capacity=0, impossible instance, duplicate values and numeric overflow.",
+      "optimal_worst_case_time": "O(amount × number_of_coins)",
+      "optimal_auxiliary_space": "O(amount)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 211,
+      "topic": "Greedy & Dynamic Programming",
+      "problem": "0/1 Knapsack",
+      "extreme_test_case": "N=200 items, W=100,000; weights=1; values large; also W=0 and all weights > W.",
+      "edge_cases": "N=0/1, target/capacity=0, impossible instance, duplicate values and numeric overflow.",
+      "optimal_worst_case_time": "O(N×W)",
+      "optimal_auxiliary_space": "O(W) with 1D DP",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 212,
+      "topic": "Greedy & Dynamic Programming",
+      "problem": "Longest increasing subsequence",
+      "extreme_test_case": "N=200,000 strictly increasing, strictly decreasing and all equal; O(N log N) expected.",
+      "edge_cases": "N=0/1, target/capacity=0, impossible instance, duplicate values and numeric overflow.",
+      "optimal_worst_case_time": "O(N log N) with patience sorting; O(N²) classic DP",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 213,
+      "topic": "Greedy & Dynamic Programming",
+      "problem": "Longest common subsequence",
+      "extreme_test_case": "Two strings each length=10,000; identical, no common characters, repeated characters; O(NM) stress.",
+      "edge_cases": "N=0/1, target/capacity=0, impossible instance, duplicate values and numeric overflow.",
+      "optimal_worst_case_time": "O(N×M)",
+      "optimal_auxiliary_space": "O(min(N,M)) with rolling rows; O(N×M) full table",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 214,
+      "topic": "Greedy & Dynamic Programming",
+      "problem": "Edit distance",
+      "extreme_test_case": "Two strings each length=10,000; identical, completely different and mismatch at final character.",
+      "edge_cases": "N=0/1, target/capacity=0, impossible instance, duplicate values and numeric overflow.",
+      "optimal_worst_case_time": "O(N×M)",
+      "optimal_auxiliary_space": "O(min(N,M)) with rolling rows; O(N×M) full table",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 215,
+      "topic": "Greedy & Dynamic Programming",
+      "problem": "Maximum sum of non-adjacent elements",
+      "extreme_test_case": "N=200,000 alternating positive/negative; all negative and one large positive; no adjacent picks.",
+      "edge_cases": "N=0/1, target/capacity=0, impossible instance, duplicate values and numeric overflow.",
+      "optimal_worst_case_time": "O(N)",
+      "optimal_auxiliary_space": "O(N) DP; O(1) with rolling variables where applicable",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 216,
+      "topic": "Greedy & Dynamic Programming",
+      "problem": "Activity selection",
+      "extreme_test_case": "N=200,000 intervals; already sorted, reverse sorted, identical start/end and touching intervals.",
+      "edge_cases": "N=0/1, target/capacity=0, impossible instance, duplicate values and numeric overflow.",
+      "optimal_worst_case_time": "O(N log N)",
+      "optimal_auxiliary_space": "O(N) or O(1) auxiliary depending on sorting",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 217,
+      "topic": "Greedy & Dynamic Programming",
+      "problem": "Fractional knapsack",
+      "extreme_test_case": "N=200,000 items; fractional final item, zero weight invalid, equal ratios and large values.",
+      "edge_cases": "N=0/1, target/capacity=0, impossible instance, duplicate values and numeric overflow.",
+      "optimal_worst_case_time": "O(N log N)",
+      "optimal_auxiliary_space": "O(N) or O(1) auxiliary depending on sorting",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 218,
+      "topic": "Greedy & Dynamic Programming",
+      "problem": "Minimum number of platforms",
+      "extreme_test_case": "N=200,000 trains with same arrival/departure times, nested intervals and sorted/reverse order.",
+      "edge_cases": "N=0/1, target/capacity=0, impossible instance, duplicate values and numeric overflow.",
+      "optimal_worst_case_time": "O(N log N)",
+      "optimal_auxiliary_space": "O(N) or O(1) auxiliary depending on sorting",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 219,
+      "topic": "Greedy & Dynamic Programming",
+      "problem": "Job sequencing with deadlines",
+      "extreme_test_case": "N=200,000 jobs; all deadlines same, all profits equal, huge deadlines and negative/zero profit policy.",
+      "edge_cases": "N=0/1, target/capacity=0, impossible instance, duplicate values and numeric overflow.",
+      "optimal_worst_case_time": "O(N log N)",
+      "optimal_auxiliary_space": "O(N)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    },
+    {
+      "id": 220,
+      "topic": "Greedy & Dynamic Programming",
+      "problem": "Partition equal subset sum",
+      "extreme_test_case": "N=200, target=10^6; all ones (large DP), impossible odd total, zeros and repeated values.",
+      "edge_cases": "N=0/1, target/capacity=0, impossible instance, duplicate values and numeric overflow.",
+      "optimal_worst_case_time": "O(N×Target)",
+      "optimal_auxiliary_space": "O(Target)",
+      "assumptions": "Complexity is for the standard optimal approach; excludes input storage and, where stated, output storage. Output-heavy problems have an unavoidable output-size cost. Validate numeric limits and input contract before coding."
+    }
+  ]
+}

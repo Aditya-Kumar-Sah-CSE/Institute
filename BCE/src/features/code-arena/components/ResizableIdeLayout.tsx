@@ -6,7 +6,7 @@ import CodeEditor from './CodeEditor';
 import { useLivePageContext } from '@/features/analytics/context/LivePageContext';
 
 export default function ResizableIdeLayout({ problemData }: { problemData: ProblemData }) {
-  const [leftWidth, setLeftWidth] = useState(40); // default 40%
+  const [leftWidth, setLeftWidth] = useState(32); // default 40%
   const [isResizing, setIsResizing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const { setLiveContext } = useLivePageContext();

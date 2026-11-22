@@ -80,6 +80,14 @@ export interface ProblemData {
   supported_languages?: CodeLanguage[];
   text_solution?: string | null;
   youtube_url?: string | null;
+  metadata?: {
+    extreme_test_case?: string;
+    edge_cases?: string;
+    optimal_worst_case_time?: string;
+    optimal_auxiliary_space?: string;
+    assumptions?: string;
+    [key: string]: any;
+  } | null;
   navigation?: {
     currentIndex: number;
     totalProblems: number;
@@ -705,7 +713,7 @@ function SafeContentRenderer({ rawContent, isMainStatement = false }: { rawConte
   );
 }
 
-const generateChatGPTPrompt = (problem: ProblemData) => {
+export const generateChatGPTPrompt = (problem: ProblemData) => {
   const statementText = problem.statement || problem.description || '';
   const constraintsText = problem.constraints || '';
   const inputFormat = problem.input_format || problem.inputDescription || '';
@@ -742,7 +750,7 @@ ${stripHtml(inputFormat).trim() || 'Standard input.'}
 ${stripHtml(outputFormat).trim() || 'Standard output.'}
 
 ### Examples:
-${examplesText.trim() || 'No sample examples provided.'}
+${examplesText.trim() || 'No sample examples provided.'}${problem.metadata?.optimal_worst_case_time ? `\n\n### Target Optimal Complexity:\nOptimal Time: ${problem.metadata.optimal_worst_case_time} | Auxiliary Space: ${problem.metadata.optimal_auxiliary_space || 'O(1)'}` : ''}${problem.metadata?.edge_cases ? `\n\n### Key Edge Cases to Handle:\n${problem.metadata.edge_cases}` : ''}${problem.metadata?.extreme_test_case ? `\n\n### Extreme Stress Test Case:\n${problem.metadata.extreme_test_case}` : ''}${problem.metadata?.assumptions ? `\n\n### Problem Assumptions:\n${problem.metadata.assumptions}` : ''}
 
 ### Requested Programming Language: C++17`;
 };
@@ -924,8 +932,20 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
     };
 
     window.addEventListener('keydown', handleKeyDown);
+
+    const handleCustomOpenText = () => setShowTextSolution(true);
+    const handleCustomOpenVideo = () => setShowVideoSolution(true);
+    const handleCustomOpenAi = () => handleAskSmartLearnAI();
+
+    window.addEventListener('code-arena:open-text-solution', handleCustomOpenText);
+    window.addEventListener('code-arena:open-video-solution', handleCustomOpenVideo);
+    window.addEventListener('code-arena:open-ai-drawer', handleCustomOpenAi);
+
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('code-arena:open-text-solution', handleCustomOpenText);
+      window.removeEventListener('code-arena:open-video-solution', handleCustomOpenVideo);
+      window.removeEventListener('code-arena:open-ai-drawer', handleCustomOpenAi);
     };
   }, [navigation, router]);
 
@@ -1275,174 +1295,33 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
             )}
           </div>
 
-          {/* Problem Title & ID & Action Buttons */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', margin: '4px 0 8px 0' }}>
-            <h1 data-agent-problem-title="true" style={{ fontSize: 'var(--text-xl)', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
+          {/* Problem Title & ID */}
+          <div style={{ margin: '6px 0 8px 0' }}>
+            <h1 data-agent-problem-title="true" style={{ fontSize: 'var(--text-xl)', fontWeight: 800, margin: 0, color: 'var(--text-main)', lineHeight: 1.35 }}>
               {problem.title.startsWith(externalId || '___') ? problem.title : `${externalId ? `${externalId} — ` : ''}${problem.title}`}
             </h1>
-            
-            <div style={{ display: 'flex', gap: '8px', flexShrink: 0, flexWrap: 'wrap' }}>
-              <a
-                href={`https://www.youtube.com/results?search_query=${encodeURIComponent(problem.title || problem.id)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: 'rgba(239, 68, 68, 0.05)',
-                  border: '1px solid rgba(239, 68, 68, 0.2)',
-                  color: '#ef4444',
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  textDecoration: 'none'
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
-                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.4)';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.05)';
-                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.2)';
-                }}
-                title="Search on YouTube"
-              >
-                <Search size={14} style={{ color: '#ef4444' }} /> Ask YT
-              </a>
-
-              <button
-                onClick={handleAskChatGPT}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: 'rgba(255, 255, 255, 0.04)',
-                  border: '1px solid var(--glass-border)',
-                  color: 'var(--text-primary)',
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.background = 'rgba(6, 182, 212, 0.1)';
-                  e.currentTarget.style.borderColor = 'rgba(6, 182, 212, 0.3)';
-                  e.currentTarget.style.color = 'var(--neon-cyan)';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
-                  e.currentTarget.style.borderColor = 'var(--glass-border)';
-                  e.currentTarget.style.color = 'var(--text-primary)';
-                }}
-                title="Ask ChatGPT to explain or help with this problem"
-              >
-                <Sparkles size={14} style={{ color: 'var(--neon-cyan)' }} /> Ask ChatGPT
-              </button>
-
-              <button
-                onClick={handleAskSmartLearnAI}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: 'rgba(6, 182, 212, 0.1)',
-                  border: '1px solid rgba(6, 182, 212, 0.3)',
-                  color: 'var(--neon-cyan)',
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  boxShadow: '0 0 10px rgba(6,182,212,0.15)'
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.background = 'rgba(6, 182, 212, 0.2)';
-                  e.currentTarget.style.boxShadow = '0 0 14px rgba(6,182,212,0.25)';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.background = 'rgba(6, 182, 212, 0.1)';
-                  e.currentTarget.style.boxShadow = '0 0 10px rgba(6,182,212,0.15)';
-                }}
-                title="Open Smart Learn AI assistant"
-              >
-                <Brain size={14} /> Ask Smart Learn AI
-              </button>
-
-              {problem.text_solution && (
-                <button
-                  onClick={() => setShowTextSolution(true)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    background: 'rgba(6, 182, 212, 0.1)',
-                    border: '1px solid rgba(6, 182, 212, 0.3)',
-                    color: 'var(--neon-cyan)',
-                    padding: '6px 12px',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.background = 'rgba(6, 182, 212, 0.2)'}
-                  onMouseOut={(e) => e.currentTarget.style.background = 'rgba(6, 182, 212, 0.1)'}
-                >
-                  <BookOpen size={14} /> Text Solution
-                </button>
-              )}
-              {problem.youtube_url && (
-                <button
-                  onClick={() => setShowVideoSolution(true)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    background: 'rgba(239, 68, 68, 0.1)',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                    color: '#ef4444',
-                    padding: '6px 12px',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'}
-                  onMouseOut={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
-                >
-                  <PlayCircle size={14} /> Video Solution
-                </button>
-              )}
-            </div>
           </div>
 
-          {/* Tags */}
+          {/* Problem Tags - displayed directly after problem title */}
           {tags.length > 0 && (
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', margin: '6px 0 10px 0' }}>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', margin: '4px 0 14px 0' }}>
               {tags.map((tag, idx) => (
                 <span
                   key={idx}
                   style={{
-                    fontSize: '10px',
+                    fontSize: '11px',
                     color: 'var(--text-muted)',
-                    background: 'var(--bg-elevated)',
+                    background: 'rgba(255, 255, 255, 0.03)',
                     border: '1px solid var(--glass-border)',
-                    padding: '1px 6px',
-                    borderRadius: '4px',
+                    padding: '3px 8px',
+                    borderRadius: '6px',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '3px',
+                    gap: '4px',
+                    fontWeight: 500,
                   }}
                 >
-                  <Tag size={10} /> {tag}
+                  <Tag size={11} style={{ opacity: 0.7 }} /> {tag}
                 </span>
               ))}
             </div>
@@ -1657,6 +1536,63 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
             lineHeight: '1.5'
           }}>
             {problem.follow_up}
+          </div>
+        </section>
+      )}
+
+      {/* Extreme Test Cases & Optimal Complexity Section */}
+      {problem.metadata && (problem.metadata.extreme_test_case || problem.metadata.edge_cases || problem.metadata.optimal_worst_case_time) && (
+        <section style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-xs)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', borderLeft: '3px solid #f59e0b', paddingLeft: '10px', letterSpacing: '0.5px' }}>
+            ⚡ Extreme Test Cases & Complexity Analysis
+          </div>
+          <div style={{
+            background: 'rgba(245, 158, 11, 0.04)',
+            border: '1px solid rgba(245, 158, 11, 0.2)',
+            borderRadius: '8px',
+            padding: '12px 14px',
+            fontSize: '13px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+            lineHeight: '1.5'
+          }}>
+            {problem.metadata.optimal_worst_case_time && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'rgba(59, 130, 246, 0.12)', border: '1px solid rgba(59, 130, 246, 0.25)', padding: '3px 9px', borderRadius: '5px', fontSize: '12px', color: '#60a5fa', fontWeight: 600 }}>
+                  ⏱️ Optimal Time: {problem.metadata.optimal_worst_case_time}
+                </span>
+                {problem.metadata.optimal_auxiliary_space && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.25)', padding: '3px 9px', borderRadius: '5px', fontSize: '12px', color: '#34d399', fontWeight: 600 }}>
+                    💾 Auxiliary Space: {problem.metadata.optimal_auxiliary_space}
+                  </span>
+                )}
+              </div>
+            )}
+            {problem.metadata.edge_cases && (
+              <div>
+                <strong style={{ color: '#fbbf24', fontSize: '11.5px', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: '2px' }}>
+                  🚨 Key Edge Cases:
+                </strong>
+                <span style={{ color: 'var(--text-secondary)' }}>{problem.metadata.edge_cases}</span>
+              </div>
+            )}
+            {problem.metadata.extreme_test_case && (
+              <div>
+                <strong style={{ color: '#f59e0b', fontSize: '11.5px', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: '2px' }}>
+                  🧪 Extreme Test Scenario:
+                </strong>
+                <span style={{ color: 'var(--text-secondary)' }}>{problem.metadata.extreme_test_case}</span>
+              </div>
+            )}
+            {problem.metadata.assumptions && (
+              <div>
+                <strong style={{ color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: '2px' }}>
+                  📌 Assumptions & Constraints:
+                </strong>
+                <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{problem.metadata.assumptions}</span>
+              </div>
+            )}
           </div>
         </section>
       )}
