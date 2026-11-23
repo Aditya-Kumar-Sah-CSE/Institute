@@ -82,6 +82,8 @@ export async function POST(request: Request) {
         memoryLimitMb: 256,
       });
 
+      const diff = ((body as any)?.difficulty || 'EASY').toUpperCase();
+      const localXp = diff === 'HARD' ? 20 : diff === 'MEDIUM' ? 10 : 5;
       const localSubId = `local-sub-${Date.now()}`;
       const localResultData = {
         id: localSubId,
@@ -92,7 +94,7 @@ export async function POST(request: Request) {
         runtime_output: result.runtimeOutput,
         execution_time_ms: 12,
         memory_used_mb: 14.5,
-        xp_awarded: 25,
+        xp_awarded: localXp,
         created_at: new Date().toISOString(),
       };
 
@@ -100,7 +102,7 @@ export async function POST(request: Request) {
         (async () => {
           try {
             const { awardXP } = await import('@/features/auth/actions/auth');
-            await awardXP(user.id, 20, 'Solved Coding Problem', 'code_arena', problemId);
+            await awardXP(user.id, localXp, 'Solved Coding Problem', 'code_arena', problemId);
           } catch {}
         })();
       }
@@ -110,7 +112,7 @@ export async function POST(request: Request) {
 
     const { data: problem } = await supabase
       .from('coding_problems')
-      .select('id, time_limit_ms, memory_limit_mb, supported_languages')
+      .select('id, title, difficulty, time_limit_ms, memory_limit_mb, supported_languages')
       .eq('id', problemId)
       .single();
 
@@ -228,7 +230,7 @@ export async function POST(request: Request) {
     let xpAwarded = 0;
     if (result.status === 'ACCEPTED') {
       const diff = ((problem as any)?.difficulty || 'EASY').toUpperCase();
-      xpAwarded = diff === 'HARD' ? 100 : diff === 'MEDIUM' ? 50 : 25;
+      xpAwarded = diff === 'HARD' ? 20 : diff === 'MEDIUM' ? 10 : 5;
     }
 
     if (!error && data && data.status === 'ACCEPTED') {

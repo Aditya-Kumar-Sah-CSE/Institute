@@ -5681,3 +5681,18 @@
     justify-content: space-between !important;
   }
 }
+
+/* ======================================================== */
+/*  CELEBRATION SUCCESS POPUP MODAL (NO SCROLLBAR & MAX Z) */
+/* ======================================================== */
+.code-celebration-modal-card {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.code-celebration-modal-card::-webkit-scrollbar,
+.code-celebration-modal-card *::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}

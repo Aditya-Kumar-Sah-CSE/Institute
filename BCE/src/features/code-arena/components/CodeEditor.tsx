@@ -3,6 +3,7 @@
 import '@/lib/monacoInit';
 import dynamic from 'next/dynamic';
 import { useState, useEffect, useRef, Suspense } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Play,
   Send,
@@ -23,6 +24,7 @@ import {
   Trophy,
   ArrowRight,
   Award,
+  Brain,
 } from 'lucide-react';
 import type { CodeLanguage, NormalizedExecutionResult } from '../types';
 import { useRouter } from 'next/navigation';
@@ -30,6 +32,11 @@ import type { ProblemData } from './ProblemStatementRenderer';
 import { saveDraft, getDraft } from '../storage/problemStorage';
 import './CodeArena.css';
 import { registerMonacoIntelliSense, intelliSenseEditorOptions } from '../lib/monacoIntelliSense';
+import {
+  analyzeCodeWithSmartAgent,
+  extractConstraintTestCase,
+  type SmartAgentAnalysis,
+} from '../lib/smartCodeAnalyzer';
 
 import {
   saveLocalStorageBackup,
@@ -81,77 +88,10 @@ interface CodeAnalysisProps {
   solveTimeSeconds?: number;
   code?: string;
   metadata?: any;
+  problemTitle?: string;
 }
 
-export function analyzeCodeComplexity(code: string = '', language: string = 'cpp', metadata?: any) {
-  const metaTime = metadata?.optimal_worst_case_time || metadata?.time_complexity;
-  const metaSpace = metadata?.optimal_auxiliary_space || metadata?.space_complexity;
-
-  const cleanCode = (code || '')
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/\/\/.*/g, '');
-
-  const forMatches = cleanCode.match(/for\s*\([^)]*\)/g) || [];
-  const whileMatches = cleanCode.match(/while\s*\([^)]*\)/g) || [];
-  const totalLoops = forMatches.length + whileMatches.length;
-
-  const nestedLoopRegex = /(?:for|while)\s*\([^)]*\)\s*\{[^{}]*(?:for|while)\s*\([^)]*\)/;
-  const tripleNestedRegex = /(?:for|while)\s*\([^)]*\)\s*\{[^{}]*(?:for|while)\s*\([^)]*\)\s*\{[^{}]*(?:for|while)/;
-
-  const hasSort = /\b(?:sort|stable_sort|qsort|Arrays\.sort|Collections\.sort|\.sort)\b/.test(cleanCode);
-  const hasBinarySearch = /\b(?:binary_search|lower_bound|upper_bound)\b/.test(cleanCode) || 
-    (/(?:low|left)\s*<=\s*(?:high|right)/.test(cleanCode) && /(?:>>\s*1|\/\s*2)/.test(cleanCode));
-  const hasRecursion = /\b([a-zA-Z_]\w*)\s*\([^)]*\)\s*\{[\s\S]*?\b\1\s*\(/.test(cleanCode);
-
-  let analyzedTime = 'O(1)';
-  let timeExplanation = 'Constant Time: Direct scalar operations';
-
-  if (tripleNestedRegex.test(cleanCode)) {
-    analyzedTime = 'O(N³)';
-    timeExplanation = 'Cubic Time: 3 levels of nested loops';
-  } else if (nestedLoopRegex.test(cleanCode)) {
-    analyzedTime = 'O(N²)';
-    timeExplanation = 'Quadratic Time: Nested iteration loops';
-  } else if (hasSort) {
-    analyzedTime = 'O(N log N)';
-    timeExplanation = 'Log-Linear Time: Sorting operations detected';
-  } else if (hasBinarySearch) {
-    analyzedTime = 'O(log N)';
-    timeExplanation = 'Logarithmic Time: Binary search / bisection detected';
-  } else if (totalLoops > 0) {
-    analyzedTime = 'O(N)';
-    timeExplanation = 'Linear Time: Single traversal loop detected';
-  } else if (hasRecursion) {
-    analyzedTime = 'O(N)';
-    timeExplanation = 'Recursive call stack traversal';
-  }
-
-  const has2DStructure = /vector\s*<\s*vector|\[\]\s*\[\]|\bnew\s+\w+\s*\[[^\]]+\]\s*\[/.test(cleanCode);
-  const hasCollections = /\b(?:vector|set|unordered_set|map|unordered_map|queue|priority_queue|stack|list|ArrayList|HashMap|HashSet|Array\(|\[\])\b/.test(cleanCode);
-
-  let analyzedSpace = 'O(1)';
-  let spaceExplanation = 'Constant Space: Uses only scalar variables';
-
-  if (has2DStructure) {
-    analyzedSpace = 'O(N²)';
-    spaceExplanation = 'Quadratic Space: 2D matrix or nested collections';
-  } else if (hasCollections) {
-    analyzedSpace = 'O(N)';
-    spaceExplanation = 'Linear Space: Dynamic collection / buffer memory';
-  }
-
-  const optimalTime = metaTime || analyzedTime;
-  const optimalSpace = metaSpace || analyzedSpace;
-
-  return {
-    analyzedTime,
-    timeExplanation,
-    analyzedSpace,
-    spaceExplanation,
-    optimalTime,
-    optimalSpace
-  };
-}
+export { analyzeCodeWithSmartAgent as analyzeCodeComplexity };
 
 function CodeAnalysisRatingSection({
   runtimeMs = 12,
@@ -163,19 +103,25 @@ function CodeAnalysisRatingSection({
   edgeCases,
   passedTests = 5,
   totalTests = 5,
-  xpAwarded = 25,
+  xpAwarded = 5,
   solveTimeSeconds = 0,
   code = '',
   metadata,
+  problemTitle,
 }: CodeAnalysisProps) {
-  const complexity = analyzeCodeComplexity(code, language, metadata);
+  const complexity = analyzeCodeWithSmartAgent(
+    code,
+    language,
+    metadata,
+    problemTitle,
+    passedTests,
+    totalTests,
+    runtimeMs,
+    memoryMb
+  );
 
-  // Compute Rating from 1 to 10
-  const timeScore = Math.max(6.0, Math.min(10.0, 10.0 - (runtimeMs / 1000) * 3.5));
-  const memScore = Math.max(6.0, Math.min(10.0, 10.0 - (memoryMb / 256) * 3.5));
-  const correctnessScore = totalTests > 0 ? (passedTests / totalTests) * 10 : 10;
-  
-  const overallRating = Number(((correctnessScore * 0.4) + (timeScore * 0.35) + (memScore * 0.25)).toFixed(1));
+  const overallRating = complexity.overallRating;
+  const ratingLabel = complexity.ratingLabel;
 
   const runtimePercentile = Math.min(99, Math.max(75, Math.floor(98 - (runtimeMs / 25) * 15)));
   const memoryPercentile = Math.min(99, Math.max(70, Math.floor(95 - (memoryMb / 20) * 12)));
@@ -330,6 +276,51 @@ function CodeAnalysisRatingSection({
           </div>
         </div>
 
+        {/* Key Algorithmic Logic (Crisp bullet points, no large paragraphs) */}
+        {complexity.keyLogic && complexity.keyLogic.length > 0 && (
+          <div style={{
+            background: 'rgba(6, 182, 212, 0.05)',
+            border: '1px solid rgba(6, 182, 212, 0.25)',
+            borderRadius: '8px',
+            padding: '10px 12px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px'
+          }}>
+            <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--neon-cyan)', display: 'flex', alignItems: 'center', gap: '6px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+              <Brain size={13} /> Key Algorithmic Logic
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '11px', color: '#e2e8f0', lineHeight: 1.4 }}>
+              {complexity.keyLogic.map((item, idx) => (
+                <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                  <span style={{ color: 'var(--neon-cyan)', fontWeight: 800 }}>•</span>
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Concise Code Optimization Advice (<= 100 words) */}
+        {complexity.optimizationTip && (
+          <div style={{
+            background: 'rgba(139, 92, 246, 0.06)',
+            border: '1px solid rgba(139, 92, 246, 0.28)',
+            borderRadius: '8px',
+            padding: '10px 12px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px'
+          }}>
+            <div style={{ fontSize: '11px', fontWeight: 800, color: '#c084fc', display: 'flex', alignItems: 'center', gap: '6px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+              <Zap size={13} style={{ fill: '#c084fc' }} /> Optimization Advice (&le; 100 words)
+            </div>
+            <p style={{ margin: 0, fontSize: '11px', color: '#cbd5e1', lineHeight: 1.45 }}>
+              {complexity.optimizationTip}
+            </p>
+          </div>
+        )}
+
         {/* Extreme Stress & Edge Cases Note */}
         {(extremeCase || edgeCases) && (
           <div style={{ background: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: '6px', padding: '8px 10px', fontSize: '11px', color: 'var(--text-secondary)' }}>
@@ -462,6 +453,47 @@ export default function CodeEditor({
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [lastSolveTime, setLastSolveTime] = useState<number>(0);
   const sessionStartTimeRef = useRef<number>(Date.now());
+
+  const problemDifficulty = ((problem.difficulty || 'EASY') as string).toUpperCase();
+  const defaultProblemXp = problemDifficulty === 'HARD' ? 20 : problemDifficulty === 'MEDIUM' ? 10 : 5;
+
+  // Lock body scroll when celebration popup is visible to prevent window scrollbar
+  useEffect(() => {
+    if (showSuccessModal) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [showSuccessModal]);
+
+  // Real-time parallel background Smart Agent code analyzer state
+  const [liveAnalysis, setLiveAnalysis] = useState<SmartAgentAnalysis>(() =>
+    analyzeCodeWithSmartAgent(code, language, problem.metadata, problem.title)
+  );
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // Background debounced code analyzer (runs continuously in parallel as user writes code)
+  useEffect(() => {
+    setIsAnalyzing(true);
+    const timer = setTimeout(() => {
+      const result = analyzeCodeWithSmartAgent(
+        code,
+        language,
+        problem.metadata,
+        problem.title,
+        submissionResult?.passed_tests,
+        submissionResult?.total_tests,
+        submissionResult?.execution_time_ms || 12,
+        submissionResult?.memory_used_mb || 14.5
+      );
+      setLiveAnalysis(result);
+      setIsAnalyzing(false);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [code, language, problem.metadata, problem.title, submissionResult]);
 
   const [pastSolutionData, setPastSolutionData] = useState<any>(null);
   const [loadingPastSolution, setLoadingPastSolution] = useState(false);
@@ -690,21 +722,28 @@ export default function CodeEditor({
     }
   };
 
-  const isLeetCodeType = problem.source_type === 'LEETCODE' || problem.external_platform === 'LEETCODE';
+  const isLeetCodeType = problem.source_type === 'LEETCODE' || problem.external_platform === 'LEETCODE' || (samples && samples.length > 0) || Boolean(problem.constraints);
 
   const [testCases, setTestCases] = useState<{ input: string; expectedOutput: string; name: string }[]>(() => {
-    if (isLeetCodeType) {
-      const initial = (samples || []).map((s, idx) => ({
-        input: s.input,
-        expectedOutput: (s as any).output || s.expected_output || '',
-        name: s.sample_name || `Case ${idx + 1}`
-      }));
-      if (initial.length === 0) {
-        initial.push({ input: '', expectedOutput: '', name: 'Case 1' });
+    let initial = (samples || []).map((s, idx) => ({
+      input: s.input,
+      expectedOutput: (s as any).output || s.expected_output || '',
+      name: s.sample_name || `Case ${idx + 1}`
+    }));
+
+    // Automatically parse and include the last constraint boundary testcase as requested
+    const constraintCase = extractConstraintTestCase(problem.constraints, problem.metadata, samples || []);
+    if (constraintCase) {
+      const alreadyHas = initial.some(c => c.name.toLowerCase().includes('constraint'));
+      if (!alreadyHas) {
+        initial.push(constraintCase);
       }
-      return initial;
     }
-    return [];
+
+    if (initial.length === 0) {
+      initial.push({ input: '', expectedOutput: '', name: 'Case 1' });
+    }
+    return initial;
   });
   const [activeTestCaseIdx, setActiveTestCaseIdx] = useState(0);
   const [batchResult, setBatchResult] = useState<any | null>(null);
@@ -1129,6 +1168,28 @@ export default function CodeEditor({
                 </option>
               ))}
             </select>
+
+            {/* Live Background Smart Agent Analyzer Indicator */}
+            <div 
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontSize: '11px',
+                color: 'var(--neon-cyan)',
+                background: 'rgba(6, 182, 212, 0.08)',
+                border: '1px solid rgba(6, 182, 212, 0.25)',
+                borderRadius: '6px',
+                padding: '3px 8px',
+                cursor: 'default'
+              }}
+              title="Smart Agent actively evaluates algorithmic complexity and code efficiency in the background"
+            >
+              <Brain size={12} className={isAnalyzing ? 'animate-pulse' : ''} style={{ color: isAnalyzing ? '#f59e0b' : 'var(--neon-cyan)' }} />
+              <span style={{ fontWeight: 650 }}>
+                {isAnalyzing ? 'Smart Agent: Analyzing…' : `Agent: ${liveAnalysis.analyzedTime} • ${liveAnalysis.analyzedSpace} • ${liveAnalysis.overallRating}/10`}
+              </span>
+            </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1698,10 +1759,11 @@ export default function CodeEditor({
                     edgeCases={problem.metadata?.edge_cases}
                     passedTests={submissionResult.passed_tests || 0}
                     totalTests={submissionResult.total_tests || 5}
-                    xpAwarded={submissionResult.xp_awarded || 25}
+                    xpAwarded={submissionResult.xp_awarded || defaultProblemXp}
                     solveTimeSeconds={lastSolveTime}
                     code={code}
                     metadata={problem.metadata}
+                    problemTitle={problem.title}
                   />
                 </div>
               ) : null
@@ -1815,10 +1877,11 @@ export default function CodeEditor({
                       edgeCases={problem.metadata?.edge_cases}
                       passedTests={submissionResult.passed_tests || 0}
                       totalTests={submissionResult.total_tests || 5}
-                      xpAwarded={submissionResult.xp_awarded || 25}
+                      xpAwarded={submissionResult.xp_awarded || defaultProblemXp}
                       solveTimeSeconds={lastSolveTime}
                       code={code}
                       metadata={problem.metadata}
+                      problemTitle={problem.title}
                     />
                   )}
 
@@ -1970,11 +2033,15 @@ export default function CodeEditor({
                   style={{ fontSize: '11px', padding: '2px 10px', height: '26px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)', cursor: 'pointer', borderRadius: '4px', fontWeight: 'bold' }}
                   onClick={() => {
                     if (confirm('Reset all test cases to default examples?')) {
-                      const reset = (samples || []).map((s, idx) => ({
+                      let reset = (samples || []).map((s, idx) => ({
                         input: s.input,
                         expectedOutput: (s as any).output || s.expected_output || '',
                         name: s.sample_name || `Case ${idx + 1}`
                       }));
+                      const constraintCase = extractConstraintTestCase(problem.constraints, problem.metadata, samples || []);
+                      if (constraintCase && !reset.some(c => c.name.toLowerCase().includes('constraint'))) {
+                        reset.push(constraintCase);
+                      }
                       setTestCases(reset.length > 0 ? reset : [{ input: '', expectedOutput: '', name: 'Case 1' }]);
                       setActiveTestCaseIdx(0);
                     }
@@ -2502,8 +2569,8 @@ export default function CodeEditor({
         </div>
       )}
 
-      {/* Submission Success Celebration & Real Code Analysis Popup */}
-      {showSuccessModal && (
+      {/* Submission Success Celebration & Real Code Analysis Popup mounted directly to body */}
+      {showSuccessModal && typeof document !== 'undefined' && createPortal(
         <div 
           style={{
             position: 'fixed',
@@ -2511,18 +2578,23 @@ export default function CodeEditor({
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'rgba(3, 7, 18, 0.88)',
-            backdropFilter: 'blur(8px)',
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(3, 7, 18, 0.90)',
+            backdropFilter: 'blur(10px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 99999,
+            zIndex: 2147483647,
             padding: '20px',
-            animation: 'fadeIn 0.2s ease-out'
+            animation: 'fadeIn 0.2s ease-out',
+            boxSizing: 'border-box',
+            overflow: 'hidden'
           }}
           onClick={() => setShowSuccessModal(false)}
         >
           <div 
+            className="code-celebration-modal-card no-scrollbar"
             style={{
               background: 'linear-gradient(180deg, #0f172a 0%, #090d16 100%)',
               border: '1px solid rgba(6, 182, 212, 0.45)',
@@ -2531,7 +2603,9 @@ export default function CodeEditor({
               width: '100%',
               maxHeight: '92vh',
               overflowY: 'auto',
-              boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.9), 0 0 35px rgba(6, 182, 212, 0.25)',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+              boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.95), 0 0 35px rgba(6, 182, 212, 0.3)',
               padding: '24px',
               position: 'relative',
               display: 'flex',
@@ -2592,7 +2666,7 @@ export default function CodeEditor({
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(90deg, rgba(139, 92, 246, 0.25), rgba(6, 182, 212, 0.25))', border: '1px solid rgba(139, 92, 246, 0.5)', borderRadius: '9999px', padding: '4px 14px', marginTop: '2px' }}>
                 <Zap size={14} style={{ color: '#c084fc', fill: '#c084fc' }} />
                 <span style={{ fontSize: '13px', fontWeight: 800, color: '#e0e7ff' }}>
-                  +{submissionResult?.xp_awarded || 25} XP Credited!
+                  +{submissionResult?.xp_awarded || defaultProblemXp} XP Credited!
                 </span>
               </div>
               
@@ -2618,10 +2692,11 @@ export default function CodeEditor({
               edgeCases={problem.metadata?.edge_cases}
               passedTests={submissionResult?.passed_tests || 5}
               totalTests={submissionResult?.total_tests || 5}
-              xpAwarded={submissionResult?.xp_awarded || 25}
+              xpAwarded={submissionResult?.xp_awarded || defaultProblemXp}
               solveTimeSeconds={lastSolveTime}
               code={code}
               metadata={problem.metadata}
+              problemTitle={problem.title}
             />
 
             {/* Bottom Actions */}
@@ -2676,7 +2751,8 @@ export default function CodeEditor({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </section>
   );
