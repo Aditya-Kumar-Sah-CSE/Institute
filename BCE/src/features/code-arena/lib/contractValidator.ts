@@ -299,6 +299,21 @@ export function validateContract(
   captured: ExecutionCapturedState,
   expectedRaw: string
 ): ValidationResult {
+  // If expected output is empty or not specified (e.g. optional testcase), treat output as valid
+  if (!expectedRaw || !expectedRaw.trim()) {
+    const actualFormatted = captured?.returnValue !== undefined 
+      ? formatVal(captured.returnValue) 
+      : Object.values(captured?.afterState || {})[0] !== undefined 
+      ? formatVal(Object.values(captured.afterState)[0])
+      : '';
+    return {
+      passed: true,
+      actualFormatted,
+      expectedFormatted: '',
+      mismatchInfo: undefined,
+    };
+  }
+
   const contract = resolveContract(signature, expectedRaw);
   const parsedExp = parseExpectedOutput(expectedRaw);
 

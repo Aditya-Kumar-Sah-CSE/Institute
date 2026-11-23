@@ -135,6 +135,21 @@ async function runSingleTestCase(
 
     // 4. Universal Output Contract Validation
     const capturedState = parseHarnessCapturedState(execRes.stdout);
+
+    // If expected output is omitted/empty (e.g. custom testcase or raw input), treat successful execution as PASSED
+    if (!expected || !expected.trim()) {
+      const actualVal = capturedState?.returnValue !== undefined
+        ? (typeof capturedState.returnValue === 'object' ? JSON.stringify(capturedState.returnValue) : String(capturedState.returnValue))
+        : (execRes.stdout?.trim() || '');
+      return {
+        status: 'PASSED',
+        input,
+        expectedOutput: '',
+        actualOutput: actualVal,
+        passed: true,
+      };
+    }
+
     const validation = validateContract(signature, capturedState, expected);
 
     if (validation.passed) {

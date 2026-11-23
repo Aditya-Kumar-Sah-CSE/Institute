@@ -1779,17 +1779,24 @@ export default function CodeEditor({
                                     {activeRes.actualOutput || (activeRes.status === 'TIME_LIMIT_EXCEEDED' ? 'Time Limit Exceeded' : 'N/A')}
                                   </pre>
                                 </div>
-                                {activeRes.expectedOutput && (
+                                {activeRes.expectedOutput ? (
                                   <div>
                                     <div style={{ fontSize: '9px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>Expected Output</div>
                                     <pre style={{ margin: '2px 0 0 0', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', borderRadius: '4px', padding: '6px', fontSize: '11px', fontFamily: 'monospace', color: 'var(--text-main)', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
                                       {activeRes.expectedOutput}
                                     </pre>
                                   </div>
+                                ) : (
+                                  <div>
+                                    <div style={{ fontSize: '9px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>Expected Output</div>
+                                    <div style={{ margin: '2px 0 0 0', color: 'var(--text-muted)', fontSize: '11px', fontStyle: 'italic', padding: '4px 0' }}>
+                                      (Optional / Not specified)
+                                    </div>
+                                  </div>
                                 )}
                               </div>
 
-                              {!isCasePassed && activeRes.mismatchInfo && (
+                              {!isCasePassed && activeRes.mismatchInfo && Boolean(activeRes.expectedOutput && activeRes.expectedOutput.trim()) && (
                                 <div style={{ color: '#f87171', fontSize: '11px', marginTop: '2px' }}>
                                   <div style={{ fontWeight: 700 }}>✗ Mismatch Details:</div>
                                   <pre style={{ margin: '2px 0 0 0', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '4px', padding: '6px', fontFamily: 'monospace' }}>
