@@ -89,6 +89,7 @@ interface CodeAnalysisProps {
   code?: string;
   metadata?: any;
   problemTitle?: string;
+  problemId?: string;
 }
 
 export { analyzeCodeWithSmartAgent as analyzeCodeComplexity };
@@ -108,17 +109,58 @@ function CodeAnalysisRatingSection({
   code = '',
   metadata,
   problemTitle,
+  problemId,
 }: CodeAnalysisProps) {
-  const complexity = analyzeCodeWithSmartAgent(
-    code,
-    language,
-    metadata,
-    problemTitle,
-    passedTests,
-    totalTests,
-    runtimeMs,
-    memoryMb
+  // Initial instant heuristic so modal/card opens with zero lag
+  const [complexity, setComplexity] = useState<SmartAgentAnalysis>(() =>
+    analyzeCodeWithSmartAgent(
+      code,
+      language,
+      metadata,
+      problemTitle,
+      passedTests,
+      totalTests,
+      runtimeMs,
+      memoryMb
+    )
   );
+  const [isAiLoading, setIsAiLoading] = useState<boolean>(true);
+  const [isRealAi, setIsRealAi] = useState<boolean>(false);
+
+  // Live real AI code evaluation request
+  useEffect(() => {
+    let cancelled = false;
+    setIsAiLoading(true);
+
+    fetch('/api/coding/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        problemId,
+        problemTitle,
+        language,
+        code,
+        runtimeMs,
+        memoryMb,
+        passedTests,
+        totalTests,
+        metadata
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (!cancelled && data?.analysis) {
+          setComplexity(data.analysis);
+          setIsRealAi(data.source === 'real_ai');
+          setIsAiLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setIsAiLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [code, language, problemId, problemTitle, runtimeMs, memoryMb, passedTests, totalTests]);
 
   const overallRating = complexity.overallRating;
   const ratingLabel = complexity.ratingLabel;
@@ -203,8 +245,19 @@ function CodeAnalysisRatingSection({
         {/* Rating Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: '10px' }}>
           <div>
-            <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.5px' }}>
-              Solution Quality & Efficiency Rating
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.5px' }}>
+                Solution Quality & Efficiency Rating
+              </div>
+              {isRealAi ? (
+                <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 7px', borderRadius: '4px', background: 'rgba(139, 92, 246, 0.22)', color: '#c084fc', border: '1px solid rgba(139, 92, 246, 0.45)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                  ✨ Real AI Analysis
+                </span>
+              ) : isAiLoading ? (
+                <span style={{ fontSize: '9px', color: 'var(--neon-cyan)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                  🤖 Analyzing with AI...
+                </span>
+              ) : null}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
               <span style={{ fontSize: '22px', fontWeight: 900, color: overallRating >= 8.5 ? '#34d399' : '#38bdf8', letterSpacing: '-0.5px' }}>
@@ -288,7 +341,7 @@ function CodeAnalysisRatingSection({
             gap: '6px'
           }}>
             <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--neon-cyan)', display: 'flex', alignItems: 'center', gap: '6px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-              <Brain size={13} /> Key Algorithmic Logic
+              <Brain size={13} /> Key Algorithmic Logic {isRealAi && <span style={{ fontSize: '9px', color: '#38bdf8', textTransform: 'none', fontWeight: 600 }}>• Code Specific</span>}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '11px', color: '#e2e8f0', lineHeight: 1.4 }}>
               {complexity.keyLogic.map((item, idx) => (
@@ -313,7 +366,7 @@ function CodeAnalysisRatingSection({
             gap: '4px'
           }}>
             <div style={{ fontSize: '11px', fontWeight: 800, color: '#c084fc', display: 'flex', alignItems: 'center', gap: '6px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-              <Zap size={13} style={{ fill: '#c084fc' }} /> Optimization Advice (&le; 100 words)
+              <Zap size={13} style={{ fill: '#c084fc' }} /> Optimization Advice (&le; 100 words) {isRealAi && <span style={{ fontSize: '9px', color: '#34d399', textTransform: 'none', fontWeight: 600 }}>• Solution Specific</span>}
             </div>
             <p style={{ margin: 0, fontSize: '11px', color: '#cbd5e1', lineHeight: 1.45 }}>
               {complexity.optimizationTip}
@@ -1811,6 +1864,7 @@ export default function CodeEditor({
                     code={code}
                     metadata={problem.metadata}
                     problemTitle={problem.title}
+                    problemId={problem.id}
                   />
                 </div>
               ) : null
@@ -1929,6 +1983,7 @@ export default function CodeEditor({
                       code={code}
                       metadata={problem.metadata}
                       problemTitle={problem.title}
+                      problemId={problem.id}
                     />
                   )}
 
@@ -2784,6 +2839,7 @@ export default function CodeEditor({
               code={code}
               metadata={problem.metadata}
               problemTitle={problem.title}
+              problemId={problem.id}
             />
 
             {/* Bottom Actions */}
