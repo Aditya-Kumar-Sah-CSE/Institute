@@ -80,6 +80,7 @@ export interface ProblemData {
   supported_languages?: CodeLanguage[];
   text_solution?: string | null;
   youtube_url?: string | null;
+  constraintTestCase?: { input: string; expectedOutput: string; name: string } | null;
   metadata?: {
     extreme_test_case?: string;
     edge_cases?: string;

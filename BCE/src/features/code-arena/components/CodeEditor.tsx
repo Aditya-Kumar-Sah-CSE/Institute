@@ -731,12 +731,30 @@ export default function CodeEditor({
       name: s.sample_name || `Case ${idx + 1}`
     }));
 
-    // Automatically parse and include the last constraint boundary testcase as requested
-    const constraintCase = extractConstraintTestCase(problem.constraints, problem.metadata, samples || []);
-    if (constraintCase) {
+    // 1. Authoritative server-provided constraintTestCase with fully fed expected output
+    const serverConstraint = (problem as any)?.constraintTestCase;
+    if (serverConstraint && serverConstraint.input) {
       const alreadyHas = initial.some(c => c.name.toLowerCase().includes('constraint'));
       if (!alreadyHas) {
-        initial.push(constraintCase);
+        initial.push({
+          input: serverConstraint.input,
+          expectedOutput: serverConstraint.expectedOutput || '',
+          name: serverConstraint.name || 'Constraint (Boundary)'
+        });
+      }
+    } else {
+      // 2. Client-side fallback: extract and feed constraint boundary testcase
+      const constraintCase = extractConstraintTestCase(
+        problem.constraints,
+        problem.metadata,
+        samples || [],
+        (problem as any)?.testCases || []
+      );
+      if (constraintCase) {
+        const alreadyHas = initial.some(c => c.name.toLowerCase().includes('constraint'));
+        if (!alreadyHas) {
+          initial.push(constraintCase);
+        }
       }
     }
 
@@ -749,6 +767,35 @@ export default function CodeEditor({
   const [batchResult, setBatchResult] = useState<any | null>(null);
   const [activeResultCaseIdx, setActiveResultCaseIdx] = useState(0);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Auto-feed expected output for any testcase having input but missing expectedOutput
+  useEffect(() => {
+    const activeCase = testCases[activeTestCaseIdx];
+    if (activeCase && activeCase.input.trim() && !activeCase.expectedOutput && problemId) {
+      const controller = new AbortController();
+      fetch('/api/coding/testcases/expected', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ problemId, input: activeCase.input }),
+        signal: controller.signal,
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data?.expectedOutput) {
+            setTestCases(prev => {
+              if (prev[activeTestCaseIdx] && !prev[activeTestCaseIdx].expectedOutput) {
+                const next = [...prev];
+                next[activeTestCaseIdx].expectedOutput = data.expectedOutput;
+                return next;
+              }
+              return prev;
+            });
+          }
+        })
+        .catch(() => {});
+      return () => controller.abort();
+    }
+  }, [activeTestCaseIdx, testCases, problemId]);
 
   // Vertical Resizable Splitter State (Terminal vs Result Columns in Parallel Screen)
   const [editorWidthPct, setEditorWidthPct] = useState<number>(50);
@@ -2038,9 +2085,23 @@ export default function CodeEditor({
                         expectedOutput: (s as any).output || s.expected_output || '',
                         name: s.sample_name || `Case ${idx + 1}`
                       }));
-                      const constraintCase = extractConstraintTestCase(problem.constraints, problem.metadata, samples || []);
-                      if (constraintCase && !reset.some(c => c.name.toLowerCase().includes('constraint'))) {
-                        reset.push(constraintCase);
+                      const serverConstraint = (problem as any)?.constraintTestCase;
+                      if (serverConstraint && serverConstraint.input) {
+                        reset.push({
+                          input: serverConstraint.input,
+                          expectedOutput: serverConstraint.expectedOutput || '',
+                          name: serverConstraint.name || 'Constraint (Boundary)'
+                        });
+                      } else {
+                        const constraintCase = extractConstraintTestCase(
+                          problem.constraints,
+                          problem.metadata,
+                          samples || [],
+                          (problem as any)?.testCases || []
+                        );
+                        if (constraintCase && !reset.some(c => c.name.toLowerCase().includes('constraint'))) {
+                          reset.push(constraintCase);
+                        }
                       }
                       setTestCases(reset.length > 0 ? reset : [{ input: '', expectedOutput: '', name: 'Case 1' }]);
                       setActiveTestCaseIdx(0);
@@ -2172,19 +2233,45 @@ export default function CodeEditor({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minHeight: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '11px', fontWeight: 700, color: '#a78bfa', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                      Expected Output (Optional)
+                      Expected Output {testCases[activeTestCaseIdx].expectedOutput ? '(Fed ✓)' : '(Optional)'}
                     </span>
-                    <button
-                      type="button"
-                      style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '10px', cursor: 'pointer', padding: '0 4px' }}
-                      onClick={() => {
-                        const updated = [...testCases];
-                        updated[activeTestCaseIdx].expectedOutput = '';
-                        setTestCases(updated);
-                      }}
-                    >
-                      Clear
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <button
+                        type="button"
+                        title="Auto-feed expected output from judge or reference solution"
+                        style={{ background: 'none', border: 'none', color: '#06b6d4', fontSize: '10px', cursor: 'pointer', padding: '0 4px', fontWeight: 700 }}
+                        onClick={async () => {
+                          const curCase = testCases[activeTestCaseIdx];
+                          if (!curCase?.input || !problemId) return;
+                          try {
+                            const res = await fetch('/api/coding/testcases/expected', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ problemId, input: curCase.input })
+                            });
+                            const data = await res.json();
+                            if (data?.expectedOutput) {
+                              const updated = [...testCases];
+                              updated[activeTestCaseIdx].expectedOutput = data.expectedOutput;
+                              setTestCases(updated);
+                            }
+                          } catch {}
+                        }}
+                      >
+                        ⚡ Auto-Feed
+                      </button>
+                      <button
+                        type="button"
+                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '10px', cursor: 'pointer', padding: '0 4px' }}
+                        onClick={() => {
+                          const updated = [...testCases];
+                          updated[activeTestCaseIdx].expectedOutput = '';
+                          setTestCases(updated);
+                        }}
+                      >
+                        Clear
+                      </button>
+                    </div>
                   </div>
                   <textarea
                     className="oj-input-textarea"

@@ -188,24 +188,41 @@ export function analyzeCodeWithSmartAgent(
 }
 
 /**
- * Extracts and formats a boundary testcase matching the problem's last constraint.
+ * Extracts and formats a boundary testcase matching the problem's last constraint,
+ * ensuring expectedOutput is populated whenever available.
  */
 export function extractConstraintTestCase(
   constraintsStr?: string | null,
   metadata?: any,
-  samples: any[] = []
+  samples: any[] = [],
+  knownTestCases: any[] = []
 ): { input: string; expectedOutput: string; name: string } | null {
-  // 1. Check metadata extreme_test_case first
+  // Priority 1: Check knownTestCases (e.g. from DB) for verified boundary testcase with expected_output
+  const hidden = (knownTestCases || []).filter(c => c.is_hidden);
+  if (hidden.length > 0) {
+    const boundary = hidden[hidden.length - 1];
+    return {
+      input: boundary.input,
+      expectedOutput: boundary.expected_output || '',
+      name: `Constraint (${boundary.sample_name || 'Boundary'})`
+    };
+  }
+
+  // Priority 2: Check metadata extreme_test_case
   if (metadata?.extreme_test_case && typeof metadata.extreme_test_case === 'string') {
     const extremeStr = metadata.extreme_test_case.trim();
-    const matchN = extremeStr.match(/(?:N|n|k|target|x|val)\s*=\s*([0-9\^eE+]+)/i);
+    const expMatch = extremeStr.match(/(?:expected(?:\s*output|\s*digit\s*sum|\s*sum|\s*value)?\s*(?:=|:|\bis\b)\s*|output:\s*)([^\.,;\r\n]+)/i);
+    const expectedFromMeta = expMatch ? expMatch[1].trim() : '';
+
+    const matchN = extremeStr.match(/(?:N|n|k|target|x|val)\s*=\s*([0-9\^eE+,]+)/i);
     if (matchN) {
-      const parsedVal = parseExponentialOrPower(matchN[1]);
+      const cleanVal = matchN[1].replace(/,/g, '');
+      const parsedVal = parseExponentialOrPower(cleanVal);
       if (parsedVal) {
         return {
           input: formatConstraintInput(parsedVal, samples),
-          expectedOutput: '',
-          name: `Constraint (${matchN[0]})`
+          expectedOutput: expectedFromMeta,
+          name: `Constraint (${matchN[0].replace(/,/g, '')})`
         };
       }
     }
@@ -307,3 +324,4 @@ function formatConstraintInput(val: string, samples: any[] = []): string {
 
   return val;
 }
+

@@ -43,6 +43,24 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
         explanation: tc.sample_name || undefined,
       }));
 
+    const hiddenCases = allTestCases.filter((tc: any) => tc.is_hidden);
+    let constraintTestCase = null;
+    if (hiddenCases.length > 0) {
+      const boundaryCase = hiddenCases[hiddenCases.length - 1];
+      constraintTestCase = {
+        input: boundaryCase.input,
+        expectedOutput: boundaryCase.expected_output,
+        name: `Constraint (${boundaryCase.sample_name || 'Boundary'})`
+      };
+    } else if (examples.length > 2) {
+      const lastEx = examples[examples.length - 1];
+      constraintTestCase = {
+        input: lastEx.input,
+        expectedOutput: lastEx.output,
+        name: `Constraint (${lastEx.explanation || 'Boundary'})`
+      };
+    }
+
     const normalizedData = {
       ...problem,
       statement: problem.description,
@@ -54,6 +72,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
       externalProblemId: problem.external_problem_id,
       examples,
       testCases: safeTestCases,
+      constraintTestCase,
     };
 
     return NextResponse.json({ data: normalizedData });

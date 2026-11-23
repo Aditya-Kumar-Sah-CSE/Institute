@@ -166,12 +166,31 @@ export default async function CodeProblemPage({ params, searchParams }: { params
     }
   }
 
-  const { data: samples } = await supabase
+  const { data: allTestCases } = await supabase
     .from('coding_problem_test_cases')
-    .select('input,expected_output,sample_name,order_index')
+    .select('input,expected_output,sample_name,order_index,is_hidden')
     .eq('problem_id', id)
-    .eq('is_hidden', false)
     .order('order_index');
+
+  const samples = (allTestCases || []).filter(c => !c.is_hidden);
+  const hiddenCases = (allTestCases || []).filter(c => c.is_hidden);
+
+  let constraintTestCase: { input: string; expectedOutput: string; name: string } | null = null;
+  if (hiddenCases.length > 0) {
+    const boundaryCase = hiddenCases[hiddenCases.length - 1];
+    constraintTestCase = {
+      input: boundaryCase.input,
+      expectedOutput: boundaryCase.expected_output,
+      name: `Constraint (${boundaryCase.sample_name || 'Boundary'})`
+    };
+  } else if (samples.length > 2) {
+    const lastSample = samples[samples.length - 1];
+    constraintTestCase = {
+      input: lastSample.input,
+      expectedOutput: lastSample.expected_output,
+      name: `Constraint (${lastSample.sample_name || 'Boundary'})`
+    };
+  }
 
   const { data: submissions } = await supabase
     .from('coding_submissions')
@@ -214,6 +233,7 @@ export default async function CodeProblemPage({ params, searchParams }: { params
   let problemData = {
     ...problem,
     samples: samples || [],
+    constraintTestCase,
     hasSolved,
     hasAttempted,
     starterCode: pAny.starter_code || null,
