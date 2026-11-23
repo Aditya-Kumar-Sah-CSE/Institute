@@ -229,22 +229,36 @@ export const judgeService: JudgeService = {
 
     const compiler = WANDBOX_COMPILERS[language] || 'gcc-head';
 
-    // Execute ALL test cases concurrently in parallel for maximum execution speed
-    const allResults = await Promise.all(
-      testCases.map((tc) =>
-        runSingleTestCase(compiler, sourceCode, tc.input, tc.expectedOutput, language, signature)
-      )
+    // 1. Run the first test case first to verify syntax & compilation.
+    // If compilation fails, bail out immediately to save redundant remote compiler invocations!
+    const firstResult = await runSingleTestCase(
+      compiler,
+      sourceCode,
+      testCases[0].input,
+      testCases[0].expectedOutput,
+      language,
+      signature
     );
 
-    const firstCompileError = allResults.find((r) => r.status === 'COMPILATION_ERROR');
-    if (firstCompileError) {
+    if (firstResult.status === 'COMPILATION_ERROR') {
       return {
         status: 'COMPILATION_ERROR',
         passedTests: 0,
         totalTests: testCases.length,
-        compilerOutput: firstCompileError.stderr,
-        runtimeOutput: JSON.stringify(allResults),
+        compilerOutput: firstResult.stderr,
+        runtimeOutput: JSON.stringify([firstResult]),
       };
+    }
+
+    // 2. If Test Case 1 compiled successfully, execute remaining test cases concurrently in parallel
+    let allResults: SingleTestResult[] = [firstResult];
+    if (testCases.length > 1) {
+      const restResults = await Promise.all(
+        testCases.slice(1).map((tc) =>
+          runSingleTestCase(compiler, sourceCode, tc.input, tc.expectedOutput, language, signature)
+        )
+      );
+      allResults = [firstResult, ...restResults];
     }
     const passedCount = allResults.filter(r => r.status === 'PASSED').length;
 

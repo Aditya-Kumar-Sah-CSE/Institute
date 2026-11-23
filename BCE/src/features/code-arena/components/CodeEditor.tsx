@@ -402,9 +402,13 @@ function CodeAnalysisRatingSection({
 export default function CodeEditor({
   problem,
   samples = [],
+  mobileTab,
+  onMobileTabChange,
 }: {
   problem: ProblemData;
   samples?: { input: string; expected_output: string; sample_name?: string | null }[];
+  mobileTab?: 'editor' | 'results';
+  onMobileTabChange?: (tab: 'editor' | 'results') => void;
 }) {
   const problemId = problem.id;
   const supportedLanguages = (problem.supported_languages || ['cpp17', 'c', 'java', 'python', 'javascript']) as CodeLanguage[];
@@ -438,7 +442,16 @@ export default function CodeEditor({
   const [customInput, setCustomInput] = useState(samples[0]?.input || '');
   const [isFullscreen, setIsFullscreen] = useState(false); // Do not open fullscreen by default
   const [activeTab, setActiveTab] = useState<ConsoleTab>('output');
-  const [activeRightTab, setActiveRightTab] = useState<'split' | 'editor' | 'results'>('split');
+  const [activeRightTab, setActiveRightTab] = useState<'split' | 'editor' | 'results'>(mobileTab || 'split');
+
+  useEffect(() => {
+    if (mobileTab) {
+      setActiveRightTab(mobileTab);
+      if (mobileTab === 'editor') {
+        setTimeout(() => editorRef.current?.layout(), 50);
+      }
+    }
+  }, [mobileTab]);
 
   const [running, setRunning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -834,7 +847,11 @@ export default function CodeEditor({
     setExecResult(null);
     setBatchResult(null);
     setSubmissionResult(null);
-    if (activeRightTab === 'editor') setActiveRightTab('split');
+    if (onMobileTabChange) {
+      onMobileTabChange('results');
+    } else if (activeRightTab === 'editor') {
+      setActiveRightTab('split');
+    }
 
     try {
       const body: any = {
@@ -920,7 +937,11 @@ export default function CodeEditor({
     setSubmitting(true);
     setSubmissionResult(null);
     setExecResult(null);
-    if (activeRightTab === 'editor') setActiveRightTab('split');
+    if (onMobileTabChange) {
+      onMobileTabChange('results');
+    } else if (activeRightTab === 'editor') {
+      setActiveRightTab('split');
+    }
 
     try {
       const res = await fetch('/api/coding/submissions', {
@@ -1027,39 +1048,41 @@ export default function CodeEditor({
 
   return (
     <section ref={workspaceSectionRef} className={`code-workspace-panel ${activeRightTab === 'editor' ? 'show-editor' : activeRightTab === 'results' ? 'show-results' : 'show-split'}`} aria-label="Coding Workspace">
-      {/* Right panel view toggle */}
-      <div className="right-panel-view-toggle">
-        <button 
-          type="button"
-          className={`view-toggle-btn ${activeRightTab === 'split' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveRightTab('split');
-            setTimeout(() => editorRef.current?.layout(), 50);
-          }}
-          title="Parallel Screen (Terminal & Result with Vertical Slider)"
-        >
-          <SlidersHorizontal size={12} /> Split
-        </button>
-        <button 
-          type="button"
-          className={`view-toggle-btn ${activeRightTab === 'editor' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveRightTab('editor');
-            setTimeout(() => editorRef.current?.layout(), 50);
-          }}
-          title="Maximize Terminal (Code Editor)"
-        >
-          <Terminal size={12} /> Terminal
-        </button>
-        <button 
-          type="button"
-          className={`view-toggle-btn ${activeRightTab === 'results' ? 'active' : ''}`}
-          onClick={() => setActiveRightTab('results')}
-          title="Maximize Result (Console & Testcases)"
-        >
-          <Play size={12} /> Result
-        </button>
-      </div>
+      {/* Right panel view toggle (Desktop only) */}
+      {!mobileTab && (
+        <div className="right-panel-view-toggle">
+          <button 
+            type="button"
+            className={`view-toggle-btn ${activeRightTab === 'split' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveRightTab('split');
+              setTimeout(() => editorRef.current?.layout(), 50);
+            }}
+            title="Parallel Screen (Terminal & Result with Vertical Slider)"
+          >
+            <SlidersHorizontal size={12} /> Split
+          </button>
+          <button 
+            type="button"
+            className={`view-toggle-btn ${activeRightTab === 'editor' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveRightTab('editor');
+              setTimeout(() => editorRef.current?.layout(), 50);
+            }}
+            title="Maximize Terminal (Code Editor)"
+          >
+            <Terminal size={12} /> Terminal
+          </button>
+          <button 
+            type="button"
+            className={`view-toggle-btn ${activeRightTab === 'results' ? 'active' : ''}`}
+            onClick={() => setActiveRightTab('results')}
+            title="Maximize Result (Console & Testcases)"
+          >
+            <Play size={12} /> Result
+          </button>
+        </div>
+      )}
       {/* Parallel Screen Split Body Container */}
       <div 
         ref={workspaceBodyRef} 
@@ -1069,8 +1092,8 @@ export default function CodeEditor({
         <div 
           className={`code-monaco-wrapper ${isFullscreen ? 'code-editor-fullscreen' : ''}`}
           style={{
-            flex: isFullscreen ? '1 1 100%' : activeRightTab === 'editor' ? '1 1 100%' : activeRightTab === 'results' ? '0 0 0' : `0 0 ${editorWidthPct}%`,
-            width: isFullscreen ? '100%' : activeRightTab === 'editor' ? '100%' : activeRightTab === 'results' ? '0' : `${editorWidthPct}%`,
+            flex: isFullscreen || mobileTab ? '1 1 100%' : activeRightTab === 'editor' ? '1 1 100%' : activeRightTab === 'results' ? '0 0 0' : `0 0 ${editorWidthPct}%`,
+            width: isFullscreen || mobileTab ? '100%' : activeRightTab === 'editor' ? '100%' : activeRightTab === 'results' ? '0' : `${editorWidthPct}%`,
             height: '100%',
             minWidth: 0,
             display: (!isFullscreen && activeRightTab === 'results') ? 'none' : 'flex',
@@ -1356,7 +1379,7 @@ export default function CodeEditor({
     </div>
 
       {/* Vertical Resizer Drag Slider between Parallel Terminal & Result */}
-        {!isFullscreen && activeRightTab === 'split' && (
+        {!isFullscreen && !mobileTab && activeRightTab === 'split' && (
           <div
             className={`vertical-resizer-slider ${isResizingVertical ? 'active' : ''}`}
             onMouseDown={handleVerticalMouseDown}
@@ -1371,8 +1394,8 @@ export default function CodeEditor({
           ref={consoleParentContainerRef}
           className="console-testcases-container"
           style={{
-            flex: isFullscreen ? '0 0 0' : activeRightTab === 'results' ? '1 1 100%' : activeRightTab === 'editor' ? '0 0 0' : `1 1 calc(${100 - editorWidthPct}% - 8px)`,
-            width: isFullscreen ? '0' : activeRightTab === 'results' ? '100%' : activeRightTab === 'editor' ? '0' : `calc(${100 - editorWidthPct}% - 8px)`,
+            flex: isFullscreen ? '0 0 0' : (activeRightTab === 'results' || mobileTab) ? '1 1 100%' : activeRightTab === 'editor' ? '0 0 0' : `1 1 calc(${100 - editorWidthPct}% - 8px)`,
+            width: isFullscreen ? '0' : (activeRightTab === 'results' || mobileTab) ? '100%' : activeRightTab === 'editor' ? '0' : `calc(${100 - editorWidthPct}% - 8px)`,
             height: '100%',
             minWidth: 0,
             display: (isFullscreen || activeRightTab === 'editor') ? 'none' : 'flex',

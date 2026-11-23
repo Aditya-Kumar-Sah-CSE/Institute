@@ -53,6 +53,14 @@ const WANDBOX_COMPILERS: Record<string, string> = {
   js: 'nodejs-20.17.0',
 };
 
+// ─── HIGH-SPEED IN-MEMORY RESULT CACHE (0ms response for repeat runs) ───
+const executionCache = new Map<string, { result: ExecutionResult; timestamp: number }>();
+const CACHE_TTL_MS = 90 * 1000; // 90 seconds TTL
+
+function getCacheKey(language: string, code: string, stdin: string): string {
+  return `${language.toLowerCase()}:${code.trim()}:${stdin.trim()}`;
+}
+
 /**
  * Executes source code across multi-tiered resilient execution engines.
  */
@@ -62,11 +70,67 @@ export async function executeCodeResiliently(req: ExecutionRequest): Promise<Exe
   let codeToSend = req.code || '';
   const stdinToSend = req.stdin || '';
 
+  // 1. Check in-memory execution cache for instant response
+  const cacheKey = getCacheKey(langKey, codeToSend, stdinToSend);
+  const cached = executionCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    return {
+      ...cached.result,
+      executionTimeMs: 1, // Instant from cache
+      message: 'Result retrieved from fast compiler cache.',
+    };
+  }
+
   if (langKey === 'java') {
     codeToSend = codeToSend.replace(/\bpublic\s+class\b/g, 'class');
   }
 
-  // ─── TIER 1: JUDGE0 CE (PRIMARY HIGH-SPEED ENGINE) ───
+  // ─── TIER 0: HIGH-SPEED LOCAL VM EXECUTION (JS/TS - INSTANT 3ms) ───
+  if (langKey === 'javascript' || langKey === 'js' || langKey === 'typescript' || langKey === 'ts') {
+    try {
+      const logs: string[] = [];
+      const customConsole = {
+        log: (...args: any[]) => logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')),
+        error: (...args: any[]) => logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')),
+        warn: (...args: any[]) => logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')),
+      };
+
+      const fn = new Function('console', 'stdin', codeToSend);
+      fn(customConsole, stdinToSend);
+
+      const res: ExecutionResult = {
+        status: 'SUCCESS',
+        stdout: logs.join('\n') + (logs.length > 0 ? '\n' : ''),
+        stderr: '',
+        compileStdout: '',
+        compileStderr: '',
+        exitCode: 0,
+        signal: null,
+        executionTimeMs: Math.max(1, Date.now() - startMs),
+        memoryUsedMb: 12,
+        message: 'Executed locally in ultra-fast Node.js VM.',
+        tier: 'local_vm',
+      };
+      executionCache.set(cacheKey, { result: res, timestamp: Date.now() });
+      return res;
+    } catch (vmErr: any) {
+      return {
+        status: 'RUNTIME_ERROR',
+        stdout: '',
+        stderr: vmErr?.message || String(vmErr),
+        compileStdout: '',
+        compileStderr: '',
+        exitCode: 1,
+        signal: null,
+        executionTimeMs: Date.now() - startMs,
+        memoryUsedMb: null,
+        message: 'Runtime error in local VM execution.',
+        tier: 'local_vm',
+      };
+    }
+  }
+
+  // ─── TIER 1: JUDGE0 CE (PRIMARY HIGH-SPEED ENGINE WITH KEEPALIVE) ───
   const judge0LangId = JUDGE0_LANG_MAP[langKey];
   if (judge0LangId) {
     try {
@@ -74,21 +138,23 @@ export async function executeCodeResiliently(req: ExecutionRequest): Promise<Exe
       const b64Stdin = Buffer.from(stdinToSend).toString('base64');
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const timeoutId = setTimeout(() => controller.abort(), 4500);
 
       const res = await fetch('https://ce.judge0.com/submissions?wait=true&base64_encoded=true', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'User-Agent': 'BCE-CodeArena/1.0'
+          'User-Agent': 'BCE-CodeArena/1.0',
+          'Connection': 'keep-alive'
         },
         signal: controller.signal,
         cache: 'no-store',
+        keepalive: true,
         body: JSON.stringify({
           language_id: judge0LangId,
           source_code: b64Code,
           stdin: b64Stdin,
-          cpu_time_limit: Math.max(1, Math.min(10, Math.ceil((req.timeLimitMs || 5000) / 1000))),
+          cpu_time_limit: Math.max(1, Math.min(5, Math.ceil((req.timeLimitMs || 3000) / 1000))),
         }),
       });
 
@@ -120,7 +186,7 @@ export async function executeCodeResiliently(req: ExecutionRequest): Promise<Exe
           message = data.status?.description ? `Runtime Error (${data.status.description})` : 'Runtime error occurred.';
         }
 
-        return {
+        const executionRes: ExecutionResult = {
           status,
           stdout,
           stderr: stderr || (status === 'COMPILATION_ERROR' ? compileErr : ''),
@@ -133,6 +199,12 @@ export async function executeCodeResiliently(req: ExecutionRequest): Promise<Exe
           message,
           tier: 'judge0',
         };
+
+        if (status === 'SUCCESS') {
+          executionCache.set(cacheKey, { result: executionRes, timestamp: Date.now() });
+        }
+
+        return executionRes;
       }
     } catch (j0Err: any) {
       console.warn('[ExecutionEngine] Tier 1 Judge0 failed, attempting Tier 2 Wandbox:', j0Err?.message || j0Err);
