@@ -142,18 +142,6 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
           ← Back to Courses
         </Link>
       </div>
-
-      <div className="course-interactions-row" style={{ display: 'block' }}>
-        <div className="course-interaction-col">
-          <CoursePollsSection 
-            courseId={courseId} 
-            currentUserId={user.id} 
-            isEnrolledOrFaculty={course.created_by === user.id || isAssignedCourseFaculty || currentUserProfile?.role === 'admin' || !!(enrollment && enrollment.status === 'approved')}
-            isAssignedFaculty={isAssignedCourseFaculty}
-          />
-        </div>
-      </div>
-
       <CourseContentTabs
         curriculum={(
           <div className="lessons-section">
@@ -211,8 +199,20 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
         </div>
       )}
 
-      <div className="course-detail-card-container" style={{ marginTop: 'var(--space-2xl)' }}>
-        <CourseHeroCard courseTitle={course.title} instructorName={course.profiles?.name} initialCollapsed={false}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+        <div className="course-interactions-row" style={{ display: 'block' }}>
+          <div className="course-interaction-col">
+            <CoursePollsSection 
+              courseId={courseId} 
+              currentUserId={user.id} 
+              isEnrolledOrFaculty={course.created_by === user.id || isAssignedCourseFaculty || currentUserProfile?.role === 'admin' || !!(enrollment && enrollment.status === 'approved')}
+              isAssignedFaculty={isAssignedCourseFaculty}
+            />
+          </div>
+        </div>
+
+        <div className="course-detail-card-container">
+          <CourseHeroCard courseTitle={course.title} instructorName={course.profiles?.name} initialCollapsed={false}>
           <CourseDetailTabs
             detail={(
               <>
@@ -382,6 +382,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
             )}
           />
         </CourseHeroCard>
+      </div>
       </div>
 
     </div>

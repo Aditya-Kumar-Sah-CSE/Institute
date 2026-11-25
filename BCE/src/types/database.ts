@@ -451,6 +451,7 @@ export interface CourseMCQ {
   option_c: string;
   option_d: string;
   correct_option?: string; // e.g. 'A' or 'A,C' (stripped on server for students)
+  is_multi_choice?: boolean;
   source_type: MCQSourceType;
   display_order: number;
   is_active: boolean;

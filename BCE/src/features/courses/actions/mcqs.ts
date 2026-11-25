@@ -78,14 +78,67 @@ export async function getCourseMcqsAction(courseId: string) {
 
   // Security Rule: Strip correct_option and explanation for students before submission
   const mcqs: CourseMCQ[] = (mcqsData || []).map((mcq: any) => {
+    const isMultiChoice = String(mcq.correct_option || '').includes(',');
     if (!isStaff) {
-      const { correct_option, explanation, ...publicMcq } = mcq;
-      return publicMcq as CourseMCQ;
+      const publicMcq = { ...mcq };
+      delete publicMcq.correct_option;
+      delete publicMcq.explanation;
+      return { ...publicMcq, is_multi_choice: isMultiChoice } as CourseMCQ;
     }
-    return mcq as CourseMCQ;
+    return { ...mcq, is_multi_choice: isMultiChoice } as CourseMCQ;
   });
 
   return { mcqs, attempts, isStaff };
+}
+
+function normalizeMcqAnswers(str: string): string {
+  return (str || '')
+    .split(',')
+    .map(s => s.trim().toUpperCase())
+    .filter(Boolean)
+    .sort()
+    .join(',');
+}
+
+export async function checkCourseMcqAnswerAction(
+  courseId: string,
+  mcqId: string,
+  selectedAnswer: string
+) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Authentication required' };
+
+  const studentSelected = normalizeMcqAnswers(selectedAnswer);
+  if (!studentSelected) {
+    return { error: 'Please select an answer option first.' };
+  }
+
+  const adminSupabase = await createAdminClient();
+  const { data: mcq, error } = await adminSupabase
+    .from('course_mcqs')
+    .select('id, correct_option, explanation')
+    .eq('course_id', courseId)
+    .eq('id', mcqId)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (error || !mcq) {
+    return { error: 'Question not found.' };
+  }
+
+  const actualCorrect = normalizeMcqAnswers(mcq.correct_option || '');
+  const isCorrect = studentSelected === actualCorrect && actualCorrect.length > 0;
+
+  return {
+    success: true,
+    result: {
+      selected: studentSelected,
+      correctOption: actualCorrect,
+      isCorrect,
+      explanation: mcq.explanation || null,
+    },
+  };
 }
 
 export async function createCourseMcqAction(formData: FormData) {
@@ -270,14 +323,12 @@ export async function submitCourseMcqAttemptAction(courseId: string, userAnswers
   let maxPossibleScore = 0;
   const detailedResults: Record<string, { selected: string; correctOption: string; isCorrect: boolean; explanation?: string | null }> = {};
 
-  const normalizeAnswers = (str: string) => (str || '').split(',').map(s => s.trim().toUpperCase()).filter(Boolean).sort().join(',');
-
   for (const mcq of mcqs) {
     const questionMarks = mcq.marks || 1;
     maxPossibleScore += questionMarks;
 
-    const studentSelected = normalizeAnswers(userAnswers[mcq.id] || '');
-    const actualCorrect = normalizeAnswers(mcq.correct_option || '');
+    const studentSelected = normalizeMcqAnswers(userAnswers[mcq.id] || '');
+    const actualCorrect = normalizeMcqAnswers(mcq.correct_option || '');
     const isCorrect = studentSelected === actualCorrect && studentSelected.length > 0;
 
     if (isCorrect) {

@@ -4,9 +4,16 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import CreateMcqModal from '@/features/courses/components/CreateMcqModal';
-import { getCourseMcqsAction, deleteCourseMcqAction, submitCourseMcqAttemptAction } from '@/features/courses/actions/mcqs';
+import { getCourseMcqsAction, deleteCourseMcqAction, submitCourseMcqAttemptAction, checkCourseMcqAnswerAction } from '@/features/courses/actions/mcqs';
 import type { CourseMCQ, CourseMCQAttempt } from '@/types/database';
 import { HelpCircle, Plus, Edit, Trash2, CheckCircle, XCircle, RotateCcw, Award, History, ChevronLeft, ChevronRight, Lightbulb } from 'lucide-react';
+
+interface McqEvaluationResult {
+  selected: string;
+  correctOption: string;
+  isCorrect: boolean;
+  explanation?: string | null;
+}
 
 interface CourseMcqsSectionProps {
   courseId: string;
@@ -31,11 +38,13 @@ export default function CourseMcqsSection({
 
   // Student Attempt State: map mcqId -> array of selected option keys (e.g. ['A', 'C'])
   const [userAnswers, setUserAnswers] = useState<Record<string, string[]>>({});
+  const [instantResults, setInstantResults] = useState<Record<string, McqEvaluationResult>>({});
+  const [checkingMcqIds, setCheckingMcqIds] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionResult, setSubmissionResult] = useState<{
     score: number;
     total: number;
-    detailedResults: Record<string, { selected: string; correctOption: string; isCorrect: boolean; explanation?: string | null }>;
+    detailedResults: Record<string, McqEvaluationResult>;
   } | null>(null);
 
   const [showHistory, setShowHistory] = useState(false);
@@ -87,20 +96,63 @@ export default function CourseMcqsSection({
     loadData();
   }, [courseId]);
 
-  const handleToggleOption = (mcqId: string, optionKey: string) => {
-    if (submissionResult) return; // Prevent changing after submission until re-attempt
+  const evaluateMcqImmediately = async (mcqId: string, selectedKeys: string[]) => {
+    const joined = [...selectedKeys].sort().join(',');
+    if (!joined) return;
+    setCheckingMcqIds(prev => ({ ...prev, [mcqId]: true }));
+    try {
+      const res = await checkCourseMcqAnswerAction(courseId, mcqId, joined);
+      if (res.success && res.result) {
+        setInstantResults(prev => ({ ...prev, [mcqId]: res.result! }));
+      }
+    } catch (err) {
+      console.error('Error checking MCQ answer:', err);
+    } finally {
+      setCheckingMcqIds(prev => {
+        const copy = { ...prev };
+        delete copy[mcqId];
+        return copy;
+      });
+    }
+  };
+
+  const handleToggleOption = (mcq: CourseMCQ, optionKey: string) => {
+    if (submissionResult || instantResults[mcq.id] || checkingMcqIds[mcq.id]) return;
+    const isMulti = Boolean(mcq.is_multi_choice || mcq.correct_option?.includes(','));
+
+    if (!isMulti) {
+      const next = [optionKey];
+      setUserAnswers(prev => ({ ...prev, [mcq.id]: next }));
+      void evaluateMcqImmediately(mcq.id, next);
+      return;
+    }
+
     setUserAnswers(prev => {
-      const current = prev[mcqId] || [];
+      const current = prev[mcq.id] || [];
       const updated = current.includes(optionKey)
         ? current.filter(k => k !== optionKey)
         : [...current, optionKey].sort();
 
       if (updated.length === 0) {
         const copy = { ...prev };
-        delete copy[mcqId];
+        delete copy[mcq.id];
         return copy;
       }
-      return { ...prev, [mcqId]: updated };
+      return { ...prev, [mcq.id]: updated };
+    });
+  };
+
+  const handleResetSingleQuestion = (mcqId: string) => {
+    if (submissionResult) return;
+    setInstantResults(prev => {
+      const copy = { ...prev };
+      delete copy[mcqId];
+      return copy;
+    });
+    setUserAnswers(prev => {
+      const copy = { ...prev };
+      delete copy[mcqId];
+      return copy;
     });
   };
 
@@ -144,6 +196,7 @@ export default function CourseMcqsSection({
 
   const handleReattempt = () => {
     setUserAnswers({});
+    setInstantResults({});
     setSubmissionResult(null);
   };
 
@@ -391,17 +444,19 @@ export default function CourseMcqsSection({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
             {visibleMcqs.map((mcq) => {
               const questionNumber = mcqGlobalNumber.get(mcq.id) || 1;
-              const res = submissionResult?.detailedResults?.[mcq.id];
+              const evalRes = submissionResult?.detailedResults?.[mcq.id] || instantResults[mcq.id];
+              const isChecking = Boolean(checkingMcqIds[mcq.id]);
               const selectedKeys = userAnswers[mcq.id] || [];
               const staffCorrectList = isStaff && mcq.correct_option
                 ? mcq.correct_option.split(',').map(s => s.trim().toUpperCase())
                 : [];
-              const resultCorrectList = res?.correctOption
-                ? res.correctOption.split(',').map(s => s.trim().toUpperCase())
+              const resultCorrectList = evalRes?.correctOption
+                ? evalRes.correctOption.split(',').map(s => s.trim().toUpperCase())
                 : [];
-              const isMultiCorrect = isStaff
-                ? staffCorrectList.length > 1
-                : (res ? resultCorrectList.length > 1 : mcq.correct_option?.includes(','));
+              const isMultiCorrect = Boolean(
+                mcq.is_multi_choice ||
+                  (isStaff ? staffCorrectList.length > 1 : (evalRes ? resultCorrectList.length > 1 : mcq.correct_option?.includes(',')))
+              );
 
               return (
                 <div
@@ -486,27 +541,40 @@ export default function CourseMcqsSection({
                     ].map(opt => {
                       const isSelected = selectedKeys.includes(opt.key);
                       const isStaffCorrect = isStaff && staffCorrectList.includes(opt.key);
-                      const isResultCorrectOption = res && resultCorrectList.includes(opt.key);
-                      const isUserIncorrect = res && isSelected && !isResultCorrectOption;
+                      const isResultCorrectOption = Boolean(evalRes && resultCorrectList.includes(opt.key));
+                      const isUserIncorrect = Boolean(evalRes && isSelected && !isResultCorrectOption);
+                      const isLocked = Boolean(submissionResult || instantResults[mcq.id] || isChecking);
 
                       let borderColor = 'var(--glass-border)';
                       let bgColor = 'var(--bg-surface)';
                       let textColor = 'inherit';
+                      let badgeBg = 'transparent';
+                      let badgeBorder = 'var(--glass-border)';
+                      let badgeText = 'inherit';
 
                       if (isSelected) {
                         borderColor = 'var(--neon-cyan)';
                         bgColor = 'rgba(0, 229, 255, 0.1)';
+                        badgeBg = 'var(--neon-cyan)';
+                        badgeBorder = 'var(--neon-cyan)';
+                        badgeText = '#000';
                       }
 
-                      if (res) {
+                      if (evalRes) {
                         if (isResultCorrectOption) {
-                          borderColor = 'var(--neon-lime)';
-                          bgColor = 'rgba(57, 255, 20, 0.15)';
-                          textColor = 'var(--neon-lime)';
+                          borderColor = '#22c55e';
+                          bgColor = 'rgba(34, 197, 94, 0.16)';
+                          textColor = '#22c55e';
+                          badgeBg = '#16a34a';
+                          badgeBorder = '#22c55e';
+                          badgeText = '#ffffff';
                         } else if (isUserIncorrect) {
-                          borderColor = '#ff453a';
-                          bgColor = 'rgba(255, 69, 58, 0.15)';
-                          textColor = '#ff4d4f';
+                          borderColor = '#ef4444';
+                          bgColor = 'rgba(239, 68, 68, 0.16)';
+                          textColor = '#f87171';
+                          badgeBg = '#dc2626';
+                          badgeBorder = '#ef4444';
+                          badgeText = '#ffffff';
                         }
                       } else if (isStaff && isStaffCorrect) {
                         borderColor = 'var(--neon-gold)';
@@ -516,17 +584,17 @@ export default function CourseMcqsSection({
                       return (
                         <div
                           key={opt.key}
-                          onClick={() => !submissionResult && handleToggleOption(mcq.id, opt.key)}
+                          onClick={() => !isLocked && handleToggleOption(mcq, opt.key)}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
                             gap: '10px',
                             padding: '10px 14px',
                             borderRadius: 'var(--radius-sm)',
-                            border: `1px solid ${borderColor}`,
+                            border: `1.5px solid ${borderColor}`,
                             background: bgColor,
                             color: textColor,
-                            cursor: submissionResult ? 'default' : 'pointer',
+                            cursor: isLocked ? 'default' : 'pointer',
                             transition: 'all 0.15s ease'
                           }}
                         >
@@ -535,9 +603,9 @@ export default function CourseMcqsSection({
                               width: '24px',
                               height: '24px',
                               borderRadius: 'var(--radius-sm)',
-                              border: `2px solid ${isSelected ? 'var(--neon-cyan)' : 'var(--glass-border)'}`,
-                              background: isSelected ? 'var(--neon-cyan)' : 'transparent',
-                              color: isSelected ? '#000' : 'inherit',
+                              border: `2px solid ${badgeBorder}`,
+                              background: badgeBg,
+                              color: badgeText,
                               fontWeight: 'bold',
                               fontSize: '12px',
                               display: 'flex',
@@ -554,33 +622,100 @@ export default function CourseMcqsSection({
                           </span>
 
                           {/* Result Indicators */}
-                          {res && isResultCorrectOption && <CheckCircle size={16} style={{ color: 'var(--neon-lime)' }} />}
-                          {res && isUserIncorrect && <XCircle size={16} style={{ color: '#ff4d4f' }} />}
-                          {!res && isStaff && isStaffCorrect && <span style={{ fontSize: '10px', color: 'var(--neon-gold)', fontWeight: 'bold' }}>Correct Answer</span>}
+                          {evalRes && isResultCorrectOption && <CheckCircle size={17} style={{ color: '#22c55e', flexShrink: 0 }} />}
+                          {evalRes && isUserIncorrect && <XCircle size={17} style={{ color: '#ef4444', flexShrink: 0 }} />}
+                          {!evalRes && isStaff && isStaffCorrect && <span style={{ fontSize: '10px', color: 'var(--neon-gold)', fontWeight: 'bold' }}>Correct Answer</span>}
                         </div>
                       );
                     })}
                   </div>
 
-                  {/* EXPLANATION CALLOUT (revealed after submission or for staff) */}
-                  {(res?.explanation || (isStaff && mcq.explanation)) && (
+                  {isMultiCorrect && !evalRes && selectedKeys.length > 0 && (
+                    <div style={{ marginTop: 'var(--space-sm)', display: 'flex', justifyContent: 'flex-end' }}>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        isLoading={isChecking}
+                        onClick={() => evaluateMcqImmediately(mcq.id, selectedKeys)}
+                      >
+                        Check Answer
+                      </Button>
+                    </div>
+                  )}
+
+                  {isChecking && !isMultiCorrect && (
+                    <div style={{ marginTop: 'var(--space-sm)', fontSize: 'var(--text-xs)', color: 'var(--neon-cyan)' }}>
+                      Checking answer…
+                    </div>
+                  )}
+
+                  {/* EXPLANATION CALLOUT (revealed immediately on option pick, submission, or for staff) */}
+                  {(evalRes || (isStaff && mcq.explanation)) && (
                     <div
                       style={{
                         marginTop: 'var(--space-sm)',
-                        padding: '8px 12px',
+                        padding: '10px 12px',
                         borderRadius: 'var(--radius-sm)',
-                        background: 'var(--bg-secondary)',
-                        border: '1px solid var(--border-default)',
-                        borderLeft: '3px solid var(--accent-primary)',
+                        background: evalRes
+                          ? evalRes.isCorrect
+                            ? 'rgba(34, 197, 94, 0.08)'
+                            : 'rgba(239, 68, 68, 0.08)'
+                          : 'var(--bg-secondary)',
+                        border: `1px solid ${evalRes ? (evalRes.isCorrect ? 'rgba(34, 197, 94, 0.35)' : 'rgba(239, 68, 68, 0.35)') : 'var(--border-default)'}`,
+                        borderLeft: `3px solid ${evalRes ? (evalRes.isCorrect ? '#22c55e' : '#ef4444') : 'var(--accent-primary)'}`,
                         fontSize: 'var(--text-xs)',
                         color: 'var(--text-secondary)',
                         display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '8px'
+                        flexDirection: 'column',
+                        gap: '6px'
                       }}
                     >
-                      <Lightbulb size={14} style={{ color: 'var(--accent-primary)', flexShrink: 0, marginTop: '2px' }} />
-                      <span><strong>Explanation:</strong> {res?.explanation || mcq.explanation}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          {evalRes ? (
+                            evalRes.isCorrect ? (
+                              <span style={{ color: '#22c55e', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                <CheckCircle size={13} /> Correct Answer!
+                              </span>
+                            ) : (
+                              <span style={{ color: '#f87171', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                <XCircle size={13} /> Incorrect — Correct Option: {evalRes.correctOption}
+                              </span>
+                            )
+                          ) : (
+                            <span style={{ color: 'var(--accent-primary)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <Lightbulb size={13} /> Staff Answer Explanation
+                            </span>
+                          )}
+                        </div>
+                        {evalRes && !submissionResult && (
+                          <button
+                            type="button"
+                            onClick={() => handleResetSingleQuestion(mcq.id)}
+                            style={{
+                              background: 'transparent',
+                              border: '1px solid var(--border-default)',
+                              color: 'var(--text-secondary)',
+                              borderRadius: '6px',
+                              padding: '2px 8px',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <RotateCcw size={11} /> Retry
+                          </button>
+                        )}
+                      </div>
+                      {(evalRes?.explanation || mcq.explanation) && (
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', lineHeight: 1.55, color: 'var(--text-primary)' }}>
+                          <Lightbulb size={14} style={{ color: evalRes ? (evalRes.isCorrect ? '#22c55e' : 'var(--accent-primary)') : 'var(--accent-primary)', flexShrink: 0, marginTop: '2px' }} />
+                          <span><strong>Explanation:</strong> {evalRes?.explanation || mcq.explanation}</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
