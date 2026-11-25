@@ -1320,6 +1320,12 @@ export default function GuidedCourseWorkspace({
                         </button>
                       }
                     />
+                    {ex.explanation && (
+                      <div className="gcw-example-explanation">
+                        <span className="gcw-example-why-tag">Why →</span>
+                        <span style={{ flex: 1, minWidth: 0 }}>{renderInlineFormatted(ex.explanation)}</span>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

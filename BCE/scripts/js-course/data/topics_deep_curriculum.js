@@ -1,5 +1,5 @@
 // Topics 1 to 8: Deep micro-concepts modeled on javascript.info + freeCodeCamp + ES2023-2025
-// Format per step: title, keywords, definition, syntax, examples[], keyPoints[], testCases[], starterCode
+// Format per step: title, keywords, definition, syntax, examples[] (with MDN/spec explanation), keyPoints[], testCases[], starterCode
 
 module.exports = {
   1: [
@@ -11,12 +11,14 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Detect Active Runtime Environment',
-          code: `const env = typeof window === 'undefined' ? 'Node.js Server/CLI' : 'Browser DOM';\nconsole.log('Running inside:', env);`
+          code: `const env = typeof window === 'undefined' ? 'Node.js Server/CLI' : 'Browser DOM';\nconsole.log('Running inside:', env);`,
+          explanation: '`typeof` safely inspects undeclared globals without throwing `ReferenceError`: in Node.js there is no `window` host object so `typeof window` yields `\'undefined\'`, whereas browsers expose `window` as the global object.'
         },
         {
           title: 'Example 2: <script defer> Order-Safe HTML Pattern',
           language: 'html',
-          code: `<!DOCTYPE html>\n<html>\n<head>\n  <script defer src="app.js"></script>\n</head>\n<body>\n  <h1 id="title">Loaded safely before JS runs</h1>\n</body>\n</html>`
+          code: `<!DOCTYPE html>\n<html>\n<head>\n  <script defer src="app.js"></script>\n</head>\n<body>\n  <h1 id="title">Loaded safely before JS runs</h1>\n</body>\n</html>`,
+          explanation: 'Per MDN HTML specs, `defer` downloads external scripts in parallel without blocking HTML parsing, then executes them in document order right before the `DOMContentLoaded` event fires so `#title` already exists.'
         }
       ],
       keyPoints: [
@@ -37,11 +39,13 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Formatting Objects & Tabular Data',
-          code: `const users = [\n  { name: 'Asha', score: 95 },\n  { name: 'Vikram', score: 88 }\n];\nconsole.log('Named log:', { count: users.length });\nconsole.table(users);`
+          code: `const users = [\n  { name: 'Asha', score: 95 },\n  { name: 'Vikram', score: 88 }\n];\nconsole.log('Named log:', { count: users.length });\nconsole.table(users);`,
+          explanation: 'Wrapping `{ count }` in shorthand braces labels the logged property automatically, while `console.table()` renders an indexed column view of array objects for fast visual scanning.'
         },
         {
           title: 'Example 2: Benchmarking & Assertions',
-          code: `console.time('sumLoop');\nlet sum = 0;\nfor (let i = 1; i <= 10000; i++) sum += i;\nconsole.timeEnd('sumLoop');\nconsole.assert(sum === 50005000, 'Math mismatch');`
+          code: `console.time('sumLoop');\nlet sum = 0;\nfor (let i = 1; i <= 10000; i++) sum += i;\nconsole.timeEnd('sumLoop');\nconsole.assert(sum === 50005000, 'Math mismatch');`,
+          explanation: '`console.timeEnd(\'sumLoop\')` computes elapsed high-resolution milliseconds since the matching `console.time(\'sumLoop\')` call, while `console.assert()` emits an error only if the assertion evaluates falsy (staying silent when `sum === 50005000` passes).'
         }
       ],
       testCases: [
@@ -58,11 +62,13 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: const Binding vs Mutating Reference Contents',
-          code: `const tags = ['js'];\ntags.push('es6');       // Allowed: mutates array contents\nconsole.log(tags);      // ['js', 'es6']\n// tags = ['new'];      // TypeError: Assignment to constant variable`
+          code: `const tags = ['js'];\ntags.push('es6');       // Allowed: mutates array contents\nconsole.log(tags);      // ['js', 'es6']\n// tags = ['new'];      // TypeError: Assignment to constant variable`,
+          explanation: '`const` makes the variable identifier binding read-only (blocking `tags = ...` reassignment with `TypeError`), NOT the heap array itself — mutating elements inside `tags` via `.push()` still succeeds.'
         },
         {
           title: 'Example 2: Block Scope (let vs var Leak)',
-          code: `if (true) {\n  let safe = 'only inside block';\n  var leaked = 'escapes if-block!';\n}\nconsole.log(leaked); // Works (unintended leak)\n// console.log(safe); // ReferenceError`
+          code: `if (true) {\n  let safe = 'only inside block';\n  var leaked = 'escapes if-block!';\n}\nconsole.log(leaked); // Works (unintended leak)\n// console.log(safe); // ReferenceError`,
+          explanation: '`let` scopes `safe` strictly to its enclosing `{ ... }` block per ES6 lexical rules, whereas `var` ignores block boundaries and hoists to the enclosing function or global scope.'
         }
       ],
       keyPoints: [
@@ -83,11 +89,13 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Clean Identifier Naming vs Invalid Syntax',
-          code: `const firstName = 'Riya';\nconst $price = 99;\nconst _internalFlag = false;\n// const 1stItem = 1; // Invalid: cannot start with digit\nconsole.log({ firstName, $price, _internalFlag });`
+          code: `const firstName = 'Riya';\nconst $price = 99;\nconst _internalFlag = false;\n// const 1stItem = 1; // Invalid: cannot start with digit\nconsole.log({ firstName, $price, _internalFlag });`,
+          explanation: 'Per the ECMAScript identifier grammar, variable names must begin with a Unicode letter, `$`, or `_` (never a digit `0-9`), and `$` / `_` prefixes are legal everywhere.'
         },
         {
           title: 'Example 2: Good "Why" Comment',
-          code: `// Offset by 1 because API pages are 1-indexed\nconst nextPage = currentPageIndex + 1;\nconsole.log(nextPage);`
+          code: `// Offset by 1 because API pages are 1-indexed\nconst nextPage = currentPageIndex + 1;\nconsole.log(nextPage);`,
+          explanation: 'Code already states what happens (`+ 1`); explaining why (the external API starts pages at `1` instead of `0`) stops future maintainers from deleting a critical off-by-one fix.'
         }
       ],
       testCases: [
@@ -106,11 +114,13 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Inspect All 7 Primitives',
-          code: `const vals = ['hi', 42, 9007199254740993n, true, undefined, null, Symbol('k')];\nvals.forEach(v => console.log(String(v), '=>', typeof v));`
+          code: `const vals = ['hi', 42, 9007199254740993n, true, undefined, null, Symbol('k')];\nvals.forEach(v => console.log(String(v), '=>', typeof v));`,
+          explanation: '`typeof` identifies `string`, `number`, `bigint`, `boolean`, `undefined`, and `symbol`, while `typeof null` returns `\'object\'` — a legacy 1995 V1 type-tag bug (`0x00` vs object tag `0`) kept for backward web compatibility.'
         },
         {
           title: 'Example 2: Checking Arrays & null Correctly',
-          code: `const x = null;\nconst arr = [1, 2];\nconsole.log('Is null?', x === null);\nconsole.log('Is array?', Array.isArray(arr), 'vs typeof:', typeof arr);`
+          code: `const x = null;\nconst arr = [1, 2];\nconsole.log('Is null?', x === null);\nconsole.log('Is array?', Array.isArray(arr), 'vs typeof:', typeof arr);`,
+          explanation: 'Because `typeof` returns `\'object\'` for both `null` and arrays, MDN recommends `x === null` to detect `null` and `Array.isArray(arr)` (which checks the internal Array slot reliably across realms).'
         }
       ],
       keyPoints: [
@@ -132,11 +142,13 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Surprises of Loose Equality vs Strict',
-          code: `console.log("'5' == 5:", '5' == 5);\nconsole.log("'5' === 5:", '5' === 5);\nconsole.log("'' == 0:", '' == 0);\nconsole.log('null == undefined:', null == undefined);`
+          code: `console.log("'5' == 5:", '5' == 5);\nconsole.log("'5' === 5:", '5' === 5);\nconsole.log("'' == 0:", '' == 0);\nconsole.log('null == undefined:', null == undefined);`,
+          explanation: 'Loose `==` runs Abstract Equality coercion (`ToNumber(\'5\') -> 5`, `ToNumber(\'\') -> 0`, and spec special-case `null == undefined -> true`), while strict `===` compares type and value without implicit conversion.'
         },
         {
           title: 'Example 2: Handling NaN & Floating-Point 0.1 + 0.2',
-          code: `console.log('NaN === NaN:', NaN === NaN);\nconsole.log('Object.is(NaN, NaN):', Object.is(NaN, NaN));\nconst epsEqual = (a, b) => Math.abs(a - b) < Number.EPSILON;\nconsole.log('0.1 + 0.2 ≈ 0.3:', epsEqual(0.1 + 0.2, 0.3));`
+          code: `console.log('NaN === NaN:', NaN === NaN);\nconsole.log('Object.is(NaN, NaN):', Object.is(NaN, NaN));\nconst epsEqual = (a, b) => Math.abs(a - b) < Number.EPSILON;\nconsole.log('0.1 + 0.2 ≈ 0.3:', epsEqual(0.1 + 0.2, 0.3));`,
+          explanation: 'IEEE 754 specifies `NaN !== NaN`, whereas `Object.is()` implements `SameValue` equality (so `Object.is(NaN, NaN)` is `true` and `+0` vs `-0` is `false`). Binary IEEE-754 rounding yields `0.30000000000000004` for `0.1 + 0.2`, so compare floats within `Number.EPSILON`.'
         }
       ],
       testCases: [
@@ -154,11 +166,13 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Verify All 8 Falsy vs Surprising Truthy Values',
-          code: `const items = [false, 0, -0, 0n, '', null, undefined, NaN, '0', [], {}];\nconsole.table(items.map(v => ({ value: String(v), truthy: Boolean(v) })));`
+          code: `const items = [false, 0, -0, 0n, '', null, undefined, NaN, '0', [], {}];\nconsole.table(items.map(v => ({ value: String(v), truthy: Boolean(v) })));`,
+          explanation: 'ECMAScript `ToBoolean()` defines a fixed list of 8 falsy primitives; any non-empty string (even `\'0\'`) and every object reference (even empty `[]` and `{}`) always evaluates truthy.'
         },
         {
           title: 'Example 2: Short-Circuit Guard',
-          code: `const isLoggedIn = true;\nisLoggedIn && console.log('Welcome to dashboard');`
+          code: `const isLoggedIn = true;\nisLoggedIn && console.log('Welcome to dashboard');`,
+          explanation: 'Logical `&&` evaluates from left to right and stops immediately if the left operand is falsy; only when `isLoggedIn` is truthy does the engine evaluate the right-hand call.'
         }
       ],
       testCases: [
@@ -176,11 +190,13 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Why ?? Beats || for Zero Counts & Booleans',
-          code: `const count = 0;\nconsole.log('With ||:', count || 10);   // Bug: 10\nconsole.log('With ??:', count ?? 10);   // Safe: 0`
+          code: `const count = 0;\nconsole.log('With ||:', count || 10);   // Bug: 10\nconsole.log('With ??:', count ?? 10);   // Safe: 0`,
+          explanation: '`||` treats every falsy value (`0`, `""`, `false`) as missing and overwrites it with `10`, whereas Nullish Coalescing `??` triggers fallback ONLY for `null` or `undefined` — preserving valid `0`.'
         },
         {
           title: 'Example 2: Optional Chaining on Properties, Methods & Arrays',
-          code: `const user = { name: 'Dev' };\nconsole.log('City:', user?.address?.city ?? 'Not set');\nconsole.log('Optional method:', user.greet?.());\nconsole.log('Optional index:', user.tags?.[0]);`
+          code: `const user = { name: 'Dev' };\nconsole.log('City:', user?.address?.city ?? 'Not set');\nconsole.log('Optional method:', user.greet?.());\nconsole.log('Optional index:', user.tags?.[0]);`,
+          explanation: 'When the reference before `?.` is `null` or `undefined`, optional chaining short-circuits the rest of the property/call/index chain immediately to `undefined` instead of throwing a `TypeError`.'
         }
       ],
       testCases: [
@@ -198,11 +214,13 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Coercion Trap (+ vs -)',
-          code: `console.log("'5' + 3 =", '5' + 3);  // '53'\nconsole.log("'5' - 3 =", '5' - 3);  // 2\nconsole.log('2 ** 5 =', 2 ** 5);    // 32`
+          code: `console.log("'5' + 3 =", '5' + 3);  // '53'\nconsole.log("'5' - 3 =", '5' - 3);  // 2\nconsole.log('2 ** 5 =', 2 ** 5);    // 32`,
+          explanation: 'Per MDN operator rules, binary `+` performs string concatenation whenever *either* operand is a string (`3` converts to `\'3\'`), whereas numeric operators `-`, `*`, `/` and `**` coerce both operands via `ToNumber()` (`\'5\'` converts to `5`).'
         },
         {
           title: 'Example 2: parseInt vs Number Validation',
-          code: `console.log("Number('42px'):", Number('42px'));\nconsole.log("parseInt('42px', 10):", parseInt('42px', 10));\nconsole.log("Number(''):", Number(''));`
+          code: `console.log("Number('42px'):", Number('42px'));\nconsole.log("parseInt('42px', 10):", parseInt('42px', 10));\nconsole.log("Number(''):", Number(''));`,
+          explanation: '`Number(str)` validates the *entire* string (`\'42px\' -> NaN`, and empty whitespace converts to `0`), whereas `parseInt(str, 10)` consumes valid leading base-10 digits and stops gracefully at `\'px\'`, returning `42`.'
         }
       ],
       testCases: [
@@ -222,11 +240,13 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Ternary vs Multi-Branch Grading',
-          code: `const marks = 86;\nconst grade = marks >= 90 ? 'A+' : marks >= 75 ? 'A' : 'B';\nconsole.log('Grade:', grade);`
+          code: `const marks = 86;\nconst grade = marks >= 90 ? 'A+' : marks >= 75 ? 'A' : 'B';\nconsole.log('Grade:', grade);`,
+          explanation: 'Because the conditional ternary `? :` is an expression (not a statement) and associates right-to-left, chained ternaries return the first matching branch directly into a `const` binding.'
         },
         {
           title: 'Example 2: Strict Matching in switch (with fall-through warning)',
-          code: `const code = 200;\nswitch (code) {\n  case 200:\n  case 201:\n    console.log('Success response');\n    break;\n  default:\n    console.log('Other status');\n}`
+          code: `const code = 200;\nswitch (code) {\n  case 200:\n  case 201:\n    console.log('Success response');\n    break;\n  default:\n    console.log('Other status');\n}`,
+          explanation: '`switch` tests each `case` using strict equality (`===` — no coercion). Grouping `case 200:` without `break` intentionally falls through to `case 201:`, while `break` exits before `default:` runs.'
         }
       ],
       testCases: [
@@ -243,7 +263,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Flatten Nested Conditionals',
-          code: `function calculateDiscount(user, total) {\n  if (!user) return 0;\n  if (total <= 0) return 0;\n  return user.isVip ? total * 0.2 : total * 0.05;\n}\nconsole.log(calculateDiscount({ isVip: true }, 1000));`
+          code: `function calculateDiscount(user, total) {\n  if (!user) return 0;\n  if (total <= 0) return 0;\n  return user.isVip ? total * 0.2 : total * 0.05;\n}\nconsole.log(calculateDiscount({ isVip: true }, 1000));`,
+          explanation: 'Early `return 0` guards validate edge preconditions at the top of the function, so everything below runs under guaranteed non-null `user` and positive `total` invariants with zero `else` nesting.'
         }
       ],
       testCases: [
@@ -260,11 +281,13 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: for...of on Arrays & Strings vs for...in Trap',
-          code: `for (const ch of 'JS!') console.log('char:', ch);\nconst obj = { a: 1, b: 2 };\nfor (const k in obj) {\n  if (Object.hasOwn(obj, k)) console.log(k, obj[k]);\n}`
+          code: `for (const ch of 'JS!') console.log('char:', ch);\nconst obj = { a: 1, b: 2 };\nfor (const k in obj) {\n  if (Object.hasOwn(obj, k)) console.log(k, obj[k]);\n}`,
+          explanation: '`for...of` iterates values via the `[Symbol.iterator]` protocol on Arrays, Strings, Maps, and Sets; `for...in` visits enumerable string property keys including inherited prototype keys, so guard with `Object.hasOwn(obj, k)`.'
         },
         {
           title: 'Example 2: while vs do...while Guarantee',
-          code: `let n = 0;\ndo {\n  console.log('Runs at least once even when n===0');\n} while (n > 0);`
+          code: `let n = 0;\ndo {\n  console.log('Runs at least once even when n===0');\n} while (n > 0);`,
+          explanation: 'A `do...while` loop checks its condition *after* executing the loop body, guaranteeing at least one pass even when `n > 0` starts out `false`.'
         }
       ],
       keyPoints: [
@@ -285,11 +308,13 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Skip Evens & Stop at Threshold',
-          code: `for (let i = 1; i <= 10; i++) {\n  if (i % 2 === 0) continue;\n  if (i > 7) break;\n  console.log(i); // 1, 3, 5, 7\n}`
+          code: `for (let i = 1; i <= 10; i++) {\n  if (i % 2 === 0) continue;\n  if (i > 7) break;\n  console.log(i); // 1, 3, 5, 7\n}`,
+          explanation: '`continue` skips the rest of the current iteration and jumps straight to the `i++` update step (filtering out evens), whereas `break` terminates the enclosing `for` loop altogether as soon as `i` reaches `8`.'
         },
         {
           title: 'Example 2: Safe Index Bounds (Avoid Off-by-One)',
-          code: `const arr = ['A', 'B', 'C'];\nfor (let i = 0; i < arr.length; i++) {\n  console.log(i, arr[i]); // stops before undefined arr[3]\n}`
+          code: `const arr = ['A', 'B', 'C'];\nfor (let i = 0; i < arr.length; i++) {\n  console.log(i, arr[i]); // stops before undefined arr[3]\n}`,
+          explanation: 'Zero-based JavaScript arrays have valid indices `0` to `arr.length - 1`; writing strict `i < arr.length` instead of `<=` avoids an extra out-of-bounds read returning `undefined`.'
         }
       ],
       testCases: [
@@ -308,11 +333,13 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Hoisting & Concise Object Return',
-          code: `console.log(greet('Asha')); // Works before declaration!\nfunction greet(n) { return \`Hi \${n}\`; }\n\nconst createTag = label => ({ label, active: true });\nconsole.log(createTag('ES6'));`
+          code: `console.log(greet('Asha')); // Works before declaration!\nfunction greet(n) { return \`Hi \${n}\`; }\n\nconst createTag = label => ({ label, active: true });\nconsole.log(createTag('ES6'));`,
+          explanation: 'Function declarations (`function greet`) are hoisted with their body bound during scope creation so calls above them succeed; wrapping `{ label, active: true }` in `(...)` tells the parser to return an object literal instead of opening a code block.'
         },
         {
           title: 'Example 2: Missing Braces Trap with Objects',
-          code: `const broken = id => { id };       // returns undefined!\nconst fixed = id => ({ id });      // returns { id }\nconsole.log(broken(5), fixed(5));`
+          code: `const broken = id => { id };       // returns undefined!\nconst fixed = id => ({ id });      // returns { id }\nconsole.log(broken(5), fixed(5));`,
+          explanation: 'When `{` immediately follows `=>`, JS parses it as a function body block (so `{ id }` is treated as an unused statement with no `return`, returning `undefined`); adding parentheses `({ id })` turns it into a concise-body object expression.'
         }
       ],
       testCases: [
@@ -329,11 +356,13 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Undefined Triggers Default, null Does Not',
-          code: `const logRate = (rate = 10) => rate;\nconsole.log('omitted:', logRate(), 'undefined:', logRate(undefined), 'null:', logRate(null));`
+          code: `const logRate = (rate = 10) => rate;\nconsole.log('omitted:', logRate(), 'undefined:', logRate(undefined), 'null:', logRate(null));`,
+          explanation: 'Per ECMAScript parameter rules, default values run strictly on `undefined` (omitted or `undefined` passed explicitly); passing `null` or `0` counts as a deliberate value and keeps `null`/`0`.'
         },
         {
           title: 'Example 2: Real Array Methods on Rest Parameters',
-          code: `function sumAll(factor = 1, ...nums) {\n  return nums.reduce((acc, n) => acc + n, 0) * factor;\n}\nconsole.log('Sum:', sumAll(2, 5, 10, 15));`
+          code: `function sumAll(factor = 1, ...nums) {\n  return nums.reduce((acc, n) => acc + n, 0) * factor;\n}\nconsole.log('Sum:', sumAll(2, 5, 10, 15));`,
+          explanation: 'Unlike the array-like `arguments` object, rest parameters (`...nums`) collect trailing arguments into a real `Array` instance so `.reduce()` and `.map()` work directly — and must always appear as the last parameter.'
         }
       ],
       testCases: [
@@ -350,11 +379,13 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Higher-Order Retry / Repeat Helper',
-          code: `function repeat(n, action) {\n  for (let i = 0; i < n; i++) action(i);\n}\nrepeat(3, idx => console.log('Tick', idx));`
+          code: `function repeat(n, action) {\n  for (let i = 0; i < n; i++) action(i);\n}\nrepeat(3, idx => console.log('Tick', idx));`,
+          explanation: 'Because functions are first-class values in JS, passing `action` decouples *how many times* to iterate (`repeat`) from *what* each iteration executes cleanly.'
         },
         {
           title: 'Example 2: Returning Customized Functions',
-          code: `const makeValidator = minLen => str => str.length >= minLen;\nconst validPassword = makeValidator(8);\nconsole.log(validPassword('1234'), validPassword('strongPass9'));`
+          code: `const makeValidator = minLen => str => str.length >= minLen;\nconst validPassword = makeValidator(8);\nconsole.log(validPassword('1234'), validPassword('strongPass9'));`,
+          explanation: '`makeValidator(8)` acts as a function factory: the inner predicate retains `minLen = 8` via closure, letting you reuse specialized validators without duplicating `>= 8` checks.'
         }
       ],
       testCases: [
@@ -371,7 +402,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Keeping State Immutable',
-          code: `const orig = [1, 2];\nconst next = (arr, item) => [...arr, item];\nconsole.log('next:', next(orig, 3), 'orig intact:', orig);`
+          code: `const orig = [1, 2];\nconst next = (arr, item) => [...arr, item];\nconsole.log('next:', next(orig, 3), 'orig intact:', orig);`,
+          explanation: 'Using array spread `[...arr, item]` creates a fresh array reference instead of mutating `arr` in place with `.push()`, preserving `orig` intact and keeping `next()` predictable and side-effect free.'
         }
       ],
       testCases: [
@@ -387,11 +419,13 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Factorial & Sum Recursively',
-          code: `const factorial = n => (n <= 1 ? 1 : n * factorial(n - 1));\nconsole.log('5! =', factorial(5));`
+          code: `const factorial = n => (n <= 1 ? 1 : n * factorial(n - 1));\nconsole.log('5! =', factorial(5));`,
+          explanation: 'Each call pushes a stack frame computing `factorial(n - 1)` until the base guard `n <= 1` returns `1`; without that stopping base case, frames grow until throwing `RangeError: Maximum call stack size exceeded`.'
         },
         {
           title: 'Example 2: Traversing Deep Nested Comments / Trees',
-          code: `const countNodes = node => 1 + (node.children || []).reduce((s, c) => s + countNodes(c), 0);\nconst tree = { id: 1, children: [{ id: 2 }, { id: 3, children: [{ id: 4 }] }] };\nconsole.log('Total nodes:', countNodes(tree));`
+          code: `const countNodes = node => 1 + (node.children || []).reduce((s, c) => s + countNodes(c), 0);\nconst tree = { id: 1, children: [{ id: 2 }, { id: 3, children: [{ id: 4 }] }] };\nconsole.log('Total nodes:', countNodes(tree));`,
+          explanation: 'Trees have self-similar depth, so delegating `(node.children || [])` recursively counts arbitrarily deep hierarchies in one declarative expression where leaf nodes (`children` undefined) cleanly sum `0`.'
         }
       ],
       testCases: [
@@ -408,11 +442,13 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Left-to-Right Pipeline with pipe()',
-          code: `const pipe = (...fns) => x => fns.reduce((acc, fn) => fn(acc), x);\nconst slugify = pipe(\n  s => s.trim(),\n  s => s.toLowerCase(),\n  s => s.replace(/\\s+/g, '-')\n);\nconsole.log(slugify('  Hello JavaScript World  '));`
+          code: `const pipe = (...fns) => x => fns.reduce((acc, fn) => fn(acc), x);\nconst slugify = pipe(\n  s => s.trim(),\n  s => s.toLowerCase(),\n  s => s.replace(/\\s+/g, '-')\n);\nconsole.log(slugify('  Hello JavaScript World  '));`,
+          explanation: '`fns.reduce((acc, fn) => fn(acc), x)` passes the output of each unary step directly as input to the next in top-to-bottom execution order (`compose` flips this via `reduceRight`).'
         },
         {
           title: 'Example 2: IIFE Isolated Scope',
-          code: `const idSeed = (() => {\n  let next = 1000;\n  return () => ++next;\n})();\nconsole.log(idSeed(), idSeed());`
+          code: `const idSeed = (() => {\n  let next = 1000;\n  return () => ++next;\n})();\nconsole.log(idSeed(), idSeed());`,
+          explanation: 'Wrapping `(() => { ... })()` executes the factory immediately once: `next` stays enclosed privately inside that vanished call frame while `idSeed` keeps updating it safely without exposing globals.'
         }
       ],
       testCases: [
@@ -432,7 +468,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Block Scope Shadowing Without Leaks',
-          code: `const mode = 'global';\n{\n  const mode = 'block';\n  console.log('Inside:', mode);\n}\nconsole.log('Outside:', mode);`
+          code: `const mode = 'global';\n{\n  const mode = 'block';\n  console.log('Inside:', mode);\n}\nconsole.log('Outside:', mode);`,
+          explanation: "Each `{ ... }` block creates a dedicated ES6 Declarative Environment Record for `let`/`const`, so the inner `const mode` shadows the outer identifier temporarily without overwriting `'global'`."
         }
       ],
       testCases: [
@@ -448,7 +485,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Definition Site Beats Call Site',
-          code: `const token = 'OUTER';\nfunction printToken() {\n  console.log(token);\n}\nfunction wrapper() {\n  const token = 'INNER';\n  printToken(); // Logs 'OUTER', NOT 'INNER'!\n}\nwrapper();`
+          code: `const token = 'OUTER';\nfunction printToken() {\n  console.log(token);\n}\nfunction wrapper() {\n  const token = 'INNER';\n  printToken(); // Logs 'OUTER', NOT 'INNER'!\n}\nwrapper();`,
+          explanation: "JavaScript uses static lexical scoping (not dynamic scoping): `printToken` captures its outer scope link at the place it was *declared* (global `'OUTER'`), ignoring `wrapper()`'s local `token` at its call site."
         }
       ],
       testCases: [
@@ -464,7 +502,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Inspect Hoisting Differences Safely',
-          code: `console.log('var x:', x);\nvar x = 10;\ntry {\n  // Eval/nested ref inside TDZ check simulation\n  console.log(y);\n  let y = 20;\n} catch (e) {\n  console.log('TDZ Error:', e.name, '-', e.message);\n}`
+          code: `console.log('var x:', x);\nvar x = 10;\ntry {\n  // Eval/nested ref inside TDZ check simulation\n  console.log(y);\n  let y = 20;\n} catch (e) {\n  console.log('TDZ Error:', e.name, '-', e.message);\n}`,
+          explanation: 'During scope instantiation, `var x` is initialized immediately to `undefined`, whereas `let y` enters the Temporal Dead Zone (TDZ) uninitialized until line `let y = 20` runs, causing `ReferenceError`.'
         }
       ],
       testCases: [
@@ -481,11 +520,13 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Independent Private State per Instance',
-          code: `function makeCounter(start = 0) {\n  let n = start;\n  return { inc: () => ++n, val: () => n };\n}\nconst a = makeCounter(10);\nconst b = makeCounter(0);\na.inc();\nconsole.log('a:', a.val(), 'b:', b.val()); // 11 vs 0`
+          code: `function makeCounter(start = 0) {\n  let n = start;\n  return { inc: () => ++n, val: () => n };\n}\nconst a = makeCounter(10);\nconst b = makeCounter(0);\na.inc();\nconsole.log('a:', a.val(), 'b:', b.val()); // 11 vs 0`,
+          explanation: 'Per MDN, a closure bundles the returned methods with their enclosing lexical environment: each `makeCounter()` invocation allocates a separate `n` variable invisible from outside.'
         },
         {
           title: 'Example 2: setTimeout Loop Bug (var -> 3,3,3 vs let -> 0,1,2)',
-          code: `for (var i = 0; i < 3; i++) setTimeout(() => console.log('var:', i), 0);\nfor (let j = 0; j < 3; j++) setTimeout(() => console.log('let:', j), 10);`
+          code: `for (var i = 0; i < 3; i++) setTimeout(() => console.log('var:', i), 0);\nfor (let j = 0; j < 3; j++) setTimeout(() => console.log('let:', j), 10);`,
+          explanation: 'Callbacks run *after* the synchronous loops finish: `var i` shares ONE binding across all iterations (now `3`), while `for (let j ...)` creates a fresh per-iteration lexical environment per ECMAScript spec, preserving `0, 1, 2`.'
         }
       ],
       testCases: [
@@ -502,11 +543,13 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: once(fn) & memoize(fn)',
-          code: `const once = fn => {\n  let done = false, val;\n  return (...a) => done ? val : (done = true, val = fn(...a));\n};\nconst initApp = once(() => 'Booted once!');\nconsole.log(initApp(), initApp());`
+          code: `const once = fn => {\n  let done = false, val;\n  return (...a) => done ? val : (done = true, val = fn(...a));\n};\nconst initApp = once(() => 'Booted once!');\nconsole.log(initApp(), initApp());`,
+          explanation: 'The closure retains `done` and `val` across repeated calls: the first call computes `fn(...a)` and flips `done = true`, while every subsequent invocation returns cached `val` in O(1) without calling `fn` again.'
         },
         {
           title: 'Example 2: Debounced Search Simulation',
-          code: `function debounce(fn, ms = 100) {\n  let t;\n  return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };\n}\nconst search = debounce(q => console.log('API query:', q), 80);\nsearch('j'); search('ja'); search('javascript');`
+          code: `function debounce(fn, ms = 100) {\n  let t;\n  return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };\n}\nconst search = debounce(q => console.log('API query:', q), 80);\nsearch('j'); search('ja'); search('javascript');`,
+          explanation: 'Calling `clearTimeout(t)` before scheduling a new `setTimeout` cancels earlier pending keystrokes (`\'j\'`, `\'ja\'`), so `fn` executes only once after 80ms of silence with the final argument `\'javascript\'`.'
         }
       ],
       testCases: [
@@ -525,7 +568,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: slice vs splice Behavior',
-          code: `const arr = [10, 20, 30, 40];\nconsole.log('slice(1,3):', arr.slice(1, 3), 'orig:', arr);\nconst removed = arr.splice(1, 2, 99);\nconsole.log('removed:', removed, 'mutated:', arr);`
+          code: `const arr = [10, 20, 30, 40];\nconsole.log('slice(1,3):', arr.slice(1, 3), 'orig:', arr);\nconst removed = arr.splice(1, 2, 99);\nconsole.log('removed:', removed, 'mutated:', arr);`,
+          explanation: 'Per MDN, `slice(1, 3)` extracts a shallow non-mutating copy (`end` index `3` exclusive -> `[20, 30]`), whereas `splice(1, 2, 99)` mutates `arr` in place by removing `2` items at index `1` and inserting `99`.'
         }
       ],
       testCases: [
@@ -541,11 +585,13 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Filter & Transform Price Pipeline',
-          code: `const items = [{ n: 'Pen', p: 20 }, { n: 'Book', p: 250 }];\nconst labels = items.filter(i => i.p > 50).map(i => \`\${i.n}: ₹\${i.p}\`);\nconsole.log(labels);`
+          code: `const items = [{ n: 'Pen', p: 20 }, { n: 'Book', p: 250 }];\nconst labels = items.filter(i => i.p > 50).map(i => \`\${i.n}: ₹\${i.p}\`);\nconsole.log(labels);`,
+          explanation: '`.filter()` discards cheap items first before `.map()` allocates formatted label strings, returning a brand-new array while keeping `items` untouched.'
         },
         {
           title: 'Example 2: Tokenizing Sentences with flatMap()',
-          code: `const lines = ['hello js', 'modern arrays'];\nconsole.log(lines.flatMap(l => l.split(' ')));`
+          code: `const lines = ['hello js', 'modern arrays'];\nconsole.log(lines.flatMap(l => l.split(' ')));`,
+          explanation: '`flatMap()` combines `.map()` followed by `.flat(1)` in one pass — avoiding nested arrays `[["hello","js"],["modern","arrays"]]` and yielding one flat word list.'
         }
       ],
       testCases: [
@@ -561,11 +607,13 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Frequency Counter with reduce()',
-          code: `const votes = ['js', 'ts', 'js', 'py', 'js'];\nconst counts = votes.reduce((m, v) => ((m[v] = (m[v] || 0) + 1), m), {});\nconsole.log(counts);`
+          code: `const votes = ['js', 'ts', 'js', 'py', 'js'];\nconst counts = votes.reduce((m, v) => ((m[v] = (m[v] || 0) + 1), m), {});\nconsole.log(counts);`,
+          explanation: 'Supplying `{}` as initial accumulator guarantees safe empty-array behavior (`TypeError` avoided) and folds all votes into one frequency dictionary in a single `O(n)` pass.'
         },
         {
           title: 'Example 2: ES2024 Native Grouping (Object.groupBy)',
-          code: `const stock = [{ item: 'Apple', type: 'fruit' }, { item: 'Carrot', type: 'veg' }, { item: 'Mango', type: 'fruit' }];\nconst grouped = Object.groupBy ? Object.groupBy(stock, x => x.type) : stock.reduce((a, x) => ((a[x.type] ||= []).push(x), a), {});\nconsole.log(grouped);`
+          code: `const stock = [{ item: 'Apple', type: 'fruit' }, { item: 'Carrot', type: 'veg' }, { item: 'Mango', type: 'fruit' }];\nconst grouped = Object.groupBy ? Object.groupBy(stock, x => x.type) : stock.reduce((a, x) => ((a[x.type] ||= []).push(x), a), {});\nconsole.log(grouped);`,
+          explanation: 'Per MDN, ES2024 `Object.groupBy()` groups elements by callback string keys into a clean null-prototype object (`Map.groupBy()` works when keys are non-string objects), with a `.reduce()` fallback for legacy engines.'
         }
       ],
       testCases: [
@@ -581,7 +629,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Reverse Search with ES2023 findLast()',
-          code: `const tx = [{ id: 1, status: 'pending' }, { id: 2, status: 'ok' }, { id: 3, status: 'pending' }];\nconsole.log('Last pending:', tx.findLast(t => t.status === 'pending'));\nconsole.log('Last item:', tx.at(-1));`
+          code: `const tx = [{ id: 1, status: 'pending' }, { id: 2, status: 'ok' }, { id: 3, status: 'pending' }];\nconsole.log('Last pending:', tx.findLast(t => t.status === 'pending'));\nconsole.log('Last item:', tx.at(-1));`,
+          explanation: 'ES2023 `findLast()` scans from `length - 1` down to `0` and halts on the first match (`id: 3`) without cloning or mutating with `.reverse()`, while `.at(-1)` handles negative indexing cleanly.'
         }
       ],
       testCases: [
@@ -598,7 +647,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Numeric Comparator vs Default String Trap',
-          code: `const nums = [100, 20, 3];\nconsole.log('Buggy default .sort():', [...nums].sort());\nconsole.log('Immutable .toSorted():', nums.toSorted((a, b) => a - b));\nconsole.log('Original intact:', nums);`
+          code: `const nums = [100, 20, 3];\nconsole.log('Buggy default .sort():', [...nums].sort());\nconsole.log('Immutable .toSorted():', nums.toSorted((a, b) => a - b));\nconsole.log('Original intact:', nums);`,
+          explanation: 'Without a comparator, `Array.prototype.sort()` converts elements to UTF-16 strings (`\'100\' < \'20\' < \'3\'`). Supplying `(a, b) => a - b` compares numerically, and ES2023 `toSorted()` returns a new array instead of mutating `nums` in place.'
         }
       ],
       testCases: [
@@ -618,7 +668,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Reverse Strings & Handle Emojis Safely',
-          code: `const word = 'Hi🚀!';\nconsole.log('.length:', word.length, 'vs [...word].length:', [...word].length);\nconsole.log('Safe reverse:', [...word].reverse().join(''));`
+          code: `const word = 'Hi🚀!';\nconsole.log('.length:', word.length, 'vs [...word].length:', [...word].length);\nconsole.log('Safe reverse:', [...word].reverse().join(''));`,
+          explanation: '`String.prototype.length` counts 16-bit UTF-16 code units (`\'🚀\'` takes a 2-unit surrogate pair, making `.length` `5` and splitting surrogates if reversed via `.split(\'\')`), whereas `[...word]` uses `Symbol.iterator` over full Unicode code points (`4` items).'
         }
       ],
       testCases: [
@@ -635,7 +686,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Zero-Padding Clock Format & Slug Conversion',
-          code: `const h = 9, m = 4;\nconsole.log(\`\${String(h).padStart(2, '0')}:\${String(m).padStart(2, '0')}\`);\nconsole.log('  Clean URL Slug  '.trim().toLowerCase().replaceAll(' ', '-'));`
+          code: `const h = 9, m = 4;\nconsole.log(\`\${String(h).padStart(2, '0')}:\${String(m).padStart(2, '0')}\`);\nconsole.log('  Clean URL Slug  '.trim().toLowerCase().replaceAll(' ', '-'));`,
+          explanation: 'Strings are immutable primitives so `.trim().toLowerCase().replaceAll(...)` safely chains brand-new transformed strings, while `padStart(2, \'0\')` left-pads single digits (`9 -> \'09\'`) for uniform clock digits.'
         }
       ],
       testCases: [
@@ -652,7 +704,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Digits, Anchors (^ $) & Non-Greedy Matching',
-          code: `console.log('Exact 4 digits:', /^\\d{4}$/.test('2026'));\nconsole.log('Greedy:', '<b>a</b><b>b</b>'.match(/<b>.*<\\/b>/)[0]);\nconsole.log('Lazy *?:', '<b>a</b><b>b</b>'.match(/<b>.*?<\\/b>/g));`
+          code: `console.log('Exact 4 digits:', /^\\d{4}$/.test('2026'));\nconsole.log('Greedy:', '<b>a</b><b>b</b>'.match(/<b>.*<\\/b>/)[0]);\nconsole.log('Lazy *?:', '<b>a</b><b>b</b>'.match(/<b>.*?<\\/b>/g));`,
+          explanation: 'Anchors `^` and `$` force full-string matches rather than substring matches; `*` is greedy and consumes across multiple `</b>...<b>` tags until the last closer, whereas lazy `*?` stops at the earliest `</b>`.'
         }
       ],
       testCases: [
@@ -668,7 +721,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Extract Named Capture Groups via matchAll()',
-          code: `const log = 'User #101 bought #204 and #999';\nconst matches = [...log.matchAll(/#(?<orderId>\\d+)/g)];\nconsole.log(matches.map(m => m.groups.orderId));`
+          code: `const log = 'User #101 bought #204 and #999';\nconst matches = [...log.matchAll(/#(?<orderId>\\d+)/g)];\nconsole.log(matches.map(m => m.groups.orderId));`,
+          explanation: 'Unlike global `.match()` (which discards capture groups), `matchAll()` (requiring flag `/g`) returns an iterator of full match details including named captures under `m.groups.orderId`.'
         }
       ],
       testCases: [
@@ -687,7 +741,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Dynamic Keys & Safe Nested Defaults',
-          code: `const field = 'score';\nconst user = { name: 'Ravi', [field]: 98 };\nconst { name, address: { city = 'Ranchi' } = {} } = user;\nconsole.log({ name, city, score: user.score });`
+          code: `const field = 'score';\nconst user = { name: 'Ravi', [field]: 98 };\nconst { name, address: { city = 'Ranchi' } = {} } = user;\nconsole.log({ name, city, score: user.score });`,
+          explanation: 'Computed property `[field]` evaluates variable `field` (`\'score\'`) as the key name, and assigning `= {}` before nested destructuring prevents `TypeError` when `user.address` is `undefined`, falling back `city` to `\'Ranchi\'`.'
         }
       ],
       testCases: [
@@ -703,7 +758,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Transform Object Prices Using entries + fromEntries',
-          code: `const prices = { coffee: 100, tea: 60 };\nconst doubled = Object.fromEntries(Object.entries(prices).map(([k, v]) => [k, v * 2]));\nconsole.log(doubled);`
+          code: `const prices = { coffee: 100, tea: 60 };\nconst doubled = Object.fromEntries(Object.entries(prices).map(([k, v]) => [k, v * 2]));\nconsole.log(doubled);`,
+          explanation: '`Object.entries()` converts own enumerable string pairs into a standard `Array` of `[k, v]` tuples so `.map()` can transform values cleanly, and `Object.fromEntries()` converts those tuples back into a fresh object.'
         }
       ],
       testCases: [
@@ -719,7 +775,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Shallow Trap vs structuredClone Fix',
-          code: `const orig = { meta: { score: 10 } };\nconst s = { ...orig };\nconst d = structuredClone(orig);\nd.meta.score = 99;\ns.meta.score = 50;\nconsole.log({ orig: orig.meta.score, deep: d.meta.score }); // orig becomes 50, deep stays 99!`
+          code: `const orig = { meta: { score: 10 } };\nconst s = { ...orig };\nconst d = structuredClone(orig);\nd.meta.score = 99;\ns.meta.score = 50;\nconsole.log({ orig: orig.meta.score, deep: d.meta.score }); // orig becomes 50, deep stays 99!`,
+          explanation: 'Object spread `{ ...orig }` performs a shallow copy where `s.meta` and `orig.meta` still point to the exact same nested object; `structuredClone()` recursively clones nested structures (including `Date`, `Map`, `Set`, and cycles) so `d` stays isolated.'
         }
       ],
       testCases: [
@@ -735,7 +792,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Fixing Lost this After Method Extraction',
-          code: `const user = { name: 'Kabir', greet(city) { return \`\${this.name} from \${city}\`; } };\nconst detached = user.greet;\nconsole.log('call:', detached.call(user, 'Delhi'));\nconsole.log('apply:', detached.apply(user, ['Pune']));\nconst bound = detached.bind(user);\nconsole.log('bind:', bound('Mumbai'));`
+          code: `const user = { name: 'Kabir', greet(city) { return \`\${this.name} from \${city}\`; } };\nconst detached = user.greet;\nconsole.log('call:', detached.call(user, 'Delhi'));\nconsole.log('apply:', detached.apply(user, ['Pune']));\nconst bound = detached.bind(user);\nconsole.log('bind:', bound('Mumbai'));`,
+          explanation: 'Copying `user.greet` into `detached` strips its receiver binding (`this` becomes `undefined` in strict mode); `.call(user, ...args)` and `.apply(user, [args])` invoke immediately with `user`, while `.bind(user)` returns a permanently bound function.'
         }
       ],
       testCases: [
@@ -751,7 +809,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Unique Deduplication & Map Frequency Counter',
-          code: `const pro = new Set(['Alice', 'Bob', 'Charlie']);\nconst active = new Set(['Bob', 'David']);\nconst both = pro.intersection ? [...pro.intersection(active)] : [...pro].filter(x => active.has(x));\nconsole.log('Active Pro:', both);`
+          code: `const pro = new Set(['Alice', 'Bob', 'Charlie']);\nconst active = new Set(['Bob', 'David']);\nconst both = pro.intersection ? [...pro.intersection(active)] : [...pro].filter(x => active.has(x));\nconsole.log('Active Pro:', both);`,
+          explanation: 'Per MDN, `Set.prototype.intersection()` returns a brand-new `Set` containing elements present in both sets using `O(1)` average hash lookups (`SameValueZero`), leaving `pro` and `active` unmodified (with `.has()` fallback for pre-ES2025 runtimes).'
         }
       ],
       testCases: [
@@ -761,4 +820,3 @@ module.exports = {
     }
   ]
 };
-

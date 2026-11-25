@@ -40,6 +40,7 @@ export interface GuidedStepSection {
 export interface GuidedCodeExample {
   title: string;
   code: string;
+  explanation?: string;
   language?: 'javascript' | 'html';
 }
 

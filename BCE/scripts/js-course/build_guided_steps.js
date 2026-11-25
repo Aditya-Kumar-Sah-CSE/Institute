@@ -584,7 +584,8 @@ function createInteractiveStepsForLesson(
       examples: [
         {
           title: 'Example 1: Active Verification Pattern with console.assert()',
-          code: `function practiceStep(concept) {\n  return \`Read -> Code Live -> Solve Task -> Verify (\${concept})\`;\n}\nconst msg = practiceStep('Closures');\nconsole.log(msg);\nconsole.assert(msg.includes('Closures'), 'Expected concept name');`
+          code: `function practiceStep(concept) {\n  return \`Read -> Code Live -> Solve Task -> Verify (\${concept})\`;\n}\nconst msg = practiceStep('Closures');\nconsole.log(msg);\nconsole.assert(msg.includes('Closures'), 'Expected concept name');`,
+          explanation: 'Per MDN, `console.assert(condition, message)` evaluates silently when truthy (`msg.includes(\'Closures\') === true`) and logs an assertion failure only when invariants break — ideal for fast self-tests.'
         }
       ],
       testCases: [
@@ -710,6 +711,25 @@ function createInteractiveStepsForLesson(
         new Set(deepConcepts.flatMap(c => (Array.isArray(c.keywords) ? c.keywords : [])))
       ).slice(0, 6);
 
+      const coreExplanations = {
+        1: '`const` locks `name` against reassignment while `let` allows updating `score` (`+= 5`), and template literals interpolate JS expressions dynamically via `${...}`.',
+        2: '`+` performs string concatenation when either operand is a string (`\'53\'`), `-` coerces strings numerically via `ToNumber()` (`2`), and `??` keeps `0` whereas `||` overwrites all falsy values with `\'d\'`.',
+        3: '`if (i % 2 === 0) continue` short-circuits even iterations directly to `i++`, printing strictly odd numbers `1`, `3`, and `5`.',
+        4: 'Default parameter `(b = 0)` applies only when `b` is omitted or `undefined`, while rest syntax `(...n)` gathers extra trailing numbers into a genuine Array supporting `.reduce()`.',
+        5: '`inc` and `get` share a private lexical closure over `let c = 0` inside `makeCounter()`, preserving updated state (`2`) after `makeCounter()` finishes.',
+        6: 'Spreading `[...nums]` avoids in-place `.sort()` mutation, while comparator `(a, b) => a - b` ensures numeric order alongside non-mutating `.map()`, `.filter()`, and `.reduce()`.',
+        7: 'Strings are immutable, so chaining `.split(\' \').map(w => w[0]).join(\'\')` yields initials `\'HJW\'` cleanly, while `RegExp.prototype.test()` checks patterns as a fast boolean.',
+        8: 'Nested destructuring extracts `city` directly, optional chaining `user?.phone?.number` safely returns `undefined` instead of `TypeError`, and `JSON.stringify()` omits `undefined` keys.',
+        9: 'ES Modules run in isolated strict scope: named exports (`{ add }`) and the single `default` export (`greet`) are statically linked by `import` declarations for tree-shaking.',
+        10: 'Private field `#sound` stays strictly encapsulated inside `Animal`; subclass `Dog` initializes parent state via `super(n, \'woof\')` first and inherits `.speak()` on its prototype chain.',
+        11: 'Using `document.createElement` + `li.textContent` writes plain characters rather than parsing HTML (preventing DOM XSS), `classList.add` adds tokens safely, and `.append()` attaches nodes cleanly.',
+        12: 'Event bubbling propagates clicks up to `#list`, letting one parent listener resolve the clicked `<li>` cleanly via `e.target.closest(\'li\')` even if nested elements were clicked.',
+        13: 'Per MDN Fetch API specs, `fetch()` only rejects on network failures — HTTP `404`/`500` resolves with `r.ok === false`, so checking `if (!r.ok) throw` routes HTTP errors into `catch` reliably.',
+        14: 'Extending `Error` preserves stack traces and `instanceof` checks while `this.name = \'ValidationError\'` identifies domain failures cleanly inside `catch` blocks.',
+        15: 'Node\'s `node:http` `createServer` handles incoming requests asynchronously on the event loop, setting explicit `Content-Type: application/json` headers and ending responses with JSON strings.',
+        16: 'Binary search halves the sorted interval `[l, r]` per iteration using signed bitwise midpoint `(l + r) >> 1`, achieving `O(log n)` time and `O(1)` extra space.'
+      };
+
       push({
         kind: 'code_lab',
         badge: 'Workbook Core Lab',
@@ -721,7 +741,8 @@ function createInteractiveStepsForLesson(
           {
             title: `Complete Topic ${topic.id} Walkthrough`,
             language: isDomTopic ? 'html' : 'javascript',
-            code: coreStarter
+            code: coreStarter,
+            explanation: coreExplanations[topic.id] || `Walkthrough combining core primitives and patterns from ${topic.title}.`
           }
         ],
         keyPoints: Array.isArray(topic.kyaSeekhnaHai) ? topic.kyaSeekhnaHai.slice(0, 5) : undefined,

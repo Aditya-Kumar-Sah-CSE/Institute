@@ -1,4 +1,4 @@
-// Topics 9 to 16: Modern JS, OOP, DOM, Events, Async, Error Handling, Node.js, DSA
+// Topics 9 to 16: Modern JS, OOP, DOM, Events, Async, Error Handling, Node.js, DSA (with MDN/spec explanations)
 
 module.exports = {
   9: [
@@ -10,7 +10,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Safe Named Config Objects',
-          code: `function fetchPage({ url, method = 'GET', retries = 2 } = {}) {\n  return { url, method, retries };\n}\nconsole.log(fetchPage({ url: '/api/users' }));\nconsole.log(fetchPage()); // Still works cleanly!`
+          code: `function fetchPage({ url, method = 'GET', retries = 2 } = {}) {\n  return { url, method, retries };\n}\nconsole.log(fetchPage({ url: '/api/users' }));\nconsole.log(fetchPage()); // Still works cleanly!`,
+          explanation: 'Providing `= {}` as default parameter prevents `TypeError: Cannot destructure property of undefined` when `fetchPage()` is called without arguments, allowing each destructured field default (`method`, `retries`) to evaluate cleanly.'
         }
       ],
       testCases: [
@@ -26,7 +27,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Named + Default Import Contract',
-          code: `// utils.js\nexport const clamp = (n, min, max) => Math.min(max, Math.max(min, n));\nexport default function greet(u) { return \`Hi \${u}\`; }\n\n// app.js\nimport greet, { clamp } from './utils.js';`
+          code: `// utils.js\nexport const clamp = (n, min, max) => Math.min(max, Math.max(min, n));\nexport default function greet(u) { return \`Hi \${u}\`; }\n\n// app.js\nimport greet, { clamp } from './utils.js';`,
+          explanation: 'Each ES module runs strictly scoped once per module graph: static `import` statements link named exports (`{ clamp }`) and at most one `default` export (`greet`) at parse time, allowing bundlers like Vite to tree-shake unused exports.'
         }
       ],
       testCases: [
@@ -42,7 +44,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Infinite Sequence Generator with Early Stop',
-          code: `function* idGen(prefix = 'USR') {\n  let id = 1;\n  while (true) yield \`\${prefix}_\${id++}\`;\n}\nconst g = idGen();\nconsole.log(g.next().value, g.next().value, g.next().value);`
+          code: `function* idGen(prefix = 'USR') {\n  let id = 1;\n  while (true) yield \`\${prefix}_\${id++}\`;\n}\nconst g = idGen();\nconsole.log(g.next().value, g.next().value, g.next().value);`,
+          explanation: 'Calling a `function*` returns a suspended Generator object instead of executing its body; execution pauses at every `yield` and resumes only when `.next()` is called, so `while (true)` produces infinite IDs safely in `O(1)` memory.'
         }
       ],
       testCases: [
@@ -58,7 +61,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Attaching Private Object Metadata Without Memory Leaks',
-          code: `const meta = new WeakMap();\nlet obj = { id: 1 };\nmeta.set(obj, { clicks: 5 });\nconsole.log('Clicks:', meta.get(obj).clicks);\nobj = null; // WeakMap entry can now be garbage collected!`
+          code: `const meta = new WeakMap();\nlet obj = { id: 1 };\nmeta.set(obj, { clicks: 5 });\nconsole.log('Clicks:', meta.get(obj).clicks);\nobj = null; // WeakMap entry can now be garbage collected!`,
+          explanation: 'Per MDN, `WeakMap` holds weak references to object keys: once `obj = null` removes all strong references, both the key and its associated entry become eligible for automatic garbage collection (which is why `WeakMap` is intentionally non-enumerable and lacks `.size`).'
         }
       ],
       testCases: [
@@ -77,7 +81,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Walking the Prototype Chain Up to null',
-          code: `const arr = [1, 2];\nlet p = Object.getPrototypeOf(arr);\nconsole.log('1st proto === Array.prototype:', p === Array.prototype);\np = Object.getPrototypeOf(p);\nconsole.log('2nd proto === Object.prototype:', p === Object.prototype);\nconsole.log('End of chain:', Object.getPrototypeOf(p));`
+          code: `const arr = [1, 2];\nlet p = Object.getPrototypeOf(arr);\nconsole.log('1st proto === Array.prototype:', p === Array.prototype);\np = Object.getPrototypeOf(p);\nconsole.log('2nd proto === Object.prototype:', p === Object.prototype);\nconsole.log('End of chain:', Object.getPrototypeOf(p));`,
+          explanation: 'When reading a missing property on `arr`, JS traverses `[[Prototype]]` links via `Array.prototype` (giving `.map`/`.push`) -> `Object.prototype` (giving `.toString`) until `Object.getPrototypeOf(Object.prototype)` terminates cleanly at `null`.'
         }
       ],
       testCases: [
@@ -93,7 +98,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Computed Getter + Static Factory',
-          code: `class Rectangle {\n  constructor(w, h) { this.w = w; this.h = h; }\n  get area() { return this.w * this.h; }\n  static square(s) { return new Rectangle(s, s); }\n}\nconsole.log('Area:', Rectangle.square(5).area);`
+          code: `class Rectangle {\n  constructor(w, h) { this.w = w; this.h = h; }\n  get area() { return this.w * this.h; }\n  static square(s) { return new Rectangle(s, s); }\n}\nconsole.log('Area:', Rectangle.square(5).area);`,
+          explanation: '`static square()` attaches to the `Rectangle` constructor function itself (not `Rectangle.prototype`), acting as a named factory, while `get area()` runs on property access (`instance.area`) without needing parentheses `()`.'
         }
       ],
       testCases: [
@@ -109,7 +115,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Private #balance Field Guard',
-          code: `class Wallet {\n  #balance = 0;\n  constructor(init = 0) { this.#balance = init; }\n  deposit(amt) { if (amt > 0) this.#balance += amt; }\n  get balance() { return this.#balance; }\n}\nconst w = new Wallet(100);\nw.deposit(50);\nconsole.log('Balance:', w.balance);`
+          code: `class Wallet {\n  #balance = 0;\n  constructor(init = 0) { this.#balance = init; }\n  deposit(amt) { if (amt > 0) this.#balance += amt; }\n  get balance() { return this.#balance; }\n}\nconst w = new Wallet(100);\nw.deposit(50);\nconsole.log('Balance:', w.balance);`,
+          explanation: 'Hash private fields (`#balance`) are enforced by the ECMAScript spec at parse and runtime: they live in an internal slot invisible to `Object.keys()`, subclasses, or external `w.#balance` reads (`SyntaxError`), exposing state strictly through `deposit()` and `get balance()`.'
         }
       ],
       testCases: [
@@ -125,7 +132,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Composable Behavior Without `new` or `this` Traps',
-          code: `const canSave = key => ({ save: data => console.log('Saved under', key, data) });\nconst userService = Object.assign({ name: 'Users' }, canSave('users_v1'));\nuserService.save({ id: 1 });`
+          code: `const canSave = key => ({ save: data => console.log('Saved under', key, data) });\nconst userService = Object.assign({ name: 'Users' }, canSave('users_v1'));\nuserService.save({ id: 1 });`,
+          explanation: 'Returning plain behavior objects merged via `Object.assign` locks `key` inside a closure (`canSave`), eliminating deep inheritance chains, `new` forgetfulness, and broken `this` context when methods are detached.'
         }
       ],
       testCases: [
@@ -145,7 +153,8 @@ module.exports = {
         {
           title: 'Example 1: Live Interactive DOM Query & Style Update',
           language: 'html',
-          code: `<!DOCTYPE html>\n<html><body style="font-family:sans-serif;padding:16px;background:#0f172a;color:#f8fafc">\n  <h2 id="heading">DOM Query Demo</h2>\n  <button id="btn">Highlight All Items</button>\n  <ul><li class="row">Alpha</li><li class="row">Beta</li></ul>\n  <script>\n    document.querySelector('#btn').addEventListener('click', () => {\n      document.querySelectorAll('.row').forEach((li, i) => {\n        li.style.color = '#38bdf8';\n        li.textContent = \`Item #\${i + 1}: \${li.textContent}\`;\n      });\n    });\n  </script>\n</body></html>`
+          code: `<!DOCTYPE html>\n<html><body style="font-family:sans-serif;padding:16px;background:#0f172a;color:#f8fafc">\n  <h2 id="heading">DOM Query Demo</h2>\n  <button id="btn">Highlight All Items</button>\n  <ul><li class="row">Alpha</li><li class="row">Beta</li></ul>\n  <script>\n    document.querySelector('#btn').addEventListener('click', () => {\n      document.querySelectorAll('.row').forEach((li, i) => {\n        li.style.color = '#38bdf8';\n        li.textContent = \`Item #\${i + 1}: \${li.textContent}\`;\n      });\n    });\n  </script>\n</body></html>`,
+          explanation: '`querySelectorAll(\'.row\')` returns a *static* `NodeList` (snapshot unaffected by later DOM edits) that implements `.forEach()` directly, unlike legacy live `HTMLCollection` objects from `getElementsByClassName`.'
         }
       ],
       testCases: [
@@ -162,7 +171,8 @@ module.exports = {
         {
           title: 'Example 1: Safe Batch List Rendering (No XSS)',
           language: 'html',
-          code: `<!DOCTYPE html>\n<html><body style="font-family:sans-serif;padding:16px;background:#0f172a;color:#f8fafc">\n  <input id="inp" value="<script>alert(1)</script>" />\n  <button id="add">Render Safely</button>\n  <ul id="list"></ul>\n  <script>\n    document.querySelector('#add').addEventListener('click', () => {\n      const li = document.createElement('li');\n      li.textContent = document.querySelector('#inp').value; // Rendered safely as text!\n      document.querySelector('#list').append(li);\n    });\n  </script>\n</body></html>`
+          code: `<!DOCTYPE html>\n<html><body style="font-family:sans-serif;padding:16px;background:#0f172a;color:#f8fafc">\n  <input id="inp" value="<script>alert(1)</script>" />\n  <button id="add">Render Safely</button>\n  <ul id="list"></ul>\n  <script>\n    document.querySelector('#add').addEventListener('click', () => {\n      const li = document.createElement('li');\n      li.textContent = document.querySelector('#inp').value; // Rendered safely as text!\n      document.querySelector('#list').append(li);\n    });\n  </script>\n</body></html>`,
+          explanation: 'Per MDN Security guides, assigning to `.textContent` inserts raw characters inside a DOM `Text` node without running the HTML parser — neutralizing `<script>` and `onerror=` XSS attacks that `.innerHTML` would execute.'
         }
       ],
       testCases: [
@@ -179,7 +189,8 @@ module.exports = {
         {
           title: 'Example 1: Toggle Classes & Read data-* Attributes',
           language: 'html',
-          code: `<!DOCTYPE html>\n<html><body style="font-family:sans-serif;padding:16px;background:#0f172a;color:#f8fafc">\n  <style>.active { outline: 2px solid #38bdf8; background: #082f49; padding: 8px; }</style>\n  <div id="card" data-status="draft">Click button to toggle state</div>\n  <button id="tog">Toggle Class</button>\n  <script>\n    document.querySelector('#tog').addEventListener('click', () => {\n      const c = document.querySelector('#card');\n      c.classList.toggle('active');\n      c.dataset.status = c.classList.contains('active') ? 'published' : 'draft';\n      c.textContent = 'Status: ' + c.dataset.status;\n    });\n  </script>\n</body></html>`
+          code: `<!DOCTYPE html>\n<html><body style="font-family:sans-serif;padding:16px;background:#0f172a;color:#f8fafc">\n  <style>.active { outline: 2px solid #38bdf8; background: #082f49; padding: 8px; }</style>\n  <div id="card" data-status="draft">Click button to toggle state</div>\n  <button id="tog">Toggle Class</button>\n  <script>\n    document.querySelector('#tog').addEventListener('click', () => {\n      const c = document.querySelector('#card');\n      c.classList.toggle('active');\n      c.dataset.status = c.classList.contains('active') ? 'published' : 'draft';\n      c.textContent = 'Status: ' + c.dataset.status;\n    });\n  </script>\n</body></html>`,
+          explanation: '`classList.toggle()` adds/removes one CSS token cleanly without clobbering existing classes (unlike overwriting `className`), while `data-status` syncs automatically with `c.dataset.status` in the DOM attribute map.'
         }
       ],
       testCases: [
@@ -199,7 +210,8 @@ module.exports = {
         {
           title: 'Example 1: Trace Capture -> Target -> Bubble Execution Order',
           language: 'html',
-          code: `<!DOCTYPE html>\n<html><body style="font-family:sans-serif;padding:16px;background:#0f172a;color:#f8fafc">\n  <div id="outer" style="padding:14px;border:1px solid #38bdf8">\n    Outer <button id="inner">Click Inner</button>\n  </div>\n  <pre id="log"></pre>\n  <script>\n    const log = m => document.querySelector('#log').textContent += m + '\\n';\n    document.querySelector('#outer').addEventListener('click', () => log('1. Outer Capture'), { capture: true });\n    document.querySelector('#inner').addEventListener('click', () => log('2. Inner Target'));\n    document.querySelector('#outer').addEventListener('click', () => log('3. Outer Bubble'));\n  </script>\n</body></html>`
+          code: `<!DOCTYPE html>\n<html><body style="font-family:sans-serif;padding:16px;background:#0f172a;color:#f8fafc">\n  <div id="outer" style="padding:14px;border:1px solid #38bdf8">\n    Outer <button id="inner">Click Inner</button>\n  </div>\n  <pre id="log"></pre>\n  <script>\n    const log = m => document.querySelector('#log').textContent += m + '\\n';\n    document.querySelector('#outer').addEventListener('click', () => log('1. Outer Capture'), { capture: true });\n    document.querySelector('#inner').addEventListener('click', () => log('2. Inner Target'));\n    document.querySelector('#outer').addEventListener('click', () => log('3. Outer Bubble'));\n  </script>\n</body></html>`,
+          explanation: 'Per DOM Events spec, propagation happens in 3 strict phases: Capture travels top-down (`#outer` capture listener fires first), Target executes on `#inner`, then Bubble travels back upward (`#outer` default listener fires last).'
         }
       ],
       testCases: [
@@ -216,7 +228,8 @@ module.exports = {
         {
           title: 'Example 1: 1 Parent Listener Handling Multiple Action Buttons',
           language: 'html',
-          code: `<!DOCTYPE html>\n<html><body style="font-family:sans-serif;padding:16px;background:#0f172a;color:#f8fafc">\n  <div id="bar" style="display:flex;gap:8px">\n    <button data-act="Edit">Edit</button>\n    <button data-act="Delete">Delete</button>\n  </div>\n  <p id="msg">Click an action</p>\n  <script>\n    document.querySelector('#bar').addEventListener('click', e => {\n      const btn = e.target.closest('button');\n      if (!btn) return;\n      document.querySelector('#msg').textContent = 'Action: ' + btn.dataset.act;\n    });\n  </script>\n</body></html>`
+          code: `<!DOCTYPE html>\n<html><body style="font-family:sans-serif;padding:16px;background:#0f172a;color:#f8fafc">\n  <div id="bar" style="display:flex;gap:8px">\n    <button data-act="Edit">Edit</button>\n    <button data-act="Delete">Delete</button>\n  </div>\n  <p id="msg">Click an action</p>\n  <script>\n    document.querySelector('#bar').addEventListener('click', e => {\n      const btn = e.target.closest('button');\n      if (!btn) return;\n      document.querySelector('#msg').textContent = 'Action: ' + btn.dataset.act;\n    });\n  </script>\n</body></html>`,
+          explanation: 'Click events bubble up to parent `#bar`, so a single delegated listener handles every existing or future button (`e.target.closest(\'button\')` also resolves inner icons reliably and returns `null` when clicking empty gaps).'
         }
       ],
       testCases: [
@@ -233,7 +246,8 @@ module.exports = {
         {
           title: 'Example 1: Live Validation Form Without Reload',
           language: 'html',
-          code: `<!DOCTYPE html>\n<html><body style="font-family:sans-serif;padding:16px;background:#0f172a;color:#f8fafc">\n  <form id="f">\n    <input id="email" placeholder="Email..." />\n    <button type="submit">Submit</button>\n  </form>\n  <p id="res"></p>\n  <script>\n    document.querySelector('#f').addEventListener('submit', e => {\n      e.preventDefault();\n      const val = document.querySelector('#email').value.trim();\n      document.querySelector('#res').textContent = val.includes('@') ? 'Valid!' : 'Missing @';\n    });\n  </script>\n</body></html>`
+          code: `<!DOCTYPE html>\n<html><body style="font-family:sans-serif;padding:16px;background:#0f172a;color:#f8fafc">\n  <form id="f">\n    <input id="email" placeholder="Email..." />\n    <button type="submit">Submit</button>\n  </form>\n  <p id="res"></p>\n  <script>\n    document.querySelector('#f').addEventListener('submit', e => {\n      e.preventDefault();\n      const val = document.querySelector('#email').value.trim();\n      document.querySelector('#res').textContent = val.includes('@') ? 'Valid!' : 'Missing @';\n    });\n  </script>\n</body></html>`,
+          explanation: 'HTML `<form>` submission defaults to navigating/reloading the page; calling `e.preventDefault()` cancels the browser navigation action so JS validates `#email` and updates `#res` inline without losing application state.'
         }
       ],
       testCases: [
@@ -252,11 +266,13 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Predictable Execution Order (1 -> 4 -> 3 -> 2)',
-          code: `console.log('1: Sync');\nsetTimeout(() => console.log('2: Macrotask (setTimeout)'), 0);\nPromise.resolve().then(() => console.log('3: Microtask (Promise)'));\nconsole.log('4: Sync end');`
+          code: `console.log('1: Sync');\nsetTimeout(() => console.log('2: Macrotask (setTimeout)'), 0);\nPromise.resolve().then(() => console.log('3: Microtask (Promise)'));\nconsole.log('4: Sync end');`,
+          explanation: 'Even with `0ms` delay, `setTimeout` enters the Macrotask queue: synchronous `1` and `4` finish on the Call Stack first, then the Event Loop drains the higher-priority Microtask queue (`3`) before picking macrotask `2`.'
         },
         {
           title: 'Example 2: queueMicrotask Priority Over Timers',
-          code: `setTimeout(() => console.log('Timer'), 0);\nqueueMicrotask(() => console.log('Microtask runs BEFORE Timer'));`
+          code: `setTimeout(() => console.log('Timer'), 0);\nqueueMicrotask(() => console.log('Microtask runs BEFORE Timer'));`,
+          explanation: 'Per MDN, `queueMicrotask()` schedules a callback onto the Microtask queue right after the active script completes and before yielding control to rendering or macrotask timers like `setTimeout`.'
         }
       ],
       testCases: [
@@ -272,7 +288,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Promise Transformation Chain + Rejection Skip',
-          code: `Promise.resolve(5)\n  .then(x => x * 3)\n  .then(x => { if (x > 10) throw new Error('Too big'); return x; })\n  .catch(e => console.log('Caught cleanly:', e.message))\n  .finally(() => console.log('Finally always executes'));`
+          code: `Promise.resolve(5)\n  .then(x => x * 3)\n  .then(x => { if (x > 10) throw new Error('Too big'); return x; })\n  .catch(e => console.log('Caught cleanly:', e.message))\n  .finally(() => console.log('Finally always executes'));`,
+          explanation: 'Throwing an `Error` inside any `.then()` rejects that step\'s returned Promise automatically, skipping downstream `.then()` handlers straight to `.catch()`, while `.finally()` executes regardless of fulfillment or rejection.'
         }
       ],
       testCases: [
@@ -288,7 +305,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Safe Concurrent Batch via Promise.allSettled()',
-          code: `Promise.allSettled([\n  Promise.resolve('Profile OK'),\n  Promise.reject(new Error('Stats offline'))\n]).then(res => console.table(res.map(r => ({ status: r.status, detail: r.value || r.reason?.message }))));`
+          code: `Promise.allSettled([\n  Promise.resolve('Profile OK'),\n  Promise.reject(new Error('Stats offline'))\n]).then(res => console.table(res.map(r => ({ status: r.status, detail: r.value || r.reason?.message }))));`,
+          explanation: 'Unlike `Promise.all()` (which short-circuits immediately if any promise rejects), `Promise.allSettled()` waits for every input promise to finish and returns an array describing each `{ status, value | reason }` independently.'
         }
       ],
       testCases: [
@@ -304,7 +322,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Parallel async/await + Error Guard Pattern',
-          code: `const wait = (ms, val) => new Promise(r => setTimeout(() => r(val), ms));\n(async () => {\n  try {\n    const [a, b] = await Promise.all([wait(40, 'User'), wait(40, 'Posts')]);\n    console.log({ a, b });\n  } catch (err) {\n    console.error('Failed:', err.message);\n  }\n})();`
+          code: `const wait = (ms, val) => new Promise(r => setTimeout(() => r(val), ms));\n(async () => {\n  try {\n    const [a, b] = await Promise.all([wait(40, 'User'), wait(40, 'Posts')]);\n    console.log({ a, b });\n  } catch (err) {\n    console.error('Failed:', err.message);\n  }\n})();`,
+          explanation: 'Awaiting independent `wait()` calls sequentially would take `40 + 40 = 80ms`; combining `await Promise.all([...])` runs them concurrently in ~`40ms` while funneling any failure cleanly into the surrounding `try/catch`.'
         }
       ],
       testCases: [
@@ -323,7 +342,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Discriminating Custom Error Subclasses cleanly',
-          code: `class ValidationError extends Error {\n  constructor(m) { super(m); this.name = 'ValidationError'; }\n}\nfunction checkAge(age) {\n  if (age < 18) throw new ValidationError('Must be 18+');\n  return true;\n}\ntry {\n  checkAge(15);\n} catch (e) {\n  console.log(e instanceof ValidationError, e.name, '->', e.message);\n} finally {\n  console.log('Finally always cleans up loaders');\n}`
+          code: `class ValidationError extends Error {\n  constructor(m) { super(m); this.name = 'ValidationError'; }\n}\nfunction checkAge(age) {\n  if (age < 18) throw new ValidationError('Must be 18+');\n  return true;\n}\ntry {\n  checkAge(15);\n} catch (e) {\n  console.log(e instanceof ValidationError, e.name, '->', e.message);\n} finally {\n  console.log('Finally always cleans up loaders');\n}`,
+          explanation: 'Subclassing built-in `Error` preserves stack traces and lets `catch` blocks test `e instanceof ValidationError` accurately, while `finally` executes unconditionally whether `try` succeeds, returns, or throws.'
         }
       ],
       testCases: [
@@ -339,7 +359,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Resilient Input Validator + Safe JSON Parser',
-          code: `function safeParse(str, fallback = {}) {\n  try { return JSON.parse(str); } catch { return fallback; }\n}\nconsole.log('Valid:', safeParse('{"ok":true}'));\nconsole.log('Malformed:', safeParse('{broken', { recovered: true }));`
+          code: `function safeParse(str, fallback = {}) {\n  try { return JSON.parse(str); } catch { return fallback; }\n}\nconsole.log('Valid:', safeParse('{"ok":true}'));\nconsole.log('Malformed:', safeParse('{broken', { recovered: true }));`,
+          explanation: '`JSON.parse()` throws `SyntaxError` on malformed strings or corrupted storage data; isolating it inside `try/catch` contains the exception and returns a predictable `fallback` shape safely.'
         }
       ],
       testCases: [
@@ -358,7 +379,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Inspect SemVer & Module Exports Metadata',
-          code: `const pkg = { name: 'js-api', version: '1.4.2', type: 'module', scripts: { start: 'node index.js', lint: 'eslint .' } };\nconsole.table(pkg.scripts);\nconsole.log('SemVer Major.Minor.Patch:', pkg.version.split('.'));`
+          code: `const pkg = { name: 'js-api', version: '1.4.2', type: 'module', scripts: { start: 'node index.js', lint: 'eslint .' } };\nconsole.table(pkg.scripts);\nconsole.log('SemVer Major.Minor.Patch:', pkg.version.split('.'));`,
+          explanation: 'Setting `"type": "module"` in `package.json` configures Node.js to parse `.js` files as ES Modules (`import`/`export`), while `MAJOR.MINOR.PATCH` Semantic Versioning encodes breaking, additive, and patch upgrades.'
         }
       ],
       testCases: [
@@ -374,7 +396,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Simulating HTTP Route Statuses & Validation',
-          code: `function handleCreateTodo(body) {\n  if (!body?.text?.trim()) return { status: 400, json: { error: 'text required' } };\n  return { status: 201, json: { id: 1, text: body.text.trim(), done: false } };\n}\nconsole.log('Empty:', handleCreateTodo({}));\nconsole.log('Valid:', handleCreateTodo({ text: 'Learn Express' }));`
+          code: `function handleCreateTodo(body) {\n  if (!body?.text?.trim()) return { status: 400, json: { error: 'text required' } };\n  return { status: 201, json: { id: 1, text: body.text.trim(), done: false } };\n}\nconsole.log('Empty:', handleCreateTodo({}));\nconsole.log('Valid:', handleCreateTodo({ text: 'Learn Express' }));`,
+          explanation: 'Guard checks validate required payload fields early (`body?.text?.trim()`), returning HTTP `400 Bad Request` on invalid input and semantic HTTP `201 Created` when constructing a new resource.'
         }
       ],
       testCases: [
@@ -394,7 +417,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: O(n) Two Sum with Map & Longest Unique Substring',
-          code: `function twoSum(nums, target) {\n  const m = new Map();\n  for (let i = 0; i < nums.length; i++) {\n    if (m.has(target - nums[i])) return [m.get(target - nums[i]), i];\n    m.set(nums[i], i);\n  }\n  return [];\n}\nconsole.log(twoSum([2, 7, 11, 15], 9));`
+          code: `function twoSum(nums, target) {\n  const m = new Map();\n  for (let i = 0; i < nums.length; i++) {\n    if (m.has(target - nums[i])) return [m.get(target - nums[i]), i];\n    m.set(nums[i], i);\n  }\n  return [];\n}\nconsole.log(twoSum([2, 7, 11, 15], 9));`,
+          explanation: 'Recording each visited number -> index inside a hash `Map` enables `O(1)` average-time complement lookup (`target - nums[i]`), cutting Two Sum from `O(n^2)` nested loops down to single-pass `O(n)` time.'
         }
       ],
       testCases: [
@@ -410,7 +434,8 @@ module.exports = {
       examples: [
         {
           title: 'Example 1: Valid Parentheses (Stack) & Binary Search',
-          code: `function isValid(s) {\n  const st = [], map = { ')': '(', ']': '[', '}': '{' };\n  for (const ch of s) {\n    if ('([{'.includes(ch)) st.push(ch);\n    else if (st.pop() !== map[ch]) return false;\n  }\n  return st.length === 0;\n}\nconsole.log(isValid('({[]})'), isValid('(]'));`
+          code: `function isValid(s) {\n  const st = [], map = { ')': '(', ']': '[', '}': '{' };\n  for (const ch of s) {\n    if ('([{'.includes(ch)) st.push(ch);\n    else if (st.pop() !== map[ch]) return false;\n  }\n  return st.length === 0;\n}\nconsole.log(isValid('({[]})'), isValid('(]'));`,
+          explanation: 'A Last-In-First-Out (LIFO) stack matches nested brackets in `O(n)` linear time because the most recently opened bracket on top of `st` must close before any outer bracket (`st.pop() === map[ch]`).'
         }
       ],
       testCases: [
@@ -421,4 +446,3 @@ module.exports = {
     }
   ]
 };
-
