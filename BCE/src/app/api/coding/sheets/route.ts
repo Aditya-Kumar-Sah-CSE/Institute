@@ -8,7 +8,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from('coding_sheets')
-    .select('id, slug, is_public, published_at, title, description, created_by, created_at, enrollment_access, coding_sheet_problems(problem_id)')
+    .select('id, slug, is_public, published_at, title, description, created_by, created_at, enrollment_access, sheet_type, metadata, coding_sheet_problems(problem_id)')
     .order('created_at', { ascending: false });
 
   if (error) {

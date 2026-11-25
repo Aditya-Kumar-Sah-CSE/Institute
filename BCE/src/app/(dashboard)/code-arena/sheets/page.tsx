@@ -12,8 +12,20 @@ export default async function CodingSheetsPage() {
   // Fetch all sheets (include enrollment_access and slug for enroll flow)
   const { data: sheets } = await supabase
     .from('coding_sheets')
-    .select('id, slug, title, description, created_by, created_at, enrollment_access, coding_sheet_problems(problem_id)')
+    .select('id, slug, title, description, created_by, created_at, enrollment_access, sheet_type, metadata, coding_sheet_problems(problem_id)')
     .order('created_at', { ascending: false });
+
+  // Fetch user's solved SQL questions per sheet (if any SQL sheets exist)
+  const { data: sqlSolvedRows } = await supabase
+    .from('coding_sheet_sql_progress')
+    .select('sheet_id, question_number')
+    .eq('user_id', user.id)
+    .eq('is_solved', true);
+
+  const sqlSolvedCountBySheet: Record<string, number> = {};
+  (sqlSolvedRows || []).forEach((r: any) => {
+    sqlSolvedCountBySheet[r.sheet_id] = (sqlSolvedCountBySheet[r.sheet_id] || 0) + 1;
+  });
 
   // Fetch solved status of problems for the current user to calculate progress bar
   const { data: submissions } = await supabase
@@ -37,6 +49,7 @@ export default async function CodingSheetsPage() {
       isInstructor={isInstructor} 
       solvedProblemIds={solvedProblemIds}
       enrolledSheetIds={enrolledSheetIds}
+      sqlSolvedCountBySheet={sqlSolvedCountBySheet}
     />
   );
 }

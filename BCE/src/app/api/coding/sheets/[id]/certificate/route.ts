@@ -44,10 +44,10 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 1. Get sheet info + problems
+    // 1. Get sheet info + type
     const { data: sheet, error: sheetError } = await supabase
       .from('coding_sheets')
-      .select('id, title, created_by')
+      .select('id, title, created_by, sheet_type')
       .eq('id', sheetId)
       .single();
 
@@ -55,66 +55,110 @@ export async function POST(
       return NextResponse.json({ error: 'Sheet not found' }, { status: 404 });
     }
 
-    // 2. Get sheet problems
-    const { data: sheetProblems } = await supabase
-      .from('coding_sheet_problems')
-      .select('problem_id')
-      .eq('sheet_id', sheetId);
-
-    const problemIds = sheetProblems?.map(p => p.problem_id) || [];
-    const totalProblems = problemIds.length;
-
-    if (totalProblems === 0) {
-      return NextResponse.json({ error: 'Sheet has no problems' }, { status: 400 });
-    }
-
-    // 3. Count how many the user solved
+    let totalProblems = 0;
     let solvedCount = 0;
-    if (problemIds.length > 0) {
-      const { data: subs } = await supabase
+    let rank = 1;
+
+    if ((sheet as any).sheet_type === 'SQL') {
+      const { count: sqlTotal } = await supabase
+        .from('coding_sheet_sql_questions')
+        .select('id', { count: 'exact', head: true })
+        .eq('sheet_id', sheetId);
+      totalProblems = sqlTotal || 0;
+
+      if (totalProblems === 0) {
+        return NextResponse.json({ error: 'SQL sheet has no questions' }, { status: 400 });
+      }
+
+      const { count: userSqlSolved } = await supabase
+        .from('coding_sheet_sql_progress')
+        .select('id', { count: 'exact', head: true })
+        .eq('sheet_id', sheetId)
+        .eq('user_id', user.id)
+        .eq('is_solved', true);
+      solvedCount = userSqlSolved || 0;
+
+      if (solvedCount < totalProblems) {
+        return NextResponse.json(
+          { error: `Sheet not completed. Solved ${solvedCount}/${totalProblems} SQL questions.` },
+          { status: 400 }
+        );
+      }
+
+      const { data: allSqlProgress } = await supabase
+        .from('coding_sheet_sql_progress')
+        .select('user_id, question_number')
+        .eq('sheet_id', sheetId)
+        .eq('is_solved', true);
+
+      if (allSqlProgress) {
+        const solverCounts: Record<string, Set<number>> = {};
+        allSqlProgress.forEach((row) => {
+          if (!solverCounts[row.user_id]) solverCounts[row.user_id] = new Set();
+          solverCounts[row.user_id].add(row.question_number);
+        });
+        const completers = Object.entries(solverCounts)
+          .filter(([, set]) => set.size >= totalProblems)
+          .map(([uid]) => uid);
+        rank = Math.max(1, completers.indexOf(user.id) + 1);
+      }
+    } else {
+      // 2. Get DSA sheet problems
+      const { data: sheetProblems } = await supabase
+        .from('coding_sheet_problems')
+        .select('problem_id')
+        .eq('sheet_id', sheetId);
+
+      const problemIds = sheetProblems?.map(p => p.problem_id) || [];
+      totalProblems = problemIds.length;
+
+      if (totalProblems === 0) {
+        return NextResponse.json({ error: 'Sheet has no problems' }, { status: 400 });
+      }
+
+      // 3. Count how many the user solved
+      if (problemIds.length > 0) {
+        const { data: subs } = await supabase
+          .from('coding_submissions')
+          .select('problem_id, status')
+          .eq('student_id', user.id)
+          .in('problem_id', problemIds)
+          .eq('status', 'ACCEPTED');
+
+        if (subs) {
+          const solvedSet = new Set(subs.map(s => s.problem_id));
+          solvedCount = solvedSet.size;
+        }
+      }
+
+      // 4. Verify completion — must have solved ALL problems
+      if (solvedCount < totalProblems) {
+        return NextResponse.json(
+          { error: `Sheet not completed. Solved ${solvedCount}/${totalProblems} problems.` },
+          { status: 400 }
+        );
+      }
+
+      // 5. Calculate rank among all students who solved problems from this sheet
+      const { data: allSubs } = await supabase
         .from('coding_submissions')
-        .select('problem_id, status')
-        .eq('student_id', user.id)
+        .select('student_id, problem_id, status')
         .in('problem_id', problemIds)
         .eq('status', 'ACCEPTED');
 
-      if (subs) {
-        const solvedSet = new Set(subs.map(s => s.problem_id));
-        solvedCount = solvedSet.size;
+      if (allSubs) {
+        const studentSolved: Record<string, Set<string>> = {};
+        allSubs.forEach(s => {
+          if (!studentSolved[s.student_id]) studentSolved[s.student_id] = new Set();
+          studentSolved[s.student_id].add(s.problem_id);
+        });
+
+        const completers = Object.entries(studentSolved)
+          .filter(([, solved]) => solved.size >= totalProblems)
+          .map(([sid]) => sid);
+
+        rank = Math.max(1, completers.indexOf(user.id) + 1);
       }
-    }
-
-    // 4. Verify completion — must have solved ALL problems
-    if (solvedCount < totalProblems) {
-      return NextResponse.json(
-        { error: `Sheet not completed. Solved ${solvedCount}/${totalProblems} problems.` },
-        { status: 400 }
-      );
-    }
-
-    // 5. Calculate rank among all students who solved problems from this sheet
-    // Get all students who have submissions for this sheet's problems
-    const { data: allSubs } = await supabase
-      .from('coding_submissions')
-      .select('student_id, problem_id, status')
-      .in('problem_id', problemIds)
-      .eq('status', 'ACCEPTED');
-
-    let rank = 1;
-    if (allSubs) {
-      // Count solved per student
-      const studentSolved: Record<string, Set<string>> = {};
-      allSubs.forEach(s => {
-        if (!studentSolved[s.student_id]) studentSolved[s.student_id] = new Set();
-        studentSolved[s.student_id].add(s.problem_id);
-      });
-      
-      // Students who completed all problems
-      const completers = Object.entries(studentSolved)
-        .filter(([, solved]) => solved.size >= totalProblems)
-        .map(([sid]) => sid);
-      
-      rank = Math.max(1, completers.indexOf(user.id) + 1);
     }
 
     // 6. Get company name

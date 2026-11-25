@@ -138,7 +138,7 @@ export async function getPreviewDSASheets(page = 0, limit = 100) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('coding_sheets')
-    .select('id, title, description, enrollment_access, coding_sheet_problems(problem_id)')
+    .select('id, title, description, enrollment_access, sheet_type, metadata, coding_sheet_problems(problem_id)')
     .order('created_at', { ascending: false })
     .range(page * limit, (page + 1) * limit - 1);
 
@@ -382,33 +382,120 @@ export async function getExploreSheetDetails(sheetId: string) {
     // 1. Sheet info
     const { data: sheet, error: sErr } = await adminClient
       .from('coding_sheets')
-      .select('id, title, description, enrollment_access, youtube_url, attachment_type, attachment_url, created_at, profiles:created_by(name)')
+      .select('id, title, description, enrollment_access, youtube_url, attachment_type, attachment_url, sheet_type, metadata, created_at, profiles:created_by(name)')
       .eq('id', sheetId)
       .single();
 
     if (sErr || !sheet) return { data: null, error: 'Sheet not found' };
 
-    // 2. Problems
-    const { data: problemsData } = await adminClient
-      .from('coding_sheet_problems')
-      .select('order_index, coding_problems(id, title, difficulty, external_platform, tags, external_url)')
-      .eq('sheet_id', sheetId)
-      .order('order_index', { ascending: true });
+    let problems: any[] = [];
+    const difficultyStats = { Easy: 0, Medium: 0, Hard: 0, Total: 0 };
+    let solvers: { name: string; avatarUrl: string | null; solvedCount: number }[] = [];
 
-    const problems = (problemsData || []).map((p: any) => ({
-      ...p.coding_problems,
-      order_index: p.order_index
-    }));
+    if ((sheet as any).sheet_type === 'SQL') {
+      const { data: sqlQs } = await adminClient
+        .from('coding_sheet_sql_questions')
+        .select('id, question_number, type, section, difficulty, question')
+        .eq('sheet_id', sheetId)
+        .order('question_number', { ascending: true });
 
-    const difficultyStats = { Easy: 0, Medium: 0, Hard: 0, Total: problems.length };
-    problems.forEach((p: any) => {
-      const diff = (p.difficulty || 'Easy').trim();
-      if (diff === 'Easy' || diff === 'Medium' || diff === 'Hard') {
-        difficultyStats[diff as 'Easy' | 'Medium' | 'Hard']++;
-      } else {
-        difficultyStats.Easy++;
+      problems = (sqlQs || []).map((q: any) => ({
+        id: q.id,
+        title: `Q${q.question_number}. ${q.question}`,
+        difficulty: q.difficulty === 'HARD' ? 'Hard' : q.difficulty === 'MEDIUM' ? 'Medium' : 'Easy',
+        external_platform: q.type,
+        tags: [q.section],
+        order_index: q.question_number - 1,
+      }));
+
+      difficultyStats.Total = problems.length;
+      problems.forEach((p: any) => {
+        if (p.difficulty === 'Hard') difficultyStats.Hard++;
+        else if (p.difficulty === 'Medium') difficultyStats.Medium++;
+        else difficultyStats.Easy++;
+      });
+
+      const { data: sqlProg } = await adminClient
+        .from('coding_sheet_sql_progress')
+        .select('user_id, question_number, profiles!coding_sheet_sql_progress_user_id_fkey(name, avatar_url)')
+        .eq('sheet_id', sheetId)
+        .eq('is_solved', true);
+
+      if (sqlProg && sqlProg.length > 0) {
+        const solverMap = new Map<string, { name: string; avatarUrl: string | null; qSet: Set<number> }>();
+        sqlProg.forEach((row: any) => {
+          const uid = row.user_id;
+          if (!solverMap.has(uid)) {
+            solverMap.set(uid, {
+              name: row.profiles?.name || 'SQL Learner',
+              avatarUrl: row.profiles?.avatar_url || null,
+              qSet: new Set(),
+            });
+          }
+          solverMap.get(uid)!.qSet.add(row.question_number);
+        });
+        solvers = Array.from(solverMap.values())
+          .map((s) => ({ name: s.name, avatarUrl: s.avatarUrl, solvedCount: s.qSet.size }))
+          .sort((a, b) => b.solvedCount - a.solvedCount)
+          .slice(0, 15);
       }
-    });
+    } else {
+      // 2. Problems
+      const { data: problemsData } = await adminClient
+        .from('coding_sheet_problems')
+        .select('order_index, coding_problems(id, title, difficulty, external_platform, tags, external_url)')
+        .eq('sheet_id', sheetId)
+        .order('order_index', { ascending: true });
+
+      problems = (problemsData || []).map((p: any) => ({
+        ...p.coding_problems,
+        order_index: p.order_index
+      }));
+
+      difficultyStats.Total = problems.length;
+      problems.forEach((p: any) => {
+        const diff = (p.difficulty || 'Easy').trim();
+        if (diff === 'Easy' || diff === 'Medium' || diff === 'Hard') {
+          difficultyStats[diff as 'Easy' | 'Medium' | 'Hard']++;
+        } else {
+          difficultyStats.Easy++;
+        }
+      });
+
+      // 4. Solvers leaderboard
+      const problemIds = problems.map((p: any) => p.id).filter(Boolean);
+      if (problemIds.length > 0) {
+        const { data: acceptedSubs } = await adminClient
+          .from('coding_submissions')
+          .select('student_id, problem_id, profiles!coding_submissions_student_id_fkey(name, avatar_url)')
+          .in('problem_id', problemIds)
+          .eq('status', 'ACCEPTED');
+
+        if (acceptedSubs && acceptedSubs.length > 0) {
+          const solverMap = new Map<string, { name: string; avatarUrl: string | null; problemSet: Set<string> }>();
+          acceptedSubs.forEach((sub: any) => {
+            const studentId = sub.student_id;
+            if (!solverMap.has(studentId)) {
+              solverMap.set(studentId, {
+                name: sub.profiles?.name || 'Anonymous Coder',
+                avatarUrl: sub.profiles?.avatar_url || null,
+                problemSet: new Set()
+              });
+            }
+            solverMap.get(studentId)!.problemSet.add(sub.problem_id);
+          });
+
+          solvers = Array.from(solverMap.values())
+            .map(s => ({
+              name: s.name,
+              avatarUrl: s.avatarUrl,
+              solvedCount: s.problemSet.size
+            }))
+            .sort((a, b) => b.solvedCount - a.solvedCount)
+            .slice(0, 15);
+        }
+      }
+    }
 
     // 3. Enrolled students
     const { data: sheetEnrollments, count: enrolledCount } = await adminClient
@@ -417,41 +504,6 @@ export async function getExploreSheetDetails(sheetId: string) {
       .eq('sheet_id', sheetId)
       .order('enrolled_at', { ascending: false })
       .limit(24);
-
-    // 4. Solvers leaderboard
-    const problemIds = problems.map((p: any) => p.id).filter(Boolean);
-    let solvers: { name: string; avatarUrl: string | null; solvedCount: number }[] = [];
-    if (problemIds.length > 0) {
-      const { data: acceptedSubs } = await adminClient
-        .from('coding_submissions')
-        .select('student_id, problem_id, profiles!coding_submissions_student_id_fkey(name, avatar_url)')
-        .in('problem_id', problemIds)
-        .eq('status', 'ACCEPTED');
-
-      if (acceptedSubs && acceptedSubs.length > 0) {
-        const solverMap = new Map<string, { name: string; avatarUrl: string | null; problemSet: Set<string> }>();
-        acceptedSubs.forEach((sub: any) => {
-          const studentId = sub.student_id;
-          if (!solverMap.has(studentId)) {
-            solverMap.set(studentId, {
-              name: sub.profiles?.name || 'Anonymous Coder',
-              avatarUrl: sub.profiles?.avatar_url || null,
-              problemSet: new Set()
-            });
-          }
-          solverMap.get(studentId)!.problemSet.add(sub.problem_id);
-        });
-
-        solvers = Array.from(solverMap.values())
-          .map(s => ({
-            name: s.name,
-            avatarUrl: s.avatarUrl,
-            solvedCount: s.problemSet.size
-          }))
-          .sort((a, b) => b.solvedCount - a.solvedCount)
-          .slice(0, 15);
-      }
-    }
 
     // 5. Reviews
     const { data: reviews } = await adminClient

@@ -188,7 +188,10 @@ export default function LandingDSAClient({
               onMouseMove={onMouseMove}
             >
             {sheets.map((sheet, index) => {
-              const problemsCount = sheet.coding_sheet_problems?.length || 0;
+              const problemsCount =
+                sheet.sheet_type === 'SQL'
+                  ? sheet.metadata?.total_count || 530
+                  : sheet.coding_sheet_problems?.length || 0;
               const isLast = index === sheets.length - 1;
               const isActive = index === activeIndex;
               return (

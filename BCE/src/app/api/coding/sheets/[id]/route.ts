@@ -14,7 +14,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   // Fetch sheet details by ID or slug
   let sheetQuery = supabase
     .from('coding_sheets')
-    .select('id, slug, is_public, published_at, title, description, created_by, created_at, enrollment_access, attachment_url, attachment_type, youtube_url');
+    .select('id, slug, is_public, published_at, title, description, created_by, created_at, enrollment_access, attachment_url, attachment_type, youtube_url, sheet_type, metadata');
 
   if (isUUID) {
     sheetQuery = sheetQuery.eq('id', id);
@@ -26,6 +26,27 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
   if (sheetError || !sheet) {
     return NextResponse.json({ success: false, error: { message: sheetError?.message || 'Coding sheet not found.' } }, { status: 404 });
+  }
+
+  if ((sheet as any).sheet_type === 'SQL') {
+    const { data: sqlQuestions, error: sqlErr } = await supabase
+      .from('coding_sheet_sql_questions')
+      .select('id, question_number, type, section, difficulty, question, options, correct_option, correct_answer, solution_sql, basic_concepts, explanation_points, incorrect_options, step_by_step, clause_breakdown')
+      .eq('sheet_id', sheet.id)
+      .order('question_number', { ascending: true });
+
+    if (sqlErr) {
+      return NextResponse.json({ success: false, error: { message: sqlErr.message } }, { status: 400 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...sheet,
+        problems: [],
+        sqlQuestions: sqlQuestions || [],
+      },
+    });
   }
 
   // Fetch linked problems with metadata

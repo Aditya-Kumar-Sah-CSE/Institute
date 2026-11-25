@@ -118,7 +118,7 @@ export default function ExploreDSASheet({ sheetId, onClose }: ExploreDSASheetPro
                 padding: '2px 8px',
                 borderRadius: '12px'
               }}>
-                DSA Practice Sheet
+                DSA {sheet?.sheet_type === 'SQL' ? '• SQL + MCQ Sheet' : 'Practice Sheet'}
               </span>
               {sheet?.enrollment_access && (
                 <span style={{

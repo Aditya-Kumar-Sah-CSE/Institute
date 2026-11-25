@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { 
   Trophy, ArrowLeft, BookOpen, Plus, Search, 
   ChevronRight, Trash2, CheckCircle2, Award, X,
-  Globe, Shield, Lock, Share2, Check, UserPlus, Loader2, Star
+  Globe, Shield, Lock, Share2, Check, UserPlus, Loader2, Star, Database
 } from 'lucide-react';
 import CreateSheetWizard from './CreateSheetWizard';
 import Card from '@/components/ui/Card';
@@ -23,6 +23,8 @@ type CodingSheet = {
   created_by: string;
   created_at: string;
   enrollment_access?: string;
+  sheet_type?: string;
+  metadata?: any;
   coding_sheet_problems: { problem_id: string }[];
 };
 
@@ -31,11 +33,13 @@ export default function SheetsListClient({
   isInstructor,
   solvedProblemIds,
   enrolledSheetIds: initialEnrolledIds,
+  sqlSolvedCountBySheet = {},
 }: {
   initialSheets: CodingSheet[];
   isInstructor: boolean;
   solvedProblemIds: string[];
   enrolledSheetIds: string[];
+  sqlSolvedCountBySheet?: Record<string, number>;
 }) {
   const [sheets, setSheets] = useState<CodingSheet[]>(initialSheets);
   const [searchQuery, setSearchQuery] = useState('');
@@ -55,8 +59,11 @@ export default function SheetsListClient({
 
     const visibleSheets = initialSheets.map(s => {
       const problemsList = s.coding_sheet_problems || [];
-      const totalProblems = problemsList.length;
-      const solvedProblems = problemsList.filter(p => solvedProblemIds.includes(p.problem_id)).length;
+      const isSql = s.sheet_type === 'SQL';
+      const totalProblems = isSql ? (s.metadata?.total_count || 530) : problemsList.length;
+      const solvedProblems = isSql
+        ? (sqlSolvedCountBySheet[s.id] || 0)
+        : problemsList.filter(p => solvedProblemIds.includes(p.problem_id)).length;
       const progressPct = totalProblems > 0 ? Math.round((solvedProblems / totalProblems) * 100) : 0;
       return {
         id: s.id,
@@ -176,7 +183,7 @@ export default function SheetsListClient({
   );
 
   return (
-    <div className="code-arena-page" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)', paddingBottom: '2rem' }}>
+    <div className="code-arena-page" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)', paddingBottom: '5.5rem' }}>
       
       {/* Header Bar */}
       <header className="code-arena-header-compact" style={{ marginTop: '4px' }}>
@@ -243,8 +250,11 @@ export default function SheetsListClient({
         <div className="sheets-grid">
           {filteredSheets.map((sheet) => {
             const problemsList = sheet.coding_sheet_problems || [];
-            const totalProblems = problemsList.length;
-            const solvedProblems = problemsList.filter(p => solvedProblemIds.includes(p.problem_id)).length;
+            const isSqlSheet = sheet.sheet_type === 'SQL';
+            const totalProblems = isSqlSheet ? (sheet.metadata?.total_count || 530) : problemsList.length;
+            const solvedProblems = isSqlSheet
+              ? (sqlSolvedCountBySheet[sheet.id] || 0)
+              : problemsList.filter(p => solvedProblemIds.includes(p.problem_id)).length;
             const progressPct = totalProblems > 0 ? Math.round((solvedProblems / totalProblems) * 100) : 0;
             const isCompleted = progressPct === 100 && totalProblems > 0;
             const isEnrolled = enrolledIds.includes(sheet.id);
@@ -310,12 +320,19 @@ export default function SheetsListClient({
                   )}
 
                   {/* Metadata Row: Problem count & Rating badge */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '8px' }}>
-                    {totalProblems > 0 ? (
-                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#06b6d4', background: 'rgba(6,182,212,0.1)', padding: '2px 8px', borderRadius: '8px' }}>
-                        {totalProblems} problems
-                      </span>
-                    ) : <div />}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      {sheet.sheet_type === 'SQL' && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10.5px', fontWeight: 800, color: '#c084fc', background: 'rgba(168,85,247,0.14)', border: '1px solid rgba(168,85,247,0.3)', padding: '2px 7px', borderRadius: '8px' }}>
+                          <Database size={11} /> SQL + MCQ
+                        </span>
+                      )}
+                      {totalProblems > 0 && (
+                        <span style={{ fontSize: '11px', fontWeight: 700, color: '#06b6d4', background: 'rgba(6,182,212,0.1)', padding: '2px 8px', borderRadius: '8px' }}>
+                          {totalProblems} {sheet.sheet_type === 'SQL' ? 'questions' : 'problems'}
+                        </span>
+                      )}
+                    </div>
 
                     {/* Rating Badge */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '3px', background: 'rgba(245, 158, 11, 0.08)', padding: '2px 8px', borderRadius: '8px', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
@@ -458,7 +475,9 @@ export default function SheetsListClient({
                   {enrollSheet.title}
                 </div>
                 <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>
-                  {(enrollSheet.coding_sheet_problems || []).length} problems
+                  {enrollSheet.sheet_type === 'SQL'
+                    ? `${enrollSheet.metadata?.total_count || 530} questions`
+                    : `${(enrollSheet.coding_sheet_problems || []).length} problems`}
                 </div>
               </div>
             </div>

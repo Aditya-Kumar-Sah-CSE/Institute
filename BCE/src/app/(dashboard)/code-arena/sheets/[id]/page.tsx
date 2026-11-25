@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { getCodeArenaActor } from '@/features/code-arena/server';
 import SheetDetailClient from '@/features/code-arena/components/SheetDetailClient';
+import SqlSheetDetailClient from '@/features/code-arena/components/sql-sheet/SqlSheetDetailClient';
 import { createClient as createRawClient } from '@supabase/supabase-js';
 import { getSolvedStatusMap } from '@/lib/coding-platforms/solved-matcher';
 import { getSheetReviewsData } from '@/features/code-arena/actions/sheet-reviews';
@@ -25,7 +26,7 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
   // 1. Fetch sheet details supporting both UUID id and slug parameter
   let query = supabase
     .from('coding_sheets')
-    .select('id, slug, title, description, created_by, created_at, enrollment_access, attachment_url, attachment_type, youtube_url');
+    .select('id, slug, title, description, created_by, created_at, enrollment_access, attachment_url, attachment_type, youtube_url, sheet_type, metadata');
 
   if (isUUID) {
     query = query.eq('id', id);
@@ -37,6 +38,96 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
 
   if (sheetError || !sheet) {
     notFound();
+  }
+
+  // Dedicated rich view when this sheet is an SQL + MCQ Mastery sheet
+  if ((sheet as any).sheet_type === 'SQL') {
+    const [
+      { data: sqlQuestions },
+      { data: sqlProgress },
+      { data: enrollmentsData, count: enrollmentsCount },
+      { data: allSqlProgress },
+      { data: existingCert },
+      sheetReviewsData,
+    ] = await Promise.all([
+      supabase
+        .from('coding_sheet_sql_questions')
+        .select('id, question_number, type, section, difficulty, question, options, correct_option, correct_answer, solution_sql, basic_concepts, explanation_points, incorrect_options, step_by_step, clause_breakdown')
+        .eq('sheet_id', sheet.id)
+        .order('question_number', { ascending: true }),
+      supabase
+        .from('coding_sheet_sql_progress')
+        .select('question_number, question_type, is_solved, is_bookmarked, selected_option, submitted_sql, attempts, xp_awarded, solved_at')
+        .eq('sheet_id', sheet.id)
+        .eq('user_id', user.id),
+      serviceRoleClient
+        .from('coding_sheet_enrollments')
+        .select('user_id, enrolled_at, profiles(id, name, avatar_url)', { count: 'exact' })
+        .eq('sheet_id', sheet.id)
+        .order('enrolled_at', { ascending: false }),
+      serviceRoleClient
+        .from('coding_sheet_sql_progress')
+        .select('user_id, question_number, profiles!coding_sheet_sql_progress_user_id_fkey(name, avatar_url)')
+        .eq('sheet_id', sheet.id)
+        .eq('is_solved', true),
+      supabase
+        .from('certificates')
+        .select('*, profiles(name, role)')
+        .eq('user_id', user.id)
+        .eq('sheet_id', sheet.id)
+        .maybeSingle(),
+      getSheetReviewsData(sheet.id, user.id),
+    ]);
+
+    const enrolledUsersList = (enrollmentsData || []).map((e: any) => ({
+      user_id: e.user_id,
+      enrolled_at: e.enrolled_at,
+      name: e.profiles?.name || 'Learner',
+      avatar_url: e.profiles?.avatar_url || null,
+    }));
+
+    const solverMap = new Map<string, { userId: string; name: string; avatar_url: string | null; qSet: Set<number> }>();
+    (allSqlProgress || []).forEach((row: any) => {
+      if (!solverMap.has(row.user_id)) {
+        solverMap.set(row.user_id, {
+          userId: row.user_id,
+          name: row.profiles?.name || 'SQL Learner',
+          avatar_url: row.profiles?.avatar_url || null,
+          qSet: new Set(),
+        });
+      }
+      solverMap.get(row.user_id)!.qSet.add(row.question_number);
+    });
+
+    const leaderboardList = Array.from(solverMap.values())
+      .map((s) => ({
+        userId: s.userId,
+        name: s.name,
+        avatar_url: s.avatar_url,
+        solvedCount: s.qSet.size,
+        isCurrentUser: s.userId === user.id,
+      }))
+      .sort((a, b) => b.solvedCount - a.solvedCount)
+      .slice(0, 30);
+
+    return (
+      <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading TCS SQL Mastery Sheet…</div>}>
+        <SqlSheetDetailClient
+          sheet={sheet as any}
+          questions={(sqlQuestions || []) as any}
+          initialProgress={(sqlProgress || []) as any}
+          totalEnrolledCount={Math.max(enrollmentsCount || 0, leaderboardList.length)}
+          enrolledUsersList={enrolledUsersList}
+          totalSolversCount={solverMap.size}
+          leaderboardList={leaderboardList}
+          initialCertificate={existingCert || null}
+          reviewsData={sheetReviewsData as any}
+          currentUserId={user.id}
+          isInstructor={isInstructor}
+          isPublicPreview={false}
+        />
+      </Suspense>
+    );
   }
 
   // 2. Fetch linked problems with metadata using sheet.id (UUID)
