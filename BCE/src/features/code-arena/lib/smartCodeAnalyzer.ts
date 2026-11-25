@@ -248,8 +248,8 @@ export function extractConstraintTestCase(
   // The last constraint line (as requested by user: "jo last constrain h")
   const lastLine = lines[lines.length - 1];
 
-  // Look for patterns like "<= 10^6", "<= 10^5", "<= 100000", "<= 104", etc.
-  const boundMatches = Array.from(lastLine.matchAll(/(?:<=|<)\s*([0-9]+(?:\^[0-9]+)?|\d+e\d+)/gi));
+  // Look for patterns like "<= 10^6", "<= 1e9", "<= 100000", etc. (match exponent/scientific forms BEFORE plain ints!)
+  const boundMatches = Array.from(lastLine.matchAll(/(?:<=|<)\s*(\d+e[+-]?\d+|[0-9]+\^[0-9]+|[0-9]+)/gi));
   if (boundMatches.length > 0) {
     const lastMatch = boundMatches[boundMatches.length - 1][1];
     const val = parseExponentialOrPower(lastMatch);
@@ -304,7 +304,30 @@ function formatConstraintInput(val: string, samples: any[] = []): string {
   const sampleInput = String(samples[0].input).trim();
   const sampleLines = sampleInput.split(/\r?\n/);
 
-  // If sample is single line
+  // Handle LeetCode-style named parameter inputs like "a = [3,2,1,5,2]" or "a = [1,2], k = 3"
+  if (sampleLines.length === 1 && /^[a-zA-Z_]\w*\s*=/.test(sampleInput)) {
+    const numVal = Math.min(Math.max(1, parseInt(val, 10) || 5), 100000);
+    // Replace the first numeric scalar or keep valid bracketed array with safe synthetic values
+    const parts = sampleInput.split(/,\s*(?=[a-zA-Z_]\w*\s*=)/);
+    return parts
+      .map((part, idx) => {
+        const eqIdx = part.indexOf('=');
+        if (eqIdx === -1) return part;
+        const label = part.slice(0, eqIdx).trim();
+        const rhs = part.slice(eqIdx + 1).trim();
+        if (rhs.startsWith('[')) {
+          if (idx === parts.length - 1 || parts.length === 1) {
+            return `${label} = [${Array.from({ length: 5 }, (_, i) => i + 1).join(',')}]`;
+          }
+          return `${label} = ${rhs}`;
+        }
+        if (rhs.startsWith('"')) return `${label} = ${rhs}`;
+        return idx === parts.length - 1 ? `${label} = ${numVal}` : `${label} = ${rhs}`;
+      })
+      .join(', ');
+  }
+
+  // If sample is single line array
   if (sampleLines.length === 1) {
     if (sampleInput.startsWith('[') && sampleInput.endsWith(']')) {
       return `[${val}]`;

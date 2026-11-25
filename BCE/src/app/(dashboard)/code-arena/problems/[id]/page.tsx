@@ -173,7 +173,25 @@ export default async function CodeProblemPage({ params, searchParams }: { params
     .order('order_index');
 
   const samples = (allTestCases || []).filter(c => !c.is_hidden);
-  const hiddenCases = (allTestCases || []).filter(c => c.is_hidden);
+  let hiddenCases = (allTestCases || []).filter(c => c.is_hidden);
+
+  // For INTERNAL practice problems (e.g. TCS / DSA Roadmap), fetch boundary case with expected_output
+  // via admin client when RLS hides is_hidden rows from non-staff accounts so Case 3 executes properly.
+  if (hiddenCases.length === 0 && problem.source_type === 'INTERNAL') {
+    try {
+      const { createAdminClient } = await import('@/lib/supabase/server');
+      const adminClient = await createAdminClient();
+      const { data: adminHidden } = await adminClient
+        .from('coding_problem_test_cases')
+        .select('input,expected_output,sample_name,order_index,is_hidden')
+        .eq('problem_id', id)
+        .eq('is_hidden', true)
+        .order('order_index', { ascending: true });
+      if (adminHidden && adminHidden.length > 0) {
+        hiddenCases = adminHidden;
+      }
+    } catch {}
+  }
 
   let constraintTestCase: { input: string; expectedOutput: string; name: string } | null = null;
   if (hiddenCases.length > 0) {

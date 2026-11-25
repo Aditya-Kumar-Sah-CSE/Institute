@@ -6,7 +6,7 @@ import {
   Trophy, ArrowLeft, BookOpen, CheckCircle2, Circle, 
   ExternalLink, Code2, ArrowRight, Award, Play, Pencil, Users,
   Lock, Shield, Globe, KeyRound, AlertCircle, Video, FileText, Share2, Check, BarChart2, Search, Image,
-  RefreshCw, RotateCcw, Eye, Copy, ChevronLeft, ChevronRight, Star, Edit3
+  RefreshCw, RotateCcw, Eye, Copy, ChevronLeft, ChevronRight, Star, Edit3, Sparkles
 } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import { useRouter } from 'next/navigation';
@@ -15,6 +15,9 @@ import Modal from '@/components/ui/Modal';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import SolutionEditor from './SolutionEditor';
 import SheetReviewsSection from './SheetReviewsSection';
+import { RoadmapRevisionView, RoadmapTheoryModulesView } from './roadmap/RoadmapTheoryAndRevision';
+import type { RoadmapLevel, RoadmapProblem, RoadmapProblemProgress } from '../data/roadmapSheetTypes';
+import './roadmap/RoadmapSheet.css';
 import { calculateMotivationalAnalytics } from '../lib/motivational-engine';
 import { SolvedStatusMap } from '@/lib/coding-platforms/solved-matcher';
 import { useLivePageContext } from '@/features/analytics/context/LivePageContext';
@@ -70,6 +73,7 @@ export default function SheetDetailClient({
   enrollmentAccess = 'public',
   isEnrolled: initialIsEnrolled = false,
   reviewsData,
+  roadmapLevels = [],
 }: {
   sheet: Sheet;
   solvedProblemIds: string[];
@@ -85,8 +89,12 @@ export default function SheetDetailClient({
   enrollmentAccess?: string;
   isEnrolled?: boolean;
   reviewsData?: any;
+  roadmapLevels?: RoadmapLevel[];
 }) {
   const router = useRouter();
+  const [showRoadmapTheoryModal, setShowRoadmapTheoryModal] = useState(false);
+  const [showRoadmapRevisionModal, setShowRoadmapRevisionModal] = useState(false);
+  const unlockedRoadmapLevel = roadmapLevels.find((l) => l.is_unlocked) || roadmapLevels[0];
   const [isMounted, setIsMounted] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isEnrolled, setIsEnrolled] = useState(initialIsEnrolled);
@@ -552,8 +560,50 @@ export default function SheetDetailClient({
           </p>
 
           {/* Reference Material & Video Explanation Section */}
-          {(sheet.attachment_url || sheet.youtube_url) && (
+          {(sheet.attachment_url || sheet.youtube_url || unlockedRoadmapLevel) && (
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
+              {unlockedRoadmapLevel && (unlockedRoadmapLevel.theory_modules?.length || 0) > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowRoadmapTheoryModal(true)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    background: 'rgba(6, 182, 212, 0.1)',
+                    border: '1px solid rgba(6, 182, 212, 0.3)',
+                    color: 'var(--neon-cyan)',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <BookOpen size={14} /> Level {unlockedRoadmapLevel.level_number} Theory ({unlockedRoadmapLevel.theory_modules.length})
+                </button>
+              )}
+              {unlockedRoadmapLevel && unlockedRoadmapLevel.revision_data && Object.keys(unlockedRoadmapLevel.revision_data).length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowRoadmapRevisionModal(true)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    background: 'rgba(168, 85, 247, 0.1)',
+                    border: '1px solid rgba(168, 85, 247, 0.3)',
+                    color: '#a855f7',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Sparkles size={14} /> Revision & Cheat Sheet
+                </button>
+              )}
               {sheet.youtube_url && (
                 <button
                   type="button"
@@ -1692,6 +1742,86 @@ export default function SheetDetailClient({
           )}
         </div>
       </Modal>
+
+      {/* Level Theory Modules Modal (when sheet has roadmapLevels) */}
+      {unlockedRoadmapLevel && (
+        <Modal
+          isOpen={showRoadmapTheoryModal}
+          onClose={() => setShowRoadmapTheoryModal(false)}
+          title={`Level ${unlockedRoadmapLevel.level_number} Concept Theory (${unlockedRoadmapLevel.theory_modules?.length || 0} Modules)`}
+          size="lg"
+        >
+          <div style={{ maxHeight: '75vh', overflowY: 'auto', paddingRight: '4px' }}>
+            <RoadmapTheoryModulesView
+              level={unlockedRoadmapLevel}
+              modules={unlockedRoadmapLevel.theory_modules || []}
+              onFilterByTopic={() => setShowRoadmapTheoryModal(false)}
+            />
+          </div>
+        </Modal>
+      )}
+
+      {/* Level Revision & Self-Test Cheat Sheet Modal (when sheet has roadmapLevels) */}
+      {unlockedRoadmapLevel && (() => {
+        const byCode: Record<string, RoadmapProblem> = {};
+        const progByCode: Record<string, RoadmapProblemProgress> = {};
+        (sheet.problems || []).forEach((p, idx) => {
+          const code = p.external_problem_id || `L1-${String(idx + 1).padStart(3, '0')}`;
+          const isSolved = (solvedStatusMap[p.id]?.isSolved) ?? solvedProblemIds.includes(p.id);
+          byCode[code] = {
+            id: p.id,
+            problem_code: code,
+            order_index: idx + 1,
+            level_number: unlockedRoadmapLevel.level_number,
+            topic: p.tags?.[0] || 'DSA',
+            title: p.title,
+            difficulty: (p.difficulty?.toUpperCase() as any) || 'EASY',
+            company_tags: p.tags?.slice(1) || [],
+            problem_statement: '',
+            description: '',
+            constraints: [],
+            test_cases: [],
+            theory: '',
+            brute_force: { approach: '', time: '', space: '', code_cpp: '' },
+            optimized: { approach: '', time: '', space: '', code_cpp: '' },
+            explanation: '',
+            edge_cases: [],
+          };
+          progByCode[code] = {
+            problem_code: code,
+            level_number: unlockedRoadmapLevel.level_number,
+            is_solved: isSolved,
+            is_revised: false,
+            is_bookmarked: false,
+            attempts: 0,
+            xp_awarded: 0,
+          };
+        });
+
+        return (
+          <Modal
+            isOpen={showRoadmapRevisionModal}
+            onClose={() => setShowRoadmapRevisionModal(false)}
+            title={`Level ${unlockedRoadmapLevel.level_number} Revision & Self-Test Playbook`}
+            size="lg"
+          >
+            <div style={{ maxHeight: '75vh', overflowY: 'auto', paddingRight: '4px' }}>
+              <RoadmapRevisionView
+                level={unlockedRoadmapLevel}
+                problemsByCode={byCode}
+                progressMap={progByCode}
+                onSelectProblem={(code) => {
+                  const target = byCode[code];
+                  setShowRoadmapRevisionModal(false);
+                  if (target?.id) {
+                    router.push(`/code-arena/problems/${target.id}?sheet=${sheet.id}`);
+                  }
+                }}
+              />
+            </div>
+          </Modal>
+        );
+      })()}
     </div>
   );
 }

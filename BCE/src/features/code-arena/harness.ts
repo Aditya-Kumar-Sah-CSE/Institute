@@ -196,6 +196,7 @@ export function wrapCodeWithHarness(studentCode: string, signature: any, languag
 function getCppParseFunc(type: string): string {
   const norm = type.toLowerCase().replace(/\s+/g, '');
   if (norm === 'integer' || norm === 'int' || norm === 'int32_t') return 'HarnessParser::parseInteger(cin)';
+  if (norm === 'uint32_t' || norm === 'unsignedint' || norm === 'unsigned') return 'HarnessParser::parseUnsignedInt(cin)';
   if (norm === 'long' || norm === 'longlong' || norm === 'int64_t' || norm === 'long long') return 'HarnessParser::parseLong(cin)';
   if (norm === 'float') return 'HarnessParser::parseFloat(cin)';
   if (norm === 'double') return 'HarnessParser::parseDouble(cin)';
@@ -239,6 +240,16 @@ function generateCppHarness(studentCode: string, funcName: string, params: any[]
 #include <algorithm>
 #include <queue>
 #include <cctype>
+#include <unordered_map>
+#include <unordered_set>
+#include <map>
+#include <set>
+#include <stack>
+#include <cmath>
+#include <climits>
+#include <numeric>
+#include <iomanip>
+#include <cstdint>
 
 using namespace std;
 
@@ -318,6 +329,13 @@ namespace HarnessParser {
     int parseInteger(istream& in) {
         skipParamLabel(in);
         int x = 0;
+        in >> x;
+        return x;
+    }
+
+    uint32_t parseUnsignedInt(istream& in) {
+        skipParamLabel(in);
+        uint32_t x = 0;
         in >> x;
         return x;
     }
@@ -799,6 +817,7 @@ namespace HarnessParser {
     }
 
     string serializeValue(int x) { return to_string(x); }
+    string serializeValue(unsigned int x) { return to_string(x); }
     string serializeValue(long long x) { return to_string(x); }
     string serializeValue(float x) { return to_string(x); }
     string serializeValue(double x) { return to_string(x); }

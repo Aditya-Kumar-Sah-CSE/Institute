@@ -350,6 +350,13 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
   const totalEnrolledSolvers = Math.max(enrollmentsCount || 0, uniqueSolversCount);
   const avgQuestionsSolved = uniqueSolversCount > 0 ? (totalSolvedSum / uniqueSolversCount).toFixed(1) : '0';
 
+  // Check if this DSA sheet has supplemental Roadmap theory & revision modules (e.g., Levels 1-5)
+  const { data: roadmapLevels } = await supabase
+    .from('coding_sheet_roadmap_levels')
+    .select('id, level_number, title, subtitle, description, target_problem_count, is_unlocked, theory_modules, revision_data, meta')
+    .eq('sheet_id', sheet.id)
+    .order('level_number', { ascending: true });
+
   const sheetReviewsData = await getSheetReviewsData(sheet.id, user.id);
 
   return (
@@ -369,6 +376,7 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
         enrollmentAccess={sheet.enrollment_access || 'public'}
         isEnrolled={isEnrolled}
         reviewsData={sheetReviewsData}
+        roadmapLevels={(roadmapLevels || []) as any}
       />
     </Suspense>
   );
