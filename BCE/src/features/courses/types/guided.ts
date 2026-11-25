@@ -32,6 +32,11 @@ export interface GuidedTableRow {
   col3?: string;
 }
 
+export interface GuidedStepSection {
+  heading: string;
+  points: string[];
+}
+
 export interface GuidedLessonStep {
   id: string;
   stepNumber: number;
@@ -39,6 +44,8 @@ export interface GuidedLessonStep {
   badge: string;
   title: string;
   summary: string;
+  keywords?: string[];
+  sections?: GuidedStepSection[];
   keyPoints?: string[];
   codeSnippet?: string;
   starterCode?: string;
@@ -58,4 +65,3 @@ export interface SidebarLessonSummary {
   xp_reward: number;
   created_at: string;
 }
-

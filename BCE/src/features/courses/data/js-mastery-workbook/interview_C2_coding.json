@@ -2,20 +2,20 @@
   {
     "num": 419,
     "id": "Q419",
-    "prompt": "Number even hai ya odd?",
+    "prompt": "Check if a number is even or odd",
     "solution": "const isEven = n => n % 2 === 0;"
   },
   {
     "num": 420,
     "id": "Q420",
-    "prompt": "Number prime hai?",
-    "solution": "const isPrime = n => { if (n < 2) return false; for (let i = 2; i * i <= n; i++) if (n % i === 0) return false; return true; };"
+    "prompt": "Check if a number is prime",
+    "solution": "const isPrime = n => {\n  if (n < 2)\n    return false;\n  for (let i = 2; i * i <= n; i++)\n    if (n % i === 0)\n      return false;\n  return true;\n};"
   },
   {
     "num": 421,
     "id": "Q421",
     "prompt": "Factorial (iterative)",
-    "solution": "const fact = n => { let r = 1; for (let i = 2; i <= n; i++) r *= i; return r; };"
+    "solution": "const fact = n => {\n  let r = 1;\n  for (let i = 2; i <= n; i++)\n    r *= i;\n  return r;\n};"
   },
   {
     "num": 422,
@@ -27,7 +27,7 @@
     "num": 423,
     "id": "Q423",
     "prompt": "Fibonacci nth term",
-    "solution": "const fib = n => { let [a, b] = [0, 1]; for (let i = 0; i < n; i++) [a, b] = [b, a + b]; return a; };"
+    "solution": "const fib = n => {\n  let [a, b] = [0, 1];\n  for (let i = 0; i < n; i++)\n    [a, b] = [b, a + b];\n  return a;\n};"
   },
   {
     "num": 424,
@@ -69,13 +69,13 @@
     "num": 430,
     "id": "Q430",
     "prompt": "Armstrong number",
-    "solution": "const isArm = n => { const d = String(n); return [...d].reduce((s, x) => s + x ** d.length, 0) === n; };"
+    "solution": "const isArm = n => {\n  const d = String(n);\n  return [...d].reduce((s, x) => s + x ** d.length, 0) === n;\n};"
   },
   {
     "num": 431,
     "id": "Q431",
     "prompt": "Primes up to n (sieve)",
-    "solution": "function sieve(n) { const p = Array(n + 1).fill(true); p[0] = p[1] = false; for (let i = 2; i * i <= n; i++) if (p[i]) for (let j = i * i; j <= n; j += i) p[j] = false; return p.reduce((a, v, i) => v ? [...a, i] : a, []); }"
+    "solution": "function sieve(n) {\n  const p = Array(n + 1).fill(true);\n  p[0] = p[1] = false;\n  for (let i = 2; i * i <= n; i++)\n    if (p[i])\n      for (let j = i * i; j <= n; j += i)\n        p[j] = false;\n  return p.reduce((a, v, i) => v ? [...a, i] : a, []);\n}"
   },
   {
     "num": 432,
@@ -87,7 +87,7 @@
     "num": 433,
     "id": "Q433",
     "prompt": "Count set bits",
-    "solution": "const bits = n => { let c = 0; while (n) { n &= n - 1; c++; } return c; };"
+    "solution": "const bits = n => {\n  let c = 0;\n  while (n) {\n    n &= n - 1;\n    c++;\n  }\n  return c;\n};"
   },
   {
     "num": 434,
@@ -111,7 +111,7 @@
     "num": 437,
     "id": "Q437",
     "prompt": "FizzBuzz",
-    "solution": "for (let i = 1; i <= 100; i++) console.log(i % 15 === 0 ? 'FizzBuzz' : i % 3 === 0 ? 'Fizz' : i % 5 === 0 ? 'Buzz' : i);"
+    "solution": "for (let i = 1; i <= 100; i++)\n  console.log(i % 15 === 0 ? 'FizzBuzz' : i % 3 === 0 ? 'Fizz' : i % 5 === 0 ? 'Buzz' : i);"
   },
   {
     "num": 438,
@@ -123,7 +123,7 @@
     "num": 439,
     "id": "Q439",
     "prompt": "Check perfect number",
-    "solution": "const isPerfect = n => { let s = 0; for (let i = 1; i < n; i++) if (n % i === 0) s += i; return s === n && n > 1; };"
+    "solution": "const isPerfect = n => {\n  let s = 0;\n  for (let i = 1; i < n; i++)\n    if (n % i === 0)\n      s += i;\n  return s === n && n > 1;\n};"
   },
   {
     "num": 440,
@@ -153,7 +153,7 @@
     "num": 444,
     "id": "Q444",
     "prompt": "Roman numeral to integer",
-    "solution": "function roman(s) { const m = {I:1,V:5,X:10,L:50,C:100,D:500,M:1000}; let t = 0; for (let i = 0; i < s.length; i++) { const v = m[s[i]], n = m[s[i + 1]]; t += n > v ? -v : v; } return t; }"
+    "solution": "function roman(s) {\n  const m = { I: 1, V: 5, X: 10, L: 50, C: 100, D: 500, M: 1000 };\n  let t = 0;\n  for (let i = 0; i < s.length; i++) {\n    const v = m[s[i]], n = m[s[i + 1]];\n    t += n > v ? -v : v;\n  }\n  return t;\n}"
   },
   {
     "num": 445,
@@ -165,7 +165,7 @@
     "num": 446,
     "id": "Q446",
     "prompt": "Palindrome string",
-    "solution": "const isPal = s => { const c = s.toLowerCase().replace(/[^a-z0-9]/g, ''); return c === [...c].reverse().join(''); };"
+    "solution": "const isPal = s => {\n  const c = s.toLowerCase().replace(/[^a-z0-9]/g, '');\n  return c === [...c].reverse().join('');\n};"
   },
   {
     "num": 447,
@@ -195,7 +195,7 @@
     "num": 451,
     "id": "Q451",
     "prompt": "First non-repeating char",
-    "solution": "const firstUnique = s => { const f = freq(s); return [...s].find(c => f[c] === 1) ?? null; };"
+    "solution": "const firstUnique = s => {\n  const f = freq(s);\n  return [...s].find(c => f[c] === 1) ?? null;\n};"
   },
   {
     "num": 452,
@@ -213,7 +213,7 @@
     "num": 454,
     "id": "Q454",
     "prompt": "Most frequent char",
-    "solution": "const maxChar = s => { const f = freq(s); return Object.keys(f).reduce((a, b) => f[a] >= f[b] ? a : b); };"
+    "solution": "const maxChar = s => {\n  const f = freq(s);\n  return Object.keys(f).reduce((a, b) => f[a] >= f[b] ? a : b);\n};"
   },
   {
     "num": 455,
@@ -243,25 +243,25 @@
     "num": 459,
     "id": "Q459",
     "prompt": "Balanced brackets",
-    "solution": "function balanced(s) { const st = [], p = {')':'(', ']':'[', '}':'{'}; for (const c of s) { if ('([{'.includes(c)) st.push(c); else if (p[c]) { if (st.pop() !== p[c]) return false; } } return st.length === 0; }"
+    "solution": "function balanced(s) {\n  const st = [], p = { ')': '(', ']': '[', '}': '{' };\n  for (const c of s) {\n    if ('([{'.includes(c))\n      st.push(c);\n    else if (p[c]) {\n      if (st.pop() !== p[c])\n        return false;\n    }\n  }\n  return st.length === 0;\n}"
   },
   {
     "num": 460,
     "id": "Q460",
     "prompt": "String compression a3b2",
-    "solution": "function compress(s) { let r = '', c = 1; for (let i = 1; i <= s.length; i++) { if (s[i] === s[i - 1]) c++; else { r += s[i - 1] + c; c = 1; } } return r; }"
+    "solution": "function compress(s) {\n  let r = '', c = 1;\n  for (let i = 1; i <= s.length; i++) {\n    if (s[i] === s[i - 1])\n      c++;\n    else {\n      r += s[i - 1] + c;\n      c = 1;\n    }\n  }\n  return r;\n}"
   },
   {
     "num": 461,
     "id": "Q461",
     "prompt": "Longest common prefix",
-    "solution": "const lcp = a => a.reduce((p, s) => { while (!s.startsWith(p)) p = p.slice(0, -1); return p; });"
+    "solution": "const lcp = a => a.reduce((p, s) => {\n  while (!s.startsWith(p))\n    p = p.slice(0, -1);\n  return p;\n});"
   },
   {
     "num": 462,
     "id": "Q462",
     "prompt": "Longest palindromic substring (expand)",
-    "solution": "function lps(s) { let best = ''; for (let i = 0; i < s.length; i++) for (const [l, r] of [[i, i], [i, i + 1]]) { let a = l, b = r; while (a >= 0 && b < s.length && s[a] === s[b]) { a--; b++; } if (b - a - 1 > best.length) best = s.slice(a + 1, b); } return best; }"
+    "solution": "function lps(s) {\n  let best = '';\n  for (let i = 0; i < s.length; i++)\n    for (const [l, r] of [[i, i], [i, i + 1]]) {\n      let a = l, b = r;\n      while (a >= 0 && b < s.length && s[a] === s[b]) {\n        a--;\n        b++;\n      }\n      if (b - a - 1 > best.length)\n        best = s.slice(a + 1, b);\n    }\n  return best;\n}"
   },
   {
     "num": 463,
@@ -321,19 +321,19 @@
     "num": 472,
     "id": "Q472",
     "prompt": "Reverse array in-place",
-    "solution": "function rev(a) { for (let i = 0, j = a.length - 1; i < j; i++, j--) [a[i], a[j]] = [a[j], a[i]]; return a; }"
+    "solution": "function rev(a) {\n  for (let i = 0, j = a.length - 1; i < j; i++, j--)\n    [a[i], a[j]] = [a[j], a[i]];\n  return a;\n}"
   },
   {
     "num": 473,
     "id": "Q473",
     "prompt": "Two Sum (indices)",
-    "solution": "function twoSum(a, t) { const m = new Map(); for (let i = 0; i < a.length; i++) { if (m.has(t - a[i])) return [m.get(t - a[i]), i]; m.set(a[i], i); } return []; }"
+    "solution": "function twoSum(a, t) {\n  const m = new Map();\n  for (let i = 0; i < a.length; i++) {\n    if (m.has(t - a[i]))\n      return [m.get(t - a[i]), i];\n    m.set(a[i], i);\n  }\n  return [];\n}"
   },
   {
     "num": 474,
     "id": "Q474",
     "prompt": "Rotate array right by k",
-    "solution": "const rotate = (a, k) => { k %= a.length; return [...a.slice(-k), ...a.slice(0, -k)]; };"
+    "solution": "const rotate = (a, k) => {\n  k %= a.length;\n  return [...a.slice(-k), ...a.slice(0, -k)];\n};"
   },
   {
     "num": 475,
@@ -357,7 +357,7 @@
     "num": 478,
     "id": "Q478",
     "prompt": "Intersection of two arrays",
-    "solution": "const inter = (a, b) => { const s = new Set(b); return [...new Set(a.filter(x => s.has(x)))]; };"
+    "solution": "const inter = (a, b) => {\n  const s = new Set(b);\n  return [...new Set(a.filter(x => s.has(x)))];\n};"
   },
   {
     "num": 479,
@@ -369,31 +369,31 @@
     "num": 480,
     "id": "Q480",
     "prompt": "Chunk array",
-    "solution": "const chunk = (a, n) => Array.from({length: Math.ceil(a.length / n)}, (_, i) => a.slice(i * n, i * n + n));"
+    "solution": "const chunk = (a, n) => Array.from({ length: Math.ceil(a.length / n) }, (_, i) => a.slice(i * n, i * n + n));"
   },
   {
     "num": 481,
     "id": "Q481",
     "prompt": "Kadane: max subarray sum",
-    "solution": "function maxSub(a) { let cur = a[0], best = a[0]; for (let i = 1; i < a.length; i++) { cur = Math.max(a[i], cur + a[i]); best = Math.max(best, cur); } return best; }"
+    "solution": "function maxSub(a) {\n  let cur = a[0], best = a[0];\n  for (let i = 1; i < a.length; i++) {\n    cur = Math.max(a[i], cur + a[i]);\n    best = Math.max(best, cur);\n  }\n  return best;\n}"
   },
   {
     "num": 482,
     "id": "Q482",
     "prompt": "Binary search",
-    "solution": "function bs(a, t) { let l = 0, r = a.length - 1; while (l <= r) { const m = (l + r) >> 1; if (a[m] === t) return m; a[m] < t ? l = m + 1 : r = m - 1; } return -1; }"
+    "solution": "function bs(a, t) {\n  let l = 0, r = a.length - 1;\n  while (l <= r) {\n    const m = (l + r) >> 1;\n    if (a[m] === t)\n      return m;\n    a[m] < t ? l = m + 1 : r = m - 1;\n  }\n  return -1;\n}"
   },
   {
     "num": 483,
     "id": "Q483",
     "prompt": "Bubble sort",
-    "solution": "function bubble(a) { for (let i = 0; i < a.length; i++) for (let j = 0; j < a.length - i - 1; j++) if (a[j] > a[j + 1]) [a[j], a[j + 1]] = [a[j + 1], a[j]]; return a; }"
+    "solution": "function bubble(a) {\n  for (let i = 0; i < a.length; i++)\n    for (let j = 0; j < a.length - i - 1; j++)\n      if (a[j] > a[j + 1])\n        [a[j], a[j + 1]] = [a[j + 1], a[j]];\n  return a;\n}"
   },
   {
     "num": 484,
     "id": "Q484",
     "prompt": "Merge sort",
-    "solution": "function msort(a) { if (a.length < 2) return a; const m = a.length >> 1, l = msort(a.slice(0, m)), r = msort(a.slice(m)), o = []; while (l.length && r.length) o.push(l[0] <= r[0] ? l.shift() : r.shift()); return [...o, ...l, ...r]; }"
+    "solution": "function msort(a) {\n  if (a.length < 2)\n    return a;\n  const m = a.length >> 1, l = msort(a.slice(0, m)), r = msort(a.slice(m)), o = [];\n  while (l.length && r.length)\n    o.push(l[0] <= r[0] ? l.shift() : r.shift());\n  return [...o, ...l, ...r];\n}"
   },
   {
     "num": 485,
@@ -405,7 +405,7 @@
     "num": 486,
     "id": "Q486",
     "prompt": "Merge two sorted arrays",
-    "solution": "function merge(a, b) { const r = []; let i = 0, j = 0; while (i < a.length && j < b.length) r.push(a[i] <= b[j] ? a[i++] : b[j++]); return [...r, ...a.slice(i), ...b.slice(j)]; }"
+    "solution": "function merge(a, b) {\n  const r = [];\n  let i = 0, j = 0;\n  while (i < a.length && j < b.length)\n    r.push(a[i] <= b[j] ? a[i++] : b[j++]);\n  return [...r, ...a.slice(i), ...b.slice(j)];\n}"
   },
   {
     "num": 487,
@@ -435,19 +435,19 @@
     "num": 491,
     "id": "Q491",
     "prompt": "Pairs with given sum count",
-    "solution": "function pairs(a, t) { const m = new Map(); let c = 0; for (const x of a) { c += m.get(t - x) || 0; m.set(x, (m.get(x) || 0) + 1); } return c; }"
+    "solution": "function pairs(a, t) {\n  const m = new Map();\n  let c = 0;\n  for (const x of a) {\n    c += m.get(t - x) || 0;\n    m.set(x, (m.get(x) || 0) + 1);\n  }\n  return c;\n}"
   },
   {
     "num": 492,
     "id": "Q492",
     "prompt": "Product of array except self",
-    "solution": "function prod(a) { const n = a.length, r = Array(n).fill(1); let l = 1; for (let i = 0; i < n; i++) { r[i] = l; l *= a[i]; } let rt = 1; for (let i = n - 1; i >= 0; i--) { r[i] *= rt; rt *= a[i]; } return r; }"
+    "solution": "function prod(a) {\n  const n = a.length, r = Array(n).fill(1);\n  let l = 1;\n  for (let i = 0; i < n; i++) {\n    r[i] = l;\n    l *= a[i];\n  }\n  let rt = 1;\n  for (let i = n - 1; i >= 0; i--) {\n    r[i] *= rt;\n    rt *= a[i];\n  }\n  return r;\n}"
   },
   {
     "num": 493,
     "id": "Q493",
     "prompt": "Longest consecutive sequence",
-    "solution": "function lcs(a) { const s = new Set(a); let best = 0; for (const x of s) if (!s.has(x - 1)) { let y = x; while (s.has(y + 1)) y++; best = Math.max(best, y - x + 1); } return best; }"
+    "solution": "function lcs(a) {\n  const s = new Set(a);\n  let best = 0;\n  for (const x of s)\n    if (!s.has(x - 1)) {\n      let y = x;\n      while (s.has(y + 1))\n        y++;\n      best = Math.max(best, y - x + 1);\n    }\n  return best;\n}"
   },
   {
     "num": 494,
@@ -465,19 +465,19 @@
     "num": 496,
     "id": "Q496",
     "prompt": "Shuffle array (Fisher-Yates)",
-    "solution": "function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }"
+    "solution": "function shuffle(a) {\n  for (let i = a.length - 1; i > 0; i--) {\n    const j = Math.floor(Math.random() * (i + 1));\n    [a[i], a[j]] = [a[j], a[i]];\n  }\n  return a;\n}"
   },
   {
     "num": 497,
     "id": "Q497",
     "prompt": "Best time to buy/sell stock",
-    "solution": "function profit(p) { let min = Infinity, best = 0; for (const x of p) { min = Math.min(min, x); best = Math.max(best, x - min); } return best; }"
+    "solution": "function profit(p) {\n  let min = Infinity, best = 0;\n  for (const x of p) {\n    min = Math.min(min, x);\n    best = Math.max(best, x - min);\n  }\n  return best;\n}"
   },
   {
     "num": 498,
     "id": "Q498",
     "prompt": "Valid anagram groups",
-    "solution": "const groupAn = w => Object.values(w.reduce((m, s) => { const k = [...s].sort().join(''); (m[k] ||= []).push(s); return m; }, {}));"
+    "solution": "const groupAn = w => Object.values(w.reduce((m, s) => {\n  const k = [...s].sort().join('');\n  (m[k] ||= []).push(s);\n  return m;\n}, {}));"
   },
   {
     "num": 499,
@@ -489,7 +489,7 @@
     "num": 500,
     "id": "Q500",
     "prompt": "Spiral order of matrix",
-    "solution": "function spiral(m) { const r = []; while (m.length) { r.push(...m.shift()); m = m[0] ? T(m).reverse() : []; } return r; }"
+    "solution": "function spiral(m) {\n  const r = [];\n  while (m.length) {\n    r.push(...m.shift());\n    m = m[0] ? T(m).reverse() : [];\n  }\n  return r;\n}"
   },
   {
     "num": 501,
@@ -501,13 +501,13 @@
     "num": 502,
     "id": "Q502",
     "prompt": "Deep equal",
-    "solution": "function deepEq(a, b) { if (a === b) return true; if (typeof a !== 'object' || typeof b !== 'object' || !a || !b) return false; const k = Object.keys(a); return k.length === Object.keys(b).length && k.every(x => deepEq(a[x], b[x])); }"
+    "solution": "function deepEq(a, b) {\n  if (a === b)\n    return true;\n  if (typeof a !== 'object' || typeof b !== 'object' || !a || !b)\n    return false;\n  const k = Object.keys(a);\n  return k.length === Object.keys(b).length && k.every(x => deepEq(a[x], b[x]));\n}"
   },
   {
     "num": 503,
     "id": "Q503",
     "prompt": "Flatten nested object",
-    "solution": "function flatObj(o, p = '', r = {}) { for (const k in o) { const key = p ? p + '.' + k : k; typeof o[k] === 'object' && o[k] ? flatObj(o[k], key, r) : r[key] = o[k]; } return r; }"
+    "solution": "function flatObj(o, p = '', r = {}) {\n  for (const k in o) {\n    const key = p ? p + '.' + k : k;\n    typeof o[k] === 'object' && o[k] ? flatObj(o[k], key, r) : r[key] = o[k];\n  }\n  return r;\n}"
   },
   {
     "num": 504,
@@ -519,7 +519,7 @@
     "num": 505,
     "id": "Q505",
     "prompt": "Pick / omit keys",
-    "solution": "const pick = (o, ks) => Object.fromEntries(ks.map(k => [k, o[k]])); const omit = (o, ks) => Object.fromEntries(Object.entries(o).filter(([k]) => !ks.includes(k)));"
+    "solution": "const pick = (o, ks) => Object.fromEntries(ks.map(k => [k, o[k]]));\nconst omit = (o, ks) => Object.fromEntries(Object.entries(o).filter(([k]) => !ks.includes(k)));"
   },
   {
     "num": 506,
@@ -531,7 +531,7 @@
     "num": 507,
     "id": "Q507",
     "prompt": "Merge objects deeply",
-    "solution": "const merge = (a, b) => { for (const k in b) a[k] = (b[k] && typeof b[k] === 'object' && !Array.isArray(b[k])) ? merge(a[k] || {}, b[k]) : b[k]; return a; };"
+    "solution": "const merge = (a, b) => {\n  for (const k in b)\n    a[k] = (b[k] && typeof b[k] === 'object' && !Array.isArray(b[k])) ? merge(a[k] || {}, b[k]) : b[k];\n  return a;\n};"
   },
   {
     "num": 508,
@@ -543,79 +543,79 @@
     "num": 509,
     "id": "Q509",
     "prompt": "Debounce",
-    "solution": "function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }"
+    "solution": "function debounce(fn, ms) {\n  let t;\n  return (...a) => {\n    clearTimeout(t);\n    t = setTimeout(() => fn(...a), ms);\n  };\n}"
   },
   {
     "num": 510,
     "id": "Q510",
     "prompt": "Throttle",
-    "solution": "function throttle(fn, ms) { let last = 0; return (...a) => { const n = Date.now(); if (n - last >= ms) { last = n; fn(...a); } }; }"
+    "solution": "function throttle(fn, ms) {\n  let last = 0;\n  return (...a) => {\n    const n = Date.now();\n    if (n - last >= ms) {\n      last = n;\n      fn(...a);\n    }\n  };\n}"
   },
   {
     "num": 511,
     "id": "Q511",
     "prompt": "Memoize",
-    "solution": "const memo = fn => { const c = new Map(); return (...a) => { const k = JSON.stringify(a); if (!c.has(k)) c.set(k, fn(...a)); return c.get(k); }; };"
+    "solution": "const memo = fn => {\n  const c = new Map();\n  return (...a) => {\n    const k = JSON.stringify(a);\n    if (!c.has(k))\n      c.set(k, fn(...a));\n    return c.get(k);\n  };\n};"
   },
   {
     "num": 512,
     "id": "Q512",
     "prompt": "Curry",
-    "solution": "const curry = fn => function c(...a) { return a.length >= fn.length ? fn(...a) : (...b) => c(...a, ...b); };"
+    "solution": "const curry = fn => function c(...a) {\n  return a.length >= fn.length ? fn(...a) : (...b) => c(...a, ...b);\n};"
   },
   {
     "num": 513,
     "id": "Q513",
     "prompt": "Compose / pipe",
-    "solution": "const compose = (...f) => x => f.reduceRight((v, fn) => fn(v), x); const pipe = (...f) => x => f.reduce((v, fn) => fn(v), x);"
+    "solution": "const compose = (...f) => x => f.reduceRight((v, fn) => fn(v), x);\nconst pipe = (...f) => x => f.reduce((v, fn) => fn(v), x);"
   },
   {
     "num": 514,
     "id": "Q514",
     "prompt": "once()",
-    "solution": "const once = fn => { let d = false, r; return (...a) => d ? r : (d = true, r = fn(...a)); };"
+    "solution": "const once = fn => {\n  let d = false, r;\n  return (...a) => d ? r : (d = true, r = fn(...a));\n};"
   },
   {
     "num": 515,
     "id": "Q515",
     "prompt": "Polyfill map",
-    "solution": "Array.prototype.myMap = function (cb) { const r = []; for (let i = 0; i < this.length; i++) r.push(cb(this[i], i, this)); return r; };"
+    "solution": "Array.prototype.myMap = function (cb) {\n  const r = [];\n  for (let i = 0; i < this.length; i++)\n    r.push(cb(this[i], i, this));\n  return r;\n};"
   },
   {
     "num": 516,
     "id": "Q516",
     "prompt": "Polyfill filter",
-    "solution": "Array.prototype.myFilter = function (cb) { const r = []; for (let i = 0; i < this.length; i++) if (cb(this[i], i, this)) r.push(this[i]); return r; };"
+    "solution": "Array.prototype.myFilter = function (cb) {\n  const r = [];\n  for (let i = 0; i < this.length; i++)\n    if (cb(this[i], i, this))\n      r.push(this[i]);\n  return r;\n};"
   },
   {
     "num": 517,
     "id": "Q517",
     "prompt": "Polyfill reduce",
-    "solution": "Array.prototype.myReduce = function (cb, init) { let i = 0, acc = init; if (acc === undefined) acc = this[i++]; for (; i < this.length; i++) acc = cb(acc, this[i], i, this); return acc; };"
+    "solution": "Array.prototype.myReduce = function (cb, init) {\n  let i = 0, acc = init;\n  if (acc === undefined)\n    acc = this[i++];\n  for (; i < this.length; i++)\n    acc = cb(acc, this[i], i, this);\n  return acc;\n};"
   },
   {
     "num": 518,
     "id": "Q518",
     "prompt": "Polyfill Promise.all",
-    "solution": "const pAll = ps => new Promise((res, rej) => { const out = []; let n = 0; ps.forEach((p, i) => Promise.resolve(p).then(v => { out[i] = v; if (++n === ps.length) res(out); }, rej)); if (!ps.length) res([]); });"
+    "solution": "const pAll = ps => new Promise((res, rej) => {\n  const out = [];\n  let n = 0;\n  ps.forEach((p, i) => Promise.resolve(p).then(v => {\n    out[i] = v;\n    if (++n === ps.length)\n      res(out);\n  }, rej));\n  if (!ps.length)\n    res([]);\n});"
   },
   {
     "num": 519,
     "id": "Q519",
     "prompt": "Event emitter",
-    "solution": "class Emitter { constructor() { this.e = {}; } on(n, f) { (this.e[n] ||= []).push(f); } off(n, f) { this.e[n] = (this.e[n] || []).filter(x => x !== f); } emit(n, ...a) { (this.e[n] || []).forEach(f => f(...a)); } }"
+    "solution": "class Emitter {\n  constructor() {\n    this.e = {};\n  }\n  on(n, f) {\n    (this.e[n] ||= []).push(f);\n  }\n  off(n, f) {\n    this.e[n] = (this.e[n] || []).filter(x => x !== f);\n  }\n  emit(n, ...a) {\n    (this.e[n] || []).forEach(f => f(...a));\n  }\n}"
   },
   {
     "num": 520,
     "id": "Q520",
     "prompt": "Retry async function",
-    "solution": "async function retry(fn, n = 3) { for (let i = 0; i < n; i++) { try { return await fn(); } catch (e) { if (i === n - 1) throw e; } } }"
+    "solution": "async function retry(fn, n = 3) {\n  for (let i = 0; i < n; i++) {\n    try {\n      return await fn();\n    }\n    catch (e) {\n      if (i === n - 1)\n        throw e;\n    }\n  }\n}"
   },
   {
     "num": 521,
     "id": "Q521",
     "prompt": "Promise-based sleep + timeout",
-    "solution": "const sleep = ms => new Promise(r => setTimeout(r, ms)); const timeout = (p, ms) => Promise.race([p, new Promise((_, j) => setTimeout(() => j(new Error('timeout')), ms))]);"
+    "solution": "const sleep = ms => new Promise(r => setTimeout(r, ms));\nconst timeout = (p, ms) => Promise.race([p, new Promise((_, j) => setTimeout(() => j(new Error('timeout')), ms))]);"
   },
   {
     "num": 522,
@@ -627,25 +627,25 @@
     "num": 523,
     "id": "Q523",
     "prompt": "Stack class",
-    "solution": "class Stack { #a = []; push(x) { this.#a.push(x); } pop() { return this.#a.pop(); } peek() { return this.#a.at(-1); } get size() { return this.#a.length; } }"
+    "solution": "class Stack {\n  #a = [];\n  push(x) {\n    this.#a.push(x);\n  }\n  pop() {\n    return this.#a.pop();\n  }\n  peek() {\n    return this.#a.at(-1);\n  }\n  get size() {\n    return this.#a.length;\n  }\n}"
   },
   {
     "num": 524,
     "id": "Q524",
     "prompt": "Queue class",
-    "solution": "class Queue { #a = []; enqueue(x) { this.#a.push(x); } dequeue() { return this.#a.shift(); } get size() { return this.#a.length; } }"
+    "solution": "class Queue {\n  #a = [];\n  enqueue(x) {\n    this.#a.push(x);\n  }\n  dequeue() {\n    return this.#a.shift();\n  }\n  get size() {\n    return this.#a.length;\n  }\n}"
   },
   {
     "num": 525,
     "id": "Q525",
     "prompt": "Linked list node + append",
-    "solution": "class Node { constructor(v) { this.val = v; this.next = null; } } class LL { constructor() { this.head = null; } add(v) { const n = new Node(v); if (!this.head) return this.head = n; let c = this.head; while (c.next) c = c.next; c.next = n; } }"
+    "solution": "class Node {\n  constructor(v) {\n    this.val = v;\n    this.next = null;\n  }\n}\nclass LL {\n  constructor() {\n    this.head = null;\n  }\n  add(v) {\n    const n = new Node(v);\n    if (!this.head)\n      return this.head = n;\n    let c = this.head;\n    while (c.next)\n      c = c.next;\n    c.next = n;\n  }\n}"
   },
   {
     "num": 526,
     "id": "Q526",
     "prompt": "Reverse a linked list",
-    "solution": "function reverse(h) { let p = null; while (h) [h.next, p, h] = [p, h, h.next]; return p; }"
+    "solution": "function reverse(h) {\n  let p = null;\n  while (h)\n    [h.next, p, h] = [p, h, h.next];\n  return p;\n}"
   },
   {
     "num": 527,
@@ -663,25 +663,25 @@
     "num": 529,
     "id": "Q529",
     "prompt": "BFS on graph",
-    "solution": "function bfs(g, s) { const seen = new Set([s]), q = [s], o = []; while (q.length) { const n = q.shift(); o.push(n); for (const x of g[n] || []) if (!seen.has(x)) { seen.add(x); q.push(x); } } return o; }"
+    "solution": "function bfs(g, s) {\n  const seen = new Set([s]), q = [s], o = [];\n  while (q.length) {\n    const n = q.shift();\n    o.push(n);\n    for (const x of g[n] || [])\n      if (!seen.has(x)) {\n        seen.add(x);\n        q.push(x);\n      }\n  }\n  return o;\n}"
   },
   {
     "num": 530,
     "id": "Q530",
     "prompt": "DFS on graph",
-    "solution": "function dfs(g, n, seen = new Set()) { seen.add(n); for (const x of g[n] || []) if (!seen.has(x)) dfs(g, x, seen); return [...seen]; }"
+    "solution": "function dfs(g, n, seen = new Set()) {\n  seen.add(n);\n  for (const x of g[n] || [])\n    if (!seen.has(x))\n      dfs(g, x, seen);\n  return [...seen];\n}"
   },
   {
     "num": 531,
     "id": "Q531",
     "prompt": "LRU Cache (Map)",
-    "solution": "class LRU { constructor(c) { this.c = c; this.m = new Map(); } get(k) { if (!this.m.has(k)) return -1; const v = this.m.get(k); this.m.delete(k); this.m.set(k, v); return v; } put(k, v) { this.m.delete(k); this.m.set(k, v); if (this.m.size > this.c) this.m.delete(this.m.keys().next().value); } }"
+    "solution": "class LRU {\n  constructor(c) {\n    this.c = c;\n    this.m = new Map();\n  }\n  get(k) {\n    if (!this.m.has(k))\n      return -1;\n    const v = this.m.get(k);\n    this.m.delete(k);\n    this.m.set(k, v);\n    return v;\n  }\n  put(k, v) {\n    this.m.delete(k);\n    this.m.set(k, v);\n    if (this.m.size > this.c)\n      this.m.delete(this.m.keys().next().value);\n  }\n}"
   },
   {
     "num": 532,
     "id": "Q532",
     "prompt": "Hash map from scratch (concept)",
-    "solution": "Array of buckets; index = hash(key) % size; collisions chain ke liye bucket mein [key,value] list rakho."
+    "solution": "Maintain an array of buckets; index = hash(key) % size. Store [key, value] pairs in each bucket list to handle hash collisions via separate chaining."
   },
   {
     "num": 533,
@@ -693,25 +693,25 @@
     "num": 534,
     "id": "Q534",
     "prompt": "Valid parentheses count min removals",
-    "solution": "Stack ya counter: open count badhao, ')' par open>0 ho to ghatao warna remove++ ; end mein remove + open."
+    "solution": "Use a stack or balance counter: increment open count on \"(\", decrement on \")\" if open > 0 else increment removals; return removals + remaining open count."
   },
   {
     "num": 535,
     "id": "Q535",
     "prompt": "Climbing stairs (DP)",
-    "solution": "const climb = n => { let [a, b] = [1, 1]; for (let i = 2; i <= n; i++) [a, b] = [b, a + b]; return b; };"
+    "solution": "const climb = n => {\n  let [a, b] = [1, 1];\n  for (let i = 2; i <= n; i++)\n    [a, b] = [b, a + b];\n  return b;\n};"
   },
   {
     "num": 536,
     "id": "Q536",
     "prompt": "Coin change min coins (DP)",
-    "solution": "function coins(c, t) { const dp = Array(t + 1).fill(Infinity); dp[0] = 0; for (let i = 1; i <= t; i++) for (const x of c) if (i >= x) dp[i] = Math.min(dp[i], dp[i - x] + 1); return dp[t] === Infinity ? -1 : dp[t]; }"
+    "solution": "function coins(c, t) {\n  const dp = Array(t + 1).fill(Infinity);\n  dp[0] = 0;\n  for (let i = 1; i <= t; i++)\n    for (const x of c)\n      if (i >= x)\n        dp[i] = Math.min(dp[i], dp[i - x] + 1);\n  return dp[t] === Infinity ? -1 : dp[t];\n}"
   },
   {
     "num": 537,
     "id": "Q537",
     "prompt": "Longest increasing subsequence",
-    "solution": "function lis(a) { const dp = Array(a.length).fill(1); for (let i = 1; i < a.length; i++) for (let j = 0; j < i; j++) if (a[j] < a[i]) dp[i] = Math.max(dp[i], dp[j] + 1); return Math.max(...dp); }"
+    "solution": "function lis(a) {\n  const dp = Array(a.length).fill(1);\n  for (let i = 1; i < a.length; i++)\n    for (let j = 0; j < i; j++)\n      if (a[j] < a[i])\n        dp[i] = Math.max(dp[i], dp[j] + 1);\n  return Math.max(...dp);\n}"
   },
   {
     "num": 538,
@@ -735,6 +735,6 @@
     "num": 541,
     "id": "Q541",
     "prompt": "Check if two strings are one edit away",
-    "solution": "Lengths ka difference > 1 to false; do pointers se pehla mismatch skip karo (replace/insert/delete) aur ek hi mismatch allow karo."
+    "solution": "Return false immediately if |lenA - lenB| > 1. Walk with two pointers, skipping at most one mismatch (replace if equal length, or advance longer pointer for insert/delete)."
   }
 ]

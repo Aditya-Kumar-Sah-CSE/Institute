@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
 const ts = require('typescript');
+const vm = require('vm');
 const postgres = require('postgres');
 const { createInteractiveStepsForLesson } = require('./build_guided_steps');
 
@@ -18,7 +19,7 @@ assert(env.DATABASE_URL, 'DATABASE_URL missing in BCE/.env');
 
 const sql = postgres(env.DATABASE_URL, { max: 1 });
 
-// Load extracted 70-page PDF dataset
+// Load 70-page English workbook dataset
 const meta = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'meta.json'), 'utf8'));
 const topicsPartA = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'topics_partA.json'), 'utf8'));
 const taskSolutions = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'task_solutions_partA.json'), 'utf8'));
@@ -46,9 +47,26 @@ function esc(str) {
     .replace(/"/g, '&quot;');
 }
 
+function isExecutableJS(code) {
+  const txt = String(code || '').trim();
+  if (!txt) return false;
+  // Detect conceptual prose answers like Q532-Q534, Q541
+  if (/^(Maintain an array|Array-based|Use a stack|Return false immediately)/i.test(txt)) {
+    return false;
+  }
+  try {
+    new vm.Script(txt);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function prettyJS(code) {
-  const sf = ts.createSourceFile('s.js', code, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
-  if (sf.parseDiagnostics && sf.parseDiagnostics.length > 0) return code;
+  const txt = String(code || '').trim();
+  if (!txt) return '';
+  const sf = ts.createSourceFile('s.js', txt, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+  if (sf.parseDiagnostics && sf.parseDiagnostics.length > 0) return txt;
   const transformer = ctx => root => {
     const visit = n => {
       const updated = ts.visitEachChild(n, visit, ctx);
@@ -58,7 +76,7 @@ function prettyJS(code) {
     return ts.visitNode(root, visit);
   };
   const res = ts.transform(sf, [transformer]);
-  const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
+  const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed, removeComments: false });
   return printer.printFile(res.transformed[0]).trim();
 }
 
@@ -91,11 +109,11 @@ function buildOrientationHtml() {
       `<ul>${meta.howToUse.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` +
     `</div>` +
     `<div class="wb-callout">` +
-      `<h3>Content Kahan Se Aaya (Research Notes)</h3>` +
-      meta.researchNotes.map(n => `<p>${esc(n)}</p>`).join('') +
+      `<h3>Curriculum Alignment &amp; Research Notes</h3>` +
+      `<ul>${meta.researchNotes.map(n => `<li>${esc(n)}</li>`).join('')}</ul>` +
     `</div>` +
     `<div class="wb-card">` +
-      `<h3>12-Week Study Plan (Daily 1.5–2 Ghante)</h3>` +
+      `<h3>12-Week Study Plan (1.5–2 Hours Daily)</h3>` +
       `<div class="wb-table-wrap"><table><thead><tr><th>Week</th><th>Focus</th><th>Expected Output</th></tr></thead><tbody>${planRows}</tbody></table></div>` +
     `</div>` +
   `</div>`;
@@ -111,7 +129,7 @@ function buildTopicHtml(topic) {
         `<div class="wb-qa-q">${esc(task.id)} — ${esc(task.title)}</div>` +
         `<ul>${steps}</ul>` +
         (sol
-          ? `<details><summary>Reference JS Solution (pehle khud try karo, phir verify karo)</summary><pre><code>${esc(sol)}</code></pre></details>`
+          ? `<details><summary>Reference JS Solution (try solving it yourself first, then verify)</summary><pre><code>${esc(prettyJS(sol))}</code></pre></details>`
           : '') +
       `</div>`;
     })
@@ -125,15 +143,15 @@ function buildTopicHtml(topic) {
         `<span class="wb-badge">6 Step-by-Step Tasks</span>` +
       `</div>` +
       `<h2>${topic.id}. ${esc(topic.title)}</h2>` +
-      `<p>Roadmap ka order follow karo: pehle concepts aur example code samjho, phir har practice task khud run karo.</p>` +
+      `<p>Follow the roadmap order: master the core concepts and example snippet first, then solve each practice task in the IDE.</p>` +
     `</div>` +
     `<div class="wb-card">` +
-      `<h3>Kya Seekhna Hai</h3>` +
+      `<h3>What You Will Learn</h3>` +
       `<ul>${bullets}</ul>` +
     `</div>` +
     `<div class="wb-card">` +
       `<h3>Core Code Example</h3>` +
-      `<pre><code>${esc(topic.codeExample)}</code></pre>` +
+      `<pre><code>${esc(prettyJS(topic.codeExample))}</code></pre>` +
     `</div>` +
     `<div class="wb-task-grid">` +
       `<h3>Practice Tasks (Step-by-Step Guided)</h3>` +
@@ -154,7 +172,7 @@ function buildProjectHtml(project) {
         skillsHtml +
       `</div>` +
       `<h2>Project ${project.id}: ${esc(project.title)}</h2>` +
-      `<p>Har project ko chhote steps mein todkar banao: pehle HTML skeleton, phir JS logic, phir UI polish aur edge-case testing. Assignments tab mein apna solution / GitHub repo submit karo!</p>` +
+      `<p>Build each project iteratively: start with HTML structure, add clean JS state/logic, polish UI validation, and submit your GitHub repo or code in the Assignments tab.</p>` +
     `</div>` +
     `<div class="wb-card">` +
       `<h3>Step-by-Step Build Guide</h3>` +
@@ -162,7 +180,7 @@ function buildProjectHtml(project) {
     `</div>` +
     `<div class="wb-card">` +
       `<h3>Starter Code</h3>` +
-      `<pre><code>${esc(project.starterCode)}</code></pre>` +
+      `<pre><code>${esc(prettyJS(project.starterCode))}</code></pre>` +
     `</div>` +
   `</div>`;
 }
@@ -193,7 +211,7 @@ function buildC1GroupHtml(title, badgeText, categories, questions) {
         categories.map(c => `<span class="wb-badge">${esc(c)}</span>`).join('') +
       `</div>` +
       `<h2>${esc(title)}</h2>` +
-      `<p>Workbook Rule: Roz 15–20 questions active-recall se bolkar try karo, phir Show Answer par click karke compare karo.</p>` +
+      `<p>Workbook Rule: Practice 15–20 questions daily via active recall by explaining out loud before clicking Show Answer.</p>` +
     `</div>` +
     groupedSections +
   `</div>`;
@@ -203,10 +221,8 @@ function buildC2CodingHtml(title, startNum, endNum) {
   const subset = c2Coding.filter(q => q.num >= startNum && q.num <= endNum);
   const cards = subset
     .map(q => {
-      const formatted = prettyJS(q.solution);
-      const isFormattedCode = formatted !== q.solution || /^[a-zA-Z_$]/.test(q.solution) && !/buckets;|binary tree|Stack ya|Lengths ka/.test(q.solution);
-      const solBlock = isFormattedCode && formatted.length > 0 && !/Array of buckets|Array-based complete|Stack ya counter|Lengths ka difference/.test(formatted)
-        ? `<pre><code>${esc(formatted)}</code></pre>`
+      const solBlock = isExecutableJS(q.solution)
+        ? `<pre><code>${esc(prettyJS(q.solution))}</code></pre>`
         : `<p>${esc(q.solution)}</p>`;
       return `<div class="wb-qa">` +
         `<div class="wb-qa-q">${esc(q.id)}. ${esc(q.prompt)}</div>` +
@@ -222,7 +238,7 @@ function buildC2CodingHtml(title, startNum, endNum) {
         `<span class="wb-badge wb-badge-ok">Q${startNum}–Q${endNum} (${subset.length} Problems)</span>` +
       `</div>` +
       `<h2>${esc(title)}</h2>` +
-      `<p>Solutions JavaScript (Node.js 22 verified) mein hain. Kuch helpers (jaise <code>gcd</code>, <code>freq</code>, <code>T</code>) pehle ke snippets se reuse hote hain. Pehle khud code likhne ki koshish karo!</p>` +
+      `<p>All solutions are verified in Node.js 22. Some utilities (such as <code>gcd</code> or <code>freq</code>) reuse earlier helpers. Implement each problem yourself first before checking the reference code.</p>` +
     `</div>` +
     `<div class="wb-task-grid">${cards}</div>` +
   `</div>`;
@@ -231,7 +247,7 @@ function buildC2CodingHtml(title, startNum, endNum) {
 function buildC3OutputHtml() {
   const cards = c3Output
     .map(q => {
-      const formatted = prettyJS(q.code.replace(/\s+/g, ' ').trim()) || q.code;
+      const formatted = prettyJS(q.code) || q.code;
       return `<div class="wb-qa">` +
         `<div class="wb-qa-q">${esc(q.id)}. ${esc(q.prompt)}</div>` +
         `<pre><code>${esc(formatted)}</code></pre>` +
@@ -251,7 +267,7 @@ function buildC3OutputHtml() {
         `<span class="wb-badge wb-badge-ok">Node.js 22 Verified</span>` +
       `</div>` +
       `<h2>C3. Output Prediction Labs (Q542–Q593)</h2>` +
-      `<p>Har snippet ka output pehle dry-run karke socho (coercion, hoisting, event loop, <code>this</code>, prototypes), phir Answer expand karo.</p>` +
+      `<p>Dry-run every snippet mentally (coercion, hoisting, event loop, <code>this</code>, prototypes) before expanding the verified output and explanation.</p>` +
     `</div>` +
     `<div class="wb-task-grid">${cards}</div>` +
   `</div>`;
@@ -277,10 +293,10 @@ function buildAppendixHtml() {
         `<span class="wb-badge wb-badge-warn">Interview Checklist</span>` +
       `</div>` +
       `<h2>Appendix: Free Resources, Interview Checklist &amp; MCQ Answer Key</h2>` +
-      `<p>Self-test complete karne ke liye course page par <strong>Course MCQs (150)</strong> tab attempt karo! Niche complete reference key aur interview-readiness checklist di gayi hai.</p>` +
+      `<p>Attempt the <strong>Course MCQs (150)</strong> tab on the course overview page for self-assessment, then review the reference key and pre-interview readiness checklist below.</p>` +
     `</div>` +
     `<div class="wb-card">` +
-      `<h3>Interview Se Pehle 7-Point Checklist</h3>` +
+      `<h3>Pre-Interview 7-Point Readiness Checklist</h3>` +
       `<ul>${checkHtml}</ul>` +
     `</div>` +
     `<div class="wb-card">` +
@@ -296,15 +312,15 @@ function buildAppendixHtml() {
   `</div>`;
 }
 
-// Assemble full 12-week ordered curriculum (39 Lessons + 17 Assignments)
+// Assemble full 12-week ordered curriculum in 100% English (39 Lessons + 17 Assignments)
 const curriculum = [
   // WEEK 1 (Topics 1-3 + Orientation + Project 1)
   { week: 1, title: '0. Course Overview & Plan', xp: 25, notes: buildOrientationHtml() },
-  { week: 1, title: '1. Setup, Console aur Variables', xp: 40, notes: buildTopicHtml(topicsPartA[0]) },
-  { week: 1, title: '2. Data Types aur Coercion', xp: 40, notes: buildTopicHtml(topicsPartA[1]) },
+  { week: 1, title: '1. Setup, Console & Variables', xp: 40, notes: buildTopicHtml(topicsPartA[0]) },
+  { week: 1, title: '2. Data Types & Type Coercion', xp: 40, notes: buildTopicHtml(topicsPartA[1]) },
   {
     week: 1,
-    title: '3. Control Flow aur Loops',
+    title: '3. Control Flow & Loops',
     xp: 40,
     notes: buildTopicHtml(topicsPartA[2]),
     assignment: {
@@ -313,7 +329,7 @@ const curriculum = [
       xp_reward: 35,
       requires_github: false,
       requires_deploy: false,
-      description: 'Tasks 3.1, 3.4 aur 3.6 solve karke apna Node.js solution code submit karo: (1) 1..100 FizzBuzz, (2) n-row Star Pyramid using .repeat(), (3) while-loop digit sum + reversed integer.'
+      description: 'Solve Tasks 3.1, 3.4, and 3.6 and submit your Node.js code: (1) 1..100 FizzBuzz, (2) n-row Star Pyramid using .repeat(), (3) while-loop digit sum + reversed integer.'
     }
   },
   {
@@ -327,7 +343,7 @@ const curriculum = [
       xp_reward: 60,
       requires_github: true,
       requires_deploy: false,
-      description: 'Guided Project 1 build karo (HTML inputs, calc() validation, Intl.NumberFormat INR formatting, Enter key trigger). Code paste karo ya GitHub repo link submit karo!'
+      description: 'Build Guided Project 1 (HTML inputs, calc() validation, Intl.NumberFormat INR formatting, Enter key trigger). Paste your code or submit a GitHub repo link.'
     }
   },
 
@@ -344,12 +360,12 @@ const curriculum = [
       xp_reward: 45,
       requires_github: false,
       requires_deploy: false,
-      description: 'Tasks 5.2, 5.3, 5.4, 5.5 ke liye closure-based BankAccount (private balance), once(fn), memoize(fn), aur debounce(fn, ms) implement karke submit karo.'
+      description: 'Implement Tasks 5.2, 5.3, 5.4, and 5.5 using closures: BankAccount (private balance), once(fn), memoize(fn), and debounce(fn, ms).'
     }
   },
 
   // WEEK 3 (Topics 6-7)
-  { week: 3, title: '6. Arrays aur Array Methods', xp: 45, notes: buildTopicHtml(topicsPartA[5]) },
+  { week: 3, title: '6. Arrays & Array Methods', xp: 45, notes: buildTopicHtml(topicsPartA[5]) },
   {
     week: 3,
     title: '7. Strings & Regular Expressions',
@@ -361,13 +377,13 @@ const curriculum = [
       xp_reward: 45,
       requires_github: false,
       requires_deploy: false,
-      description: 'Week 3 target (20 coding problems): Array Two Sum (O(n) Map), Rotate Right by k, Word Frequency Counter, aur Group Anagrams implement karke submit karo.'
+      description: 'Week 3 target (20 coding problems): implement Array Two Sum (O(n) Map), Rotate Right by k, Word Frequency Counter, and Group Anagrams.'
     }
   },
 
   // WEEK 4 (Topics 8-9 + Project 2)
-  { week: 4, title: '8. Objects, JSON aur this', xp: 45, notes: buildTopicHtml(topicsPartA[7]) },
-  { week: 4, title: '9. ES6+ Features aur Modules', xp: 45, notes: buildTopicHtml(topicsPartA[8]) },
+  { week: 4, title: '8. Objects, JSON & this', xp: 45, notes: buildTopicHtml(topicsPartA[7]) },
+  { week: 4, title: '9. ES6+ Features & Modules', xp: 45, notes: buildTopicHtml(topicsPartA[8]) },
   {
     week: 4,
     title: 'P2: Todo App + localStorage',
@@ -379,7 +395,7 @@ const curriculum = [
       xp_reward: 75,
       requires_github: true,
       requires_deploy: true,
-      description: 'Todo App with localStorage persistence, All/Active/Done filters, edit double-click aur event delegation build karke GitHub/Live URL ya code submit karo.'
+      description: 'Build a Todo App with localStorage persistence, All/Active/Done filters, double-click inline editing, and event delegation. Submit your GitHub/Live URL or code.'
     }
   },
 
@@ -395,7 +411,7 @@ const curriculum = [
       xp_reward: 50,
       requires_github: false,
       requires_deploy: false,
-      description: 'Tasks 10.2 & 10.5 complete karo: private #balance ke saath BankAccount class (validation errors + getter) aur on/off/emit EventEmitter class.'
+      description: 'Complete Tasks 10.2 & 10.5: BankAccount class with private #balance (validation + getter) and on/off/emit EventEmitter class.'
     }
   },
 
@@ -413,7 +429,7 @@ const curriculum = [
       xp_reward: 65,
       requires_github: true,
       requires_deploy: false,
-      description: 'Digital Clock (12h/24h toggle), Stopwatch (Start/Pause/Reset/Lap) aur Countdown Timer build karke submit karo.'
+      description: 'Build Digital Clock (12h/24h toggle), Stopwatch (Start/Pause/Reset/Lap), and Countdown Timer.'
     }
   },
   {
@@ -427,7 +443,7 @@ const curriculum = [
       xp_reward: 70,
       requires_github: true,
       requires_deploy: true,
-      description: 'Dynamic MCQ Quiz App (score tracking, per-question timer, highScore in localStorage, Restart flow) build karke submit karo.'
+      description: 'Build a dynamic MCQ Quiz App featuring score tracking, per-question timer, localStorage highScore, and Restart flow.'
     }
   },
   {
@@ -441,7 +457,7 @@ const curriculum = [
       xp_reward: 75,
       requires_github: true,
       requires_deploy: true,
-      description: 'Calculator without eval() using cur/prev/op state machine, keyboard support, Clear/Backspace aur divide-by-zero handling.'
+      description: 'Build a Calculator without eval() using a cur/prev/op state machine, keyboard support, Clear/Backspace, and divide-by-zero handling.'
     }
   },
 
@@ -458,7 +474,7 @@ const curriculum = [
       xp_reward: 80,
       requires_github: true,
       requires_deploy: true,
-      description: 'Open-Meteo Weather / Random User Explorer using async/await, response.ok checks, Loading/Error UI states aur retry button.'
+      description: 'Build an Open-Meteo Weather / Random User Explorer using async/await, response.ok checks, loading/error UI states, and a retry button.'
     }
   },
 
@@ -475,7 +491,7 @@ const curriculum = [
       xp_reward: 80,
       requires_github: true,
       requires_deploy: true,
-      description: 'Expense Tracker with reduce()-driven totals, category/month filters, localStorage persistence aur CSV export.'
+      description: 'Build an Expense Tracker with reduce()-driven totals, category/month filters, localStorage persistence, and CSV export.'
     }
   },
   {
@@ -489,7 +505,7 @@ const curriculum = [
       xp_reward: 80,
       requires_github: true,
       requires_deploy: true,
-      description: 'Tic-Tac-Toe board with 8 win combinations, draw detection, winning line highlight, scoreboard aur Restart button.'
+      description: 'Build a Tic-Tac-Toe board with 8 win combinations, draw detection, winning line highlight, scoreboard, and Restart button.'
     }
   },
 
@@ -506,7 +522,7 @@ const curriculum = [
       xp_reward: 100,
       requires_github: true,
       requires_deploy: false,
-      description: 'Node + Express REST API build karo: GET/POST/PUT/DELETE routes, logging/error middleware, request validation, HTTP status codes (201/400/404) & JSON file persistence.'
+      description: 'Build a Node + Express REST API featuring GET/POST/PUT/DELETE routes, logging/error middleware, request validation, HTTP status codes (201/400/404), and JSON persistence.'
     }
   },
 
@@ -522,7 +538,7 @@ const curriculum = [
       xp_reward: 65,
       requires_github: false,
       requires_deploy: false,
-      description: 'Topic 16 tasks implement aur submit karo: Valid Parentheses, Kadane Max Subarray Sum, Longest Substring Without Repeating Characters, aur Unweighted Graph BFS Shortest Path.'
+      description: 'Implement Topic 16 DSA tasks: Valid Parentheses, Kadane Max Subarray Sum, Longest Substring Without Repeating Characters, and Unweighted Graph BFS Shortest Path.'
     }
   },
 
@@ -624,7 +640,7 @@ const curriculum = [
       xp_reward: 75,
       requires_github: true,
       requires_deploy: false,
-      description: 'Next/Prev buttons, indicator dots, hover pause, keyboard arrow keys & swipe-ready Carousel build karo.'
+      description: 'Build an accessible Carousel featuring Next/Prev controls, indicator dots, hover pause, keyboard arrow navigation, and swipe support.'
     }
   },
   {
@@ -638,7 +654,7 @@ const curriculum = [
       xp_reward: 75,
       requires_github: true,
       requires_deploy: true,
-      description: 'Crypto-random password generator with length slider, character toggles, live strength bar & Clipboard copy feedback.'
+      description: 'Build a crypto-random Password Generator with length slider, character toggles, live strength bar, and clipboard copy feedback.'
     }
   },
   {
@@ -652,7 +668,7 @@ const curriculum = [
       xp_reward: 90,
       requires_github: true,
       requires_deploy: true,
-      description: 'Movie/Book search with 400ms debounce, AbortController stale-request cancel, Pagination + Favorites saved in localStorage.'
+      description: 'Build a Movie/Book search app using a 400ms debounce, AbortController stale-request cancellation, pagination, and localStorage favorites.'
     }
   },
   {
@@ -665,11 +681,9 @@ const curriculum = [
 
 (async () => {
   try {
-    // 1. Verify creator exists
     const creatorRows = await sql`SELECT id, name FROM public.profiles WHERE id = ${CREATOR_ID}`;
     assert(creatorRows.length === 1, `Creator profile ${CREATOR_ID} not found`);
 
-    // 2. Upsert course cleanly inside transaction
     const courseResult = await sql.begin(async tx => {
       const existing = await tx`
         SELECT id FROM public.courses WHERE title = ${COURSE_TITLE} AND is_deleted = false LIMIT 1
@@ -693,7 +707,6 @@ const curriculum = [
               enrollment_restriction = 'any'
           WHERE id = ${courseId}
         `;
-        // Clean existing course content before re-seeding idempotently
         await tx`DELETE FROM public.course_mcqs WHERE course_id = ${courseId}`;
         await tx`DELETE FROM public.lessons WHERE course_id = ${courseId}`;
         await tx`DELETE FROM public.course_notices WHERE course_id = ${courseId}`;
@@ -707,7 +720,6 @@ const curriculum = [
         courseId = inserted[0].id;
       }
 
-      // Ensure creator is linked as course instructor (avoiding duplicates)
       const instExists = await tx`
         SELECT 1 FROM public.course_instructors WHERE course_id = ${courseId} AND instructor_id = ${CREATOR_ID}
       `;
@@ -717,7 +729,6 @@ const curriculum = [
         `;
       }
 
-      // 3. Insert all 39 lessons (with deeply split interactive_steps) & 17 assignments
       let sortOrder = 1;
       let assignmentCount = 0;
       let totalInteractiveSteps = 0;
@@ -733,6 +744,7 @@ const curriculum = [
           c3Output,
           mcqsPartD,
           prettyJS,
+          isExecutableJS,
         });
         totalInteractiveSteps += interactiveSteps.length;
 
@@ -754,7 +766,6 @@ const curriculum = [
         }
       }
 
-      // 4. Insert all 150 Course MCQs (Part D)
       for (const m of mcqsPartD) {
         const difficulty = m.num <= 60 ? 'easy' : m.num <= 120 ? 'medium' : 'hard';
         await tx`
@@ -769,7 +780,6 @@ const curriculum = [
         `;
       }
 
-      // 5. Insert Welcome Notice & Pre-Interview Strategy Notice
       await tx`
         INSERT INTO public.course_notices (course_id, created_by, title, content)
         VALUES
@@ -777,17 +787,16 @@ const curriculum = [
             ${courseId},
             ${CREATOR_ID},
             'Welcome to JavaScript Mastery Workbook (12-Week LMS Plan)',
-            'Workbook workflow follow karo: Week 1 se Week 12 tak har topic mein pehle Example Code + Step 1-3 khud code karke try karo (copy-paste mat karo), phir Week 11 ke 593 Interview Questions aur Course MCQs tab mein 150 Node.js 22 verified MCQs attempt karo.'
+            'Follow the structured workbook flow: work through Weeks 1 to 12 in order, run every live example and Step 1–3 task yourself before checking solutions, then master Week 11’s 593 Interview Q&As and all 150 Course MCQs.'
           ),
           (
             ${courseId},
             ${CREATOR_ID},
             'GitHub Portfolio Rule (Projects 1 to 12)',
-            'Kam se kam 3 polished projects (jaise Expense Tracker, Debounced Movie Search, aur Node+Express REST API) GitHub README + screenshot ke saath live deploy karke Assignments tab mein submit karo!'
+            'Deploy at least 3 polished projects (such as Expense Tracker, Debounced Search, and the Node + Express REST API) to GitHub with clear READMEs and submit them in the Assignments tab!'
           )
       `;
 
-      // 6. Insert Interactive Course Orientation Poll
       const pollRows = await tx`
         INSERT INTO public.course_polls (course_id, created_by, question, is_multiple_choice)
         VALUES (
@@ -810,7 +819,6 @@ const curriculum = [
         `;
       }
 
-      // 7. Recompute & verify courses.lesson_count & courses.total_xp explicitly just in case
       const statsRows = await tx`
         SELECT
           (SELECT count(*)::int FROM public.lessons WHERE course_id = ${courseId}) as lc,
@@ -843,4 +851,3 @@ const curriculum = [
     await sql.end();
   }
 })();
-

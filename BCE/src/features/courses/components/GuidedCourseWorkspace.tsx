@@ -2,19 +2,17 @@
 
 import '@/lib/monacoInit';
 import dynamic from 'next/dynamic';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
-  ArrowRight,
   BookOpen,
   Bot,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
   Code2,
-  Copy,
   ExternalLink,
   Eye,
   FileText,
@@ -26,6 +24,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Play,
+  RefreshCw,
   RotateCcw,
   Sparkles,
   Terminal,
@@ -33,6 +32,7 @@ import {
   Zap,
 } from 'lucide-react';
 import Button from '@/components/ui/Button';
+import { CodeBlockWrapper } from '@/components/ui/MarkdownRenderer';
 import LessonView from '@/features/courses/components/LessonView';
 import AssignmentCard from '@/features/courses/components/AssignmentCard';
 import LessonDoubts from '@/app/(dashboard)/courses/[courseId]/[lessonId]/components/LessonDoubts';
@@ -74,7 +74,6 @@ type MobilePane = 'curriculum' | 'lesson' | 'workspace';
 function getOfficialJsDoc(lessonTitle: string, stepTitle: string, stepSummary: string): { label: string; url: string } {
   const combined = `${lessonTitle} ${stepTitle} ${stepSummary}`.toLowerCase();
 
-  // Exact concept/step level official docs first
   if (/\?\?|nullish/.test(combined)) {
     return { label: 'MDN: Nullish ?? & ?.', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Nullish_coalescing' };
   }
@@ -130,7 +129,6 @@ function getOfficialJsDoc(lessonTitle: string, stepTitle: string, stepSummary: s
     return { label: 'MDN: Error Handling', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/try...catch' };
   }
 
-  // Topic-number fallback across Workbook Topics 0..16, Projects P1..P12, Interview C1..C3
   const tM = lessonTitle.match(/^(\d{1,2})\.\s/);
   const topicId = tM ? Number(tM[1]) : null;
   const topicDocs: Record<number, { label: string; url: string }> = {
@@ -162,13 +160,61 @@ function getOfficialJsDoc(lessonTitle: string, stepTitle: string, stepSummary: s
   return { label: 'MDN: JS Reference', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference' };
 }
 
+function isHtmlMarkup(code: string): boolean {
+  return /<!doctype|<html|<head|<body|<div|<main|<section|<h[1-6]|<button|<form|<ul|<p\b/i.test(code);
+}
+
+function hasDomCode(code: string, lang: 'javascript' | 'html'): boolean {
+  return lang === 'html' || isHtmlMarkup(code) || /\bdocument\.(?:querySelector|getElementById|createElement|body|documentElement|addEventListener)\b/.test(code);
+}
+
+function wrapJsIntoHtmlTemplate(rawJs: string, title = 'HTML Playground'): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>${title.replace(/</g, '&lt;')}</title>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 20px; background: #0f172a; color: #f8fafc; margin: 0; }
+    .card { max-width: 520px; background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 16px; }
+    button { background: #06b6d4; color: #082f49; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div id="app" class="card">
+    <h2 style="margin-top:0">${title.replace(/</g, '&lt;')}</h2>
+    <p id="status">Edit HTML, CSS, and JavaScript below.</p>
+  </div>
+  <script>
+${rawJs}
+  </script>
+</body>
+</html>`;
+}
+
+// Injects safe storage fallback (for sandboxed iframes without allow-same-origin) + console postMessage bridge
 function buildLiveHtmlDocument(rawCode: string): string {
   const bridge = `<script>
 (function() {
+  try {
+    var testKey = '__sl_test__';
+    window.localStorage.setItem(testKey, '1');
+    window.localStorage.removeItem(testKey);
+  } catch (err) {
+    var memStore = {};
+    var safeStorage = {
+      getItem: function(k) { return Object.prototype.hasOwnProperty.call(memStore, k) ? memStore[k] : null; },
+      setItem: function(k, v) { memStore[String(k)] = String(v); },
+      removeItem: function(k) { delete memStore[String(k)]; },
+      clear: function() { memStore = {}; }
+    };
+    try { Object.defineProperty(window, 'localStorage', { value: safeStorage, configurable: true }); } catch (e) {}
+  }
+
   var send = function(type, args) {
     try {
       var text = Array.prototype.slice.call(args).map(function(a) {
-        if (typeof a === 'object') { try { return JSON.stringify(a); } catch(e) { return String(a); } }
+        if (typeof a === 'object' && a !== null) { try { return JSON.stringify(a); } catch(e) { return String(a); } }
         return String(a);
       }).join(' ');
       window.parent.postMessage({ source: 'smartlearn-preview', type: type, text: text }, '*');
@@ -184,27 +230,147 @@ function buildLiveHtmlDocument(rawCode: string): string {
 
   const trimmed = rawCode.trim();
   if (/<!doctype|<html|<body/i.test(trimmed)) {
-    if (trimmed.includes('<head>')) return trimmed.replace('<head>', `<head>${bridge}`);
+    if (/<head[^>]*>/i.test(trimmed)) return trimmed.replace(/<head[^>]*>/i, match => `${match}\n${bridge}`);
+    if (/<body[^>]*>/i.test(trimmed)) return trimmed.replace(/<body[^>]*>/i, match => `${bridge}\n${match}`);
     return `${bridge}\n${trimmed}`;
   }
 
+  if (isHtmlMarkup(trimmed)) {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 16px; background: #0f172a; color: #f8fafc; margin: 0; }
+    button { background: #06b6d4; color: #082f49; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 700; }
+  </style>
+  ${bridge}
+</head>
+<body>
+${trimmed}
+</body>
+</html>`;
+  }
+
+  // Raw JS touching document.*
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<style>
-  body { font-family: system-ui, sans-serif; padding: 16px; background: #0f172a; color: #f8fafc; margin: 0; }
-  button { background: #0ea5e9; color: #fff; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; }
-</style>
-${bridge}
+  <meta charset="UTF-8" />
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 16px; background: #0f172a; color: #f8fafc; margin: 0; }
+    button { background: #06b6d4; color: #082f49; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 700; }
+  </style>
+  ${bridge}
 </head>
 <body>
-<div id="app">Preview Console Mode Ready — check Output tab or render DOM elements into #app.</div>
-<script>
+  <div id="app"></div>
+  <script>
 ${trimmed}
-</script>
+  </script>
 </body>
 </html>`;
+}
+
+// Standalone HTML page for "Open in Browser" new tab (no fake message, authentic browser execution)
+function buildStandaloneBrowserHtml(rawCode: string, title: string, lang: 'javascript' | 'html'): string {
+  const trimmed = rawCode.trim();
+  if (lang === 'html' || /<!doctype|<html|<body/i.test(trimmed)) {
+    return trimmed;
+  }
+  if (isHtmlMarkup(trimmed)) {
+    return `<!DOCTYPE html>\n<html lang="en">\n<head><meta charset="UTF-8" /><title>${title.replace(/</g, '&lt;')}</title></head>\n<body style="font-family:system-ui,sans-serif;padding:24px;background:#0f172a;color:#f8fafc">\n${trimmed}\n</body>\n</html>`;
+  }
+  // Pure JS opened in real browser tab: run inside real browser DevTools AND show live captured console output
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>${title.replace(/</g, '&lt;')} — Browser Runner</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; padding: 24px; max-width: 820px; margin: 0 auto; }
+    h1 { font-size: 18px; color: #38bdf8; margin-bottom: 6px; }
+    p { font-size: 13px; color: #94a3b8; margin-top: 0; }
+    #console { background: #020617; border: 1px solid #334155; border-radius: 10px; padding: 14px; font-family: ui-monospace, monospace; font-size: 13px; white-space: pre-wrap; min-height: 80px; }
+    .err { color: #f87171; }
+  </style>
+</head>
+<body>
+  <h1>${title.replace(/</g, '&lt;')}</h1>
+  <p>Running natively in your browser tab (open F12 DevTools Console to inspect objects interactively).</p>
+  <div id="app" style="margin-bottom:14px"></div>
+  <div id="console"></div>
+  <script>
+    (function() {
+      const box = document.getElementById('console');
+      const write = (cls, args) => {
+        const line = document.createElement('div');
+        if (cls) line.className = cls;
+        line.textContent = Array.from(args).map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' ');
+        box.appendChild(line);
+      };
+      const origLog = console.log, origWarn = console.warn, origErr = console.error;
+      console.log = function(...a) { write('', a); origLog.apply(console, a); };
+      console.warn = function(...a) { write('', ['[warn]', ...a]); origWarn.apply(console, a); };
+      console.error = function(...a) { write('err', ['[error]', ...a]); origErr.apply(console, a); };
+      window.addEventListener('error', e => write('err', [e.message]));
+    })();
+  </script>
+  <script>
+${trimmed}
+  </script>
+</body>
+</html>`;
+}
+
+// Render inline `code` tokens cleanly inside structured prose
+function renderInlineFormatted(text: string): React.ReactNode {
+  const parts = text.split(/(`[^`]+`)/g);
+  return parts.map((part, idx) => {
+    if (part.startsWith('`') && part.endsWith('`') && part.length > 2) {
+      return (
+        <code key={idx} className="gcw-inline-code">
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+    return <React.Fragment key={idx}>{part}</React.Fragment>;
+  });
+}
+
+function StructuredArrowPoint({ text }: { text: string }) {
+  const arrowMatch = /^([^→]{2,36})\s*→\s*(.+)$/.exec(text.trim());
+  const colonMatch = !arrowMatch ? /^([^:]{2,30}):\s+(.+)$/.exec(text.trim()) : null;
+
+  return (
+    <div className="gcw-arrow-row">
+      <span className="gcw-arrow-icon" aria-hidden="true">→</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {arrowMatch ? (
+          <>
+            <span className="gcw-point-heading">{arrowMatch[1].trim()}</span>{' '}
+            <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>→</span>{' '}
+            <span>{renderInlineFormatted(arrowMatch[2].trim())}</span>
+          </>
+        ) : colonMatch ? (
+          <>
+            <span className="gcw-point-heading">{colonMatch[1].trim()}</span>{' '}
+            <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>→</span>{' '}
+            <span>{renderInlineFormatted(colonMatch[2].trim())}</span>
+          </>
+        ) : (
+          renderInlineFormatted(text.trim())
+        )}
+      </div>
+    </div>
+  );
+}
+
+function splitSummaryBullets(summary: string): string[] {
+  const clean = String(summary || '').trim();
+  if (!clean) return [];
+  const pieces = clean.split(/(?:\s*;\s*|\.\s+(?=[A-Z]))/).map(s => s.trim()).filter(Boolean);
+  return pieces.length > 0 ? pieces : [clean];
 }
 
 export default function GuidedCourseWorkspace({
@@ -245,7 +411,7 @@ export default function GuidedCourseWorkspace({
   useEffect(() => {
     try {
       const savedLeft = parseFloat(localStorage.getItem('bce:gcw-left-px') || '');
-      if (savedLeft >= 185 && savedLeft <= 440) setLeftSidebarPx(savedLeft);
+      if (savedLeft >= 200 && savedLeft <= 440) setLeftSidebarPx(savedLeft);
       const savedRight = parseFloat(localStorage.getItem('bce:gcw-right-pct') || '');
       if (savedRight >= 26 && savedRight <= 68) setRightPanePct(savedRight);
     } catch {}
@@ -259,7 +425,7 @@ export default function GuidedCourseWorkspace({
       if (rect.width <= 0) return;
 
       if (activeResizer === 'left') {
-        const nextPx = Math.round(Math.min(440, Math.max(185, clientX - rect.left)));
+        const nextPx = Math.round(Math.min(440, Math.max(200, clientX - rect.left)));
         setLeftSidebarPx(nextPx);
       } else if (activeResizer === 'right') {
         const fromRight = rect.right - clientX;
@@ -295,7 +461,7 @@ export default function GuidedCourseWorkspace({
   useEffect(() => {
     const syncTheme = () => {
       const t = document.documentElement.getAttribute('data-theme');
-      setIsDarkTheme(t === 'dark');
+      setIsDarkTheme(t !== 'light');
     };
     syncTheme();
     const obs = new MutationObserver(syncTheme);
@@ -303,12 +469,10 @@ export default function GuidedCourseWorkspace({
     return () => obs.disconnect();
   }, []);
 
-  // Expanded weeks in Left Sidebar
   const [expandedWeeks, setExpandedWeeks] = useState<Record<number, boolean>>(() => ({
     [lesson.week_number || 1]: true,
   }));
 
-  // Step state & completion persistence per lesson
   const storageKey = `bce:guided-steps:${courseId}:${lesson.id}`;
   const [activeStepIdx, setActiveStepIdx] = useState<number>(0);
   const [completedStepIds, setCompletedStepIds] = useState<Set<string>>(() => {
@@ -338,10 +502,8 @@ export default function GuidedCourseWorkspace({
     });
   };
 
-  // Interactive task reveals (Hints 1->2->3 and Reference Solutions)
   const [revealedHintsCount, setRevealedHintsCount] = useState<Record<string, number>>({});
   const [revealedSolutions, setRevealedSolutions] = useState<Record<string, boolean>>({});
-  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const activeStep: GuidedLessonStep = steps[Math.min(activeStepIdx, Math.max(0, steps.length - 1))] || {
     id: 'fallback',
@@ -353,7 +515,7 @@ export default function GuidedCourseWorkspace({
     runMode: 'none',
   };
 
-  // Right Workspace State (Code per step, execution output, HTML preview, AI topic analysis)
+  // Right Workspace State
   const [codeByStep, setCodeByStep] = useState<Record<string, string>>({});
   const [editorLang, setEditorLang] = useState<'javascript' | 'html'>('javascript');
   const [rightTab, setRightTab] = useState<RightTab>('console');
@@ -362,9 +524,10 @@ export default function GuidedCourseWorkspace({
   const [consoleErr, setConsoleErr] = useState<string>('');
   const [execTimeMs, setExecTimeMs] = useState<number | null>(null);
   const [previewSrcDoc, setPreviewSrcDoc] = useState<string>('');
+  const [previewKey, setPreviewKey] = useState<number>(0);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
-  // AI Topic & Code Analysis state (Right Pane)
+  // AI Topic & Code Analysis state
   const [aiAnalysis, setAiAnalysis] = useState<Record<string, any>>({});
   const [aiLoading, setAiLoading] = useState(false);
   const [aiQuestion, setAiQuestion] = useState('');
@@ -372,32 +535,41 @@ export default function GuidedCourseWorkspace({
   const [aiFollowupLoading, setAiFollowupLoading] = useState(false);
   const [completingLesson, setCompletingLesson] = useState(false);
 
-  // Active editor code for the current step
   const defaultCodeForStep =
     activeStep.starterCode ||
     activeStep.codeSnippet ||
     `// ${activeStep.title}\nconsole.log('Practice active step live!');`;
 
   const editorCode = codeByStep[activeStep.id] ?? defaultCodeForStep;
+  const canRenderWebPreview = hasDomCode(editorCode, editorLang);
 
-  // Sync editor language & tab smoothly when switching steps
+  // Sync editor language & initial tab when switching steps
   useEffect(() => {
     if (steps.length === 0) return;
     const code = codeByStep[activeStep.id] ?? (activeStep.starterCode || activeStep.codeSnippet || '');
-    const isHtml =
-      activeStep.runMode === 'html_preview' || /<!doctype|<html|<body/i.test(code);
+    const isHtml = activeStep.runMode === 'html_preview' || isHtmlMarkup(code);
     setEditorLang(isHtml ? 'html' : 'javascript');
     if (isHtml) {
       setRightTab('preview');
       setPreviewSrcDoc(buildLiveHtmlDocument(code));
-    } else if (rightTab === 'preview') {
-      setRightTab('console');
+      setPreviewKey(k => k + 1);
+    } else {
+      setRightTab(prev => (prev === 'preview' ? 'console' : prev));
     }
     setConsoleOut('');
     setConsoleErr('');
     setExecTimeMs(null);
     setAiFollowupReply(null);
   }, [activeStep.id, steps.length]);
+
+  // Real-time debounced Web Preview refresh whenever HTML/DOM code changes
+  useEffect(() => {
+    if (rightTab !== 'preview' || !canRenderWebPreview) return;
+    const timer = setTimeout(() => {
+      setPreviewSrcDoc(buildLiveHtmlDocument(editorCode));
+    }, 240);
+    return () => clearTimeout(timer);
+  }, [editorCode, rightTab, canRenderWebPreview]);
 
   // Listen to iframe console bridge messages
   useEffect(() => {
@@ -414,7 +586,6 @@ export default function GuidedCourseWorkspace({
     return () => window.removeEventListener('message', handler);
   }, []);
 
-  // Group all course lessons by Week for Left Sidebar
   const weeks = useMemo(() => {
     const grouped = new Map<number, SidebarLessonSummary[]>();
     allLessons.forEach(l => {
@@ -425,7 +596,33 @@ export default function GuidedCourseWorkspace({
     return Array.from(grouped.entries()).sort((a, b) => a[0] - b[0]);
   }, [allLessons]);
 
-  // If this lesson has no interactive steps, render standard LessonView smoothly
+  const handleOpenInBrowser = useCallback(() => {
+    try {
+      const html = buildStandaloneBrowserHtml(editorCode, activeStep.title, editorLang);
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      const blobUrl = URL.createObjectURL(blob);
+      const win = window.open(blobUrl, '_blank');
+      if (!win) {
+        setSyncMessage('Popup blocked — please allow popups for this site to open full Browser Preview.');
+        setTimeout(() => setSyncMessage(null), 4000);
+      }
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    } catch (err: any) {
+      setConsoleErr(err?.message || 'Could not open preview in new tab.');
+    }
+  }, [editorCode, activeStep.title, editorLang]);
+
+  const handleSwitchToHtmlMode = () => {
+    const wrapped = isHtmlMarkup(editorCode)
+      ? editorCode
+      : wrapJsIntoHtmlTemplate(editorCode, activeStep.title);
+    setCodeByStep(prev => ({ ...prev, [activeStep.id]: wrapped }));
+    setEditorLang('html');
+    setRightTab('preview');
+    setPreviewSrcDoc(buildLiveHtmlDocument(wrapped));
+    setPreviewKey(k => k + 1);
+  };
+
   if (steps.length === 0) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
@@ -452,12 +649,13 @@ export default function GuidedCourseWorkspace({
   }
 
   const handleLoadCodeToWorkspace = (codeToLoad: string, forceHtml = false) => {
-    const isHtml = forceHtml || /<!doctype|<html|<body/i.test(codeToLoad);
+    const isHtml = forceHtml || isHtmlMarkup(codeToLoad);
     setCodeByStep(prev => ({ ...prev, [activeStep.id]: codeToLoad }));
     setEditorLang(isHtml ? 'html' : 'javascript');
     if (isHtml) {
       setRightTab('preview');
       setPreviewSrcDoc(buildLiveHtmlDocument(codeToLoad));
+      setPreviewKey(k => k + 1);
     } else {
       setRightTab('console');
     }
@@ -470,10 +668,10 @@ export default function GuidedCourseWorkspace({
     setConsoleErr('');
     setExecTimeMs(null);
 
-    const isHtmlMode = editorLang === 'html' || /<!doctype|<html|<body/i.test(editorCode);
-    if (isHtmlMode) {
+    if (hasDomCode(editorCode, editorLang)) {
       setRightTab('preview');
       setPreviewSrcDoc(buildLiveHtmlDocument(editorCode));
+      setPreviewKey(k => k + 1);
       setExecTimeMs(1);
       setIsRunning(false);
       return;
@@ -505,13 +703,14 @@ export default function GuidedCourseWorkspace({
   const handleSyncToTerminal = async () => {
     setSyncMessage('Syncing...');
     try {
+      const targetFile = editorLang === 'html' ? 'index.html' : 'lesson.js';
       const res = await fetch('/api/code-arena/files/write', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: 'lesson.js', content: editorCode }),
+        body: JSON.stringify({ path: targetFile, content: editorCode }),
       });
       if (res.ok) {
-        setSyncMessage('Saved to ~/workspace/lesson.js — run `node lesson.js` below!');
+        setSyncMessage(`Saved to ~/workspace/${targetFile}`);
         setRightTab('terminal');
       } else {
         setSyncMessage('Sync failed (login required)');
@@ -569,7 +768,7 @@ export default function GuidedCourseWorkspace({
         }),
       });
       const data = await res.json();
-      setAiFollowupReply(data?.answer || 'Try opening full Smart Agent for a deeper walkthrough.');
+      setAiFollowupReply(data?.answer || 'Open Full Agent below for a deeper step-by-step explanation.');
       setAiQuestion('');
     } catch {
       setAiFollowupReply('Could not reach AI mentor right now.');
@@ -611,15 +810,6 @@ export default function GuidedCourseWorkspace({
     }
   };
 
-  const handleCopy = (id: string, text: string) => {
-    try {
-      navigator.clipboard.writeText(text);
-      setCopiedId(id);
-      setTimeout(() => setCopiedId(null), 1500);
-    } catch {}
-  };
-
-  // Classic Book Fallback Mode Toggle
   if (viewMode === 'classic') {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
@@ -650,6 +840,8 @@ export default function GuidedCourseWorkspace({
 
   const currentAnalysis = aiAnalysis[activeStep.id];
   const officialDoc = getOfficialJsDoc(lesson.title, activeStep.title, activeStep.summary);
+  const summaryBullets = splitSummaryBullets(activeStep.summary);
+  const keywords = activeStep.keywords && activeStep.keywords.length > 0 ? activeStep.keywords : [];
 
   return (
     <div className={`gcw-shell ${activeResizer ? 'is-resizing' : ''}`} data-mobile-pane={mobilePane}>
@@ -663,7 +855,7 @@ export default function GuidedCourseWorkspace({
             type="button"
             className="gcw-icon-btn"
             onClick={() => setSidebarOpen(o => !o)}
-            title="Toggle Curriculum Sidebar"
+            title="Toggle Curriculum Syllabus"
           >
             {sidebarOpen ? <PanelLeftClose size={15} /> : <PanelLeftOpen size={15} />}
             <span>Syllabus</span>
@@ -701,15 +893,14 @@ export default function GuidedCourseWorkspace({
           </div>
         </div>
 
-        {/* Status, Docs, XP, Doubts, Complete */}
+        {/* Status, Official Docs, XP, Doubts, Complete */}
         <div className="gcw-topbar-right">
           <a
             href={officialDoc.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="gcw-icon-btn"
-            style={{ borderColor: 'var(--accent-primary)', color: 'var(--accent-primary)' }}
-            title={`Official JavaScript Docs for this topic (${officialDoc.url})`}
+            className="gcw-icon-btn is-accent"
+            title={`Official JavaScript Docs (${officialDoc.url})`}
           >
             <BookOpen size={13} />
             <span>{officialDoc.label}</span>
@@ -738,7 +929,7 @@ export default function GuidedCourseWorkspace({
             type="button"
             className="gcw-icon-btn"
             onClick={() => setViewMode('classic')}
-            title="Switch to full reading mode"
+            title="Switch to full reading view"
           >
             <FileText size={14} /> Book View
           </button>
@@ -749,24 +940,24 @@ export default function GuidedCourseWorkspace({
       <div className="gcw-mobile-switcher">
         <button
           type="button"
-          className={`gcw-icon-btn ${mobilePane === 'curriculum' ? 'is-active' : ''}`}
-          style={{ justifyContent: 'center', borderColor: mobilePane === 'curriculum' ? 'var(--accent-primary)' : undefined }}
+          className={`gcw-icon-btn ${mobilePane === 'curriculum' ? 'is-accent' : ''}`}
+          style={{ justifyContent: 'center' }}
           onClick={() => setMobilePane('curriculum')}
         >
           Weeks ({allLessons.length})
         </button>
         <button
           type="button"
-          className="gcw-icon-btn"
-          style={{ justifyContent: 'center', borderColor: mobilePane === 'lesson' ? 'var(--accent-primary)' : undefined }}
+          className={`gcw-icon-btn ${mobilePane === 'lesson' ? 'is-accent' : ''}`}
+          style={{ justifyContent: 'center' }}
           onClick={() => setMobilePane('lesson')}
         >
           Step {activeStepIdx + 1}/{steps.length}
         </button>
         <button
           type="button"
-          className="gcw-icon-btn"
-          style={{ justifyContent: 'center', borderColor: mobilePane === 'workspace' ? 'var(--accent-primary)' : undefined }}
+          className={`gcw-icon-btn ${mobilePane === 'workspace' ? 'is-accent' : ''}`}
+          style={{ justifyContent: 'center' }}
           onClick={() => setMobilePane('workspace')}
         >
           IDE &amp; Preview
@@ -784,117 +975,112 @@ export default function GuidedCourseWorkspace({
         </div>
       )}
 
-      {/* ── MAIN 3-PANE CODING NINJAS STYLE WORKSPACE ── */}
+      {/* ── MAIN 3-PANE WORKSPACE WITH 2 DRAGGABLE RESIZERS ── */}
       <div ref={bodyGridRef} className={`gcw-body-grid ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
         {/* PANE 1: LEFT SIDEBAR (Week -> Lesson -> Sub-Parts) */}
         {sidebarOpen && (
           <>
             <aside className="gcw-left-sidebar" style={{ width: `${leftSidebarPx}px` }}>
-            <div style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)', padding: '2px 4px' }}>
-              Course Modules • {courseTitle.slice(0, 26)}
-            </div>
-            {weeks.map(([weekNum, weekLessons]) => {
-              const isOpen = !!expandedWeeks[weekNum];
-              const doneInWeek = weekLessons.filter(l => completedSet.has(l.id)).length;
-              return (
-                <div key={weekNum} className="gcw-week-card">
-                  <button
-                    type="button"
-                    className="gcw-week-header"
-                    onClick={() => setExpandedWeeks(prev => ({ ...prev, [weekNum]: !prev[weekNum] }))}
-                  >
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                      {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                      Week {weekNum}
-                    </span>
-                    <span style={{ fontSize: '10.5px', color: doneInWeek === weekLessons.length ? 'var(--accent-success)' : 'var(--text-muted)' }}>
-                      {doneInWeek}/{weekLessons.length}
-                    </span>
-                  </button>
+              <div className="gcw-sidebar-heading">
+                Course Modules • {courseTitle}
+              </div>
+              {weeks.map(([weekNum, weekLessons]) => {
+                const isOpen = !!expandedWeeks[weekNum];
+                const doneInWeek = weekLessons.filter(l => completedSet.has(l.id)).length;
+                return (
+                  <div key={weekNum} className="gcw-week-card">
+                    <button
+                      type="button"
+                      className="gcw-week-header"
+                      onClick={() => setExpandedWeeks(prev => ({ ...prev, [weekNum]: !prev[weekNum] }))}
+                    >
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                        Week {weekNum}
+                      </span>
+                      <span style={{ fontSize: '10.5px', color: doneInWeek === weekLessons.length ? 'var(--accent-success)' : 'var(--text-muted)' }}>
+                        {doneInWeek}/{weekLessons.length}
+                      </span>
+                    </button>
 
-                  {isOpen && (
-                    <div className="gcw-week-lessons">
-                      {weekLessons.map(wl => {
-                        const isCur = wl.id === lesson.id;
-                        const isWLCompleted = completedSet.has(wl.id);
-                        return (
-                          <div key={wl.id}>
-                            <Link
-                              href={`/courses/${courseId}/${wl.id}`}
-                              className={`gcw-lesson-link ${isCur ? 'is-active' : ''}`}
-                              title={wl.title}
-                            >
-                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {wl.title}
-                              </span>
-                              {isWLCompleted && (
-                                <CheckCircle2 size={13} style={{ color: 'var(--accent-success)', flexShrink: 0 }} />
-                              )}
-                            </Link>
+                    {isOpen && (
+                      <div className="gcw-week-lessons">
+                        {weekLessons.map(wl => {
+                          const isCur = wl.id === lesson.id;
+                          const isWLCompleted = completedSet.has(wl.id);
+                          return (
+                            <div key={wl.id}>
+                              <Link
+                                href={`/courses/${courseId}/${wl.id}`}
+                                className={`gcw-lesson-link ${isCur ? 'is-active' : ''}`}
+                                title={wl.title}
+                              >
+                                <span style={{ flex: 1, minWidth: 0 }}>{wl.title}</span>
+                                {isWLCompleted && (
+                                  <CheckCircle2 size={13} style={{ color: 'var(--accent-success)', flexShrink: 0, marginTop: '2px' }} />
+                                )}
+                              </Link>
 
-                            {/* Sub-parts tree of currently active lesson */}
-                            {isCur && (
-                              <div className="gcw-substeps-list">
-                                {steps.map((st, idx) => {
-                                  const isStActive = idx === activeStepIdx;
-                                  const isStDone = completedStepIds.has(st.id);
-                                  return (
-                                    <button
-                                      key={st.id}
-                                      type="button"
-                                      className={`gcw-substep-btn ${isStActive ? 'is-active' : ''}`}
-                                      onClick={() => {
-                                        setActiveStepIdx(idx);
-                                        setMobilePane('lesson');
-                                      }}
-                                    >
-                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', minWidth: 0 }}>
-                                        {st.kind === 'task' ? (
-                                          <Code2 size={11} style={{ flexShrink: 0 }} />
-                                        ) : st.kind === 'assignment' ? (
-                                          <FolderGit2 size={11} style={{ flexShrink: 0 }} />
-                                        ) : st.kind.startsWith('interview') ? (
-                                          <HelpCircle size={11} style={{ flexShrink: 0 }} />
-                                        ) : (
-                                          <BookOpen size={11} style={{ flexShrink: 0 }} />
-                                        )}
-                                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                          {idx + 1}. {st.badge}
+                              {isCur && (
+                                <div className="gcw-substeps-list">
+                                  {steps.map((st, idx) => {
+                                    const isStActive = idx === activeStepIdx;
+                                    const isStDone = completedStepIds.has(st.id);
+                                    return (
+                                      <button
+                                        key={st.id}
+                                        type="button"
+                                        className={`gcw-substep-btn ${isStActive ? 'is-active' : ''}`}
+                                        onClick={() => {
+                                          setActiveStepIdx(idx);
+                                          setMobilePane('lesson');
+                                        }}
+                                      >
+                                        <span className="gcw-substep-label">
+                                          {st.kind === 'task' ? (
+                                            <Code2 size={12} style={{ flexShrink: 0, marginTop: '2px' }} />
+                                          ) : st.kind === 'assignment' ? (
+                                            <FolderGit2 size={12} style={{ flexShrink: 0, marginTop: '2px' }} />
+                                          ) : st.kind.startsWith('interview') ? (
+                                            <HelpCircle size={12} style={{ flexShrink: 0, marginTop: '2px' }} />
+                                          ) : (
+                                            <BookOpen size={12} style={{ flexShrink: 0, marginTop: '2px' }} />
+                                          )}
+                                          <span>{idx + 1}. {st.badge}</span>
                                         </span>
-                                      </span>
-                                      {isStDone && (
-                                        <CheckCircle2 size={11} style={{ color: 'var(--accent-success)', flexShrink: 0 }} />
-                                      )}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </aside>
-          <div
-            role="separator"
-            aria-orientation="vertical"
-            title="Drag to resize Syllabus width (double-click to reset)"
-            className={`gcw-resizer ${activeResizer === 'left' ? 'is-active' : ''}`}
-            onMouseDown={(e) => { e.preventDefault(); setActiveResizer('left'); }}
-            onTouchStart={() => setActiveResizer('left')}
-            onDoubleClick={() => {
-              setLeftSidebarPx(265);
-              try { localStorage.setItem('bce:gcw-left-px', '265'); } catch {}
-            }}
-          />
+                                        {isStDone && (
+                                          <CheckCircle2 size={11} style={{ color: 'var(--accent-success)', flexShrink: 0, marginTop: '2px' }} />
+                                        )}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </aside>
+            <div
+              role="separator"
+              aria-orientation="vertical"
+              title="Drag to resize Syllabus width (double-click to reset)"
+              className={`gcw-resizer ${activeResizer === 'left' ? 'is-active' : ''}`}
+              onMouseDown={(e) => { e.preventDefault(); setActiveResizer('left'); }}
+              onTouchStart={() => setActiveResizer('left')}
+              onDoubleClick={() => {
+                setLeftSidebarPx(265);
+                try { localStorage.setItem('bce:gcw-left-px', '265'); } catch {}
+              }}
+            />
           </>
         )}
 
-        {/* PANE 2: CENTER FOCUSED CONCEPT / ONE-TASK PLAYER */}
+        {/* PANE 2: CENTER FOCUSED CONCEPT / STRUCTURED POINTS / ONE-TASK PLAYER */}
         <section className="gcw-center-pane">
           <div className="gcw-center-scroll">
             <div className="gcw-step-badge-row">
@@ -909,47 +1095,70 @@ export default function GuidedCourseWorkspace({
             </div>
 
             <h2 className="gcw-step-title">{activeStep.title}</h2>
-            <p className="gcw-step-summary">{activeStep.summary}</p>
 
-            {/* Key Points Card */}
-            {activeStep.keyPoints && activeStep.keyPoints.length > 0 && (
-              <div className="gcw-box">
-                <div className="gcw-box-title">
-                  <span>Key Points &amp; Breakdown</span>
-                </div>
-                <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '6px', color: 'var(--text-primary)', fontSize: '13.5px', lineHeight: 1.55 }}>
-                  {activeStep.keyPoints.map((pt, i) => (
-                    <li key={i}>{pt}</li>
-                  ))}
-                </ul>
+            {/* Keywords Pill Strip */}
+            {keywords.length > 0 && (
+              <div className="gcw-kw-strip">
+                <span className="gcw-kw-label">Keywords:</span>
+                {keywords.map((kw, i) => (
+                  <span key={i} className="gcw-kw-pill">{kw}</span>
+                ))}
               </div>
             )}
 
-            {/* Code Example Snippet inside Concept / Code Lab / Project Overview */}
-            {activeStep.codeSnippet && (
-              <div className="gcw-box">
-                <div className="gcw-box-title">
-                  <span>Example Snippet</span>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button
-                      type="button"
-                      className="gcw-icon-btn"
-                      onClick={() => handleCopy('snippet', activeStep.codeSnippet!)}
-                    >
-                      <Copy size={12} /> {copiedId === 'snippet' ? 'Copied' : 'Copy'}
-                    </button>
-                    <button
-                      type="button"
-                      className="gcw-icon-btn"
-                      style={{ borderColor: 'var(--accent-primary)', color: 'var(--accent-primary)' }}
-                      onClick={() => handleLoadCodeToWorkspace(activeStep.codeSnippet!)}
-                    >
-                      <Play size={12} /> Load in IDE →
-                    </button>
+            {/* Structured Concise Focus Summary (Arrows — no walls of prose) */}
+            {summaryBullets.length > 0 && (
+              <div className="gcw-summary-list">
+                {summaryBullets.map((line, i) => (
+                  <StructuredArrowPoint key={i} text={line} />
+                ))}
+              </div>
+            )}
+
+            {/* Structured Heading + Arrow Sections */}
+            {activeStep.sections && activeStep.sections.length > 0 ? (
+              activeStep.sections.map((sec, sIdx) => (
+                <div key={sIdx} className="gcw-box">
+                  <div className="gcw-box-title">
+                    <span>{sec.heading}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {sec.points.map((pt, pIdx) => (
+                      <StructuredArrowPoint key={pIdx} text={pt} />
+                    ))}
                   </div>
                 </div>
-                <pre className="gcw-code-pre">{activeStep.codeSnippet}</pre>
+              ))
+            ) : activeStep.keyPoints && activeStep.keyPoints.length > 0 ? (
+              <div className="gcw-box">
+                <div className="gcw-box-title">
+                  <span>Key Points</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {activeStep.keyPoints.map((pt, i) => (
+                    <StructuredArrowPoint key={i} text={pt} />
+                  ))}
+                </div>
               </div>
+            ) : null}
+
+            {/* Syntax-Highlighted Example Snippet */}
+            {activeStep.codeSnippet && (
+              <CodeBlockWrapper
+                language={isHtmlMarkup(activeStep.codeSnippet) ? 'html' : 'javascript'}
+                code={activeStep.codeSnippet}
+                margin="0"
+                extraActions={
+                  <button
+                    type="button"
+                    className="gcw-icon-btn is-accent"
+                    style={{ padding: '3px 9px', fontSize: '11px' }}
+                    onClick={() => handleLoadCodeToWorkspace(activeStep.codeSnippet!)}
+                  >
+                    <Play size={11} /> Load in IDE →
+                  </button>
+                }
+              />
             )}
 
             {/* Progressive Guided Task Hints (Step 1 -> Step 2 -> Step 3) */}
@@ -975,46 +1184,46 @@ export default function GuidedCourseWorkspace({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {activeStep.hints.slice(0, revealedHintsCount[activeStep.id] || 1).map(h => (
                     <div key={h.step} className="gcw-hint-card">
-                      <strong>Step {h.step}:</strong> {h.text}
+                      <StructuredArrowPoint text={`Step ${h.step} → ${h.text}`} />
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Task Solution Verification Card */}
+            {/* Reference Solution Card (Syntax-Highlighted) */}
             {activeStep.solutionCode && (
               <div className="gcw-box">
                 <div className="gcw-box-title">
-                  <span>Reference Verified Solution</span>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button
-                      type="button"
-                      className="gcw-icon-btn"
-                      onClick={() =>
-                        setRevealedSolutions(prev => ({ ...prev, [activeStep.id]: !prev[activeStep.id] }))
-                      }
-                    >
-                      <Eye size={12} /> {revealedSolutions[activeStep.id] ? 'Hide Solution' : 'Reveal Solution'}
-                    </button>
-                    {revealedSolutions[activeStep.id] && (
-                      <button
-                        type="button"
-                        className="gcw-icon-btn"
-                        style={{ borderColor: 'var(--accent-primary)', color: 'var(--accent-primary)' }}
-                        onClick={() => handleLoadCodeToWorkspace(activeStep.solutionCode!)}
-                      >
-                        <Play size={12} /> Load Solution →
-                      </button>
-                    )}
-                  </div>
+                  <span>Verified Reference Solution</span>
+                  <button
+                    type="button"
+                    className="gcw-icon-btn"
+                    onClick={() =>
+                      setRevealedSolutions(prev => ({ ...prev, [activeStep.id]: !prev[activeStep.id] }))
+                    }
+                  >
+                    <Eye size={12} /> {revealedSolutions[activeStep.id] ? 'Hide Solution' : 'Reveal Solution'}
+                  </button>
                 </div>
                 {revealedSolutions[activeStep.id] ? (
-                  <pre className="gcw-code-pre">{activeStep.solutionCode}</pre>
+                  <CodeBlockWrapper
+                    language={isHtmlMarkup(activeStep.solutionCode) ? 'html' : 'javascript'}
+                    code={activeStep.solutionCode}
+                    margin="0"
+                    extraActions={
+                      <button
+                        type="button"
+                        className="gcw-icon-btn is-accent"
+                        style={{ padding: '3px 9px', fontSize: '11px' }}
+                        onClick={() => handleLoadCodeToWorkspace(activeStep.solutionCode!)}
+                      >
+                        <Play size={11} /> Load Solution →
+                      </button>
+                    }
+                  />
                 ) : (
-                  <p style={{ margin: 0, fontSize: '12.5px', color: 'var(--text-muted)' }}>
-                    Pehle Right Editor me code likhkar Run karo! Atak jao ya verify karne ke liye "Reveal Solution" click karo.
-                  </p>
+                  <StructuredArrowPoint text='Workflow → Write & run your solution in the Right IDE first, then click "Reveal Solution" to verify.' />
                 )}
               </div>
             )}
@@ -1051,15 +1260,14 @@ export default function GuidedCourseWorkspace({
                   return (
                     <div key={qa.id} className="gcw-qa-card">
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                        <strong style={{ fontSize: '13.5px', color: 'var(--text-primary)' }}>
+                        <strong style={{ fontSize: '13.5px', color: 'var(--text-primary)', lineHeight: 1.45 }}>
                           {qa.id}. {qa.question}
                         </strong>
                         <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
                           {qa.code && (
                             <button
                               type="button"
-                              className="gcw-icon-btn"
-                              style={{ borderColor: 'var(--accent-primary)', color: 'var(--accent-primary)' }}
+                              className="gcw-icon-btn is-accent"
                               onClick={() => handleLoadCodeToWorkspace(qa.code!)}
                             >
                               <Play size={11} /> Load IDE
@@ -1076,23 +1284,15 @@ export default function GuidedCourseWorkspace({
                       </div>
 
                       {activeStep.kind === 'interview_output' && qa.code && (
-                        <pre className="gcw-code-pre">{qa.code}</pre>
+                        <CodeBlockWrapper language="javascript" code={qa.code} margin="0" />
                       )}
 
                       {isOpen && (
                         <div style={{ borderTop: '1px solid var(--border-divider)', paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          {qa.answer && (
-                            <div style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
-                              <strong>Answer:</strong> {qa.answer}
-                            </div>
-                          )}
-                          {qa.explanation && (
-                            <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
-                              <strong>Explanation:</strong> {qa.explanation}
-                            </div>
-                          )}
+                          {qa.answer && <StructuredArrowPoint text={`Answer → ${qa.answer}`} />}
+                          {qa.explanation && <StructuredArrowPoint text={`Reason → ${qa.explanation}`} />}
                           {activeStep.kind === 'interview_coding' && qa.code && (
-                            <pre className="gcw-code-pre">{qa.code}</pre>
+                            <CodeBlockWrapper language="javascript" code={qa.code} margin="0" />
                           )}
                         </div>
                       )}
@@ -1123,7 +1323,7 @@ export default function GuidedCourseWorkspace({
             )}
           </div>
 
-          {/* Sticky Center Navigation Footer (Prev Step / Mark Done / Next Step ->) */}
+          {/* Sticky Center Navigation Footer */}
           <div className="gcw-center-footer">
             <div>
               {activeStepIdx > 0 ? (
@@ -1182,7 +1382,7 @@ export default function GuidedCourseWorkspace({
           }}
         />
 
-        {/* PANE 3: RIGHT SMART LEARN IDE + TERMINAL + WEB PREVIEW + AI TOPIC ANALYSIS */}
+        {/* PANE 3: RIGHT SMART LEARN IDE + TERMINAL + REAL WEB PREVIEW + AI TOPIC ANALYSIS */}
         <section className="gcw-right-pane" style={{ width: `${rightPanePct}%` }}>
           {/* Editor Toolbar */}
           <div className="gcw-editor-toolbar">
@@ -1192,7 +1392,14 @@ export default function GuidedCourseWorkspace({
               </span>
               <select
                 value={editorLang}
-                onChange={(e) => setEditorLang(e.target.value as 'javascript' | 'html')}
+                onChange={(e) => {
+                  const nextLang = e.target.value as 'javascript' | 'html';
+                  if (nextLang === 'html') {
+                    handleSwitchToHtmlMode();
+                  } else {
+                    setEditorLang('javascript');
+                  }
+                }}
                 style={{ fontSize: '11.5px', padding: '3px 8px', borderRadius: '6px', background: 'var(--bg-secondary)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
               >
                 <option value="javascript">Node / JavaScript</option>
@@ -1213,7 +1420,7 @@ export default function GuidedCourseWorkspace({
                 type="button"
                 className="gcw-icon-btn"
                 onClick={handleSyncToTerminal}
-                title="Write code into ~/workspace/lesson.js for Smart Terminal"
+                title="Save file to ~/workspace for Smart Terminal"
               >
                 <UploadCloud size={12} /> Terminal Sync
               </button>
@@ -1257,7 +1464,7 @@ export default function GuidedCourseWorkspace({
             />
           </div>
 
-          {/* Output / Web Preview / Smart Learn Terminal / AI Topic Analysis */}
+          {/* Output / Real Web Preview / Smart Learn Terminal / AI Topic Analysis */}
           <div className="gcw-output-pane">
             <div className="gcw-output-tabs">
               <button
@@ -1275,7 +1482,10 @@ export default function GuidedCourseWorkspace({
                 className={`gcw-output-tab ${rightTab === 'preview' ? 'is-active' : ''}`}
                 onClick={() => {
                   setRightTab('preview');
-                  setPreviewSrcDoc(buildLiveHtmlDocument(editorCode));
+                  if (hasDomCode(editorCode, editorLang)) {
+                    setPreviewSrcDoc(buildLiveHtmlDocument(editorCode));
+                    setPreviewKey(k => k + 1);
+                  }
                 }}
               >
                 <Globe size={13} /> Web Preview
@@ -1325,24 +1535,82 @@ export default function GuidedCourseWorkspace({
 
               {rightTab === 'preview' && (
                 <>
-                  <iframe
-                    title="Smart Learn Live Web Preview"
-                    className="gcw-preview-iframe"
-                    sandbox="allow-scripts allow-modals"
-                    srcDoc={previewSrcDoc || buildLiveHtmlDocument(editorCode)}
-                  />
-                  {(consoleOut || consoleErr) && (
-                    <div style={{ background: '#0f172a', color: '#e2e8f0', borderRadius: '6px', padding: '6px 10px', fontSize: '11.5px', fontFamily: 'var(--font-code)', maxHeight: '72px', overflowY: 'auto' }}>
-                      {consoleOut && <div>{consoleOut}</div>}
-                      {consoleErr && <div style={{ color: '#f87171' }}>{consoleErr}</div>}
+                  <div className="gcw-preview-toolbar">
+                    <span style={{ color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <Globe size={12} style={{ color: 'var(--accent-primary)' }} />
+                      {canRenderWebPreview ? 'index.html — Live Interactive Preview' : 'practice.js — Node / Console Script'}
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {canRenderWebPreview && (
+                        <button
+                          type="button"
+                          className="gcw-icon-btn"
+                          style={{ padding: '4px 8px', fontSize: '11px' }}
+                          onClick={() => {
+                            setConsoleOut('');
+                            setConsoleErr('');
+                            setPreviewSrcDoc(buildLiveHtmlDocument(editorCode));
+                            setPreviewKey(k => k + 1);
+                          }}
+                          title="Reload live preview"
+                        >
+                          <RefreshCw size={11} /> Refresh
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="gcw-icon-btn is-accent"
+                        style={{ padding: '4px 9px', fontSize: '11px' }}
+                        onClick={handleOpenInBrowser}
+                        title="Open real preview in a new full browser tab"
+                      >
+                        <ExternalLink size={11} /> Open in Browser
+                      </button>
+                    </div>
+                  </div>
+
+                  {canRenderWebPreview ? (
+                    <>
+                      <iframe
+                        key={previewKey}
+                        title="Smart Learn Live Web Preview"
+                        className="gcw-preview-iframe"
+                        sandbox="allow-scripts allow-modals allow-forms"
+                        srcDoc={previewSrcDoc || buildLiveHtmlDocument(editorCode)}
+                      />
+                      {(consoleOut || consoleErr) && (
+                        <div style={{ background: '#0f172a', color: '#e2e8f0', borderRadius: '6px', padding: '6px 10px', fontSize: '11.5px', fontFamily: 'var(--font-code)', maxHeight: '72px', overflowY: 'auto' }}>
+                          {consoleOut && <div>{consoleOut}</div>}
+                          {consoleErr && <div style={{ color: '#f87171' }}>{consoleErr}</div>}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="gcw-preview-empty">
+                      <strong style={{ fontSize: '13px', color: 'var(--accent-primary)' }}>
+                        This step runs pure JavaScript (no HTML/DOM markup yet)
+                      </strong>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                        <StructuredArrowPoint text="Console Output → Click Run Code to see logs and tables in the Console Output tab" />
+                        <StructuredArrowPoint text="HTML Preview → Switch to HTML Playground below if you want to build & preview a visual DOM UI" />
+                        <StructuredArrowPoint text="Browser Tab → Or click Open in Browser above to run this script inside Chrome/Edge DevTools" />
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                        <button type="button" className="gcw-icon-btn" onClick={handleRunCode}>
+                          <Play size={12} /> Run in Console Output
+                        </button>
+                        <button type="button" className="gcw-icon-btn is-accent" onClick={handleSwitchToHtmlMode}>
+                          <Code2 size={12} /> Switch to HTML Playground
+                        </button>
+                      </div>
                     </div>
                   )}
                 </>
               )}
 
               {rightTab === 'terminal' && (
-                <div style={{ flex: 1, minHeight: '160px', height: '100%', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div style={{ flex: 1, minHeight: '140px', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-default)' }}>
+                <div style={{ flex: 1, minHeight: '150px', height: '100%', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ flex: 1, minHeight: '135px', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-default)' }}>
                     <TerminalWorkspace />
                   </div>
                 </div>
@@ -1373,7 +1641,7 @@ export default function GuidedCourseWorkspace({
                       {Array.isArray(currentAnalysis.keyLogic) && (
                         <div className="gcw-box" style={{ padding: '8px 10px' }}>
                           {currentAnalysis.keyLogic.map((k: string, idx: number) => (
-                            <div key={idx} style={{ fontSize: '12px', color: 'var(--text-primary)' }}>• {k}</div>
+                            <StructuredArrowPoint key={idx} text={k} />
                           ))}
                         </div>
                       )}
@@ -1385,7 +1653,6 @@ export default function GuidedCourseWorkspace({
                     </div>
                   )}
 
-                  {/* Quick Cross-Question / Ask Agent right inside the step */}
                   <form onSubmit={handleFollowupQuestion} style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
                     <input
                       type="text"

@@ -2,417 +2,417 @@
   {
     "num": 542,
     "id": "Q542",
-    "prompt": "Output kya hoga?",
+    "prompt": "Predict the output:",
     "code": "console.log(typeof null, typeof undefined, typeof NaN);",
     "answer": "object undefined number",
-    "explanation": "Language quirks."
+    "explanation": "Legacy typeof quirks: null returns \"object\", undeclared/undefined returns \"undefined\", NaN has type \"number\"."
   },
   {
     "num": 543,
     "id": "Q543",
-    "prompt": "Output kya hoga?",
+    "prompt": "Predict the output:",
     "code": "console.log(0.1 + 0.2 === 0.3);",
     "answer": "false",
-    "explanation": "Floating point precision."
+    "explanation": "IEEE 754 binary floating-point rounding causes 0.1 + 0.2 to evaluate to 0.30000000000000004."
   },
   {
     "num": 544,
     "id": "Q544",
-    "prompt": "Output kya hoga?",
-    "code": "console.log([] + [], [] + {}, [1,2] + [3]);",
+    "prompt": "Predict the output:",
+    "code": "console.log([] + [], [] + {}, [1, 2] + [3]);",
     "answer": "'' '[object Object]' '1,23'",
-    "explanation": "Arrays strings mein convert hote hain."
+    "explanation": "Binary + on objects/arrays converts them to primitive strings via toString() before concatenating."
   },
   {
     "num": 545,
     "id": "Q545",
-    "prompt": "Output kya hoga?",
+    "prompt": "Predict the output:",
     "code": "console.log('5' + 3, '5' - 3, '5' * '2');",
     "answer": "53 2 10",
-    "explanation": "+ concat karta hai, baaki numeric."
+    "explanation": "+ concatenates when an operand is a string; - and * coerce string operands to numbers."
   },
   {
     "num": 546,
     "id": "Q546",
-    "prompt": "Output kya hoga?",
+    "prompt": "Predict the output:",
     "code": "console.log(1 < 2 < 3, 3 > 2 > 1);",
     "answer": "true false",
-    "explanation": "3>2 = true, true > 1 = false."
+    "explanation": "Left-to-right chaining: (3 > 2) is true, then true > 1 converts true to 1 → 1 > 1 is false."
   },
   {
     "num": 547,
     "id": "Q547",
-    "prompt": "Output kya hoga?",
+    "prompt": "Predict the output:",
     "code": "console.log([10, 9, 1].sort());",
     "answer": "[1, 10, 9]",
-    "explanation": "Default sort string-wise."
+    "explanation": "Array.sort() converts numbers to UTF-16 strings lexicographically unless given a comparator."
   },
   {
     "num": 548,
     "id": "Q548",
-    "prompt": "Output kya hoga?",
+    "prompt": "Predict the output:",
     "code": "console.log(NaN == NaN, Object.is(NaN, NaN));",
     "answer": "false true",
-    "explanation": "NaN khud ke barabar nahi."
+    "explanation": "NaN is never equal to itself under == or ===; Object.is() handles NaN identity accurately."
   },
   {
     "num": 549,
     "id": "Q549",
-    "prompt": "Output kya hoga?",
-    "code": "console.log(!!'0', !!'', !![] , !!null);",
+    "prompt": "Predict the output:",
+    "code": "console.log(!!'0', !!'', !![], !!null);",
     "answer": "true false true false",
-    "explanation": "Truthy/falsy rules."
+    "explanation": "Falsy values are only false, 0, -0, 0n, \"\", null, undefined, NaN; non-empty strings & [] are truthy."
   },
   {
     "num": 550,
     "id": "Q550",
-    "prompt": "Output kya hoga?",
-    "code": "var a = 1; { var a = 2; } console.log(a);",
+    "prompt": "Predict the output:",
+    "code": "var a = 1;\n{\n  var a = 2;\n}\nconsole.log(a);",
     "answer": "2",
-    "explanation": "var block-scoped nahi hai."
+    "explanation": "var is function/global-scoped (not block-scoped), so inner var a reassigns outer a."
   },
   {
     "num": 551,
     "id": "Q551",
-    "prompt": "Output kya hoga?",
-    "code": "let a = 1; { let a = 2; } console.log(a);",
+    "prompt": "Predict the output:",
+    "code": "let a = 1;\n{\n  let a = 2;\n}\nconsole.log(a);",
     "answer": "1",
-    "explanation": "let block-scoped hai."
+    "explanation": "let is block-scoped, creating a separate variable inside { ... } without mutating the outer binding."
   },
   {
     "num": 552,
     "id": "Q552",
-    "prompt": "Output kya hoga?",
-    "code": "console.log(x); var x = 5;",
+    "prompt": "Predict the output:",
+    "code": "console.log(x);\nvar x = 5;",
     "answer": "undefined",
-    "explanation": "var hoisting."
+    "explanation": "var declarations hoist and initialize to undefined before execution reaches the assignment."
   },
   {
     "num": 553,
     "id": "Q553",
-    "prompt": "Output kya hoga?",
-    "code": "for (var i=0;i<3;i++) setTimeout(()=>console.log(i),0);",
+    "prompt": "Predict the output:",
+    "code": "for (var i = 0; i < 3; i++)\n  setTimeout(() => console.log(i), 0);",
     "answer": "3 3 3",
-    "explanation": "Shared var i."
+    "explanation": "Single shared var i becomes 3 by the time the asynchronous setTimeout callbacks execute."
   },
   {
     "num": 554,
     "id": "Q554",
-    "prompt": "Output kya hoga?",
-    "code": "for (let i=0;i<3;i++) setTimeout(()=>console.log(i),0);",
+    "prompt": "Predict the output:",
+    "code": "for (let i = 0; i < 3; i++)\n  setTimeout(() => console.log(i), 0);",
     "answer": "0 1 2",
-    "explanation": "Har iteration ka naya i."
+    "explanation": "let creates a fresh per-iteration binding captured separately by each callback closure."
   },
   {
     "num": 555,
     "id": "Q555",
-    "prompt": "Output kya hoga?",
-    "code": "console.log(1); setTimeout(()=>console.log(2)); Promise.resolve().then(()=>console.log(3));\n    console.log(4);",
+    "prompt": "Predict the output:",
+    "code": "console.log(1);\nsetTimeout(() => console.log(2));\nPromise.resolve().then(() => console.log(3));\nconsole.log(4);",
     "answer": "1 4 3 2",
-    "explanation": "Microtask pehle chalta hai."
+    "explanation": "Synchronous logs run first, then microtasks (Promise.then), then macrotasks (setTimeout)."
   },
   {
     "num": 556,
     "id": "Q556",
-    "prompt": "Output kya hoga?",
-    "code": "const o = {a:1}; const p = o; p.a = 2; console.log(o.a);",
+    "prompt": "Predict the output:",
+    "code": "const o = { a: 1 };\nconst p = o;\np.a = 2;\nconsole.log(o.a);",
     "answer": "2",
-    "explanation": "Same reference."
+    "explanation": "Objects are assigned by reference, so p and o point to the exact same object in memory."
   },
   {
     "num": 557,
     "id": "Q557",
-    "prompt": "Output kya hoga?",
-    "code": "console.log([1,2,3].map(parseInt));",
+    "prompt": "Predict the output:",
+    "code": "console.log([1, 2, 3].map(parseInt));",
     "answer": "[1, NaN, NaN]",
-    "explanation": "map index ko radix bana deta hai."
+    "explanation": "Array.map passes (value, index) to parseInt(str, radix) → parseInt(2, 1) and parseInt(3, 2) fail as NaN."
   },
   {
     "num": 558,
     "id": "Q558",
-    "prompt": "Output kya hoga?",
+    "prompt": "Predict the output:",
     "code": "console.log([...'abc'].reverse().join(''));",
     "answer": "cba",
-    "explanation": "String spread."
+    "explanation": "Spreading splits characters into an array, reverses them in-place, and joins them back."
   },
   {
     "num": 559,
     "id": "Q559",
-    "prompt": "Output kya hoga?",
-    "code": "function f(){ return this; } console.log(f() === globalThis);",
+    "prompt": "Predict the output:",
+    "code": "function f() {\n  return this;\n}\nconsole.log(f() === globalThis);",
     "answer": "true (non-strict)",
-    "explanation": "Default binding."
+    "explanation": "Standalone function calls in non-strict mode bind `this` to globalThis."
   },
   {
     "num": 560,
     "id": "Q560",
-    "prompt": "Output kya hoga?",
-    "code": "const o = { n:'x', f(){ return this.n; } }; const g = o.f; console.log(g());",
+    "prompt": "Predict the output:",
+    "code": "const o = { n: 'x', f() {\n    return this.n;\n  } };\nconst g = o.f;\nconsole.log(g());",
     "answer": "undefined",
-    "explanation": "this toot gaya."
+    "explanation": "Extracting o.f into g loses the receiver object context, leaving `this` undefined (or global)."
   },
   {
     "num": 561,
     "id": "Q561",
-    "prompt": "Output kya hoga?",
-    "code": "const o = { n:'x', f: () => this.n }; console.log(o.f());",
+    "prompt": "Predict the output:",
+    "code": "const o = { n: 'x', f: () => this.n };\nconsole.log(o.f());",
     "answer": "undefined",
-    "explanation": "Arrow ka this lexical hota hai."
+    "explanation": "Arrow functions capture `this` lexically from their enclosing scope instead of binding dynamically."
   },
   {
     "num": 562,
     "id": "Q562",
-    "prompt": "Output kya hoga?",
+    "prompt": "Predict the output:",
     "code": "console.log(typeof typeof 1);",
     "answer": "string",
-    "explanation": "typeof hamesha string deta hai."
+    "explanation": "typeof 1 evaluates to \"number\" (a string), and typeof \"number\" evaluates to \"string\"."
   },
   {
     "num": 563,
     "id": "Q563",
-    "prompt": "Output kya hoga?",
+    "prompt": "Predict the output:",
     "code": "console.log([] == false, [] === false, null == false);",
     "answer": "true false false",
-    "explanation": "Coercion rules."
+    "explanation": "[] coerces to 0 under == false; === rejects different types; null only loosely equals undefined."
   },
   {
     "num": 564,
     "id": "Q564",
-    "prompt": "Output kya hoga?",
+    "prompt": "Predict the output:",
     "code": "console.log(Math.max(), Math.min());",
     "answer": "-Infinity Infinity",
-    "explanation": "Empty arguments."
+    "explanation": "Math.max() identity with 0 args is -Infinity; Math.min() identity with 0 args is Infinity."
   },
   {
     "num": 565,
     "id": "Q565",
-    "prompt": "Output kya hoga?",
+    "prompt": "Predict the output:",
     "code": "console.log(parseInt('08'), parseInt('0x1f'), +'');",
     "answer": "8 31 0",
-    "explanation": "parseInt hex samajhta hai."
+    "explanation": "parseInt parses hexadecimal on \"0x\" prefix; unary + on \"\" coerces to 0."
   },
   {
     "num": 566,
     "id": "Q566",
-    "prompt": "Output kya hoga?",
-    "code": "let a = 5; let b = a++ + ++a; console.log(a, b);",
+    "prompt": "Predict the output:",
+    "code": "let a = 5;\nlet b = a++ + ++a;\nconsole.log(a, b);",
     "answer": "7 12",
-    "explanation": "5 + 7."
+    "explanation": "Post-increment returns 5 (a becomes 6), then pre-increment makes a = 7 → 5 + 7 = 12."
   },
   {
     "num": 567,
     "id": "Q567",
-    "prompt": "Output kya hoga?",
+    "prompt": "Predict the output:",
     "code": "console.log(1 + +'2' + '3');",
     "answer": "33",
-    "explanation": "(1+2)=3 fir '3' concat."
+    "explanation": "Unary +\"2\" turns \"2\" into 2 (1 + 2 = 3), then +\"3\" coerces 3 + \"3\" into string \"33\"."
   },
   {
     "num": 568,
     "id": "Q568",
-    "prompt": "Output kya hoga?",
-    "code": "const a = [1,2,3]; a.length = 1; console.log(a);",
+    "prompt": "Predict the output:",
+    "code": "const a = [1, 2, 3];\na.length = 1;\nconsole.log(a);",
     "answer": "[1]",
-    "explanation": "length truncate karti hai."
+    "explanation": "Assigning a smaller value to array.length truncates elements beyond that index."
   },
   {
     "num": 569,
     "id": "Q569",
-    "prompt": "Output kya hoga?",
+    "prompt": "Predict the output:",
     "code": "console.log(Boolean(new Boolean(false)));",
     "answer": "true",
-    "explanation": "Object hamesha truthy."
+    "explanation": "Wrapper objects created with new Boolean() are objects, and all objects evaluate truthy."
   },
   {
     "num": 570,
     "id": "Q570",
-    "prompt": "Output kya hoga?",
+    "prompt": "Predict the output:",
     "code": "console.log('b' + 'a' + +'a' + 'a');",
     "answer": "baNaNa",
-    "explanation": "+'a' = NaN."
+    "explanation": "Unary +\"a\" evaluates to NaN, creating \"b\" + \"a\" + \"NaN\" + \"a\"."
   },
   {
     "num": 571,
     "id": "Q571",
-    "prompt": "Output kya hoga?",
-    "code": "console.log([1,2,3].includes(NaN), [NaN].includes(NaN), [NaN].indexOf(NaN));",
+    "prompt": "Predict the output:",
+    "code": "console.log([1, 2, 3].includes(NaN), [NaN].includes(NaN), [NaN].indexOf(NaN));",
     "answer": "false true -1",
-    "explanation": "includes NaN handle karta hai."
+    "explanation": "Array.includes uses SameValueZero (matches NaN); indexOf uses strict equality (misses NaN)."
   },
   {
     "num": 572,
     "id": "Q572",
-    "prompt": "Output kya hoga?",
-    "code": "const s = new Set([1,1,2,'1']); console.log(s.size);",
+    "prompt": "Predict the output:",
+    "code": "const s = new Set([1, 1, 2, '1']);\nconsole.log(s.size);",
     "answer": "3",
-    "explanation": "1 aur '1' alag."
+    "explanation": "Set deduplicates with SameValueZero equality, so number 1 and string \"1\" stay distinct."
   },
   {
     "num": 573,
     "id": "Q573",
-    "prompt": "Output kya hoga?",
+    "prompt": "Predict the output:",
     "code": "console.log(Array(3).join('-'));",
     "answer": "--",
-    "explanation": "Empty slots ''."
+    "explanation": "Array(3) creates 3 empty slots that join as empty strings separated by 2 hyphens."
   },
   {
     "num": 574,
     "id": "Q574",
-    "prompt": "Output kya hoga?",
-    "code": "console.log(!function(){ return 0; }());",
+    "prompt": "Predict the output:",
+    "code": "console.log(!function () {\n  return 0;\n}());",
     "answer": "true",
-    "explanation": "IIFE 0 return, ! se true."
+    "explanation": "The IIFE returns 0 (falsy), and logical NOT (!) flips it to true."
   },
   {
     "num": 575,
     "id": "Q575",
-    "prompt": "Output kya hoga?",
-    "code": "function f(a, b = a * 2){ return b; } console.log(f(3), f(3, undefined), f(3, null));",
+    "prompt": "Predict the output:",
+    "code": "function f(a, b = a * 2) {\n  return b;\n}\nconsole.log(f(3), f(3, undefined), f(3, null));",
     "answer": "6 6 null",
-    "explanation": "Default sirf undefined par."
+    "explanation": "Default parameters trigger only for undefined arguments, not for null."
   },
   {
     "num": 576,
     "id": "Q576",
-    "prompt": "Output kya hoga?",
+    "prompt": "Predict the output:",
     "code": "console.log(new Date(2024, 0, 31).getMonth());",
     "answer": "0",
-    "explanation": "Months 0-indexed."
+    "explanation": "JavaScript Date months are zero-indexed (0 = January, 11 = December)."
   },
   {
     "num": 577,
     "id": "Q577",
-    "prompt": "Output kya hoga?",
-    "code": "async function f(){ return 1; } console.log(f());",
+    "prompt": "Predict the output:",
+    "code": "async function f() {\n  return 1;\n}\nconsole.log(f());",
     "answer": "Promise {<fulfilled>: 1}",
-    "explanation": "Async function promise deta hai."
+    "explanation": "An async function always wraps its return value inside a resolved Promise."
   },
   {
     "num": 578,
     "id": "Q578",
-    "prompt": "Output kya hoga?",
+    "prompt": "Predict the output:",
     "code": "Promise.reject(1).catch(x => x + 1).then(console.log);",
     "answer": "2",
-    "explanation": "catch ka return agle then mein jata hai."
+    "explanation": "Returning a value from .catch() recovers the chain and resolves into the next .then()."
   },
   {
     "num": 579,
     "id": "Q579",
-    "prompt": "Output kya hoga?",
+    "prompt": "Predict the output:",
     "code": "console.log(typeof [], Array.isArray([]));",
     "answer": "object true",
-    "explanation": ""
+    "explanation": "Arrays have typeof \"object\"; use Array.isArray() to distinguish arrays accurately."
   },
   {
     "num": 580,
     "id": "Q580",
-    "prompt": "Output kya hoga?",
-    "code": "let x = 10; function f(){ console.log(x); let x = 5; } f();",
+    "prompt": "Predict the output:",
+    "code": "let x = 10;\nfunction f() {\n  console.log(x);\n  let x = 5;\n}\nf();",
     "answer": "ReferenceError",
-    "explanation": "TDZ shadowing."
+    "explanation": "Inner let x shadows outer x throughout the entire block, putting console.log(x) in the TDZ."
   },
   {
     "num": 581,
     "id": "Q581",
-    "prompt": "Output kya hoga?",
-    "code": "console.log(delete [1,2,3][0], [1,2,3].length);",
+    "prompt": "Predict the output:",
+    "code": "console.log(delete [1, 2, 3][0], [1, 2, 3].length);",
     "answer": "true 3",
-    "explanation": ""
+    "explanation": "delete removes the element (leaving an empty hole) and returns true without updating array.length."
   },
   {
     "num": 582,
     "id": "Q582",
-    "prompt": "Output kya hoga?",
+    "prompt": "Predict the output:",
     "code": "console.log(Number.MAX_SAFE_INTEGER + 2);",
     "answer": "9007199254740992",
-    "explanation": "Precision loss."
+    "explanation": "Exceeding MAX_SAFE_INTEGER loses integer precision in IEEE 754 doubles."
   },
   {
     "num": 583,
     "id": "Q583",
-    "prompt": "Output kya hoga?",
-    "code": "const f = () => {}; console.log(f.name, f.length);",
+    "prompt": "Predict the output:",
+    "code": "const f = () => {\n};\nconsole.log(f.name, f.length);",
     "answer": "f 0",
-    "explanation": ""
+    "explanation": "Function .name returns inferred binding \"f\"; .length counts formal parameters (0)."
   },
   {
     "num": 584,
     "id": "Q584",
-    "prompt": "Output kya hoga?",
+    "prompt": "Predict the output:",
     "code": "console.log({} + [], [] + {});",
     "answer": "[object Object] [object Object]",
-    "explanation": "Dono concatenation."
+    "explanation": "When evaluated as expressions, {} + [] coerces via ToString resulting in \"[object Object]\"."
   },
   {
     "num": 585,
     "id": "Q585",
-    "prompt": "Output kya hoga?",
-    "code": "console.log([1,2,3] + '');",
+    "prompt": "Predict the output:",
+    "code": "console.log([1, 2, 3] + '');",
     "answer": "1,2,3",
-    "explanation": ""
+    "explanation": "Array concatenation with \"\" calls Array.toString(), joining elements with commas."
   },
   {
     "num": 586,
     "id": "Q586",
-    "prompt": "Output kya hoga?",
+    "prompt": "Predict the output:",
     "code": "console.log(isNaN('abc'), Number.isNaN('abc'));",
     "answer": "true false",
-    "explanation": "isNaN coercion karta hai."
+    "explanation": "Global isNaN coerces non-numeric strings to NaN first; Number.isNaN checks strictly without coercion."
   },
   {
     "num": 587,
     "id": "Q587",
-    "prompt": "Output kya hoga?",
-    "code": "console.log('abc'.at(-1), [1,2,3].at(-2));",
+    "prompt": "Predict the output:",
+    "code": "console.log('abc'.at(-1), [1, 2, 3].at(-2));",
     "answer": "c 2",
-    "explanation": ""
+    "explanation": "Array/String .at(-n) indexes cleanly from the end (-1 = last character/element)."
   },
   {
     "num": 588,
     "id": "Q588",
-    "prompt": "Output kya hoga?",
+    "prompt": "Predict the output:",
     "code": "console.log(Object.keys('hi'));",
     "answer": "['0','1']",
-    "explanation": ""
+    "explanation": "Strings are array-like indexed objects whose enumerable own keys are character indices."
   },
   {
     "num": 589,
     "id": "Q589",
-    "prompt": "Output kya hoga?",
-    "code": "console.log(1_000 + 1);",
+    "prompt": "Predict the output:",
+    "code": "console.log(1000 + 1);",
     "answer": "1001",
-    "explanation": "Numeric separator."
+    "explanation": "Numeric separators (_) improve readability without affecting runtime numeric values."
   },
   {
     "num": 590,
     "id": "Q590",
-    "prompt": "Output kya hoga?",
+    "prompt": "Predict the output:",
     "code": "console.log(null ?? 'd', 0 ?? 'd', 0 || 'd');",
     "answer": "d 0 d",
-    "explanation": ""
+    "explanation": "Nullish ?? triggers fallback only on null/undefined; logical || triggers on any falsy value like 0."
   },
   {
     "num": 591,
     "id": "Q591",
-    "prompt": "Output kya hoga?",
-    "code": "const { a = 1, b = 2 } = { a: undefined, b: null }; console.log(a, b);",
+    "prompt": "Predict the output:",
+    "code": "const { a = 1, b = 2 } = { a: undefined, b: null };\nconsole.log(a, b);",
     "answer": "1 null",
-    "explanation": "Default sirf undefined par."
+    "explanation": "Destructuring defaults trigger only when property is strictly undefined, preserving null."
   },
   {
     "num": 592,
     "id": "Q592",
-    "prompt": "Output kya hoga?",
-    "code": "label: for (let i=0;i<3;i++){ for (let j=0;j<3;j++){ if (j==1) continue label;\n    console.log(i,j);} }",
+    "prompt": "Predict the output:",
+    "code": "label: for (let i = 0; i < 3; i++) {\n  for (let j = 0; j < 3; j++) {\n    if (j == 1)\n      continue label;\n    console.log(i, j);\n  }\n}",
     "answer": "0 0, 1 0, 2 0",
-    "explanation": ""
+    "explanation": "Labeled continue skips directly to the next iteration of the outer loop labeled `label`."
   },
   {
     "num": 593,
     "id": "Q593",
-    "prompt": "Output kya hoga?",
-    "code": "console.log([...'aab'].filter((c,i,a)=>a.indexOf(c)===i));",
+    "prompt": "Predict the output:",
+    "code": "console.log([...'aab'].filter((c, i, a) => a.indexOf(c) === i));",
     "answer": "['a','b']",
-    "explanation": ""
+    "explanation": "Spreading converts the string into characters and filter keeps only each character’s first index."
   }
 ]

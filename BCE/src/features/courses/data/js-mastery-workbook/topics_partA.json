@@ -1,122 +1,122 @@
 [
   {
     "id": 1,
-    "title": "Setup, Console aur Variables",
+    "title": "Setup, Console & Variables",
     "phase": "Phase 1: Foundation",
     "kyaSeekhnaHai": [
-      "Browser DevTools Console (F12) aur VS Code + Node.js install karo",
-      "console.log() se output dekho; script ko HTML mein <script> se ya node file.js se chalao",
-      "var/let/const: default const, zarurat par let; var avoid karo",
-      "Naming: camelCase, meaningful names, reserved words mat use karo",
-      "Comments: // single line, /* multi line */"
+      "Set up Browser DevTools Console (F12), VS Code, and Node.js",
+      "Inspect output with console.log(); run scripts via HTML <script> or node file.js",
+      "var/let/const: default to const, use let when reassigning; avoid var",
+      "Naming: use camelCase and meaningful names; avoid reserved words",
+      "Comments: // single-line, /* multi-line */"
     ],
-    "codeExample": "const name = 'Asha';\nlet score = 10;\nscore += 5;\nconsole.log(`${name} ka score ${score} hai`);",
+    "codeExample": "const name = 'Asha';\nlet score = 10;\nscore += 5;\nconsole.log(`${name}'s score is ${score}`);",
     "tasks": [
       {
         "id": "1.1",
-        "title": "Apna naam, umar aur city variables mein rakho aur ek sentence print karo.",
+        "title": "Store your name, age, and city in variables and print a sentence.",
         "steps": [
           {
             "step": 1,
-            "text": "const/let se 3 variables banao"
+            "text": "Declare 3 variables using const/let"
           },
           {
             "step": 2,
-            "text": "Template literal `...${x}...` use karo"
+            "text": "Format output with a template literal `...${x}...`"
           },
           {
             "step": 3,
-            "text": "console.log se print karke check karo"
+            "text": "Print and verify with console.log()"
           }
         ]
       },
       {
         "id": "1.2",
-        "title": "Do variables a aur b ki values swap karo (temp variable ke bina).",
+        "title": "Swap the values of two variables a and b without a temp variable.",
         "steps": [
           {
             "step": 1,
-            "text": "let a=1,b=2 likho"
+            "text": "Declare let a = 1, b = 2"
           },
           {
             "step": 2,
-            "text": "Destructuring: [a, b] = [b, a]"
+            "text": "Swap using array destructuring: [a, b] = [b, a]"
           },
           {
             "step": 3,
-            "text": "Dono ko print karke verify karo"
+            "text": "Print both values to verify"
           }
         ]
       },
       {
         "id": "1.3",
-        "title": "const array mein push kyun chalta hai par reassign nahi? Code se dikhao.",
+        "title": "Demonstrate why pushing to a const array works while reassigning fails.",
         "steps": [
           {
             "step": 1,
-            "text": "const arr=[1]; arr.push(2) chalao"
+            "text": "Run const arr = [1]; arr.push(2)"
           },
           {
             "step": 2,
-            "text": "arr=[3] try karo aur error dekho"
+            "text": "Attempt arr = [3] and observe the TypeError"
           },
           {
             "step": 3,
-            "text": "Notes mein reason likho: binding fixed, content mutable"
+            "text": "Note the reason: binding is constant, contents are mutable"
           }
         ]
       },
       {
         "id": "1.4",
-        "title": "typeof ka use karke 7 types ke example print karo.",
+        "title": "Print typeof examples for all 7 primitive types.",
         "steps": [
           {
             "step": 1,
-            "text": "Har type ka ek value banao (string, number, bigint, boolean, undefined, null, symbol)"
+            "text": "Create one value per type (string, number, bigint, boolean, undefined, null, symbol)"
           },
           {
             "step": 2,
-            "text": "Loop se typeof print karo"
+            "text": "Print typeof for each in a loop"
           },
           {
             "step": 3,
-            "text": "null ka result dekhkar uska reason likho"
+            "text": "Inspect typeof null ('object') and note the historical reason"
           }
         ]
       },
       {
         "id": "1.5",
-        "title": "let aur var ka hoisting difference demo karo.",
+        "title": "Demonstrate the hoisting difference between let and var.",
         "steps": [
           {
             "step": 1,
-            "text": "console.log(x) pehle likho var x = 1 se pehle"
+            "text": "Call console.log(x) before var x = 1"
           },
           {
             "step": 2,
-            "text": "Same let ke saath try karo"
+            "text": "Repeat the test using let"
           },
           {
             "step": 3,
-            "text": "Error vs undefined ka farq note karo"
+            "text": "Note the difference: undefined vs ReferenceError (TDZ)"
           }
         ]
       },
       {
         "id": "1.6",
-        "title": "Ek chhota 'Profile Card' text banao jisme 5 fields ho.",
+        "title": "Build a formatted 'Profile Card' text block with 5 fields.",
         "steps": [
           {
             "step": 1,
-            "text": "5 variables banao"
+            "text": "Declare 5 variables"
           },
           {
             "step": 2,
-            "text": "Multi-line template literal likho"
+            "text": "Write a multi-line template literal"
           },
           {
             "step": 3,
-            "text": "Node se run karke output verify karo"
+            "text": "Run with Node.js and verify the output"
           }
         ]
       }
@@ -124,122 +124,122 @@
   },
   {
     "id": 2,
-    "title": "Data Types, Operators aur Type Coercion",
+    "title": "Data Types, Operators & Type Coercion",
     "phase": "Phase 1: Foundation",
     "kyaSeekhnaHai": [
       "Number, String, Boolean, null, undefined, BigInt, Symbol",
-      "Arithmetic (+ - * / % **), comparison, logical (&& || !), ?? aur ?.",
-      "== vs === : hamesha === use karo",
-      "Truthy/falsy values yaad karo",
-      "Number() / String() / Boolean() explicit conversion"
+      "Arithmetic (+ - * / % **), comparison, logical (&& || !), ??, and ?.",
+      "== vs ===: always prefer strict equality (===)",
+      "Memorize truthy and falsy values",
+      "Explicit conversion with Number(), String(), and Boolean()"
     ],
     "codeExample": "console.log('5' + 3);          // '53'\nconsole.log('5' - 3);          // 2\nconsole.log(0 ?? 'd');         // 0\nconsole.log(0 || 'd');         // 'd'",
     "tasks": [
       {
         "id": "2.1",
-        "title": "Check karo ki koi number even hai ya odd, aur positive/negative/zero bhi batao.",
+        "title": "Check whether a number is even or odd, and positive, negative, or zero.",
         "steps": [
           {
             "step": 1,
-            "text": "% operator se even/odd nikalo"
+            "text": "Check even/odd using the % operator"
           },
           {
             "step": 2,
-            "text": "Sign ke liye if/else if/else"
+            "text": "Use if/else if/else to determine the sign"
           },
           {
             "step": 3,
-            "text": "Teeno cases test karo: 4, -3, 0"
+            "text": "Test all three cases: 4, -3, and 0"
           }
         ]
       },
       {
         "id": "2.2",
-        "title": "Simple calculator: do numbers aur operator string se result print karo.",
+        "title": "Simple calculator: compute and print the result from two numbers and an operator string.",
         "steps": [
           {
             "step": 1,
-            "text": "switch(op) likho"
+            "text": "Write a switch(op) statement"
           },
           {
             "step": 2,
-            "text": "Har case mein calculation"
+            "text": "Perform the calculation in each case"
           },
           {
             "step": 3,
-            "text": "Division by zero ka case handle karo"
+            "text": "Handle the division-by-zero edge case"
           }
         ]
       },
       {
         "id": "2.3",
-        "title": "Prediction: 10 expressions ka output likho phir node se verify karo ([]+[], '5'*'2', true+1, null+1 ...).",
+        "title": "Predict the output of 10 coercion expressions, then verify with Node ([]+[], '5'*'2', true+1, null+1, ...).",
         "steps": [
           {
             "step": 1,
-            "text": "Pehle kagaz par jawab likho"
+            "text": "Write down your predictions on paper first"
           },
           {
             "step": 2,
-            "text": "node -e se chalao"
+            "text": "Execute them via node -e"
           },
           {
             "step": 3,
-            "text": "Galat jawabon ka reason likho"
+            "text": "Document the coercion rules behind any wrong guesses"
           }
         ]
       },
       {
         "id": "2.4",
-        "title": "0.1 + 0.2 ko correctly compare karne wala function likho.",
+        "title": "Write a function to compare floating-point values like 0.1 + 0.2 accurately.",
         "steps": [
           {
             "step": 1,
-            "text": "Math.abs(a-b)"
+            "text": "Compute Math.abs(a - b)"
           },
           {
             "step": 2,
-            "text": "Number.EPSILON se compare"
+            "text": "Compare the difference against Number.EPSILON"
           },
           {
             "step": 3,
-            "text": "5 test cases se verify"
+            "text": "Verify with 5 test cases"
           }
         ]
       },
       {
         "id": "2.5",
-        "title": "Falsy values ki list banao aur har ek ko Boolean() se test karo.",
+        "title": "List all falsy values and test each with Boolean().",
         "steps": [
           {
             "step": 1,
-            "text": "[false,0,'',null,undefined,NaN] array banao"
+            "text": "Create an array [false, 0, '', null, undefined, NaN]"
           },
           {
             "step": 2,
-            "text": "forEach se Boolean() print karo"
+            "text": "Use forEach to log Boolean(val) for each item"
           },
           {
             "step": 3,
-            "text": "[] aur '0' ka bhi test karo"
+            "text": "Also test [] and '0' to confirm they are truthy"
           }
         ]
       },
       {
         "id": "2.6",
-        "title": "BMI calculator: weight aur height se BMI aur category print karo.",
+        "title": "BMI calculator: compute BMI from weight and height and print the category.",
         "steps": [
           {
             "step": 1,
-            "text": "bmi = w / (h*h)"
+            "text": "Calculate bmi = w / (h * h)"
           },
           {
             "step": 2,
-            "text": "if-else chain: <18.5, <25, <30, else"
+            "text": "Classify with if/else if: <18.5, <25, <30, else"
           },
           {
             "step": 3,
-            "text": "toFixed(1) se format karo"
+            "text": "Format the BMI value with toFixed(1)"
           }
         ]
       }
@@ -247,122 +247,122 @@
   },
   {
     "id": 3,
-    "title": "Control Flow aur Loops",
+    "title": "Control Flow & Loops",
     "phase": "Phase 1: Foundation",
     "kyaSeekhnaHai": [
       "if / else if / else, ternary, switch",
       "for, while, do...while, for...of, for...in",
       "break, continue, labels",
-      "Guard clauses aur early return",
-      "Loop mein off-by-one errors par dhyan do"
+      "Guard clauses and early returns",
+      "Watch out for off-by-one errors in loops"
     ],
     "codeExample": "for (let i = 1; i <= 5; i++) {\n  if (i % 2 === 0) continue;\n  console.log(i);\n}",
     "tasks": [
       {
         "id": "3.1",
-        "title": "FizzBuzz 1 se 100 tak print karo.",
+        "title": "Print FizzBuzz from 1 to 100.",
         "steps": [
           {
             "step": 1,
-            "text": "for loop 1..100"
+            "text": "Run a for loop from 1 to 100"
           },
           {
             "step": 2,
-            "text": "Pehle 15 ka check, fir 3, fir 5"
+            "text": "Check divisibility by 15 first, then 3, then 5"
           },
           {
             "step": 3,
-            "text": "Output ke pehle 15 values verify karo"
+            "text": "Verify the first 15 output values"
           }
         ]
       },
       {
         "id": "3.2",
-        "title": "Multiplication table of n.",
+        "title": "Print the multiplication table for n.",
         "steps": [
           {
             "step": 1,
-            "text": "n ko variable mein rakho"
+            "text": "Store n in a variable"
           },
           {
             "step": 2,
-            "text": "1..10 loop"
+            "text": "Loop from 1 to 10"
           },
           {
             "step": 3,
-            "text": "`${n} x ${i} = ${n*i}` print karo"
+            "text": "Print `${n} x ${i} = ${n * i}`"
           }
         ]
       },
       {
         "id": "3.3",
-        "title": "1..n ka sum aur factorial dono loop se nikalo.",
+        "title": "Compute both the sum and factorial of 1..n using a loop.",
         "steps": [
           {
             "step": 1,
-            "text": "do accumulators sum aur fact"
+            "text": "Initialize two accumulators: sum = 0 and fact = 1"
           },
           {
             "step": 2,
-            "text": "Loop mein update karo"
+            "text": "Update both inside the loop"
           },
           {
             "step": 3,
-            "text": "n*(n+1)/2 se sum verify karo"
+            "text": "Verify the sum using n * (n + 1) / 2"
           }
         ]
       },
       {
         "id": "3.4",
-        "title": "Pyramid pattern (stars) banao n rows ke liye.",
+        "title": "Print a star pyramid pattern with n rows.",
         "steps": [
           {
             "step": 1,
-            "text": "Outer loop rows"
+            "text": "Outer loop iterates over rows"
           },
           {
             "step": 2,
-            "text": "Inner: spaces + stars"
+            "text": "Build each row with leading spaces + stars"
           },
           {
             "step": 3,
-            "text": "'*'.repeat() se simplify karo"
+            "text": "Simplify padding and stars with '*'.repeat()"
           }
         ]
       },
       {
         "id": "3.5",
-        "title": "Guess the number game (console/prompt) bina infinite loop ke.",
+        "title": "Build a Guess-the-Number game (console/prompt) without infinite loops.",
         "steps": [
           {
             "step": 1,
-            "text": "random target banao"
+            "text": "Generate a random target number"
           },
           {
             "step": 2,
-            "text": "while loop mein guess check karo"
+            "text": "Check each guess inside a while loop"
           },
           {
             "step": 3,
-            "text": "Max 5 attempts ki limit lagao"
+            "text": "Enforce a maximum limit of 5 attempts"
           }
         ]
       },
       {
         "id": "3.6",
-        "title": "Number ke digits ka sum aur reverse nikalo while loop se.",
+        "title": "Calculate the digit sum and reverse of a number using a while loop.",
         "steps": [
           {
             "step": 1,
-            "text": "n % 10 se last digit"
+            "text": "Extract the last digit with n % 10"
           },
           {
             "step": 2,
-            "text": "Math.floor(n/10) se kaato"
+            "text": "Drop the last digit using Math.floor(n / 10)"
           },
           {
             "step": 3,
-            "text": "Result accumulate karo"
+            "text": "Accumulate the sum and reversed number"
           }
         ]
       }
@@ -373,120 +373,120 @@
     "title": "Functions",
     "phase": "Phase 1: Foundation",
     "kyaSeekhnaHai": [
-      "Declaration, expression, arrow functions",
-      "Parameters, default values, rest, return",
-      "Callbacks aur higher-order functions",
-      "Pure functions aur side effects",
+      "Function declarations, expressions, and arrow functions",
+      "Parameters, default values, rest syntax (...args), and return",
+      "Callbacks and higher-order functions",
+      "Pure functions and side effects",
       "Recursion (base case + recursive case)",
-      "IIFE"
+      "IIFE (Immediately Invoked Function Expression)"
     ],
     "codeExample": "const add = (a, b = 0) => a + b;\nconst sumAll = (...n) => n.reduce((s, x) => s + x, 0);\nconsole.log(add(2, 3), sumAll(1, 2, 3, 4));",
     "tasks": [
       {
         "id": "4.1",
-        "title": "isPrime(n) function likho aur 1..50 ke primes print karo.",
+        "title": "Write isPrime(n) and print all primes from 1 to 50.",
         "steps": [
           {
             "step": 1,
-            "text": "n<2 false"
+            "text": "Return false when n < 2"
           },
           {
             "step": 2,
-            "text": "i*i <= n tak loop"
+            "text": "Loop while i * i <= n to check divisors"
           },
           {
             "step": 3,
-            "text": "Function ko loop mein call karo"
+            "text": "Call isPrime() across 1..50 and print matches"
           }
         ]
       },
       {
         "id": "4.2",
-        "title": "Function jo array leke max, min aur average ek object mein return kare.",
+        "title": "Write a function that takes an array and returns { max, min, avg }.",
         "steps": [
           {
             "step": 1,
-            "text": "Math.max/min(...arr)"
+            "text": "Find bounds with Math.max(...arr) and Math.min(...arr)"
           },
           {
             "step": 2,
-            "text": "reduce se sum / length"
+            "text": "Compute average via reduce() / arr.length"
           },
           {
             "step": 3,
-            "text": "Object return karo {max, min, avg}"
+            "text": "Return { max, min, avg }"
           }
         ]
       },
       {
         "id": "4.3",
-        "title": "Recursion se factorial aur fibonacci likho.",
+        "title": "Implement factorial and Fibonacci using recursion.",
         "steps": [
           {
             "step": 1,
-            "text": "Base cases likho"
+            "text": "Define clear base cases"
           },
           {
             "step": 2,
-            "text": "Recursive call"
+            "text": "Implement the recursive step"
           },
           {
             "step": 3,
-            "text": "Fibonacci mein memoization jodo"
+            "text": "Add memoization to optimize Fibonacci"
           }
         ]
       },
       {
         "id": "4.4",
-        "title": "Apni map() function banao jo callback le.",
+        "title": "Implement a custom myMap() function that accepts a callback.",
         "steps": [
           {
             "step": 1,
-            "text": "for loop se naya array"
+            "text": "Create a new result array inside a for loop"
           },
           {
             "step": 2,
-            "text": "callback(element, index) call karo"
+            "text": "Invoke callback(element, index) for each item"
           },
           {
             "step": 3,
-            "text": "Native map se compare karo"
+            "text": "Compare output against native Array.prototype.map()"
           }
         ]
       },
       {
         "id": "4.5",
-        "title": "Counter function jo har call par 1 badhaye (closure).",
+        "title": "Build a closure-based counter function that increments by 1 on each call.",
         "steps": [
           {
             "step": 1,
-            "text": "Outer function mein let count"
+            "text": "Declare let count inside the outer function"
           },
           {
             "step": 2,
-            "text": "Inner function return karo"
+            "text": "Return an inner function that increments and returns count"
           },
           {
             "step": 3,
-            "text": "Do alag counters ko independent test karo"
+            "text": "Verify two counter instances maintain independent state"
           }
         ]
       },
       {
         "id": "4.6",
-        "title": "compose(f, g) banao aur 3 functions ko chain karo.",
+        "title": "Implement compose(f, g) and chain 3 functions together.",
         "steps": [
           {
             "step": 1,
-            "text": "Function jo function return kare"
+            "text": "Return a wrapper function accepting the initial input"
           },
           {
             "step": 2,
-            "text": "reduceRight/reduce use karo"
+            "text": "Apply functions right-to-left using reduceRight()/reduce()"
           },
           {
             "step": 3,
-            "text": "Examples: trim -> upper -> exclaim"
+            "text": "Test by chaining: trim → upper → exclaim"
           }
         ]
       }
@@ -494,122 +494,122 @@
   },
   {
     "id": 5,
-    "title": "Scope, Hoisting aur Closures",
+    "title": "Scope, Hoisting & Closures",
     "phase": "Phase 2: Core Language",
     "kyaSeekhnaHai": [
-      "Global, function aur block scope",
-      "Lexical scope aur scope chain",
-      "Hoisting aur Temporal Dead Zone",
-      "Closure: function + uska outer environment",
+      "Global, function, and block scope",
+      "Lexical scope and the scope chain",
+      "Hoisting and the Temporal Dead Zone (TDZ)",
+      "Closure: a function bundled with its lexical environment",
       "Use cases: private state, once, memoize, debounce"
     ],
     "codeExample": "function makeCounter() {\n  let c = 0;\n  return { inc: () => ++c, get: () => c };\n}\nconst k = makeCounter();\nk.inc(); k.inc();\nconsole.log(k.get()); // 2",
     "tasks": [
       {
         "id": "5.1",
-        "title": "Loop mein setTimeout ka var vs let output predict karke verify karo.",
+        "title": "Predict and verify setTimeout output in a loop using var vs let.",
         "steps": [
           {
             "step": 1,
-            "text": "Dono versions likho"
+            "text": "Write both var and let loop versions"
           },
           {
             "step": 2,
-            "text": "Prediction pehle likho"
+            "text": "Write down your predicted outputs first"
           },
           {
             "step": 3,
-            "text": "IIFE se var version fix karo"
+            "text": "Fix the var version using an IIFE"
           }
         ]
       },
       {
         "id": "5.2",
-        "title": "Bank account closure: deposit, withdraw, balance (balance private).",
+        "title": "Build a bank account closure with deposit, withdraw, and private balance.",
         "steps": [
           {
             "step": 1,
-            "text": "let balance outer scope mein"
+            "text": "Keep let balance private in the outer scope"
           },
           {
             "step": 2,
-            "text": "3 methods object mein return karo"
+            "text": "Return an object exposing deposit, withdraw, and balance methods"
           },
           {
             "step": 3,
-            "text": "Direct balance access try karke fail dikhao"
+            "text": "Show that direct external access to balance fails"
           }
         ]
       },
       {
         "id": "5.3",
-        "title": "once(fn) banao jo fn ko sirf ek baar chalaye.",
+        "title": "Implement once(fn) so fn executes at most once.",
         "steps": [
           {
             "step": 1,
-            "text": "flag + stored result"
+            "text": "Track a called flag and cached result in closure state"
           },
           {
             "step": 2,
-            "text": "Pehli call par chalao"
+            "text": "Invoke fn and cache its return value on the first call"
           },
           {
             "step": 3,
-            "text": "Baaki par stored result return karo"
+            "text": "Return the cached result on subsequent calls"
           }
         ]
       },
       {
         "id": "5.4",
-        "title": "memoize(fn) banao aur slow fibonacci par test karo.",
+        "title": "Implement memoize(fn) and benchmark it on slow recursive Fibonacci.",
         "steps": [
           {
             "step": 1,
-            "text": "Map cache"
+            "text": "Create a Map cache inside the closure"
           },
           {
             "step": 2,
-            "text": "JSON.stringify(args) key"
+            "text": "Key cached entries by JSON.stringify(args)"
           },
           {
             "step": 3,
-            "text": "console.time se speed compare karo"
+            "text": "Compare speed before and after using console.time()"
           }
         ]
       },
       {
         "id": "5.5",
-        "title": "debounce(fn, ms) banao aur input event par laga ke dekho.",
+        "title": "Implement debounce(fn, ms) and attach it to an input event.",
         "steps": [
           {
             "step": 1,
-            "text": "timer variable closure mein"
+            "text": "Store a timer variable in the closure"
           },
           {
             "step": 2,
-            "text": "Har call par clearTimeout"
+            "text": "Call clearTimeout(timer) on every invocation"
           },
           {
             "step": 3,
-            "text": "setTimeout se fn chalao"
+            "text": "Schedule fn execution via setTimeout(fn, ms)"
           }
         ]
       },
       {
         "id": "5.6",
-        "title": "Hoisting quiz: 5 snippets ka output predict karo.",
+        "title": "Hoisting quiz: predict the output of 5 hoisting snippets.",
         "steps": [
           {
             "step": 1,
-            "text": "var, let, function declaration, function expression cases"
+            "text": "Cover var, let, function declaration, and function expression cases"
           },
           {
             "step": 2,
-            "text": "Prediction likho"
+            "text": "Record your predictions before running"
           },
           {
             "step": 3,
-            "text": "Node se verify karo"
+            "text": "Verify results in Node.js"
           }
         ]
       }
@@ -617,123 +617,123 @@
   },
   {
     "id": 6,
-    "title": "Arrays aur Array Methods",
+    "title": "Arrays & Array Methods",
     "phase": "Phase 2: Core Language",
     "kyaSeekhnaHai": [
-      "Create, index, length, push/pop/shift/unshift",
-      "slice vs splice, concat, spread",
+      "Creation, indexing, length, and push/pop/shift/unshift",
+      "slice vs splice, concat, and spread (...)",
       "map, filter, reduce, find, some, every, flatMap",
-      "sort (comparator zaroori), reverse",
-      "Destructuring aur spread",
+      "sort (comparator required for numbers) and reverse",
+      "Array destructuring and spread",
       "Mutating vs non-mutating methods"
     ],
     "codeExample": "const nums = [5, 2, 9, 1];\nconst sorted = [...nums].sort((a, b) => a - b);\nconst squares = nums.map(n => n ** 2);\nconst big = nums.filter(n => n > 3);\nconst total = nums.reduce((s, n) => s + n, 0);",
     "tasks": [
       {
         "id": "6.1",
-        "title": "Array se duplicates hatao aur sorted output do.",
+        "title": "Remove duplicates from an array and return sorted output.",
         "steps": [
           {
             "step": 1,
-            "text": "Set se unique"
+            "text": "Deduplicate elements using new Set(arr)"
           },
           {
             "step": 2,
-            "text": "Spread se array"
+            "text": "Convert back to an array with spread [...set]"
           },
           {
             "step": 3,
-            "text": "sort((a,b)=>a-b)"
+            "text": "Sort numerically using sort((a, b) => a - b)"
           }
         ]
       },
       {
         "id": "6.2",
-        "title": "Students array (name, marks) se topper aur average nikalo.",
+        "title": "Find the top scorer and average marks from a students array ({ name, marks }).",
         "steps": [
           {
             "step": 1,
-            "text": "reduce se max marks"
+            "text": "Find the highest-scoring student with reduce()"
           },
           {
             "step": 2,
-            "text": "reduce se sum / length"
+            "text": "Calculate average via reduce() / length"
           },
           {
             "step": 3,
-            "text": "Result object print karo"
+            "text": "Print the result object"
           }
         ]
       },
       {
         "id": "6.3",
-        "title": "Array ko 3 ke chunks mein todo.",
+        "title": "Split an array into chunks of size 3.",
         "steps": [
           {
             "step": 1,
-            "text": "Loop i += 3"
+            "text": "Iterate with step i += 3"
           },
           {
             "step": 2,
-            "text": "slice(i, i+3)"
+            "text": "Extract each chunk using slice(i, i + 3)"
           },
           {
             "step": 3,
-            "text": "Result array mein push karo"
+            "text": "Push each chunk into the result array"
           }
         ]
       },
       {
         "id": "6.4",
-        "title": "Two Sum problem: target sum wale indices.",
+        "title": "Solve Two Sum: return indices of two numbers adding up to target.",
         "steps": [
           {
             "step": 1,
-            "text": "Map banao value->index"
+            "text": "Maintain a Map mapping value → index"
           },
           {
             "step": 2,
-            "text": "Complement check karo"
+            "text": "Check if (target - num) exists in the Map"
           },
           {
             "step": 3,
-            "text": "O(n) mein return karo"
+            "text": "Return the index pair in O(n) time"
           }
         ]
       },
       {
         "id": "6.5",
-        "title": "Array rotate right by k.",
+        "title": "Rotate an array right by k positions.",
         "steps": [
           {
             "step": 1,
-            "text": "k %= length"
+            "text": "Normalize k with k %= length"
           },
           {
             "step": 2,
-            "text": "slice(-k) + slice(0,-k)"
+            "text": "Combine slice(-k) and slice(0, -k)"
           },
           {
             "step": 3,
-            "text": "Edge: k=0 test karo"
+            "text": "Test edge cases such as k = 0"
           }
         ]
       },
       {
         "id": "6.6",
-        "title": "Products ko category ke hisaab se group karo (reduce).",
+        "title": "Group products by category using reduce().",
         "steps": [
           {
             "step": 1,
-            "text": "Empty object accumulator"
+            "text": "Start with an empty object {} accumulator"
           },
           {
             "step": 2,
-            "text": "category key par array banao"
+            "text": "Create/populate an array per category key"
           },
           {
             "step": 3,
-            "text": "Console.table se output dekho"
+            "text": "Inspect the grouped output with console.table()"
           }
         ]
       }
@@ -741,11 +741,11 @@
   },
   {
     "id": 7,
-    "title": "Strings aur Regular Expressions",
+    "title": "Strings & Regular Expressions",
     "phase": "Phase 2: Core Language",
     "kyaSeekhnaHai": [
-      "Immutable strings, index, length",
-      "slice, split, join, includes, replace, trim, pad",
+      "Immutable strings, indexing, and length",
+      "slice, split, join, includes, replace, trim, padStart/padEnd",
       "Template literals",
       "Regex basics: character classes, quantifiers, groups, flags",
       "test(), match(), matchAll(), replace with regex",
@@ -755,109 +755,109 @@
     "tasks": [
       {
         "id": "7.1",
-        "title": "String reverse aur palindrome checker.",
+        "title": "Implement a string reverser and palindrome checker.",
         "steps": [
           {
             "step": 1,
-            "text": "[...s].reverse().join('')"
+            "text": "Reverse safely with [...s].reverse().join('')"
           },
           {
             "step": 2,
-            "text": "Lowercase + non-alphanumeric hatao"
+            "text": "Normalize to lowercase and strip non-alphanumeric chars"
           },
           {
             "step": 3,
-            "text": "Equality check"
+            "text": "Compare normalized string with its reverse"
           }
         ]
       },
       {
         "id": "7.2",
-        "title": "Vowels aur consonants count karo.",
+        "title": "Count vowels and consonants in a string.",
         "steps": [
           {
             "step": 1,
-            "text": "Regex /[aeiou]/gi"
+            "text": "Match vowels using regex /[aeiou]/gi"
           },
           {
             "step": 2,
-            "text": "match ka length (null handle karo)"
+            "text": "Read match length safely (handle null when 0 matches)"
           },
           {
             "step": 3,
-            "text": "Letters total - vowels"
+            "text": "Compute consonants as total letters minus vowels"
           }
         ]
       },
       {
         "id": "7.3",
-        "title": "Word frequency counter.",
+        "title": "Build a word frequency counter.",
         "steps": [
           {
             "step": 1,
-            "text": "lowercase + split(/\\W+/)"
+            "text": "Lowercase and tokenize via split(/\\W+/)"
           },
           {
             "step": 2,
-            "text": "Object/Map mein count"
+            "text": "Tally word counts in an Object or Map"
           },
           {
             "step": 3,
-            "text": "Top 3 words sort karke print karo"
+            "text": "Sort by frequency and print the top 3 words"
           }
         ]
       },
       {
         "id": "7.4",
-        "title": "Title Case converter.",
+        "title": "Write a Title Case converter.",
         "steps": [
           {
             "step": 1,
-            "text": "split(' ')"
+            "text": "Split into words with split(' ')"
           },
           {
             "step": 2,
-            "text": "Har word ka pehla letter upper"
+            "text": "Capitalize the first letter of each word"
           },
           {
             "step": 3,
-            "text": "join(' ')"
+            "text": "Recombine words with join(' ')"
           }
         ]
       },
       {
         "id": "7.5",
-        "title": "Email aur phone number validator (regex).",
+        "title": "Build an email and phone number validator using regex.",
         "steps": [
           {
             "step": 1,
-            "text": "Pattern likho"
+            "text": "Define regex patterns for email and phone"
           },
           {
             "step": 2,
-            "text": "test() se check"
+            "text": "Validate inputs with test()"
           },
           {
             "step": 3,
-            "text": "5 valid + 5 invalid examples test karo"
+            "text": "Verify against 5 valid and 5 invalid test cases"
           }
         ]
       },
       {
         "id": "7.6",
-        "title": "Anagram groups: ['eat','tea','tan','ate','nat'] ko group karo.",
+        "title": "Group anagrams together: ['eat', 'tea', 'tan', 'ate', 'nat'].",
         "steps": [
           {
             "step": 1,
-            "text": "Sorted word as key"
+            "text": "Use the alphabetically sorted word as the key"
           },
           {
             "step": 2,
-            "text": "Map mein group"
+            "text": "Group matching words into a Map"
           },
           {
             "step": 3,
-            "text": "Values array print karo"
+            "text": "Print the array of grouped values"
           }
         ]
       }
@@ -865,13 +865,13 @@
   },
   {
     "id": 8,
-    "title": "Objects, JSON aur this",
+    "title": "Objects, JSON & this",
     "phase": "Phase 2: Core Language",
     "kyaSeekhnaHai": [
       "Object literals, dot/bracket access, shorthand, computed keys",
       "Object.keys/values/entries/assign/freeze",
       "Destructuring, spread, optional chaining",
-      "this: implicit, explicit (call/apply/bind), arrow",
+      "this binding: implicit, explicit (call/apply/bind), and lexical in arrow functions",
       "JSON.stringify / JSON.parse",
       "Map, Set, WeakMap basics"
     ],
@@ -879,109 +879,109 @@
     "tasks": [
       {
         "id": "8.1",
-        "title": "Object ko deep clone karo (structuredClone) aur original par asar check karo.",
+        "title": "Deep-clone an object with structuredClone() and verify the original is unaffected.",
         "steps": [
           {
             "step": 1,
-            "text": "Nested object banao"
+            "text": "Create a nested object"
           },
           {
             "step": 2,
-            "text": "Clone karke clone badlo"
+            "text": "Clone it and mutate nested properties on the clone"
           },
           {
             "step": 3,
-            "text": "Original unchanged verify karo"
+            "text": "Verify the original object remains unchanged"
           }
         ]
       },
       {
         "id": "8.2",
-        "title": "Object ki keys aur values swap karo.",
+        "title": "Swap the keys and values of an object.",
         "steps": [
           {
             "step": 1,
-            "text": "Object.entries"
+            "text": "Extract pairs with Object.entries()"
           },
           {
             "step": 2,
-            "text": "Pairs ko reverse karo"
+            "text": "Reverse each [key, value] pair to [value, key]"
           },
           {
             "step": 3,
-            "text": "Object.fromEntries se wapas object"
+            "text": "Rebuild the object using Object.fromEntries()"
           }
         ]
       },
       {
         "id": "8.3",
-        "title": "Shopping cart object: items add/remove aur total nikalo.",
+        "title": "Build a shopping cart object with add, remove, and total methods.",
         "steps": [
           {
             "step": 1,
-            "text": "items array property"
+            "text": "Store an items array property on the cart object"
           },
           {
             "step": 2,
-            "text": "Methods mein this use karo"
+            "text": "Reference this inside cart methods"
           },
           {
             "step": 3,
-            "text": "reduce se total"
+            "text": "Compute the cart total using reduce()"
           }
         ]
       },
       {
         "id": "8.4",
-        "title": "call/apply/bind ka ek-ek example likho jahan this khota hai.",
+        "title": "Demonstrate lost this context and fix it with call, apply, and bind.",
         "steps": [
           {
             "step": 1,
-            "text": "Method ko variable mein nikalo"
+            "text": "Extract a method into a standalone variable to lose this"
           },
           {
             "step": 2,
-            "text": "Teeno se fix karo"
+            "text": "Restore context using all three: call(), apply(), and bind()"
           },
           {
             "step": 3,
-            "text": "Output compare karo"
+            "text": "Compare the outputs of each approach"
           }
         ]
       },
       {
         "id": "8.5",
-        "title": "Nested object ki value safely get karne wala get(obj, 'a.b.c') banao.",
+        "title": "Write get(obj, 'a.b.c') to safely retrieve nested object values.",
         "steps": [
           {
             "step": 1,
-            "text": "path.split('.')"
+            "text": "Split the key path using path.split('.')"
           },
           {
             "step": 2,
-            "text": "reduce + ?."
+            "text": "Traverse safely with reduce() and optional chaining (?.)"
           },
           {
             "step": 3,
-            "text": "Default value support"
+            "text": "Support a default fallback value"
           }
         ]
       },
       {
         "id": "8.6",
-        "title": "localStorage mein JSON store aur wapas padho (browser).",
+        "title": "Store and retrieve JSON data in browser localStorage.",
         "steps": [
           {
             "step": 1,
-            "text": "JSON.stringify se set"
+            "text": "Serialize and save with JSON.stringify()"
           },
           {
             "step": 2,
-            "text": "JSON.parse se get"
+            "text": "Read and parse back with JSON.parse()"
           },
           {
             "step": 3,
-            "text": "Invalid JSON ka try/catch"
+            "text": "Wrap JSON.parse() in try/catch to handle invalid JSON"
           }
         ]
       }
@@ -989,122 +989,122 @@
   },
   {
     "id": 9,
-    "title": "ES6+ Features aur Modules",
+    "title": "ES6+ Features & Modules",
     "phase": "Phase 3: Modern JavaScript",
     "kyaSeekhnaHai": [
       "Destructuring, spread/rest, default params",
       "Template literals, optional chaining, nullish coalescing",
       "Map/Set, Symbols, iterators, generators",
       "ES Modules: import/export, default vs named, dynamic import",
-      "Array/Object newer methods (at, flatMap, fromEntries, structuredClone)"
+      "Modern Array/Object methods (at, flatMap, fromEntries, structuredClone)"
     ],
     "codeExample": "// math.js\nexport const add = (a, b) => a + b;\nexport default function greet(n) { return `Hi ${n}`; }\n// main.js\nimport greet, { add } from './math.js';",
     "tasks": [
       {
         "id": "9.1",
-        "title": "Do arrays ka union aur intersection Set se nikalo.",
+        "title": "Compute the union and intersection of two arrays using Set.",
         "steps": [
           {
             "step": 1,
-            "text": "new Set()"
+            "text": "Create Set instances with new Set()"
           },
           {
             "step": 2,
-            "text": "Spread se union"
+            "text": "Compute union using spread [...new Set([...a, ...b])]"
           },
           {
             "step": 3,
-            "text": "filter + has se intersection"
+            "text": "Compute intersection with filter() and has()"
           }
         ]
       },
       {
         "id": "9.2",
-        "title": "Utility module banao (3 functions) aur dusre file se import karo.",
+        "title": "Create a utility module (3 functions) and import it from another file.",
         "steps": [
           {
             "step": 1,
-            "text": "utils.js mein export"
+            "text": "Export 3 functions from utils.js"
           },
           {
             "step": 2,
-            "text": "main.js mein import"
+            "text": "Import them in main.js"
           },
           {
             "step": 3,
-            "text": "type=module ke saath HTML/Node mein chalao"
+            "text": "Run with type='module' in HTML or ESM in Node.js"
           }
         ]
       },
       {
         "id": "9.3",
-        "title": "Generator se infinite id generator banao.",
+        "title": "Build an infinite ID generator using a generator function.",
         "steps": [
           {
             "step": 1,
-            "text": "function* idGen()"
+            "text": "Define function* idGen()"
           },
           {
             "step": 2,
-            "text": "while(true) yield ++id"
+            "text": "Loop with while (true) yield ++id"
           },
           {
             "step": 3,
-            "text": "next() se 5 values lo"
+            "text": "Pull 5 consecutive values using next()"
           }
         ]
       },
       {
         "id": "9.4",
-        "title": "Function ke parameters mein object destructuring use karo.",
+        "title": "Use object destructuring directly in function parameters.",
         "steps": [
           {
             "step": 1,
-            "text": "function f({a, b = 2})"
+            "text": "Write function f({ a, b = 2 })"
           },
           {
             "step": 2,
-            "text": "Missing key par default dekho"
+            "text": "Verify default values apply when keys are omitted"
           },
           {
             "step": 3,
-            "text": "Naming wale arguments ka benefit likho"
+            "text": "Note the readability benefits of named parameter objects"
           }
         ]
       },
       {
         "id": "9.5",
-        "title": "Object.groupBy / reduce se grouping likho.",
+        "title": "Group items using Object.groupBy() or reduce().",
         "steps": [
           {
             "step": 1,
-            "text": "Data array"
+            "text": "Start with a sample data array"
           },
           {
             "step": 2,
-            "text": "Callback key return kare"
+            "text": "Return the grouping key from the callback"
           },
           {
             "step": 3,
-            "text": "Result verify karo"
+            "text": "Verify the grouped result"
           }
         ]
       },
       {
         "id": "9.6",
-        "title": "Optional chaining + ?? se safe config reader banao.",
+        "title": "Build a safe config reader with optional chaining (?.) and nullish coalescing (??).",
         "steps": [
           {
             "step": 1,
-            "text": "Nested config object"
+            "text": "Create a nested config object"
           },
           {
             "step": 2,
-            "text": "config?.api?.url ?? default"
+            "text": "Read values with config?.api?.url ?? default"
           },
           {
             "step": 3,
-            "text": "Missing keys test karo"
+            "text": "Test missing keys"
           }
         ]
       }
@@ -1112,123 +1112,123 @@
   },
   {
     "id": 10,
-    "title": "Prototypes, Classes aur OOP",
+    "title": "Prototypes, Classes & OOP",
     "phase": "Phase 3: Modern JavaScript",
     "kyaSeekhnaHai": [
-      "Prototype chain aur __proto__",
-      "Constructor functions aur new",
+      "Prototype chain and __proto__",
+      "Constructor functions and the new operator",
       "class, constructor, methods, static, getters/setters",
       "extends, super, method overriding",
-      "Private fields #x",
+      "Private class fields (#x)",
       "Composition vs inheritance"
     ],
     "codeExample": "class Animal {\n  #sound;\n  constructor(name, sound) { this.name = name; this.#sound = sound; }\n  speak() { return `${this.name}: ${this.#sound}`; }\n}\nclass Dog extends Animal {\n  constructor(n) { super(n, 'woof'); }\n}\nconsole.log(new Dog('Tom').speak());",
     "tasks": [
       {
         "id": "10.1",
-        "title": "Shape -> Circle, Rectangle classes banao area() ke saath.",
+        "title": "Create Shape → Circle and Rectangle classes implementing area().",
         "steps": [
           {
             "step": 1,
-            "text": "Base class Shape"
+            "text": "Define base class Shape"
           },
           {
             "step": 2,
-            "text": "extends se do child"
+            "text": "Extend Shape into Circle and Rectangle subclasses"
           },
           {
             "step": 3,
-            "text": "Array mein sabki area() call karo (polymorphism)"
+            "text": "Call area() polymorphically across an array of shapes"
           }
         ]
       },
       {
         "id": "10.2",
-        "title": "BankAccount class: private balance, deposit/withdraw/validation.",
+        "title": "Build a BankAccount class with private balance and deposit/withdraw validation.",
         "steps": [
           {
             "step": 1,
-            "text": "#balance field"
+            "text": "Declare a private #balance field"
           },
           {
             "step": 2,
-            "text": "Methods mein checks"
+            "text": "Validate amounts inside methods"
           },
           {
             "step": 3,
-            "text": "Error throw karo insufficient funds par"
+            "text": "Throw an Error on insufficient funds"
           }
         ]
       },
       {
         "id": "10.3",
-        "title": "Prototype chain console.log se explore karo.",
+        "title": "Explore the prototype chain using console.log().",
         "steps": [
           {
             "step": 1,
-            "text": "Object.getPrototypeOf repeatedly"
+            "text": "Walk up prototypes repeatedly via Object.getPrototypeOf()"
           },
           {
             "step": 2,
-            "text": "Array/Function ke prototypes dekho"
+            "text": "Inspect Array and Function prototypes"
           },
           {
             "step": 3,
-            "text": "Diagram kagaz par banao"
+            "text": "Sketch the prototype chain diagram on paper"
           }
         ]
       },
       {
         "id": "10.4",
-        "title": "Stack aur Queue classes banao.",
+        "title": "Implement Stack and Queue classes.",
         "steps": [
           {
             "step": 1,
-            "text": "Array internal"
+            "text": "Back each structure with an internal array"
           },
           {
             "step": 2,
-            "text": "push/pop ya enqueue/dequeue"
+            "text": "Implement push/pop for Stack and enqueue/dequeue for Queue"
           },
           {
             "step": 3,
-            "text": "peek aur size getter"
+            "text": "Add peek() and a size getter"
           }
         ]
       },
       {
         "id": "10.5",
-        "title": "Event Emitter class banao (on, off, emit).",
+        "title": "Implement an EventEmitter class (on, off, emit).",
         "steps": [
           {
             "step": 1,
-            "text": "Object of arrays handlers"
+            "text": "Store event listener arrays inside an object"
           },
           {
             "step": 2,
-            "text": "emit mein handlers call"
+            "text": "Invoke registered handlers inside emit()"
           },
           {
             "step": 3,
-            "text": "off se remove karo"
+            "text": "Remove a handler using off()"
           }
         ]
       },
       {
         "id": "10.6",
-        "title": "Factory function vs class: ek hi cheez dono tareeke se banao.",
+        "title": "Factory function vs class: implement the same entity both ways.",
         "steps": [
           {
             "step": 1,
-            "text": "Class version"
+            "text": "Write the class version"
           },
           {
             "step": 2,
-            "text": "Closure-based factory"
+            "text": "Write the closure-based factory function version"
           },
           {
             "step": 3,
-            "text": "Differences note karo (new, this, privacy)"
+            "text": "Note differences (new keyword, this binding, privacy)"
           }
         ]
       }
@@ -1239,120 +1239,120 @@
     "title": "DOM Manipulation",
     "phase": "Phase 4: Browser & Async",
     "kyaSeekhnaHai": [
-      "Select: getElementById, querySelector(All)",
-      "Create/append/remove elements",
-      "textContent vs innerHTML (XSS!)",
+      "Selecting elements: getElementById, querySelector, querySelectorAll",
+      "Creating, appending, and removing DOM elements",
+      "textContent vs innerHTML (XSS security risk!)",
       "classList, style, dataset, attributes",
       "DOM tree traversal: parent, children, siblings",
-      "DocumentFragment aur performance"
+      "DocumentFragment and batch DOM performance"
     ],
     "codeExample": "const li = document.createElement('li');\nli.textContent = 'New task';\nli.classList.add('item');\ndocument.querySelector('#list').append(li);",
     "tasks": [
       {
         "id": "11.1",
-        "title": "Button click par heading ka text aur color badlo.",
+        "title": "Update a heading's text and color on button click.",
         "steps": [
           {
             "step": 1,
-            "text": "Elements select karo"
+            "text": "Select the button and heading elements"
           },
           {
             "step": 2,
-            "text": "click listener"
+            "text": "Attach a click listener"
           },
           {
             "step": 3,
-            "text": "textContent + style/classList"
+            "text": "Update textContent and style or classList"
           }
         ]
       },
       {
         "id": "11.2",
-        "title": "Array se dynamic list render karo.",
+        "title": "Render a dynamic list from an array.",
         "steps": [
           {
             "step": 1,
-            "text": "data array"
+            "text": "Define a data array"
           },
           {
             "step": 2,
-            "text": "createElement + append loop"
+            "text": "Create and append list items in a loop (createElement + append)"
           },
           {
             "step": 3,
-            "text": "textContent se XSS-safe rakho"
+            "text": "Use textContent to keep rendering XSS-safe"
           }
         ]
       },
       {
         "id": "11.3",
-        "title": "Dark mode toggle banao (localStorage ke saath).",
+        "title": "Build a persistent dark mode toggle with localStorage.",
         "steps": [
           {
             "step": 1,
-            "text": "body.classList.toggle('dark')"
+            "text": "Toggle theme via body.classList.toggle('dark')"
           },
           {
             "step": 2,
-            "text": "State localStorage mein save"
+            "text": "Persist state in localStorage"
           },
           {
             "step": 3,
-            "text": "Page load par apply karo"
+            "text": "Apply the saved state on page load"
           }
         ]
       },
       {
         "id": "11.4",
-        "title": "Table rows ko column header click par sort karo.",
+        "title": "Sort table rows when clicking a column header.",
         "steps": [
           {
             "step": 1,
-            "text": "Rows ko array mein lo"
+            "text": "Convert table rows into an array"
           },
           {
             "step": 2,
-            "text": "sort comparator"
+            "text": "Sort rows with a comparator"
           },
           {
             "step": 3,
-            "text": "Wapas append karo"
+            "text": "Re-append the sorted rows to the table"
           }
         ]
       },
       {
         "id": "11.5",
-        "title": "Character counter textarea ke liye.",
+        "title": "Build a live character counter for a textarea.",
         "steps": [
           {
             "step": 1,
-            "text": "input event"
+            "text": "Listen for the input event"
           },
           {
             "step": 2,
-            "text": "length display"
+            "text": "Display the current character length"
           },
           {
             "step": 3,
-            "text": "Limit par red color"
+            "text": "Highlight the counter in red when hitting the limit"
           }
         ]
       },
       {
         "id": "11.6",
-        "title": "Accordion (FAQ) banao.",
+        "title": "Build an FAQ accordion.",
         "steps": [
           {
             "step": 1,
-            "text": "Headers par listener"
+            "text": "Attach click listeners to accordion headers"
           },
           {
             "step": 2,
-            "text": "classList.toggle('open')"
+            "text": "Toggle the 'open' class via classList.toggle('open')"
           },
           {
             "step": 3,
-            "text": "Ek time par ek open rakho"
+            "text": "Keep only one item open at a time"
           }
         ]
       }
@@ -1360,12 +1360,12 @@
   },
   {
     "id": 12,
-    "title": "Events aur Event Delegation",
+    "title": "Events & Event Delegation",
     "phase": "Phase 4: Browser & Async",
     "kyaSeekhnaHai": [
       "addEventListener, removeEventListener, once/passive options",
       "Event object: target, currentTarget, key, clientX",
-      "Bubbling aur capturing",
+      "Event bubbling and capturing",
       "preventDefault, stopPropagation",
       "Event delegation",
       "Custom events"
@@ -1374,109 +1374,109 @@
     "tasks": [
       {
         "id": "12.1",
-        "title": "Todo list mein delegation se done/delete handle karo.",
+        "title": "Handle todo done/delete actions via event delegation.",
         "steps": [
           {
             "step": 1,
-            "text": "Parent ul par ek listener"
+            "text": "Attach a single listener on the parent <ul>"
           },
           {
             "step": 2,
-            "text": "e.target.closest()"
+            "text": "Locate the target row with e.target.closest()"
           },
           {
             "step": 3,
-            "text": "data-action attribute se action choose karo"
+            "text": "Choose action based on the data-action attribute"
           }
         ]
       },
       {
         "id": "12.2",
-        "title": "Keyboard shortcuts: Ctrl+K search focus.",
+        "title": "Keyboard shortcut: focus search input on Ctrl+K.",
         "steps": [
           {
             "step": 1,
-            "text": "keydown listener"
+            "text": "Attach a keydown listener"
           },
           {
             "step": 2,
-            "text": "e.ctrlKey && e.key"
+            "text": "Check e.ctrlKey && e.key"
           },
           {
             "step": 3,
-            "text": "preventDefault"
+            "text": "Call preventDefault() and focus the search field"
           }
         ]
       },
       {
         "id": "12.3",
-        "title": "Form validation submit par.",
+        "title": "Validate form fields on submit.",
         "steps": [
           {
             "step": 1,
-            "text": "submit event + preventDefault"
+            "text": "Listen for submit event + call preventDefault()"
           },
           {
             "step": 2,
-            "text": "Fields check"
+            "text": "Validate input fields"
           },
           {
             "step": 3,
-            "text": "Errors inline dikhao"
+            "text": "Display validation errors inline"
           }
         ]
       },
       {
         "id": "12.4",
-        "title": "Bubbling vs capturing demo (3 nested divs).",
+        "title": "Demonstrate bubbling vs capturing with 3 nested divs.",
         "steps": [
           {
             "step": 1,
-            "text": "Har par listener (capture true/false)"
+            "text": "Attach listeners on each div (capture: true and false)"
           },
           {
             "step": 2,
-            "text": "Click karke order log karo"
+            "text": "Click the inner div and log the execution order"
           },
           {
             "step": 3,
-            "text": "stopPropagation test karo"
+            "text": "Test stopPropagation()"
           }
         ]
       },
       {
         "id": "12.5",
-        "title": "Mouse follow circle.",
+        "title": "Create a circle that follows the mouse cursor.",
         "steps": [
           {
             "step": 1,
-            "text": "mousemove event"
+            "text": "Listen for the mousemove event"
           },
           {
             "step": 2,
-            "text": "clientX/Y se position"
+            "text": "Position the circle using clientX and clientY"
           },
           {
             "step": 3,
-            "text": "requestAnimationFrame se smooth karo"
+            "text": "Smooth position updates with requestAnimationFrame()"
           }
         ]
       },
       {
         "id": "12.6",
-        "title": "Custom event: component se parent ko notify karo.",
+        "title": "Dispatch a CustomEvent to notify a parent component.",
         "steps": [
           {
             "step": 1,
-            "text": "new CustomEvent('x', {detail})"
+            "text": "Create new CustomEvent('x', { detail })"
           },
           {
             "step": 2,
-            "text": "dispatchEvent"
+            "text": "Trigger via dispatchEvent()"
           },
           {
             "step": 3,
-            "text": "Parent mein listener"
+            "text": "Listen for the event on the parent element"
           }
         ]
       }
@@ -1488,7 +1488,7 @@
     "phase": "Phase 4: Browser & Async",
     "kyaSeekhnaHai": [
       "Event loop, call stack, microtask vs macrotask",
-      "Callbacks aur callback hell",
+      "Callbacks and callback hell",
       "Promise states, then/catch/finally, chaining",
       "Promise.all / allSettled / race / any",
       "async/await + try/catch",
@@ -1498,109 +1498,109 @@
     "tasks": [
       {
         "id": "13.1",
-        "title": "Event loop output order predict karo (5 snippets).",
+        "title": "Predict the event loop output order for 5 snippets.",
         "steps": [
           {
             "step": 1,
-            "text": "log + setTimeout + Promise mix"
+            "text": "Mix console.log, setTimeout, and Promises"
           },
           {
             "step": 2,
-            "text": "Pehle predict"
+            "text": "Predict the output order first"
           },
           {
             "step": 3,
-            "text": "Node se verify"
+            "text": "Verify execution order in Node.js"
           }
         ]
       },
       {
         "id": "13.2",
-        "title": "sleep(ms) banao aur sequential vs parallel timing compare karo.",
+        "title": "Write sleep(ms) and compare sequential vs parallel execution timing.",
         "steps": [
           {
             "step": 1,
-            "text": "Promise + setTimeout"
+            "text": "Wrap setTimeout inside a Promise"
           },
           {
             "step": 2,
-            "text": "await in loop"
+            "text": "Await sequentially inside a loop"
           },
           {
             "step": 3,
-            "text": "Promise.all version, console.time se compare"
+            "text": "Run in parallel with Promise.all() and compare via console.time()"
           }
         ]
       },
       {
         "id": "13.3",
-        "title": "API se users fetch karke list render karo (loading + error state).",
+        "title": "Fetch users from an API and render a list with loading and error states.",
         "steps": [
           {
             "step": 1,
-            "text": "fetch + r.ok"
+            "text": "Call fetch() and check r.ok"
           },
           {
             "step": 2,
-            "text": "Loading text dikhao"
+            "text": "Display a loading message while pending"
           },
           {
             "step": 3,
-            "text": "catch mein error message"
+            "text": "Show an error message inside catch"
           }
         ]
       },
       {
         "id": "13.4",
-        "title": "Retry with backoff function.",
+        "title": "Implement a retry-with-backoff async helper.",
         "steps": [
           {
             "step": 1,
-            "text": "Loop n attempts"
+            "text": "Loop up to n retry attempts"
           },
           {
             "step": 2,
-            "text": "Fail par delay badhao"
+            "text": "Increase delay after each failure"
           },
           {
             "step": 3,
-            "text": "Last attempt par throw"
+            "text": "Throw the error on the final failed attempt"
           }
         ]
       },
       {
         "id": "13.5",
-        "title": "Promise.all ka apna polyfill likho.",
+        "title": "Write a custom polyfill for Promise.all().",
         "steps": [
           {
             "step": 1,
-            "text": "Results array + counter"
+            "text": "Maintain a results array and completion counter"
           },
           {
             "step": 2,
-            "text": "Har promise par then"
+            "text": "Attach .then() to each promise"
           },
           {
             "step": 3,
-            "text": "Ek reject par turant reject"
+            "text": "Reject immediately when any promise rejects"
           }
         ]
       },
       {
         "id": "13.6",
-        "title": "Search box debounce + AbortController se old request cancel.",
+        "title": "Combine search debouncing with AbortController to cancel stale requests.",
         "steps": [
           {
             "step": 1,
-            "text": "debounce wrapper"
+            "text": "Create a debounce wrapper"
           },
           {
             "step": 2,
-            "text": "Naya controller har request par"
+            "text": "Instantiate a new AbortController per request"
           },
           {
             "step": 3,
-            "text": "abort() previous"
+            "text": "Call abort() on the previous controller"
           }
         ]
       }
@@ -1608,7 +1608,7 @@
   },
   {
     "id": 14,
-    "title": "Error Handling aur Debugging",
+    "title": "Error Handling & Debugging",
     "phase": "Phase 4: Browser & Async",
     "kyaSeekhnaHai": [
       "try / catch / finally, throw new Error",
@@ -1616,115 +1616,115 @@
       "Async errors: .catch, try/catch with await, unhandledrejection",
       "DevTools: breakpoints, watch, call stack, network",
       "console.table / time / group",
-      "Defensive programming aur input validation"
+      "Defensive programming and input validation"
     ],
     "codeExample": "class ValidationError extends Error {\n  constructor(m) { super(m); this.name = 'ValidationError'; }\n}\ntry { throw new ValidationError('Age invalid'); }\ncatch (e) { console.log(e.name, e.message); }",
     "tasks": [
       {
         "id": "14.1",
-        "title": "safeParse(json) function jo error par default return kare.",
+        "title": "Write safeParse(json) returning a default value on parse failure.",
         "steps": [
           {
             "step": 1,
-            "text": "try JSON.parse"
+            "text": "Wrap JSON.parse() in try"
           },
           {
             "step": 2,
-            "text": "catch mein fallback"
+            "text": "Return the fallback value in catch"
           },
           {
             "step": 3,
-            "text": "Invalid examples test"
+            "text": "Test with invalid JSON inputs"
           }
         ]
       },
       {
         "id": "14.2",
-        "title": "Custom errors: ValidationError aur NetworkError, alag handle karo.",
+        "title": "Create custom ValidationError and NetworkError classes and handle each separately.",
         "steps": [
           {
             "step": 1,
-            "text": "Do classes"
+            "text": "Define both custom Error subclasses"
           },
           {
             "step": 2,
-            "text": "instanceof check catch mein"
+            "text": "Check error type with instanceof inside catch"
           },
           {
             "step": 3,
-            "text": "Messages differentiate karo"
+            "text": "Differentiate handling and error messages"
           }
         ]
       },
       {
         "id": "14.3",
-        "title": "Buggy code (diya hua) DevTools breakpoints se debug karo.",
+        "title": "Debug a given buggy snippet using DevTools breakpoints.",
         "steps": [
           {
             "step": 1,
-            "text": "Breakpoint lagao"
+            "text": "Set breakpoints at suspect lines"
           },
           {
             "step": 2,
-            "text": "Variables watch karo"
+            "text": "Watch variable state during execution"
           },
           {
             "step": 3,
-            "text": "Bug fix karke note likho"
+            "text": "Fix the bug and document the root cause"
           }
         ]
       },
       {
         "id": "14.4",
-        "title": "Global error logger banao.",
+        "title": "Implement a global error logger.",
         "steps": [
           {
             "step": 1,
-            "text": "window.onerror"
+            "text": "Attach window.onerror"
           },
           {
             "step": 2,
-            "text": "unhandledrejection listener"
+            "text": "Attach an unhandledrejection listener"
           },
           {
             "step": 3,
-            "text": "Console/array mein log karo"
+            "text": "Log captured errors to console or an array"
           }
         ]
       },
       {
         "id": "14.5",
-        "title": "Input validator: age, email, password rules ke saath.",
+        "title": "Build an input validator with rules for age, email, and password.",
         "steps": [
           {
             "step": 1,
-            "text": "Rules array"
+            "text": "Define a rules array"
           },
           {
             "step": 2,
-            "text": "Errors collect karo"
+            "text": "Collect all validation errors"
           },
           {
             "step": 3,
-            "text": "Valid hone par hi submit"
+            "text": "Allow submission only when all rules pass"
           }
         ]
       },
       {
         "id": "14.6",
-        "title": "finally ka use: loader hide karna fetch ke baad.",
+        "title": "Use finally to hide a loading indicator after fetch completes.",
         "steps": [
           {
             "step": 1,
-            "text": "Loader show"
+            "text": "Show the loader before fetching"
           },
           {
             "step": 2,
-            "text": "try/catch/finally"
+            "text": "Wrap the request in try/catch/finally"
           },
           {
             "step": 3,
-            "text": "Success aur failure dono mein hide verify karo"
+            "text": "Verify the loader hides on both success and failure"
           }
         ]
       }
@@ -1732,13 +1732,13 @@
   },
   {
     "id": 15,
-    "title": "Node.js, npm aur Tooling",
+    "title": "Node.js, npm & Tooling",
     "phase": "Phase 5: Ecosystem",
     "kyaSeekhnaHai": [
-      "Node install, REPL, running scripts",
+      "Node.js setup, REPL, and running scripts",
       "npm init, install, scripts, package.json",
       "CommonJS vs ES Modules",
-      "fs, path, http modules; Express basic server",
+      "fs, path, http modules; basic Express server",
       "Environment variables (.env)",
       "ESLint, Prettier, Git basics, bundlers (Vite)"
     ],
@@ -1746,37 +1746,37 @@
     "tasks": [
       {
         "id": "15.1",
-        "title": "File read karke word count print karo (fs.promises).",
+        "title": "Read a file and print its word count using fs.promises.",
         "steps": [
           {
             "step": 1,
-            "text": "readFile"
+            "text": "Read file text with readFile()"
           },
           {
             "step": 2,
-            "text": "split + filter(Boolean)"
+            "text": "Tokenize using split() + filter(Boolean)"
           },
           {
             "step": 3,
-            "text": "Result print"
+            "text": "Print the resulting word count"
           }
         ]
       },
       {
         "id": "15.2",
-        "title": "Simple HTTP server with 2 routes.",
+        "title": "Build a simple HTTP server with 2 routes.",
         "steps": [
           {
             "step": 1,
-            "text": "createServer"
+            "text": "Create server with http.createServer()"
           },
           {
             "step": 2,
-            "text": "req.url check"
+            "text": "Branch on req.url"
           },
           {
             "step": 3,
-            "text": "JSON responses"
+            "text": "Return JSON responses"
           }
         ]
       },
@@ -1786,69 +1786,69 @@
         "steps": [
           {
             "step": 1,
-            "text": "npm init + express install"
+            "text": "Run npm init and install express"
           },
           {
             "step": 2,
-            "text": "express.json() middleware"
+            "text": "Configure express.json() middleware"
           },
           {
             "step": 3,
-            "text": "Routes + status codes"
+            "text": "Implement routes with appropriate status codes"
           }
         ]
       },
       {
         "id": "15.4",
-        "title": "npm script banao: 'start' aur 'lint'.",
+        "title": "Configure npm scripts: 'start' and 'lint'.",
         "steps": [
           {
             "step": 1,
-            "text": "package.json scripts"
+            "text": "Add scripts entries in package.json"
           },
           {
             "step": 2,
-            "text": "ESLint install"
+            "text": "Install ESLint"
           },
           {
             "step": 3,
-            "text": "npm run lint chalao"
+            "text": "Run npm run lint"
           }
         ]
       },
       {
         "id": "15.5",
-        "title": "Git: repo init, 3 commits, ek branch, merge.",
+        "title": "Git workflow: init repo, make 3 commits, branch, and merge.",
         "steps": [
           {
             "step": 1,
-            "text": "git init/add/commit"
+            "text": "Run git init / add / commit"
           },
           {
             "step": 2,
-            "text": "git switch -c feature"
+            "text": "Create branch via git switch -c feature"
           },
           {
             "step": 3,
-            "text": "git merge"
+            "text": "Merge back using git merge"
           }
         ]
       },
       {
         "id": "15.6",
-        "title": "Vite se vanilla JS project setup karke build karo.",
+        "title": "Scaffold and build a vanilla JS project with Vite.",
         "steps": [
           {
             "step": 1,
-            "text": "npm create vite@latest"
+            "text": "Run npm create vite@latest"
           },
           {
             "step": 2,
-            "text": "npm run dev"
+            "text": "Start dev server with npm run dev"
           },
           {
             "step": 3,
-            "text": "npm run build, dist dekho"
+            "text": "Run npm run build and inspect dist/"
           }
         ]
       }
@@ -1870,109 +1870,109 @@
     "tasks": [
       {
         "id": "16.1",
-        "title": "Valid parentheses (stack).",
+        "title": "Check valid parentheses using a stack.",
         "steps": [
           {
             "step": 1,
-            "text": "Opening push"
+            "text": "Push opening brackets onto the stack"
           },
           {
             "step": 2,
-            "text": "Closing par pop + match"
+            "text": "On closing brackets, pop and match the pair"
           },
           {
             "step": 3,
-            "text": "End mein stack empty check"
+            "text": "Verify the stack is empty at the end"
           }
         ]
       },
       {
         "id": "16.2",
-        "title": "Maximum subarray sum (Kadane).",
+        "title": "Find maximum subarray sum using Kadane's algorithm.",
         "steps": [
           {
             "step": 1,
-            "text": "cur aur best variables"
+            "text": "Maintain cur and best variables"
           },
           {
             "step": 2,
-            "text": "cur = max(x, cur+x)"
+            "text": "Update cur = Math.max(x, cur + x)"
           },
           {
             "step": 3,
-            "text": "Negatives array par test"
+            "text": "Test with arrays containing negative numbers"
           }
         ]
       },
       {
         "id": "16.3",
-        "title": "Longest substring without repeating characters (sliding window).",
+        "title": "Find the longest substring without repeating characters (sliding window).",
         "steps": [
           {
             "step": 1,
-            "text": "Set/Map + do pointers"
+            "text": "Track characters with a Set/Map + two pointers"
           },
           {
             "step": 2,
-            "text": "Duplicate par left aage"
+            "text": "Advance the left pointer when a duplicate is seen"
           },
           {
             "step": 3,
-            "text": "Max length track"
+            "text": "Track the maximum window length"
           }
         ]
       },
       {
         "id": "16.4",
-        "title": "Binary tree inorder traversal aur height.",
+        "title": "Compute binary tree inorder traversal and height.",
         "steps": [
           {
             "step": 1,
-            "text": "Node class"
+            "text": "Define a Node class"
           },
           {
             "step": 2,
-            "text": "Recursive functions"
+            "text": "Write recursive traversal and height functions"
           },
           {
             "step": 3,
-            "text": "Chhote tree par verify"
+            "text": "Verify results on a small tree"
           }
         ]
       },
       {
         "id": "16.5",
-        "title": "Climbing stairs / coin change (DP).",
+        "title": "Solve Climbing Stairs / Coin Change using Dynamic Programming.",
         "steps": [
           {
             "step": 1,
-            "text": "Recurrence likho"
+            "text": "Write down the recurrence relation"
           },
           {
             "step": 2,
-            "text": "dp array bharo"
+            "text": "Fill the dp array iteratively"
           },
           {
             "step": 3,
-            "text": "Edge cases test"
+            "text": "Test edge cases"
           }
         ]
       },
       {
         "id": "16.6",
-        "title": "BFS se shortest path unweighted graph mein.",
+        "title": "Find the shortest path in an unweighted graph using BFS.",
         "steps": [
           {
             "step": 1,
-            "text": "Adjacency list"
+            "text": "Build an adjacency list"
           },
           {
             "step": 2,
-            "text": "Queue + visited"
+            "text": "Traverse using a queue + visited set"
           },
           {
             "step": 3,
-            "text": "Parent map se path rebuild"
+            "text": "Reconstruct the path from a parent map"
           }
         ]
       }

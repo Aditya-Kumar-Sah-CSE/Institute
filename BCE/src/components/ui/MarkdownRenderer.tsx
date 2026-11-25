@@ -80,7 +80,17 @@ function getDisplayLanguage(lang: string): string {
   return LANGUAGE_DISPLAY_MAP[clean] || (lang ? lang.toUpperCase() : 'Code');
 }
 
-function CodeBlockWrapper({ language, code }: { language: string; code: string }) {
+export function CodeBlockWrapper({
+  language,
+  code,
+  margin = '1.25rem 0',
+  extraActions,
+}: {
+  language: string;
+  code: string;
+  margin?: string;
+  extraActions?: React.ReactNode;
+}) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -96,12 +106,12 @@ function CodeBlockWrapper({ language, code }: { language: string; code: string }
   return (
     <div
       style={{
-        margin: '1.25rem 0',
+        margin,
         borderRadius: '8px',
         overflow: 'hidden',
         border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.12))',
         background: '#161822',
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.35)',
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
       }}
     >
       {/* Code Block Header */}
@@ -110,7 +120,9 @@ function CodeBlockWrapper({ language, code }: { language: string; code: string }
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          padding: '6px 14px',
+          gap: '8px',
+          flexWrap: 'wrap',
+          padding: '6px 12px',
           background: 'rgba(255, 255, 255, 0.04)',
           borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
           fontSize: '11px',
@@ -134,29 +146,32 @@ function CodeBlockWrapper({ language, code }: { language: string; code: string }
             {displayLang}
           </span>
         </div>
-        <button
-          type="button"
-          onClick={handleCopy}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '5px',
-            background: copied ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255, 255, 255, 0.06)',
-            border: copied ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid rgba(255, 255, 255, 0.12)',
-            color: copied ? '#4ade80' : 'var(--text-muted, #94a3b8)',
-            padding: '3px 9px',
-            borderRadius: '4px',
-            fontSize: '11px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-          }}
-          title="Copy code to clipboard"
-          aria-label="Copy code"
-        >
-          {copied ? <Check size={12} /> : <Copy size={12} />}
-          {copied ? 'Copied ✓' : 'Copy'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {extraActions}
+          <button
+            type="button"
+            onClick={handleCopy}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              background: copied ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255, 255, 255, 0.06)',
+              border: copied ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid rgba(255, 255, 255, 0.12)',
+              color: copied ? '#4ade80' : '#cbd5e1',
+              padding: '3px 9px',
+              borderRadius: '4px',
+              fontSize: '11px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+            title="Copy code to clipboard"
+            aria-label="Copy code"
+          >
+            {copied ? <Check size={12} /> : <Copy size={12} />}
+            {copied ? 'Copied' : 'Copy'}
+          </button>
+        </div>
       </div>
 
       {/* Syntax Highlighted Body */}
@@ -166,11 +181,11 @@ function CodeBlockWrapper({ language, code }: { language: string; code: string }
         PreTag="div"
         customStyle={{
           margin: 0,
-          padding: '14px 16px',
+          padding: '12px 14px',
           background: 'transparent',
-          fontSize: '13.5px',
+          fontSize: '13px',
           fontFamily: "'Fira Code', 'Cascadia Code', 'JetBrains Mono', Consolas, monospace",
-          lineHeight: '1.6',
+          lineHeight: '1.58',
           overflowX: 'auto',
         }}
       >

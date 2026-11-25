@@ -1,122 +1,543 @@
-const fs = require('fs');
-const path = require('path');
+// Builds cleanly structured, English-only interactive steps (keywords, headings, points, arrows)
+// and runnable JS/HTML starters for all 39 lessons of the JavaScript Mastery Workbook.
 
-const DATA_DIR = path.join('d:', 'smart learn', 'BCE', 'src', 'features', 'courses', 'data', 'js-mastery-workbook');
+function extractKeywords(text, extra = []) {
+  const found = new Set(extra.filter(Boolean));
+  const codeTokens = text.match(/\b(?:const|let|var|function\*?|class|extends|super|async|await|try|catch|finally|throw|for(?:\.\.\.(?:of|in))?|while|switch|break|continue|Map|Set|WeakMap|Promise(?:\.\w+)?|Array(?:\.\w+)?|Object(?:\.\w+)?|JSON(?:\.\w+)?|RegExp|Date|Intl\.\w+|fetch|AbortController|localStorage|sessionStorage|document|querySelector(?:All)?|addEventListener|createElement|DocumentFragment|structuredClone|typeof|instanceof|NaN|BigInt|Symbol|ES6\+?)\b|\?\?|\?\.|===|==|\.\.\.\w+/g) || [];
+  for (const tok of codeTokens) {
+    if (found.size >= 6) break;
+    found.add(tok);
+  }
+  const topicWords = text.match(/\b(?:Hoisting|TDZ|Closures?|Recursion|Callbacks?|Debounce|Memoization|Currying|Destructuring|Prototypes?|Polymorphism|Delegation|Bubbling|Capturing|Event Loop|Microtasks?|Macrotasks?|Validation|Express|REST API|Git|Vite|Big-O|Sliding Window|Two Pointers|Binary Search|Dynamic Programming|BFS|XSS)\b/gi) || [];
+  for (const w of topicWords) {
+    if (found.size >= 6) break;
+    found.add(w);
+  }
+  return Array.from(found).slice(0, 6);
+}
 
-// Bespoke interactive starter demos for every Topic 1-16 concept bullet (so students can test EVERY individual concept!)
-function buildConceptStarter(topicId, bulletIdx, bulletText, fallbackCode) {
+function splitToArrowPoints(text) {
+  const parts = String(text || '')
+    .split(/(?:;\s*|\s*—\s*|,\s+(?=[a-zA-Z])|:\s+(?=[^/]))/)
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  if (parts.length <= 1) {
+    return [`Key Focus → ${text.trim()}`];
+  }
+
+  const hasColonHeader = /^([^:]{2,32}):\s+(.+)$/.exec(text.trim());
+  if (hasColonHeader) {
+    const subParts = hasColonHeader[2].split(/;\s*/).map(s => s.trim()).filter(Boolean);
+    return subParts.map((sp, i) => (i === 0 ? `${hasColonHeader[1].trim()} → ${sp}` : `Note → ${sp}`));
+  }
+
+  return parts.map((p, idx) => {
+    if (idx === 0) return `Core → ${p}`;
+    return `Detail → ${p}`;
+  });
+}
+
+function buildConceptStarter(topicId, bulletIdx, fallbackCode) {
   const map = {
     1: [
-      `// DevTools & Node Console Demo\nconsole.log('Node/Browser active!');\nconsole.table([{ env: 'Node/Browser', status: 'Ready' }]);`,
-      `// Browser <script> vs Node CLI output check\nconst runtime = typeof window === 'undefined' ? 'Node.js Runtime' : 'Browser DOM';\nconsole.log('Running inside:', runtime);`,
-      `// var vs let vs const\nconst appName = 'SmartLearn JS';\nlet progress = 10;\nprogress += 15;\nconsole.log({ appName, progress });\n// appName = 'Other'; // Uncomment to test TypeError`,
-      `// camelCase naming & valid identifiers\nconst studentFirstName = 'Asha';\nconst maxRetryCount = 3;\nconsole.log(studentFirstName, maxRetryCount);`,
-      `// Single-line & Multi-line comments\n/* Calculate square cleanly */\nconst square = n => n * n;\nconsole.log('square(6) =', square(6));`
+      `// DevTools & Node Console Demo\nconsole.log('Node / Browser Runtime Active!');\nconsole.table([\n  { env: 'Browser DevTools', shortcut: 'F12 / Ctrl+Shift+I' },\n  { env: 'Node.js 22 CLI', shortcut: 'node app.js' }\n]);`,
+      `// Browser <script> vs Node CLI Runtime Check\nconst runtime = typeof window === 'undefined' ? 'Node.js Runtime' : 'Browser DOM';\nconsole.log('Executing inside:', runtime);`,
+      `// var vs let vs const\nconst appName = 'SmartLearn JS';\nlet score = 10;\nscore += 15;\nconsole.log({ appName, score });\n// appName = 'Other'; // Uncomment to observe TypeError on const reassignment`,
+      `// camelCase Naming & Valid Identifiers\nconst studentFirstName = 'Asha';\nconst maxRetryCount = 3;\nconsole.log({ studentFirstName, maxRetryCount });`,
+      `// Single-Line & Multi-Line Comments\n/* Returns the square of n cleanly */\nconst square = n => n * n;\nconsole.log('square(6) =', square(6));`
     ],
     2: [
-      `// 7 Primitive Data Types in JS\nconst vals = [42, 'JS', true, null, undefined, 9007199254740993n, Symbol('id')];\nvals.forEach(v => console.log(String(v), '=> typeof:', typeof v));`,
-      `// Operators: Arithmetic, ??, and ?.\nconst user = { profile: { score: 0 } };\nconsole.log('score with ??:', user?.profile?.score ?? 100);\nconsole.log('score with ||:', user?.profile?.score || 100);\nconsole.log('2 ** 5 =', 2 ** 5);`,
-      `// == vs === comparison\nconsole.log("'5' == 5:", '5' == 5);\nconsole.log("'5' === 5:", '5' === 5);\nconsole.log("null == undefined:", null == undefined);\nconsole.log("null === undefined:", null === undefined);`,
-      `// Falsy values check: false, 0, -0, 0n, '', null, undefined, NaN\nconst items = [0, '', null, undefined, NaN, false, '0', [], {}];\nconsole.log(items.map(x => ({ val: String(x), truthy: Boolean(x) })));`,
-      `// Explicit Conversion: Number(), String(), Boolean()\nconsole.log(Number('42'), Number('42px'), parseInt('42px', 10));\nconsole.log(String(123), Boolean(''), Boolean('false'));`
+      `// 7 Primitive Data Types in JavaScript\nconst samples = [\n  42,\n  'JS',\n  true,\n  null,\n  undefined,\n  9007199254740993n,\n  Symbol('id')\n];\nsamples.forEach(v => console.log(String(v), '=> typeof:', typeof v));`,
+      `// Arithmetic, Nullish Coalescing (??), and Optional Chaining (?.)\nconst user = { profile: { score: 0 } };\nconsole.log('Using ??:', user?.profile?.score ?? 100); // preserves 0\nconsole.log('Using ||:', user?.profile?.score || 100); // falls back on 0\nconsole.log('2 ** 5 =', 2 ** 5);`,
+      `// Strict (===) vs Loose (==) Equality\nconsole.log("'5' == 5:", '5' == 5);\nconsole.log("'5' === 5:", '5' === 5);\nconsole.log('null == undefined:', null == undefined);\nconsole.log('null === undefined:', null === undefined);`,
+      `// Truthy vs Falsy Values\nconst items = [false, 0, -0, 0n, '', null, undefined, NaN, '0', [], {}];\nconsole.table(items.map(x => ({ value: String(x), isTruthy: Boolean(x) })));`,
+      `// Explicit Conversions: Number(), String(), Boolean()\nconsole.log(Number('42'), Number('42px'), parseInt('42px', 10));\nconsole.log(String(123), Boolean(''), Boolean('false'));`
     ],
     3: [
-      `// Conditional branching: if / else / ternary\nconst marks = 84;\nconst grade = marks >= 90 ? 'A+' : marks >= 75 ? 'A' : 'B';\nconsole.log('Grade:', grade);`,
-      `// Switch statement with break\nconst day = 'Mon';\nswitch (day) {\n  case 'Mon': console.log('Start of week'); break;\n  case 'Fri': console.log('Weekend soon'); break;\n  default: console.log('Regular day');\n}`,
-      `// Loops: for vs while vs for...of\nfor (let i = 1; i <= 3; i++) console.log('for:', i);\nfor (const ch of 'JS') console.log('for...of:', ch);`,
-      `// break & continue inside loops\nfor (let i = 1; i <= 7; i++) {\n  if (i === 3) continue;\n  if (i === 6) break;\n  console.log('i =', i);\n}`
+      `// Conditional Branching: if / else / ternary\nconst marks = 84;\nconst grade = marks >= 90 ? 'A+' : marks >= 75 ? 'A' : 'B';\nconsole.log('Grade:', grade);`,
+      `// Loops: for, while, for...of, for...in\nfor (let i = 1; i <= 3; i++) {\n  console.log('for index:', i);\n}\nfor (const ch of 'JS') {\n  console.log('for...of char:', ch);\n}`,
+      `// break & continue inside Loops\nfor (let i = 1; i <= 7; i++) {\n  if (i === 3) continue;\n  if (i === 6) break;\n  console.log('i =', i);\n}`,
+      `// Guard Clauses & Early Return Pattern\nfunction processOrder(order) {\n  if (!order) return 'Invalid order';\n  if (order.amount <= 0) return 'Amount must be positive';\n  return \`Processed order #\${order.id}\`;\n}\nconsole.log(processOrder({ id: 101, amount: 250 }));`,
+      `// Off-by-One Boundary Check (0 to arr.length - 1)\nconst items = ['A', 'B', 'C'];\nfor (let i = 0; i < items.length; i++) {\n  console.log(\`Index \${i}: \${items[i]}\`);\n}`
     ],
     4: [
-      `// Declaration vs Expression vs Arrow\nconsole.log(addDecl(2, 3)); // Hoisted!\nfunction addDecl(a, b) { return a + b; }\nconst addArrow = (a, b) => a + b;\nconsole.log(addArrow(4, 5));`,
-      `// Default params & Rest operator (...args)\nfunction sumAll(multiplier = 1, ...nums) {\n  return nums.reduce((acc, n) => acc + n, 0) * multiplier;\n}\nconsole.log(sumAll(2, 10, 20, 30));`,
-      `// Higher-order function & Callback\nfunction applyTwice(x, fn) { return fn(fn(x)); }\nconsole.log(applyTwice(3, n => n * 2));`,
-      `// Pure vs Impure function demo\nconst pureAdd = (arr, x) => [...arr, x];\nconst base = [1, 2];\nconsole.log('new:', pureAdd(base, 3), 'original:', base);`
+      `// Function Declaration vs Expression vs Arrow\nconsole.log(addDecl(2, 3)); // Hoisted!\nfunction addDecl(a, b) {\n  return a + b;\n}\nconst addArrow = (a, b) => a + b;\nconsole.log(addArrow(4, 5));`,
+      `// Default Parameters & Rest Syntax (...args)\nfunction sumAll(multiplier = 1, ...nums) {\n  return nums.reduce((acc, n) => acc + n, 0) * multiplier;\n}\nconsole.log(sumAll(2, 10, 20, 30));`,
+      `// Higher-Order Functions & Callbacks\nfunction applyTwice(x, fn) {\n  return fn(fn(x));\n}\nconsole.log(applyTwice(3, n => n * 2));`,
+      `// Pure Function vs Mutating Side Effect\nconst purePush = (arr, item) => [...arr, item];\nconst orig = [1, 2];\nconsole.log('new:', purePush(orig, 3), 'original untouched:', orig);`,
+      `// Recursion with Base Case\nfunction factorial(n) {\n  if (n <= 1) return 1;\n  return n * factorial(n - 1);\n}\nconsole.log('factorial(5) =', factorial(5));`,
+      `// IIFE: Immediately Invoked Function Expression\nconst config = (() => {\n  const secret = 'scoped-value';\n  return { ready: true, len: secret.length };\n})();\nconsole.log(config);`
     ],
     5: [
-      `// Block vs Function scope\n{\n  let blockVar = 'only inside block';\n  var fnScoped = 'leaks outside block';\n  console.log(blockVar);\n}\nconsole.log(fnScoped);`,
-      `// Hoisting & TDZ\nconsole.log('var x:', x);\nvar x = 99;\n// console.log(y); // Uncomment to trigger TDZ ReferenceError\nlet y = 10;`,
-      `// Closures: inner function remembers outer lexical scope\nfunction makeMultiplier(factor) {\n  return n => n * factor;\n}\nconst triple = makeMultiplier(3);\nconsole.log(triple(7), triple(12));`
+      `// Global, Function & Block Scope\n{\n  const blockVar = 'confined to block';\n  var fnScoped = 'leaks outside block';\n  console.log(blockVar);\n}\nconsole.log(fnScoped);`,
+      `// Lexical Scope & Scope Chain\nconst outer = 'level-1';\nfunction parent() {\n  const mid = 'level-2';\n  function child() {\n    console.log(outer, '->', mid);\n  }\n  child();\n}\nparent();`,
+      `// Hoisting & Temporal Dead Zone (TDZ)\nconsole.log('var x before assign:', x);\nvar x = 99;\nlet y = 10;\nconsole.log('let y after init:', y);`,
+      `// Closures: Retained Lexical Environment\nfunction makeMultiplier(factor) {\n  return n => n * factor;\n}\nconst triple = makeMultiplier(3);\nconsole.log(triple(7), triple(12));`,
+      `// Closure Use Case: once()\nfunction once(fn) {\n  let called = false;\n  let result;\n  return (...args) => {\n    if (!called) {\n      called = true;\n      result = fn(...args);\n    }\n    return result;\n  };\n}\nconst init = once(() => 'Initialized once!');\nconsole.log(init(), init());`
     ],
     6: [
-      `// Stack/Queue array mutations: push, pop, shift, unshift\nconst q = ['a', 'b'];\nq.push('c');\nconsole.log('pop:', q.pop(), 'shift:', q.shift(), 'remaining:', q);`,
-      `// slice (non-mutating) vs splice (mutating)\nconst nums = [10, 20, 30, 40, 50];\nconsole.log('slice(1,3):', nums.slice(1, 3), 'nums untouched:', nums);\nnums.splice(1, 2, 99);\nconsole.log('after splice:', nums);`,
-      `// map, filter, reduce pipeline\nconst orders = [120, 450, 80, 600];\nconst bigTotal = orders.filter(x => x > 100).map(x => x * 1.1).reduce((s, x) => s + x, 0);\nconsole.log('Total:', bigTotal.toFixed(2));`,
-      `// Numeric sort comparator vs string sort trap\nconst a = [100, 20, 3];\nconsole.log('wrong default sort:', [...a].sort());\nconsole.log('numeric sort:', [...a].sort((x, y) => x - y));`
+      `// Array Mutations: push, pop, shift, unshift\nconst queue = ['a', 'b'];\nqueue.push('c');\nconsole.log('pop:', queue.pop());\nconsole.log('shift:', queue.shift());\nconsole.log('remaining:', queue);`,
+      `// slice (non-mutating) vs splice (mutating)\nconst nums = [10, 20, 30, 40, 50];\nconsole.log('slice(1, 3):', nums.slice(1, 3), 'untouched:', nums);\nnums.splice(1, 2, 99);\nconsole.log('after splice:', nums);`,
+      `// map, filter & reduce Pipeline\nconst orders = [120, 450, 80, 600];\nconst total = orders\n  .filter(x => x > 100)\n  .map(x => x * 1.1)\n  .reduce((s, x) => s + x, 0);\nconsole.log('Total:', total.toFixed(2));`,
+      `// Numeric Sort Comparator vs String Trap\nconst arr = [100, 20, 3];\nconsole.log('Default string sort:', [...arr].sort());\nconsole.log('Numeric sort:', [...arr].sort((x, y) => x - y));`,
+      `// Array Destructuring & Spread\nconst [first, second, ...rest] = [10, 20, 30, 40];\nconsole.log({ first, second, rest });`,
+      `// Non-Mutating Copy Before Reverse\nconst orig = [1, 2, 3];\nconst reversed = [...orig].reverse();\nconsole.log({ orig, reversed });`
     ],
     7: [
-      `// String immutability & slicing\nconst s = '  JavaScript Mastery  ';\nconsole.log(s.trim().slice(0, 10).toUpperCase());`,
-      `// split, join, replaceAll, template literals\nconst title = 'hello world js';\nconsole.log(title.split(' ').join('-'));`,
-      `// RegExp flags g, i & test/match\nconst txt = 'Orders: #101, #204, #999';\nconsole.log('matches:', txt.match(/#\\d+/g));\nconsole.log('has JS?', /javascript/i.test('Learn JavaScript'));`
+      `// String Immutability & Slicing\nconst raw = '  JavaScript Mastery  ';\nconsole.log(raw.trim().slice(0, 10).toUpperCase());`,
+      `// split, join, replaceAll, padStart\nconst slug = 'hello world js'.split(' ').join('-');\nconsole.log({ slug, padded: '7'.padStart(3, '0') });`,
+      `// Template Literals\nconst user = 'Asha';\nconst tasks = 96;\nconsole.log(\`Student: \${user} | Tasks: \${tasks}\`);`,
+      `// RegExp Basics: Character Classes & Quantifiers\nconsole.log('Has code?', /\\d{3}-\\d{4}/.test('ID 555-1234'));\nconsole.log('Digits:', 'Room 402B'.match(/\\d+/g));`,
+      `// test(), match(), matchAll(), replace()\nconst text = 'Orders: #101, #204, #999';\nconsole.log('Order IDs:', text.match(/#\\d+/g));\nconsole.log('Case-insensitive:', /javascript/i.test('Learn JavaScript'));`,
+      `// Unicode Emoji Length Gotcha (UTF-16)\nconst emoji = '🚀';\nconsole.log('UTF-16 .length:', emoji.length);\nconsole.log('Code point length:', [...emoji].length);`
     ],
     8: [
-      `// Object CRUD, Computed Keys & Shorthand\nconst key = 'role';\nconst dev = { name: 'Riya', [key]: 'Engineer' };\nconsole.log(Object.entries(dev));`,
-      `// JSON.stringify / JSON.parse & structuredClone\nconst obj = { a: 1, nested: { b: 2 } };\nconst clone = structuredClone(obj);\nclone.nested.b = 999;\nconsole.log({ orig: obj.nested.b, clone: clone.nested.b });`,
-      `// this keyword & call/apply/bind\nconst user = { name: 'Kabir', say(city) { return \`\${this.name} in \${city}\`; } };\nconst unbound = user.say;\nconsole.log('bound:', unbound.bind(user)('Delhi'));`
+      `// Object Literals, Computed Keys & Shorthand\nconst field = 'role';\nconst dev = { name: 'Riya', [field]: 'Engineer' };\nconsole.log(dev);`,
+      `// Object.keys / values / entries / freeze\nconst cfg = Object.freeze({ host: 'localhost', port: 3000 });\nconsole.log('Entries:', Object.entries(cfg));`,
+      `// Destructuring, Spread & Optional Chaining\nconst user = { name: 'Ravi', address: { city: 'Ranchi' } };\nconst { name, address: { city } } = user;\nconsole.log(name, city, user?.phone?.number ?? 'No phone');`,
+      `// Explicit this Binding: call / apply / bind\nconst person = {\n  name: 'Kabir',\n  greet(city) {\n    return \`\${this.name} in \${city}\`;\n  }\n};\nconst fn = person.greet;\nconsole.log('Bound:', fn.bind(person)('Delhi'));`,
+      `// JSON Serialization & Parsing\nconst data = { course: 'JS', weeks: 12 };\nconst json = JSON.stringify(data);\nconsole.log('Parsed back:', JSON.parse(json));`,
+      `// Map & Set Collections\nconst unique = new Set([1, 2, 2, 3]);\nconst scores = new Map([['Alice', 95], ['Bob', 88]]);\nconsole.log('Set size:', unique.size, 'Alice:', scores.get('Alice'));`
     ],
     9: [
-      `// Destructuring, Spread & Rest\nconst cfg = { host: 'localhost', port: 3000, tls: false };\nconst { host, ...rest } = cfg;\nconsole.log(host, rest);`,
-      `// Set & Map modern collections\nconst tags = new Set(['js', 'node', 'js']);\nconst map = new Map([['js', 10]]);\nconsole.log('unique size:', tags.size, 'map:', map.get('js'));`,
-      `// Iterators & Generators (function*)\nfunction* countUp(limit) { for (let i = 1; i <= limit; i++) yield i; }\nconsole.log([...countUp(4)]);`
+      `// Destructuring, Spread & Default Params\nfunction connect({ host = 'localhost', port = 3000 } = {}) {\n  return \`https://\${host}:\${port}\`;\n}\nconsole.log(connect({ port: 8080 }));`,
+      `// Optional Chaining (?.) & Nullish Coalescing (??)\nconst settings = { retries: 0 };\nconsole.log('retries:', settings.retries ?? 3);\nconsole.log('timeout:', settings.network?.timeout ?? 5000);`,
+      `// Iterators & Generators (function*)\nfunction* countUp(limit) {\n  for (let i = 1; i <= limit; i++) yield i;\n}\nconsole.log([...countUp(4)]);`,
+      `// ES Modules Export/Import Pattern Reference\nconst mathModule = {\n  add: (a, b) => a + b,\n  greet: name => \`Hi \${name}\`\n};\nconsole.log(mathModule.greet('Dev'), mathModule.add(5, 7));`,
+      `// Modern ES Methods: at(), flatMap(), structuredClone()\nconst arr = ['first', 'middle', 'last'];\nconsole.log('last via .at(-1):', arr.at(-1));\nconsole.log('flatMap:', [1, 2].flatMap(n => [n, n * 10]));`
     ],
     10: [
-      `// Prototype chain check\nconst arr = [1, 2];\nconsole.log('Array proto?', Object.getPrototypeOf(arr) === Array.prototype);\nconsole.log('has toString via Object.prototype?', 'toString' in arr);`,
-      `// Class inheritance, super, getter & private #field\nclass Account {\n  #bal = 0;\n  constructor(b) { this.#bal = b; }\n  get balance() { return this.#bal; }\n  deposit(x) { this.#bal += x; }\n}\nconst a = new Account(100); a.deposit(50); console.log(a.balance);`
+      `// Prototype Chain Inspection\nconst arr = [1, 2];\nconsole.log('Proto === Array.prototype:', Object.getPrototypeOf(arr) === Array.prototype);\nconsole.log('Inherits Object.prototype?', Object.getPrototypeOf(Array.prototype) === Object.prototype);`,
+      `// Constructor Function & new Operator\nfunction User(name) {\n  this.name = name;\n}\nUser.prototype.sayHi = function () {\n  return \`Hi, I am \${this.name}\`;\n};\nconsole.log(new User('Asha').sayHi());`,
+      `// Class Syntax, Constructor, Getters & Static Methods\nclass Rect {\n  constructor(w, h) { this.w = w; this.h = h; }\n  get area() { return this.w * this.h; }\n  static unit() { return new Rect(1, 1); }\n}\nconsole.log('Area:', new Rect(4, 5).area);`,
+      `// Inheritance: extends & super\nclass Animal {\n  constructor(name) { this.name = name; }\n  speak() { return \`\${this.name} makes a sound\`; }\n}\nclass Dog extends Animal {\n  speak() { return \`\${this.name} barks!\`; }\n}\nconsole.log(new Dog('Rex').speak());`,
+      `// Private Class Fields (#x)\nclass Account {\n  #balance = 0;\n  constructor(initial) { this.#balance = initial; }\n  get balance() { return this.#balance; }\n  deposit(amt) { this.#balance += amt; }\n}\nconst acc = new Account(100);\nacc.deposit(50);\nconsole.log('Balance:', acc.balance);`,
+      `// Composition vs Inheritance\nconst canLog = name => ({ log: msg => console.log(\`[\${name}] \${msg}\`) });\nconst service = Object.assign({ status: 'UP' }, canLog('API'));\nservice.log('Running smoothly');`
     ],
     11: [
-      `<!DOCTYPE html>\n<html><body style="font-family:sans-serif;padding:16px;background:#0f172a;color:#f8fafc">\n  <h2 id="heading">Hello DOM!</h2>\n  <button id="btn" style="padding:8px 14px;background:#06b6d4;color:#000;border:none;border-radius:6px;cursor:pointer;font-weight:bold">Change Text &amp; Color</button>\n  <script>\n    document.querySelector('#btn').addEventListener('click', () => {\n      const h = document.querySelector('#heading');\n      h.textContent = 'DOM Updated Dynamically!';\n      h.style.color = '#34d399';\n      console.log('Heading updated!');\n    });\n  </script>\n</body></html>`
+      `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8" />\n  <style>\n    body { font-family: system-ui, sans-serif; padding: 18px; background: #0f172a; color: #f8fafc; }\n    .card { background: #1e293b; border: 1px solid #334155; padding: 16px; border-radius: 10px; max-width: 420px; }\n    button { background: #06b6d4; color: #082f49; border: none; padding: 8px 14px; border-radius: 6px; font-weight: 700; cursor: pointer; }\n  </style>\n</head>\n<body>\n  <div class="card">\n    <h2 id="title">Selecting DOM Elements</h2>\n    <p class="desc">Click below to query and update via querySelector()</p>\n    <button id="btn">Update Title</button>\n  </div>\n  <script>\n    const heading = document.querySelector('#title');\n    document.querySelector('#btn').addEventListener('click', () => {\n      heading.textContent = 'Updated with querySelector!';\n      heading.style.color = '#38bdf8';\n    });\n  </script>\n</body>\n</html>`,
+      `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8" />\n  <style>\n    body { font-family: system-ui, sans-serif; padding: 18px; background: #0f172a; color: #f8fafc; }\n    input { padding: 7px 10px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #fff; }\n    button { background: #10b981; color: #052e16; border: none; padding: 7px 12px; border-radius: 6px; font-weight: 700; cursor: pointer; }\n    li { margin-top: 6px; padding: 6px 10px; background: #1e293b; border-radius: 6px; }\n  </style>\n</head>\n<body>\n  <h3>Create & Append Elements Safely</h3>\n  <input id="itemInput" placeholder="New item..." />\n  <button id="addBtn">Add</button>\n  <ul id="list" style="list-style:none;padding:0"></ul>\n  <script>\n    const list = document.querySelector('#list');\n    const input = document.querySelector('#itemInput');\n    document.querySelector('#addBtn').addEventListener('click', () => {\n      const val = input.value.trim();\n      if (!val) return;\n      const li = document.createElement('li');\n      li.textContent = val;\n      list.append(li);\n      input.value = '';\n    });\n  </script>\n</body>\n</html>`,
+      `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8" />\n  <style>\n    body { font-family: system-ui, sans-serif; padding: 18px; background: #0f172a; color: #f8fafc; }\n    .card { padding: 14px; border-radius: 8px; background: #1e293b; margin-top: 10px; }\n    .highlight { border: 2px solid #06b6d4; background: #082f49; }\n  </style>\n</head>\n<body>\n  <button id="toggle">Toggle Highlight Class</button>\n  <div id="box" class="card">Safe textContent renders HTML tags literally without XSS.</div>\n  <script>\n    const box = document.querySelector('#box');\n    document.querySelector('#toggle').addEventListener('click', () => {\n      box.classList.toggle('highlight');\n    });\n  </script>\n</body>\n</html>`
     ],
     12: [
-      `<!DOCTYPE html>\n<html><body style="font-family:sans-serif;padding:16px;background:#0f172a;color:#f8fafc">\n  <h3>Event Delegation Demo</h3>\n  <ul id="list" style="list-style:none;padding:0;display:flex;gap:8px">\n    <li><button data-item="Alpha" style="padding:8px 12px;border-radius:6px;cursor:pointer">Alpha</button></li>\n    <li><button data-item="Beta" style="padding:8px 12px;border-radius:6px;cursor:pointer">Beta</button></li>\n    <li><button data-item="Gamma" style="padding:8px 12px;border-radius:6px;cursor:pointer">Gamma</button></li>\n  </ul>\n  <p id="out">Click any button (1 listener handles all!)</p>\n  <script>\n    document.querySelector('#list').addEventListener('click', e => {\n      const btn = e.target.closest('button');\n      if (!btn) return;\n      document.querySelector('#out').textContent = 'Delegated Click: ' + btn.dataset.item;\n      console.log('Clicked:', btn.dataset.item);\n    });\n  </script>\n</body></html>`
+      `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8" />\n  <style>\n    body { font-family: system-ui, sans-serif; padding: 18px; background: #0f172a; color: #f8fafc; }\n    button { background: #06b6d4; color: #082f49; border: none; padding: 8px 12px; border-radius: 6px; font-weight: 700; cursor: pointer; }\n  </style>\n</head>\n<body>\n  <h3>Event Delegation Demo</h3>\n  <div id="actions" style="display:flex;gap:8px;margin-bottom:10px">\n    <button data-action="Save">Save</button>\n    <button data-action="Share">Share</button>\n    <button data-action="Export">Export</button>\n  </div>\n  <p id="status">Click any button (handled by 1 parent listener)</p>\n  <script>\n    document.querySelector('#actions').addEventListener('click', e => {\n      const btn = e.target.closest('button');\n      if (!btn) return;\n      document.querySelector('#status').textContent = 'Clicked: ' + btn.dataset.action;\n    });\n  </script>\n</body>\n</html>`,
+      `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8" />\n  <style>\n    body { font-family: system-ui, sans-serif; padding: 18px; background: #0f172a; color: #f8fafc; }\n    form { display: flex; gap: 8px; }\n    input { padding: 7px 10px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #fff; }\n    button { background: #10b981; color: #052e16; border: none; padding: 7px 14px; border-radius: 6px; font-weight: 700; cursor: pointer; }\n  </style>\n</head>\n<body>\n  <h3>preventDefault() Form Handling</h3>\n  <form id="demoForm">\n    <input id="nameInput" placeholder="Enter your name" required />\n    <button type="submit">Submit</button>\n  </form>\n  <p id="msg"></p>\n  <script>\n    document.querySelector('#demoForm').addEventListener('submit', e => {\n      e.preventDefault();\n      const name = document.querySelector('#nameInput').value.trim();\n      document.querySelector('#msg').textContent = 'Submitted without reload: ' + name;\n    });\n  </script>\n</body>\n</html>`
     ],
     13: [
-      `// Event Loop Order: Sync -> Microtask -> Macrotask\nconsole.log('1: Sync start');\nsetTimeout(() => console.log('4: Macrotask setTimeout'), 0);\nPromise.resolve().then(() => console.log('3: Microtask Promise'));\nconsole.log('2: Sync end');`,
-      `// async/await & Promise.all\nconst wait = (ms, val) => new Promise(r => setTimeout(() => r(val), ms));\n(async () => {\n  const results = await Promise.all([wait(50, 'User'), wait(50, 'Orders')]);\n  console.log('Fetched together:', results);\n})();`
+      `// Event Loop Execution Order: Sync -> Microtask -> Macrotask\nconsole.log('1: Sync start');\nsetTimeout(() => console.log('4: Macrotask setTimeout'), 0);\nPromise.resolve().then(() => console.log('3: Microtask Promise'));\nconsole.log('2: Sync end');`,
+      `// Promise States & Chaining\nPromise.resolve(10)\n  .then(n => n * 2)\n  .then(n => console.log('Chained result:', n))\n  .catch(err => console.error(err))\n  .finally(() => console.log('Cleanup complete'));`,
+      `// async/await + Promise.all Parallel Execution\nconst delay = (ms, val) => new Promise(r => setTimeout(() => r(val), ms));\n(async () => {\n  const [user, orders] = await Promise.all([\n    delay(40, 'User'),\n    delay(40, 'Orders')\n  ]);\n  console.log('Parallel resolved:', { user, orders });\n})();`
     ],
     14: [
-      `// Custom Error class & try/catch/finally\nclass ValidationError extends Error {\n  constructor(msg) { super(msg); this.name = 'ValidationError'; }\n}\ntry {\n  throw new ValidationError('Email missing @');\n} catch (e) {\n  console.log(e instanceof ValidationError, e.name, ':', e.message);\n} finally {\n  console.log('Finally cleanup always runs');\n}`
+      `// Custom Error Subclasses & try/catch/finally\nclass ValidationError extends Error {\n  constructor(msg) {\n    super(msg);\n    this.name = 'ValidationError';\n  }\n}\ntry {\n  throw new ValidationError('Email is missing @ symbol');\n} catch (err) {\n  console.log(err instanceof ValidationError, err.name, '->', err.message);\n} finally {\n  console.log('Finally block always executes');\n}`
     ],
     15: [
-      `// Node.js tooling & REST check simulation\nconst apiRoutes = [\n  { method: 'GET', path: '/todos', status: 200 },\n  { method: 'POST', path: '/todos', status: 201 }\n];\nconsole.table(apiRoutes);`
+      `// Node.js REST Routes & Scripts Overview\nconst apiRoutes = [\n  { method: 'GET', path: '/todos', status: 200 },\n  { method: 'POST', path: '/todos', status: 201 },\n  { method: 'DELETE', path: '/todos/:id', status: 200 }\n];\nconsole.table(apiRoutes);`
     ],
     16: [
-      `// Big-O & Binary Search Lab\nfunction binarySearch(arr, target) {\n  let l = 0, r = arr.length - 1;\n  while (l <= r) {\n    const m = (l + r) >> 1;\n    if (arr[m] === target) return m;\n    arr[m] < target ? (l = m + 1) : (r = m - 1);\n  }\n  return -1;\n}\nconsole.log('Index of 23:', binarySearch([2, 5, 11, 23, 45, 70], 23));`
+      `// Binary Search — O(log n) Time, O(1) Space\nfunction binarySearch(arr, target) {\n  let l = 0;\n  let r = arr.length - 1;\n  while (l <= r) {\n    const m = (l + r) >> 1;\n    if (arr[m] === target) return m;\n    if (arr[m] < target) l = m + 1;\n    else r = m - 1;\n  }\n  return -1;\n}\nconsole.log('Index of 23:', binarySearch([2, 5, 11, 23, 45, 70], 23));`
     ]
   };
-  const arr = map[topicId] || [];
-  return arr[bulletIdx] || arr[0] || fallbackCode;
+
+  const list = map[topicId] || [];
+  if (topicId === 11 || topicId === 12) {
+    return list[bulletIdx % list.length] || list[0] || fallbackCode;
+  }
+  return list[bulletIdx] || list[0] || fallbackCode;
 }
 
 function buildHtmlProjectStarter(project) {
   const safeTitle = project.title.replace(/</g, '&lt;');
-  return `<!DOCTYPE html>
+  const commonHead = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>${safeTitle}</title>
   <style>
     body { font-family: system-ui, sans-serif; background: #0f172a; color: #f8fafc; padding: 20px; margin: 0; }
-    .box { max-width: 480px; margin: 0 auto; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 18px; }
-    button { background: #0ea5e9; color: #fff; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: 700; }
+    .card { max-width: 480px; margin: 0 auto; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 18px; }
+    h2 { margin-top: 0; font-size: 18px; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+    input, select { flex: 1; min-width: 110px; padding: 8px 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #f8fafc; }
+    button { background: #06b6d4; color: #082f49; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: 700; }
+    button.sec { background: #334155; color: #e2e8f0; }
+    .out { margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; font-size: 14px; }
+    .board { display: grid; grid-template-columns: repeat(3, 64px); gap: 6px; margin: 12px 0; }
+    .cell { height: 64px; font-size: 22px; font-weight: 800; background: #0f172a; color: #38bdf8; border: 1px solid #334155; border-radius: 8px; }
+    li { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: #0f172a; border-radius: 6px; margin-top: 6px; cursor: pointer; }
+    li.done span { text-decoration: line-through; opacity: 0.6; }
   </style>
-</head>
+</head>`;
+
+  const templates = {
+    1: `${commonHead}
 <body>
-  <div class="box">
-    <h2 style="margin-top:0">${safeTitle}</h2>
-    <p id="status">Interactive preview ready! Edit HTML/CSS/JS here and click Run.</p>
-    <div id="app"></div>
+  <div class="card">
+    <h2>Tip &amp; Bill Splitter</h2>
+    <div class="row">
+      <input id="bill" type="number" value="1000" placeholder="Bill (INR)" />
+      <select id="pct">
+        <option value="10">10% Tip</option>
+        <option value="15">15% Tip</option>
+        <option value="20">20% Tip</option>
+      </select>
+      <input id="people" type="number" value="4" min="1" placeholder="People" />
+    </div>
+    <button id="calcBtn">Calculate Split</button>
+    <div id="result" class="out">Enter values and click Calculate Split</div>
   </div>
   <script>
 ${project.starterCode}
+    const fmt = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' });
+    const runCalc = () => {
+      try {
+        const bill = Number(document.querySelector('#bill').value);
+        const pct = Number(document.querySelector('#pct').value);
+        const people = Number(document.querySelector('#people').value);
+        const { total, perPerson } = calc(bill, pct, people);
+        document.querySelector('#result').textContent = \`Total: \${fmt.format(total)} | Per Person: \${fmt.format(perPerson)}\`;
+      } catch (e) {
+        document.querySelector('#result').textContent = e.message;
+      }
+    };
+    document.querySelector('#calcBtn').addEventListener('click', runCalc);
+    runCalc();
   </script>
 </body>
-</html>`;
+</html>`,
+    2: `${commonHead}
+<body>
+  <div class="card">
+    <h2>Todo App + localStorage</h2>
+    <div class="row">
+      <input id="todoInput" placeholder="Add a new task..." />
+      <button id="addBtn">Add</button>
+    </div>
+    <div class="row">
+      <button class="sec" data-filter="all">All</button>
+      <button class="sec" data-filter="active">Active</button>
+      <button class="sec" data-filter="done">Done</button>
+    </div>
+    <ul id="list" style="list-style:none;padding:0;margin:0"></ul>
+  </div>
+  <script>
+    const list = document.querySelector('#list');
+    let filter = 'all';
+    let todos = (() => {
+      try { return JSON.parse(localStorage.getItem('todos') || '[]'); } catch { return []; }
+    })();
+    if (todos.length === 0) {
+      todos = [{ id: 1, text: 'Practice JavaScript DOM', done: false }];
+    }
+    const visible = () => todos.filter(t => filter === 'all' ? true : filter === 'done' ? t.done : !t.done);
+${project.starterCode}
+    document.querySelector('#addBtn').addEventListener('click', () => {
+      const inp = document.querySelector('#todoInput');
+      if (!inp.value.trim()) return;
+      todos.push({ id: Date.now(), text: inp.value.trim(), done: false });
+      inp.value = '';
+      save(); render();
+    });
+    list.addEventListener('click', e => {
+      const li = e.target.closest('li');
+      if (!li) return;
+      todos = todos.map(t => t.id === Number(li.dataset.id) ? { ...t, done: !t.done } : t);
+      save(); render();
+    });
+    document.querySelectorAll('[data-filter]').forEach(b => b.addEventListener('click', () => {
+      filter = b.dataset.filter;
+      render();
+    }));
+    render();
+  </script>
+</body>
+</html>`,
+    3: `${commonHead}
+<body>
+  <div class="card">
+    <h2>Digital Clock &amp; Stopwatch</h2>
+    <div id="clock" class="out" style="font-size:24px;font-weight:800;text-align:center">--:--:--</div>
+    <div id="sw" class="out" style="font-size:22px;font-family:monospace;text-align:center">00:00</div>
+    <div class="row" style="justify-content:center">
+      <button id="startBtn">Start</button>
+      <button id="pauseBtn" class="sec">Pause</button>
+      <button id="resetBtn" class="sec">Reset</button>
+    </div>
+  </div>
+  <script>
+${project.starterCode}
+    const clockEl = document.querySelector('#clock');
+    const swEl = document.querySelector('#sw');
+    setInterval(() => { clockEl.textContent = new Date().toLocaleTimeString(); }, 500);
+    clockEl.textContent = new Date().toLocaleTimeString();
+    let elapsed = 0, start = 0, timer = null;
+    document.querySelector('#startBtn').addEventListener('click', () => {
+      if (timer) return;
+      start = Date.now() - elapsed;
+      timer = setInterval(() => {
+        elapsed = Date.now() - start;
+        swEl.textContent = fmt(elapsed);
+      }, 100);
+    });
+    document.querySelector('#pauseBtn').addEventListener('click', () => { clearInterval(timer); timer = null; });
+    document.querySelector('#resetBtn').addEventListener('click', () => { clearInterval(timer); timer = null; elapsed = 0; swEl.textContent = '00:00'; });
+  </script>
+</body>
+</html>`,
+    4: `${commonHead}
+<body>
+  <div class="card">
+    <h2>JavaScript Quiz App</h2>
+    <p id="qText" style="font-weight:700"></p>
+    <div id="opts" style="display:flex;flex-direction:column;gap:8px"></div>
+    <div id="scoreBox" class="out">Score: 0</div>
+  </div>
+  <script>
+    let current = 0, score = 0, answered = false;
+${project.starterCode}
+    questions.push({ q: 'Which returns a new array?', options: ['forEach', 'map', 'push', 'splice'], answer: 1 });
+    function renderQ() {
+      const q = questions[current];
+      document.querySelector('#qText').textContent = \`Q\${current + 1}. \${q.q}\`;
+      const opts = document.querySelector('#opts');
+      opts.replaceChildren(...q.options.map((label, i) => {
+        const b = document.createElement('button');
+        b.className = 'sec';
+        b.textContent = label;
+        b.onclick = () => {
+          pick(i);
+          document.querySelector('#scoreBox').textContent = \`Score: \${score} / \${questions.length}\`;
+          if (current < questions.length - 1) { current++; answered = false; setTimeout(renderQ, 400); }
+        };
+        return b;
+      }));
+    }
+    renderQ();
+  </script>
+</body>
+</html>`,
+    5: `${commonHead}
+<body>
+  <div class="card">
+    <h2>Calculator (No eval)</h2>
+    <div id="disp" class="out" style="font-size:22px;text-align:right;font-family:monospace">0</div>
+    <div id="pad" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px"></div>
+  </div>
+  <script>
+${project.starterCode}
+    const keys = ['7','8','9','/','4','5','6','*','1','2','3','-','C','0','=','+'];
+    let cur = '', prev = '', op = '';
+    const disp = document.querySelector('#disp');
+    const pad = document.querySelector('#pad');
+    keys.forEach(k => {
+      const b = document.createElement('button');
+      b.className = 'sec';
+      b.textContent = k;
+      b.dataset.key = k;
+      pad.append(b);
+    });
+    pad.addEventListener('click', e => {
+      const k = e.target.dataset?.key;
+      if (!k) return;
+      if (k === 'C') { cur = ''; prev = ''; op = ''; disp.textContent = '0'; return; }
+      if ('+-*/'.includes(k)) { prev = cur || '0'; op = k; cur = ''; return; }
+      if (k === '=' && prev && op && cur) {
+        const r = compute(prev, cur, op);
+        cur = Number.isNaN(r) ? 'Error' : String(r);
+        prev = ''; op = ''; disp.textContent = cur; return;
+      }
+      if (!'+-*/='.includes(k)) { cur += k; disp.textContent = cur; }
+    });
+  </script>
+</body>
+</html>`,
+    6: `${commonHead}
+<body>
+  <div class="card">
+    <h2>Live API Fetch Explorer</h2>
+    <div class="row">
+      <button id="loadBtn">Fetch Sample User</button>
+    </div>
+    <div id="out" class="out">Click "Fetch Sample User" to test fetch + AbortController.</div>
+  </div>
+  <script>
+${project.starterCode}
+    document.querySelector('#loadBtn').addEventListener('click', async () => {
+      const out = document.querySelector('#out');
+      out.textContent = 'Loading...';
+      try {
+        const user = await load('https://jsonplaceholder.typicode.com/users/1');
+        out.textContent = \`\${user.name} (@\${user.username}) — \${user.email}\`;
+      } catch (err) {
+        out.textContent = 'Fetch failed: ' + err.message;
+      }
+    });
+  </script>
+</body>
+</html>`,
+    7: `${commonHead}
+<body>
+  <div class="card">
+    <h2>Expense Tracker</h2>
+    <div class="row">
+      <input id="desc" placeholder="Description" />
+      <input id="amt" type="number" placeholder="Amount" />
+      <select id="type"><option value="income">Income</option><option value="expense">Expense</option></select>
+      <button id="addBtn">Add</button>
+    </div>
+    <div id="summary" class="out">Balance: ₹0</div>
+  </div>
+  <script>
+    const expenses = [
+      { type: 'income', amount: 5000 },
+      { type: 'expense', amount: 1200 }
+    ];
+    function renderTotals() {
+${project.starterCode}
+      document.querySelector('#summary').textContent = \`Income: ₹\${totals.income} | Expense: ₹\${totals.expense} | Balance: ₹\${balance}\`;
+    }
+    document.querySelector('#addBtn').addEventListener('click', () => {
+      const amount = Number(document.querySelector('#amt').value);
+      if (amount <= 0) return;
+      expenses.push({ type: document.querySelector('#type').value, amount });
+      document.querySelector('#amt').value = '';
+      renderTotals();
+    });
+    renderTotals();
+  </script>
+</body>
+</html>`,
+    8: `${commonHead}
+<body>
+  <div class="card">
+    <h2>Tic-Tac-Toe</h2>
+    <div id="status" class="out">Turn: X</div>
+    <div id="board" class="board"></div>
+    <button id="resetBtn">Restart Game</button>
+  </div>
+  <script>
+    let board = Array(9).fill(null);
+    let turn = 'X';
+${project.starterCode}
+    const boardEl = document.querySelector('#board');
+    const statusEl = document.querySelector('#status');
+    function render() {
+      boardEl.replaceChildren(...board.map((val, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'cell';
+        btn.dataset.index = idx;
+        btn.textContent = val || '';
+        return btn;
+      }));
+      const w = winner();
+      statusEl.textContent = w ? \`Winner: \${w}!\` : board.every(Boolean) ? 'Draw!' : \`Turn: \${turn}\`;
+    }
+    boardEl.addEventListener('click', e => {
+      const i = e.target.dataset?.index;
+      if (i === undefined || board[i] || winner()) return;
+      board[i] = turn;
+      turn = turn === 'X' ? 'O' : 'X';
+      render();
+    });
+    document.querySelector('#resetBtn').addEventListener('click', () => { board = Array(9).fill(null); turn = 'X'; render(); });
+    render();
+  </script>
+</body>
+</html>`,
+    9: `${commonHead}
+<body>
+  <div class="card">
+    <h2>Image Slider / Carousel</h2>
+    <div style="overflow:hidden;border-radius:8px;border:1px solid #334155">
+      <div id="track" style="display:flex;transition:transform 0.3s ease">
+        <div class="slide" style="min-width:100%;padding:32px;text-align:center;background:#082f49;box-sizing:border-box">Slide 1: ES6+ Foundations</div>
+        <div class="slide" style="min-width:100%;padding:32px;text-align:center;background:#1e1b4b;box-sizing:border-box">Slide 2: DOM &amp; Events</div>
+        <div class="slide" style="min-width:100%;padding:32px;text-align:center;background:#064e3b;box-sizing:border-box">Slide 3: Async JavaScript</div>
+      </div>
+    </div>
+    <div class="row" style="justify-content:space-between;margin-top:12px">
+      <button id="prev">← Prev</button>
+      <button id="next">Next →</button>
+    </div>
+  </div>
+  <script>
+    let index = 0;
+    const track = document.querySelector('#track');
+    const slides = document.querySelectorAll('.slide');
+${project.starterCode}
+    document.querySelector('#prev').addEventListener('click', () => go(index - 1));
+    document.querySelector('#next').addEventListener('click', () => go(index + 1));
+  </script>
+</body>
+</html>`,
+    10: `${commonHead}
+<body>
+  <div class="card">
+    <h2>Password Generator &amp; Strength Meter</h2>
+    <div class="row">
+      <label>Length: <span id="lenVal">12</span></label>
+      <input id="len" type="range" min="6" max="24" value="12" />
+    </div>
+    <div class="row">
+      <button id="genBtn">Generate Password</button>
+    </div>
+    <div id="pwOut" class="out" style="font-family:monospace;font-weight:700">Click Generate</div>
+  </div>
+  <script>
+    const POOL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%';
+${project.starterCode}
+    const lenEl = document.querySelector('#len');
+    const renderPw = () => {
+      const len = Number(lenEl.value);
+      document.querySelector('#lenVal').textContent = len;
+      const pw = gen(len, POOL);
+      const strength = len >= 14 ? 'Strong' : len >= 10 ? 'Medium' : 'Weak';
+      document.querySelector('#pwOut').textContent = \`\${pw} (\${strength})\`;
+    };
+    lenEl.addEventListener('input', renderPw);
+    document.querySelector('#genBtn').addEventListener('click', renderPw);
+    renderPw();
+  </script>
+</body>
+</html>`,
+    11: `${commonHead}
+<body>
+  <div class="card">
+    <h2>Debounced Book Search (AbortController)</h2>
+    <input id="searchBox" placeholder="Type book title (e.g. javascript)..." />
+    <ul id="results" style="list-style:none;padding:0;margin:10px 0 0 0"></ul>
+  </div>
+  <script>
+    const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+    function render(docs = []) {
+      document.querySelector('#results').replaceChildren(...docs.slice(0, 4).map(d => {
+        const li = document.createElement('li');
+        li.textContent = d.title || 'Untitled';
+        return li;
+      }));
+    }
+${project.starterCode}
+    document.querySelector('#searchBox').addEventListener('input', e => {
+      const q = e.target.value.trim();
+      if (q.length >= 2) search(q);
+    });
+  </script>
+</body>
+</html>`
+  };
+
+  return templates[project.id] || templates[1];
 }
 
-function createInteractiveStepsForLesson(item, { meta, topicsPartA, taskSolutions, projectsPartB, c1Theory, c2Coding, c3Output, mcqsPartD, prettyJS }) {
+function createInteractiveStepsForLesson(
+  item,
+  { meta, topicsPartA, taskSolutions, projectsPartB, c1Theory, c2Coding, c3Output, mcqsPartD, prettyJS, isExecutableJS }
+) {
   const title = item.title;
   const steps = [];
   let stepNum = 1;
-  const push = (obj) => {
+  const push = obj => {
     steps.push({ id: `${item.week}-${stepNum}`, stepNumber: stepNum++, ...obj });
   };
 
@@ -126,32 +547,55 @@ function createInteractiveStepsForLesson(item, { meta, topicsPartA, taskSolution
       kind: 'overview',
       badge: 'Module 1/3 • Blueprint',
       title: 'Welcome to JavaScript Mastery Workbook',
-      summary: `${meta.subtitle}. Ye poora 12-week guided course hai: 16 core topics, 96 step-by-step coding tasks, 12 real projects, 593 interview Q&As, aur 150 interactive MCQs.`,
-      keyPoints: [
-        '16 Roadmap Topics covering Basics se DSA & Node.js tak',
-        '96 Practice Tasks — har task ka apna dedicated IDE & Terminal step',
-        '12 Guided Projects with Live Web Preview & GitHub portfolio submissions',
-        '593 Interview Q&As + 150 Node.js 22 verified MCQs'
+      keywords: ['16 Topics', '96 Tasks', '12 Projects', '593 Q&As', '150 MCQs'],
+      summary: 'Complete 12-week interactive roadmap taking you from basics to DSA & Node.js.',
+      sections: [
+        {
+          heading: 'Workbook Modules',
+          points: [
+            'Core Roadmap → 16 ordered topics from Variables to Async JS, Node & DSA',
+            'Guided Practice → 96 step-by-step tasks with progressive hints & solutions',
+            'Real Web Projects → 12 browser & Node apps with live Web Preview',
+            'Interview Prep → 593 Q&As (Theory, Coding, Output) + 150 interactive MCQs'
+          ]
+        }
       ],
-      starterCode: `// Apna pehla JavaScript check Right Terminal me run karo!\nconst roadmap = {\n  topics: 16,\n  tasks: 96,\n  projects: 12,\n  interviewQAs: 593,\n  mcqs: 150\n};\nconsole.log('Namaste Smart Learn JS!');\nconsole.table(roadmap);`,
+      starterCode:
+        `// Run your first JavaScript snippet in the Right Console!\n` +
+        `const roadmap = {\n  topics: 16,\n  tasks: 96,\n  projects: 12,\n  interviewQAs: 593,\n  mcqs: 150\n};\n` +
+        `console.log('Smart Learn JS Ready!');\nconsole.table(roadmap);`,
       runMode: 'javascript',
       analysisFocus: 'Course overview and JS runtime initialization check'
     });
+
     push({
       kind: 'concept',
-      badge: 'Module 2/3 • How to Practice',
-      title: 'Workbook Study Method & Research Alignment',
-      summary: 'Is course me copy-paste nahi karna hai — har concept part padhkar turant Right Editor me run karo aur practice tasks pehle khud try karo.',
-      keyPoints: [...meta.howToUse, ...meta.researchNotes],
+      badge: 'Module 2/3 • Study Method',
+      title: 'Workbook Study Method & Curriculum Alignment',
+      keywords: ['Active Coding', 'No Copy-Paste', '3-Step Hints', 'Node.js 22'],
+      summary: 'Follow a read -> code live -> solve -> verify loop for every topic.',
+      sections: [
+        { heading: 'Study Rules', points: meta.howToUse },
+        { heading: 'Curriculum Alignment', points: meta.researchNotes }
+      ],
       runMode: 'javascript',
-      starterCode: `// Active Practice Rule Demo\nfunction practiceStep(concept) {\n  return \`Read -> Code Live -> Solve Task -> Check Edge Case (\${concept})\`;\n}\nconsole.log(practiceStep('Closures'));`
+      starterCode:
+        `// Active Practice Loop Demo\nfunction practiceStep(concept) {\n` +
+        `  return \`Read -> Code Live -> Solve Task -> Check Edge Case (\${concept})\`;\n}\n` +
+        `console.log(practiceStep('Closures'));`
     });
+
     push({
       kind: 'overview',
-      badge: 'Module 3/3 • 12-Week Roadmap',
-      title: '12-Week Study Plan (Daily 1.5–2 Ghante)',
-      summary: 'Har week ka exact focus aur target output niche table me diya gaya hai. Left Sidebar me Weeks 1 se 12 isi sequence me arranged hain.',
-      tableRows: meta.studyPlan.map(w => ({ col1: `Week ${w.week}`, col2: w.focus, col3: w.output })),
+      badge: 'Module 3/3 • 12-Week Plan',
+      title: '12-Week Study Plan (1.5–2 Hours Daily)',
+      keywords: ['12 Weeks', 'Weekly Targets', 'Milestones', 'Portfolio'],
+      summary: 'Weeks 1–12 in the left Syllabus follow this exact structured order.',
+      tableRows: meta.studyPlan.map(w => ({
+        col1: `Week ${w.week}`,
+        col2: w.focus,
+        col3: w.output
+      })),
       runMode: 'none'
     });
     return steps;
@@ -162,32 +606,52 @@ function createInteractiveStepsForLesson(item, { meta, topicsPartA, taskSolution
     push({
       kind: 'checklist',
       badge: 'Final Gate 1/3 • Checklist',
-      title: 'Interview Se Pehle 7-Point Readiness Checklist',
-      summary: 'Interview rounds me jaane se pehle verify karo ki ye sabhi 7 skills bina reference dekhe confidently implement kar sakte ho.',
-      keyPoints: meta.checklist,
+      title: 'Pre-Interview 7-Point Readiness Checklist',
+      keywords: ['Closures', 'Event Loop', 'Async/Await', 'DSA', 'DevTools'],
+      summary: 'Verify you can implement all 7 core skills from scratch before interviews.',
+      sections: [
+        {
+          heading: '7 Verification Gates',
+          points: meta.checklist.map((itemText, idx) => `Gate ${idx + 1} → ${itemText}`)
+        }
+      ],
       runMode: 'javascript',
-      starterCode: `// Quick Interview Self-Test: Debounce + Deep Clone check\nconst debounce = (fn, ms = 300) => {\n  let t;\n  return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };\n};\nconst log = debounce(msg => console.log('Debounced:', msg), 50);\nlog('first'); log('second');`
+      starterCode:
+        `// Quick Self-Test: Debounce Utility\nconst debounce = (fn, ms = 300) => {\n  let t;\n  return (...args) => {\n    clearTimeout(t);\n    t = setTimeout(() => fn(...args), ms);\n  };\n};\nconst log = debounce(msg => console.log('Debounced:', msg), 50);\nlog('first');\nlog('second');`
     });
+
     push({
       kind: 'overview',
       badge: 'Final Gate 2/3 • Resources',
       title: 'Curated Free Practice Platforms & Docs',
-      summary: 'Book me recommended best free JavaScript & DSA resources daily practice ke liye:',
-      keyPoints: meta.freeResources.map(r => `${r.name} (${r.url}) — ${r.desc}`),
+      keywords: ['MDN', 'javascript.info', 'freeCodeCamp', 'Odin Project', 'LeetCode'],
+      summary: 'Recommended external references for daily documentation and DSA drills.',
+      sections: [
+        {
+          heading: 'Recommended Free Platforms',
+          points: meta.freeResources.map(r => `${r.name} → ${r.desc} (${r.url})`)
+        }
+      ],
       runMode: 'none'
     });
+
     push({
       kind: 'overview',
       badge: 'Final Gate 3/3 • 150 MCQ Key',
       title: 'Part D: Complete MCQ Answer Key & Explanations (1–150)',
-      summary: 'Self-assessment ke liye Course detail page par "Course MCQs (150)" tab attempt karo! Niche complete reference answer key aur workbook explanations hain.',
-      tableRows: mcqsPartD.map(m => ({ col1: `Q${m.num} (${m.correct_option})`, col2: m.category, col3: m.explanation || '-' })),
+      keywords: ['150 MCQs', 'Answer Key', 'Explanations', 'Self-Test'],
+      summary: 'Take the quiz in the Course MCQs tab, then review all 150 answer keys below.',
+      tableRows: mcqsPartD.map(m => ({
+        col1: `Q${m.num} (${m.correct_option})`,
+        col2: m.category,
+        col3: m.explanation || '-'
+      })),
       runMode: 'none'
     });
     return steps;
   }
 
-  // 3. Part A Topics (1..16) -> Split EACH concept bullet + Core Example + EACH individual Task!
+  // 3. Part A Topics (1..16) -> Individual Concept Steps + Core Demo + 6 Guided Tasks
   const topicMatch = title.match(/^(\d{1,2})\.\s/);
   if (topicMatch) {
     const topicId = Number(topicMatch[1]);
@@ -196,49 +660,84 @@ function createInteractiveStepsForLesson(item, { meta, topicsPartA, taskSolution
       const isDomTopic = topicId === 11 || topicId === 12;
       const runMode = isDomTopic ? 'html_preview' : 'javascript';
 
-      // Deeply divide theory bullets into individual Concept Steps!
       topic.kyaSeekhnaHai.forEach((bullet, idx) => {
+        const cleanLabel = bullet.split(/[:—-]/)[0].trim().slice(0, 62);
         push({
           kind: 'concept',
           badge: `Theory Part ${idx + 1}/${topic.kyaSeekhnaHai.length}`,
-          title: `${topic.phase.replace(/^Phase \d+:\s*/, '')} — Concept ${idx + 1}: ${bullet.split(/[:—-]/)[0].trim().slice(0, 60)}`,
+          title: `${topic.phase.replace(/^Phase \d+:\s*/, '')} — ${cleanLabel}`,
+          keywords: extractKeywords(bullet, [topic.title.split(/[,&]/)[0].trim()]),
           summary: bullet,
-          keyPoints: [
-            `Phase: ${topic.phase}`,
-            'Right IDE me starter code run karke values change karke experiment karo.',
-            'Output verify hone ke baad "Next Step ->" press karke agla concept/task kholo.'
+          sections: [
+            {
+              heading: 'Concept Breakdown',
+              points: splitToArrowPoints(bullet)
+            },
+            {
+              heading: 'Practice Flow',
+              points: [
+                isDomTopic
+                  ? 'Live Preview → Run HTML/DOM snippet in the Right Editor & inspect Web Preview'
+                  : 'Run Code ▶ → Execute the Right Editor example and tweak test inputs',
+                'Advance → Verify output matches expectation, then click Next Step →'
+              ]
+            }
           ],
-          starterCode: buildConceptStarter(topicId, idx, bullet, topic.codeExample),
+          starterCode: buildConceptStarter(topicId, idx, topic.codeExample),
           runMode,
           analysisFocus: `Topic ${topicId} (${topic.title}) Concept ${idx + 1}: ${bullet}`
         });
       });
 
-      // Core Workbook Code Example Step
+      const coreStarter =
+        isDomTopic && !topic.codeExample.includes('<html')
+          ? `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8" />\n  <style>\n    body { font-family: system-ui, sans-serif; padding: 18px; background: #0f172a; color: #f8fafc; }\n    .box { max-width: 420px; background: #1e293b; border: 1px solid #334155; padding: 16px; border-radius: 10px; }\n    li { padding: 6px 10px; margin-top: 6px; background: #0f172a; border-radius: 6px; }\n    .done { text-decoration: line-through; opacity: 0.6; }\n  </style>\n</head>\n<body>\n  <div id="app" class="box">\n    <h3 style="margin-top:0">Topic ${topic.id} Sandbox</h3>\n    <ul id="list" style="list-style:none;padding:0">\n      <li class="item">Sample existing task (click me)</li>\n    </ul>\n  </div>\n  <script>\n${topic.codeExample}\n  </script>\n</body>\n</html>`
+          : prettyJS(topic.codeExample);
+
       push({
         kind: 'code_lab',
         badge: 'Workbook Core Demo',
         title: `${topic.id}. Core Code Walkthrough`,
-        summary: `Workbook ke Topic ${topic.id} ("${topic.title}") ka main example code. Isko Right Terminal/Preview me execute karke har line ka behaviour verify karo.`,
-        codeSnippet: topic.codeExample,
-        starterCode: isDomTopic && !topic.codeExample.includes('<html')
-          ? `<!DOCTYPE html>\n<html><body style="font-family:sans-serif;padding:16px;background:#0f172a;color:#f8fafc">\n  <div id="app" class="box"><h2>Topic ${topic.id} Sandbox</h2><p id="msg">Ready</p><button id="btn">Click Me</button><ul id="list"></ul></div>\n  <script>\n${topic.codeExample}\n  </script>\n</body></html>`
-          : topic.codeExample,
+        keywords: extractKeywords(topic.codeExample, ['Core Example', topic.title.split(',')[0].trim()]),
+        summary: `Runnable core snippet for Topic ${topic.id}: ${topic.title}.`,
+        sections: [
+          {
+            heading: 'Walkthrough Steps',
+            points: [
+              'Trace → Read each statement and predict console/DOM behavior before running',
+              'Execute → Load into the Right IDE and verify live output',
+              'Modify → Change edge inputs to solidify the concept'
+            ]
+          }
+        ],
+        codeSnippet: prettyJS(topic.codeExample),
+        starterCode: coreStarter,
         runMode,
         analysisFocus: `Explain Topic ${topic.id} Core Code Example line by line`
       });
 
-      // Individual Practice Tasks (1 task per screen, Coding Ninjas style!)
       topic.tasks.forEach((task, tIdx) => {
-        const sol = taskSolutions[task.id] || '';
+        const sol = prettyJS(taskSolutions[task.id] || '');
         const starter = isDomTopic
-          ? `<!DOCTYPE html>\n<html><body style="font-family:sans-serif;padding:16px;background:#0f172a;color:#f8fafc">\n  <h2 id="title">Task ${task.id}</h2>\n  <div id="app">\n    <button id="toggleBtn">Action</button>\n    <ul id="list"></ul>\n  </div>\n  <script>\n    // ${task.title}\n    // Hint 1: ${task.steps[0]?.text || ''}\n  </script>\n</body></html>`
+          ? `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8" />\n  <style>\n    body { font-family: system-ui, sans-serif; padding: 18px; background: #0f172a; color: #f8fafc; }\n    button { background: #06b6d4; color: #082f49; border: none; padding: 8px 14px; border-radius: 6px; font-weight: 700; cursor: pointer; }\n  </style>\n</head>\n<body>\n  <h2 id="title">Task ${task.id}</h2>\n  <div id="app">\n    <button id="toggleBtn">Run Action</button>\n    <ul id="list"></ul>\n  </div>\n  <script>\n    // Task ${task.id}: ${task.title}\n    // Hint 1: ${task.steps[0]?.text || ''}\n  </script>\n</body>\n</html>`
           : `// Task ${task.id}: ${task.title}\n// Step 1: ${task.steps[0]?.text || ''}\n\n`;
+
         push({
           kind: 'task',
           badge: `Practice Task ${task.id} (${tIdx + 1}/6)`,
           title: `Task ${task.id}: ${task.title}`,
-          summary: 'Pehle Right IDE me khud solve karo! Atak jao to ek-ek karke Step 1, Step 2, Step 3 hints kholo, aur code chalane ke baad Reference Solution se compare karo.',
+          keywords: extractKeywords(task.title, [`Task ${task.id}`, '3-Step Hints', 'IDE Lab']),
+          summary: task.title,
+          sections: [
+            {
+              heading: 'Guided Solve Flow',
+              points: [
+                'Attempt → Write and test your own code in the Right IDE first',
+                'Hints → Reveal Step 1 → Step 2 → Step 3 progressively only if stuck',
+                'Verify → Run your solution and compare with the Reference Solution'
+              ]
+            }
+          ],
           hints: task.steps,
           starterCode: starter,
           solutionCode: sol,
@@ -252,8 +751,17 @@ function createInteractiveStepsForLesson(item, { meta, topicsPartA, taskSolution
           kind: 'assignment',
           badge: 'Milestone Assignment',
           title: item.assignment.title,
+          keywords: [`+${item.assignment.xp_reward} XP`, 'Submission', 'Code Review'],
           summary: item.assignment.description,
-          keyPoints: [`Reward: +${item.assignment.xp_reward} XP`, 'Neeche apna verified code submit karo'],
+          sections: [
+            {
+              heading: 'Submission Checklist',
+              points: [
+                `Reward → +${item.assignment.xp_reward} XP upon approval`,
+                'Verify → Test all required tasks cleanly before submitting below'
+              ]
+            }
+          ],
           runMode: 'none'
         });
       }
@@ -261,7 +769,7 @@ function createInteractiveStepsForLesson(item, { meta, topicsPartA, taskSolution
     }
   }
 
-  // 4. Part B Guided Projects (P1..P12) -> Divide into Brief + 3 Build Milestones + Submission
+  // 4. Part B Guided Projects (P1..P12)
   const projMatch = title.match(/^P(\d{1,2}):\s/);
   if (projMatch) {
     const pid = Number(projMatch[1]);
@@ -269,30 +777,52 @@ function createInteractiveStepsForLesson(item, { meta, topicsPartA, taskSolution
     if (project) {
       const isRestApi = pid === 12;
       const runMode = isRestApi ? 'javascript' : 'html_preview';
-      const editorStarter = isRestApi ? project.starterCode : buildHtmlProjectStarter(project);
+      const editorStarter = isRestApi ? prettyJS(project.starterCode) : buildHtmlProjectStarter(project);
 
       push({
         kind: 'project_overview',
         badge: `Project ${pid}/12 • Overview`,
         title: `Project ${pid}: ${project.title}`,
-        summary: `Level: ${project.level}. Pehle Right Pane me Starter Code inspect/run karo, phir ek-ek milestone build steps follow karke apni complete app banao.`,
-        keyPoints: project.skills.map(s => `Skill: ${s}`),
-        codeSnippet: project.starterCode,
+        keywords: project.skills.slice(0, 6),
+        summary: `Level: ${project.level} — inspect the working starter in Web Preview, then customize step by step.`,
+        sections: [
+          {
+            heading: 'Core Skills Practiced',
+            points: project.skills.map(s => `Skill → ${s}`)
+          },
+          {
+            heading: 'Build Approach',
+            points: [
+              isRestApi
+                ? 'Backend Setup → Scaffold Express routes locally in Node.js (use Terminal / local project)'
+                : 'Live Preview → Run code in the Right Editor & open full-tab Browser Preview',
+              'Milestones → Follow Milestones 1–3 cleanly before submitting'
+            ]
+          }
+        ],
+        codeSnippet: prettyJS(project.starterCode),
         starterCode: editorStarter,
         runMode,
         analysisFocus: `Project ${pid} Architecture & Starter Setup: ${project.title}`
       });
 
       const chunkSize = Math.ceil(project.steps.length / 3);
+      const totalMilestones = Math.ceil(project.steps.length / chunkSize);
       for (let i = 0; i < project.steps.length; i += chunkSize) {
         const mNum = Math.floor(i / chunkSize) + 1;
         const slice = project.steps.slice(i, i + chunkSize);
         push({
           kind: 'project_milestone',
-          badge: `Build Milestone ${mNum}/${Math.ceil(project.steps.length / chunkSize)}`,
+          badge: `Build Milestone ${mNum}/${totalMilestones}`,
           title: `Steps ${i + 1}–${i + slice.length}: Build Phase ${mNum}`,
-          summary: `Right Editor me Milestone ${mNum} ke requirements implement karke ${isRestApi ? 'JS Terminal' : 'Live Web Preview'} me test karo.`,
-          keyPoints: slice.map((st, idx) => `Step ${i + idx + 1}: ${st}`),
+          keywords: [...project.skills.slice(0, 4), `Phase ${mNum}`],
+          summary: `Implement Milestone ${mNum} features and test in ${isRestApi ? 'Node / Terminal' : 'Live Web Preview'}.`,
+          sections: [
+            {
+              heading: `Phase ${mNum} Checklist`,
+              points: slice.map((st, idx) => `Step ${i + idx + 1} → ${st}`)
+            }
+          ],
           starterCode: editorStarter,
           runMode,
           analysisFocus: `Project ${pid} Milestone ${mNum}: ${slice.join(' | ')}`
@@ -304,8 +834,17 @@ function createInteractiveStepsForLesson(item, { meta, topicsPartA, taskSolution
           kind: 'assignment',
           badge: 'Project Submission',
           title: item.assignment.title,
+          keywords: [`+${item.assignment.xp_reward} XP`, 'GitHub Repo', 'Live Demo'],
           summary: item.assignment.description,
-          keyPoints: [`Reward: +${item.assignment.xp_reward} XP`, 'Code / GitHub Link / Live URL submit karo'],
+          sections: [
+            {
+              heading: 'Submission Requirements',
+              points: [
+                `Reward → +${item.assignment.xp_reward} XP`,
+                'Submit → Paste verified code or GitHub/Deploy URL below'
+              ]
+            }
+          ],
           runMode: 'none'
         });
       }
@@ -313,7 +852,7 @@ function createInteractiveStepsForLesson(item, { meta, topicsPartA, taskSolution
     }
   }
 
-  // 5. Part C1 Interview Theory -> Interactive 10-question Study Sets
+  // 5. Part C1 Interview Theory (10-question active-recall decks)
   if (title.startsWith('C1.')) {
     const rangeM = title.match(/Q(\d+)-(\d+)/);
     const start = rangeM ? Number(rangeM[1]) : 1;
@@ -321,25 +860,27 @@ function createInteractiveStepsForLesson(item, { meta, topicsPartA, taskSolution
     const subset = c1Theory.filter(q => q.num >= start && q.num <= end);
     const DECK_SIZE = 10;
     const totalDecks = Math.ceil(subset.length / DECK_SIZE);
+
     for (let i = 0; i < subset.length; i += DECK_SIZE) {
       const deck = subset.slice(i, i + DECK_SIZE);
       const dNum = Math.floor(i / DECK_SIZE) + 1;
-      const cats = Array.from(new Set(deck.map(d => d.category))).join(' • ');
+      const cats = Array.from(new Set(deck.map(d => d.category)));
       push({
         kind: 'interview_theory',
         badge: `Theory Deck ${dNum}/${totalDecks}`,
-        title: `${deck[0].id}–${deck[deck.length - 1].id}: ${cats}`,
-        summary: 'Har question ka jawab pehle khud sochkar bolo, phir "Reveal Answer" par click karo. Chaho to Right Terminal me example code test bhi kar sakte ho!',
+        title: `${deck[0].id}–${deck[deck.length - 1].id}: ${cats.join(' • ')}`,
+        keywords: [...cats, `${deck.length} Questions`, 'Active Recall'],
+        summary: 'Answer each question aloud before revealing the verified answer; test ideas in the Right IDE.',
         qaItems: deck.map(q => ({ id: q.id, question: q.question, answer: q.answer })),
-        starterCode: `// Quick Scratchpad for ${deck[0].id}–${deck[deck.length - 1].id}\nconsole.log('Test any concept snippet live!');`,
+        starterCode: `// Quick Scratchpad for ${deck[0].id}–${deck[deck.length - 1].id}\nconsole.log('Test any interview concept live!');`,
         runMode: 'javascript',
-        analysisFocus: `Interview Theory ${deck[0].id}-${deck[deck.length - 1].id} (${cats})`
+        analysisFocus: `Interview Theory ${deck[0].id}-${deck[deck.length - 1].id} (${cats.join(', ')})`
       });
     }
     return steps;
   }
 
-  // 6. Part C2 Interview Coding -> Interactive 8-Problem Coding Decks (with Load-to-Editor per problem!)
+  // 6. Part C2 Interview Coding (8-problem coding sets)
   if (title.startsWith('C2.')) {
     const rangeM = title.match(/Q(\d+)-(\d+)/);
     const start = rangeM ? Number(rangeM[1]) : 419;
@@ -347,20 +888,26 @@ function createInteractiveStepsForLesson(item, { meta, topicsPartA, taskSolution
     const subset = c2Coding.filter(q => q.num >= start && q.num <= end);
     const DECK_SIZE = 8;
     const totalDecks = Math.ceil(subset.length / DECK_SIZE);
+
     for (let i = 0; i < subset.length; i += DECK_SIZE) {
       const deck = subset.slice(i, i + DECK_SIZE);
       const dNum = Math.floor(i / DECK_SIZE) + 1;
+      const firstRunnable = deck.find(q => isExecutableJS(q.solution));
       push({
         kind: 'interview_coding',
         badge: `Coding Set ${dNum}/${totalDecks}`,
         title: `Coding Problems ${deck[0].id}–${deck[deck.length - 1].id}`,
-        summary: 'Kisi bhi problem ke "Load Solution in IDE ▶" button par click karke solution turant Right Editor & Node Terminal me run aur modify karo.',
-        qaItems: deck.map(q => ({
-          id: q.id,
-          question: q.prompt,
-          code: prettyJS(q.solution)
-        })),
-        starterCode: prettyJS(deck[0].solution) + `\n\n// Test your call above & press Run Code!`,
+        keywords: [`${deck.length} Problems`, 'Scratch Coding', 'Node.js 22 Verified'],
+        summary: 'Write your solution first in the Right IDE, then click Answer or Load IDE to verify & benchmark.',
+        qaItems: deck.map(q => {
+          const runnable = isExecutableJS(q.solution);
+          return runnable
+            ? { id: q.id, question: q.prompt, code: prettyJS(q.solution) }
+            : { id: q.id, question: q.prompt, answer: q.solution };
+        }),
+        starterCode:
+          (firstRunnable ? prettyJS(firstRunnable.solution) : '// Solve the coding problems on the left!') +
+          `\n\n// Add a sample call below & click Run Code!`,
         runMode: 'javascript',
         analysisFocus: `Interview Coding Problems ${deck[0].id}-${deck[deck.length - 1].id}`
       });
@@ -368,7 +915,7 @@ function createInteractiveStepsForLesson(item, { meta, topicsPartA, taskSolution
     return steps;
   }
 
-  // 7. Part C3 Output Prediction (Q542-Q593) -> Interactive 6-Snippet Verification Decks!
+  // 7. Part C3 Output Prediction (Q542-Q593) -> Interactive 6-Snippet Verification Labs
   if (title.startsWith('C3.')) {
     const DECK_SIZE = 6;
     const totalDecks = Math.ceil(c3Output.length / DECK_SIZE);
@@ -379,15 +926,16 @@ function createInteractiveStepsForLesson(item, { meta, topicsPartA, taskSolution
         kind: 'interview_output',
         badge: `Output Lab ${dNum}/${totalDecks}`,
         title: `Output Prediction ${deck[0].id}–${deck[deck.length - 1].id}`,
-        summary: 'Pehle output dimaag me dry-run karo, phir "Run Snippet ▶" par click karke Node.js 22 verified output check karo aur explanation dekho!',
+        keywords: ['Output Prediction', 'Coercion', 'Event Loop', 'Node.js 22'],
+        summary: 'Predict each snippet output mentally before clicking Load IDE or Answer to inspect explanation.',
         qaItems: deck.map(q => ({
           id: q.id,
           question: q.prompt,
-          code: prettyJS(q.code.replace(/\s+/g, ' ').trim()) || q.code,
+          code: prettyJS(q.code) || q.code,
           answer: q.answer,
           explanation: q.explanation
         })),
-        starterCode: prettyJS(deck[0].code.replace(/\s+/g, ' ').trim()) || deck[0].code,
+        starterCode: prettyJS(deck[0].code) || deck[0].code,
         runMode: 'javascript',
         analysisFocus: `Output Prediction Set ${deck[0].id}-${deck[deck.length - 1].id}`
       });
@@ -399,4 +947,3 @@ function createInteractiveStepsForLesson(item, { meta, topicsPartA, taskSolution
 }
 
 module.exports = { createInteractiveStepsForLesson };
-

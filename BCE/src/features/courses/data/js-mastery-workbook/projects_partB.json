@@ -10,14 +10,14 @@
       "events"
     ],
     "steps": [
-      "HTML: bill amount, tip % (select), people count (input) aur 'Calculate' button banao.",
-      "JS: elements select karo: const bill = document.querySelector('#bill') waghera.",
-      "Function calc() likho: tip = bill * pct / 100; total = bill + tip; perPerson = total / people.",
-      "Input validation: bill <= 0 ya people < 1 par error message dikhao.",
-      "Result ko toFixed(2) se format karo aur page par dikhao (textContent).",
-      "Button click aur Enter key dono par calc() chalao.",
-      "Bonus: Intl.NumberFormat se currency format (INR).",
-      "Test: bill 1000, tip 10%, 4 log => per person 275."
+      "HTML Structure → Add inputs for bill amount, tip percentage (<select>), people count, and a Calculate button",
+      "DOM Selection → Select elements using document.querySelector(\"#bill\"), etc.",
+      "Core Logic → Write calc(): tip = bill * pct / 100, total = bill + tip, perPerson = total / people",
+      "Validation → Display a clear error message if bill <= 0 or people < 1",
+      "Formatting → Format numbers with toFixed(2) and render safely via textContent",
+      "UX Trigger → Invoke calc() on both button click and Enter keydown",
+      "Currency Bonus → Format output cleanly using Intl.NumberFormat(\"en-IN\", { style: \"currency\", currency: \"INR\" })",
+      "Verification → Test: bill 1000, tip 10%, 4 people => 275.00 per person"
     ],
     "starterCode": "function calc(bill, pct, people) {\n  if (bill <= 0 || people < 1) throw new Error('Invalid input');\n  const total = bill * (1 + pct / 100);\n  return { total, perPerson: total / people };\n}"
   },
@@ -34,16 +34,16 @@
       "localStorage"
     ],
     "steps": [
-      "HTML: input, Add button, ul#list, filter buttons (All/Active/Done).",
-      "State: let todos = JSON.parse(localStorage.getItem('todos') || '[]') ; har todo {id, text, done}.",
-      "render() function likho: list clear karo aur todos se li banao (textContent use karo, innerHTML nahi).",
-      "Add: form submit par trim() check, todos.push({id: Date.now(), text, done:false}), save(), render().",
-      "Event delegation: ul par ek click listener; e.target.closest('li') se id nikalo; toggle/delete handle karo.",
-      "save() = localStorage.setItem('todos', JSON.stringify(todos)); har change ke baad call karo.",
-      "Filters: currentFilter variable se todos.filter() karke render karo.",
-      "Bonus: edit on double-click, 'clear completed', items left counter."
+      "HTML UI → Add task input, Add button, ul#list, and filter buttons (All / Active / Done)",
+      "State Setup → Initialize todos from localStorage.getItem(\"todos\") as [{ id, text, done }]",
+      "Safe Render → Build render() to replace list items using createElement & textContent (never raw innerHTML)",
+      "Add Task → On submit, trim input, push { id: Date.now(), text, done: false }, save(), and render()",
+      "Event Delegation → Attach one click listener on ul#list using e.target.closest(\"li\") to toggle/delete",
+      "Persistence → Call save() (localStorage.setItem with JSON.stringify) after every state update",
+      "Filtering → Filter visible tasks via currentFilter using todos.filter()",
+      "Bonus Polish → Add double-click inline editing, Clear Completed button, and active item count"
     ],
-    "starterCode": "const save = () => localStorage.setItem('todos', JSON.stringify(todos));\nfunction render() {\n  list.replaceChildren(...visible().map(t => {\n    const li = document.createElement('li');\n    li.dataset.id = t.id; li.textContent = t.text;\n    li.classList.toggle('done', t.done);\n    return li;\n  }));\n}"
+    "starterCode": "const save = () => localStorage.setItem('todos', JSON.stringify(todos));\n\nfunction render() {\n  list.replaceChildren(\n    ...visible().map(t => {\n      const li = document.createElement('li');\n      li.dataset.id = t.id;\n      li.textContent = t.text;\n      li.classList.toggle('done', t.done);\n      return li;\n    })\n  );\n}"
   },
   {
     "id": 3,
@@ -56,15 +56,15 @@
       "functions"
     ],
     "steps": [
-      "Clock: setInterval(() => el.textContent = new Date().toLocaleTimeString(), 1000).",
-      "Stopwatch state: running, startTime, elapsed.",
-      "Start: startTime = Date.now() - elapsed; interval chalao (100ms).",
-      "Pause: clearInterval aur elapsed update; Reset: sab zero.",
-      "format(ms) function: mm:ss.t padStart(2,'0') se.",
-      "Countdown: target date input se remaining = target - Date.now(); 0 par alert/sound.",
-      "Tip: Date.now() se time nikalo (interval ticks par bharosa mat karo)."
+      "Digital Clock → Update clock element every 1000ms with new Date().toLocaleTimeString()",
+      "Stopwatch State → Track running flag, startTime timestamp, and elapsed milliseconds",
+      "Start Action → Compute startTime = Date.now() - elapsed and start a 100ms interval",
+      "Pause & Reset → Pause with clearInterval while keeping elapsed; Reset clears interval & zeros state",
+      "Time Formatter → Build fmt(ms) returning mm:ss.t padded with String.padStart(2, \"0\")",
+      "Countdown Timer → Read target date/time input, compute remaining = target - Date.now(), notify at 0",
+      "Accuracy Tip → Always derive elapsed duration from Date.now() rather than counting interval ticks"
     ],
-    "starterCode": "const fmt = ms => {\n   const s = Math.floor(ms / 1000);\n   return [Math.floor(s / 60), s % 60].map(n => String(n).padStart(2, '0')).join(':');\n};"
+    "starterCode": "const fmt = ms => {\n  const s = Math.floor(ms / 1000);\n  return [Math.floor(s / 60), s % 60]\n    .map(n => String(n).padStart(2, '0'))\n    .join(':');\n};"
   },
   {
     "id": 4,
@@ -77,15 +77,15 @@
       "scoring"
     ],
     "steps": [
-      "Data: const questions = [{q, options:[..], answer: index}, ...] (10 sawal).",
-      "State: current = 0, score = 0, answered = false.",
-      "showQuestion(): current question aur options buttons render karo.",
-      "Option click: correct/wrong highlight, score++ agar sahi, buttons disable.",
-      "Next button: current++; agar last ho to result screen dikhao.",
-      "Result: score, percentage aur message; Restart button.",
-      "Bonus: timer per question, shuffle questions (Fisher-Yates), high score localStorage mein."
+      "Quiz Dataset → Define questions = [{ q, options: [...], answer: index }, ...] with 10 questions",
+      "Quiz State → Track current = 0, score = 0, and answered = false",
+      "Render Question → Create showQuestion() to render the prompt and clickable option buttons",
+      "Answer Selection → Highlight right/wrong choices, increment score if correct, disable options",
+      "Next Flow → Increment current on Next; render final score summary after the last question",
+      "Results Screen → Show score, percentage, feedback message, and a Restart Quiz button",
+      "Bonus Polish → Add per-question countdown timer, Fisher-Yates shuffle, and localStorage high score"
     ],
-    "starterCode": "const questions = [\n   { q: 'typeof null ?', options: ['null','object','undefined','number'], answer: 1 },\n];\nfunction pick(i) {\n   if (answered) return;\n   answered = true;\n   if (i === questions[current].answer) score++;\n}"
+    "starterCode": "const questions = [\n  {\n    q: 'typeof null?',\n    options: ['null', 'object', 'undefined', 'number'],\n    answer: 1\n  }\n];\n\nfunction pick(i) {\n  if (answered) return;\n  answered = true;\n  if (i === questions[current].answer) score++;\n}"
   },
   {
     "id": 5,
@@ -97,16 +97,16 @@
       "state machine"
     ],
     "steps": [
-      "HTML grid: digits, operators, '=', 'C', '.', display div.",
-      "State: current, previous, operator.",
-      "Digit click: current string mein append (do decimals roko).",
-      "Operator click: agar previous aur current ho to pehle compute(), fir operator set karo.",
-      "compute(a, b, op): switch(op); division by zero par 'Error'.",
-      "Equals: compute karke display; C: reset.",
-      "Keyboard support: keydown se digits/operators map karo.",
-      "Never use eval() - safe compute function use karo."
+      "Layout Grid → Create display screen plus keypad buttons for digits, operators, \"=\", \"C\", and \".\"",
+      "State Machine → Track current input string, previous operand, and pending operator",
+      "Digit Input → Append digits to current string while blocking duplicate decimal points",
+      "Operator Handling → If previous and current exist, call compute() first, then store new operator",
+      "Safe Compute → Implement compute(a, b, op) with switch(op) and return \"Error\" on divide-by-zero",
+      "Equals & Clear → Compute final result on \"=\" and reset state cleanly on \"C\"",
+      "Keyboard Support → Bind keydown events so number, operator, Enter, and Escape keys work seamlessly",
+      "Security Rule → Never use eval() — always evaluate through your explicit compute() function"
     ],
-    "starterCode": "function compute(a, b, op) {\n  a = +a; b = +b;\n  switch (op) {\n    case '+': return a + b;\n    case '-': return a - b;\n    case '*': return a * b;\n    case '/': return b === 0 ? NaN : a / b;\n  }\n}"
+    "starterCode": "function compute(a, b, op) {\n  a = +a;\n  b = +b;\n  switch (op) {\n    case '+': return a + b;\n    case '-': return a - b;\n    case '*': return a * b;\n    case '/': return b === 0 ? NaN : a / b;\n  }\n}"
   },
   {
     "id": 6,
@@ -119,15 +119,15 @@
       "loading states"
     ],
     "steps": [
-      "API choose karo (free, key-less): https://randomuser.me/api/ ya https://api.open-meteo.com/v1/forecast?latitude=23.35&longitude=85.33&current_weather=true (Ranchi).",
-      "HTML: button/search input, card container, loading aur error elements.",
-      "async function load(): loading dikhao; try { const r = await fetch(url); if (!r.ok) throw new Error(r.status); const data = await r.json(); render(data); } catch(e) { showError } finally { hide loading }.",
-      "render(data): fields nikalo (destructuring) aur card banao.",
-      "Browser Network tab mein request/response inspect karo.",
-      "AbortController se timeout (5s) lagao.",
-      "Bonus: last result localStorage mein cache karo; city dropdown."
+      "Choose Public API → Use a keyless API such as Random User (https://randomuser.me/api/) or Open-Meteo Weather",
+      "HTML Elements → Add fetch button/search input, result card container, loading spinner, and error banner",
+      "Async Fetch Flow → Show loader → try fetch(url) + check r.ok + await r.json() → catch error → finally hide loader",
+      "Render Card → Destructure fields from API JSON response and render cleanly into the card container",
+      "Network Inspection → Inspect status codes, headers, and JSON payloads in browser DevTools Network tab",
+      "Request Timeout → Wrap fetch with AbortController + 5s timeout to prevent hanging requests",
+      "Bonus Polish → Cache last successful response in localStorage and add a city selector dropdown"
     ],
-    "starterCode": "async function load(url) {\n  const ctrl = new AbortController();\n  const t = setTimeout(() => ctrl.abort(), 5000);\n  try {\n    const r = await fetch(url, { signal: ctrl.signal });\n    if (!r.ok) throw new Error('HTTP ' + r.status);\n    return await r.json();\n  } finally { clearTimeout(t); }\n}"
+    "starterCode": "async function load(url) {\n  const ctrl = new AbortController();\n  const t = setTimeout(() => ctrl.abort(), 5000);\n  try {\n    const r = await fetch(url, { signal: ctrl.signal });\n    if (!r.ok) throw new Error('HTTP ' + r.status);\n    return await r.json();\n  } finally {\n    clearTimeout(t);\n  }\n}"
   },
   {
     "id": 7,
@@ -141,16 +141,16 @@
       "formatting"
     ],
     "steps": [
-      "Form: description, amount, type (income/expense), category, date.",
-      "Data: expenses array [{id, desc, amount, type, category, date}] + localStorage.",
-      "Add/delete entries; validation (amount > 0, desc required).",
-      "Summary: income, expense, balance = reduce se.",
-      "Category totals: groupBy reduce; chart ke liye table ya <canvas>/CSS bars.",
-      "Filters: month, category; sort: date/amount.",
-      "Currency format: Intl.NumberFormat('en-IN', {style:'currency', currency:'INR'}).",
-      "Bonus: CSV export (Blob + a[download])."
+      "Entry Form → Fields for description, amount, type (income/expense), category, and date",
+      "State & Storage → Store entries as [{ id, desc, amount, type, category, date }] synced with localStorage",
+      "Validation & CRUD → Add/delete entries with guard checks (amount > 0, non-empty description)",
+      "Summary Totals → Calculate total income, expense, and net balance using Array.reduce()",
+      "Category Breakdown → Group expenses by category with reduce and display bars/summary table",
+      "Filter & Sort → Filter by month or category and sort entries by date or amount",
+      "Currency Formatting → Format values with Intl.NumberFormat(\"en-IN\", { style: \"currency\", currency: \"INR\" })",
+      "Bonus Export → Export filtered ledger to downloadable CSV using Blob + anchor download attribute"
     ],
-    "starterCode": "const totals = expenses.reduce((a, e) => {\n  a[e.type] = (a[e.type] || 0) + e.amount;\n  return a;\n}, { income: 0, expense: 0 });\nconst balance = totals.income - totals.expense;"
+    "starterCode": "const totals = expenses.reduce(\n  (a, e) => {\n    a[e.type] = (a[e.type] || 0) + e.amount;\n    return a;\n  },\n  { income: 0, expense: 0 }\n);\nconst balance = totals.income - totals.expense;"
   },
   {
     "id": 8,
@@ -163,15 +163,15 @@
       "DOM"
     ],
     "steps": [
-      "Board = Array(9).fill(null); turn = 'X'.",
-      "HTML/CSS grid 3x3 cells with data-index.",
-      "Click: agar cell khali aur game on ho to board[i] = turn; render.",
-      "WIN = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]].",
-      "checkWinner(): WIN.find(([a,b,c]) => board[a] && board[a] === board[b] && board[a] === board[c]).",
-      "Draw: board.every(Boolean) and no winner; Restart button.",
-      "Bonus: simple computer opponent (random, fir minimax)."
+      "Game State → Initialize board = Array(9).fill(null) and current turn = \"X\"",
+      "Grid Board → Render a 3×3 CSS Grid of cells tagged with data-index=\"0..8\"",
+      "Move Handler → On cell click, verify cell is empty and game active → set board[i] = turn → render",
+      "Win Matrix → Define WIN = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]]",
+      "Winner Check → Scan WIN combinations with .find() to match three identical non-null marks",
+      "Draw & Restart → Detect draw via board.every(Boolean) with no winner, and wire a Restart button",
+      "Bonus AI → Add an optional bot player (first random valid move, then Minimax)"
     ],
-    "starterCode": "const WIN = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];\nconst winner = () => {\n   const w = WIN.find(([a, b, c]) => board[a] && board[a] === board[b] && board[a] ===\n       board[c]);\n   return w ? board[w[0]] : null;\n};"
+    "starterCode": "const WIN = [\n  [0, 1, 2], [3, 4, 5], [6, 7, 8],\n  [0, 3, 6], [1, 4, 7], [2, 5, 8],\n  [0, 4, 8], [2, 4, 6]\n];\n\nconst winner = () => {\n  const w = WIN.find(\n    ([a, b, c]) => board[a] && board[a] === board[b] && board[a] === board[c]\n  );\n  return w ? board[w[0]] : null;\n};"
   },
   {
     "id": 9,
@@ -184,15 +184,15 @@
       "accessibility"
     ],
     "steps": [
-      "Slides ko flex container mein rakho; overflow hidden.",
-      "index state; goTo(i) = container.style.transform = `translateX(${-i*100}%)`.",
-      "Prev/Next buttons with wrap-around: (i + n) % n.",
-      "Dots navigation; active dot class.",
-      "Autoplay setInterval; hover/focus par pause; clearInterval.",
-      "Keyboard arrows aur touch swipe (touchstart/touchend).",
-      "Accessibility: aria-label buttons par, alt text images par."
+      "Track Layout → Place slides inside a flex track wrapped in an overflow: hidden viewport",
+      "Slide Transform → Maintain current index and shift track via transform = translateX(-index * 100%)",
+      "Wrap Navigation → Wire Prev/Next controls using modulo wrap-around: (i + n) % n",
+      "Indicator Dots → Render slide indicator dots synced with an active class",
+      "Autoplay Control → Advance with setInterval and pause cleanly on mouseenter / focusin",
+      "Keyboard & Touch → Support ArrowLeft / ArrowRight keys and mobile touchstart/touchend swipe",
+      "Accessibility → Add descriptive aria-label attributes on buttons and alt attributes on slides"
     ],
-    "starterCode": "const go = i => {\n   index = (i + slides.length) % slides.length;\n   track.style.transform = `translateX(${-index * 100}%)`;\n};"
+    "starterCode": "const go = i => {\n  index = (i + slides.length) % slides.length;\n  track.style.transform = `translateX(${-index * 100}%)`;\n};"
   },
   {
     "id": 10,
@@ -206,13 +206,13 @@
       "events"
     ],
     "steps": [
-      "Options: length slider, uppercase/lowercase/numbers/symbols checkboxes.",
-      "Character pools strings mein rakho; selected pools merge karo.",
-      "Generate: crypto.getRandomValues se secure random index.",
-      "Har selected type ka kam se kam ek character guarantee karo.",
-      "Strength: length + variety ke hisaab se Weak/Medium/Strong (regex tests).",
-      "Copy button: navigator.clipboard.writeText + 'Copied!' feedback.",
-      "Note: Math.random() security ke liye nahi hota."
+      "Controls UI → Build length range slider plus checkboxes for uppercase, lowercase, numbers, symbols",
+      "Character Pools → Maintain string pools per option and combine active pools dynamically",
+      "Secure Random → Generate unbiased indices with crypto.getRandomValues(new Uint32Array(len))",
+      "Character Guarantee → Ensure at least one character from every selected pool appears in the password",
+      "Strength Meter → Evaluate length and character-class regex variety as Weak / Medium / Strong",
+      "Clipboard Copy → Copy output via navigator.clipboard.writeText and show temporary Copied! badge",
+      "Security Note → Always prefer crypto.getRandomValues() over Math.random() for security-sensitive generation"
     ],
     "starterCode": "function gen(len, pool) {\n  const a = new Uint32Array(len);\n  crypto.getRandomValues(a);\n  return [...a].map(n => pool[n % pool.length]).join('');\n}"
   },
@@ -228,16 +228,16 @@
       "URLSearchParams"
     ],
     "steps": [
-      "Free API chuno (jaise Open Library: https://openlibrary.org/search.json?q=harry+potter).",
-      "Search input par debounce(300ms) lagao.",
-      "Query URL URLSearchParams se banao; encodeURIComponent dhyan se.",
-      "AbortController se purana request cancel karo (race condition rokne ke liye).",
-      "Results cards render; empty state aur error state dikhao.",
-      "Pagination ya 'Load more' (page param).",
-      "Favorites list localStorage mein.",
-      "Bonus: IntersectionObserver se infinite scroll."
+      "Public Search API → Query a free endpoint like Open Library (openlibrary.org/search.json?q=...)",
+      "Debounced Input → Wrap the search handler with debounce(300ms) to avoid spamming API requests",
+      "Safe URL Builder → Build encoded query strings cleanly using new URLSearchParams({ q })",
+      "Race Prevention → Cancel stale in-flight requests using AbortController on each new keystroke",
+      "UI States → Render result cards along with dedicated empty, loading, and error states",
+      "Pagination → Support page parameters via Next/Prev buttons or Load More trigger",
+      "Favorites → Persist bookmarked search results in localStorage",
+      "Bonus Scroll → Upgrade Load More using IntersectionObserver for infinite scrolling"
     ],
-    "starterCode": "let ctrl;\nconst search = debounce(async q => {\n  ctrl?.abort(); ctrl = new AbortController();\n  const url = 'https://openlibrary.org/search.json?' + new URLSearchParams({ q });\n  const r = await fetch(url, { signal: ctrl.signal });\n  render((await r.json()).docs);\n}, 300);"
+    "starterCode": "let ctrl;\n\nconst search = debounce(async q => {\n  ctrl?.abort();\n  ctrl = new AbortController();\n  const url = 'https://openlibrary.org/search.json?' + new URLSearchParams({ q });\n  const r = await fetch(url, { signal: ctrl.signal });\n  render((await r.json()).docs);\n}, 300);"
   },
   {
     "id": 12,
@@ -252,15 +252,15 @@
       "validation"
     ],
     "steps": [
-      "mkdir api && cd api && npm init -y && npm i express",
-      "package.json mein 'type': 'module' set karo.",
-      "server.js: const app = express(); app.use(express.json());",
-      "In-memory data: let todos = []; GET /todos, GET /todos/:id.",
-      "POST /todos: body validate karo (text required) -> 201 + created object; invalid par 400.",
-      "PUT/PATCH /todos/:id aur DELETE /todos/:id; missing id par 404.",
-      "Error middleware aur logging middleware (method, url, time).",
-      "Test: curl ya Postman/Thunder Client; bonus: data JSON file mein persist (fs.promises)."
+      "Project Init → Run mkdir api && cd api && npm init -y && npm i express",
+      "ESM Config → Add \"type\": \"module\" in package.json",
+      "Express App → Create server.js with const app = express() and app.use(express.json())",
+      "Read Routes → Set up in-memory todos array with GET /todos and GET /todos/:id",
+      "Create + Validate → On POST /todos, validate req.body.text → return 201 Created or 400 Bad Request",
+      "Update & Delete → Implement PUT/PATCH /todos/:id and DELETE /todos/:id (404 when missing)",
+      "Middleware → Add request logger middleware (method, url, latency) and central error handler",
+      "Testing & Storage → Test routes with curl/Postman; bonus: persist todos JSON with fs.promises"
     ],
-    "starterCode": "import express from 'express';\nconst app = express();\napp.use(express.json());\nlet todos = [];\napp.get('/todos', (req, res) => res.json(todos));\napp.post('/todos', (req, res) => {\n  if (!req.body.text) return res.status(400).json({ error: 'text required' });\n  const t = { id: Date.now(), text: req.body.text, done: false };\n  todos.push(t); res.status(201).json(t);\n});\napp.listen(3000);"
+    "starterCode": "import express from 'express';\n\nconst app = express();\napp.use(express.json());\n\nlet todos = [];\n\napp.get('/todos', (req, res) => res.json(todos));\n\napp.post('/todos', (req, res) => {\n  if (!req.body.text) {\n    return res.status(400).json({ error: 'text required' });\n  }\n  const t = { id: Date.now(), text: req.body.text, done: false };\n  todos.push(t);\n  res.status(201).json(t);\n});\n\napp.listen(3000);"
   }
 ]
