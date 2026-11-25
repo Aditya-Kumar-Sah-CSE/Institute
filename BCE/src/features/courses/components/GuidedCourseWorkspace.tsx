@@ -71,6 +71,7 @@ interface GuidedCourseWorkspaceProps {
 
 type RightTab = 'console' | 'preview' | 'terminal' | 'analysis';
 type MobilePane = 'curriculum' | 'lesson' | 'workspace';
+type EditorRuntimeMode = 'javascript' | 'browser_js' | 'html';
 
 function getOfficialJsDoc(lessonTitle: string, stepTitle: string, stepSummary: string): { label: string; url: string } {
   const combined = `${lessonTitle} ${stepTitle} ${stepSummary}`.toLowerCase();
@@ -165,8 +166,27 @@ function isHtmlMarkup(code: string): boolean {
   return /<!doctype|<html|<head|<body|<div|<main|<section|<h[1-6]|<button|<form|<ul|<p\b/i.test(code);
 }
 
-function hasDomCode(code: string, lang: 'javascript' | 'html'): boolean {
-  return lang === 'html' || isHtmlMarkup(code) || /\bdocument\.(?:querySelector|getElementById|createElement|body|documentElement|addEventListener)\b/.test(code);
+function stripCommentsForDetection(code: string): string {
+  return code
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '');
+}
+
+function hasBlockingModalCalls(code: string): boolean {
+  const active = stripCommentsForDetection(code);
+  return /\b(?:window\.)?(?:alert|confirm|prompt)\s*\(/.test(active);
+}
+
+function hasDomCode(code: string, lang: EditorRuntimeMode): boolean {
+  if (lang === 'html' || lang === 'browser_js' || isHtmlMarkup(code)) return true;
+  const active = stripCommentsForDetection(code);
+  return (
+    /\b(?:window\.)?(?:alert|confirm|prompt)\s*\(/.test(active) ||
+    /\bdocument\.(?:querySelector|querySelectorAll|getElementById|getElementsByClassName|createElement|write|body|documentElement|addEventListener|title)\b/.test(active) ||
+    /\bwindow\.(?:open|location|history|localStorage|sessionStorage|matchMedia|requestAnimationFrame|addEventListener|scrollTo)\b/.test(active) ||
+    /\b(?:localStorage|sessionStorage)\.(?:getItem|setItem|removeItem|clear)\b/.test(active) ||
+    /\bnavigator\.(?:clipboard|geolocation|userAgent)\b/.test(active)
+  );
 }
 
 function wrapJsIntoHtmlTemplate(rawJs: string, title = 'HTML Playground'): string {
@@ -193,8 +213,8 @@ ${rawJs}
 </html>`;
 }
 
-function buildLiveHtmlDocument(rawCode: string): string {
-  const bridge = `<script>
+function buildBrowserRuntimeBridgeScript(mode: 'iframe' | 'standalone'): string {
+  return `<script>
 (function() {
   try {
     var testKey = '__sl_test__';
@@ -211,31 +231,150 @@ function buildLiveHtmlDocument(rawCode: string): string {
     try { Object.defineProperty(window, 'localStorage', { value: safeStorage, configurable: true }); } catch (e) {}
   }
 
-  var send = function(type, args) {
-    try {
-      var text = Array.prototype.slice.call(args).map(function(a) {
-        if (typeof a === 'object' && a !== null) { try { return JSON.stringify(a); } catch(e) { return String(a); } }
-        return String(a);
-      }).join(' ');
-      window.parent.postMessage({ source: 'smartlearn-preview', type: type, text: text }, '*');
-    } catch(e) {}
+  var fmtVal = function(a) {
+    if (a === undefined) return 'undefined';
+    if (a === null) return 'null';
+    if (a instanceof Error) return a.name + ': ' + a.message;
+    if (a instanceof Map) { try { return 'Map(' + a.size + ') ' + JSON.stringify(Array.from(a.entries())); } catch (e) {} }
+    if (a instanceof Set) { try { return 'Set(' + a.size + ') ' + JSON.stringify(Array.from(a.values())); } catch (e) {} }
+    if (typeof a === 'object') { try { return JSON.stringify(a); } catch (e) { return String(a); } }
+    return String(a);
   };
-  var origLog = console.log, origErr = console.error, origWarn = console.warn;
-  console.log = function() { send('log', arguments); origLog.apply(console, arguments); };
-  console.warn = function() { send('warn', arguments); origWarn.apply(console, arguments); };
-  console.error = function() { send('error', arguments); origErr.apply(console, arguments); };
-  window.onerror = function(msg, url, line) { send('error', [msg + ' (line ' + line + ')']); };
+
+  var appendDomConsole = function(type, text) {
+    try {
+      var box = document.getElementById('__sl_console__');
+      if (!box) return;
+      if (type === 'clear') { box.textContent = ''; return; }
+      var line = document.createElement('div');
+      line.className = 'sl-line ' + (type === 'error' ? 'sl-err' : type === 'warn' ? 'sl-warn' : type === 'dialog' ? 'sl-dlg' : '');
+      line.textContent = text;
+      box.appendChild(line);
+    } catch (e) {}
+  };
+
+  var emit = function(type, text) {
+    appendDomConsole(type, text);
+    if (${JSON.stringify(mode)} === 'iframe') {
+      try {
+        window.parent.postMessage({ source: 'smartlearn-preview', type: type === 'dialog' ? 'log' : type, text: text }, '*');
+      } catch (e) {}
+    }
+  };
+
+  var origLog = console.log, origInfo = console.info, origWarn = console.warn, origErr = console.error;
+  var origAssert = console.assert, origTable = console.table, origClear = console.clear;
+  var origTime = console.time, origTimeEnd = console.timeEnd, origTimeLog = console.timeLog;
+  var timers = {};
+
+  console.log = function() {
+    var txt = Array.prototype.slice.call(arguments).map(fmtVal).join(' ');
+    emit('log', txt);
+    origLog && origLog.apply(console, arguments);
+  };
+  console.info = function() {
+    var txt = Array.prototype.slice.call(arguments).map(fmtVal).join(' ');
+    emit('log', txt);
+    origInfo && origInfo.apply(console, arguments);
+  };
+  console.warn = function() {
+    var txt = '[warn] ' + Array.prototype.slice.call(arguments).map(fmtVal).join(' ');
+    emit('warn', txt);
+    origWarn && origWarn.apply(console, arguments);
+  };
+  console.error = function() {
+    var txt = '[error] ' + Array.prototype.slice.call(arguments).map(fmtVal).join(' ');
+    emit('error', txt);
+    origErr && origErr.apply(console, arguments);
+  };
+  console.assert = function(cond) {
+    if (!cond) {
+      var extra = Array.prototype.slice.call(arguments, 1).map(fmtVal).join(' ');
+      emit('error', 'Assertion failed' + (extra ? ': ' + extra : ''));
+    }
+    origAssert && origAssert.apply(console, arguments);
+  };
+  console.time = function(label) {
+    var key = label === undefined ? 'default' : String(label);
+    timers[key] = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    origTime && origTime.apply(console, arguments);
+  };
+  console.timeLog = function(label) {
+    var key = label === undefined ? 'default' : String(label);
+    if (Object.prototype.hasOwnProperty.call(timers, key)) {
+      var ms = ((typeof performance !== 'undefined' ? performance.now() : Date.now()) - timers[key]).toFixed(2);
+      var extra = Array.prototype.slice.call(arguments, 1).map(fmtVal).join(' ');
+      emit('log', key + ': ' + ms + 'ms' + (extra ? ' ' + extra : ''));
+    }
+    origTimeLog && origTimeLog.apply(console, arguments);
+  };
+  console.timeEnd = function(label) {
+    var key = label === undefined ? 'default' : String(label);
+    if (Object.prototype.hasOwnProperty.call(timers, key)) {
+      var ms = ((typeof performance !== 'undefined' ? performance.now() : Date.now()) - timers[key]).toFixed(2);
+      delete timers[key];
+      emit('log', key + ': ' + ms + 'ms');
+    } else {
+      emit('warn', 'Timer "' + key + '" does not exist');
+    }
+    origTimeEnd && origTimeEnd.apply(console, arguments);
+  };
+  console.table = function(data) {
+    try {
+      if (Array.isArray(data)) {
+        emit('log', '[table]\\n' + data.map(function(row, idx) { return '  [' + idx + '] ' + fmtVal(row); }).join('\\n'));
+      } else if (data && typeof data === 'object') {
+        emit('log', '[table]\\n' + Object.keys(data).map(function(k) { return '  ' + k + ': ' + fmtVal(data[k]); }).join('\\n'));
+      } else {
+        emit('log', fmtVal(data));
+      }
+    } catch (e) { emit('log', String(data)); }
+    origTable && origTable.apply(console, arguments);
+  };
+  console.clear = function() {
+    emit('clear', '');
+    origClear && origClear.apply(console, arguments);
+  };
+
+  var origAlert = window.alert, origConfirm = window.confirm, origPrompt = window.prompt;
+  window.alert = function(msg) {
+    var res = origAlert ? origAlert.call(window, msg) : undefined;
+    emit('dialog', '[alert] ' + fmtVal(msg));
+    return res;
+  };
+  window.confirm = function(msg) {
+    var res = origConfirm ? origConfirm.call(window, msg) : false;
+    emit('dialog', '[confirm] ' + fmtVal(msg) + ' -> ' + String(res));
+    return res;
+  };
+  window.prompt = function(msg, defVal) {
+    var res = origPrompt ? origPrompt.call(window, msg, defVal) : null;
+    emit('dialog', '[prompt] ' + fmtVal(msg) + ' -> ' + (res === null ? 'null (cancelled)' : JSON.stringify(res)));
+    return res;
+  };
+
+  window.addEventListener('error', function(e) {
+    emit('error', (e && e.message ? e.message : String(e)) + (e && e.lineno ? ' (line ' + e.lineno + ')' : ''));
+  });
+  window.addEventListener('unhandledrejection', function(e) {
+    var r = e && e.reason ? fmtVal(e.reason) : 'Unhandled Promise Rejection';
+    emit('error', r);
+  });
 })();
 </script>`;
+}
 
+function buildLiveHtmlDocument(rawCode: string, lang: EditorRuntimeMode = 'html'): string {
+  const bridge = buildBrowserRuntimeBridgeScript('iframe');
   const trimmed = rawCode.trim();
+
   if (/<!doctype|<html|<body/i.test(trimmed)) {
     if (/<head[^>]*>/i.test(trimmed)) return trimmed.replace(/<head[^>]*>/i, match => `${match}\n${bridge}`);
     if (/<body[^>]*>/i.test(trimmed)) return trimmed.replace(/<body[^>]*>/i, match => `${bridge}\n${match}`);
     return `${bridge}\n${trimmed}`;
   }
 
-  if (isHtmlMarkup(trimmed)) {
+  if (lang === 'html' || isHtmlMarkup(trimmed)) {
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -252,26 +391,35 @@ ${trimmed}
 </html>`;
   }
 
+  const safeJs = trimmed.replace(/<\/script>/gi, '<\\/script>');
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <style>
-    body { font-family: system-ui, sans-serif; padding: 16px; background: #0f172a; color: #f8fafc; margin: 0; }
+    body { font-family: system-ui, sans-serif; padding: 14px; background: #0f172a; color: #f8fafc; margin: 0; }
+    .sl-badge { font-size: 11px; color: #38bdf8; font-weight: 700; letter-spacing: 0.03em; margin-bottom: 8px; }
+    #__sl_console__ { background: #020617; border: 1px solid #334155; border-radius: 8px; padding: 10px 12px; font-family: ui-monospace, monospace; font-size: 12.5px; line-height: 1.55; white-space: pre-wrap; min-height: 52px; }
+    .sl-line { padding: 1px 0; }
+    .sl-err { color: #f87171; }
+    .sl-warn { color: #fbbf24; }
+    .sl-dlg { color: #34d399; }
     button { background: #06b6d4; color: #082f49; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 700; }
   </style>
   ${bridge}
 </head>
 <body>
-  <div id="app"></div>
+  <div class="sl-badge">Browser Runtime Active — alert(), confirm(), prompt(), console &amp; DOM</div>
+  <div id="app" style="margin-bottom:8px"></div>
+  <pre id="__sl_console__"></pre>
   <script>
-${trimmed}
+${safeJs}
   </script>
 </body>
 </html>`;
 }
 
-function buildStandaloneBrowserHtml(rawCode: string, title: string, lang: 'javascript' | 'html'): string {
+function buildStandaloneBrowserHtml(rawCode: string, title: string, lang: EditorRuntimeMode): string {
   const trimmed = rawCode.trim();
   if (lang === 'html' || /<!doctype|<html|<body/i.test(trimmed)) {
     return trimmed;
@@ -279,6 +427,8 @@ function buildStandaloneBrowserHtml(rawCode: string, title: string, lang: 'javas
   if (isHtmlMarkup(trimmed)) {
     return `<!DOCTYPE html>\n<html lang="en">\n<head><meta charset="UTF-8" /><title>${title.replace(/</g, '&lt;')}</title></head>\n<body style="font-family:system-ui,sans-serif;padding:24px;background:#0f172a;color:#f8fafc">\n${trimmed}\n</body>\n</html>`;
   }
+  const safeJs = trimmed.replace(/<\/script>/gi, '<\\/script>');
+  const bridge = buildBrowserRuntimeBridgeScript('standalone');
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -288,33 +438,20 @@ function buildStandaloneBrowserHtml(rawCode: string, title: string, lang: 'javas
     body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; padding: 24px; max-width: 820px; margin: 0 auto; }
     h1 { font-size: 18px; color: #38bdf8; margin-bottom: 6px; }
     p { font-size: 13px; color: #94a3b8; margin-top: 0; }
-    #console { background: #020617; border: 1px solid #334155; border-radius: 10px; padding: 14px; font-family: ui-monospace, monospace; font-size: 13px; white-space: pre-wrap; min-height: 80px; }
-    .err { color: #f87171; }
+    #__sl_console__ { background: #020617; border: 1px solid #334155; border-radius: 10px; padding: 14px; font-family: ui-monospace, monospace; font-size: 13px; white-space: pre-wrap; min-height: 80px; }
+    .sl-err { color: #f87171; }
+    .sl-warn { color: #fbbf24; }
+    .sl-dlg { color: #34d399; }
   </style>
+  ${bridge}
 </head>
 <body>
   <h1>${title.replace(/</g, '&lt;')}</h1>
-  <p>Running natively in your browser tab (press F12 for DevTools Console).</p>
+  <p>Running natively in your browser tab — supports alert(), confirm(), prompt(), console &amp; F12 DevTools.</p>
   <div id="app" style="margin-bottom:14px"></div>
-  <div id="console"></div>
+  <pre id="__sl_console__"></pre>
   <script>
-    (function() {
-      const box = document.getElementById('console');
-      const write = (cls, args) => {
-        const line = document.createElement('div');
-        if (cls) line.className = cls;
-        line.textContent = Array.from(args).map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' ');
-        box.appendChild(line);
-      };
-      const origLog = console.log, origWarn = console.warn, origErr = console.error;
-      console.log = function(...a) { write('', a); origLog.apply(console, a); };
-      console.warn = function(...a) { write('', ['[warn]', ...a]); origWarn.apply(console, a); };
-      console.error = function(...a) { write('err', ['[error]', ...a]); origErr.apply(console, a); };
-      window.addEventListener('error', e => write('err', [e.message]));
-    })();
-  </script>
-  <script>
-${trimmed}
+${safeJs}
   </script>
 </body>
 </html>`;
@@ -525,7 +662,7 @@ export default function GuidedCourseWorkspace({
     codeByStepRef.current = codeByStep;
   }, [codeByStep]);
 
-  const [editorLang, setEditorLang] = useState<'javascript' | 'html'>('javascript');
+  const [editorLang, setEditorLang] = useState<EditorRuntimeMode>('javascript');
   const [rightTab, setRightTab] = useState<RightTab>('console');
   const [isRunning, setIsRunning] = useState(false);
   const [consoleOut, setConsoleOut] = useState<string>('');
@@ -557,13 +694,19 @@ export default function GuidedCourseWorkspace({
     const step = steps.find(s => s.id === activeStep.id);
     const code = codeByStepRef.current[activeStep.id] ?? (step?.starterCode || step?.codeSnippet || step?.examples?.[0]?.code || '');
     const isHtml = step?.runMode === 'html_preview' || isHtmlMarkup(code);
-    setEditorLang(isHtml ? 'html' : 'javascript');
+    const nextMode: EditorRuntimeMode = isHtml
+      ? 'html'
+      : hasDomCode(code, 'javascript')
+        ? 'browser_js'
+        : 'javascript';
+    setEditorLang(nextMode);
     if (isHtml) {
       setRightTab('preview');
-      setPreviewSrcDoc(buildLiveHtmlDocument(code));
+      setPreviewSrcDoc(hasBlockingModalCalls(code) ? '' : buildLiveHtmlDocument(code, nextMode));
       setPreviewKey(k => k + 1);
     } else {
       setRightTab(prev => (prev === 'preview' ? 'console' : prev));
+      setPreviewSrcDoc('');
     }
     setConsoleOut('');
     setConsoleErr('');
@@ -572,16 +715,21 @@ export default function GuidedCourseWorkspace({
   }, [activeStep.id, steps]);
 
   useEffect(() => {
-    if (rightTab !== 'preview' || !canRenderWebPreview) return;
+    if (rightTab !== 'preview' || !canRenderWebPreview || hasBlockingModalCalls(editorCode)) return;
     const timer = setTimeout(() => {
-      setPreviewSrcDoc(buildLiveHtmlDocument(editorCode));
+      setPreviewSrcDoc(buildLiveHtmlDocument(editorCode, editorLang));
     }, 240);
     return () => clearTimeout(timer);
-  }, [editorCode, rightTab, canRenderWebPreview]);
+  }, [editorCode, editorLang, rightTab, canRenderWebPreview]);
 
   useEffect(() => {
     const handler = (ev: MessageEvent) => {
       if (ev.data?.source !== 'smartlearn-preview') return;
+      if (ev.data.type === 'clear') {
+        setConsoleOut('');
+        setConsoleErr('');
+        return;
+      }
       const line = String(ev.data.text ?? '');
       if (ev.data.type === 'error') {
         setConsoleErr(prev => (prev ? `${prev}\n${line}` : line));
@@ -657,14 +805,23 @@ export default function GuidedCourseWorkspace({
 
   const handleLoadCodeToWorkspace = (codeToLoad: string, forceHtml = false) => {
     const isHtml = forceHtml || isHtmlMarkup(codeToLoad);
+    const nextMode: EditorRuntimeMode = isHtml
+      ? 'html'
+      : hasDomCode(codeToLoad, 'javascript')
+        ? 'browser_js'
+        : 'javascript';
     setCodeByStep(prev => ({ ...prev, [activeStep.id]: codeToLoad }));
-    setEditorLang(isHtml ? 'html' : 'javascript');
+    setEditorLang(nextMode);
+    setConsoleOut('');
+    setConsoleErr('');
+    setExecTimeMs(null);
     if (isHtml) {
       setRightTab('preview');
-      setPreviewSrcDoc(buildLiveHtmlDocument(codeToLoad));
+      setPreviewSrcDoc(hasBlockingModalCalls(codeToLoad) ? '' : buildLiveHtmlDocument(codeToLoad, nextMode));
       setPreviewKey(k => k + 1);
     } else {
       setRightTab('console');
+      setPreviewSrcDoc('');
     }
     setMobilePane('workspace');
   };
@@ -676,8 +833,11 @@ export default function GuidedCourseWorkspace({
     setExecTimeMs(null);
 
     if (hasDomCode(editorCode, editorLang)) {
+      if (!isHtmlMarkup(editorCode) && editorLang === 'javascript') {
+        setEditorLang('browser_js');
+      }
       setRightTab('preview');
-      setPreviewSrcDoc(buildLiveHtmlDocument(editorCode));
+      setPreviewSrcDoc(buildLiveHtmlDocument(editorCode, editorLang === 'html' || isHtmlMarkup(editorCode) ? 'html' : 'browser_js'));
       setPreviewKey(k => k + 1);
       setExecTimeMs(1);
       setIsRunning(false);
@@ -1461,9 +1621,16 @@ export default function GuidedCourseWorkspace({
               <select
                 value={editorLang}
                 onChange={(e) => {
-                  const nextLang = e.target.value as 'javascript' | 'html';
+                  const nextLang = e.target.value as EditorRuntimeMode;
                   if (nextLang === 'html') {
                     handleSwitchToHtmlMode();
+                  } else if (nextLang === 'browser_js') {
+                    setEditorLang('browser_js');
+                    setRightTab('preview');
+                    if (!hasBlockingModalCalls(editorCode)) {
+                      setPreviewSrcDoc(buildLiveHtmlDocument(editorCode, 'browser_js'));
+                      setPreviewKey(k => k + 1);
+                    }
                   } else {
                     setEditorLang('javascript');
                   }
@@ -1471,6 +1638,7 @@ export default function GuidedCourseWorkspace({
                 style={{ fontSize: '11.5px', padding: '3px 8px', borderRadius: '6px', background: 'var(--bg-secondary)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
               >
                 <option value="javascript">Node / JavaScript</option>
+                <option value="browser_js">Browser JS (Alerts &amp; DOM)</option>
                 <option value="html">HTML / Web Preview</option>
               </select>
             </div>
@@ -1562,8 +1730,8 @@ export default function GuidedCourseWorkspace({
                 className={`gcw-output-tab ${rightTab === 'preview' ? 'is-active' : ''}`}
                 onClick={() => {
                   setRightTab('preview');
-                  if (hasDomCode(editorCode, editorLang)) {
-                    setPreviewSrcDoc(buildLiveHtmlDocument(editorCode));
+                  if (hasDomCode(editorCode, editorLang) && !hasBlockingModalCalls(editorCode)) {
+                    setPreviewSrcDoc(buildLiveHtmlDocument(editorCode, editorLang));
                     setPreviewKey(k => k + 1);
                   }
                 }}
@@ -1618,7 +1786,11 @@ export default function GuidedCourseWorkspace({
                   <div className="gcw-preview-toolbar">
                     <span style={{ color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                       <Globe size={12} style={{ color: 'var(--accent-primary)' }} />
-                      {canRenderWebPreview ? 'index.html — Live Interactive Preview' : 'practice.js — Console Script'}
+                      {editorLang === 'html' || isHtmlMarkup(editorCode)
+                        ? 'index.html — Live Interactive Preview'
+                        : canRenderWebPreview
+                          ? 'browser.js — Browser Sandbox (Dialogs & Web APIs)'
+                          : 'practice.js — Console Script'}
                     </span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       {canRenderWebPreview && (
@@ -1629,10 +1801,10 @@ export default function GuidedCourseWorkspace({
                           onClick={() => {
                             setConsoleOut('');
                             setConsoleErr('');
-                            setPreviewSrcDoc(buildLiveHtmlDocument(editorCode));
+                            setPreviewSrcDoc(buildLiveHtmlDocument(editorCode, editorLang));
                             setPreviewKey(k => k + 1);
                           }}
-                          title="Reload live preview"
+                          title="Run / reload live browser sandbox"
                         >
                           <RefreshCw size={11} /> Refresh
                         </button>
@@ -1650,35 +1822,70 @@ export default function GuidedCourseWorkspace({
                   </div>
 
                   {canRenderWebPreview ? (
-                    <>
-                      <iframe
-                        key={previewKey}
-                        title="Smart Learn Live Web Preview"
-                        className="gcw-preview-iframe"
-                        sandbox="allow-scripts allow-modals allow-forms"
-                        srcDoc={previewSrcDoc || buildLiveHtmlDocument(editorCode)}
-                      />
-                      {(consoleOut || consoleErr) && (
-                        <div style={{ background: '#0f172a', color: '#e2e8f0', borderRadius: '6px', padding: '6px 10px', fontSize: '11.5px', fontFamily: 'var(--font-code)', maxHeight: '72px', overflowY: 'auto' }}>
-                          {consoleOut && <div>{consoleOut}</div>}
-                          {consoleErr && <div style={{ color: '#f87171' }}>{consoleErr}</div>}
+                    hasBlockingModalCalls(editorCode) && !previewSrcDoc ? (
+                      <div className="gcw-preview-empty">
+                        <strong style={{ fontSize: '13px', color: 'var(--accent-primary)' }}>
+                          Browser Dialog Mode Ready (`alert()` / `confirm()` / `prompt()`)
+                        </strong>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                          <StructuredArrowPoint text="Native Popups → Runs inside the browser sandbox with real OS/browser modals" />
+                          <StructuredArrowPoint text="Safe Editing → Dialogs trigger only when you click Run Code or launch below" />
                         </div>
-                      )}
-                    </>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                          <button type="button" className="gcw-icon-btn is-accent" onClick={handleRunCode}>
+                            <Play size={12} /> Run in Browser Sandbox
+                          </button>
+                          <button type="button" className="gcw-icon-btn" onClick={handleOpenInBrowser}>
+                            <ExternalLink size={12} /> Open in Browser Tab
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <iframe
+                          key={previewKey}
+                          title="Smart Learn Live Web Preview"
+                          className="gcw-preview-iframe"
+                          sandbox="allow-scripts allow-modals allow-forms"
+                          srcDoc={previewSrcDoc || buildLiveHtmlDocument(editorCode, editorLang)}
+                        />
+                        {(consoleOut || consoleErr) && (
+                          <div style={{ background: '#0f172a', color: '#e2e8f0', borderRadius: '6px', padding: '6px 10px', fontSize: '11.5px', fontFamily: 'var(--font-code)', maxHeight: '72px', overflowY: 'auto' }}>
+                            {consoleOut && <div>{consoleOut}</div>}
+                            {consoleErr && <div style={{ color: '#f87171' }}>{consoleErr}</div>}
+                          </div>
+                        )}
+                      </>
+                    )
                   ) : (
                     <div className="gcw-preview-empty">
                       <strong style={{ fontSize: '13px', color: 'var(--accent-primary)' }}>
-                        Console JavaScript Mode (no HTML/DOM markup yet)
+                        Console JavaScript Mode (Node.js)
                       </strong>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                        <StructuredArrowPoint text="Console Output → Run Code shows console logs and assertion outputs" />
-                        <StructuredArrowPoint text="HTML UI Mode → Switch to HTML Playground below to render live DOM components" />
+                        <StructuredArrowPoint text="Node Console → Run Code executes on Node.js with stdout output" />
+                        <StructuredArrowPoint text="Browser JS → Run in Browser Sandbox for alert(), confirm(), prompt(), console.table() & timers" />
+                        <StructuredArrowPoint text="HTML UI → Switch to HTML Playground to build DOM elements" />
                       </div>
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
                         <button type="button" className="gcw-icon-btn" onClick={handleRunCode}>
                           <Play size={12} /> Run in Console Output
                         </button>
-                        <button type="button" className="gcw-icon-btn is-accent" onClick={handleSwitchToHtmlMode}>
+                        <button
+                          type="button"
+                          className="gcw-icon-btn is-accent"
+                          onClick={() => {
+                            setConsoleOut('');
+                            setConsoleErr('');
+                            setEditorLang('browser_js');
+                            setRightTab('preview');
+                            setPreviewSrcDoc(buildLiveHtmlDocument(editorCode, 'browser_js'));
+                            setPreviewKey(k => k + 1);
+                          }}
+                        >
+                          <Globe size={12} /> Run in Browser Sandbox
+                        </button>
+                        <button type="button" className="gcw-icon-btn" onClick={handleSwitchToHtmlMode}>
                           <Code2 size={12} /> Switch to HTML Playground
                         </button>
                       </div>
