@@ -1,0 +1,1183 @@
+{
+  "meta": {
+    "series": "DSA for Freshers: Mid-level Company Roadmap",
+    "level": 1,
+    "level_title": "Foundation: Arrays, Sorting, Strings, Math, Recursion, Binary Search Preview",
+    "batch": "Part 4 (final batch of Level 1)",
+    "id_range": "L1-076 to L1-090",
+    "language_for_code": "C++17",
+    "language_for_explanations": "Hinglish",
+    "total_problems_in_batch": 15,
+    "level_1_total_problems": 90,
+    "includes_headers_hint": "#include <bits/stdc++.h> and using namespace std;",
+    "note": "company_tags indicative hain (frequently asked trends), official guarantee nahi."
+  },
+  "theory": [
+    {
+      "topic": "In-place Read/Write Pointers (Generalized)",
+      "concept": "Ek pointer read karta hai (i), doosra write (k). Condition satisfy karne wale elements ko a[k++] par likho. 'At most 2 duplicates' jaisi problems me condition x != a[k-2] ban jati hai.",
+      "key_points": [
+        "Remove Duplicates (at most 1): compare with a[k-1]; at most 2: compare with a[k-2]",
+        "Compression me output hamesha input se chhota ya barabar hota hai, isliye same array me likhna safe hai",
+        "Read pointer hamesha write pointer se aage ya barabar rehta hai (invariant)",
+        "Ek baar likhne ke baad us jagah ko dobara padhna nahi hota"
+      ],
+      "pitfalls": [
+        "Write pointer ko read pointer se aage nikal dena",
+        "Count ke digits (10+ run length) ko ek hi character samajhna",
+        "Original size se zyada likhna"
+      ]
+    },
+    {
+      "topic": "Binary Search Preview (Bridge to Level 2)",
+      "concept": "Sorted array me answer ko har step par aadha kar dena. Search space [lo, hi] me mid check karo aur ek half discard karo. Time O(log n). Level 2 me ye 'binary search on answer' tak jata hai.",
+      "key_points": [
+        "mid = lo + (hi - lo) / 2 (lo + hi overflow kar sakta hai)",
+        "Loop condition lo <= hi, aur update lo = mid + 1 / hi = mid - 1 (infinite loop se bachne ke liye)",
+        "Integer sqrt: 'sabse bada mid jiska mid*mid <= x' ek monotonic condition hai",
+        "Monotonic condition (false...false true...true) ho to binary search lag sakta hai"
+      ],
+      "pitfalls": [
+        "mid*mid int me overflow (long long use karo)",
+        "Unsorted array par binary search",
+        "hi = n instead of n-1 ka confusion"
+      ]
+    },
+    {
+      "topic": "Divisors, GCD/LCM & Integer Sqrt",
+      "concept": "Divisors pairs me aate hain (i, n/i), isliye sirf sqrt(n) tak check karna kaafi hai. LCM(a, b) = a / gcd(a, b) * b (pehle divide karo, overflow kam hota hai).",
+      "key_points": [
+        "Perfect number: proper divisors ka sum n ke barabar (6, 28, 496)",
+        "LCM of array = fold: l = lcm(l, a[i])",
+        "Armstrong number: digits ka (digit count)-th power ka sum number ke barabar",
+        "Integer sqrt ke liye linear O(sqrt x) ya binary search O(log x), floating sqrt() par precision risk"
+      ],
+      "pitfalls": [
+        "i * i int overflow (long long cast)",
+        "Perfect square par i aur n/i ko do baar jodna",
+        "pow() ka double result integer me galat round ho sakta hai"
+      ]
+    },
+    {
+      "topic": "String Utility Patterns",
+      "concept": "Ye problems chhote helper skills test karti hain: case check, run-length grouping, multiset counting, word-wise operations.",
+      "key_points": [
+        "isupper/islower/toupper/tolower ko (unsigned char) cast karke call karo",
+        "Run grouping: j = i; while(j < n && s[j] == s[i]) j++;",
+        "Target word ke liye frequency/requirement: balloon = b1 a1 l2 o2 n1, answer = min(count / need)",
+        "Word-wise reverse: har word ke start/end indices nikalo aur segment reverse karo"
+      ],
+      "pitfalls": [
+        "Words ke beech multiple spaces (problem statement check karo)",
+        "Count 1 ho to number mat likho (compression)",
+        "char ko int index banate waqt negative index"
+      ]
+    },
+    {
+      "topic": "Recursion Practice & Cost of Copies",
+      "concept": "Recursion me har call ki apni cost hoti hai. s.substr() har baar naya string copy karta hai, to O(n) recursion calls * O(n) copy = O(n^2). Indices pass karo (reference + l, r) to O(n) rehta hai.",
+      "key_points": [
+        "Tribonacci: 3 branches => naive O(3^n); iterative 3 variables O(n) time O(1) space",
+        "String ko by-value pass karna bhi copy hai; const string& ya index use karo",
+        "Recursion depth ~1e5 par stack overflow ka risk; iterative convert karna safe",
+        "Base case + progress (problem chhota hota hai) dono ensure karo"
+      ],
+      "pitfalls": [
+        "Hidden copy cost (substr, by-value args)",
+        "Base case miss",
+        "Overlapping subproblems par memo/DP na lagana"
+      ]
+    }
+  ],
+  "problems": [
+    {
+      "id": "L1-076",
+      "level": 1,
+      "topic": "Arrays",
+      "title": "Maximum Product of Three Numbers",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Infosys",
+        "Cognizant"
+      ],
+      "problem_statement": "Given an integer array, find three numbers whose product is maximum and return that product.",
+      "description": "Negative numbers ki wajah se do bade negatives aur ek bada positive bhi maximum product de sakte hain.",
+      "constraints": [
+        "3 <= n <= 1e4",
+        "-1000 <= a[i] <= 1000"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,2,3]",
+          "output": "6",
+          "explanation": "Sirf teen elements"
+        },
+        {
+          "input": "[1,2,3,4]",
+          "output": "24",
+          "explanation": "2*3*4"
+        },
+        {
+          "input": "[-10,-10,5,2]",
+          "output": "500",
+          "explanation": "(-10)*(-10)*5"
+        }
+      ],
+      "theory": "Answer ya to teen sabse bade ka product hota hai, ya do sabse chhote (most negative) aur ek sabse bade ka product.",
+      "brute_force": {
+        "approach": "Teen nested loops se har triplet ka product.",
+        "time": "O(n^3)",
+        "space": "O(1)",
+        "code_cpp": "int maxProd3(const vector<int>& a){ int n = a.size(), best = INT_MIN; for(int i = 0; i < n; i++) for(int j = i + 1; j < n; j++) for(int k = j + 1; k < n; k++) best = max(best, a[i] * a[j] * a[k]); return best; }"
+      },
+      "optimized": {
+        "approach": "Ek pass me 3 maximum aur 2 minimum track karo.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int maxProd3(const vector<int>& a){ int mx1 = INT_MIN, mx2 = INT_MIN, mx3 = INT_MIN, mn1 = INT_MAX, mn2 = INT_MAX; for(int x : a){ if(x > mx1){ mx3 = mx2; mx2 = mx1; mx1 = x; } else if(x > mx2){ mx3 = mx2; mx2 = x; } else if(x > mx3) mx3 = x; if(x < mn1){ mn2 = mn1; mn1 = x; } else if(x < mn2) mn2 = x; } return max(mx1 * mx2 * mx3, mn1 * mn2 * mx1); }"
+      },
+      "explanation": "Sort karke bhi ho jata hai (O(n log n)): max(a[n-1]*a[n-2]*a[n-3], a[0]*a[1]*a[n-1]). Interview me ye observation (two negatives) hi asli test hai.",
+      "edge_cases": [
+        "All negative",
+        "Contains zeros",
+        "Two big negatives"
+      ]
+    },
+    {
+      "id": "L1-077",
+      "level": 1,
+      "topic": "Arrays",
+      "title": "Remove Duplicates from Sorted Array II (At Most Twice)",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Facebook",
+        "Microsoft",
+        "Amazon",
+        "Infosys"
+      ],
+      "problem_statement": "Given a sorted array, remove duplicates in-place so that each element appears at most twice. Return the new length k.",
+      "description": "O(1) extra space, relative order same.",
+      "constraints": [
+        "1 <= n <= 3e4",
+        "-1e4 <= a[i] <= 1e4",
+        "Sorted non-decreasing"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,1,1,2,2,3]",
+          "output": "5, [1,1,2,2,3]",
+          "explanation": "Teen 1 me se do rakhe"
+        },
+        {
+          "input": "[0,0,1,1,1,1,2,3,3]",
+          "output": "7, [0,0,1,1,2,3,3]",
+          "explanation": "Teen se zyada hataye"
+        },
+        {
+          "input": "[1]",
+          "output": "1",
+          "explanation": "Single"
+        }
+      ],
+      "theory": "Write pointer k. Element x ko tabhi likho jab k < 2 ho ya x != a[k-2]. Ye 'at most m duplicates' ka general template hai (m = 2 par a[k-2], m par a[k-m]).",
+      "brute_force": {
+        "approach": "Ek jaisi teen values milne par vector se erase karo.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int removeDup2(vector<int>& a){ int i = 2; while(i < (int)a.size()){ if(a[i] == a[i-1] && a[i] == a[i-2]) a.erase(a.begin() + i); else i++; } return a.size(); }"
+      },
+      "optimized": {
+        "approach": "Write pointer + a[k-2] compare.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int removeDup2(vector<int>& a){ int k = 0; for(int x : a) if(k < 2 || x != a[k-2]) a[k++] = x; return k; }"
+      },
+      "explanation": "Erase har baar shifting karta hai (O(n)), isliye O(n^2). a[k-2] compare isliye kaam karta hai ki sorted array me teesra duplicate wo hi hoga jo a[k-2] ke barabar ho.",
+      "edge_cases": [
+        "n <= 2",
+        "All same",
+        "No duplicates"
+      ]
+    },
+    {
+      "id": "L1-078",
+      "level": 1,
+      "topic": "Arrays",
+      "title": "Two Sum II (Sorted Array)",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Facebook",
+        "Microsoft",
+        "TCS",
+        "Infosys"
+      ],
+      "problem_statement": "Given a sorted array, find two numbers that add up to target. Return their 1-based indices [i, j] with i < j.",
+      "description": "Exactly ek solution hai aur O(1) extra space chahiye (sorted hone ka fayda uthao).",
+      "constraints": [
+        "2 <= n <= 3e4",
+        "-1000 <= a[i] <= 1000",
+        "Sorted non-decreasing",
+        "Exactly one solution"
+      ],
+      "test_cases": [
+        {
+          "input": "[2,7,11,15], t=9",
+          "output": "[1,2]",
+          "explanation": "2 + 7"
+        },
+        {
+          "input": "[2,3,4], t=6",
+          "output": "[1,3]",
+          "explanation": "2 + 4"
+        },
+        {
+          "input": "[-1,0], t=-1",
+          "output": "[1,2]",
+          "explanation": "-1 + 0"
+        }
+      ],
+      "theory": "l = 0, r = n-1. Sum chhota ho to l++, bada ho to r--. Sorted hone se kabhi galat discard nahi hota.",
+      "brute_force": {
+        "approach": "Saare pairs check.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "vector<int> twoSumSorted(const vector<int>& a, int t){ int n = a.size(); for(int i = 0; i < n; i++) for(int j = i + 1; j < n; j++) if(a[i] + a[j] == t) return {i + 1, j + 1}; return {}; }"
+      },
+      "optimized": {
+        "approach": "Opposite-end two pointers.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "vector<int> twoSumSorted(const vector<int>& a, int t){ int l = 0, r = (int)a.size() - 1; while(l < r){ int s = a[l] + a[r]; if(s == t) return {l + 1, r + 1}; if(s < t) l++; else r--; } return {}; }"
+      },
+      "explanation": "Unsorted me Two Sum ke liye hash map lagta hai (O(n) space). Sorted array me two pointers se O(1) space milti hai.",
+      "edge_cases": [
+        "Negative numbers",
+        "Duplicates",
+        "Answer at both ends"
+      ]
+    },
+    {
+      "id": "L1-079",
+      "level": 1,
+      "topic": "Sorting",
+      "title": "Insertion Sort",
+      "difficulty": "Easy",
+      "company_tags": [
+        "TCS",
+        "Infosys",
+        "Wipro",
+        "Capgemini",
+        "Accenture"
+      ],
+      "problem_statement": "Sort an array in ascending order using insertion sort.",
+      "description": "Left part hamesha sorted rehta hai; naya element us sorted part me sahi jagah par daala jata hai.",
+      "constraints": [
+        "0 <= n <= 1e3",
+        "-1e9 <= a[i] <= 1e9"
+      ],
+      "test_cases": [
+        {
+          "input": "[12,11,13,5,6]",
+          "output": "[5,6,11,12,13]",
+          "explanation": "Sorted"
+        },
+        {
+          "input": "[1,2,3]",
+          "output": "[1,2,3]",
+          "explanation": "Already sorted (O(n))"
+        },
+        {
+          "input": "[3,2,1]",
+          "output": "[1,2,3]",
+          "explanation": "Worst case"
+        }
+      ],
+      "theory": "key = a[i]; sorted part me bade elements ko ek jagah right shift karo; khali jagah par key rakho. Stable sort hai.",
+      "brute_force": {
+        "approach": "Adjacent swap se element ko peeche tak le jao.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "void insertionSort(vector<int>& a){ for(int i = 1; i < (int)a.size(); i++) for(int j = i; j > 0 && a[j-1] > a[j]; j--) swap(a[j], a[j-1]); }"
+      },
+      "optimized": {
+        "approach": "Shifting: key ko hold karo, shift karo, ek baar write.",
+        "time": "Best O(n), worst O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "void insertionSort(vector<int>& a){ for(int i = 1; i < (int)a.size(); i++){ int key = a[i], j = i - 1; while(j >= 0 && a[j] > key){ a[j+1] = a[j]; j--; } a[j+1] = key; } }"
+      },
+      "explanation": "Swap me har step par 3 writes lagte hain, shifting me 1. Nearly sorted data par insertion sort bahut fast hai (isliye std::sort chhote partitions par isi ka use karta hai).",
+      "edge_cases": [
+        "Empty",
+        "Duplicates (stability)",
+        "Reverse sorted"
+      ]
+    },
+    {
+      "id": "L1-080",
+      "level": 1,
+      "topic": "Strings",
+      "title": "Detect Capital Use",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Google",
+        "Amazon",
+        "Infosys",
+        "Wipro"
+      ],
+      "problem_statement": "Return true if the word uses capitals correctly: all capitals, no capitals, or only the first letter capital.",
+      "description": "Teen valid patterns: USA, leetcode, Google.",
+      "constraints": [
+        "1 <= |word| <= 100",
+        "English letters"
+      ],
+      "test_cases": [
+        {
+          "input": "USA",
+          "output": "true",
+          "explanation": "All capitals"
+        },
+        {
+          "input": "FlaG",
+          "output": "false",
+          "explanation": "Beech me capital"
+        },
+        {
+          "input": "Google",
+          "output": "true",
+          "explanation": "Only first capital"
+        }
+      ],
+      "theory": "Uppercase letters ginno. Valid agar count 0, n, ya (count 1 aur pehla letter capital).",
+      "brute_force": {
+        "approach": "Teen variants (upper, lower, capitalized) banao aur word se compare.",
+        "time": "O(n)",
+        "space": "O(n)",
+        "code_cpp": "bool detectCapital(const string& w){ string u = w, l = w, c = w; for(char& x : u) x = toupper((unsigned char)x); for(char& x : l) x = tolower((unsigned char)x); for(size_t i = 0; i < c.size(); i++) c[i] = i ? tolower((unsigned char)c[i]) : toupper((unsigned char)c[i]); return w == u || w == l || w == c; }"
+      },
+      "optimized": {
+        "approach": "Capital count se rule check.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "bool detectCapital(const string& w){ int up = 0; for(char c : w) if(isupper((unsigned char)c)) up++; return up == 0 || up == (int)w.size() || (up == 1 && isupper((unsigned char)w[0])); }"
+      },
+      "explanation": "Dono O(n) hain; optimized extra strings nahi banata. Rule ko counting condition me badalna interview ka main skill hai.",
+      "edge_cases": [
+        "Single letter",
+        "All lowercase",
+        "Capital only at the end"
+      ]
+    },
+    {
+      "id": "L1-081",
+      "level": 1,
+      "topic": "Strings",
+      "title": "Reverse Words in a String III",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Infosys",
+        "Cognizant"
+      ],
+      "problem_statement": "Reverse the characters of each word in the sentence while keeping word order and spaces.",
+      "description": "Words ek space se alag hain (no leading/trailing/multiple spaces).",
+      "constraints": [
+        "1 <= |s| <= 5e4",
+        "Printable ASCII",
+        "Single spaces only"
+      ],
+      "test_cases": [
+        {
+          "input": "Let's take LeetCode contest",
+          "output": "s'teL ekat edoCteeL tsetnoc",
+          "explanation": "Har word reverse"
+        },
+        {
+          "input": "God Ding",
+          "output": "doG gniD",
+          "explanation": "Do words"
+        },
+        {
+          "input": "a",
+          "output": "a",
+          "explanation": "Single"
+        }
+      ],
+      "theory": "Word ke start/end indices nikalo aur sirf us segment ko reverse karo.",
+      "brute_force": {
+        "approach": "stringstream se words, har word reverse, join.",
+        "time": "O(n)",
+        "space": "O(n)",
+        "code_cpp": "string revWords3(const string& s){ stringstream ss(s); string w, r; bool first = true; while(ss >> w){ reverse(w.begin(), w.end()); if(!first) r += ' '; r += w; first = false; } return r; }"
+      },
+      "optimized": {
+        "approach": "In-place segment reverse.",
+        "time": "O(n)",
+        "space": "O(1) extra",
+        "code_cpp": "string revWords3(string s){ int n = s.size(), i = 0; while(i < n){ int j = i; while(j < n && s[j] != ' ') j++; reverse(s.begin() + i, s.begin() + j); i = j + 1; } return s; }"
+      },
+      "explanation": "Reverse Words in a String (L1-019) se alag: yahan words ka order same rehta hai, sirf andar ke characters ulte hote hain.",
+      "edge_cases": [
+        "Single word",
+        "Single character words",
+        "Long word"
+      ]
+    },
+    {
+      "id": "L1-082",
+      "level": 1,
+      "topic": "Strings",
+      "title": "String Compression (In-place)",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Microsoft",
+        "Amazon",
+        "Facebook",
+        "Infosys",
+        "Zoho"
+      ],
+      "problem_statement": "Compress a character array in-place using run-length encoding: for each group of repeated characters, write the character followed by the group's length if length > 1. Return the new length.",
+      "description": "Group length >= 10 ho to digits alag characters me likhe jaate hain. Extra array allowed nahi.",
+      "constraints": [
+        "1 <= n <= 2000",
+        "Letters, digits, symbols"
+      ],
+      "test_cases": [
+        {
+          "input": "[a,a,b,b,c,c,c]",
+          "output": "6, [a,2,b,2,c,3]",
+          "explanation": "Teen groups"
+        },
+        {
+          "input": "[a]",
+          "output": "1, [a]",
+          "explanation": "Single, count nahi likhte"
+        },
+        {
+          "input": "[a,b,b,b,b,b,b,b,b,b,b,b,b]",
+          "output": "4, [a,b,1,2]",
+          "explanation": "12 b: digits 1 aur 2"
+        }
+      ],
+      "theory": "Read pointer i group ki seema j tak jata hai; write pointer w character likhta hai, phir (length > 1 ho to) count ke digits. w kabhi i se aage nahi nikalta.",
+      "brute_force": {
+        "approach": "Naya string banao aur wapas array me copy karo.",
+        "time": "O(n)",
+        "space": "O(n)",
+        "code_cpp": "int compress(vector<char>& c){ string t; int n = c.size(), i = 0; while(i < n){ int j = i; while(j < n && c[j] == c[i]) j++; t += c[i]; if(j - i > 1) t += to_string(j - i); i = j; } for(size_t k = 0; k < t.size(); k++) c[k] = t[k]; return t.size(); }"
+      },
+      "optimized": {
+        "approach": "Do pointers in-place.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int compress(vector<char>& c){ int n = c.size(), w = 0, i = 0; while(i < n){ int j = i; while(j < n && c[j] == c[i]) j++; c[w++] = c[i]; if(j - i > 1) for(char d : to_string(j - i)) c[w++] = d; i = j; } return w; }"
+      },
+      "explanation": "Safe kyun hai: length L >= 2 ki group ke liye likha hua part (1 + digits) hamesha L se chhota ya barabar hota hai, isliye unread characters overwrite nahi hote.",
+      "edge_cases": [
+        "No repeats",
+        "Run length >= 10",
+        "Single group"
+      ]
+    },
+    {
+      "id": "L1-083",
+      "level": 1,
+      "topic": "Strings",
+      "title": "Maximum Number of Balloons",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Infosys",
+        "Cognizant",
+        "Capgemini"
+      ],
+      "problem_statement": "Return the maximum number of times the word 'balloon' can be formed using letters from text (each letter at most once).",
+      "description": "'balloon' me l aur o do-do baar aate hain.",
+      "constraints": [
+        "1 <= |text| <= 1e4",
+        "Lowercase letters"
+      ],
+      "test_cases": [
+        {
+          "input": "nlaebolko",
+          "output": "1",
+          "explanation": "Ek balloon ban sakta hai"
+        },
+        {
+          "input": "loonbalxballpoon",
+          "output": "2",
+          "explanation": "Do baar"
+        },
+        {
+          "input": "leetcode",
+          "output": "0",
+          "explanation": "Letters kam"
+        }
+      ],
+      "theory": "Frequency count: b/a/n jitne hain, l/o ka aadha. Answer in sabka minimum.",
+      "brute_force": {
+        "approach": "Baar baar 'balloon' ke letters text se find + erase karo jab tak fail na ho.",
+        "time": "O(k * n)",
+        "space": "O(n)",
+        "code_cpp": "int maxBalloons(string t){ int c = 0; for(;;){ for(char ch : string(\"balloon\")){ size_t p = t.find(ch); if(p == string::npos) return c; t.erase(p, 1); } c++; } }"
+      },
+      "optimized": {
+        "approach": "freq[26] aur minimum.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int maxBalloons(const string& t){ int f[26] = {0}; for(char c : t) f[c - 'a']++; return min({f['b'-'a'], f['a'-'a'], f['l'-'a'] / 2, f['o'-'a'] / 2, f['n'-'a']}); }"
+      },
+      "explanation": "Ransom Note ka special case: magazine = text, note = 'balloon' ki repeated copies. Bottleneck letter hi answer decide karta hai.",
+      "edge_cases": [
+        "Missing letter",
+        "Many l and o but few b",
+        "Exact one balloon"
+      ]
+    },
+    {
+      "id": "L1-084",
+      "level": 1,
+      "topic": "Math",
+      "title": "Integer Square Root (Sqrt of x)",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "TCS",
+        "Infosys"
+      ],
+      "problem_statement": "Given a non-negative integer x, return floor(sqrt(x)) without using built-in sqrt/pow.",
+      "description": "Answer integer part hi hai, decimal digits truncate hote hain.",
+      "constraints": [
+        "0 <= x <= 2^31 - 1"
+      ],
+      "test_cases": [
+        {
+          "input": "4",
+          "output": "2",
+          "explanation": "Perfect square"
+        },
+        {
+          "input": "8",
+          "output": "2",
+          "explanation": "sqrt(8) = 2.82..."
+        },
+        {
+          "input": "2147483647",
+          "output": "46340",
+          "explanation": "Large input"
+        }
+      ],
+      "theory": "Condition mid*mid <= x monotonic hai (true...true false...false), isliye binary search se sabse bada mid nikalo. mid*mid ke liye long long.",
+      "brute_force": {
+        "approach": "i = 1, 2, 3... jab tak (i+1)^2 <= x.",
+        "time": "O(sqrt x)",
+        "space": "O(1)",
+        "code_cpp": "int mySqrt(int x){ long long i = 0; while((i + 1) * (i + 1) <= x) i++; return (int)i; }"
+      },
+      "optimized": {
+        "approach": "Binary search on answer.",
+        "time": "O(log x)",
+        "space": "O(1)",
+        "code_cpp": "int mySqrt(int x){ long long lo = 0, hi = x, ans = 0; while(lo <= hi){ long long mid = (lo + hi) / 2; if(mid * mid <= x){ ans = mid; lo = mid + 1; } else hi = mid - 1; } return (int)ans; }"
+      },
+      "explanation": "Ye Level 2 ke 'Binary Search on Answer' pattern ka pehla example hai. Floating sqrt() precision issues de sakta hai bade x par.",
+      "edge_cases": [
+        "x = 0",
+        "x = 1",
+        "Large x (overflow)"
+      ]
+    },
+    {
+      "id": "L1-085",
+      "level": 1,
+      "topic": "Math",
+      "title": "Armstrong Number",
+      "difficulty": "Easy",
+      "company_tags": [
+        "TCS",
+        "Infosys",
+        "Wipro",
+        "Capgemini",
+        "Accenture"
+      ],
+      "problem_statement": "A number with d digits is an Armstrong number if the sum of each digit raised to the power d equals the number. Check if n is Armstrong.",
+      "description": "Examples: 153 (1^3 + 5^3 + 3^3), 9474.",
+      "constraints": [
+        "0 <= n <= 1e9"
+      ],
+      "test_cases": [
+        {
+          "input": "153",
+          "output": "true",
+          "explanation": "1 + 125 + 27 = 153"
+        },
+        {
+          "input": "9474",
+          "output": "true",
+          "explanation": "6561 + 256 + 2401 + 256"
+        },
+        {
+          "input": "123",
+          "output": "false",
+          "explanation": "1 + 8 + 27 = 36"
+        }
+      ],
+      "theory": "Pehle digits ki sankhya d nikalo, phir har digit ka d-th power (integer multiplication se) jodo.",
+      "brute_force": {
+        "approach": "to_string aur pow() ka use (floating point, round karna padta hai).",
+        "time": "O(d^2)",
+        "space": "O(d)",
+        "code_cpp": "bool isArm(int n){ string s = to_string(n); int d = s.size(); long long sum = 0; for(char c : s) sum += llround(pow(c - '0', d)); return sum == n; }"
+      },
+      "optimized": {
+        "approach": "Integer-only: digit count loop + power loop.",
+        "time": "O(d^2)",
+        "space": "O(1)",
+        "code_cpp": "bool isArm(int n){ int d = 0; for(int x = n; x; x /= 10) d++; long long sum = 0; for(int x = n; x; x /= 10){ int dig = x % 10; long long p = 1; for(int i = 0; i < d; i++) p *= dig; sum += p; } return sum == n; }"
+      },
+      "explanation": "Integer approach me floating point error ka risk nahi. Chhote d ke liye O(d^2) negligible hai. n = 0 ko single-digit Armstrong maana jata hai.",
+      "edge_cases": [
+        "n = 0",
+        "Single digit (always true)",
+        "Large 9-digit numbers"
+      ]
+    },
+    {
+      "id": "L1-086",
+      "level": 1,
+      "topic": "Math",
+      "title": "LCM of an Array",
+      "difficulty": "Easy",
+      "company_tags": [
+        "TCS",
+        "Infosys",
+        "Wipro",
+        "Cognizant"
+      ],
+      "problem_statement": "Return the least common multiple of all numbers in the array.",
+      "description": "LCM wo sabse chhota number jo array ke har number se divisible ho.",
+      "constraints": [
+        "1 <= n <= 10",
+        "1 <= a[i] <= 20",
+        "Answer fits in 64-bit"
+      ],
+      "test_cases": [
+        {
+          "input": "[2,3,4]",
+          "output": "12",
+          "explanation": "12 sabka multiple"
+        },
+        {
+          "input": "[4,6,8]",
+          "output": "24",
+          "explanation": "24"
+        },
+        {
+          "input": "[7]",
+          "output": "7",
+          "explanation": "Single"
+        }
+      ],
+      "theory": "lcm(a, b) = a / gcd(a, b) * b. Array par fold karo: l = lcm(l, a[i]). Pehle divide karke multiply karne se overflow kam hota hai.",
+      "brute_force": {
+        "approach": "Max element ke multiples try karo jab tak sab se divisible na ho.",
+        "time": "O(answer / max * n)",
+        "space": "O(1)",
+        "code_cpp": "long long lcmArr(const vector<int>& a){ long long m = *max_element(a.begin(), a.end()); for(long long c = m;; c += m){ bool ok = true; for(int x : a) if(c % x){ ok = false; break; } if(ok) return c; } }"
+      },
+      "optimized": {
+        "approach": "gcd-based fold.",
+        "time": "O(n log max)",
+        "space": "O(1)",
+        "code_cpp": "long long lcmArr(const vector<int>& a){ long long l = 1; for(int x : a) l = l / std::gcd(l, (long long)x) * x; return l; }"
+      },
+      "explanation": "Brute ka runtime answer ke size par depend karta hai (1..20 ka LCM 232792560 hai, to bahut slow). gcd fold me har step logarithmic hai.",
+      "edge_cases": [
+        "Single element",
+        "Co-prime numbers",
+        "Multiples of each other"
+      ]
+    },
+    {
+      "id": "L1-087",
+      "level": 1,
+      "topic": "Math",
+      "title": "Perfect Number",
+      "difficulty": "Easy",
+      "company_tags": [
+        "TCS",
+        "Infosys",
+        "Wipro",
+        "Accenture"
+      ],
+      "problem_statement": "A perfect number equals the sum of its proper positive divisors (excluding itself). Check if n is perfect.",
+      "description": "Examples: 6 = 1 + 2 + 3, 28 = 1 + 2 + 4 + 7 + 14.",
+      "constraints": [
+        "1 <= n <= 1e8"
+      ],
+      "test_cases": [
+        {
+          "input": "28",
+          "output": "true",
+          "explanation": "Divisors sum 28"
+        },
+        {
+          "input": "6",
+          "output": "true",
+          "explanation": "1 + 2 + 3"
+        },
+        {
+          "input": "12",
+          "output": "false",
+          "explanation": "Sum 16"
+        }
+      ],
+      "theory": "Divisors pairs me aate hain (i, n/i). i ko sqrt(n) tak chalao aur dono jodo (i == n/i ho to ek baar).",
+      "brute_force": {
+        "approach": "1 se n-1 tak saare divisors jodo.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "bool isPerfect(int n){ if(n <= 1) return false; int s = 0; for(int i = 1; i < n; i++) if(n % i == 0) s += i; return s == n; }"
+      },
+      "optimized": {
+        "approach": "sqrt(n) tak divisor pairs.",
+        "time": "O(sqrt n)",
+        "space": "O(1)",
+        "code_cpp": "bool isPerfect(int n){ if(n <= 1) return false; int s = 1; for(int i = 2; (long long)i * i <= n; i++) if(n % i == 0){ s += i; if(i != n / i) s += n / i; } return s == n; }"
+      },
+      "explanation": "1e8 par brute lagbhag 1e8 operations leta hai, optimized sirf ~1e4. n = 1 ke liye proper divisors ka sum 0 hota hai, isliye false.",
+      "edge_cases": [
+        "n = 1",
+        "Perfect square",
+        "Large perfect number (8128)"
+      ]
+    },
+    {
+      "id": "L1-088",
+      "level": 1,
+      "topic": "Recursion",
+      "title": "N-th Tribonacci Number",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Infosys",
+        "Zoho"
+      ],
+      "problem_statement": "T(0) = 0, T(1) = 1, T(2) = 1, and T(n) = T(n-1) + T(n-2) + T(n-3). Return T(n).",
+      "description": "Fibonacci ka teen-term version.",
+      "constraints": [
+        "0 <= n <= 37 (answer fits in 32-bit int)"
+      ],
+      "test_cases": [
+        {
+          "input": "4",
+          "output": "4",
+          "explanation": "0,1,1,2,4"
+        },
+        {
+          "input": "25",
+          "output": "1389537",
+          "explanation": "Large"
+        },
+        {
+          "input": "0",
+          "output": "0",
+          "explanation": "Base"
+        }
+      ],
+      "theory": "Naive recursion me har call 3 aur calls banati hai (O(3^n)). Pichhli teen values rolling variables me rakho.",
+      "brute_force": {
+        "approach": "Plain recursion.",
+        "time": "O(3^n)",
+        "space": "O(n) stack",
+        "code_cpp": "int trib(int n){ if(n == 0) return 0; if(n <= 2) return 1; return trib(n - 1) + trib(n - 2) + trib(n - 3); }"
+      },
+      "optimized": {
+        "approach": "Iterative, 3 variables.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int trib(int n){ if(n == 0) return 0; if(n <= 2) return 1; int a = 0, b = 1, c = 1; for(int i = 3; i <= n; i++){ int d = a + b + c; a = b; b = c; c = d; } return c; }"
+      },
+      "explanation": "Fibonacci -> Climbing Stairs -> Tribonacci ek hi DP family hai. Window of last k values rakhna sab me common hai.",
+      "edge_cases": [
+        "n = 0, 1, 2",
+        "n = 37 (max)"
+      ]
+    },
+    {
+      "id": "L1-089",
+      "level": 1,
+      "topic": "Recursion",
+      "title": "Reverse a String Using Recursion",
+      "difficulty": "Easy",
+      "company_tags": [
+        "TCS",
+        "Infosys",
+        "Wipro",
+        "Cognizant",
+        "Accenture"
+      ],
+      "problem_statement": "Reverse a string using recursion.",
+      "description": "Loop ke bina recursion se reverse karna hai. Efficiency ka dhyan rakho.",
+      "constraints": [
+        "0 <= |s| <= 1e4"
+      ],
+      "test_cases": [
+        {
+          "input": "hello",
+          "output": "olleh",
+          "explanation": "Reverse"
+        },
+        {
+          "input": "a",
+          "output": "a",
+          "explanation": "Single"
+        },
+        {
+          "input": "",
+          "output": "",
+          "explanation": "Empty"
+        }
+      ],
+      "theory": "Index-based recursion: swap(s[l], s[r]) karke (l+1, r-1) par recursion. Base case l >= r.",
+      "brute_force": {
+        "approach": "rev(s) = rev(s.substr(1)) + s[0]; har call par naya string copy hota hai.",
+        "time": "O(n^2)",
+        "space": "O(n^2) copies",
+        "code_cpp": "string revRec(const string& s){ if(s.size() <= 1) return s; return revRec(s.substr(1)) + s[0]; }"
+      },
+      "optimized": {
+        "approach": "Reference + do indices, in-place swap.",
+        "time": "O(n)",
+        "space": "O(n) stack",
+        "code_cpp": "void helper(string& s, int l, int r){ if(l >= r) return; swap(s[l], s[r]); helper(s, l + 1, r - 1); }\nvoid revRec(string& s){ helper(s, 0, (int)s.size() - 1); }"
+      },
+      "explanation": "substr aur + operator dono naya string banate hain, isliye brute me hidden O(n) cost hai. Iterative two-pointer me stack space bhi O(1) rehti hai.",
+      "edge_cases": [
+        "Empty string",
+        "Odd/even length",
+        "Palindrome input"
+      ]
+    },
+    {
+      "id": "L1-090",
+      "level": 1,
+      "topic": "Searching",
+      "title": "Binary Search",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Google",
+        "TCS",
+        "Infosys",
+        "Flipkart"
+      ],
+      "problem_statement": "Given a sorted array of distinct integers and a target, return the index of target or -1 if it does not exist. Use O(log n) time.",
+      "description": "Level 2 ke saare binary search patterns ki base.",
+      "constraints": [
+        "1 <= n <= 1e4",
+        "-1e4 <= a[i], target <= 1e4",
+        "Sorted ascending, distinct"
+      ],
+      "test_cases": [
+        {
+          "input": "[-1,0,3,5,9,12], t=9",
+          "output": "4",
+          "explanation": "Index 4"
+        },
+        {
+          "input": "[-1,0,3,5,9,12], t=2",
+          "output": "-1",
+          "explanation": "Nahi mila"
+        },
+        {
+          "input": "[5], t=5",
+          "output": "0",
+          "explanation": "Single"
+        }
+      ],
+      "theory": "Search space [lo, hi]. mid check karo: equal to return, chhota to right half (lo = mid+1), bada to left half (hi = mid-1).",
+      "brute_force": {
+        "approach": "Linear search.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int searchLinear(const vector<int>& a, int t){ for(int i = 0; i < (int)a.size(); i++) if(a[i] == t) return i; return -1; }"
+      },
+      "optimized": {
+        "approach": "Binary search, mid = lo + (hi - lo) / 2.",
+        "time": "O(log n)",
+        "space": "O(1)",
+        "code_cpp": "int searchBinary(const vector<int>& a, int t){ int lo = 0, hi = (int)a.size() - 1; while(lo <= hi){ int mid = lo + (hi - lo) / 2; if(a[mid] == t) return mid; if(a[mid] < t) lo = mid + 1; else hi = mid - 1; } return -1; }"
+      },
+      "explanation": "1e4 elements par log2(1e4) ~ 14 steps lagte hain. Sorted hona precondition hai. Ye Level 1 aur Level 2 ke beech ka bridge hai.",
+      "edge_cases": [
+        "Target at ends",
+        "Target absent",
+        "Single element"
+      ]
+    }
+  ],
+  "level_revision": {
+    "title": "Level 1 Revision Sheet (Part 1 to 4: L1-001 to L1-090)",
+    "pattern_cheat_sheet": [
+      {
+        "pattern": "Frequency array / HashMap count",
+        "when_to_use": "Anagram, unique, majority, 'kitne baar aaya'",
+        "idea": "freq[26] ya unordered_map; ek ya do pass",
+        "practice_ids": [
+          "L1-012",
+          "L1-013",
+          "L1-062",
+          "L1-083"
+        ]
+      },
+      {
+        "pattern": "Complement / seen-before in HashSet",
+        "when_to_use": "Pair sum, duplicates, double exists",
+        "idea": "Pehle check, baad me insert",
+        "practice_ids": [
+          "L1-010",
+          "L1-011",
+          "L1-064",
+          "L1-065"
+        ]
+      },
+      {
+        "pattern": "Opposite-end two pointers",
+        "when_to_use": "Palindrome, reverse, sorted pair sum, squares of sorted",
+        "idea": "l = 0, r = n-1; condition par move",
+        "practice_ids": [
+          "L1-016",
+          "L1-017",
+          "L1-053",
+          "L1-068",
+          "L1-070",
+          "L1-078"
+        ]
+      },
+      {
+        "pattern": "Read/Write pointer (in-place)",
+        "when_to_use": "Remove/filter/compress array ya string in-place",
+        "idea": "k = write index; valid element par a[k++] = x",
+        "practice_ids": [
+          "L1-004",
+          "L1-005",
+          "L1-051",
+          "L1-077",
+          "L1-082"
+        ]
+      },
+      {
+        "pattern": "Prefix sum / running total",
+        "when_to_use": "Range ya left-right sum ke questions",
+        "idea": "pre[i] = pre[i-1] + a[i]",
+        "practice_ids": [
+          "L1-054",
+          "L1-055"
+        ]
+      },
+      {
+        "pattern": "Fill from the back",
+        "when_to_use": "Merge, carry addition",
+        "idea": "Peeche se likho taaki unread data overwrite na ho",
+        "practice_ids": [
+          "L1-027",
+          "L1-028",
+          "L1-038"
+        ]
+      },
+      {
+        "pattern": "XOR / bit tricks",
+        "when_to_use": "Pair cancel, set bits, power of two",
+        "idea": "a^a = 0, n & (n-1)",
+        "practice_ids": [
+          "L1-007",
+          "L1-009",
+          "L1-040",
+          "L1-041",
+          "L1-044"
+        ]
+      },
+      {
+        "pattern": "Euclid GCD / LCM",
+        "when_to_use": "Divisibility, common multiples/divisors",
+        "idea": "gcd(a, b) = gcd(b, a % b); lcm = a / gcd * b",
+        "practice_ids": [
+          "L1-021",
+          "L1-071",
+          "L1-086"
+        ]
+      },
+      {
+        "pattern": "Divisor pairs up to sqrt(n)",
+        "when_to_use": "Prime, perfect number, factors",
+        "idea": "i * i <= n par (i, n/i) pair",
+        "practice_ids": [
+          "L1-022",
+          "L1-087"
+        ]
+      },
+      {
+        "pattern": "Recursion to iteration (rolling variables)",
+        "when_to_use": "Fib, stairs, tribonacci, recurrences",
+        "idea": "Last k values rakho, loop chalao",
+        "practice_ids": [
+          "L1-024",
+          "L1-049",
+          "L1-050",
+          "L1-088"
+        ]
+      },
+      {
+        "pattern": "Matrix boundary / transpose-reverse",
+        "when_to_use": "2D array traversal aur rotation",
+        "idea": "4 boundaries ya transpose + reverse",
+        "practice_ids": [
+          "L1-030",
+          "L1-031",
+          "L1-032"
+        ]
+      },
+      {
+        "pattern": "Expand around center",
+        "when_to_use": "Palindromic substrings",
+        "idea": "Odd aur even center dono",
+        "practice_ids": [
+          "L1-069"
+        ]
+      },
+      {
+        "pattern": "Dutch National Flag / 3-way partition",
+        "when_to_use": "0/1/2 jaisi categories ek pass me",
+        "idea": "lo, mid, hi pointers",
+        "practice_ids": [
+          "L1-052",
+          "L1-059"
+        ]
+      },
+      {
+        "pattern": "Binary search (preview)",
+        "when_to_use": "Sorted data ya monotonic condition",
+        "idea": "Half discard karo, O(log n)",
+        "practice_ids": [
+          "L1-084",
+          "L1-090"
+        ]
+      }
+    ],
+    "complexity_cheat_sheet": [
+      {
+        "item": "Array access / append (vector push_back)",
+        "complexity": "O(1) / amortized O(1)"
+      },
+      {
+        "item": "Insert/erase in middle of vector",
+        "complexity": "O(n)"
+      },
+      {
+        "item": "unordered_map / unordered_set insert, find",
+        "complexity": "O(1) average, O(n) worst"
+      },
+      {
+        "item": "map / set insert, find",
+        "complexity": "O(log n)"
+      },
+      {
+        "item": "std::sort",
+        "complexity": "O(n log n)"
+      },
+      {
+        "item": "Bubble / Selection / Insertion sort",
+        "complexity": "O(n^2) (insertion best O(n) on nearly sorted)"
+      },
+      {
+        "item": "Binary search",
+        "complexity": "O(log n)"
+      },
+      {
+        "item": "GCD (Euclid)",
+        "complexity": "O(log min(a, b))"
+      },
+      {
+        "item": "Sieve of Eratosthenes",
+        "complexity": "O(n log log n)"
+      },
+      {
+        "item": "Naive recursive Fibonacci / Tribonacci",
+        "complexity": "O(2^n) / O(3^n)"
+      },
+      {
+        "item": "std::string concatenation s = s + c in a loop",
+        "complexity": "O(n^2) overall; s += c is amortized O(1)"
+      }
+    ],
+    "common_mistakes": [
+      "Constraints padhe bina brute force ya optimization choose karna (n <= 1e5 par O(n^2) TLE deta hai)",
+      "Edge cases miss: empty input, n = 1, all same, negatives, zeros, INT_MIN/INT_MAX",
+      "int overflow: sums/products ke liye long long, mid = lo + (hi - lo) / 2",
+      "Two pointers me pointers cross hone ke baad access ya skip loop me boundary check na lagana",
+      "Hash map me insert pehle kar dena jabki complement/same-index check baad me hona chahiye",
+      "Input array in-place modify hone ki baat batana bhool jana (interviewer ko mention karo)",
+      "char se seedha index banana (negative ho sakta hai), (unsigned char) cast lagao",
+      "Output mein 0-based vs 1-based index ka confusion"
+    ],
+    "interview_checklist": [
+      "1. Problem ko apne words me repeat karo aur examples se confirm karo",
+      "2. Constraints puchho (n ka size, value range, duplicates, sorted?, negatives?)",
+      "3. Brute force bolo aur uski complexity batao",
+      "4. Bottleneck pehchano (repeated work? search? sorting?) aur pattern chuno",
+      "5. Optimized approach explain karo, code likhne se pehle small example par dry run karo",
+      "6. Code likho: clear variable names, helper functions",
+      "7. Edge cases par test karo (empty, single, duplicates, extremes)",
+      "8. Time aur space complexity bolo; agar possible ho to trade-offs batao"
+    ],
+    "cpp_tips": [
+      "Competitive/interview template: #include <bits/stdc++.h>, using namespace std;",
+      "vector<int>::size() unsigned hota hai: i - 1 ya size() - 1 par underflow dhyan rakho, int cast karo",
+      "reverse(a.begin() + i, a.begin() + j) half-open range [i, j) reverse karta hai",
+      "unordered_map ka operator[] missing key insert kar deta hai, find()/count() se check karo",
+      "string ke liye to_string(), stoi(), stoll(); char ke liye c - '0' aur c - 'a'",
+      "__builtin_popcount(x) set bits, std::gcd(a, b) (C++17) built-in hain, par interview me algorithm explain karna padta hai",
+      "long long literal: 1LL << k, aur multiplication se pehle cast: (long long)a * b"
+    ],
+    "self_test_before_level_2": {
+      "instruction": "Bina solution dekhe, har problem ka brute + optimized approach 10 minute me explain kar sako to Level 2 ke liye ready ho.",
+      "problem_ids": [
+        "L1-010",
+        "L1-012",
+        "L1-005",
+        "L1-006",
+        "L1-007",
+        "L1-014",
+        "L1-019",
+        "L1-032",
+        "L1-052",
+        "L1-066",
+        "L1-067",
+        "L1-069",
+        "L1-025",
+        "L1-078"
+      ]
+    },
+    "next_level_preview": {
+      "level": 2,
+      "title": "Core Patterns",
+      "topics": [
+        "Sliding Window (fixed and variable)",
+        "Prefix Sum + HashMap (subarray sum equals K)",
+        "Kadane's Algorithm",
+        "Binary Search (on index and on answer)",
+        "Sorting + custom comparators",
+        "Two Pointers advanced (3Sum, container with most water)"
+      ],
+      "why": "Level 1 ke patterns (two pointers, prefix sum, hashing, binary search preview) ko Level 2 me combine karke medium problems solve hote hain, jo mid-level company interviews ka main hissa hain."
+    }
+  }
+}

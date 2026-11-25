@@ -439,6 +439,53 @@ export async function getExploreSheetDetails(sheetId: string) {
           .sort((a, b) => b.solvedCount - a.solvedCount)
           .slice(0, 15);
       }
+    } else if ((sheet as any).sheet_type === 'ROADMAP') {
+      const { data: rmProbs } = await adminClient
+        .from('coding_sheet_roadmap_problems')
+        .select('id, problem_code, order_index, level_number, topic, title, difficulty, company_tags')
+        .eq('sheet_id', sheetId)
+        .order('order_index', { ascending: true });
+
+      problems = (rmProbs || []).map((p: any) => ({
+        id: p.id,
+        title: `${p.problem_code} · ${p.title}`,
+        difficulty: p.difficulty === 'HARD' ? 'Hard' : p.difficulty === 'MEDIUM' ? 'Medium' : 'Easy',
+        external_platform: `Level ${p.level_number} • ${p.topic}`,
+        tags: Array.isArray(p.company_tags) ? p.company_tags : [],
+        order_index: p.order_index - 1,
+      }));
+
+      difficultyStats.Total = problems.length;
+      problems.forEach((p: any) => {
+        if (p.difficulty === 'Hard') difficultyStats.Hard++;
+        else if (p.difficulty === 'Medium') difficultyStats.Medium++;
+        else difficultyStats.Easy++;
+      });
+
+      const { data: rmProg } = await adminClient
+        .from('coding_sheet_roadmap_progress')
+        .select('user_id, problem_code, profiles!coding_sheet_roadmap_progress_user_id_fkey(name, avatar_url)')
+        .eq('sheet_id', sheetId)
+        .eq('is_solved', true);
+
+      if (rmProg && rmProg.length > 0) {
+        const solverMap = new Map<string, { name: string; avatarUrl: string | null; pSet: Set<string> }>();
+        rmProg.forEach((row: any) => {
+          const uid = row.user_id;
+          if (!solverMap.has(uid)) {
+            solverMap.set(uid, {
+              name: row.profiles?.name || 'Roadmap Learner',
+              avatarUrl: row.profiles?.avatar_url || null,
+              pSet: new Set(),
+            });
+          }
+          solverMap.get(uid)!.pSet.add(row.problem_code);
+        });
+        solvers = Array.from(solverMap.values())
+          .map((s) => ({ name: s.name, avatarUrl: s.avatarUrl, solvedCount: s.pSet.size }))
+          .sort((a, b) => b.solvedCount - a.solvedCount)
+          .slice(0, 15);
+      }
     } else {
       // 2. Problems
       const { data: problemsData } = await adminClient

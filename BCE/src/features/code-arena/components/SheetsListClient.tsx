@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { 
   Trophy, ArrowLeft, BookOpen, Plus, Search, 
   ChevronRight, Trash2, CheckCircle2, Award, X,
-  Globe, Shield, Lock, Share2, Check, UserPlus, Loader2, Star, Database
+  Globe, Shield, Lock, Share2, Check, UserPlus, Loader2, Star, Database, Layers
 } from 'lucide-react';
 import CreateSheetWizard from './CreateSheetWizard';
 import Card from '@/components/ui/Card';
@@ -59,9 +59,11 @@ export default function SheetsListClient({
 
     const visibleSheets = initialSheets.map(s => {
       const problemsList = s.coding_sheet_problems || [];
-      const isSql = s.sheet_type === 'SQL';
-      const totalProblems = isSql ? (s.metadata?.total_count || 530) : problemsList.length;
-      const solvedProblems = isSql
+      const isSpecial = s.sheet_type === 'SQL' || s.sheet_type === 'ROADMAP';
+      const totalProblems = isSpecial
+        ? (s.metadata?.total_count || (s.sheet_type === 'SQL' ? 530 : 90))
+        : problemsList.length;
+      const solvedProblems = isSpecial
         ? (sqlSolvedCountBySheet[s.id] || 0)
         : problemsList.filter(p => solvedProblemIds.includes(p.problem_id)).length;
       const progressPct = totalProblems > 0 ? Math.round((solvedProblems / totalProblems) * 100) : 0;
@@ -250,9 +252,11 @@ export default function SheetsListClient({
         <div className="sheets-grid">
           {filteredSheets.map((sheet) => {
             const problemsList = sheet.coding_sheet_problems || [];
-            const isSqlSheet = sheet.sheet_type === 'SQL';
-            const totalProblems = isSqlSheet ? (sheet.metadata?.total_count || 530) : problemsList.length;
-            const solvedProblems = isSqlSheet
+            const isSpecialSheet = sheet.sheet_type === 'SQL' || sheet.sheet_type === 'ROADMAP';
+            const totalProblems = isSpecialSheet
+              ? (sheet.metadata?.total_count || (sheet.sheet_type === 'SQL' ? 530 : 90))
+              : problemsList.length;
+            const solvedProblems = isSpecialSheet
               ? (sqlSolvedCountBySheet[sheet.id] || 0)
               : problemsList.filter(p => solvedProblemIds.includes(p.problem_id)).length;
             const progressPct = totalProblems > 0 ? Math.round((solvedProblems / totalProblems) * 100) : 0;
@@ -327,9 +331,16 @@ export default function SheetsListClient({
                           <Database size={11} /> SQL + MCQ
                         </span>
                       )}
+                      {sheet.sheet_type === 'ROADMAP' && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10.5px', fontWeight: 800, color: '#0284c7', background: 'rgba(14,165,233,0.14)', border: '1px solid rgba(14,165,233,0.3)', padding: '2px 7px', borderRadius: '8px' }}>
+                          <Layers size={11} /> Levels 1–5 Roadmap
+                        </span>
+                      )}
                       {totalProblems > 0 && (
                         <span style={{ fontSize: '11px', fontWeight: 700, color: '#06b6d4', background: 'rgba(6,182,212,0.1)', padding: '2px 8px', borderRadius: '8px' }}>
-                          {totalProblems} {sheet.sheet_type === 'SQL' ? 'questions' : 'problems'}
+                          {sheet.sheet_type === 'ROADMAP'
+                            ? `${totalProblems} / ${sheet.metadata?.planned_total_count || 520} problems`
+                            : `${totalProblems} ${sheet.sheet_type === 'SQL' ? 'questions' : 'problems'}`}
                         </span>
                       )}
                     </div>
@@ -474,9 +485,11 @@ export default function SheetsListClient({
                 <div style={{ fontSize: '15px', fontWeight: 800 }}>
                   {enrollSheet.title}
                 </div>
-                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary, #94a3b8)', marginTop: '2px' }}>
                   {enrollSheet.sheet_type === 'SQL'
                     ? `${enrollSheet.metadata?.total_count || 530} questions`
+                    : enrollSheet.sheet_type === 'ROADMAP'
+                    ? `${enrollSheet.metadata?.total_count || 90} active / ${enrollSheet.metadata?.planned_total_count || 520} roadmap problems`
                     : `${(enrollSheet.coding_sheet_problems || []).length} problems`}
                 </div>
               </div>

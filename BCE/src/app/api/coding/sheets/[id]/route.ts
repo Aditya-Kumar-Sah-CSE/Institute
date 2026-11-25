@@ -49,6 +49,38 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     });
   }
 
+  if ((sheet as any).sheet_type === 'ROADMAP') {
+    const [{ data: roadmapLevels, error: lvlErr }, { data: roadmapProblems, error: probErr }] = await Promise.all([
+      supabase
+        .from('coding_sheet_roadmap_levels')
+        .select('id, level_number, title, subtitle, description, target_problem_count, is_unlocked, theory_modules, revision_data, meta')
+        .eq('sheet_id', sheet.id)
+        .order('level_number', { ascending: true }),
+      supabase
+        .from('coding_sheet_roadmap_problems')
+        .select('id, problem_code, order_index, level_number, batch_name, topic, title, difficulty, company_tags, problem_statement, description, constraints, test_cases, theory, brute_force, optimized, explanation, edge_cases')
+        .eq('sheet_id', sheet.id)
+        .order('order_index', { ascending: true }),
+    ]);
+
+    if (lvlErr || probErr) {
+      return NextResponse.json(
+        { success: false, error: { message: lvlErr?.message || probErr?.message || 'Failed to load roadmap data' } },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...sheet,
+        problems: [],
+        roadmapLevels: roadmapLevels || [],
+        roadmapProblems: roadmapProblems || [],
+      },
+    });
+  }
+
   // Fetch linked problems with metadata
   const { data: problemsData, error: problemsError } = await supabase
     .from('coding_sheet_problems')

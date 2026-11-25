@@ -59,6 +59,8 @@ export async function GET(
 
     let problems: any[] = [];
     let sqlQuestions: any[] = [];
+    let roadmapLevels: any[] = [];
+    let roadmapProblems: any[] = [];
 
     if ((sheet as any).sheet_type === 'SQL') {
       const { data: sqlData } = await supabase
@@ -67,6 +69,21 @@ export async function GET(
         .eq('sheet_id', sheet.id)
         .order('question_number', { ascending: true });
       sqlQuestions = sqlData || [];
+    } else if ((sheet as any).sheet_type === 'ROADMAP') {
+      const [{ data: lvlData }, { data: probData }] = await Promise.all([
+        supabase
+          .from('coding_sheet_roadmap_levels')
+          .select('id, level_number, title, subtitle, description, target_problem_count, is_unlocked, theory_modules, revision_data, meta')
+          .eq('sheet_id', sheet.id)
+          .order('level_number', { ascending: true }),
+        supabase
+          .from('coding_sheet_roadmap_problems')
+          .select('id, problem_code, order_index, level_number, batch_name, topic, title, difficulty, company_tags, problem_statement, description, constraints, test_cases, theory, brute_force, optimized, explanation, edge_cases')
+          .eq('sheet_id', sheet.id)
+          .order('order_index', { ascending: true }),
+      ]);
+      roadmapLevels = lvlData || [];
+      roadmapProblems = probData || [];
     } else {
       // Fetch public problem list
       const { data: problemsData } = await supabase
@@ -112,6 +129,8 @@ export async function GET(
         creator,
         problems,
         sqlQuestions,
+        roadmapLevels,
+        roadmapProblems,
       },
     });
   } catch (err: any) {

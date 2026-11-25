@@ -1,0 +1,1481 @@
+{
+  "meta": {
+    "series": "DSA for Freshers: Mid-level Company Roadmap",
+    "level": 1,
+    "level_title": "Foundation: Arrays, Hashing, Strings, Math, Recursion",
+    "batch": "Part 1",
+    "language_for_code": "C++17",
+    "language_for_explanations": "Hinglish",
+    "total_problems_in_batch": 25,
+    "note": "company_tags indicative hain (frequently asked trends), official guarantee nahi."
+  },
+  "theory": [
+    {
+      "topic": "Time & Space Complexity",
+      "concept": "Complexity batata hai ki input size n badhne par tumhara code kitna slow hoga ya kitni memory lega. Interview me pehle brute force bolo, phir complexity se bottleneck dikhao, phir optimize karo.",
+      "key_points": [
+        "Common order: O(1) < O(log n) < O(n) < O(n log n) < O(n^2) < O(2^n)",
+        "Constraints se andaza lagao: n<=1e5 => O(n log n) chalega; n<=1e3 => O(n^2); n<=20 => O(2^n)",
+        "Roughly 1e8 simple operations/second maan lo C++ me",
+        "Space me extra memory count hoti hai (input array count nahi hota, par recursion stack hota hai)"
+      ],
+      "pitfalls": [
+        "Nested loop hamesha O(n^2) nahi hota (inner loop chhota ho sakta hai)",
+        "Hash map ko O(1) bolte hain par worst case O(n) hota hai",
+        "Recursion stack depth ko space me bhoolna"
+      ]
+    },
+    {
+      "topic": "Arrays",
+      "concept": "Array contiguous memory me same type ke elements store karta hai. Index se access O(1), par middle me insert/delete O(n) kyunki shifting hoti hai.",
+      "key_points": [
+        "Traversal, prefix/suffix thinking aur in-place modification basic skills hain",
+        "In-place trick: ek pointer read ke liye, doosra write ke liye (overwrite pattern)",
+        "Reverse 3 times se rotation ho jata hai",
+        "XOR trick: a^a=0, a^0=a, isse pairs cancel ho jaate hain",
+        "vector<int> me size() unsigned hota hai, i-1 karte waqt careful"
+      ],
+      "pitfalls": [
+        "Empty array / single element edge case",
+        "k > n rotation me k%=n bhoolna",
+        "Sum me int overflow, long long use karo"
+      ]
+    },
+    {
+      "topic": "Strings",
+      "concept": "String characters ka sequence hai. C++ me std::string mutable hai. Zyadatar problems me frequency count, two pointers ya in-place reverse use hota hai.",
+      "key_points": [
+        "Lowercase letters ke liye int freq[26], ASCII ke liye freq[256]",
+        "Two pointers (left, right) se palindrome/reverse O(n) me",
+        "isalnum(), tolower() <cctype> me milte hain",
+        "s += c amortized O(1); par s = s + c O(n) hota hai"
+      ],
+      "pitfalls": [
+        "Case sensitivity aur spaces",
+        "Empty string",
+        "char ko unsigned char cast karke index banana (negative index bug)"
+      ]
+    },
+    {
+      "topic": "Hashing",
+      "concept": "Hashing se key ko seedha index me map karte hain, isliye lookup/insert average O(1). 'Pehle dekha hai kya?' wale sawaal ka best tool.",
+      "key_points": [
+        "unordered_map / unordered_set: average O(1), unordered; map / set: O(log n), sorted",
+        "Pattern: complement dhundo (target - x), frequency count, seen-before check",
+        "Small fixed range (26 letters / 0..n) ho to array hash map se tez aur simple",
+        "Trade-off: time kam karne ke liye O(n) extra space kharch karte hain"
+      ],
+      "pitfalls": [
+        "Map me insert karne se pehle check karo (Two Sum me same element dobara use na ho)",
+        "operator[] missing key ko default insert kar deta hai",
+        "Anti-hash tests par worst case O(n)"
+      ]
+    },
+    {
+      "topic": "Math & Number Theory Basics",
+      "concept": "GCD, primes, sieve, fast power aur digit manipulation sabse zyada poochhe jaane wale math basics hain.",
+      "key_points": [
+        "Euclid: gcd(a,b)=gcd(b, a%b), O(log min(a,b))",
+        "Prime check sirf sqrt(n) tak; Sieve of Eratosthenes O(n log log n)",
+        "Binary exponentiation: x^n ko O(log n) me (n ko bits me tod do)",
+        "Digit pop: d = x%10; x /= 10",
+        "Overflow check INT_MAX se pehle karo, baad me nahi"
+      ],
+      "pitfalls": [
+        "INT_MIN ko negate karna overflow hai, long long lo",
+        "0 aur 1 prime nahi hain",
+        "Sieve me j ko i*i se start karo"
+      ]
+    },
+    {
+      "topic": "Recursion",
+      "concept": "Function khud ko chhote subproblem par call karta hai. Har recursion me 1) base case 2) recursive case hona chahiye. Calls call stack par rehti hain.",
+      "key_points": [
+        "Pehle base case likho, phir chhota problem define karo",
+        "Fibonacci naive recursion O(2^n) hai kyunki same subproblems baar baar solve hote hain",
+        "Overlapping subproblems => memoization / DP (Level 5 me detail)",
+        "Divide & conquer jaise fast power me problem half ho jata hai",
+        "Recursion depth ~1e5 se upar stack overflow de sakta hai"
+      ],
+      "pitfalls": [
+        "Base case miss => infinite recursion",
+        "Repeated computation",
+        "Space complexity me stack depth count karna"
+      ]
+    }
+  ],
+  "problems": [
+    {
+      "id": "L1-001",
+      "level": 1,
+      "topic": "Arrays",
+      "title": "Largest Element in Array",
+      "difficulty": "Easy",
+      "company_tags": [
+        "TCS",
+        "Infosys",
+        "Wipro",
+        "Cognizant"
+      ],
+      "problem_statement": "Given an array of integers, return the largest element.",
+      "description": "Array ke saare elements me se maximum value dhundni hai.",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "-1e9 <= a[i] <= 1e9"
+      ],
+      "test_cases": [
+        {
+          "input": "[3,2,1,5,2]",
+          "output": "5",
+          "explanation": "5 sabse bada"
+        },
+        {
+          "input": "[-4,-9,-1]",
+          "output": "-1",
+          "explanation": "Negative me bhi max -1"
+        },
+        {
+          "input": "[7]",
+          "output": "7",
+          "explanation": "Single element"
+        }
+      ],
+      "theory": "Linear scan: ek variable me ab tak ka max rakho aur har element se compare karo.",
+      "brute_force": {
+        "approach": "Array sort karo aur last element lo.",
+        "time": "O(n log n)",
+        "space": "O(1)",
+        "code_cpp": "int largest(vector<int> a){ sort(a.begin(), a.end()); return a.back(); }"
+      },
+      "optimized": {
+        "approach": "Pehle element se start karke ek pass me max update karo.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int largest(const vector<int>& a){ int mx = a[0]; for(int x : a) mx = max(mx, x); return mx; }"
+      },
+      "explanation": "Sorting zaroorat se zyada kaam hai. Sirf max chahiye to ek pass kaafi hai. mx ko INT_MIN ya a[0] se init karo.",
+      "edge_cases": [
+        "Single element",
+        "All negatives",
+        "Duplicates of max"
+      ]
+    },
+    {
+      "id": "L1-002",
+      "level": 1,
+      "topic": "Arrays",
+      "title": "Second Largest Distinct Element",
+      "difficulty": "Easy",
+      "company_tags": [
+        "TCS",
+        "Infosys",
+        "Capgemini",
+        "Accenture"
+      ],
+      "problem_statement": "Return the second largest distinct element of the array, or -1 if it does not exist.",
+      "description": "Largest ke baad wala alag (distinct) value chahiye. Agar saare equal hain to -1.",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "-1e9 <= a[i] <= 1e9"
+      ],
+      "test_cases": [
+        {
+          "input": "[12,35,1,10,34,1]",
+          "output": "34",
+          "explanation": "Largest 35, second 34"
+        },
+        {
+          "input": "[10,10,10]",
+          "output": "-1",
+          "explanation": "Distinct value ek hi"
+        },
+        {
+          "input": "[5,5,4]",
+          "output": "4",
+          "explanation": "Duplicates ignore"
+        }
+      ],
+      "theory": "Ek pass me do variables maintain karo: first aur second. Update order important hai.",
+      "brute_force": {
+        "approach": "Descending sort karo, phir first se alag pehla element return karo.",
+        "time": "O(n log n)",
+        "space": "O(1)",
+        "code_cpp": "int secondLargest(vector<int> a){ sort(a.rbegin(), a.rend()); for(int i = 1; i < (int)a.size(); i++) if(a[i] != a[0]) return a[i]; return -1; }"
+      },
+      "optimized": {
+        "approach": "Ek pass: x > first to second = first, first = x; warna x < first aur x > second to second = x.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int secondLargest(const vector<int>& a){ long long f = LLONG_MIN, s = LLONG_MIN; for(int x : a){ if(x > f){ s = f; f = x; } else if(x < f && x > s) s = x; } return s == LLONG_MIN ? -1 : (int)s; }"
+      },
+      "explanation": "x == first hone par kuch update nahi karte, isse distinct maintain hota hai. long long sentinel INT_MIN wali value se clash nahi karta.",
+      "edge_cases": [
+        "All same",
+        "n = 1",
+        "Contains INT_MIN"
+      ]
+    },
+    {
+      "id": "L1-003",
+      "level": 1,
+      "topic": "Arrays",
+      "title": "Check if Array is Sorted",
+      "difficulty": "Easy",
+      "company_tags": [
+        "TCS",
+        "Wipro",
+        "Zoho"
+      ],
+      "problem_statement": "Return true if the array is sorted in non-decreasing order.",
+      "description": "Har adjacent pair ke liye a[i-1] <= a[i] hona chahiye.",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "-1e9 <= a[i] <= 1e9"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,2,2,5]",
+          "output": "true",
+          "explanation": "Non-decreasing"
+        },
+        {
+          "input": "[3,1,2]",
+          "output": "false",
+          "explanation": "3 > 1"
+        },
+        {
+          "input": "[9]",
+          "output": "true",
+          "explanation": "Single element"
+        }
+      ],
+      "theory": "Local condition (adjacent pairs) poore array ki sortedness guarantee deti hai.",
+      "brute_force": {
+        "approach": "Array ki copy sort karo aur original se compare karo.",
+        "time": "O(n log n)",
+        "space": "O(n)",
+        "code_cpp": "bool isSorted(vector<int> a){ vector<int> b = a; sort(b.begin(), b.end()); return a == b; }"
+      },
+      "optimized": {
+        "approach": "Ek pass me pehla violation milte hi false return karo.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "bool isSorted(const vector<int>& a){ for(size_t i = 1; i < a.size(); i++) if(a[i] < a[i-1]) return false; return true; }"
+      },
+      "explanation": "Transitivity: agar har adjacent pair theek hai to poora array sorted hai. Early exit se average case aur tez.",
+      "edge_cases": [
+        "n = 1",
+        "Equal elements",
+        "Strictly decreasing"
+      ]
+    },
+    {
+      "id": "L1-004",
+      "level": 1,
+      "topic": "Arrays",
+      "title": "Remove Duplicates from Sorted Array (In-place)",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "TCS",
+        "Infosys"
+      ],
+      "problem_statement": "Given a sorted array, remove duplicates in-place so each value appears once. Return the new length k; first k elements must hold the unique values.",
+      "description": "Extra array allowed nahi hai (O(1) space). Sorted hone ki wajah se duplicates adjacent hote hain.",
+      "constraints": [
+        "1 <= n <= 3e4",
+        "-100 <= a[i] <= 100",
+        "Array non-decreasing"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,1,2]",
+          "output": "2, [1,2,_]",
+          "explanation": "Unique 1,2"
+        },
+        {
+          "input": "[0,0,1,1,1,2,2,3,3,4]",
+          "output": "5, [0,1,2,3,4,...]",
+          "explanation": "5 unique"
+        },
+        {
+          "input": "[7]",
+          "output": "1",
+          "explanation": "Single"
+        }
+      ],
+      "theory": "Two pointer (slow/fast): slow last unique ki position hai, fast scan karta hai.",
+      "brute_force": {
+        "approach": "Set me daalo (auto-unique + sorted), phir wapas array me copy karo.",
+        "time": "O(n log n)",
+        "space": "O(n)",
+        "code_cpp": "int removeDuplicates(vector<int>& a){ set<int> s(a.begin(), a.end()); int i = 0; for(int x : s) a[i++] = x; return i; }"
+      },
+      "optimized": {
+        "approach": "i = last unique index; j scan kare. a[j] != a[i] ho to a[++i] = a[j].",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int removeDuplicates(vector<int>& a){ if(a.empty()) return 0; int i = 0; for(int j = 1; j < (int)a.size(); j++) if(a[j] != a[i]) a[++i] = a[j]; return i + 1; }"
+      },
+      "explanation": "Sorted property ka fayda: duplicate hamesha last unique se compare karke pakad lete hain. Ye pattern Level 2 ke Two Pointers ki base hai.",
+      "edge_cases": [
+        "Empty array",
+        "All same",
+        "No duplicates"
+      ]
+    },
+    {
+      "id": "L1-005",
+      "level": 1,
+      "topic": "Arrays",
+      "title": "Move Zeroes to End",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Facebook",
+        "Amazon",
+        "Adobe",
+        "Wipro"
+      ],
+      "problem_statement": "Move all 0s to the end while keeping the relative order of non-zero elements. Do it in-place.",
+      "description": "Non-zero elements ka order same rehna chahiye (stable).",
+      "constraints": [
+        "1 <= n <= 1e4",
+        "-2^31 <= a[i] <= 2^31 - 1"
+      ],
+      "test_cases": [
+        {
+          "input": "[0,1,0,3,12]",
+          "output": "[1,3,12,0,0]",
+          "explanation": "Order preserved"
+        },
+        {
+          "input": "[0]",
+          "output": "[0]",
+          "explanation": "Single zero"
+        },
+        {
+          "input": "[1,2,3]",
+          "output": "[1,2,3]",
+          "explanation": "No zero"
+        }
+      ],
+      "theory": "Two pointers: j = next non-zero ke liye jagah. Non-zero mile to swap(a[i], a[j++]).",
+      "brute_force": {
+        "approach": "Non-zero ko temp vector me copy karo, baaki zeros se bharo, wapas copy.",
+        "time": "O(n)",
+        "space": "O(n)",
+        "code_cpp": "void moveZeroes(vector<int>& a){ vector<int> t; for(int x : a) if(x != 0) t.push_back(x); while(t.size() < a.size()) t.push_back(0); a = t; }"
+      },
+      "optimized": {
+        "approach": "j write position; i scan; a[i] != 0 par swap(a[i], a[j++]).",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "void moveZeroes(vector<int>& a){ int j = 0; for(int i = 0; i < (int)a.size(); i++) if(a[i] != 0) swap(a[i], a[j++]); }"
+      },
+      "explanation": "Invariant: [0, j) me saare non-zero hain aur [j, i) me saare zero. Swap invariant bachata hai.",
+      "edge_cases": [
+        "All zeros",
+        "No zeros",
+        "Single element"
+      ]
+    },
+    {
+      "id": "L1-006",
+      "level": 1,
+      "topic": "Arrays",
+      "title": "Rotate Array by K (Right)",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Microsoft",
+        "Amazon",
+        "Infosys",
+        "Cognizant"
+      ],
+      "problem_statement": "Rotate the array to the right by k steps, in-place.",
+      "description": "Har step me last element aage aata hai. k, n se bada ho sakta hai.",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "0 <= k <= 1e9"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,2,3,4,5,6,7], k=3",
+          "output": "[5,6,7,1,2,3,4]",
+          "explanation": "Last 3 aage"
+        },
+        {
+          "input": "[-1,-100,3,99], k=2",
+          "output": "[3,99,-1,-100]",
+          "explanation": "Rotate 2"
+        },
+        {
+          "input": "[1,2], k=5",
+          "output": "[2,1]",
+          "explanation": "k%n = 1"
+        }
+      ],
+      "theory": "Reversal algorithm: poora reverse, phir pehle k, phir baaki n-k reverse karo. k %= n zaroori.",
+      "brute_force": {
+        "approach": "Ek step rotation k baar karo (last ko pakdo, sabko shift karo).",
+        "time": "O(n*k)",
+        "space": "O(1)",
+        "code_cpp": "void rotateArr(vector<int>& a, int k){ int n = a.size(); k %= n; while(k--){ int last = a.back(); for(int i = n-1; i > 0; i--) a[i] = a[i-1]; a[0] = last; } }"
+      },
+      "optimized": {
+        "approach": "k %= n; reverse(all); reverse(0..k); reverse(k..n).",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "void rotateArr(vector<int>& a, int k){ int n = a.size(); k %= n; reverse(a.begin(), a.end()); reverse(a.begin(), a.begin() + k); reverse(a.begin() + k, a.end()); }"
+      },
+      "explanation": "Reverse karne se last k elements aage aa jaate hain par ulte order me; dobara reverse se order seedha ho jata hai.",
+      "edge_cases": [
+        "k = 0",
+        "k multiple of n",
+        "n = 1"
+      ]
+    },
+    {
+      "id": "L1-007",
+      "level": 1,
+      "topic": "Arrays",
+      "title": "Missing Number",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "TCS",
+        "Accenture"
+      ],
+      "problem_statement": "Array of n distinct numbers in range [0, n]. Return the one number missing from the range.",
+      "description": "Range n+1 numbers ki hai par array me n hain, to exactly ek missing hai.",
+      "constraints": [
+        "1 <= n <= 1e4",
+        "0 <= a[i] <= n",
+        "All distinct"
+      ],
+      "test_cases": [
+        {
+          "input": "[3,0,1]",
+          "output": "2",
+          "explanation": "0..3 me 2 nahi"
+        },
+        {
+          "input": "[0,1]",
+          "output": "2",
+          "explanation": "n=2, missing 2"
+        },
+        {
+          "input": "[9,6,4,2,3,5,7,0,1]",
+          "output": "8",
+          "explanation": "8 missing"
+        }
+      ],
+      "theory": "XOR trick: index 0..n aur array values sab XOR karo; pairs cancel hote hain, missing bach jata hai. Sum formula bhi chalta hai.",
+      "brute_force": {
+        "approach": "0 se n tak har number ke liye array me linear search karo.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int missingNumber(const vector<int>& a){ int n = a.size(); for(int x = 0; x <= n; x++){ bool f = false; for(int v : a) if(v == x){ f = true; break; } if(!f) return x; } return -1; }"
+      },
+      "optimized": {
+        "approach": "x = n; har i par x ^= i ^ a[i]. Final x answer.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int missingNumber(const vector<int>& a){ int x = a.size(); for(int i = 0; i < (int)a.size(); i++) x ^= i ^ a[i]; return x; }"
+      },
+      "explanation": "a^a = 0 aur a^0 = a. Present numbers do baar aate hain (ek index se, ek value se) to cancel; missing sirf ek baar aata hai.",
+      "edge_cases": [
+        "Missing 0",
+        "Missing n",
+        "n = 1"
+      ]
+    },
+    {
+      "id": "L1-008",
+      "level": 1,
+      "topic": "Arrays",
+      "title": "Max Consecutive Ones",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Infosys",
+        "Wipro"
+      ],
+      "problem_statement": "Given a binary array, return the maximum number of consecutive 1s.",
+      "description": "Continuous 1s ka sabse lamba run chahiye.",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "a[i] is 0 or 1"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,1,0,1,1,1]",
+          "output": "3",
+          "explanation": "Last run lamba"
+        },
+        {
+          "input": "[1,0,1,0,1]",
+          "output": "1",
+          "explanation": "Har run 1"
+        },
+        {
+          "input": "[0,0]",
+          "output": "0",
+          "explanation": "Koi 1 nahi"
+        }
+      ],
+      "theory": "Running counter: 1 mile to cnt++, 0 mile to cnt = 0; best update karte raho.",
+      "brute_force": {
+        "approach": "Har start index se tab tak count karo jab tak 1 mile.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int maxOnes(const vector<int>& a){ int best = 0, n = a.size(); for(int i = 0; i < n; i++){ int c = 0; for(int j = i; j < n && a[j] == 1; j++) c++; best = max(best, c); } return best; }"
+      },
+      "optimized": {
+        "approach": "Single pass counter reset on 0.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int maxOnes(const vector<int>& a){ int best = 0, c = 0; for(int x : a){ c = x ? c + 1 : 0; best = max(best, c); } return best; }"
+      },
+      "explanation": "Brute me har run baar baar re-scan hota hai. Single pass me har element sirf ek baar dekha jata hai.",
+      "edge_cases": [
+        "All ones",
+        "All zeros",
+        "Single element"
+      ]
+    },
+    {
+      "id": "L1-009",
+      "level": 1,
+      "topic": "Arrays",
+      "title": "Single Number (Every Other Appears Twice)",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Zoho"
+      ],
+      "problem_statement": "Every element appears twice except one. Find that single one using O(1) extra space.",
+      "description": "Linear time aur constant space me answer chahiye.",
+      "constraints": [
+        "1 <= n <= 3e4 (n odd)",
+        "-3e4 <= a[i] <= 3e4"
+      ],
+      "test_cases": [
+        {
+          "input": "[2,2,1]",
+          "output": "1",
+          "explanation": "1 akela"
+        },
+        {
+          "input": "[4,1,2,1,2]",
+          "output": "4",
+          "explanation": "4 akela"
+        },
+        {
+          "input": "[1]",
+          "output": "1",
+          "explanation": "Single"
+        }
+      ],
+      "theory": "XOR properties: commutative, associative, a^a=0, a^0=a. Saare XOR karo to pairs cancel.",
+      "brute_force": {
+        "approach": "HashMap me frequency count karo, jiska count 1 ho wo answer.",
+        "time": "O(n)",
+        "space": "O(n)",
+        "code_cpp": "int single(const vector<int>& a){ unordered_map<int,int> m; for(int x : a) m[x]++; for(auto& p : m) if(p.second == 1) return p.first; return -1; }"
+      },
+      "optimized": {
+        "approach": "Saare elements ka XOR.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int single(const vector<int>& a){ int x = 0; for(int v : a) x ^= v; return x; }"
+      },
+      "explanation": "Order matter nahi karta kyunki XOR commutative hai. Bit manipulation ka sabse famous introduction.",
+      "edge_cases": [
+        "n = 1",
+        "Negative numbers"
+      ]
+    },
+    {
+      "id": "L1-010",
+      "level": 1,
+      "topic": "Hashing",
+      "title": "Two Sum",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "TCS",
+        "Infosys",
+        "Flipkart"
+      ],
+      "problem_statement": "Return indices of two numbers whose sum equals target. Exactly one solution exists; same element cannot be used twice.",
+      "description": "Array unsorted hai. Indices return karne hain, values nahi.",
+      "constraints": [
+        "2 <= n <= 1e4",
+        "-1e9 <= a[i], target <= 1e9",
+        "Exactly one valid answer"
+      ],
+      "test_cases": [
+        {
+          "input": "[2,7,11,15], t=9",
+          "output": "[0,1]",
+          "explanation": "2+7=9"
+        },
+        {
+          "input": "[3,2,4], t=6",
+          "output": "[1,2]",
+          "explanation": "2+4=6, 3 ko do baar nahi"
+        },
+        {
+          "input": "[3,3], t=6",
+          "output": "[0,1]",
+          "explanation": "Duplicates"
+        }
+      ],
+      "theory": "Complement idea: x ke liye target - x pehle dekha hai ya nahi. HashMap value -> index.",
+      "brute_force": {
+        "approach": "Saare pairs (i, j) check karo.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "vector<int> twoSum(vector<int>& a, int t){ for(int i = 0; i < (int)a.size(); i++) for(int j = i + 1; j < (int)a.size(); j++) if(a[i] + a[j] == t) return {i, j}; return {}; }"
+      },
+      "optimized": {
+        "approach": "Ek pass me map me check karo, phir current insert karo.",
+        "time": "O(n)",
+        "space": "O(n)",
+        "code_cpp": "vector<int> twoSum(vector<int>& a, int t){ unordered_map<int,int> m; for(int i = 0; i < (int)a.size(); i++){ auto it = m.find(t - a[i]); if(it != m.end()) return {it->second, i}; m[a[i]] = i; } return {}; }"
+      },
+      "explanation": "Insert baad me karte hain, isliye same element dobara use nahi hota. Space se time kharidna: O(n^2) -> O(n).",
+      "edge_cases": [
+        "Duplicate values",
+        "Negative numbers",
+        "Target 0"
+      ]
+    },
+    {
+      "id": "L1-011",
+      "level": 1,
+      "topic": "Hashing",
+      "title": "Contains Duplicate",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Apple",
+        "Wipro",
+        "Cognizant"
+      ],
+      "problem_statement": "Return true if any value appears at least twice.",
+      "description": "Koi bhi value repeat hui to true.",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "-1e9 <= a[i] <= 1e9"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,2,3,1]",
+          "output": "true",
+          "explanation": "1 repeat"
+        },
+        {
+          "input": "[1,2,3,4]",
+          "output": "false",
+          "explanation": "All distinct"
+        },
+        {
+          "input": "[5]",
+          "output": "false",
+          "explanation": "Single"
+        }
+      ],
+      "theory": "Set me pehle se present hai ya nahi check karo (seen-before pattern).",
+      "brute_force": {
+        "approach": "Har pair compare karo.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "bool hasDup(const vector<int>& a){ for(size_t i = 0; i < a.size(); i++) for(size_t j = i + 1; j < a.size(); j++) if(a[i] == a[j]) return true; return false; }"
+      },
+      "optimized": {
+        "approach": "unordered_set me insert; agar already present to true.",
+        "time": "O(n) avg",
+        "space": "O(n)",
+        "code_cpp": "bool hasDup(const vector<int>& a){ unordered_set<int> s; for(int x : a) if(!s.insert(x).second) return true; return false; }"
+      },
+      "explanation": "insert().second false return karta hai jab element pehle se ho. Alternative: sort karke adjacent compare, O(n log n) time O(1) space.",
+      "edge_cases": [
+        "n = 1",
+        "All same"
+      ]
+    },
+    {
+      "id": "L1-012",
+      "level": 1,
+      "topic": "Hashing",
+      "title": "Valid Anagram",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Infosys",
+        "TCS"
+      ],
+      "problem_statement": "Given strings s and t, return true if t is an anagram of s.",
+      "description": "Same letters same frequency me, order alag ho sakta hai.",
+      "constraints": [
+        "1 <= |s|, |t| <= 5e4",
+        "Lowercase English letters"
+      ],
+      "test_cases": [
+        {
+          "input": "s=anagram, t=nagaram",
+          "output": "true",
+          "explanation": "Same counts"
+        },
+        {
+          "input": "s=rat, t=car",
+          "output": "false",
+          "explanation": "Letters alag"
+        },
+        {
+          "input": "s=a, t=ab",
+          "output": "false",
+          "explanation": "Length alag"
+        }
+      ],
+      "theory": "Frequency array of size 26: s ke liye ++, t ke liye --, end me sab 0 hona chahiye.",
+      "brute_force": {
+        "approach": "Dono strings sort karo aur compare karo.",
+        "time": "O(n log n)",
+        "space": "O(1)",
+        "code_cpp": "bool isAnagram(string s, string t){ sort(s.begin(), s.end()); sort(t.begin(), t.end()); return s == t; }"
+      },
+      "optimized": {
+        "approach": "Length check, phir freq[26] se increment/decrement.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "bool isAnagram(const string& s, const string& t){ if(s.size() != t.size()) return false; int f[26] = {0}; for(size_t i = 0; i < s.size(); i++){ f[s[i]-'a']++; f[t[i]-'a']--; } for(int c : f) if(c) return false; return true; }"
+      },
+      "explanation": "26 size ka array hash map ka chhota fast version hai. Unicode input ho to unordered_map use karo.",
+      "edge_cases": [
+        "Different lengths",
+        "Empty strings",
+        "Same string"
+      ]
+    },
+    {
+      "id": "L1-013",
+      "level": 1,
+      "topic": "Hashing",
+      "title": "First Non-Repeating Character",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Adobe",
+        "Infosys"
+      ],
+      "problem_statement": "Return the index of the first non-repeating character in the string, or -1.",
+      "description": "Pehla character jo poori string me sirf ek baar aaya ho.",
+      "constraints": [
+        "1 <= |s| <= 1e5",
+        "Lowercase English letters"
+      ],
+      "test_cases": [
+        {
+          "input": "leetcode",
+          "output": "0",
+          "explanation": "l unique"
+        },
+        {
+          "input": "loveleetcode",
+          "output": "2",
+          "explanation": "v pehla unique"
+        },
+        {
+          "input": "aabb",
+          "output": "-1",
+          "explanation": "Koi unique nahi"
+        }
+      ],
+      "theory": "Do-pass hashing: pehle frequency, phir string dobara scan karke pehla freq==1.",
+      "brute_force": {
+        "approach": "Har character ke liye poori string me count karo.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int firstUniq(const string& s){ for(int i = 0; i < (int)s.size(); i++){ int c = 0; for(char ch : s) if(ch == s[i]) c++; if(c == 1) return i; } return -1; }"
+      },
+      "optimized": {
+        "approach": "freq[26] banao, phir left to right pehla freq 1 return.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int firstUniq(const string& s){ int f[26] = {0}; for(char c : s) f[c-'a']++; for(int i = 0; i < (int)s.size(); i++) if(f[s[i]-'a'] == 1) return i; return -1; }"
+      },
+      "explanation": "Frequency pehle poori string se nikalni padti hai kyunki aage ke characters bhi count ko badal sakte hain.",
+      "edge_cases": [
+        "All repeating",
+        "n = 1"
+      ]
+    },
+    {
+      "id": "L1-014",
+      "level": 1,
+      "topic": "Hashing",
+      "title": "Majority Element (> n/2)",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Flipkart"
+      ],
+      "problem_statement": "Return the element that appears more than n/2 times. It always exists.",
+      "description": "Guarantee hai ki majority element exist karta hai.",
+      "constraints": [
+        "1 <= n <= 5e4",
+        "-1e9 <= a[i] <= 1e9"
+      ],
+      "test_cases": [
+        {
+          "input": "[3,2,3]",
+          "output": "3",
+          "explanation": "2 baar > 3/2"
+        },
+        {
+          "input": "[2,2,1,1,1,2,2]",
+          "output": "2",
+          "explanation": "4 baar"
+        },
+        {
+          "input": "[1]",
+          "output": "1",
+          "explanation": "Single"
+        }
+      ],
+      "theory": "Boyer-Moore Voting: candidate aur count rakho; same mila to ++, alag mila to --, 0 par naya candidate. Majority sabko cancel karke bhi bach jata hai.",
+      "brute_force": {
+        "approach": "HashMap me frequency count karo, jiska count > n/2 ho return.",
+        "time": "O(n)",
+        "space": "O(n)",
+        "code_cpp": "int majority(const vector<int>& a){ unordered_map<int,int> m; for(int x : a) if(++m[x] > (int)a.size()/2) return x; return -1; }"
+      },
+      "optimized": {
+        "approach": "Boyer-Moore Voting Algorithm.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int majority(const vector<int>& a){ int cand = 0, cnt = 0; for(int x : a){ if(cnt == 0) cand = x; cnt += (x == cand) ? 1 : -1; } return cand; }"
+      },
+      "explanation": "Majority element ke paas n/2 se zyada votes hain, to baaki saare milke bhi usse cancel nahi kar sakte.",
+      "edge_cases": [
+        "n = 1",
+        "Majority at the end"
+      ]
+    },
+    {
+      "id": "L1-015",
+      "level": 1,
+      "topic": "Hashing",
+      "title": "Intersection of Two Arrays (Unique)",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Facebook",
+        "TCS",
+        "Cognizant"
+      ],
+      "problem_statement": "Return the unique elements that appear in both arrays, in any order.",
+      "description": "Result me duplicates nahi hone chahiye.",
+      "constraints": [
+        "1 <= n, m <= 1000",
+        "0 <= a[i], b[i] <= 1000"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,2,2,1], [2,2]",
+          "output": "[2]",
+          "explanation": "Common sirf 2"
+        },
+        {
+          "input": "[4,9,5], [9,4,9,8,4]",
+          "output": "[9,4]",
+          "explanation": "Order koi bhi"
+        },
+        {
+          "input": "[1,2], [3,4]",
+          "output": "[]",
+          "explanation": "Koi common nahi"
+        }
+      ],
+      "theory": "Ek array ko set me daalo aur doosre ke elements ko usme lookup karo. Used-set se duplicates hatao.",
+      "brute_force": {
+        "approach": "Har a[i] ko har b[j] se compare karo.",
+        "time": "O(n*m)",
+        "space": "O(1) extra (result chhodkar)",
+        "code_cpp": "vector<int> intersect(const vector<int>& a, const vector<int>& b){ vector<int> r; for(int x : a){ bool inB = false; for(int y : b) if(x == y){ inB = true; break; } bool dup = find(r.begin(), r.end(), x) != r.end(); if(inB && !dup) r.push_back(x); } return r; }"
+      },
+      "optimized": {
+        "approach": "Set A banao, B scan karo; mile to result me daalo aur A se erase kar do (dobara na aaye).",
+        "time": "O(n+m)",
+        "space": "O(n)",
+        "code_cpp": "vector<int> intersect(const vector<int>& a, const vector<int>& b){ unordered_set<int> s(a.begin(), a.end()); vector<int> r; for(int y : b) if(s.count(y)){ r.push_back(y); s.erase(y); } return r; }"
+      },
+      "explanation": "Erase karna ek neat trick hai duplicates hatane ka bina extra set ke.",
+      "edge_cases": [
+        "One array empty",
+        "No common",
+        "All common"
+      ]
+    },
+    {
+      "id": "L1-016",
+      "level": 1,
+      "topic": "Strings",
+      "title": "Reverse a String (In-place)",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Microsoft",
+        "Amazon",
+        "TCS",
+        "Wipro"
+      ],
+      "problem_statement": "Reverse the given character array in-place using O(1) extra memory.",
+      "description": "Naya string banana allowed nahi (in-place).",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "Printable ASCII"
+      ],
+      "test_cases": [
+        {
+          "input": "hello",
+          "output": "olleh",
+          "explanation": "Reverse"
+        },
+        {
+          "input": "a",
+          "output": "a",
+          "explanation": "Single"
+        },
+        {
+          "input": "ab",
+          "output": "ba",
+          "explanation": "Two chars"
+        }
+      ],
+      "theory": "Two pointers left/right ko center ki taraf le jao aur swap karo.",
+      "brute_force": {
+        "approach": "Naya string banao jisme end se start tak characters push karo.",
+        "time": "O(n)",
+        "space": "O(n)",
+        "code_cpp": "string rev(const string& s){ string r; for(int i = (int)s.size() - 1; i >= 0; i--) r += s[i]; return r; }"
+      },
+      "optimized": {
+        "approach": "l = 0, r = n-1; while l < r: swap(s[l++], s[r--]).",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "void rev(string& s){ int l = 0, r = (int)s.size() - 1; while(l < r) swap(s[l++], s[r--]); }"
+      },
+      "explanation": "Sirf n/2 swaps lagte hain. Ye two-pointer ka sabse basic form hai.",
+      "edge_cases": [
+        "Empty string",
+        "Odd/even length"
+      ]
+    },
+    {
+      "id": "L1-017",
+      "level": 1,
+      "topic": "Strings",
+      "title": "Valid Palindrome (Alphanumeric)",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Facebook",
+        "Microsoft",
+        "Infosys",
+        "Capgemini"
+      ],
+      "problem_statement": "Return true if the string is a palindrome after ignoring non-alphanumeric characters and case.",
+      "description": "Spaces aur punctuation ignore karo, uppercase/lowercase same maano.",
+      "constraints": [
+        "1 <= |s| <= 2e5",
+        "Printable ASCII"
+      ],
+      "test_cases": [
+        {
+          "input": "A man, a plan, a canal: Panama",
+          "output": "true",
+          "explanation": "Cleaned: amanaplanacanalpanama"
+        },
+        {
+          "input": "race a car",
+          "output": "false",
+          "explanation": "raceacar palindrome nahi"
+        },
+        {
+          "input": "\" \"",
+          "output": "true",
+          "explanation": "Empty after cleaning"
+        }
+      ],
+      "theory": "Two pointers: invalid characters skip karo, phir tolower karke compare.",
+      "brute_force": {
+        "approach": "Cleaned string banao, uska reverse banao aur compare karo.",
+        "time": "O(n)",
+        "space": "O(n)",
+        "code_cpp": "bool isPal(const string& s){ string t; for(char c : s) if(isalnum((unsigned char)c)) t += tolower(c); string r(t.rbegin(), t.rend()); return t == r; }"
+      },
+      "optimized": {
+        "approach": "l, r pointers; non-alnum skip; mismatch par false.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "bool isPal(const string& s){ int l = 0, r = (int)s.size() - 1; while(l < r){ while(l < r && !isalnum((unsigned char)s[l])) l++; while(l < r && !isalnum((unsigned char)s[r])) r--; if(tolower(s[l]) != tolower(s[r])) return false; l++; r--; } return true; }"
+      },
+      "explanation": "Extra string ki jagah pointers se O(1) space. unsigned char cast negative char par undefined behavior se bachata hai.",
+      "edge_cases": [
+        "Only symbols",
+        "Single char",
+        "Mixed case"
+      ]
+    },
+    {
+      "id": "L1-018",
+      "level": 1,
+      "topic": "Strings",
+      "title": "Longest Common Prefix",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "TCS",
+        "Accenture"
+      ],
+      "problem_statement": "Find the longest common prefix among an array of strings. Return empty string if none.",
+      "description": "Saare strings ke shuru ka common hissa.",
+      "constraints": [
+        "1 <= n <= 200",
+        "0 <= |s[i]| <= 200",
+        "Lowercase letters"
+      ],
+      "test_cases": [
+        {
+          "input": "[flower,flow,flight]",
+          "output": "fl",
+          "explanation": "Common fl"
+        },
+        {
+          "input": "[dog,racecar,car]",
+          "output": "\"\"",
+          "explanation": "Koi common nahi"
+        },
+        {
+          "input": "[a]",
+          "output": "a",
+          "explanation": "Single string"
+        }
+      ],
+      "theory": "Vertical scanning: column by column check karo, mismatch par ruk jao.",
+      "brute_force": {
+        "approach": "Pehli string ke prefixes lambe se chhote try karo aur har ek ko sab strings me check karo.",
+        "time": "O(n * m^2)",
+        "space": "O(1)",
+        "code_cpp": "string lcp(const vector<string>& v){ string f = v[0]; for(int len = f.size(); len > 0; len--){ string p = f.substr(0, len); bool ok = true; for(auto& s : v) if(s.compare(0, len, p) != 0){ ok = false; break; } if(ok) return p; } return \"\"; }"
+      },
+      "optimized": {
+        "approach": "Column i par har string ka character v[0][i] se compare karo; mismatch ya end par prefix return.",
+        "time": "O(total characters)",
+        "space": "O(1)",
+        "code_cpp": "string lcp(const vector<string>& v){ for(size_t i = 0; i < v[0].size(); i++) for(size_t j = 1; j < v.size(); j++) if(i >= v[j].size() || v[j][i] != v[0][i]) return v[0].substr(0, i); return v[0]; }"
+      },
+      "explanation": "Brute me substr aur compare repeat hote hain. Vertical scan me jaise hi mismatch mila, kaam khatam.",
+      "edge_cases": [
+        "Empty string in list",
+        "One string",
+        "Identical strings"
+      ]
+    },
+    {
+      "id": "L1-019",
+      "level": 1,
+      "topic": "Strings",
+      "title": "Reverse Words in a String",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Microsoft",
+        "Amazon",
+        "Infosys",
+        "Zoho"
+      ],
+      "problem_statement": "Reverse the order of words. Remove leading, trailing and extra spaces; words separated by a single space in the output.",
+      "description": "Words ka order ulta karna hai (words ke andar ke characters nahi).",
+      "constraints": [
+        "1 <= |s| <= 1e4",
+        "At least one word"
+      ],
+      "test_cases": [
+        {
+          "input": "the sky is blue",
+          "output": "blue is sky the",
+          "explanation": "Order reverse"
+        },
+        {
+          "input": "  hello world  ",
+          "output": "world hello",
+          "explanation": "Extra spaces trim"
+        },
+        {
+          "input": "a good   example",
+          "output": "example good a",
+          "explanation": "Beech ke spaces ek"
+        }
+      ],
+      "theory": "Trick: pura string reverse karo, phir har word ko individually reverse karo, spaces compress karte hue.",
+      "brute_force": {
+        "approach": "stringstream se words nikalo, vector reverse karo, join karo.",
+        "time": "O(n)",
+        "space": "O(n)",
+        "code_cpp": "string revWords(const string& s){ stringstream ss(s); string w; vector<string> v; while(ss >> w) v.push_back(w); string r; for(int i = (int)v.size() - 1; i >= 0; i--){ r += v[i]; if(i) r += ' '; } return r; }"
+      },
+      "optimized": {
+        "approach": "Pura reverse; phir har word ko write pointer idx par copy karke segment reverse; end me resize(idx).",
+        "time": "O(n)",
+        "space": "O(1) extra",
+        "code_cpp": "string revWords(string s){ reverse(s.begin(), s.end()); int n = s.size(), idx = 0; for(int i = 0; i < n; i++){ if(s[i] != ' '){ if(idx) s[idx++] = ' '; int j = i; while(j < n && s[j] != ' ') s[idx++] = s[j++]; reverse(s.begin() + idx - (j - i), s.begin() + idx); i = j; } } s.resize(idx); return s; }"
+      },
+      "explanation": "Pehle reverse se words ka order ulta hota hai (par words ulte). Dobara word-wise reverse se unke andar ka order theek.",
+      "edge_cases": [
+        "Only spaces between",
+        "Single word",
+        "Leading/trailing spaces"
+      ]
+    },
+    {
+      "id": "L1-020",
+      "level": 1,
+      "topic": "Strings",
+      "title": "Isomorphic Strings",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "LinkedIn",
+        "Infosys",
+        "Cognizant"
+      ],
+      "problem_statement": "Two strings are isomorphic if characters in s can be replaced to get t, with one-to-one mapping and preserved order.",
+      "description": "Ek character sirf ek hi character se map ho sakta hai aur do alag characters same se map nahi ho sakte.",
+      "constraints": [
+        "1 <= |s| <= 5e4",
+        "|s| == |t|",
+        "ASCII characters"
+      ],
+      "test_cases": [
+        {
+          "input": "egg, add",
+          "output": "true",
+          "explanation": "e->a, g->d"
+        },
+        {
+          "input": "foo, bar",
+          "output": "false",
+          "explanation": "o do alag se map"
+        },
+        {
+          "input": "paper, title",
+          "output": "true",
+          "explanation": "Consistent mapping"
+        }
+      ],
+      "theory": "Do arrays rakho: s->t aur t->s ka last-seen position. Dono ka position same hona chahiye.",
+      "brute_force": {
+        "approach": "Har pair (i, j) ke liye (s[i]==s[j]) aur (t[i]==t[j]) same hone chahiye.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "bool isIso(const string& s, const string& t){ if(s.size() != t.size()) return false; for(size_t i = 0; i < s.size(); i++) for(size_t j = i + 1; j < s.size(); j++) if((s[i] == s[j]) != (t[i] == t[j])) return false; return true; }"
+      },
+      "optimized": {
+        "approach": "Do arrays a[256], b[256]; a[s[i]] != b[t[i]] to false; warna dono = i+1.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "bool isIso(const string& s, const string& t){ if(s.size() != t.size()) return false; int a[256] = {0}, b[256] = {0}; for(size_t i = 0; i < s.size(); i++){ unsigned char x = s[i], y = t[i]; if(a[x] != b[y]) return false; a[x] = b[y] = i + 1; } return true; }"
+      },
+      "explanation": "i+1 isliye kyunki 0 ka matlab 'abhi dekha nahi'. Dono directions check hone se one-to-one guarantee hoti hai.",
+      "edge_cases": [
+        "Different length",
+        "Same string",
+        "Single char"
+      ]
+    },
+    {
+      "id": "L1-021",
+      "level": 1,
+      "topic": "Math",
+      "title": "GCD of Two Numbers",
+      "difficulty": "Easy",
+      "company_tags": [
+        "TCS",
+        "Infosys",
+        "Wipro",
+        "Capgemini"
+      ],
+      "problem_statement": "Return the greatest common divisor of two positive integers.",
+      "description": "Sabse bada number jo dono ko exactly divide kare.",
+      "constraints": [
+        "1 <= a, b <= 1e9"
+      ],
+      "test_cases": [
+        {
+          "input": "12, 18",
+          "output": "6",
+          "explanation": "6 divide karta hai dono ko"
+        },
+        {
+          "input": "17, 5",
+          "output": "1",
+          "explanation": "Co-prime"
+        },
+        {
+          "input": "100, 10",
+          "output": "10",
+          "explanation": "b divides a"
+        }
+      ],
+      "theory": "Euclidean algorithm: gcd(a, b) = gcd(b, a % b); jab b == 0 ho to a answer.",
+      "brute_force": {
+        "approach": "min(a,b) se 1 tak loop chalao aur pehla common divisor return karo.",
+        "time": "O(min(a,b))",
+        "space": "O(1)",
+        "code_cpp": "int gcdBrute(int a, int b){ for(int d = min(a, b); d >= 1; d--) if(a % d == 0 && b % d == 0) return d; return 1; }"
+      },
+      "optimized": {
+        "approach": "Euclid ka iterative ya recursive version.",
+        "time": "O(log min(a,b))",
+        "space": "O(1)",
+        "code_cpp": "int gcdOpt(int a, int b){ while(b){ int t = a % b; a = b; b = t; } return a; }"
+      },
+      "explanation": "gcd(a,b) = gcd(b, a%b) isliye sahi hai kyunki a aur a%b ka common divisor wahi hota hai jo a aur b ka hota hai. LCM = a / gcd * b.",
+      "edge_cases": [
+        "a == b",
+        "One divides other",
+        "1e9 values (a*b overflow in LCM)"
+      ]
+    },
+    {
+      "id": "L1-022",
+      "level": 1,
+      "topic": "Math",
+      "title": "Count Primes less than n",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "TCS",
+        "Infosys"
+      ],
+      "problem_statement": "Return the number of primes strictly less than n.",
+      "description": "n tak ke primes ginne hain, har number ko alag check karna slow hoga.",
+      "constraints": [
+        "0 <= n <= 5e6"
+      ],
+      "test_cases": [
+        {
+          "input": "10",
+          "output": "4",
+          "explanation": "2,3,5,7"
+        },
+        {
+          "input": "0",
+          "output": "0",
+          "explanation": "Koi nahi"
+        },
+        {
+          "input": "20",
+          "output": "8",
+          "explanation": "2,3,5,7,11,13,17,19"
+        }
+      ],
+      "theory": "Sieve of Eratosthenes: prime ke multiples ko composite mark karo, i*i se start karke.",
+      "brute_force": {
+        "approach": "Har number ke liye sqrt tak trial division.",
+        "time": "O(n * sqrt(n))",
+        "space": "O(1)",
+        "code_cpp": "int countPrimes(int n){ int c = 0; for(int x = 2; x < n; x++){ bool p = true; for(long long d = 2; d * d <= x; d++) if(x % d == 0){ p = false; break; } if(p) c++; } return c; }"
+      },
+      "optimized": {
+        "approach": "Boolean sieve array; i from 2 to sqrt(n); j = i*i; j < n; j += i mark false.",
+        "time": "O(n log log n)",
+        "space": "O(n)",
+        "code_cpp": "int countPrimes(int n){ if(n < 3) return 0; vector<bool> p(n, true); p[0] = p[1] = false; for(long long i = 2; i * i < n; i++) if(p[i]) for(long long j = i * i; j < n; j += i) p[j] = false; return count(p.begin(), p.end(), true); }"
+      },
+      "explanation": "j = i*i se start karte hain kyunki chhote multiples pehle hi chhote primes se mark ho chuke hote hain.",
+      "edge_cases": [
+        "n = 0, 1, 2",
+        "Large n memory",
+        "Perfect squares"
+      ]
+    },
+    {
+      "id": "L1-023",
+      "level": 1,
+      "topic": "Math",
+      "title": "Reverse Integer (with Overflow Check)",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Apple",
+        "Infosys",
+        "Wipro"
+      ],
+      "problem_statement": "Reverse the digits of a signed 32-bit integer. If the result overflows the 32-bit range, return 0.",
+      "description": "Negative number ka sign preserve hona chahiye. 64-bit type ka use nahi karna (interview constraint).",
+      "constraints": [
+        "-2^31 <= x <= 2^31 - 1"
+      ],
+      "test_cases": [
+        {
+          "input": "123",
+          "output": "321",
+          "explanation": "Normal"
+        },
+        {
+          "input": "-120",
+          "output": "-21",
+          "explanation": "Trailing zero drop"
+        },
+        {
+          "input": "1534236469",
+          "output": "0",
+          "explanation": "Reverse overflow karta hai"
+        }
+      ],
+      "theory": "Digit pop/push: d = x % 10; x /= 10; r = r*10 + d. Push se pehle INT_MAX/INT_MIN check karo.",
+      "brute_force": {
+        "approach": "String me convert karo, reverse karo, long long me parse karke range check karo.",
+        "time": "O(log x)",
+        "space": "O(log x)",
+        "code_cpp": "int reverseInt(int x){ long long v = x; bool neg = v < 0; if(neg) v = -v; string s = to_string(v); reverse(s.begin(), s.end()); long long r = stoll(s); if(neg) r = -r; return (r < INT_MIN || r > INT_MAX) ? 0 : (int)r; }"
+      },
+      "optimized": {
+        "approach": "Digit-by-digit math with pre-overflow check, no extra string.",
+        "time": "O(log x)",
+        "space": "O(1)",
+        "code_cpp": "int reverseInt(int x){ int r = 0; while(x){ int d = x % 10; x /= 10; if(r > INT_MAX/10 || (r == INT_MAX/10 && d > 7)) return 0; if(r < INT_MIN/10 || (r == INT_MIN/10 && d < -8)) return 0; r = r * 10 + d; } return r; }"
+      },
+      "explanation": "C++ me negative % negative hi deta hai, isliye alag sign handling nahi chahiye. 7 aur -8 INT_MAX (…47) aur INT_MIN (…48) ke last digits hain.",
+      "edge_cases": [
+        "x = 0",
+        "Trailing zeros",
+        "INT_MIN / INT_MAX"
+      ]
+    },
+    {
+      "id": "L1-024",
+      "level": 1,
+      "topic": "Recursion",
+      "title": "Fibonacci Number",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "TCS",
+        "Infosys",
+        "Zoho"
+      ],
+      "problem_statement": "Given n, return F(n) where F(0)=0, F(1)=1, F(n)=F(n-1)+F(n-2).",
+      "description": "Classic recursion + overlapping subproblems ka example.",
+      "constraints": [
+        "0 <= n <= 30 (fits in int)"
+      ],
+      "test_cases": [
+        {
+          "input": "2",
+          "output": "1",
+          "explanation": "F(2)=1"
+        },
+        {
+          "input": "5",
+          "output": "5",
+          "explanation": "0,1,1,2,3,5"
+        },
+        {
+          "input": "0",
+          "output": "0",
+          "explanation": "Base case"
+        }
+      ],
+      "theory": "Naive recursion me same F(k) baar baar compute hota hai (tree O(2^n)). Do variables se iterative O(n) ya memoization.",
+      "brute_force": {
+        "approach": "Seedha recursion: F(n) = F(n-1) + F(n-2).",
+        "time": "O(2^n)",
+        "space": "O(n) stack",
+        "code_cpp": "int fib(int n){ if(n <= 1) return n; return fib(n - 1) + fib(n - 2); }"
+      },
+      "optimized": {
+        "approach": "Iterative: prev aur curr do variables roll karte raho.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int fib(int n){ if(n <= 1) return n; int a = 0, b = 1; for(int i = 2; i <= n; i++){ int c = a + b; a = b; b = c; } return b; }"
+      },
+      "explanation": "n = 40 par naive version bahut slow ho jata hai. Ye DP ka pehla sabak hai: subproblem results store/reuse karo.",
+      "edge_cases": [
+        "n = 0 and 1",
+        "Overflow for large n"
+      ]
+    },
+    {
+      "id": "L1-025",
+      "level": 1,
+      "topic": "Recursion",
+      "title": "Pow(x, n) - Fast Exponentiation",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Facebook",
+        "Zoho"
+      ],
+      "problem_statement": "Compute x raised to the power n (n can be negative).",
+      "description": "n bada (1e9 tak) ho sakta hai, isliye O(n) loop TLE de sakta hai.",
+      "constraints": [
+        "-100.0 < x < 100.0",
+        "-2^31 <= n <= 2^31 - 1"
+      ],
+      "test_cases": [
+        {
+          "input": "2.0, 10",
+          "output": "1024.0",
+          "explanation": "2^10"
+        },
+        {
+          "input": "2.1, 3",
+          "output": "9.261",
+          "explanation": "Decimal base"
+        },
+        {
+          "input": "2.0, -2",
+          "output": "0.25",
+          "explanation": "Negative power = reciprocal"
+        }
+      ],
+      "theory": "Binary exponentiation: n ke bits dekho; bit 1 ho to result *= x; har step me x = x*x aur n >>= 1.",
+      "brute_force": {
+        "approach": "x ko n baar multiply karo.",
+        "time": "O(|n|)",
+        "space": "O(1)",
+        "code_cpp": "double myPow(double x, int n){ long long e = n; if(e < 0){ x = 1 / x; e = -e; } double r = 1; for(long long i = 0; i < e; i++) r *= x; return r; }"
+      },
+      "optimized": {
+        "approach": "Iterative square-and-multiply, n ko long long me convert karo (INT_MIN safe).",
+        "time": "O(log |n|)",
+        "space": "O(1)",
+        "code_cpp": "double myPow(double x, int n){ long long e = n; if(e < 0){ x = 1 / x; e = -e; } double r = 1; while(e){ if(e & 1) r *= x; x *= x; e >>= 1; } return r; }"
+      },
+      "explanation": "x^10 = (x^2)^5 -> har bar power aadhi, isliye log n steps. n = INT_MIN par -n int me overflow hota hai isliye long long.",
+      "edge_cases": [
+        "n = 0",
+        "Negative n",
+        "n = INT_MIN",
+        "x = 0"
+      ]
+    }
+  ]
+}

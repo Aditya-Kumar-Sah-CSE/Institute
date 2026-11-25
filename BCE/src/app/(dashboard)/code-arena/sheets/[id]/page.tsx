@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { getCodeArenaActor } from '@/features/code-arena/server';
 import SheetDetailClient from '@/features/code-arena/components/SheetDetailClient';
 import SqlSheetDetailClient from '@/features/code-arena/components/sql-sheet/SqlSheetDetailClient';
+import RoadmapSheetDetailClient from '@/features/code-arena/components/roadmap/RoadmapSheetDetailClient';
 import { createClient as createRawClient } from '@supabase/supabase-js';
 import { getSolvedStatusMap } from '@/lib/coding-platforms/solved-matcher';
 import { getSheetReviewsData } from '@/features/code-arena/actions/sheet-reviews';
@@ -116,6 +117,103 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
           sheet={sheet as any}
           questions={(sqlQuestions || []) as any}
           initialProgress={(sqlProgress || []) as any}
+          totalEnrolledCount={Math.max(enrollmentsCount || 0, leaderboardList.length)}
+          enrolledUsersList={enrolledUsersList}
+          totalSolversCount={solverMap.size}
+          leaderboardList={leaderboardList}
+          initialCertificate={existingCert || null}
+          reviewsData={sheetReviewsData as any}
+          currentUserId={user.id}
+          isInstructor={isInstructor}
+          isPublicPreview={false}
+        />
+      </Suspense>
+    );
+  }
+
+  // Dedicated rich view when this sheet is an extensible Levels 1-5 DSA Roadmap sheet
+  if ((sheet as any).sheet_type === 'ROADMAP') {
+    const [
+      { data: roadmapLevels },
+      { data: roadmapProblems },
+      { data: roadmapProgress },
+      { data: enrollmentsData, count: enrollmentsCount },
+      { data: allRoadmapProgress },
+      { data: existingCert },
+      sheetReviewsData,
+    ] = await Promise.all([
+      supabase
+        .from('coding_sheet_roadmap_levels')
+        .select('id, level_number, title, subtitle, description, target_problem_count, is_unlocked, theory_modules, revision_data, meta')
+        .eq('sheet_id', sheet.id)
+        .order('level_number', { ascending: true }),
+      supabase
+        .from('coding_sheet_roadmap_problems')
+        .select('id, problem_code, order_index, level_number, batch_name, topic, title, difficulty, company_tags, problem_statement, description, constraints, test_cases, theory, brute_force, optimized, explanation, edge_cases')
+        .eq('sheet_id', sheet.id)
+        .order('order_index', { ascending: true }),
+      supabase
+        .from('coding_sheet_roadmap_progress')
+        .select('problem_code, level_number, is_solved, is_revised, is_bookmarked, submitted_code, language, attempts, xp_awarded, solved_at')
+        .eq('sheet_id', sheet.id)
+        .eq('user_id', user.id),
+      serviceRoleClient
+        .from('coding_sheet_enrollments')
+        .select('user_id, enrolled_at, profiles(id, name, avatar_url)', { count: 'exact' })
+        .eq('sheet_id', sheet.id)
+        .order('enrolled_at', { ascending: false }),
+      serviceRoleClient
+        .from('coding_sheet_roadmap_progress')
+        .select('user_id, problem_code, profiles(name, avatar_url)')
+        .eq('sheet_id', sheet.id)
+        .eq('is_solved', true),
+      supabase
+        .from('certificates')
+        .select('*, profiles(name, role)')
+        .eq('user_id', user.id)
+        .eq('sheet_id', sheet.id)
+        .maybeSingle(),
+      getSheetReviewsData(sheet.id, user.id),
+    ]);
+
+    const enrolledUsersList = (enrollmentsData || []).map((e: any) => ({
+      user_id: e.user_id,
+      enrolled_at: e.enrolled_at,
+      name: e.profiles?.name || 'Learner',
+      avatar_url: e.profiles?.avatar_url || null,
+    }));
+
+    const solverMap = new Map<string, { userId: string; name: string; avatar_url: string | null; pSet: Set<string> }>();
+    (allRoadmapProgress || []).forEach((row: any) => {
+      if (!solverMap.has(row.user_id)) {
+        solverMap.set(row.user_id, {
+          userId: row.user_id,
+          name: row.profiles?.name || 'Roadmap Learner',
+          avatar_url: row.profiles?.avatar_url || null,
+          pSet: new Set(),
+        });
+      }
+      solverMap.get(row.user_id)!.pSet.add(row.problem_code);
+    });
+
+    const leaderboardList = Array.from(solverMap.values())
+      .map((s) => ({
+        userId: s.userId,
+        name: s.name,
+        avatar_url: s.avatar_url,
+        solvedCount: s.pSet.size,
+        isCurrentUser: s.userId === user.id,
+      }))
+      .sort((a, b) => b.solvedCount - a.solvedCount)
+      .slice(0, 30);
+
+    return (
+      <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading DSA Roadmap Sheet…</div>}>
+        <RoadmapSheetDetailClient
+          sheet={sheet as any}
+          levels={(roadmapLevels || []) as any}
+          problems={(roadmapProblems || []) as any}
+          initialProgress={(roadmapProgress || []) as any}
           totalEnrolledCount={Math.max(enrollmentsCount || 0, leaderboardList.length)}
           enrolledUsersList={enrolledUsersList}
           totalSolversCount={solverMap.size}

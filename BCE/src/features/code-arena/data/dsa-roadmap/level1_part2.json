@@ -1,0 +1,1479 @@
+{
+  "meta": {
+    "series": "DSA for Freshers: Mid-level Company Roadmap",
+    "level": 1,
+    "level_title": "Foundation: Arrays, Matrix, Strings, Bits, Math, Recursion",
+    "batch": "Part 2",
+    "id_range": "L1-026 to L1-050",
+    "language_for_code": "C++17",
+    "language_for_explanations": "Hinglish",
+    "total_problems_in_batch": 25,
+    "includes_headers_hint": "#include <bits/stdc++.h> and using namespace std;",
+    "note": "company_tags indicative hain (frequently asked trends), official guarantee nahi."
+  },
+  "theory": [
+    {
+      "topic": "Matrix (2D Arrays)",
+      "concept": "Matrix ek array of arrays hai: a[i][j] me i row aur j column hota hai. C++ me data row-major store hota hai, isliye row-wise traversal cache-friendly hota hai.",
+      "key_points": [
+        "Traversal O(m*n); in-place problems me extra matrix banane se space O(m*n) lagti hai",
+        "Transpose: a[i][j] <-> a[j][i] sirf j > i ke liye swap (dobara swap karoge to wapas original)",
+        "90 degree clockwise rotation = transpose + har row reverse",
+        "Spiral/boundary traversal: top, bottom, left, right 4 boundaries shrink karte jao",
+        "Direction arrays dr[] = {0,1,0,-1}, dc[] = {1,0,-1,0} se right/down/left/up handle hota hai"
+      ],
+      "pitfalls": [
+        "Non-square matrix me in-place transpose nahi hota",
+        "Spiral me single row/column edge case (boundary check dobara karo)",
+        "m aur n ko ulta likh dena"
+      ]
+    },
+    {
+      "topic": "Bit Manipulation Basics",
+      "concept": "Numbers ko binary bits ki tarah treat karke operations karna: &, |, ^, ~, <<, >>. Ye constant-time aur memory-efficient tricks deta hai.",
+      "key_points": [
+        "n & 1 => last bit (odd/even check)",
+        "n & (n-1) => lowest set bit hata deta hai (Brian Kernighan); set bits count O(set bits)",
+        "Power of two: n > 0 && (n & (n-1)) == 0",
+        "x ^ y me wahi bits 1 hote hain jahan x aur y alag hain (Hamming distance)",
+        "Left shift by k = multiply by 2^k, right shift by k = divide by 2^k",
+        "Bit problems me unsigned (uint32_t) use karo taaki sign-extension ka confusion na ho"
+      ],
+      "pitfalls": [
+        "Operator precedence: n & 1 == 0 galat hai, (n & 1) == 0 likho",
+        "1 << 31 signed int me overflow hai, 1u ya 1LL use karo",
+        "Negative numbers ka right shift implementation-defined hota hai"
+      ]
+    },
+    {
+      "topic": "Merging & Filling from the Back",
+      "concept": "Jab array me end me extra jagah ho (ya shifting costly ho) to peeche se fill karo. Isse unprocessed elements overwrite nahi hote.",
+      "key_points": [
+        "Merge sorted arrays in-place: i = m-1, j = n-1, k = m+n-1 pointers",
+        "Carry-based problems (Plus One, Add Binary) right-to-left chalte hain",
+        "Jab naya element sabse bada ya sabse chhota decide ho jaye, usse final jagah par rakh do"
+      ],
+      "pitfalls": [
+        "Pehle se start karoge to elements overwrite honge",
+        "Loop condition me j >= 0 hi kaafi hota hai (i bacha ho to wo already sahi jagah par hai)",
+        "Final carry ko bhoolna"
+      ]
+    },
+    {
+      "topic": "String Matching & Prefix Function",
+      "concept": "Naive matching har position par try karta hai (O(n*m)). KMP prefix function (LPS) se mismatch par pattern me wapas kahan jaana hai pehle se pata hota hai, isliye O(n+m).",
+      "key_points": [
+        "LPS[i] = pattern[0..i] ka longest proper prefix jo suffix bhi hai",
+        "Mismatch par k = lps[k-1], text pointer peeche nahi jata",
+        "Rotation check: s ka rotation hamesha s+s ka substring hota hai",
+        "Subsequence (order preserve, contiguous nahi) ka check two pointers se O(n)"
+      ],
+      "pitfalls": [
+        "Substring aur subsequence ka farq",
+        "Empty pattern ka answer (aksar 0)",
+        "std::string::find ka worst case library par depend karta hai"
+      ]
+    },
+    {
+      "topic": "Cycle Detection (Floyd)",
+      "concept": "Agar sequence repeat hone lagti hai to slow (1 step) aur fast (2 step) pointer kisi point par mil jaate hain. Extra set ki zaroorat nahi, O(1) space.",
+      "key_points": [
+        "Happy Number me next(n) = digit squares ka sum; ya to 1 aata hai ya cycle",
+        "HashSet approach: seen set me store karo, repeat mila to cycle",
+        "Floyd approach: slow = next(slow), fast = next(next(fast)), mile to cycle",
+        "Same idea linked list cycle (Level 3) me aayegi"
+      ],
+      "pitfalls": [
+        "Termination condition (1 par ruk jao) bhoolna",
+        "Cycle ka length/start alag cheez hai"
+      ]
+    },
+    {
+      "topic": "Recursion: Recurrence & Closed Form",
+      "concept": "Kayi recursion problems ek recurrence deti hain (Hanoi: T(n) = 2T(n-1) + 1; Josephus: J(n) = (J(n-1) + k) % n). Recurrence ko loop me convert ya closed form me badal kar exponential se polynomial/constant time aata hai.",
+      "key_points": [
+        "Recurrence likho -> base case likho -> complexity nikalo",
+        "Climbing Stairs: ways(n) = ways(n-1) + ways(n-2), Fibonacci jaisa; O(1) space me roll karo",
+        "Hanoi minimum moves = 2^n - 1 (induction se prove hota hai)",
+        "Top-down recursion + memo = bottom-up DP (Level 5)"
+      ],
+      "pitfalls": [
+        "Bina memo ke overlapping subproblems par recursion",
+        "Josephus me 0-indexed vs 1-indexed answer",
+        "Hanoi brute n > 30 par practically slow"
+      ]
+    }
+  ],
+  "problems": [
+    {
+      "id": "L1-026",
+      "level": 1,
+      "topic": "Arrays",
+      "title": "Best Time to Buy and Sell Stock",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Goldman Sachs",
+        "TCS",
+        "Infosys"
+      ],
+      "problem_statement": "Given daily prices, buy on one day and sell on a later day to maximize profit. Return the max profit (0 if no profit possible).",
+      "description": "Sell hamesha buy ke baad hona chahiye. Sirf ek transaction allowed hai.",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "0 <= prices[i] <= 1e4"
+      ],
+      "test_cases": [
+        {
+          "input": "[7,1,5,3,6,4]",
+          "output": "5",
+          "explanation": "1 par buy, 6 par sell"
+        },
+        {
+          "input": "[7,6,4,3,1]",
+          "output": "0",
+          "explanation": "Prices girte rahe"
+        },
+        {
+          "input": "[2,4,1]",
+          "output": "2",
+          "explanation": "2 par buy, 4 par sell"
+        }
+      ],
+      "theory": "Har din ke liye ab tak ka minimum price yaad rakho aur dekho aaj bechne par kitna profit hota.",
+      "brute_force": {
+        "approach": "Har (i, j) pair ke liye prices[j] - prices[i] nikalo.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int maxProfit(const vector<int>& p){ int best = 0, n = p.size(); for(int i = 0; i < n; i++) for(int j = i + 1; j < n; j++) best = max(best, p[j] - p[i]); return best; }"
+      },
+      "optimized": {
+        "approach": "Ek pass: minPrice update karo, best = max(best, price - minPrice).",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int maxProfit(const vector<int>& p){ int mn = INT_MAX, best = 0; for(int x : p){ mn = min(mn, x); best = max(best, x - mn); } return best; }"
+      },
+      "explanation": "Brute me har buy day ke liye saare future days dekhte hain. Optimized me 'best buy day' ko ek variable me compress kar liya.",
+      "edge_cases": [
+        "Strictly decreasing prices",
+        "n = 1",
+        "All equal"
+      ]
+    },
+    {
+      "id": "L1-027",
+      "level": 1,
+      "topic": "Arrays",
+      "title": "Merge Sorted Array (In-place)",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Microsoft",
+        "Amazon",
+        "Facebook",
+        "Cognizant"
+      ],
+      "problem_statement": "a has m valid elements followed by n empty slots; b has n elements. Merge b into a so that a is sorted.",
+      "description": "Result a hi me chahiye. Dono arrays pehle se sorted hain.",
+      "constraints": [
+        "0 <= m, n <= 200",
+        "1 <= m + n <= 200",
+        "-1e9 <= a[i], b[i] <= 1e9"
+      ],
+      "test_cases": [
+        {
+          "input": "a=[1,2,3,0,0,0], m=3, b=[2,5,6], n=3",
+          "output": "[1,2,2,3,5,6]",
+          "explanation": "Normal merge"
+        },
+        {
+          "input": "a=[1], m=1, b=[], n=0",
+          "output": "[1]",
+          "explanation": "b empty"
+        },
+        {
+          "input": "a=[0], m=0, b=[1], n=1",
+          "output": "[1]",
+          "explanation": "a empty"
+        }
+      ],
+      "theory": "Peeche se fill karo: bada element end me rakho. Isse a ke valid elements overwrite nahi hote.",
+      "brute_force": {
+        "approach": "b ko a ke end me copy karo aur poora sort kar do.",
+        "time": "O((m+n) log(m+n))",
+        "space": "O(1)",
+        "code_cpp": "void mergeArr(vector<int>& a, int m, vector<int>& b, int n){ for(int i = 0; i < n; i++) a[m + i] = b[i]; sort(a.begin(), a.begin() + m + n); }"
+      },
+      "optimized": {
+        "approach": "Teen pointers i = m-1, j = n-1, k = m+n-1; bada wala a[k] me daalo.",
+        "time": "O(m+n)",
+        "space": "O(1)",
+        "code_cpp": "void mergeArr(vector<int>& a, int m, vector<int>& b, int n){ int i = m - 1, j = n - 1, k = m + n - 1; while(j >= 0){ if(i >= 0 && a[i] > b[j]) a[k--] = a[i--]; else a[k--] = b[j--]; } }"
+      },
+      "explanation": "Aage se merge karte to a ke elements overwrite ho jaate. Peeche khali jagah hai, isliye wahan se fill karna safe hai. Sort wala brute sorted hone ka fayda waste karta hai.",
+      "edge_cases": [
+        "m = 0",
+        "n = 0",
+        "All of b smaller than a"
+      ]
+    },
+    {
+      "id": "L1-028",
+      "level": 1,
+      "topic": "Arrays",
+      "title": "Plus One",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Google",
+        "Amazon",
+        "Infosys",
+        "Wipro"
+      ],
+      "problem_statement": "A large integer is given as a digit array (most significant digit first). Add one and return the resulting digit array.",
+      "description": "Number itna bada ho sakta hai ki int/long long me fit na ho, isliye digit-wise handle karo.",
+      "constraints": [
+        "1 <= n <= 100",
+        "0 <= d[i] <= 9",
+        "No leading zeros (except the number 0)"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,2,3]",
+          "output": "[1,2,4]",
+          "explanation": "Last digit +1"
+        },
+        {
+          "input": "[9,9]",
+          "output": "[1,0,0]",
+          "explanation": "Carry se naya digit"
+        },
+        {
+          "input": "[9]",
+          "output": "[1,0]",
+          "explanation": "Single 9"
+        }
+      ],
+      "theory": "Right se chalo: digit < 9 ho to +1 karke return; warna 0 karke carry aage. Agar poore 9 the to front me 1 lagao.",
+      "brute_force": {
+        "approach": "Digits ko long long number me convert karo, +1 karo aur wapas digits me tod do (sirf ~18 digits tak chalega).",
+        "time": "O(n)",
+        "space": "O(n)",
+        "code_cpp": "vector<int> plusOne(vector<int> d){ long long n = 0; for(int x : d) n = n * 10 + x; n++; string s = to_string(n); vector<int> r; for(char c : s) r.push_back(c - '0'); return r; }"
+      },
+      "optimized": {
+        "approach": "Right se scan; early return jab digit 9 se kam mile; end me 1 insert.",
+        "time": "O(n)",
+        "space": "O(1) extra",
+        "code_cpp": "vector<int> plusOne(vector<int> d){ for(int i = (int)d.size() - 1; i >= 0; i--){ if(d[i] < 9){ d[i]++; return d; } d[i] = 0; } d.insert(d.begin(), 1); return d; }"
+      },
+      "explanation": "Brute approach 100 digit input par overflow karega. Digit array problems me hamesha carry logic se kaam karo.",
+      "edge_cases": [
+        "All nines",
+        "[0]",
+        "Single digit"
+      ]
+    },
+    {
+      "id": "L1-029",
+      "level": 1,
+      "topic": "Arrays",
+      "title": "Pascal's Triangle",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Apple",
+        "Adobe",
+        "TCS"
+      ],
+      "problem_statement": "Given numRows, generate the first numRows rows of Pascal's triangle.",
+      "description": "Har element apne upar ke do elements ka sum hota hai; edges par 1.",
+      "constraints": [
+        "1 <= numRows <= 30"
+      ],
+      "test_cases": [
+        {
+          "input": "5",
+          "output": "[[1],[1,1],[1,2,1],[1,3,3,1],[1,4,6,4,1]]",
+          "explanation": "5 rows"
+        },
+        {
+          "input": "1",
+          "output": "[[1]]",
+          "explanation": "Single row"
+        },
+        {
+          "input": "3",
+          "output": "[[1],[1,1],[1,2,1]]",
+          "explanation": "3 rows"
+        }
+      ],
+      "theory": "Row r, column c ki value = C(r, c). Previous row se: row[c] = prev[c-1] + prev[c].",
+      "brute_force": {
+        "approach": "Har cell ko nCr formula se alag compute karo.",
+        "time": "O(n^3)",
+        "space": "O(n^2) output",
+        "code_cpp": "long long nCr(int n, int r){ long long x = 1; for(int i = 0; i < r; i++) x = x * (n - i) / (i + 1); return x; }\nvector<vector<int>> pascal(int n){ vector<vector<int>> t; for(int r = 0; r < n; r++){ vector<int> row; for(int c = 0; c <= r; c++) row.push_back((int)nCr(r, c)); t.push_back(row); } return t; }"
+      },
+      "optimized": {
+        "approach": "Previous row se current row banao; pehla aur aakhri 1.",
+        "time": "O(n^2)",
+        "space": "O(n^2) output",
+        "code_cpp": "vector<vector<int>> pascal(int n){ vector<vector<int>> t; for(int r = 0; r < n; r++){ vector<int> row(r + 1, 1); for(int c = 1; c < r; c++) row[c] = t[r-1][c-1] + t[r-1][c]; t.push_back(row); } return t; }"
+      },
+      "explanation": "Optimized me har cell O(1) me banta hai (do values ka sum). Output size hi O(n^2) hai, isliye ye optimal hai.",
+      "edge_cases": [
+        "numRows = 1",
+        "numRows = 2"
+      ]
+    },
+    {
+      "id": "L1-030",
+      "level": 1,
+      "topic": "Matrix",
+      "title": "Transpose Matrix (Square, In-place)",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Capgemini",
+        "Accenture"
+      ],
+      "problem_statement": "Transpose an n x n matrix in-place: element (i, j) goes to (j, i).",
+      "description": "Rows columns ban jaate hain aur columns rows. Square matrix me extra matrix ki zaroorat nahi.",
+      "constraints": [
+        "1 <= n <= 1000",
+        "-1e9 <= a[i][j] <= 1e9"
+      ],
+      "test_cases": [
+        {
+          "input": "[[1,2,3],[4,5,6],[7,8,9]]",
+          "output": "[[1,4,7],[2,5,8],[3,6,9]]",
+          "explanation": "Diagonal ke upar/neeche swap"
+        },
+        {
+          "input": "[[1,2],[3,4]]",
+          "output": "[[1,3],[2,4]]",
+          "explanation": "2x2"
+        },
+        {
+          "input": "[[5]]",
+          "output": "[[5]]",
+          "explanation": "1x1"
+        }
+      ],
+      "theory": "Sirf upper triangle (j > i) ke elements swap karo. Poore matrix par swap karoge to do baar swap hoke wapas original ho jayega.",
+      "brute_force": {
+        "approach": "Naya matrix banao, t[j][i] = a[i][j], phir copy back.",
+        "time": "O(n^2)",
+        "space": "O(n^2)",
+        "code_cpp": "void transposeM(vector<vector<int>>& a){ int n = a.size(); vector<vector<int>> t(n, vector<int>(n)); for(int i = 0; i < n; i++) for(int j = 0; j < n; j++) t[j][i] = a[i][j]; a = t; }"
+      },
+      "optimized": {
+        "approach": "In-place swap a[i][j] <-> a[j][i] for j > i.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "void transposeM(vector<vector<int>>& a){ int n = a.size(); for(int i = 0; i < n; i++) for(int j = i + 1; j < n; j++) swap(a[i][j], a[j][i]); }"
+      },
+      "explanation": "Diagonal elements khud apni jagah par hote hain. Ye step Rotate Image ka first half hai.",
+      "edge_cases": [
+        "n = 1",
+        "Symmetric matrix"
+      ]
+    },
+    {
+      "id": "L1-031",
+      "level": 1,
+      "topic": "Matrix",
+      "title": "Rotate Image 90 Degrees Clockwise",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Apple",
+        "Infosys"
+      ],
+      "problem_statement": "Rotate an n x n matrix by 90 degrees clockwise in-place.",
+      "description": "Naya matrix allocate karna allowed nahi (in-place).",
+      "constraints": [
+        "1 <= n <= 20",
+        "-1000 <= a[i][j] <= 1000"
+      ],
+      "test_cases": [
+        {
+          "input": "[[1,2,3],[4,5,6],[7,8,9]]",
+          "output": "[[7,4,1],[8,5,2],[9,6,3]]",
+          "explanation": "Clockwise"
+        },
+        {
+          "input": "[[1,2],[3,4]]",
+          "output": "[[3,1],[4,2]]",
+          "explanation": "2x2"
+        },
+        {
+          "input": "[[1]]",
+          "output": "[[1]]",
+          "explanation": "Single"
+        }
+      ],
+      "theory": "Rotation = transpose + har row ko reverse. Anticlockwise ke liye: transpose + har column reverse (ya pehle rows reverse).",
+      "brute_force": {
+        "approach": "Naya matrix b banao, b[j][n-1-i] = a[i][j], phir a = b.",
+        "time": "O(n^2)",
+        "space": "O(n^2)",
+        "code_cpp": "void rotateImg(vector<vector<int>>& a){ int n = a.size(); auto b = a; for(int i = 0; i < n; i++) for(int j = 0; j < n; j++) b[j][n-1-i] = a[i][j]; a = b; }"
+      },
+      "optimized": {
+        "approach": "Transpose in-place, phir har row reverse.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "void rotateImg(vector<vector<int>>& a){ int n = a.size(); for(int i = 0; i < n; i++) for(int j = i + 1; j < n; j++) swap(a[i][j], a[j][i]); for(auto& row : a) reverse(row.begin(), row.end()); }"
+      },
+      "explanation": "Brute me mapping formula (i, j) -> (j, n-1-i) yaad rakhni padti hai. Optimized me do simple steps ka combination hai, yaad rakhna aur debug karna dono aasan.",
+      "edge_cases": [
+        "n = 1",
+        "Even and odd n"
+      ]
+    },
+    {
+      "id": "L1-032",
+      "level": 1,
+      "topic": "Matrix",
+      "title": "Spiral Matrix",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Google",
+        "Zoho",
+        "Infosys"
+      ],
+      "problem_statement": "Return all elements of an m x n matrix in spiral order starting from the top-left corner.",
+      "description": "Right -> down -> left -> up ke order me ghoomna hai jab tak saare elements na aa jaayein.",
+      "constraints": [
+        "1 <= m, n <= 10",
+        "-100 <= a[i][j] <= 100"
+      ],
+      "test_cases": [
+        {
+          "input": "[[1,2,3],[4,5,6],[7,8,9]]",
+          "output": "[1,2,3,6,9,8,7,4,5]",
+          "explanation": "3x3"
+        },
+        {
+          "input": "[[1,2,3,4],[5,6,7,8],[9,10,11,12]]",
+          "output": "[1,2,3,4,8,12,11,10,9,5,6,7]",
+          "explanation": "3x4"
+        },
+        {
+          "input": "[[1]]",
+          "output": "[1]",
+          "explanation": "Single"
+        }
+      ],
+      "theory": "Boundary shrinking: top, bottom, left, right. Ek layer khatam hone par boundary andar aati hai. Direction badalne se pehle boundary check zaroori.",
+      "brute_force": {
+        "approach": "Visited matrix + direction arrays; deewar ya visited cell milne par turn.",
+        "time": "O(m*n)",
+        "space": "O(m*n)",
+        "code_cpp": "vector<int> spiral(const vector<vector<int>>& a){ int m = a.size(), n = a[0].size(); vector<vector<bool>> v(m, vector<bool>(n, false)); int dr[4] = {0, 1, 0, -1}, dc[4] = {1, 0, -1, 0}; int r = 0, c = 0, d = 0; vector<int> res; for(int k = 0; k < m * n; k++){ res.push_back(a[r][c]); v[r][c] = true; int nr = r + dr[d], nc = c + dc[d]; if(nr < 0 || nr >= m || nc < 0 || nc >= n || v[nr][nc]){ d = (d + 1) % 4; nr = r + dr[d]; nc = c + dc[d]; } r = nr; c = nc; } return res; }"
+      },
+      "optimized": {
+        "approach": "Four boundaries (t, b, l, r) se layer-by-layer traversal, visited array nahi.",
+        "time": "O(m*n)",
+        "space": "O(1) extra",
+        "code_cpp": "vector<int> spiral(const vector<vector<int>>& a){ vector<int> r; int t = 0, b = a.size() - 1, l = 0, rt = a[0].size() - 1; while(t <= b && l <= rt){ for(int j = l; j <= rt; j++) r.push_back(a[t][j]); t++; for(int i = t; i <= b; i++) r.push_back(a[i][rt]); rt--; if(t <= b){ for(int j = rt; j >= l; j--) r.push_back(a[b][j]); b--; } if(l <= rt){ for(int i = b; i >= t; i--) r.push_back(a[i][l]); l++; } } return r; }"
+      },
+      "explanation": "Single row/column par duplicate traversal na ho, isliye bottom aur left pass se pehle boundary check lagaya hai.",
+      "edge_cases": [
+        "Single row",
+        "Single column",
+        "1x1"
+      ]
+    },
+    {
+      "id": "L1-033",
+      "level": 1,
+      "topic": "Arrays",
+      "title": "Find All Numbers Disappeared in an Array",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Infosys",
+        "Capgemini"
+      ],
+      "problem_statement": "Array of n integers in range [1, n]. Return all numbers in [1, n] that do not appear.",
+      "description": "Duplicates ho sakte hain, isliye kuch numbers missing honge. O(1) extra space ki koshish karo.",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "1 <= a[i] <= n"
+      ],
+      "test_cases": [
+        {
+          "input": "[4,3,2,7,8,2,3,1]",
+          "output": "[5,6]",
+          "explanation": "5 aur 6 nahi hain"
+        },
+        {
+          "input": "[1,1]",
+          "output": "[2]",
+          "explanation": "2 missing"
+        },
+        {
+          "input": "[1]",
+          "output": "[]",
+          "explanation": "Kuch missing nahi"
+        }
+      ],
+      "theory": "Value ko index ki tarah use karo: a[v-1] ko negative mark karo. End me jo index positive reh gaya, i+1 missing hai.",
+      "brute_force": {
+        "approach": "1 se n tak har number ke liye array me linear search.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "vector<int> disappeared(const vector<int>& a){ int n = a.size(); vector<int> r; for(int x = 1; x <= n; x++){ bool f = false; for(int v : a) if(v == x){ f = true; break; } if(!f) r.push_back(x); } return r; }"
+      },
+      "optimized": {
+        "approach": "Index marking: a[abs(x)-1] ko negative karo; phir positive wale indices collect karo (input modify hota hai).",
+        "time": "O(n)",
+        "space": "O(1) extra",
+        "code_cpp": "vector<int> disappeared(vector<int>& a){ for(int x : a){ int i = abs(x) - 1; if(a[i] > 0) a[i] = -a[i]; } vector<int> r; for(int i = 0; i < (int)a.size(); i++) if(a[i] > 0) r.push_back(i + 1); return r; }"
+      },
+      "explanation": "Range [1, n] hone ki wajah se value ko index banaya ja sakta hai. Negative sign ek free 'visited' flag hai. abs() isliye kyunki element pehle hi negative ho sakta hai.",
+      "edge_cases": [
+        "No missing",
+        "All same",
+        "n = 1"
+      ]
+    },
+    {
+      "id": "L1-034",
+      "level": 1,
+      "topic": "Strings",
+      "title": "Roman to Integer",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Adobe",
+        "TCS",
+        "Wipro"
+      ],
+      "problem_statement": "Convert a Roman numeral string to an integer.",
+      "description": "Normally bade se chhota order me values add hoti hain; IV, IX, XL, XC, CD, CM me chhota pehle aata hai aur subtract hota hai.",
+      "constraints": [
+        "1 <= |s| <= 15",
+        "Valid Roman numeral in [1, 3999]"
+      ],
+      "test_cases": [
+        {
+          "input": "III",
+          "output": "3",
+          "explanation": "1+1+1"
+        },
+        {
+          "input": "LVIII",
+          "output": "58",
+          "explanation": "50+5+3"
+        },
+        {
+          "input": "MCMXCIV",
+          "output": "1994",
+          "explanation": "1000+900+90+4"
+        }
+      ],
+      "theory": "Agar current symbol ki value next symbol se chhoti hai to subtract karo, warna add karo.",
+      "brute_force": {
+        "approach": "Special pairs (CM, CD, XC, XL, IX, IV) pehle dhundkar hatao aur unki value add karo, phir baaki symbols add.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int romanToInt(string s){ vector<pair<string,int>> sp = {{\"CM\",900},{\"CD\",400},{\"XC\",90},{\"XL\",40},{\"IX\",9},{\"IV\",4}}; int r = 0; for(auto& p : sp){ size_t pos; while((pos = s.find(p.first)) != string::npos){ r += p.second; s.erase(pos, 2); } } for(char c : s){ switch(c){ case 'I': r += 1; break; case 'V': r += 5; break; case 'X': r += 10; break; case 'L': r += 50; break; case 'C': r += 100; break; case 'D': r += 500; break; case 'M': r += 1000; break; } } return r; }"
+      },
+      "optimized": {
+        "approach": "Ek pass: v[s[i]] < v[s[i+1]] ho to subtract, warna add.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int romanToInt(const string& s){ unordered_map<char,int> v = {{'I',1},{'V',5},{'X',10},{'L',50},{'C',100},{'D',500},{'M',1000}}; int r = 0; for(int i = 0; i < (int)s.size(); i++){ if(i + 1 < (int)s.size() && v[s[i]] < v[s[i+1]]) r -= v[s[i]]; else r += v[s[i]]; } return r; }"
+      },
+      "explanation": "Subtraction rule ko seedha 'chhota symbol bade se pehle' ke rule me badal diya, isliye special cases ki list nahi chahiye.",
+      "edge_cases": [
+        "Single symbol",
+        "Largest value 3999",
+        "Consecutive repeats"
+      ]
+    },
+    {
+      "id": "L1-035",
+      "level": 1,
+      "topic": "Strings",
+      "title": "Length of Last Word",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Infosys",
+        "Cognizant",
+        "Wipro"
+      ],
+      "problem_statement": "Return the length of the last word in a string of words and spaces.",
+      "description": "Trailing spaces ho sakte hain. Word = non-space characters ka maximal substring.",
+      "constraints": [
+        "1 <= |s| <= 1e4",
+        "At least one word"
+      ],
+      "test_cases": [
+        {
+          "input": "Hello World",
+          "output": "5",
+          "explanation": "World"
+        },
+        {
+          "input": "   fly me   to   the moon  ",
+          "output": "4",
+          "explanation": "moon"
+        },
+        {
+          "input": "luffy is still joyboy",
+          "output": "6",
+          "explanation": "joyboy"
+        }
+      ],
+      "theory": "Peeche se scan karo: pehle trailing spaces skip, phir characters count karo jab tak space na mile.",
+      "brute_force": {
+        "approach": "Stringstream se saare words nikalo aur last ki length return.",
+        "time": "O(n)",
+        "space": "O(n)",
+        "code_cpp": "int lastWord(const string& s){ stringstream ss(s); string w, last; while(ss >> w) last = w; return last.size(); }"
+      },
+      "optimized": {
+        "approach": "Right se skip spaces, phir count.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int lastWord(const string& s){ int i = (int)s.size() - 1; while(i >= 0 && s[i] == ' ') i--; int len = 0; while(i >= 0 && s[i] != ' '){ len++; i--; } return len; }"
+      },
+      "explanation": "Poori string split karna zaroori nahi; sirf last word chahiye, isliye peeche se kaam shuru karo.",
+      "edge_cases": [
+        "Trailing spaces",
+        "Single word",
+        "Leading spaces only before word"
+      ]
+    },
+    {
+      "id": "L1-036",
+      "level": 1,
+      "topic": "Strings",
+      "title": "Rotate String",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Infosys",
+        "Capgemini"
+      ],
+      "problem_statement": "Return true if goal can be obtained from s by some number of left shifts (rotations).",
+      "description": "Ek shift me s ka pehla character end me chala jata hai.",
+      "constraints": [
+        "1 <= |s|, |goal| <= 100"
+      ],
+      "test_cases": [
+        {
+          "input": "s=abcde, goal=cdeab",
+          "output": "true",
+          "explanation": "2 left shifts"
+        },
+        {
+          "input": "s=abcde, goal=abced",
+          "output": "false",
+          "explanation": "Rotation nahi"
+        },
+        {
+          "input": "s=a, goal=a",
+          "output": "true",
+          "explanation": "Single"
+        }
+      ],
+      "theory": "Har rotation s+s ka substring hota hai. Length same ho to (s+s).find(goal) check karo.",
+      "brute_force": {
+        "approach": "Har k (0..n-1) ke liye rotation banao aur goal se compare.",
+        "time": "O(n^2)",
+        "space": "O(n)",
+        "code_cpp": "bool rotateString(const string& s, const string& g){ if(s.size() != g.size()) return false; int n = s.size(); for(int k = 0; k < n; k++) if(s.substr(k) + s.substr(0, k) == g) return true; return false; }"
+      },
+      "optimized": {
+        "approach": "Length check, phir (s+s) me goal ka search.",
+        "time": "O(n) with KMP, library find me typically fast",
+        "space": "O(n)",
+        "code_cpp": "bool rotateString(const string& s, const string& g){ return s.size() == g.size() && (s + s).find(g) != string::npos; }"
+      },
+      "explanation": "s+s me saare rotations ek saath chhupe hote hain (abcdeabcde). Length check zaroori, warna 'ab' ke andar 'abab' ka part mil sakta hai.",
+      "edge_cases": [
+        "Different length",
+        "Equal strings",
+        "Repeated pattern like abab"
+      ]
+    },
+    {
+      "id": "L1-037",
+      "level": 1,
+      "topic": "Strings",
+      "title": "Find Index of First Occurrence (strStr)",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Google",
+        "Infosys"
+      ],
+      "problem_statement": "Return the first index where needle occurs in haystack, or -1.",
+      "description": "Substring search implement karna hai bina library function ke.",
+      "constraints": [
+        "1 <= |haystack|, |needle| <= 1e4"
+      ],
+      "test_cases": [
+        {
+          "input": "sadbutsad, sad",
+          "output": "0",
+          "explanation": "Starting me"
+        },
+        {
+          "input": "leetcode, leeto",
+          "output": "-1",
+          "explanation": "Nahi mila"
+        },
+        {
+          "input": "hello, ll",
+          "output": "2",
+          "explanation": "Index 2"
+        }
+      ],
+      "theory": "Naive me mismatch par poora wapas jaate hain. KMP me LPS table se pattern me sahi jagah par jump karte hain, text pointer kabhi peeche nahi jata.",
+      "brute_force": {
+        "approach": "Har start index par needle ke saath compare.",
+        "time": "O(n*m)",
+        "space": "O(1)",
+        "code_cpp": "int strStr(const string& h, const string& n){ int a = h.size(), b = n.size(); for(int i = 0; i + b <= a; i++){ int j = 0; while(j < b && h[i + j] == n[j]) j++; if(j == b) return i; } return -1; }"
+      },
+      "optimized": {
+        "approach": "KMP: needle ka LPS array banao, phir haystack me match karo.",
+        "time": "O(n+m)",
+        "space": "O(m)",
+        "code_cpp": "int strStr(const string& h, const string& n){ int m = n.size(); if(m == 0) return 0; vector<int> lps(m, 0); for(int i = 1, k = 0; i < m; i++){ while(k > 0 && n[i] != n[k]) k = lps[k-1]; if(n[i] == n[k]) k++; lps[i] = k; } for(int i = 0, k = 0; i < (int)h.size(); i++){ while(k > 0 && h[i] != n[k]) k = lps[k-1]; if(h[i] == n[k]) k++; if(k == m) return i - m + 1; } return -1; }"
+      },
+      "explanation": "Interview me aksar naive solution kaafi hota hai; KMP follow-up me poochha jata hai. LPS ek baar banta hai (O(m)) aur search O(n).",
+      "edge_cases": [
+        "Needle longer than haystack",
+        "Needle equals haystack",
+        "Repeated characters like aaaa"
+      ]
+    },
+    {
+      "id": "L1-038",
+      "level": 1,
+      "topic": "Strings",
+      "title": "Add Binary",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Facebook",
+        "Amazon",
+        "Infosys",
+        "Wipro"
+      ],
+      "problem_statement": "Given two binary strings, return their sum as a binary string.",
+      "description": "Strings 1e4 length tak ho sakti hain, isliye integer me convert nahi kar sakte.",
+      "constraints": [
+        "1 <= |a|, |b| <= 1e4",
+        "Only '0' and '1', no leading zeros except '0'"
+      ],
+      "test_cases": [
+        {
+          "input": "11, 1",
+          "output": "100",
+          "explanation": "3 + 1 = 4"
+        },
+        {
+          "input": "1010, 1011",
+          "output": "10101",
+          "explanation": "10 + 11 = 21"
+        },
+        {
+          "input": "0, 0",
+          "output": "0",
+          "explanation": "Zero"
+        }
+      ],
+      "theory": "School addition: right se bit-by-bit jodo, carry rakho, end me result ko reverse karo.",
+      "brute_force": {
+        "approach": "Dono ko integer me convert (stoll base 2), add, phir binary string me wapas (sirf ~62 bits tak).",
+        "time": "O(n)",
+        "space": "O(n)",
+        "code_cpp": "string addBinary(string a, string b){ long long x = stoll(a, nullptr, 2), y = stoll(b, nullptr, 2), s = x + y; if(s == 0) return \"0\"; string r; while(s){ r += char('0' + (s & 1)); s >>= 1; } reverse(r.begin(), r.end()); return r; }"
+      },
+      "optimized": {
+        "approach": "Two pointers i, j from the right + carry; loop tab tak jab tak i, j ya carry bacha ho.",
+        "time": "O(max(n, m))",
+        "space": "O(1) extra",
+        "code_cpp": "string addBinary(string a, string b){ string r; int i = (int)a.size() - 1, j = (int)b.size() - 1, c = 0; while(i >= 0 || j >= 0 || c){ int s = c; if(i >= 0) s += a[i--] - '0'; if(j >= 0) s += b[j--] - '0'; r += char('0' + (s & 1)); c = s >> 1; } reverse(r.begin(), r.end()); return r; }"
+      },
+      "explanation": "Brute out_of_range de dega badi strings par. Carry = s >> 1 aur digit = s & 1 (bit manipulation ka practical use).",
+      "edge_cases": [
+        "Different lengths",
+        "Final carry",
+        "Both zero"
+      ]
+    },
+    {
+      "id": "L1-039",
+      "level": 1,
+      "topic": "Strings",
+      "title": "Is Subsequence",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Google",
+        "Amazon",
+        "Infosys",
+        "TCS"
+      ],
+      "problem_statement": "Return true if s is a subsequence of t (characters in the same order, not necessarily contiguous).",
+      "description": "Subsequence me characters delete kar sakte hain par order change nahi hota.",
+      "constraints": [
+        "0 <= |s| <= 100",
+        "0 <= |t| <= 1e4"
+      ],
+      "test_cases": [
+        {
+          "input": "s=abc, t=ahbgdc",
+          "output": "true",
+          "explanation": "a, b, c order me mile"
+        },
+        {
+          "input": "s=axc, t=ahbgdc",
+          "output": "false",
+          "explanation": "x nahi hai"
+        },
+        {
+          "input": "s=\"\", t=abc",
+          "output": "true",
+          "explanation": "Empty hamesha subsequence"
+        }
+      ],
+      "theory": "Two pointers: t par chalo; jab t[j] == s[i] ho to i++. End me i == |s| ho to true.",
+      "brute_force": {
+        "approach": "Recursion: match ho to dono aage, warna sirf t aage (har step par do choices).",
+        "time": "O(2^n) worst",
+        "space": "O(n) stack",
+        "code_cpp": "bool rec(const string& s, const string& t, int i, int j){ if(i == (int)s.size()) return true; if(j == (int)t.size()) return false; if(s[i] == t[j] && rec(s, t, i + 1, j + 1)) return true; return rec(s, t, i, j + 1); }\nbool isSub(const string& s, const string& t){ return rec(s, t, 0, 0); }"
+      },
+      "optimized": {
+        "approach": "Greedy two pointers, ek pass.",
+        "time": "O(|t|)",
+        "space": "O(1)",
+        "code_cpp": "bool isSub(const string& s, const string& t){ size_t i = 0; for(char c : t) if(i < s.size() && s[i] == c) i++; return i == s.size(); }"
+      },
+      "explanation": "Greedy kaam karta hai kyunki s ke next character ka sabse pehla match lena hamesha safe hai (baad me match rakhne ka koi fayda nahi).",
+      "edge_cases": [
+        "s empty",
+        "s longer than t",
+        "Repeated characters"
+      ]
+    },
+    {
+      "id": "L1-040",
+      "level": 1,
+      "topic": "Bit Manipulation",
+      "title": "Number of 1 Bits (Hamming Weight)",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Microsoft",
+        "Apple",
+        "Amazon",
+        "Infosys"
+      ],
+      "problem_statement": "Return the number of set bits (1s) in the binary representation of an unsigned 32-bit integer.",
+      "description": "Set bits ginne hain, leading zeros ignore.",
+      "constraints": [
+        "0 <= n <= 2^32 - 1"
+      ],
+      "test_cases": [
+        {
+          "input": "11",
+          "output": "3",
+          "explanation": "1011"
+        },
+        {
+          "input": "128",
+          "output": "1",
+          "explanation": "10000000"
+        },
+        {
+          "input": "4294967293",
+          "output": "31",
+          "explanation": "32 bits me sirf ek 0"
+        }
+      ],
+      "theory": "n & (n-1) lowest set bit ko 0 kar deta hai. Jitni baar ye operation ho, utne set bits.",
+      "brute_force": {
+        "approach": "Saare 32 bits check karo: (n >> i) & 1.",
+        "time": "O(32)",
+        "space": "O(1)",
+        "code_cpp": "int hammingWeight(uint32_t n){ int c = 0; for(int i = 0; i < 32; i++) if((n >> i) & 1) c++; return c; }"
+      },
+      "optimized": {
+        "approach": "Brian Kernighan: while(n) { n &= n - 1; c++; }",
+        "time": "O(number of set bits)",
+        "space": "O(1)",
+        "code_cpp": "int hammingWeight(uint32_t n){ int c = 0; while(n){ n &= n - 1; c++; } return c; }"
+      },
+      "explanation": "Kernighan me loop sirf set bits ki sankhya jitni baar chalta hai. Built-in: __builtin_popcount(n) (GCC/Clang).",
+      "edge_cases": [
+        "n = 0",
+        "All bits set",
+        "Single bit"
+      ]
+    },
+    {
+      "id": "L1-041",
+      "level": 1,
+      "topic": "Bit Manipulation",
+      "title": "Power of Two",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Google",
+        "Amazon",
+        "Infosys",
+        "TCS"
+      ],
+      "problem_statement": "Return true if n is a power of two.",
+      "description": "n = 2^k for some k >= 0.",
+      "constraints": [
+        "-2^31 <= n <= 2^31 - 1"
+      ],
+      "test_cases": [
+        {
+          "input": "1",
+          "output": "true",
+          "explanation": "2^0"
+        },
+        {
+          "input": "16",
+          "output": "true",
+          "explanation": "2^4"
+        },
+        {
+          "input": "3",
+          "output": "false",
+          "explanation": "Power of two nahi"
+        }
+      ],
+      "theory": "Power of two me exactly ek set bit hota hai. n & (n-1) wo bit hata deta hai, to result 0 hona chahiye (n > 0 ke saath).",
+      "brute_force": {
+        "approach": "n ko baar baar 2 se divide karo jab tak divisible ho; end me 1 bacha to true.",
+        "time": "O(log n)",
+        "space": "O(1)",
+        "code_cpp": "bool isPow2(int n){ if(n <= 0) return false; while(n % 2 == 0) n /= 2; return n == 1; }"
+      },
+      "optimized": {
+        "approach": "n > 0 && (n & (n - 1)) == 0",
+        "time": "O(1)",
+        "space": "O(1)",
+        "code_cpp": "bool isPow2(int n){ return n > 0 && (n & (n - 1)) == 0; }"
+      },
+      "explanation": "Negative numbers aur 0 ko alag handle karna zaroori (n > 0). Bracket important hai: n & (n-1) ko == 0 se pehle bracket me rakho.",
+      "edge_cases": [
+        "n = 0",
+        "Negative",
+        "INT_MIN",
+        "n = 1"
+      ]
+    },
+    {
+      "id": "L1-042",
+      "level": 1,
+      "topic": "Bit Manipulation",
+      "title": "Counting Bits (0 to n)",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Cognizant"
+      ],
+      "problem_statement": "For every i in [0, n], return the number of 1 bits in i as an array.",
+      "description": "Har number ke set bits alag-alag chahiye.",
+      "constraints": [
+        "0 <= n <= 1e5"
+      ],
+      "test_cases": [
+        {
+          "input": "2",
+          "output": "[0,1,1]",
+          "explanation": "0, 1, 10"
+        },
+        {
+          "input": "5",
+          "output": "[0,1,1,2,1,2]",
+          "explanation": "0..5 ka popcount"
+        },
+        {
+          "input": "0",
+          "output": "[0]",
+          "explanation": "Sirf 0"
+        }
+      ],
+      "theory": "DP relation: bits[i] = bits[i >> 1] + (i & 1). i ko ek position right shift karo to chhota number milta hai, jiska answer pehle se pata hai.",
+      "brute_force": {
+        "approach": "Har i ke liye bits ek-ek karke ginno.",
+        "time": "O(n log n)",
+        "space": "O(1) extra",
+        "code_cpp": "vector<int> countBits(int n){ vector<int> r(n + 1); for(int i = 0; i <= n; i++){ int c = 0, x = i; while(x){ c += x & 1; x >>= 1; } r[i] = c; } return r; }"
+      },
+      "optimized": {
+        "approach": "DP: r[i] = r[i >> 1] + (i & 1).",
+        "time": "O(n)",
+        "space": "O(n) output",
+        "code_cpp": "vector<int> countBits(int n){ vector<int> r(n + 1, 0); for(int i = 1; i <= n; i++) r[i] = r[i >> 1] + (i & 1); return r; }"
+      },
+      "explanation": "Pichhle answers reuse karna DP ka core idea hai. Alternative: r[i] = r[i & (i-1)] + 1.",
+      "edge_cases": [
+        "n = 0",
+        "n = 1",
+        "Power of two"
+      ]
+    },
+    {
+      "id": "L1-043",
+      "level": 1,
+      "topic": "Bit Manipulation",
+      "title": "Reverse Bits (32-bit)",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Apple",
+        "Amazon",
+        "Microsoft",
+        "Adobe"
+      ],
+      "problem_statement": "Reverse the bits of a 32-bit unsigned integer.",
+      "description": "Bit position 0 position 31 par chali jati hai, 1 par 30, aur aise hi.",
+      "constraints": [
+        "Input is a 32-bit unsigned integer"
+      ],
+      "test_cases": [
+        {
+          "input": "43261596",
+          "output": "964176192",
+          "explanation": "00000010100101000001111010011100 -> 00111001011110000010100101000000"
+        },
+        {
+          "input": "4294967293",
+          "output": "3221225471",
+          "explanation": "Sirf ek 0 bit"
+        },
+        {
+          "input": "0",
+          "output": "0",
+          "explanation": "Sab zero"
+        }
+      ],
+      "theory": "result ko left shift karke n ka last bit append karo, phir n ko right shift. 32 baar repeat.",
+      "brute_force": {
+        "approach": "Bits ko string me nikalo aur reverse order me wapas number banao.",
+        "time": "O(32)",
+        "space": "O(32)",
+        "code_cpp": "uint32_t reverseBits(uint32_t n){ string b; for(int i = 0; i < 32; i++) b += char('0' + ((n >> i) & 1)); uint32_t r = 0; for(char c : b) r = (r << 1) | (c - '0'); return r; }"
+      },
+      "optimized": {
+        "approach": "Direct bit shifting, no string.",
+        "time": "O(32) = O(1)",
+        "space": "O(1)",
+        "code_cpp": "uint32_t reverseBits(uint32_t n){ uint32_t r = 0; for(int i = 0; i < 32; i++){ r = (r << 1) | (n & 1); n >>= 1; } return r; }"
+      },
+      "explanation": "Dono O(1) hain kyunki size fixed 32 hai; fark extra memory aur constant factor me hai. Follow-up: mask-swap (16, 8, 4, 2, 1 bit blocks) se 5 steps me ho jata hai.",
+      "edge_cases": [
+        "n = 0",
+        "All ones",
+        "Palindromic bits"
+      ]
+    },
+    {
+      "id": "L1-044",
+      "level": 1,
+      "topic": "Bit Manipulation",
+      "title": "Hamming Distance",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Facebook",
+        "Amazon",
+        "Infosys",
+        "Capgemini"
+      ],
+      "problem_statement": "Return the number of bit positions where two integers differ.",
+      "description": "Dono numbers ke binary me kitni jagah bits alag hain.",
+      "constraints": [
+        "0 <= x, y <= 2^31 - 1"
+      ],
+      "test_cases": [
+        {
+          "input": "1, 4",
+          "output": "2",
+          "explanation": "001 vs 100"
+        },
+        {
+          "input": "3, 1",
+          "output": "1",
+          "explanation": "11 vs 01"
+        },
+        {
+          "input": "0, 0",
+          "output": "0",
+          "explanation": "Same"
+        }
+      ],
+      "theory": "x ^ y me 1 wahi hote hain jahan bits alag hain. Us result ke set bits count karo.",
+      "brute_force": {
+        "approach": "Har bit position par x aur y ke bits compare karo.",
+        "time": "O(31)",
+        "space": "O(1)",
+        "code_cpp": "int hammingDist(int x, int y){ int c = 0; for(int i = 0; i < 31; i++) if(((x >> i) & 1) != ((y >> i) & 1)) c++; return c; }"
+      },
+      "optimized": {
+        "approach": "c = popcount(x ^ y) using n &= n - 1.",
+        "time": "O(set bits)",
+        "space": "O(1)",
+        "code_cpp": "int hammingDist(int x, int y){ int n = x ^ y, c = 0; while(n){ n &= n - 1; c++; } return c; }"
+      },
+      "explanation": "XOR 'difference detector' hai. Ye pichhle problem (Number of 1 Bits) ka direct reuse hai.",
+      "edge_cases": [
+        "x == y",
+        "One is zero",
+        "Max values"
+      ]
+    },
+    {
+      "id": "L1-045",
+      "level": 1,
+      "topic": "Math",
+      "title": "Palindrome Number (Without String)",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "TCS",
+        "Wipro",
+        "Accenture"
+      ],
+      "problem_statement": "Return true if integer x is a palindrome. Try without converting to string.",
+      "description": "Negative numbers palindrome nahi hote (minus sign).",
+      "constraints": [
+        "-2^31 <= x <= 2^31 - 1"
+      ],
+      "test_cases": [
+        {
+          "input": "121",
+          "output": "true",
+          "explanation": "121 = 121"
+        },
+        {
+          "input": "-121",
+          "output": "false",
+          "explanation": "-121 ka reverse 121-"
+        },
+        {
+          "input": "10",
+          "output": "false",
+          "explanation": "01 nahi hota"
+        }
+      ],
+      "theory": "Sirf aadhe digits reverse karo. Jab reversed half >= remaining first half ho jaye to compare karo. Isse overflow bhi nahi hota.",
+      "brute_force": {
+        "approach": "to_string karke reverse se compare.",
+        "time": "O(log x)",
+        "space": "O(log x)",
+        "code_cpp": "bool isPal(int x){ if(x < 0) return false; string s = to_string(x); string r(s.rbegin(), s.rend()); return s == r; }"
+      },
+      "optimized": {
+        "approach": "Last digit pop karke reversed half banao, loop jab tak x > r.",
+        "time": "O(log x)",
+        "space": "O(1)",
+        "code_cpp": "bool isPal(int x){ if(x < 0 || (x % 10 == 0 && x != 0)) return false; int r = 0; while(x > r){ r = r * 10 + x % 10; x /= 10; } return x == r || x == r / 10; }"
+      },
+      "explanation": "x == r/10 odd length handle karta hai (beech ka digit ignore). Trailing zero wale (10, 100) kabhi palindrome nahi, 0 ke alawa.",
+      "edge_cases": [
+        "0",
+        "Trailing zeros",
+        "Single digit",
+        "Negative"
+      ]
+    },
+    {
+      "id": "L1-046",
+      "level": 1,
+      "topic": "Math",
+      "title": "Happy Number",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Airbnb",
+        "Twitter",
+        "Infosys",
+        "Cognizant"
+      ],
+      "problem_statement": "A number is happy if repeatedly replacing it by the sum of squares of its digits reaches 1. Return true if n is happy.",
+      "description": "Ya to 1 aayega ya koi cycle ban jayegi (kabhi 1 nahi aayega).",
+      "constraints": [
+        "1 <= n <= 2^31 - 1"
+      ],
+      "test_cases": [
+        {
+          "input": "19",
+          "output": "true",
+          "explanation": "19 -> 82 -> 68 -> 100 -> 1"
+        },
+        {
+          "input": "2",
+          "output": "false",
+          "explanation": "Cycle me phans jata hai"
+        },
+        {
+          "input": "7",
+          "output": "true",
+          "explanation": "7 -> 49 -> 97 -> 130 -> 10 -> 1"
+        }
+      ],
+      "theory": "Sequence ka cycle detect karna hai: HashSet ya Floyd slow/fast pointers.",
+      "brute_force": {
+        "approach": "HashSet me seen numbers rakho; repeat mila to cycle.",
+        "time": "O(log n) per step, bounded steps",
+        "space": "O(k)",
+        "code_cpp": "int sq(int n){ int s = 0; while(n){ int d = n % 10; s += d * d; n /= 10; } return s; }\nbool isHappy(int n){ unordered_set<int> seen; while(n != 1 && !seen.count(n)){ seen.insert(n); n = sq(n); } return n == 1; }"
+      },
+      "optimized": {
+        "approach": "Floyd cycle detection: slow ek step, fast do step.",
+        "time": "Same time",
+        "space": "O(1)",
+        "code_cpp": "int sq(int n){ int s = 0; while(n){ int d = n % 10; s += d * d; n /= 10; } return s; }\nbool isHappy(int n){ int s = n, f = sq(n); while(f != 1 && s != f){ s = sq(s); f = sq(sq(f)); } return f == 1; }"
+      },
+      "explanation": "Digits square sum jaldi chhota ho jata hai (32-bit number ke liye max ~810), isliye sequence bounded hai aur cycle pakka banegi ya 1 aayega.",
+      "edge_cases": [
+        "n = 1",
+        "Large n",
+        "Known unhappy cycle (4 -> 16 -> 37 -> ...)"
+      ]
+    },
+    {
+      "id": "L1-047",
+      "level": 1,
+      "topic": "Math",
+      "title": "Add Digits (Digital Root)",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Adobe",
+        "Amazon",
+        "TCS",
+        "Wipro"
+      ],
+      "problem_statement": "Repeatedly add all digits of num until the result has one digit; return it.",
+      "description": "O(1) time aur bina loop/recursion ke solve karne ka follow-up poochha jata hai.",
+      "constraints": [
+        "0 <= num <= 2^31 - 1"
+      ],
+      "test_cases": [
+        {
+          "input": "38",
+          "output": "2",
+          "explanation": "3+8=11 -> 1+1=2"
+        },
+        {
+          "input": "0",
+          "output": "0",
+          "explanation": "Already single digit"
+        },
+        {
+          "input": "9",
+          "output": "9",
+          "explanation": "Multiple of 9"
+        }
+      ],
+      "theory": "Digital root formula: num == 0 ? 0 : 1 + (num - 1) % 9. Reason: 10 ≡ 1 (mod 9), to number aur uske digits ka sum mod 9 me same hote hain.",
+      "brute_force": {
+        "approach": "Jab tak num >= 10, digits ka sum nikalte raho.",
+        "time": "O(log num) per round",
+        "space": "O(1)",
+        "code_cpp": "int addDigits(int n){ while(n >= 10){ int s = 0; while(n){ s += n % 10; n /= 10; } n = s; } return n; }"
+      },
+      "optimized": {
+        "approach": "Closed-form formula.",
+        "time": "O(1)",
+        "space": "O(1)",
+        "code_cpp": "int addDigits(int n){ return n == 0 ? 0 : 1 + (n - 1) % 9; }"
+      },
+      "explanation": "9 ke multiples ka digital root 9 hota hai (0 nahi), isliye (n-1)%9 + 1 trick use hui hai.",
+      "edge_cases": [
+        "0",
+        "Multiples of 9",
+        "Single digit"
+      ]
+    },
+    {
+      "id": "L1-048",
+      "level": 1,
+      "topic": "Recursion",
+      "title": "Tower of Hanoi: Minimum Moves",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Microsoft",
+        "Amazon",
+        "TCS",
+        "Infosys",
+        "Zoho"
+      ],
+      "problem_statement": "n disks on rod A must move to rod C using rod B, one disk at a time, never placing a larger disk on a smaller one. Return the minimum number of moves.",
+      "description": "Recursive structure samjhna hai: n-1 disks hatao, sabse bada move karo, n-1 wapas upar rakho.",
+      "constraints": [
+        "0 <= n <= 60 (answer fits in long long)"
+      ],
+      "test_cases": [
+        {
+          "input": "1",
+          "output": "1",
+          "explanation": "Ek move"
+        },
+        {
+          "input": "3",
+          "output": "7",
+          "explanation": "2^3 - 1"
+        },
+        {
+          "input": "5",
+          "output": "31",
+          "explanation": "2^5 - 1"
+        }
+      ],
+      "theory": "T(n) = 2*T(n-1) + 1 with T(0) = 0, jiska closed form 2^n - 1 hai.",
+      "brute_force": {
+        "approach": "Recursion se actual moves simulate/count karo (hanoi(n-1, A, C, B), move, hanoi(n-1, B, A, C)).",
+        "time": "O(2^n)",
+        "space": "O(n) stack",
+        "code_cpp": "long long hanoi(int n, char a, char b, char c){ if(n == 0) return 0; long long x = hanoi(n - 1, a, c, b); x += 1; /* move disk n from a to c */ x += hanoi(n - 1, b, a, c); return x; }"
+      },
+      "optimized": {
+        "approach": "Closed form 2^n - 1.",
+        "time": "O(1)",
+        "space": "O(1)",
+        "code_cpp": "long long hanoi(int n){ return (1LL << n) - 1; }"
+      },
+      "explanation": "Sirf count chahiye to moves simulate karne ki zaroorat nahi. Agar actual moves print karne hain to recursion hi chahiye (output khud 2^n - 1 size ka hai).",
+      "edge_cases": [
+        "n = 0",
+        "n = 1",
+        "Large n (use long long / 1LL)"
+      ]
+    },
+    {
+      "id": "L1-049",
+      "level": 1,
+      "topic": "Recursion",
+      "title": "Climbing Stairs",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Adobe",
+        "TCS",
+        "Infosys",
+        "Zoho"
+      ],
+      "problem_statement": "You can climb 1 or 2 steps at a time. In how many distinct ways can you climb n steps?",
+      "description": "Order matter karta hai: 1+2 aur 2+1 alag ways hain.",
+      "constraints": [
+        "1 <= n <= 45"
+      ],
+      "test_cases": [
+        {
+          "input": "2",
+          "output": "2",
+          "explanation": "1+1, 2"
+        },
+        {
+          "input": "3",
+          "output": "3",
+          "explanation": "1+1+1, 1+2, 2+1"
+        },
+        {
+          "input": "5",
+          "output": "8",
+          "explanation": "Fibonacci pattern"
+        }
+      ],
+      "theory": "ways(n) = ways(n-1) + ways(n-2) kyunki last step 1 ya 2 ka ho sakta hai. Ye Fibonacci hi hai.",
+      "brute_force": {
+        "approach": "Plain recursion with base cases ways(1) = 1, ways(2) = 2.",
+        "time": "O(2^n)",
+        "space": "O(n) stack",
+        "code_cpp": "int climb(int n){ if(n <= 2) return n; return climb(n - 1) + climb(n - 2); }"
+      },
+      "optimized": {
+        "approach": "Bottom-up DP, sirf pichhle do values store.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int climb(int n){ if(n <= 2) return n; int a = 1, b = 2; for(int i = 3; i <= n; i++){ int c = a + b; a = b; b = c; } return b; }"
+      },
+      "explanation": "Brute me ways(3) baar baar compute hota hai. DP me har subproblem ek hi baar solve hota hai. Ye Level 5 DP ka first step hai.",
+      "edge_cases": [
+        "n = 1",
+        "n = 2",
+        "n = 45 (fits in int)"
+      ]
+    },
+    {
+      "id": "L1-050",
+      "level": 1,
+      "topic": "Recursion",
+      "title": "Josephus Problem",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Zoho",
+        "Infosys"
+      ],
+      "problem_statement": "n people stand in a circle numbered 1..n. Starting from 1, every k-th person is eliminated until one remains. Return the survivor's position.",
+      "description": "Circle me count continue hota hai aur eliminated person ke baad agle se count dobara 1 se shuru.",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "1 <= k <= 1e5"
+      ],
+      "test_cases": [
+        {
+          "input": "n=5, k=2",
+          "output": "3",
+          "explanation": "Eliminate 2,4,1,5 -> 3 bachta hai"
+        },
+        {
+          "input": "n=7, k=3",
+          "output": "4",
+          "explanation": "Survivor 4"
+        },
+        {
+          "input": "n=1, k=1",
+          "output": "1",
+          "explanation": "Single person"
+        }
+      ],
+      "theory": "Recurrence (0-indexed): J(1) = 0, J(n) = (J(n-1) + k) % n. Answer = J(n) + 1.",
+      "brute_force": {
+        "approach": "Vector me saare log rakho aur har baar index = (index + k - 1) % size par erase karo.",
+        "time": "O(n^2)",
+        "space": "O(n)",
+        "code_cpp": "int josephus(int n, int k){ vector<int> p(n); iota(p.begin(), p.end(), 1); int idx = 0; while(p.size() > 1){ idx = (idx + k - 1) % p.size(); p.erase(p.begin() + idx); } return p[0]; }"
+      },
+      "optimized": {
+        "approach": "Recurrence ko iterative loop me chalao.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int josephus(int n, int k){ int r = 0; for(int i = 2; i <= n; i++) r = (r + k) % i; return r + 1; }"
+      },
+      "explanation": "Ek person hatne ke baad problem size n-1 ho jata hai bas positions shift ho jaati hain. Isi shift ko (J(n-1) + k) % n likhte hain.",
+      "edge_cases": [
+        "n = 1",
+        "k = 1",
+        "k > n"
+      ]
+    }
+  ]
+}

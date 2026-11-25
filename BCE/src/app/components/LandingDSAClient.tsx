@@ -191,6 +191,8 @@ export default function LandingDSAClient({
               const problemsCount =
                 sheet.sheet_type === 'SQL'
                   ? sheet.metadata?.total_count || 530
+                  : sheet.sheet_type === 'ROADMAP'
+                  ? sheet.metadata?.total_count || 90
                   : sheet.coding_sheet_problems?.length || 0;
               const isLast = index === sheets.length - 1;
               const isActive = index === activeIndex;
@@ -311,8 +313,12 @@ export default function LandingDSAClient({
                   border: '1px solid rgba(6, 182, 212, 0.15)'
                 }}>
                   <Code size={18} color="#06b6d4" />
-                  <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>{problemsCount}</span>
-                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500, marginTop: '2px' }}>Problems</span>
+                  <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
+                    {sheet.sheet_type === 'ROADMAP' ? `${problemsCount} / ${sheet.metadata?.planned_total_count || 520}` : problemsCount}
+                  </span>
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500, marginTop: '2px' }}>
+                    {sheet.sheet_type === 'ROADMAP' ? 'Active Roadmap' : 'Problems'}
+                  </span>
                 </div>
 
                 {/* CTA Buttons: Explore & Login */}

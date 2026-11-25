@@ -102,6 +102,49 @@ export async function POST(
           .map(([uid]) => uid);
         rank = Math.max(1, completers.indexOf(user.id) + 1);
       }
+    } else if ((sheet as any).sheet_type === 'ROADMAP') {
+      const { count: rmTotal } = await supabase
+        .from('coding_sheet_roadmap_problems')
+        .select('id', { count: 'exact', head: true })
+        .eq('sheet_id', sheetId);
+      totalProblems = rmTotal || 0;
+
+      if (totalProblems === 0) {
+        return NextResponse.json({ error: 'Roadmap sheet has no unlocked problems yet' }, { status: 400 });
+      }
+
+      const { count: userRmSolved } = await supabase
+        .from('coding_sheet_roadmap_progress')
+        .select('id', { count: 'exact', head: true })
+        .eq('sheet_id', sheetId)
+        .eq('user_id', user.id)
+        .eq('is_solved', true);
+      solvedCount = userRmSolved || 0;
+
+      if (solvedCount < totalProblems) {
+        return NextResponse.json(
+          { error: `Sheet not completed. Solved ${solvedCount}/${totalProblems} unlocked roadmap problems.` },
+          { status: 400 }
+        );
+      }
+
+      const { data: allRmProgress } = await supabase
+        .from('coding_sheet_roadmap_progress')
+        .select('user_id, problem_code')
+        .eq('sheet_id', sheetId)
+        .eq('is_solved', true);
+
+      if (allRmProgress) {
+        const solverCounts: Record<string, Set<string>> = {};
+        allRmProgress.forEach((row) => {
+          if (!solverCounts[row.user_id]) solverCounts[row.user_id] = new Set();
+          solverCounts[row.user_id].add(row.problem_code);
+        });
+        const completers = Object.entries(solverCounts)
+          .filter(([, set]) => set.size >= totalProblems)
+          .map(([uid]) => uid);
+        rank = Math.max(1, completers.indexOf(user.id) + 1);
+      }
     } else {
       // 2. Get DSA sheet problems
       const { data: sheetProblems } = await supabase
