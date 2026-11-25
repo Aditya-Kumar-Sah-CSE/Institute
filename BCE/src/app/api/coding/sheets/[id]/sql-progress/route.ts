@@ -91,14 +91,15 @@ export async function POST(
       .eq('question_number', questionNumber)
       .maybeSingle();
 
-    // Determine difficulty for XP award (only award XP on first time is_solved transitions to true)
+    // Determine question UUID & difficulty for XP award (only award XP on first time is_solved transitions to true)
     let xpAwardedNow = 0;
+    let newProfileXp: number | undefined;
     const shouldAwardXp = isSolved && (!existing || !existing.is_solved || (existing.xp_awarded || 0) === 0);
 
     if (shouldAwardXp) {
       const { data: qMeta } = await adminSb
         .from('coding_sheet_sql_questions')
-        .select('difficulty')
+        .select('id, difficulty')
         .eq('sheet_id', sheet.id)
         .eq('question_number', questionNumber)
         .maybeSingle();
@@ -119,13 +120,18 @@ export async function POST(
           : 3;
 
       try {
-        await awardXP(
+        // xp_log.source_id column is UUID; pass question UUID (fallback sheet.id UUID)
+        const sourceUuid = qMeta?.id || sheet.id;
+        const xpResult = await awardXP(
           user.id,
           xpAwardedNow,
           `TCS SQL Q${questionNumber} (${questionType})`,
           'sql_sheet',
-          `${sheet.id}:${questionNumber}`
+          sourceUuid
         );
+        if (xpResult && typeof xpResult.newXP === 'number') {
+          newProfileXp = xpResult.newXP;
+        }
       } catch (xpErr) {
         console.error('SQL sheet XP award error:', xpErr);
         xpAwardedNow = 0;
@@ -164,6 +170,7 @@ export async function POST(
       success: true,
       data: saved,
       xpAwarded: xpAwardedNow,
+      newProfileXp,
     });
   } catch (err: any) {
     return NextResponse.json(

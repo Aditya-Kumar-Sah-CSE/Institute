@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   ArrowRight,
@@ -109,6 +110,7 @@ export default function SqlSheetDetailClient({
   isInstructor = false,
   isPublicPreview = false,
 }: SqlSheetDetailClientProps) {
+  const router = useRouter();
   const questions = useMemo(
     () => (rawQuestions || []).map(normalizeSqlQuestion),
     [rawQuestions]
@@ -127,7 +129,7 @@ export default function SqlSheetDetailClient({
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'MCQ' | 'QUERY'>('ALL');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'SOLVED' | 'UNSOLVED' | 'BOOKMARKED'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'SOLVED' | 'WRONG' | 'UNSOLVED' | 'BOOKMARKED'>('ALL');
   const [difficultyFilter, setDifficultyFilter] = useState<'ALL' | 'EASY' | 'MEDIUM' | 'HARD'>('ALL');
   const [sectionFilter, setSectionFilter] = useState<string>('ALL');
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -186,7 +188,9 @@ export default function SqlSheetDetailClient({
     let solvedTotal = 0;
     let solvedMcq = 0;
     let solvedQuery = 0;
+    let wrongCount = 0;
     let bookmarkedCount = 0;
+    let totalXpEarned = 0;
 
     questions.forEach((q) => {
       if (q.type === 'MCQ') mcqTotal++;
@@ -196,12 +200,29 @@ export default function SqlSheetDetailClient({
         solvedTotal++;
         if (q.type === 'MCQ') solvedMcq++;
         else solvedQuery++;
+        totalXpEarned += p.xp_awarded || 0;
+      } else if (p && Boolean(p.selected_option)) {
+        wrongCount++;
       }
       if (p?.is_bookmarked) bookmarkedCount++;
     });
 
+    const attemptedCount = solvedTotal + wrongCount;
+    const accuracyPct = attemptedCount > 0 ? Math.round((solvedTotal / attemptedCount) * 100) : 0;
     const pct = questions.length > 0 ? Math.round((solvedTotal / questions.length) * 100) : 0;
-    return { mcqTotal, queryTotal, solvedTotal, solvedMcq, solvedQuery, bookmarkedCount, pct };
+    return {
+      mcqTotal,
+      queryTotal,
+      solvedTotal,
+      solvedMcq,
+      solvedQuery,
+      wrongCount,
+      attemptedCount,
+      accuracyPct,
+      bookmarkedCount,
+      totalXpEarned,
+      pct,
+    };
   }, [questions, progressMap]);
 
   // Filtered Questions
@@ -214,6 +235,7 @@ export default function SqlSheetDetailClient({
 
       const prog = progressMap[item.question_number];
       if (statusFilter === 'SOLVED' && !prog?.is_solved) return false;
+      if (statusFilter === 'WRONG' && (prog?.is_solved || !prog?.selected_option)) return false;
       if (statusFilter === 'UNSOLVED' && prog?.is_solved) return false;
       if (statusFilter === 'BOOKMARKED' && !prog?.is_bookmarked) return false;
 
@@ -289,6 +311,9 @@ export default function SqlSheetDetailClient({
           ...prev,
           [payload.questionNumber]: json.data,
         }));
+        if (json.xpAwarded && json.xpAwarded > 0) {
+          router.refresh();
+        }
         return { xpAwarded: json.xpAwarded || 0 };
       }
     } catch (err) {
@@ -401,7 +426,7 @@ export default function SqlSheetDetailClient({
           </div>
 
           {sheet.description && (
-            <p style={{ margin: 0, color: '#94a3b8', fontSize: '14px', lineHeight: 1.5, maxWidth: '820px' }}>
+            <p className="sql-sheet-desc">
               {sheet.description}
             </p>
           )}
@@ -436,7 +461,14 @@ export default function SqlSheetDetailClient({
               <Flame size={17} style={{ color: '#f59e0b' }} />
               SQL Mastery Progress ({stats.solvedTotal} / {questions.length})
             </span>
-            <span className="sql-progress-pct">{stats.pct}%</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              {stats.totalXpEarned > 0 && (
+                <span className="sql-xp-burst" title="Total XP earned on this SQL sheet">
+                  <Sparkles size={12} /> +{stats.totalXpEarned} XP
+                </span>
+              )}
+              <span className="sql-progress-pct">{stats.pct}%</span>
+            </div>
           </div>
 
           <div className="sql-progress-track">
@@ -445,29 +477,49 @@ export default function SqlSheetDetailClient({
 
           <div className="sql-breakdown-pills">
             <div className="sql-mini-stat">
-              <span className="sql-mini-stat-label">MCQs Completed</span>
-              <span className="sql-mini-stat-val" style={{ color: '#c084fc' }}>
-                {stats.solvedMcq} <span style={{ fontSize: '12px', color: '#64748b' }}>/ {stats.mcqTotal}</span>
+              <span className="sql-mini-stat-label">Total Correct</span>
+              <span className="sql-mini-stat-val sql-color-correct">
+                {stats.solvedTotal} <span className="sql-stat-sub">{stats.attemptedCount > 0 ? `(${stats.accuracyPct}% acc)` : `/ ${questions.length}`}</span>
               </span>
             </div>
+
+            <div className="sql-mini-stat">
+              <span className="sql-mini-stat-label">MCQs Correct</span>
+              <span className="sql-mini-stat-val sql-color-mcq">
+                {stats.solvedMcq} <span className="sql-stat-sub">/ {stats.mcqTotal}</span>
+              </span>
+            </div>
+
             <div className="sql-mini-stat">
               <span className="sql-mini-stat-label">SQL Queries</span>
-              <span className="sql-mini-stat-val" style={{ color: '#22d3ee' }}>
-                {stats.solvedQuery} <span style={{ fontSize: '12px', color: '#64748b' }}>/ {stats.queryTotal}</span>
+              <span className="sql-mini-stat-val sql-color-query">
+                {stats.solvedQuery} <span className="sql-stat-sub">/ {stats.queryTotal}</span>
               </span>
             </div>
-            <div className="sql-mini-stat">
-              <span className="sql-mini-stat-label">Bookmarked</span>
-              <span className="sql-mini-stat-val" style={{ color: '#fbbf24' }}>
-                {stats.bookmarkedCount}
+
+            <div
+              className="sql-mini-stat clickable"
+              onClick={() => {
+                setActiveQNum(null);
+                setActiveTab('arena');
+                setStatusFilter(stats.wrongCount > 0 ? 'WRONG' : 'BOOKMARKED');
+              }}
+              title="Click to filter Wrong answers or Bookmarked questions"
+            >
+              <span className="sql-mini-stat-label">Wrong / Saved</span>
+              <span className="sql-mini-stat-val">
+                <span className="sql-color-wrong">{stats.wrongCount}</span>
+                <span className="sql-stat-sub"> wrong • </span>
+                <span className="sql-color-bookmark">{stats.bookmarkedCount}</span>
+                <span className="sql-stat-sub"> saved</span>
               </span>
             </div>
           </div>
 
           {lastPracticedQ && activeQNum === null && (
-            <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-              <span style={{ fontSize: '12.5px', color: '#94a3b8' }}>
-                Resume where you left off: <strong style={{ color: '#f8fafc' }}>Question #{lastPracticedQ}</strong>
+            <div className="sql-resume-row">
+              <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
+                Resume where you left off: <strong style={{ color: 'var(--text-primary)' }}>Question #{lastPracticedQ}</strong>
               </span>
               <button type="button" onClick={() => openQuestion(lastPracticedQ)} className="sql-btn sql-btn-emerald">
                 <Play size={14} fill="currentColor" /> Continue Q{lastPracticedQ}
@@ -484,10 +536,10 @@ export default function SqlSheetDetailClient({
               onClick={() => setShowLeaderboardModal(true)}
               title="View Top SQL Solvers"
             >
-              <Trophy size={20} style={{ color: '#fbbf24', flexShrink: 0 }} />
+              <Trophy size={20} style={{ color: '#f59e0b', flexShrink: 0 }} />
               <div>
-                <div style={{ fontSize: '16px', fontWeight: 800, color: '#f8fafc' }}>{totalSolversCount}</div>
-                <div style={{ fontSize: '11px', color: '#94a3b8' }}>Active Solvers</div>
+                <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' }}>{totalSolversCount}</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Active Solvers</div>
               </div>
             </div>
 
@@ -496,20 +548,20 @@ export default function SqlSheetDetailClient({
               onClick={() => setShowEnrolledModal(true)}
               title="View Enrolled Learners"
             >
-              <Users size={20} style={{ color: '#22d3ee', flexShrink: 0 }} />
+              <Users size={20} style={{ color: '#0284c7', flexShrink: 0 }} />
               <div>
-                <div style={{ fontSize: '16px', fontWeight: 800, color: '#f8fafc' }}>{totalEnrolledCount}</div>
-                <div style={{ fontSize: '11px', color: '#94a3b8' }}>Enrolled</div>
+                <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' }}>{totalEnrolledCount}</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Enrolled</div>
               </div>
             </div>
 
             <div className="sheet-stat-box">
               <Star size={20} style={{ color: '#f59e0b', flexShrink: 0 }} />
               <div>
-                <div style={{ fontSize: '16px', fontWeight: 800, color: '#f8fafc' }}>
+                <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' }}>
                   {reviewsData?.stats?.averageRating ? `${reviewsData.stats.averageRating} / 5` : 'New'}
                 </div>
-                <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
                   {reviewsData?.stats?.totalReviews || 0} Reviews
                 </div>
               </div>
@@ -522,21 +574,21 @@ export default function SqlSheetDetailClient({
                 setActiveTab('cheatsheet');
               }}
             >
-              <Sparkles size={20} style={{ color: '#a855f7', flexShrink: 0 }} />
+              <Sparkles size={20} style={{ color: '#7c3aed', flexShrink: 0 }} />
               <div>
-                <div style={{ fontSize: '14px', fontWeight: 800, color: '#f8fafc' }}>12 Topics</div>
-                <div style={{ fontSize: '11px', color: '#94a3b8' }}>Cheat Sheet</div>
+                <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)' }}>12 Topics</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Cheat Sheet</div>
               </div>
             </div>
           </div>
 
-          <div style={{ fontSize: '12px', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
             <span>11 MCQ Modules • 8 Live SQL Query Labs</span>
             <button
               type="button"
               onClick={() => openQuestion(383)}
               className="sql-mini-btn"
-              style={{ color: '#22d3ee', borderColor: 'rgba(6, 182, 212, 0.35)' }}
+              style={{ color: 'var(--accent-primary, #0284c7)', borderColor: 'rgba(14, 165, 233, 0.35)' }}
             >
               <Terminal size={12} /> Try Live SQL Sandbox
             </button>
@@ -611,7 +663,7 @@ export default function SqlSheetDetailClient({
                   >
                     <ArrowLeft size={15} /> All Questions
                   </button>
-                  <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 600 }}>
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>
                     Q{activeQuestionObj.question_number} of {questions.length}
                   </span>
                 </div>
@@ -675,7 +727,7 @@ export default function SqlSheetDetailClient({
               <div className="sql-filters-card">
                 <div className="sql-filter-top-row">
                   <div className="sql-search-wrap">
-                    <Search size={16} style={{ color: '#94a3b8', flexShrink: 0 }} />
+                    <Search size={16} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
                     <input
                       type="text"
                       value={searchQuery}
@@ -686,7 +738,7 @@ export default function SqlSheetDetailClient({
                       <button
                         type="button"
                         onClick={() => setSearchQuery('')}
-                        style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                        style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
                       >
                         <X size={15} />
                       </button>
@@ -736,7 +788,7 @@ export default function SqlSheetDetailClient({
                   </div>
 
                   <div className="sql-pill-group">
-                    {(['ALL', 'SOLVED', 'UNSOLVED', 'BOOKMARKED'] as const).map((st) => (
+                    {(['ALL', 'SOLVED', 'WRONG', 'UNSOLVED', 'BOOKMARKED'] as const).map((st) => (
                       <button
                         key={st}
                         type="button"
@@ -746,7 +798,9 @@ export default function SqlSheetDetailClient({
                         {st === 'ALL'
                           ? 'Any Status'
                           : st === 'SOLVED'
-                          ? 'Solved'
+                          ? `Correct (${stats.solvedTotal})`
+                          : st === 'WRONG'
+                          ? `Wrong (${stats.wrongCount})`
                           : st === 'UNSOLVED'
                           ? 'Pending'
                           : `Bookmarked (${stats.bookmarkedCount})`}
@@ -771,10 +825,10 @@ export default function SqlSheetDetailClient({
 
               {/* Count & Results Info */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', padding: '0 4px' }}>
-                <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 600 }}>
-                  Showing <strong style={{ color: '#f8fafc' }}>{filteredQuestions.length}</strong> question(s)
+                <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                  Showing <strong style={{ color: 'var(--text-primary)' }}>{filteredQuestions.length}</strong> question(s)
                 </span>
-                <span style={{ fontSize: '12.5px', color: '#64748b' }}>
+                <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
                   Page {safePage} of {totalPages}
                 </span>
               </div>
@@ -782,9 +836,9 @@ export default function SqlSheetDetailClient({
               {/* Questions Rows */}
               {paginatedQuestions.length === 0 ? (
                 <div className="sql-glass-panel" style={{ textAlign: 'center', padding: '44px 20px' }}>
-                  <BookOpen size={36} style={{ color: '#64748b', margin: '0 auto 12px' }} />
-                  <h3 style={{ color: '#f8fafc', margin: '0 0 6px' }}>No questions match these filters</h3>
-                  <p style={{ color: '#94a3b8', fontSize: '13.5px', marginBottom: '14px' }}>
+                  <BookOpen size={36} style={{ color: 'var(--text-muted)', margin: '0 auto 12px' }} />
+                  <h3 style={{ color: 'var(--text-primary)', margin: '0 0 6px' }}>No questions match these filters</h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '13.5px', marginBottom: '14px' }}>
                     Try resetting your search or module filter.
                   </p>
                   <button
@@ -830,7 +884,7 @@ export default function SqlSheetDetailClient({
 
                           <div className="row-problem-meta">
                             <div className="row-problem-title">
-                              <span style={{ color: '#22d3ee', marginRight: '8px', fontWeight: 800 }}>
+                              <span className="sql-color-query" style={{ marginRight: '8px', fontWeight: 800 }}>
                                 Q{q.question_number}.
                               </span>
                               {q.question}
@@ -897,7 +951,7 @@ export default function SqlSheetDetailClient({
                   </button>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: 700 }}>
+                    <span style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: 700 }}>
                       Page {safePage} / {totalPages}
                     </span>
                   </div>
@@ -959,7 +1013,7 @@ export default function SqlSheetDetailClient({
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '60vh', overflowY: 'auto' }}>
           {leaderboardList.length === 0 ? (
-            <p style={{ color: '#94a3b8', fontSize: '13.5px', textAlign: 'center', padding: '20px 0' }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '13.5px', textAlign: 'center', padding: '20px 0' }}>
               Be the first to solve SQL questions on this sheet!
             </p>
           ) : (
@@ -972,18 +1026,18 @@ export default function SqlSheetDetailClient({
                   justifyContent: 'space-between',
                   padding: '10px 12px',
                   borderRadius: '10px',
-                  background: row.isCurrentUser ? 'rgba(6, 182, 212, 0.12)' : 'rgba(255, 255, 255, 0.03)',
-                  border: row.isCurrentUser ? '1px solid rgba(6, 182, 212, 0.35)' : '1px solid rgba(255, 255, 255, 0.08)',
+                  background: row.isCurrentUser ? 'rgba(6, 182, 212, 0.12)' : 'var(--bg-secondary)',
+                  border: row.isCurrentUser ? '1px solid rgba(6, 182, 212, 0.35)' : '1px solid var(--border-default)',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontWeight: 800, color: idx < 3 ? '#fbbf24' : '#94a3b8', width: '24px' }}>
+                  <span style={{ fontWeight: 800, color: idx < 3 ? '#f59e0b' : 'var(--text-secondary)', width: '24px' }}>
                     #{idx + 1}
                   </span>
                   <UserAvatar url={row.avatar_url} name={row.name} size={32} />
-                  <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#f8fafc' }}>{row.name}</span>
+                  <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-primary)' }}>{row.name}</span>
                 </div>
-                <span style={{ fontSize: '13px', fontWeight: 800, color: '#22d3ee' }}>
+                <span className="sql-color-query" style={{ fontSize: '13px', fontWeight: 800 }}>
                   {row.solvedCount} / {questions.length}
                 </span>
               </div>
@@ -1001,7 +1055,7 @@ export default function SqlSheetDetailClient({
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '60vh', overflowY: 'auto' }}>
           {enrolledUsersList.length === 0 ? (
-            <p style={{ color: '#94a3b8', fontSize: '13.5px', textAlign: 'center', padding: '20px 0' }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '13.5px', textAlign: 'center', padding: '20px 0' }}>
               Public sheet — anyone in Code Arena can practice directly!
             </p>
           ) : (
@@ -1014,12 +1068,12 @@ export default function SqlSheetDetailClient({
                   gap: '10px',
                   padding: '8px 10px',
                   borderRadius: '10px',
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-default)',
                 }}
               >
                 <UserAvatar url={u.avatar_url} name={u.name} size={32} />
-                <span style={{ fontSize: '13.5px', fontWeight: 600, color: '#f8fafc' }}>{u.name}</span>
+                <span style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-primary)' }}>{u.name}</span>
               </div>
             ))
           )}

@@ -76,11 +76,14 @@ export default function SqlQueryWorkspace({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
-    setSqlInput(progress?.submitted_sql || '');
     setRunResult(null);
     setOutputTab('yours');
     setShowSolution(false);
     setRecentXp(0);
+  }, [question.question_number]);
+
+  useEffect(() => {
+    setSqlInput(progress?.submitted_sql || '');
   }, [question.question_number, progress?.submitted_sql]);
 
   const isSolved = Boolean(progress?.is_solved);
@@ -202,9 +205,9 @@ export default function SqlQueryWorkspace({
         </div>
 
         <div className="sql-card-actions-right">
-          {recentXp > 0 && (
+          {(recentXp > 0 || (isSolved && (progress?.xp_awarded || 0) > 0)) && (
             <span className="sql-xp-burst">
-              <Sparkles size={12} /> +{recentXp} XP
+              <Sparkles size={12} /> +{recentXp > 0 ? recentXp : progress?.xp_awarded} XP
             </span>
           )}
           {isSolved && (
@@ -431,7 +434,7 @@ export default function SqlQueryWorkspace({
                     <tbody>
                       {rows.length === 0 ? (
                         <tr>
-                          <td colSpan={cols.length} style={{ textAlign: 'center', color: '#94a3b8' }}>
+                          <td colSpan={cols.length} style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
                             (0 rows returned)
                           </td>
                         </tr>
@@ -492,7 +495,7 @@ export default function SqlQueryWorkspace({
             {question.step_by_step && question.step_by_step.length > 0 && (
               <div className="sql-info-subcard">
                 <div className="sql-subcard-heading">
-                  <ListChecks size={15} style={{ color: '#4ade80' }} /> Step-by-Step Intuition
+                  <ListChecks size={15} className="sql-color-correct" /> Step-by-Step Intuition
                 </div>
                 <ol className="sql-steps-ol">
                   {question.step_by_step.map((step, i) => (

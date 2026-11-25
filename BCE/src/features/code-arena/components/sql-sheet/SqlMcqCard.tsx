@@ -42,10 +42,13 @@ export default function SqlMcqCard({
   const [recentXp, setRecentXp] = useState<number>(0);
 
   useEffect(() => {
-    setSelectedOption(progress?.selected_option || (progress?.is_solved ? question.correct_option || null : null));
-    setHasChecked(Boolean(progress?.selected_option || progress?.is_solved));
     setRecentXp(0);
     setShowConcepts(false);
+  }, [question.question_number]);
+
+  useEffect(() => {
+    setSelectedOption(progress?.selected_option || (progress?.is_solved ? question.correct_option || null : null));
+    setHasChecked(Boolean(progress?.selected_option || progress?.is_solved));
   }, [question.question_number, progress?.selected_option, progress?.is_solved, question.correct_option]);
 
   const options = question.options || {};
@@ -104,9 +107,9 @@ export default function SqlMcqCard({
         </div>
 
         <div className="sql-card-actions-right">
-          {recentXp > 0 && (
+          {(recentXp > 0 || (isSolved && (progress?.xp_awarded || 0) > 0)) && (
             <span className="sql-xp-burst">
-              <Sparkles size={12} /> +{recentXp} XP
+              <Sparkles size={12} /> +{recentXp > 0 ? recentXp : progress?.xp_awarded} XP
             </span>
           )}
           {isSolved && (
@@ -175,13 +178,13 @@ export default function SqlMcqCard({
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               {isCorrect ? (
                 <>
-                  <CheckCircle2 size={18} style={{ color: '#4ade80' }} />
-                  <strong style={{ color: '#4ade80' }}>Correct Answer!</strong>
+                  <CheckCircle2 size={18} className="sql-status-icon-correct" />
+                  <strong className="sql-status-text-correct">Correct Answer!</strong>
                 </>
               ) : (
                 <>
-                  <AlertCircle size={18} style={{ color: '#f87171' }} />
-                  <strong style={{ color: '#fca5a5' }}>
+                  <AlertCircle size={18} className="sql-status-icon-wrong" />
+                  <strong className="sql-status-text-wrong">
                     Not quite — Correct Option is {correctOpt}) {question.correct_answer || options[correctOpt]}
                   </strong>
                 </>
@@ -197,7 +200,7 @@ export default function SqlMcqCard({
           {question.explanation_points && question.explanation_points.length > 0 && (
             <div className="sql-exp-section">
               <div className="sql-exp-subtitle">
-                <Lightbulb size={14} style={{ color: '#fbbf24' }} /> Explanation
+                <Lightbulb size={14} style={{ color: '#f59e0b' }} /> Explanation
               </div>
               <ul className="sql-exp-list">
                 {question.explanation_points.map((pt, i) => (
@@ -210,7 +213,7 @@ export default function SqlMcqCard({
           {/* Distractor / Incorrect Options Breakdown */}
           {question.incorrect_options && Object.keys(question.incorrect_options).length > 0 && (
             <div className="sql-exp-section">
-              <div className="sql-exp-subtitle" style={{ color: '#94a3b8' }}>
+              <div className="sql-exp-subtitle muted">
                 Other Options Compared
               </div>
               <div className="sql-distractors-grid">

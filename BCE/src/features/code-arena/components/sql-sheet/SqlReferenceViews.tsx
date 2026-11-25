@@ -122,7 +122,7 @@ export function PracticeTablesView() {
       {/* Dialect Notes Comparison Matrix */}
       <div className="sql-ref-card">
         <div className="sql-ref-header">
-          <Sparkles size={18} style={{ color: '#fbbf24' }} />
+          <Sparkles size={18} style={{ color: '#f59e0b' }} />
           <h3>SQL Dialect Notes (Crucial for TCS Interviews)</h3>
         </div>
         <div className="sql-result-table-scroll">
@@ -138,7 +138,7 @@ export function PracticeTablesView() {
             <tbody>
               {DIALECT_NOTES.map((row) => (
                 <tr key={row.topic}>
-                  <td style={{ fontWeight: 700, color: '#f8fafc' }}>{row.topic}</td>
+                  <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{row.topic}</td>
                   <td><code>{row.mysqlPg}</code></td>
                   <td><code>{row.sqlServer}</code></td>
                   <td><code>{row.oracle}</code></td>
@@ -168,7 +168,7 @@ export function CheatSheetView() {
       <div className="sql-ref-card">
         <div className="sql-cheat-header-bar">
           <div>
-            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: '#f8fafc' }}>
+            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
               <Sparkles size={18} style={{ color: 'var(--neon-cyan, #06b6d4)' }} />
               SQL Quick Revision Cheat Sheet (Last-Minute TCS Interview Prep)
             </h3>
@@ -177,7 +177,7 @@ export function CheatSheetView() {
             </p>
           </div>
           <div className="sql-cheat-search-box">
-            <Search size={15} style={{ color: '#94a3b8' }} />
+            <Search size={15} style={{ color: 'var(--text-secondary)' }} />
             <input
               type="text"
               value={filter}
@@ -237,6 +237,7 @@ export function QuizSessionView({
   const [quizDeck, setQuizDeck] = useState<SqlSheetQuestion[]>([]);
   const [currentIdx, setCurrentIdx] = useState<number>(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [sessionXp, setSessionXp] = useState<number>(0);
   const [finished, setFinished] = useState<boolean>(false);
 
   const startQuiz = () => {
@@ -253,6 +254,7 @@ export function QuizSessionView({
     setQuizDeck(pool);
     setCurrentIdx(0);
     setAnswers({});
+    setSessionXp(0);
     setFinished(false);
     setQuizActive(true);
   };
@@ -262,7 +264,7 @@ export function QuizSessionView({
       <div className="sql-reference-container">
         <div className="sql-ref-card">
           <div className="sql-ref-header">
-            <Trophy size={18} style={{ color: '#fbbf24' }} />
+            <Trophy size={18} style={{ color: '#f59e0b' }} />
             <h3>TCS MCQ Practice Quiz Mode</h3>
           </div>
           <p className="sql-ref-desc">
@@ -308,7 +310,7 @@ export function QuizSessionView({
   if (quizDeck.length === 0) {
     return (
       <div className="sql-ref-card" style={{ textAlign: 'center', padding: '40px 20px' }}>
-        <p style={{ color: '#94a3b8', marginBottom: '16px' }}>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
           No matching MCQs found (you may have already solved all questions in this filter!).
         </p>
         <button type="button" onClick={() => setQuizActive(false)} className="sql-btn sql-btn-secondary">
@@ -328,10 +330,16 @@ export function QuizSessionView({
     const pct = Math.round((correctCount / totalQ) * 100);
     return (
       <div className="sql-ref-card" style={{ textAlign: 'center', padding: '32px 20px' }}>
-        <Trophy size={42} style={{ color: '#fbbf24', margin: '0 auto 12px' }} />
-        <h3 style={{ fontSize: '1.5rem', color: '#f8fafc', margin: '0 0 8px' }}>Quiz Session Complete!</h3>
-        <p style={{ color: '#94a3b8', marginBottom: '20px' }}>
-          Score: <strong style={{ color: '#4ade80' }}>{correctCount} / {totalQ}</strong> ({pct}% accuracy)
+        <Trophy size={42} style={{ color: '#f59e0b', margin: '0 auto 12px' }} />
+        <h3 style={{ fontSize: '1.5rem', color: 'var(--text-primary)', margin: '0 0 8px' }}>Quiz Session Complete!</h3>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '20px' }}>
+          Total Correct: <strong className="sql-color-correct">{correctCount} / {totalQ}</strong> ({pct}% accuracy)
+          {sessionXp > 0 && (
+            <>
+              {' • '}
+              <strong className="sql-color-bookmark">+{sessionXp} XP Earned</strong>
+            </>
+          )}
         </p>
         <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <button type="button" onClick={startQuiz} className="sql-btn sql-btn-primary">
@@ -353,12 +361,15 @@ export function QuizSessionView({
     if (userChoice) return;
     setAnswers((prev) => ({ ...prev, [currentQ.question_number]: optKey }));
     if (!isPublicPreview) {
-      await onSubmitMcq({
+      const res = await onSubmitMcq({
         questionNumber: currentQ.question_number,
         questionType: 'MCQ',
         isSolved: optKey.toUpperCase() === correctChoice,
         selectedOption: optKey,
       });
+      if (res && res.xpAwarded && res.xpAwarded > 0) {
+        setSessionXp((prev) => prev + (res.xpAwarded || 0));
+      }
     }
   };
 
@@ -372,8 +383,13 @@ export function QuizSessionView({
           <span className="sql-section-pill">{currentQ.section}</span>
         </div>
         <div className="sql-card-actions-right">
+          {sessionXp > 0 && (
+            <span className="sql-xp-burst">
+              <Sparkles size={12} /> +{sessionXp} XP
+            </span>
+          )}
           <span className="sql-solved-pill">
-            Score: {correctCount}/{answeredCount || 0}
+            Correct: {correctCount}/{answeredCount || 0}
           </span>
           <button type="button" onClick={() => setQuizActive(false)} className="sql-mini-btn">
             Exit Quiz
