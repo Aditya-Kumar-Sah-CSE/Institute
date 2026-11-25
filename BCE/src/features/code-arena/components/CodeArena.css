@@ -5696,3 +5696,29 @@
   width: 0 !important;
   height: 0 !important;
 }
+
+.celebration-two-col-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
+  gap: 16px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.celebration-col-left,
+.celebration-col-right {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+@media (max-width: 860px) {
+  .code-celebration-modal-card {
+    max-height: 92vh !important;
+    overflow-y: auto !important;
+  }
+  .celebration-two-col-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,740 @@
+[
+  {
+    "num": 419,
+    "id": "Q419",
+    "prompt": "Number even hai ya odd?",
+    "solution": "const isEven = n => n % 2 === 0;"
+  },
+  {
+    "num": 420,
+    "id": "Q420",
+    "prompt": "Number prime hai?",
+    "solution": "const isPrime = n => { if (n < 2) return false; for (let i = 2; i * i <= n; i++) if (n % i === 0) return false; return true; };"
+  },
+  {
+    "num": 421,
+    "id": "Q421",
+    "prompt": "Factorial (iterative)",
+    "solution": "const fact = n => { let r = 1; for (let i = 2; i <= n; i++) r *= i; return r; };"
+  },
+  {
+    "num": 422,
+    "id": "Q422",
+    "prompt": "Factorial (recursive)",
+    "solution": "const fact = n => n <= 1 ? 1 : n * fact(n - 1);"
+  },
+  {
+    "num": 423,
+    "id": "Q423",
+    "prompt": "Fibonacci nth term",
+    "solution": "const fib = n => { let [a, b] = [0, 1]; for (let i = 0; i < n; i++) [a, b] = [b, a + b]; return a; };"
+  },
+  {
+    "num": 424,
+    "id": "Q424",
+    "prompt": "Fibonacci with memoization",
+    "solution": "const fib = (n, m = {}) => n < 2 ? n : m[n] ??= fib(n - 1, m) + fib(n - 2, m);"
+  },
+  {
+    "num": 425,
+    "id": "Q425",
+    "prompt": "GCD of two numbers",
+    "solution": "const gcd = (a, b) => b === 0 ? a : gcd(b, a % b);"
+  },
+  {
+    "num": 426,
+    "id": "Q426",
+    "prompt": "LCM of two numbers",
+    "solution": "const lcm = (a, b) => a / gcd(a, b) * b;"
+  },
+  {
+    "num": 427,
+    "id": "Q427",
+    "prompt": "Sum of digits",
+    "solution": "const sumDigits = n => [...String(Math.abs(n))].reduce((s, d) => s + +d, 0);"
+  },
+  {
+    "num": 428,
+    "id": "Q428",
+    "prompt": "Reverse a number",
+    "solution": "const revNum = n => Number(String(Math.abs(n)).split('').reverse().join('')) * Math.sign(n);"
+  },
+  {
+    "num": 429,
+    "id": "Q429",
+    "prompt": "Palindrome number",
+    "solution": "const isPalNum = n => String(n) === String(n).split('').reverse().join('');"
+  },
+  {
+    "num": 430,
+    "id": "Q430",
+    "prompt": "Armstrong number",
+    "solution": "const isArm = n => { const d = String(n); return [...d].reduce((s, x) => s + x ** d.length, 0) === n; };"
+  },
+  {
+    "num": 431,
+    "id": "Q431",
+    "prompt": "Primes up to n (sieve)",
+    "solution": "function sieve(n) { const p = Array(n + 1).fill(true); p[0] = p[1] = false; for (let i = 2; i * i <= n; i++) if (p[i]) for (let j = i * i; j <= n; j += i) p[j] = false; return p.reduce((a, v, i) => v ? [...a, i] : a, []); }"
+  },
+  {
+    "num": 432,
+    "id": "Q432",
+    "prompt": "Power of two check",
+    "solution": "const isPow2 = n => n > 0 && (n & (n - 1)) === 0;"
+  },
+  {
+    "num": 433,
+    "id": "Q433",
+    "prompt": "Count set bits",
+    "solution": "const bits = n => { let c = 0; while (n) { n &= n - 1; c++; } return c; };"
+  },
+  {
+    "num": 434,
+    "id": "Q434",
+    "prompt": "Decimal to binary",
+    "solution": "const toBin = n => n.toString(2);"
+  },
+  {
+    "num": 435,
+    "id": "Q435",
+    "prompt": "Binary to decimal",
+    "solution": "const toDec = s => parseInt(s, 2);"
+  },
+  {
+    "num": 436,
+    "id": "Q436",
+    "prompt": "Random integer in range [min,max]",
+    "solution": "const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;"
+  },
+  {
+    "num": 437,
+    "id": "Q437",
+    "prompt": "FizzBuzz",
+    "solution": "for (let i = 1; i <= 100; i++) console.log(i % 15 === 0 ? 'FizzBuzz' : i % 3 === 0 ? 'Fizz' : i % 5 === 0 ? 'Buzz' : i);"
+  },
+  {
+    "num": 438,
+    "id": "Q438",
+    "prompt": "Sum of 1..n using formula",
+    "solution": "const sumN = n => n * (n + 1) / 2;"
+  },
+  {
+    "num": 439,
+    "id": "Q439",
+    "prompt": "Check perfect number",
+    "solution": "const isPerfect = n => { let s = 0; for (let i = 1; i < n; i++) if (n % i === 0) s += i; return s === n && n > 1; };"
+  },
+  {
+    "num": 440,
+    "id": "Q440",
+    "prompt": "Celsius to Fahrenheit",
+    "solution": "const cToF = c => c * 9 / 5 + 32;"
+  },
+  {
+    "num": 441,
+    "id": "Q441",
+    "prompt": "Count digits",
+    "solution": "const countDigits = n => String(Math.abs(n)).length;"
+  },
+  {
+    "num": 442,
+    "id": "Q442",
+    "prompt": "Round to 2 decimals",
+    "solution": "const round2 = n => Math.round((n + Number.EPSILON) * 100) / 100;"
+  },
+  {
+    "num": 443,
+    "id": "Q443",
+    "prompt": "Leap year",
+    "solution": "const isLeap = y => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;"
+  },
+  {
+    "num": 444,
+    "id": "Q444",
+    "prompt": "Roman numeral to integer",
+    "solution": "function roman(s) { const m = {I:1,V:5,X:10,L:50,C:100,D:500,M:1000}; let t = 0; for (let i = 0; i < s.length; i++) { const v = m[s[i]], n = m[s[i + 1]]; t += n > v ? -v : v; } return t; }"
+  },
+  {
+    "num": 445,
+    "id": "Q445",
+    "prompt": "Reverse string",
+    "solution": "const rev = s => [...s].reverse().join('');"
+  },
+  {
+    "num": 446,
+    "id": "Q446",
+    "prompt": "Palindrome string",
+    "solution": "const isPal = s => { const c = s.toLowerCase().replace(/[^a-z0-9]/g, ''); return c === [...c].reverse().join(''); };"
+  },
+  {
+    "num": 447,
+    "id": "Q447",
+    "prompt": "Count vowels",
+    "solution": "const vowels = s => (s.match(/[aeiou]/gi) || []).length;"
+  },
+  {
+    "num": 448,
+    "id": "Q448",
+    "prompt": "Capitalize each word",
+    "solution": "const title = s => s.replace(/\\b\\w/g, c => c.toUpperCase());"
+  },
+  {
+    "num": 449,
+    "id": "Q449",
+    "prompt": "Anagram check",
+    "solution": "const isAnagram = (a, b) => [...a].sort().join('') === [...b].sort().join('');"
+  },
+  {
+    "num": 450,
+    "id": "Q450",
+    "prompt": "Character frequency",
+    "solution": "const freq = s => [...s].reduce((m, c) => (m[c] = (m[c] || 0) + 1, m), {});"
+  },
+  {
+    "num": 451,
+    "id": "Q451",
+    "prompt": "First non-repeating char",
+    "solution": "const firstUnique = s => { const f = freq(s); return [...s].find(c => f[c] === 1) ?? null; };"
+  },
+  {
+    "num": 452,
+    "id": "Q452",
+    "prompt": "Longest word",
+    "solution": "const longest = s => s.split(/\\s+/).reduce((a, w) => w.length > a.length ? w : a, '');"
+  },
+  {
+    "num": 453,
+    "id": "Q453",
+    "prompt": "Remove duplicate chars",
+    "solution": "const dedupe = s => [...new Set(s)].join('');"
+  },
+  {
+    "num": 454,
+    "id": "Q454",
+    "prompt": "Most frequent char",
+    "solution": "const maxChar = s => { const f = freq(s); return Object.keys(f).reduce((a, b) => f[a] >= f[b] ? a : b); };"
+  },
+  {
+    "num": 455,
+    "id": "Q455",
+    "prompt": "Is string rotation of another",
+    "solution": "const isRot = (a, b) => a.length === b.length && (a + a).includes(b);"
+  },
+  {
+    "num": 456,
+    "id": "Q456",
+    "prompt": "Count words",
+    "solution": "const words = s => s.trim().split(/\\s+/).filter(Boolean).length;"
+  },
+  {
+    "num": 457,
+    "id": "Q457",
+    "prompt": "camelCase to kebab-case",
+    "solution": "const kebab = s => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();"
+  },
+  {
+    "num": 458,
+    "id": "Q458",
+    "prompt": "Truncate string with ...",
+    "solution": "const trunc = (s, n) => s.length > n ? s.slice(0, n - 3) + '...' : s;"
+  },
+  {
+    "num": 459,
+    "id": "Q459",
+    "prompt": "Balanced brackets",
+    "solution": "function balanced(s) { const st = [], p = {')':'(', ']':'[', '}':'{'}; for (const c of s) { if ('([{'.includes(c)) st.push(c); else if (p[c]) { if (st.pop() !== p[c]) return false; } } return st.length === 0; }"
+  },
+  {
+    "num": 460,
+    "id": "Q460",
+    "prompt": "String compression a3b2",
+    "solution": "function compress(s) { let r = '', c = 1; for (let i = 1; i <= s.length; i++) { if (s[i] === s[i - 1]) c++; else { r += s[i - 1] + c; c = 1; } } return r; }"
+  },
+  {
+    "num": 461,
+    "id": "Q461",
+    "prompt": "Longest common prefix",
+    "solution": "const lcp = a => a.reduce((p, s) => { while (!s.startsWith(p)) p = p.slice(0, -1); return p; });"
+  },
+  {
+    "num": 462,
+    "id": "Q462",
+    "prompt": "Longest palindromic substring (expand)",
+    "solution": "function lps(s) { let best = ''; for (let i = 0; i < s.length; i++) for (const [l, r] of [[i, i], [i, i + 1]]) { let a = l, b = r; while (a >= 0 && b < s.length && s[a] === s[b]) { a--; b++; } if (b - a - 1 > best.length) best = s.slice(a + 1, b); } return best; }"
+  },
+  {
+    "num": 463,
+    "id": "Q463",
+    "prompt": "Count substring occurrences",
+    "solution": "const count = (s, t) => s.split(t).length - 1;"
+  },
+  {
+    "num": 464,
+    "id": "Q464",
+    "prompt": "Is string a valid number",
+    "solution": "const isNum = s => s.trim() !== '' && !isNaN(Number(s));"
+  },
+  {
+    "num": 465,
+    "id": "Q465",
+    "prompt": "Swap case",
+    "solution": "const swap = s => [...s].map(c => c === c.toUpperCase() ? c.toLowerCase() : c.toUpperCase()).join('');"
+  },
+  {
+    "num": 466,
+    "id": "Q466",
+    "prompt": "Pangram check",
+    "solution": "const isPangram = s => new Set(s.toLowerCase().replace(/[^a-z]/g, '')).size === 26;"
+  },
+  {
+    "num": 467,
+    "id": "Q467",
+    "prompt": "Sum of array",
+    "solution": "const sum = a => a.reduce((s, n) => s + n, 0);"
+  },
+  {
+    "num": 468,
+    "id": "Q468",
+    "prompt": "Max and min of array",
+    "solution": "const [mx, mn] = [Math.max(...a), Math.min(...a)];"
+  },
+  {
+    "num": 469,
+    "id": "Q469",
+    "prompt": "Second largest",
+    "solution": "const second = a => [...new Set(a)].sort((x, y) => y - x)[1];"
+  },
+  {
+    "num": 470,
+    "id": "Q470",
+    "prompt": "Remove duplicates",
+    "solution": "const uniq = a => [...new Set(a)];"
+  },
+  {
+    "num": 471,
+    "id": "Q471",
+    "prompt": "Flatten nested array",
+    "solution": "const flat = a => a.reduce((r, x) => r.concat(Array.isArray(x) ? flat(x) : x), []);"
+  },
+  {
+    "num": 472,
+    "id": "Q472",
+    "prompt": "Reverse array in-place",
+    "solution": "function rev(a) { for (let i = 0, j = a.length - 1; i < j; i++, j--) [a[i], a[j]] = [a[j], a[i]]; return a; }"
+  },
+  {
+    "num": 473,
+    "id": "Q473",
+    "prompt": "Two Sum (indices)",
+    "solution": "function twoSum(a, t) { const m = new Map(); for (let i = 0; i < a.length; i++) { if (m.has(t - a[i])) return [m.get(t - a[i]), i]; m.set(a[i], i); } return []; }"
+  },
+  {
+    "num": 474,
+    "id": "Q474",
+    "prompt": "Rotate array right by k",
+    "solution": "const rotate = (a, k) => { k %= a.length; return [...a.slice(-k), ...a.slice(0, -k)]; };"
+  },
+  {
+    "num": 475,
+    "id": "Q475",
+    "prompt": "Move zeros to end",
+    "solution": "const moveZeros = a => [...a.filter(x => x !== 0), ...a.filter(x => x === 0)];"
+  },
+  {
+    "num": 476,
+    "id": "Q476",
+    "prompt": "Missing number 1..n",
+    "solution": "const missing = (a, n) => n * (n + 1) / 2 - a.reduce((s, x) => s + x, 0);"
+  },
+  {
+    "num": 477,
+    "id": "Q477",
+    "prompt": "Find duplicates",
+    "solution": "const dups = a => a.filter((x, i) => a.indexOf(x) !== i);"
+  },
+  {
+    "num": 478,
+    "id": "Q478",
+    "prompt": "Intersection of two arrays",
+    "solution": "const inter = (a, b) => { const s = new Set(b); return [...new Set(a.filter(x => s.has(x)))]; };"
+  },
+  {
+    "num": 479,
+    "id": "Q479",
+    "prompt": "Union of two arrays",
+    "solution": "const union = (a, b) => [...new Set([...a, ...b])];"
+  },
+  {
+    "num": 480,
+    "id": "Q480",
+    "prompt": "Chunk array",
+    "solution": "const chunk = (a, n) => Array.from({length: Math.ceil(a.length / n)}, (_, i) => a.slice(i * n, i * n + n));"
+  },
+  {
+    "num": 481,
+    "id": "Q481",
+    "prompt": "Kadane: max subarray sum",
+    "solution": "function maxSub(a) { let cur = a[0], best = a[0]; for (let i = 1; i < a.length; i++) { cur = Math.max(a[i], cur + a[i]); best = Math.max(best, cur); } return best; }"
+  },
+  {
+    "num": 482,
+    "id": "Q482",
+    "prompt": "Binary search",
+    "solution": "function bs(a, t) { let l = 0, r = a.length - 1; while (l <= r) { const m = (l + r) >> 1; if (a[m] === t) return m; a[m] < t ? l = m + 1 : r = m - 1; } return -1; }"
+  },
+  {
+    "num": 483,
+    "id": "Q483",
+    "prompt": "Bubble sort",
+    "solution": "function bubble(a) { for (let i = 0; i < a.length; i++) for (let j = 0; j < a.length - i - 1; j++) if (a[j] > a[j + 1]) [a[j], a[j + 1]] = [a[j + 1], a[j]]; return a; }"
+  },
+  {
+    "num": 484,
+    "id": "Q484",
+    "prompt": "Merge sort",
+    "solution": "function msort(a) { if (a.length < 2) return a; const m = a.length >> 1, l = msort(a.slice(0, m)), r = msort(a.slice(m)), o = []; while (l.length && r.length) o.push(l[0] <= r[0] ? l.shift() : r.shift()); return [...o, ...l, ...r]; }"
+  },
+  {
+    "num": 485,
+    "id": "Q485",
+    "prompt": "Quick sort",
+    "solution": "const qs = a => a.length < 2 ? a : [...qs(a.slice(1).filter(x => x < a[0])), a[0], ...qs(a.slice(1).filter(x => x >= a[0]))];"
+  },
+  {
+    "num": 486,
+    "id": "Q486",
+    "prompt": "Merge two sorted arrays",
+    "solution": "function merge(a, b) { const r = []; let i = 0, j = 0; while (i < a.length && j < b.length) r.push(a[i] <= b[j] ? a[i++] : b[j++]); return [...r, ...a.slice(i), ...b.slice(j)]; }"
+  },
+  {
+    "num": 487,
+    "id": "Q487",
+    "prompt": "Group by property",
+    "solution": "const groupBy = (a, k) => a.reduce((m, x) => ((m[x[k]] ||= []).push(x), m), {});"
+  },
+  {
+    "num": 488,
+    "id": "Q488",
+    "prompt": "Sort objects by key",
+    "solution": "users.sort((a, b) => a.age - b.age); // strings: a.name.localeCompare(b.name)"
+  },
+  {
+    "num": 489,
+    "id": "Q489",
+    "prompt": "Array of arrays transpose",
+    "solution": "const T = m => m[0].map((_, i) => m.map(r => r[i]));"
+  },
+  {
+    "num": 490,
+    "id": "Q490",
+    "prompt": "Frequency counter of array",
+    "solution": "const count = a => a.reduce((m, x) => m.set(x, (m.get(x) || 0) + 1), new Map());"
+  },
+  {
+    "num": 491,
+    "id": "Q491",
+    "prompt": "Pairs with given sum count",
+    "solution": "function pairs(a, t) { const m = new Map(); let c = 0; for (const x of a) { c += m.get(t - x) || 0; m.set(x, (m.get(x) || 0) + 1); } return c; }"
+  },
+  {
+    "num": 492,
+    "id": "Q492",
+    "prompt": "Product of array except self",
+    "solution": "function prod(a) { const n = a.length, r = Array(n).fill(1); let l = 1; for (let i = 0; i < n; i++) { r[i] = l; l *= a[i]; } let rt = 1; for (let i = n - 1; i >= 0; i--) { r[i] *= rt; rt *= a[i]; } return r; }"
+  },
+  {
+    "num": 493,
+    "id": "Q493",
+    "prompt": "Longest consecutive sequence",
+    "solution": "function lcs(a) { const s = new Set(a); let best = 0; for (const x of s) if (!s.has(x - 1)) { let y = x; while (s.has(y + 1)) y++; best = Math.max(best, y - x + 1); } return best; }"
+  },
+  {
+    "num": 494,
+    "id": "Q494",
+    "prompt": "Remove falsy values",
+    "solution": "const clean = a => a.filter(Boolean);"
+  },
+  {
+    "num": 495,
+    "id": "Q495",
+    "prompt": "Array equal check",
+    "solution": "const eq = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);"
+  },
+  {
+    "num": 496,
+    "id": "Q496",
+    "prompt": "Shuffle array (Fisher-Yates)",
+    "solution": "function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }"
+  },
+  {
+    "num": 497,
+    "id": "Q497",
+    "prompt": "Best time to buy/sell stock",
+    "solution": "function profit(p) { let min = Infinity, best = 0; for (const x of p) { min = Math.min(min, x); best = Math.max(best, x - min); } return best; }"
+  },
+  {
+    "num": 498,
+    "id": "Q498",
+    "prompt": "Valid anagram groups",
+    "solution": "const groupAn = w => Object.values(w.reduce((m, s) => { const k = [...s].sort().join(''); (m[k] ||= []).push(s); return m; }, {}));"
+  },
+  {
+    "num": 499,
+    "id": "Q499",
+    "prompt": "Sum of 2D array",
+    "solution": "const sum2 = m => m.flat().reduce((s, x) => s + x, 0);"
+  },
+  {
+    "num": 500,
+    "id": "Q500",
+    "prompt": "Spiral order of matrix",
+    "solution": "function spiral(m) { const r = []; while (m.length) { r.push(...m.shift()); m = m[0] ? T(m).reverse() : []; } return r; }"
+  },
+  {
+    "num": 501,
+    "id": "Q501",
+    "prompt": "Deep clone (simple)",
+    "solution": "const clone = o => structuredClone(o);"
+  },
+  {
+    "num": 502,
+    "id": "Q502",
+    "prompt": "Deep equal",
+    "solution": "function deepEq(a, b) { if (a === b) return true; if (typeof a !== 'object' || typeof b !== 'object' || !a || !b) return false; const k = Object.keys(a); return k.length === Object.keys(b).length && k.every(x => deepEq(a[x], b[x])); }"
+  },
+  {
+    "num": 503,
+    "id": "Q503",
+    "prompt": "Flatten nested object",
+    "solution": "function flatObj(o, p = '', r = {}) { for (const k in o) { const key = p ? p + '.' + k : k; typeof o[k] === 'object' && o[k] ? flatObj(o[k], key, r) : r[key] = o[k]; } return r; }"
+  },
+  {
+    "num": 504,
+    "id": "Q504",
+    "prompt": "Invert object keys/values",
+    "solution": "const invert = o => Object.fromEntries(Object.entries(o).map(([k, v]) => [v, k]));"
+  },
+  {
+    "num": 505,
+    "id": "Q505",
+    "prompt": "Pick / omit keys",
+    "solution": "const pick = (o, ks) => Object.fromEntries(ks.map(k => [k, o[k]])); const omit = (o, ks) => Object.fromEntries(Object.entries(o).filter(([k]) => !ks.includes(k)));"
+  },
+  {
+    "num": 506,
+    "id": "Q506",
+    "prompt": "Count object keys",
+    "solution": "const size = o => Object.keys(o).length;"
+  },
+  {
+    "num": 507,
+    "id": "Q507",
+    "prompt": "Merge objects deeply",
+    "solution": "const merge = (a, b) => { for (const k in b) a[k] = (b[k] && typeof b[k] === 'object' && !Array.isArray(b[k])) ? merge(a[k] || {}, b[k]) : b[k]; return a; };"
+  },
+  {
+    "num": 508,
+    "id": "Q508",
+    "prompt": "Get nested value safely",
+    "solution": "const get = (o, path, d) => path.split('.').reduce((x, k) => x?.[k], o) ?? d;"
+  },
+  {
+    "num": 509,
+    "id": "Q509",
+    "prompt": "Debounce",
+    "solution": "function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }"
+  },
+  {
+    "num": 510,
+    "id": "Q510",
+    "prompt": "Throttle",
+    "solution": "function throttle(fn, ms) { let last = 0; return (...a) => { const n = Date.now(); if (n - last >= ms) { last = n; fn(...a); } }; }"
+  },
+  {
+    "num": 511,
+    "id": "Q511",
+    "prompt": "Memoize",
+    "solution": "const memo = fn => { const c = new Map(); return (...a) => { const k = JSON.stringify(a); if (!c.has(k)) c.set(k, fn(...a)); return c.get(k); }; };"
+  },
+  {
+    "num": 512,
+    "id": "Q512",
+    "prompt": "Curry",
+    "solution": "const curry = fn => function c(...a) { return a.length >= fn.length ? fn(...a) : (...b) => c(...a, ...b); };"
+  },
+  {
+    "num": 513,
+    "id": "Q513",
+    "prompt": "Compose / pipe",
+    "solution": "const compose = (...f) => x => f.reduceRight((v, fn) => fn(v), x); const pipe = (...f) => x => f.reduce((v, fn) => fn(v), x);"
+  },
+  {
+    "num": 514,
+    "id": "Q514",
+    "prompt": "once()",
+    "solution": "const once = fn => { let d = false, r; return (...a) => d ? r : (d = true, r = fn(...a)); };"
+  },
+  {
+    "num": 515,
+    "id": "Q515",
+    "prompt": "Polyfill map",
+    "solution": "Array.prototype.myMap = function (cb) { const r = []; for (let i = 0; i < this.length; i++) r.push(cb(this[i], i, this)); return r; };"
+  },
+  {
+    "num": 516,
+    "id": "Q516",
+    "prompt": "Polyfill filter",
+    "solution": "Array.prototype.myFilter = function (cb) { const r = []; for (let i = 0; i < this.length; i++) if (cb(this[i], i, this)) r.push(this[i]); return r; };"
+  },
+  {
+    "num": 517,
+    "id": "Q517",
+    "prompt": "Polyfill reduce",
+    "solution": "Array.prototype.myReduce = function (cb, init) { let i = 0, acc = init; if (acc === undefined) acc = this[i++]; for (; i < this.length; i++) acc = cb(acc, this[i], i, this); return acc; };"
+  },
+  {
+    "num": 518,
+    "id": "Q518",
+    "prompt": "Polyfill Promise.all",
+    "solution": "const pAll = ps => new Promise((res, rej) => { const out = []; let n = 0; ps.forEach((p, i) => Promise.resolve(p).then(v => { out[i] = v; if (++n === ps.length) res(out); }, rej)); if (!ps.length) res([]); });"
+  },
+  {
+    "num": 519,
+    "id": "Q519",
+    "prompt": "Event emitter",
+    "solution": "class Emitter { constructor() { this.e = {}; } on(n, f) { (this.e[n] ||= []).push(f); } off(n, f) { this.e[n] = (this.e[n] || []).filter(x => x !== f); } emit(n, ...a) { (this.e[n] || []).forEach(f => f(...a)); } }"
+  },
+  {
+    "num": 520,
+    "id": "Q520",
+    "prompt": "Retry async function",
+    "solution": "async function retry(fn, n = 3) { for (let i = 0; i < n; i++) { try { return await fn(); } catch (e) { if (i === n - 1) throw e; } } }"
+  },
+  {
+    "num": 521,
+    "id": "Q521",
+    "prompt": "Promise-based sleep + timeout",
+    "solution": "const sleep = ms => new Promise(r => setTimeout(r, ms)); const timeout = (p, ms) => Promise.race([p, new Promise((_, j) => setTimeout(() => j(new Error('timeout')), ms))]);"
+  },
+  {
+    "num": 522,
+    "id": "Q522",
+    "prompt": "Run promises sequentially",
+    "solution": "const seq = fns => fns.reduce((p, f) => p.then(r => f().then(v => [...r, v])), Promise.resolve([]));"
+  },
+  {
+    "num": 523,
+    "id": "Q523",
+    "prompt": "Stack class",
+    "solution": "class Stack { #a = []; push(x) { this.#a.push(x); } pop() { return this.#a.pop(); } peek() { return this.#a.at(-1); } get size() { return this.#a.length; } }"
+  },
+  {
+    "num": 524,
+    "id": "Q524",
+    "prompt": "Queue class",
+    "solution": "class Queue { #a = []; enqueue(x) { this.#a.push(x); } dequeue() { return this.#a.shift(); } get size() { return this.#a.length; } }"
+  },
+  {
+    "num": 525,
+    "id": "Q525",
+    "prompt": "Linked list node + append",
+    "solution": "class Node { constructor(v) { this.val = v; this.next = null; } } class LL { constructor() { this.head = null; } add(v) { const n = new Node(v); if (!this.head) return this.head = n; let c = this.head; while (c.next) c = c.next; c.next = n; } }"
+  },
+  {
+    "num": 526,
+    "id": "Q526",
+    "prompt": "Reverse a linked list",
+    "solution": "function reverse(h) { let p = null; while (h) [h.next, p, h] = [p, h, h.next]; return p; }"
+  },
+  {
+    "num": 527,
+    "id": "Q527",
+    "prompt": "Binary tree inorder traversal",
+    "solution": "const inorder = n => n ? [...inorder(n.left), n.val, ...inorder(n.right)] : [];"
+  },
+  {
+    "num": 528,
+    "id": "Q528",
+    "prompt": "Height of binary tree",
+    "solution": "const height = n => n ? 1 + Math.max(height(n.left), height(n.right)) : 0;"
+  },
+  {
+    "num": 529,
+    "id": "Q529",
+    "prompt": "BFS on graph",
+    "solution": "function bfs(g, s) { const seen = new Set([s]), q = [s], o = []; while (q.length) { const n = q.shift(); o.push(n); for (const x of g[n] || []) if (!seen.has(x)) { seen.add(x); q.push(x); } } return o; }"
+  },
+  {
+    "num": 530,
+    "id": "Q530",
+    "prompt": "DFS on graph",
+    "solution": "function dfs(g, n, seen = new Set()) { seen.add(n); for (const x of g[n] || []) if (!seen.has(x)) dfs(g, x, seen); return [...seen]; }"
+  },
+  {
+    "num": 531,
+    "id": "Q531",
+    "prompt": "LRU Cache (Map)",
+    "solution": "class LRU { constructor(c) { this.c = c; this.m = new Map(); } get(k) { if (!this.m.has(k)) return -1; const v = this.m.get(k); this.m.delete(k); this.m.set(k, v); return v; } put(k, v) { this.m.delete(k); this.m.set(k, v); if (this.m.size > this.c) this.m.delete(this.m.keys().next().value); } }"
+  },
+  {
+    "num": 532,
+    "id": "Q532",
+    "prompt": "Hash map from scratch (concept)",
+    "solution": "Array of buckets; index = hash(key) % size; collisions chain ke liye bucket mein [key,value] list rakho."
+  },
+  {
+    "num": 533,
+    "id": "Q533",
+    "prompt": "Min heap (concept)",
+    "solution": "Array-based complete binary tree; insert: push + sift-up, extractMin: swap root with last, pop, sift-down. O(log n)."
+  },
+  {
+    "num": 534,
+    "id": "Q534",
+    "prompt": "Valid parentheses count min removals",
+    "solution": "Stack ya counter: open count badhao, ')' par open>0 ho to ghatao warna remove++ ; end mein remove + open."
+  },
+  {
+    "num": 535,
+    "id": "Q535",
+    "prompt": "Climbing stairs (DP)",
+    "solution": "const climb = n => { let [a, b] = [1, 1]; for (let i = 2; i <= n; i++) [a, b] = [b, a + b]; return b; };"
+  },
+  {
+    "num": 536,
+    "id": "Q536",
+    "prompt": "Coin change min coins (DP)",
+    "solution": "function coins(c, t) { const dp = Array(t + 1).fill(Infinity); dp[0] = 0; for (let i = 1; i <= t; i++) for (const x of c) if (i >= x) dp[i] = Math.min(dp[i], dp[i - x] + 1); return dp[t] === Infinity ? -1 : dp[t]; }"
+  },
+  {
+    "num": 537,
+    "id": "Q537",
+    "prompt": "Longest increasing subsequence",
+    "solution": "function lis(a) { const dp = Array(a.length).fill(1); for (let i = 1; i < a.length; i++) for (let j = 0; j < i; j++) if (a[j] < a[i]) dp[i] = Math.max(dp[i], dp[j] + 1); return Math.max(...dp); }"
+  },
+  {
+    "num": 538,
+    "id": "Q538",
+    "prompt": "Generate all subsets",
+    "solution": "const subsets = a => a.reduce((r, x) => [...r, ...r.map(s => [...s, x])], [[]]);"
+  },
+  {
+    "num": 539,
+    "id": "Q539",
+    "prompt": "Generate permutations",
+    "solution": "const perms = a => a.length < 2 ? [a] : a.flatMap((x, i) => perms([...a.slice(0, i), ...a.slice(i + 1)]).map(p => [x, ...p]));"
+  },
+  {
+    "num": 540,
+    "id": "Q540",
+    "prompt": "Tower of Hanoi moves",
+    "solution": "const hanoi = n => 2 ** n - 1;"
+  },
+  {
+    "num": 541,
+    "id": "Q541",
+    "prompt": "Check if two strings are one edit away",
+    "solution": "Lengths ka difference > 1 to false; do pointers se pehla mismatch skip karo (replace/insert/delete) aur ek hi mismatch allow karo."
+  }
+]

@@ -144,6 +144,7 @@ export interface Lesson {
   xp_reward: number;
   sort_order: number;
   week_number: number;
+  interactive_steps?: any[] | null;
   created_at: string;
 }
 
@@ -457,6 +458,8 @@ export interface CourseMCQ {
   topic_id?: string | null;
   difficulty?: string;
   marks?: number;
+  category?: string | null;
+  explanation?: string | null;
   created_by?: string | null;
   created_at: string;
   updated_at: string;

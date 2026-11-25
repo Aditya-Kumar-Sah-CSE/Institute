@@ -21,7 +21,7 @@ export default function CourseContentTabs({
   doubts: ReactNode;
   mcqs: ReactNode;
 }) {
-  const [activeTab, setActiveTab] = useState<CourseTab>('mcqs');
+  const [activeTab, setActiveTab] = useState<CourseTab>('curriculum');
   const content = { curriculum, doubts, mcqs }[activeTab];
 
   return (

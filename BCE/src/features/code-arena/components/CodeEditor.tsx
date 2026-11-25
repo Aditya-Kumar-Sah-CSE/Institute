@@ -25,7 +25,10 @@ import {
   ArrowRight,
   Award,
   Brain,
+  MessageSquare,
+  Sparkles,
 } from 'lucide-react';
+import { useSmartAgentSession } from '@/features/analytics/context/SmartAgentSessionContext';
 import type { CodeLanguage, NormalizedExecutionResult } from '../types';
 import { useRouter } from 'next/navigation';
 import type { ProblemData } from './ProblemStatementRenderer';
@@ -90,6 +93,10 @@ interface CodeAnalysisProps {
   metadata?: any;
   problemTitle?: string;
   problemId?: string;
+  layout?: 'vertical' | 'split';
+  headerSlot?: React.ReactNode;
+  footerSlot?: React.ReactNode;
+  onCrossQuestionAgent?: (question?: string, analysis?: SmartAgentAnalysis) => void;
 }
 
 export { analyzeCodeWithSmartAgent as analyzeCodeComplexity };
@@ -110,6 +117,10 @@ function CodeAnalysisRatingSection({
   metadata,
   problemTitle,
   problemId,
+  layout = 'vertical',
+  headerSlot,
+  footerSlot,
+  onCrossQuestionAgent,
 }: CodeAnalysisProps) {
   // Initial instant heuristic so modal/card opens with zero lag
   const [complexity, setComplexity] = useState<SmartAgentAnalysis>(() =>
@@ -126,6 +137,41 @@ function CodeAnalysisRatingSection({
   );
   const [isAiLoading, setIsAiLoading] = useState<boolean>(true);
   const [isRealAi, setIsRealAi] = useState<boolean>(false);
+  const [crossQuestion, setCrossQuestion] = useState<string>('');
+  const [crossAnswer, setCrossAnswer] = useState<string | null>(null);
+  const [isCrossLoading, setIsCrossLoading] = useState<boolean>(false);
+
+  const handleInlineCrossQuestion = async (promptText?: string) => {
+    const q = (promptText ?? crossQuestion).trim();
+    if (!q || isCrossLoading) return;
+    setCrossQuestion(q);
+    setIsCrossLoading(true);
+    try {
+      const res = await fetch('/api/coding/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          problemId,
+          problemTitle,
+          language,
+          code,
+          runtimeMs,
+          memoryMb,
+          passedTests,
+          totalTests,
+          metadata,
+          followUpQuestion: q,
+          previousAnalysis: complexity,
+        }),
+      });
+      const data = await res.json();
+      setCrossAnswer(data?.answer || 'Click "Cross Question with Agent ->" to discuss this solution in full Smart Agent chat.');
+    } catch {
+      setCrossAnswer('Could not fetch quick answer. Click "Cross Question with Agent ->" to ask Smart Agent directly.');
+    } finally {
+      setIsCrossLoading(false);
+    }
+  };
 
   // Live real AI code evaluation request
   useEffect(() => {
@@ -184,6 +230,384 @@ function CodeAnalysisRatingSection({
     { label: '16-20MB', height: 22, active: memoryMb > 15 && memoryMb <= 20 },
     { label: '20MB+', height: 10, active: memoryMb > 20 },
   ];
+
+  const quickPrompts = [
+    `Why is TC ${complexity.analyzedTime}?`,
+    `Can SC ${complexity.analyzedSpace} be optimized?`,
+  ];
+
+  if (layout === 'split') {
+    return (
+      <div className="celebration-two-col-grid">
+        {/* LEFT COLUMN: Header + XP + Score + Telemetry + Complexity + Nav */}
+        <div className="celebration-col-left">
+          {headerSlot}
+
+          {/* Compact XP Banner */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: 'linear-gradient(90deg, rgba(139, 92, 246, 0.18) 0%, rgba(6, 182, 212, 0.12) 100%)',
+            border: '1px solid rgba(139, 92, 246, 0.45)',
+            borderRadius: '10px',
+            padding: '8px 12px',
+            color: '#e0e7ff',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <Zap size={15} style={{ color: '#ffffff', fill: '#ffffff' }} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: '12px', color: '#c084fc', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  +{xpAwarded} XP Earned!
+                  {solveTimeSeconds > 0 && (
+                    <span style={{ fontSize: '11px', color: 'var(--neon-cyan)', fontWeight: 600 }}>
+                      • ⏱️ {Math.floor(solveTimeSeconds / 60)}m {solveTimeSeconds % 60}s
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontSize: '10.5px', color: 'rgba(255, 255, 255, 0.72)' }}>
+                  Credited to Smart Learn XP &amp; Level • {passedTests}/{totalTests} passed
+                </div>
+              </div>
+            </div>
+            <span style={{ fontSize: '10.5px', fontWeight: 800, background: 'rgba(16, 185, 129, 0.2)', border: '1px solid rgba(16, 185, 129, 0.4)', padding: '3px 8px', borderRadius: '6px', color: '#34d399', flexShrink: 0 }}>
+              SOLVED ✓
+            </span>
+          </div>
+
+          {/* Score + Runtime/Memory + Benchmark Graph + TC/SC */}
+          <div style={{
+            background: 'rgba(15, 23, 42, 0.85)',
+            border: '1px solid var(--glass-border)',
+            borderRadius: '12px',
+            padding: '12px 14px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px', gap: '8px' }}>
+              <div>
+                <div style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.4px' }}>
+                  Solution Quality &amp; Score
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                  <span style={{ fontSize: '21px', fontWeight: 900, color: overallRating >= 8.5 ? '#34d399' : '#38bdf8', letterSpacing: '-0.5px' }}>
+                    {overallRating} <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>/ 10</span>
+                  </span>
+                  <span style={{
+                    fontSize: '9.5px',
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    padding: '2px 7px',
+                    borderRadius: '4px',
+                    background: overallRating >= 8.5 ? 'rgba(52, 211, 153, 0.15)' : 'rgba(56, 189, 248, 0.15)',
+                    color: overallRating >= 8.5 ? '#34d399' : '#38bdf8',
+                    border: `1px solid ${overallRating >= 8.5 ? 'rgba(52, 211, 153, 0.3)' : 'rgba(56, 189, 248, 0.3)'}`
+                  }}>
+                    {overallRating >= 9.0 ? 'Optimal Solution' : overallRating >= 8.0 ? 'High Efficiency' : 'Good Solution'}
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <div style={{ background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.35)', borderRadius: '8px', padding: '4px 9px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '8.5px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Runtime</div>
+                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#34d399' }}>{runtimeMs} ms</div>
+                </div>
+                <div style={{ background: 'rgba(168, 85, 247, 0.12)', border: '1px solid rgba(168, 85, 247, 0.35)', borderRadius: '8px', padding: '4px 9px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '8.5px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Memory</div>
+                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#c084fc' }}>{memoryMb.toFixed(1)} MB</div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)' }}>
+                <span>Algorithmic Benchmark Rating Graph</span>
+                <span style={{ color: 'var(--text-main)' }}>{Math.round(overallRating * 10)}% Score</span>
+              </div>
+              <div style={{ width: '100%', height: '7px', background: 'rgba(255,255,255,0.06)', borderRadius: '4px', overflow: 'hidden' }}>
+                <div style={{
+                  width: `${Math.min(100, overallRating * 10)}%`,
+                  height: '100%',
+                  background: 'linear-gradient(90deg, #06b6d4 0%, #34d399 50%, #facc15 100%)',
+                  borderRadius: '4px',
+                }} />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '8px 10px' }}>
+              <div>
+                <div style={{ fontSize: '9.5px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Time Complexity (TC)</div>
+                <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--neon-cyan)', marginTop: '2px', fontFamily: 'monospace' }}>
+                  {complexity.analyzedTime}
+                </div>
+                <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px', lineHeight: 1.3 }}>
+                  {complexity.timeExplanation}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '9.5px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Space Complexity (SC)</div>
+                <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--neon-purple)', marginTop: '2px', fontFamily: 'monospace' }}>
+                  {complexity.analyzedSpace}
+                </div>
+                <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px', lineHeight: 1.3 }}>
+                  {complexity.spaceExplanation}
+                </div>
+              </div>
+            </div>
+
+            {/* Compact Telemetry Distribution Bars */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <div style={{ background: 'rgba(0, 0, 0, 0.25)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '7px 9px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-main)' }}>Runtime Dist.</span>
+                  <span style={{ fontSize: '9.5px', fontWeight: 800, color: '#34d399' }}>Beats {runtimePercentile}%</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '32px', borderBottom: '1px solid var(--glass-border)' }}>
+                  {runtimeBins.map((bin, i) => (
+                    <div key={i} style={{ flex: 1, height: '100%', display: 'flex', alignItems: 'flex-end' }}>
+                      <div style={{ width: '100%', height: `${bin.height}%`, background: bin.active ? '#34d399' : 'rgba(255, 255, 255, 0.08)', borderRadius: '2px 2px 0 0' }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div style={{ background: 'rgba(0, 0, 0, 0.25)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '7px 9px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-main)' }}>Memory Dist.</span>
+                  <span style={{ fontSize: '9.5px', fontWeight: 800, color: '#c084fc' }}>Beats {memoryPercentile}%</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '32px', borderBottom: '1px solid var(--glass-border)' }}>
+                  {memoryBins.map((bin, i) => (
+                    <div key={i} style={{ flex: 1, height: '100%', display: 'flex', alignItems: 'flex-end' }}>
+                      <div style={{ width: '100%', height: `${bin.height}%`, background: bin.active ? '#c084fc' : 'rgba(255, 255, 255, 0.08)', borderRadius: '2px 2px 0 0' }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {footerSlot && <div style={{ marginTop: 'auto' }}>{footerSlot}</div>}
+        </div>
+
+        {/* RIGHT COLUMN: AI Analysis + Right Bottom Cross Question with Agent */}
+        <div className="celebration-col-right" style={{
+          background: 'rgba(15, 23, 42, 0.85)',
+          border: '1px solid var(--glass-border)',
+          borderRadius: '12px',
+          padding: '14px',
+        }}>
+          {/* Right Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px', paddingRight: '32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Brain size={15} style={{ color: '#c084fc' }} />
+              <span style={{ fontSize: '12px', fontWeight: 800, color: '#f8fafc', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                AI Code Analysis
+              </span>
+            </div>
+            {isRealAi ? (
+              <span style={{ fontSize: '9.5px', fontWeight: 800, padding: '2px 8px', borderRadius: '4px', background: 'rgba(139, 92, 246, 0.22)', color: '#c084fc', border: '1px solid rgba(139, 92, 246, 0.45)' }}>
+                ✨ Real AI Analysis
+              </span>
+            ) : isAiLoading ? (
+              <span style={{ fontSize: '10px', color: 'var(--neon-cyan)' }}>🤖 Analyzing with AI...</span>
+            ) : (
+              <span style={{ fontSize: '9.5px', color: '#38bdf8', fontWeight: 700 }}>⚡ Smart Analyzer</span>
+            )}
+          </div>
+
+          {/* Key Algorithmic Logic */}
+          {complexity.keyLogic && complexity.keyLogic.length > 0 && (
+            <div style={{
+              background: 'rgba(6, 182, 212, 0.06)',
+              border: '1px solid rgba(6, 182, 212, 0.25)',
+              borderRadius: '8px',
+              padding: '9px 11px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '5px',
+            }}>
+              <div style={{ fontSize: '10.5px', fontWeight: 800, color: 'var(--neon-cyan)', display: 'flex', alignItems: 'center', gap: '6px', textTransform: 'uppercase' }}>
+                <Brain size={12} /> Key Algorithmic Logic
+                {isRealAi && <span style={{ fontSize: '9px', color: '#38bdf8', textTransform: 'none', fontWeight: 600 }}>• Code Specific</span>}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '11px', color: '#e2e8f0', lineHeight: 1.38 }}>
+                {complexity.keyLogic.map((item, idx) => (
+                  <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                    <span style={{ color: 'var(--neon-cyan)', fontWeight: 800 }}>•</span>
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Optimization Advice */}
+          {complexity.optimizationTip && (
+            <div style={{
+              background: 'rgba(139, 92, 246, 0.07)',
+              border: '1px solid rgba(139, 92, 246, 0.28)',
+              borderRadius: '8px',
+              padding: '9px 11px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+            }}>
+              <div style={{ fontSize: '10.5px', fontWeight: 800, color: '#c084fc', display: 'flex', alignItems: 'center', gap: '6px', textTransform: 'uppercase' }}>
+                <Zap size={12} style={{ fill: '#c084fc' }} /> Optimization Advice (&le; 100 words)
+              </div>
+              <p style={{ margin: 0, fontSize: '11px', color: '#cbd5e1', lineHeight: 1.42 }}>
+                {complexity.optimizationTip}
+              </p>
+            </div>
+          )}
+
+          {/* Extreme & Edge Cases */}
+          {(extremeCase || edgeCases) && (
+            <div style={{ background: 'rgba(245, 158, 11, 0.06)', border: '1px solid rgba(245, 158, 11, 0.22)', borderRadius: '8px', padding: '7px 10px', fontSize: '10.5px', color: '#cbd5e1', lineHeight: 1.35 }}>
+              <span style={{ fontWeight: 700, color: '#fbbf24' }}>⚡ Extreme &amp; Edge Cases Verified: </span>
+              {edgeCases || extremeCase}
+            </div>
+          )}
+
+          {/* RIGHT BOTTOM: Cross Question with Agent */}
+          <div style={{
+            marginTop: 'auto',
+            background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(139, 92, 246, 0.12))',
+            border: '1px solid rgba(6, 182, 212, 0.35)',
+            borderRadius: '10px',
+            padding: '10px 12px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '11px', fontWeight: 800, color: '#e0f2fe', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <MessageSquare size={13} style={{ color: 'var(--neon-cyan)' }} /> Cross Question with Agent
+              </span>
+              <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                {quickPrompts.map((qp, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleInlineCrossQuestion(qp)}
+                    style={{
+                      fontSize: '9.5px',
+                      fontWeight: 600,
+                      padding: '2px 7px',
+                      borderRadius: '999px',
+                      background: 'rgba(255, 255, 255, 0.07)',
+                      border: '1px solid rgba(255, 255, 255, 0.14)',
+                      color: '#cbd5e1',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {qp}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {crossAnswer && (
+              <div style={{
+                background: 'rgba(2, 6, 23, 0.65)',
+                border: '1px solid rgba(56, 189, 248, 0.28)',
+                borderRadius: '8px',
+                padding: '7px 10px',
+                fontSize: '10.5px',
+                color: '#e2e8f0',
+                lineHeight: 1.4,
+                maxHeight: '86px',
+                overflowY: 'auto',
+                whiteSpace: 'pre-wrap',
+              }}>
+                {crossAnswer}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <input
+                type="text"
+                value={crossQuestion}
+                onChange={(e) => setCrossQuestion(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleInlineCrossQuestion();
+                  }
+                }}
+                placeholder="Ask AI follow-up (e.g. better approach, edge cases)..."
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  padding: '7px 10px',
+                  borderRadius: '8px',
+                  background: 'rgba(2, 6, 23, 0.65)',
+                  border: '1px solid rgba(255, 255, 255, 0.14)',
+                  color: '#f8fafc',
+                  fontSize: '11.5px',
+                  outline: 'none',
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => handleInlineCrossQuestion()}
+                disabled={isCrossLoading || !crossQuestion.trim()}
+                style={{
+                  padding: '7px 11px',
+                  borderRadius: '8px',
+                  background: 'rgba(255, 255, 255, 0.09)',
+                  border: '1px solid rgba(255, 255, 255, 0.18)',
+                  color: '#f8fafc',
+                  fontSize: '11.5px',
+                  fontWeight: 700,
+                  cursor: isCrossLoading || !crossQuestion.trim() ? 'not-allowed' : 'pointer',
+                  opacity: isCrossLoading || !crossQuestion.trim() ? 0.6 : 1,
+                  flexShrink: 0,
+                }}
+              >
+                {isCrossLoading ? '...' : 'Ask'}
+              </button>
+              <button
+                type="button"
+                onClick={() => onCrossQuestionAgent?.(crossQuestion, complexity)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)',
+                  border: 'none',
+                  color: '#ffffff',
+                  fontSize: '11.5px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  boxShadow: '0 0 14px rgba(6, 182, 212, 0.35)',
+                }}
+              >
+                <Sparkles size={13} /> Cross Question with Agent <ArrowRight size={13} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '10px' }}>
@@ -458,6 +882,7 @@ export default function CodeEditor({
   const supportedLanguages = (problem.supported_languages || ['cpp17', 'c', 'java', 'python', 'javascript']) as CodeLanguage[];
 
   const router = useRouter();
+  const smartAgentSession = useSmartAgentSession();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'Saved' | 'Saving...' | 'Unsaved changes' | 'Save failed'>('Saved');
   
@@ -2748,18 +3173,17 @@ export default function CodeEditor({
               background: 'linear-gradient(180deg, #0f172a 0%, #090d16 100%)',
               border: '1px solid rgba(6, 182, 212, 0.45)',
               borderRadius: '20px',
-              maxWidth: '620px',
+              maxWidth: 'min(1040px, 95vw)',
               width: '100%',
-              maxHeight: '92vh',
-              overflowY: 'auto',
+              maxHeight: '94vh',
+              overflow: 'hidden',
               scrollbarWidth: 'none',
               msOverflowStyle: 'none',
               boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.95), 0 0 35px rgba(6, 182, 212, 0.3)',
-              padding: '24px',
+              padding: '18px 22px',
               position: 'relative',
               display: 'flex',
               flexDirection: 'column',
-              gap: '14px',
               boxSizing: 'border-box'
             }}
             onClick={(e) => e.stopPropagation()}
@@ -2770,13 +3194,14 @@ export default function CodeEditor({
               onClick={() => setShowSuccessModal(false)}
               style={{
                 position: 'absolute',
-                top: '16px',
-                right: '16px',
+                top: '14px',
+                right: '14px',
+                zIndex: 5,
                 background: 'rgba(255, 255, 255, 0.06)',
                 border: '1px solid rgba(255, 255, 255, 0.12)',
                 borderRadius: '50%',
-                width: '32px',
-                height: '32px',
+                width: '30px',
+                height: '30px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -2787,51 +3212,11 @@ export default function CodeEditor({
               onMouseEnter={(e) => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
             >
-              <X size={16} />
+              <X size={15} />
             </button>
 
-            {/* Celebration Header */}
-            <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-              <div 
-                style={{
-                  width: '54px',
-                  height: '54px',
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(6, 182, 212, 0.35))',
-                  border: '2px solid rgba(52, 211, 153, 0.6)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 0 25px rgba(52, 211, 153, 0.45)',
-                }}
-              >
-                <Trophy size={26} style={{ color: '#34d399' }} />
-              </div>
-
-              <h3 style={{ fontSize: '1.35rem', fontWeight: 900, margin: '4px 0 0 0', color: '#f8fafc' }}>
-                Problem Solved!
-              </h3>
-              
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(90deg, rgba(139, 92, 246, 0.25), rgba(6, 182, 212, 0.25))', border: '1px solid rgba(139, 92, 246, 0.5)', borderRadius: '9999px', padding: '4px 14px', marginTop: '2px' }}>
-                <Zap size={14} style={{ color: '#c084fc', fill: '#c084fc' }} />
-                <span style={{ fontSize: '13px', fontWeight: 800, color: '#e0e7ff' }}>
-                  +{submissionResult?.xp_awarded || defaultProblemXp} XP Credited!
-                </span>
-              </div>
-              
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0 0', fontWeight: 600 }}>
-                {problem.title}
-              </p>
-
-              {lastSolveTime > 0 && (
-                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--neon-cyan)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                  <Clock size={12} /> Solved in {Math.floor(lastSolveTime / 60)}m {lastSolveTime % 60}s
-                </div>
-              )}
-            </div>
-
-            {/* Real Code Analysis Rating Section inside Modal */}
             <CodeAnalysisRatingSection
+              layout="split"
               runtimeMs={submissionResult?.execution_time_ms || 12}
               memoryMb={submissionResult?.memory_used_mb || 14.5}
               language={language}
@@ -2847,59 +3232,108 @@ export default function CodeEditor({
               metadata={problem.metadata}
               problemTitle={problem.title}
               problemId={problem.id}
-            />
-
-            {/* Bottom Actions */}
-            <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
-              {problem.navigation?.nextProblemId && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowSuccessModal(false);
-                    const sheetParam = problem.navigation?.sheetId ? `?sheet=${problem.navigation.sheetId}` : '';
-                    router.push(`/code-arena/problems/${problem.navigation?.nextProblemId}${sheetParam}`);
-                  }}
-                  style={{
-                    flex: 1,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    padding: '11px 18px',
-                    borderRadius: '10px',
-                    background: 'linear-gradient(135deg, #06b6d4, #3b82f6)',
-                    color: '#ffffff',
-                    fontSize: '13px',
-                    fontWeight: 800,
-                    border: 'none',
-                    cursor: 'pointer',
-                    boxShadow: '0 0 16px rgba(6, 182, 212, 0.4)',
-                    transition: 'all 0.2s ease',
-                  }}
-                >
-                  Next Problem <ArrowRight size={14} />
-                </button>
+              headerSlot={(
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '10px 12px' }}>
+                  <div 
+                    style={{
+                      width: '44px',
+                      height: '44px',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(6, 182, 212, 0.35))',
+                      border: '2px solid rgba(52, 211, 153, 0.6)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 0 18px rgba(52, 211, 153, 0.35)',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Trophy size={21} style={{ color: '#34d399' }} />
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <h3 style={{ fontSize: '1.15rem', fontWeight: 900, margin: 0, color: '#f8fafc' }}>
+                        Problem Solved!
+                      </h3>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'linear-gradient(90deg, rgba(139, 92, 246, 0.25), rgba(6, 182, 212, 0.25))', border: '1px solid rgba(139, 92, 246, 0.5)', borderRadius: '9999px', padding: '2px 10px', fontSize: '11px', fontWeight: 800, color: '#e0e7ff' }}>
+                        <Zap size={12} style={{ color: '#c084fc', fill: '#c084fc' }} /> +{submissionResult?.xp_awarded || defaultProblemXp} XP Credited!
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', margin: '3px 0 0 0', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {problem.title}
+                      {lastSolveTime > 0 && (
+                        <span style={{ color: 'var(--neon-cyan)', marginLeft: '8px' }}>
+                          • ⏱️ {Math.floor(lastSolveTime / 60)}m {lastSolveTime % 60}s
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
               )}
+              footerSlot={(
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  {problem.navigation?.nextProblemId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowSuccessModal(false);
+                        const sheetParam = problem.navigation?.sheetId ? `?sheet=${problem.navigation.sheetId}` : '';
+                        router.push(`/code-arena/problems/${problem.navigation?.nextProblemId}${sheetParam}`);
+                      }}
+                      style={{
+                        flex: 1,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        padding: '10px 16px',
+                        borderRadius: '10px',
+                        background: 'linear-gradient(135deg, #06b6d4, #3b82f6)',
+                        color: '#ffffff',
+                        fontSize: '12.5px',
+                        fontWeight: 800,
+                        border: 'none',
+                        cursor: 'pointer',
+                        boxShadow: '0 0 16px rgba(6, 182, 212, 0.35)',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      Next Problem <ArrowRight size={14} />
+                    </button>
+                  )}
 
-              <button
-                type="button"
-                onClick={() => setShowSuccessModal(false)}
-                style={{
-                  flex: problem.navigation?.nextProblemId ? '0 0 auto' : '1',
-                  padding: '11px 18px',
-                  borderRadius: '10px',
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: 'var(--text-main)',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                Close & Continue
-              </button>
-            </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowSuccessModal(false)}
+                    style={{
+                      flex: problem.navigation?.nextProblemId ? '0 0 auto' : '1',
+                      padding: '10px 16px',
+                      borderRadius: '10px',
+                      background: 'rgba(255, 255, 255, 0.06)',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      color: 'var(--text-main)',
+                      fontSize: '12.5px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    Close &amp; Continue
+                  </button>
+                </div>
+              )}
+              onCrossQuestionAgent={(typedQ, analysis) => {
+                setShowSuccessModal(false);
+                const contextPrompt = typedQ?.trim()
+                  ? `Problem: "${problem.title}" (${language}, Score ${analysis?.overallRating ?? ''}/10, TC: ${analysis?.analyzedTime ?? ''}, SC: ${analysis?.analyzedSpace ?? ''}). Follow-up question: ${typedQ.trim()}`
+                  : `I just solved "${problem.title}" in ${language} (${analysis?.overallRating ?? ''}/10, TC: ${analysis?.analyzedTime ?? ''}, SC: ${analysis?.analyzedSpace ?? ''}). AI tip was: "${analysis?.optimizationTip ?? ''}". Let's cross-question my approach, edge cases, and better alternatives.`;
+                if (smartAgentSession?.openDrawer) {
+                  smartAgentSession.openDrawer(contextPrompt);
+                } else {
+                  window.dispatchEvent(new CustomEvent('code-arena:open-ai-drawer'));
+                }
+              }}
+            />
           </div>
         </div>,
         document.body

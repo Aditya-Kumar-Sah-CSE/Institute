@@ -66,7 +66,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { code, language, stdin = '', problemId, testCases, signature: providedSignature } = await request.json();
+    const { code, language, stdin = '', problemId, testCases, signature: providedSignature, raw = false } = await request.json();
 
     if (language === 'html') {
       return NextResponse.json({
@@ -147,11 +147,13 @@ export async function POST(request: Request) {
     }
 
     const { wrapCodeWithHarness, hasMainFunction, inferSignatureFromCode } = await import('@/features/code-arena/harness');
-    if (!sig) {
-      sig = inferSignatureFromCode(codeToSend, language);
-    }
-    if (sig && !hasMainFunction(codeToSend, language)) {
-      codeToSend = wrapCodeWithHarness(codeToSend, sig, language);
+    if (!raw) {
+      if (!sig) {
+        sig = inferSignatureFromCode(codeToSend, language);
+      }
+      if (sig && !hasMainFunction(codeToSend, language)) {
+        codeToSend = wrapCodeWithHarness(codeToSend, sig, language);
+      }
     }
 
     const { executeCodeResiliently } = await import('@/features/code-arena/execution-engine');

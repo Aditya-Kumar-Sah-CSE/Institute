@@ -1,0 +1,266 @@
+[
+  {
+    "id": 1,
+    "title": "Tip & Bill Splitter",
+    "level": "Beginner",
+    "skills": [
+      "variables",
+      "functions",
+      "DOM basics",
+      "events"
+    ],
+    "steps": [
+      "HTML: bill amount, tip % (select), people count (input) aur 'Calculate' button banao.",
+      "JS: elements select karo: const bill = document.querySelector('#bill') waghera.",
+      "Function calc() likho: tip = bill * pct / 100; total = bill + tip; perPerson = total / people.",
+      "Input validation: bill <= 0 ya people < 1 par error message dikhao.",
+      "Result ko toFixed(2) se format karo aur page par dikhao (textContent).",
+      "Button click aur Enter key dono par calc() chalao.",
+      "Bonus: Intl.NumberFormat se currency format (INR).",
+      "Test: bill 1000, tip 10%, 4 log => per person 275."
+    ],
+    "starterCode": "function calc(bill, pct, people) {\n  if (bill <= 0 || people < 1) throw new Error('Invalid input');\n  const total = bill * (1 + pct / 100);\n  return { total, perPerson: total / people };\n}"
+  },
+  {
+    "id": 2,
+    "title": "Todo App with localStorage",
+    "level": "Beginner",
+    "skills": [
+      "DOM",
+      "events",
+      "delegation",
+      "arrays",
+      "JSON",
+      "localStorage"
+    ],
+    "steps": [
+      "HTML: input, Add button, ul#list, filter buttons (All/Active/Done).",
+      "State: let todos = JSON.parse(localStorage.getItem('todos') || '[]') ; har todo {id, text, done}.",
+      "render() function likho: list clear karo aur todos se li banao (textContent use karo, innerHTML nahi).",
+      "Add: form submit par trim() check, todos.push({id: Date.now(), text, done:false}), save(), render().",
+      "Event delegation: ul par ek click listener; e.target.closest('li') se id nikalo; toggle/delete handle karo.",
+      "save() = localStorage.setItem('todos', JSON.stringify(todos)); har change ke baad call karo.",
+      "Filters: currentFilter variable se todos.filter() karke render karo.",
+      "Bonus: edit on double-click, 'clear completed', items left counter."
+    ],
+    "starterCode": "const save = () => localStorage.setItem('todos', JSON.stringify(todos));\nfunction render() {\n  list.replaceChildren(...visible().map(t => {\n    const li = document.createElement('li');\n    li.dataset.id = t.id; li.textContent = t.text;\n    li.classList.toggle('done', t.done);\n    return li;\n  }));\n}"
+  },
+  {
+    "id": 3,
+    "title": "Digital Clock + Stopwatch + Countdown",
+    "level": "Beginner",
+    "skills": [
+      "Date",
+      "setInterval",
+      "state",
+      "functions"
+    ],
+    "steps": [
+      "Clock: setInterval(() => el.textContent = new Date().toLocaleTimeString(), 1000).",
+      "Stopwatch state: running, startTime, elapsed.",
+      "Start: startTime = Date.now() - elapsed; interval chalao (100ms).",
+      "Pause: clearInterval aur elapsed update; Reset: sab zero.",
+      "format(ms) function: mm:ss.t padStart(2,'0') se.",
+      "Countdown: target date input se remaining = target - Date.now(); 0 par alert/sound.",
+      "Tip: Date.now() se time nikalo (interval ticks par bharosa mat karo)."
+    ],
+    "starterCode": "const fmt = ms => {\n   const s = Math.floor(ms / 1000);\n   return [Math.floor(s / 60), s % 60].map(n => String(n).padStart(2, '0')).join(':');\n};"
+  },
+  {
+    "id": 4,
+    "title": "Quiz App",
+    "level": "Beginner-Intermediate",
+    "skills": [
+      "arrays of objects",
+      "state",
+      "DOM",
+      "scoring"
+    ],
+    "steps": [
+      "Data: const questions = [{q, options:[..], answer: index}, ...] (10 sawal).",
+      "State: current = 0, score = 0, answered = false.",
+      "showQuestion(): current question aur options buttons render karo.",
+      "Option click: correct/wrong highlight, score++ agar sahi, buttons disable.",
+      "Next button: current++; agar last ho to result screen dikhao.",
+      "Result: score, percentage aur message; Restart button.",
+      "Bonus: timer per question, shuffle questions (Fisher-Yates), high score localStorage mein."
+    ],
+    "starterCode": "const questions = [\n   { q: 'typeof null ?', options: ['null','object','undefined','number'], answer: 1 },\n];\nfunction pick(i) {\n   if (answered) return;\n   answered = true;\n   if (i === questions[current].answer) score++;\n}"
+  },
+  {
+    "id": 5,
+    "title": "Calculator",
+    "level": "Intermediate",
+    "skills": [
+      "event delegation",
+      "string/number handling",
+      "state machine"
+    ],
+    "steps": [
+      "HTML grid: digits, operators, '=', 'C', '.', display div.",
+      "State: current, previous, operator.",
+      "Digit click: current string mein append (do decimals roko).",
+      "Operator click: agar previous aur current ho to pehle compute(), fir operator set karo.",
+      "compute(a, b, op): switch(op); division by zero par 'Error'.",
+      "Equals: compute karke display; C: reset.",
+      "Keyboard support: keydown se digits/operators map karo.",
+      "Never use eval() - safe compute function use karo."
+    ],
+    "starterCode": "function compute(a, b, op) {\n  a = +a; b = +b;\n  switch (op) {\n    case '+': return a + b;\n    case '-': return a - b;\n    case '*': return a * b;\n    case '/': return b === 0 ? NaN : a / b;\n  }\n}"
+  },
+  {
+    "id": 6,
+    "title": "Random User / Weather App with fetch",
+    "level": "Intermediate",
+    "skills": [
+      "fetch",
+      "async/await",
+      "error handling",
+      "loading states"
+    ],
+    "steps": [
+      "API choose karo (free, key-less): https://randomuser.me/api/ ya https://api.open-meteo.com/v1/forecast?latitude=23.35&longitude=85.33&current_weather=true (Ranchi).",
+      "HTML: button/search input, card container, loading aur error elements.",
+      "async function load(): loading dikhao; try { const r = await fetch(url); if (!r.ok) throw new Error(r.status); const data = await r.json(); render(data); } catch(e) { showError } finally { hide loading }.",
+      "render(data): fields nikalo (destructuring) aur card banao.",
+      "Browser Network tab mein request/response inspect karo.",
+      "AbortController se timeout (5s) lagao.",
+      "Bonus: last result localStorage mein cache karo; city dropdown."
+    ],
+    "starterCode": "async function load(url) {\n  const ctrl = new AbortController();\n  const t = setTimeout(() => ctrl.abort(), 5000);\n  try {\n    const r = await fetch(url, { signal: ctrl.signal });\n    if (!r.ok) throw new Error('HTTP ' + r.status);\n    return await r.json();\n  } finally { clearTimeout(t); }\n}"
+  },
+  {
+    "id": 7,
+    "title": "Expense Tracker",
+    "level": "Intermediate",
+    "skills": [
+      "array methods",
+      "reduce",
+      "forms",
+      "localStorage",
+      "formatting"
+    ],
+    "steps": [
+      "Form: description, amount, type (income/expense), category, date.",
+      "Data: expenses array [{id, desc, amount, type, category, date}] + localStorage.",
+      "Add/delete entries; validation (amount > 0, desc required).",
+      "Summary: income, expense, balance = reduce se.",
+      "Category totals: groupBy reduce; chart ke liye table ya <canvas>/CSS bars.",
+      "Filters: month, category; sort: date/amount.",
+      "Currency format: Intl.NumberFormat('en-IN', {style:'currency', currency:'INR'}).",
+      "Bonus: CSV export (Blob + a[download])."
+    ],
+    "starterCode": "const totals = expenses.reduce((a, e) => {\n  a[e.type] = (a[e.type] || 0) + e.amount;\n  return a;\n}, { income: 0, expense: 0 });\nconst balance = totals.income - totals.expense;"
+  },
+  {
+    "id": 8,
+    "title": "Tic-Tac-Toe with Win Detection",
+    "level": "Intermediate",
+    "skills": [
+      "2D logic",
+      "arrays",
+      "game state",
+      "DOM"
+    ],
+    "steps": [
+      "Board = Array(9).fill(null); turn = 'X'.",
+      "HTML/CSS grid 3x3 cells with data-index.",
+      "Click: agar cell khali aur game on ho to board[i] = turn; render.",
+      "WIN = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]].",
+      "checkWinner(): WIN.find(([a,b,c]) => board[a] && board[a] === board[b] && board[a] === board[c]).",
+      "Draw: board.every(Boolean) and no winner; Restart button.",
+      "Bonus: simple computer opponent (random, fir minimax)."
+    ],
+    "starterCode": "const WIN = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];\nconst winner = () => {\n   const w = WIN.find(([a, b, c]) => board[a] && board[a] === board[b] && board[a] ===\n       board[c]);\n   return w ? board[w[0]] : null;\n};"
+  },
+  {
+    "id": 9,
+    "title": "Image Slider / Carousel",
+    "level": "Intermediate",
+    "skills": [
+      "DOM",
+      "CSS transforms",
+      "timers",
+      "accessibility"
+    ],
+    "steps": [
+      "Slides ko flex container mein rakho; overflow hidden.",
+      "index state; goTo(i) = container.style.transform = `translateX(${-i*100}%)`.",
+      "Prev/Next buttons with wrap-around: (i + n) % n.",
+      "Dots navigation; active dot class.",
+      "Autoplay setInterval; hover/focus par pause; clearInterval.",
+      "Keyboard arrows aur touch swipe (touchstart/touchend).",
+      "Accessibility: aria-label buttons par, alt text images par."
+    ],
+    "starterCode": "const go = i => {\n   index = (i + slides.length) % slides.length;\n   track.style.transform = `translateX(${-index * 100}%)`;\n};"
+  },
+  {
+    "id": 10,
+    "title": "Password Generator + Strength Meter",
+    "level": "Beginner-Intermediate",
+    "skills": [
+      "random",
+      "strings",
+      "regex",
+      "clipboard",
+      "events"
+    ],
+    "steps": [
+      "Options: length slider, uppercase/lowercase/numbers/symbols checkboxes.",
+      "Character pools strings mein rakho; selected pools merge karo.",
+      "Generate: crypto.getRandomValues se secure random index.",
+      "Har selected type ka kam se kam ek character guarantee karo.",
+      "Strength: length + variety ke hisaab se Weak/Medium/Strong (regex tests).",
+      "Copy button: navigator.clipboard.writeText + 'Copied!' feedback.",
+      "Note: Math.random() security ke liye nahi hota."
+    ],
+    "starterCode": "function gen(len, pool) {\n  const a = new Uint32Array(len);\n  crypto.getRandomValues(a);\n  return [...a].map(n => pool[n % pool.length]).join('');\n}"
+  },
+  {
+    "id": 11,
+    "title": "Movie/Book Search with Debounce",
+    "level": "Intermediate-Advanced",
+    "skills": [
+      "fetch",
+      "debounce",
+      "race conditions",
+      "pagination",
+      "URLSearchParams"
+    ],
+    "steps": [
+      "Free API chuno (jaise Open Library: https://openlibrary.org/search.json?q=harry+potter).",
+      "Search input par debounce(300ms) lagao.",
+      "Query URL URLSearchParams se banao; encodeURIComponent dhyan se.",
+      "AbortController se purana request cancel karo (race condition rokne ke liye).",
+      "Results cards render; empty state aur error state dikhao.",
+      "Pagination ya 'Load more' (page param).",
+      "Favorites list localStorage mein.",
+      "Bonus: IntersectionObserver se infinite scroll."
+    ],
+    "starterCode": "let ctrl;\nconst search = debounce(async q => {\n  ctrl?.abort(); ctrl = new AbortController();\n  const url = 'https://openlibrary.org/search.json?' + new URLSearchParams({ q });\n  const r = await fetch(url, { signal: ctrl.signal });\n  render((await r.json()).docs);\n}, 300);"
+  },
+  {
+    "id": 12,
+    "title": "REST API with Node + Express",
+    "level": "Advanced-Beginner",
+    "skills": [
+      "Node",
+      "Express",
+      "routing",
+      "middleware",
+      "status codes",
+      "validation"
+    ],
+    "steps": [
+      "mkdir api && cd api && npm init -y && npm i express",
+      "package.json mein 'type': 'module' set karo.",
+      "server.js: const app = express(); app.use(express.json());",
+      "In-memory data: let todos = []; GET /todos, GET /todos/:id.",
+      "POST /todos: body validate karo (text required) -> 201 + created object; invalid par 400.",
+      "PUT/PATCH /todos/:id aur DELETE /todos/:id; missing id par 404.",
+      "Error middleware aur logging middleware (method, url, time).",
+      "Test: curl ya Postman/Thunder Client; bonus: data JSON file mein persist (fs.promises)."
+    ],
+    "starterCode": "import express from 'express';\nconst app = express();\napp.use(express.json());\nlet todos = [];\napp.get('/todos', (req, res) => res.json(todos));\napp.post('/todos', (req, res) => {\n  if (!req.body.text) return res.status(400).json({ error: 'text required' });\n  const t = { id: Date.now(), text: req.body.text, done: false };\n  todos.push(t); res.status(201).json(t);\n});\napp.listen(3000);"
+  }
+]

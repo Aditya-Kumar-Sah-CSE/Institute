@@ -1,0 +1,2928 @@
+[
+  {
+    "num": 1,
+    "id": "Q1",
+    "category": "Variables, Data Types & Operators",
+    "question": "var, let aur const mein kya difference hai?",
+    "answer": "var function-scoped hai, hoist hota hai (undefined ke saath) aur redeclare ho sakta hai. let/const block-scoped hain, TDZ mein rehte hain. const reassign nahi hota (par object ke andar ki value badal sakti hai)."
+  },
+  {
+    "num": 2,
+    "id": "Q2",
+    "category": "Variables, Data Types & Operators",
+    "question": "Temporal Dead Zone (TDZ) kya hai?",
+    "answer": "let/const declaration se pehle ka time jisme variable access karne par ReferenceError aata hai."
+  },
+  {
+    "num": 3,
+    "id": "Q3",
+    "category": "Variables, Data Types & Operators",
+    "question": "JavaScript ke primitive types kaun se hain?",
+    "answer": "string, number, bigint, boolean, undefined, null, symbol. Baaki sab object hai."
+  },
+  {
+    "num": 4,
+    "id": "Q4",
+    "category": "Variables, Data Types & Operators",
+    "question": "typeof null kya deta hai aur kyun?",
+    "answer": "'object'. Ye language ka purana bug hai jo backward compatibility ke liye rakha gaya."
+  },
+  {
+    "num": 5,
+    "id": "Q5",
+    "category": "Variables, Data Types & Operators",
+    "question": "typeof undeclaredVar kya deta hai?",
+    "answer": "'undefined' - typeof undeclared variable par error nahi deta."
+  },
+  {
+    "num": 6,
+    "id": "Q6",
+    "category": "Variables, Data Types & Operators",
+    "question": "null aur undefined mein difference?",
+    "answer": "undefined = value assign nahi hui. null = intentionally 'koi value nahi'. null == undefined true, null === undefined false."
+  },
+  {
+    "num": 7,
+    "id": "Q7",
+    "category": "Variables, Data Types & Operators",
+    "question": "== aur === mein difference?",
+    "answer": "== type coercion karta hai, === strict (type + value) compare karta hai. Hamesha === prefer karo."
+  },
+  {
+    "num": 8,
+    "id": "Q8",
+    "category": "Variables, Data Types & Operators",
+    "question": "NaN === NaN kya hai?",
+    "answer": "false. Check ke liye Number.isNaN(x) ya Object.is(x, NaN) use karo."
+  },
+  {
+    "num": 9,
+    "id": "Q9",
+    "category": "Variables, Data Types & Operators",
+    "question": "0.1 + 0.2 === 0.3 kyun false hai?",
+    "answer": "Floating point (IEEE 754) precision. Fix: Math.abs(a-b) < Number.EPSILON ya toFixed/integers mein calculate karo."
+  },
+  {
+    "num": 10,
+    "id": "Q10",
+    "category": "Variables, Data Types & Operators",
+    "question": "Number.isNaN aur global isNaN mein difference?",
+    "answer": "isNaN pehle value ko number mein convert karta hai (isNaN('abc') true). Number.isNaN coercion nahi karta."
+  },
+  {
+    "num": 11,
+    "id": "Q11",
+    "category": "Variables, Data Types & Operators",
+    "question": "Truthy aur falsy values kaun si hain?",
+    "answer": "Falsy: false, 0, -0, 0n, '', null, undefined, NaN. Baaki sab truthy (jaise [], {}, '0')."
+  },
+  {
+    "num": 12,
+    "id": "Q12",
+    "category": "Variables, Data Types & Operators",
+    "question": "'5' + 3 aur '5' - 3 ka result?",
+    "answer": "'53' (string concat) aur 2 (numeric subtraction)."
+  },
+  {
+    "num": 13,
+    "id": "Q13",
+    "category": "Variables, Data Types & Operators",
+    "question": "[] + [] ka result?",
+    "answer": "'' (empty string) kyunki dono arrays string mein convert hote hain."
+  },
+  {
+    "num": 14,
+    "id": "Q14",
+    "category": "Variables, Data Types & Operators",
+    "question": "[] + {} ka result?",
+    "answer": "'[object Object]'."
+  },
+  {
+    "num": 15,
+    "id": "Q15",
+    "category": "Variables, Data Types & Operators",
+    "question": "true + true ka result?",
+    "answer": "2."
+  },
+  {
+    "num": 16,
+    "id": "Q16",
+    "category": "Variables, Data Types & Operators",
+    "question": "typeof NaN kya hai?",
+    "answer": "'number'."
+  },
+  {
+    "num": 17,
+    "id": "Q17",
+    "category": "Variables, Data Types & Operators",
+    "question": "BigInt kab use karte hain?",
+    "answer": "Jab integers Number.MAX_SAFE_INTEGER (2^53-1) se bade hon. Literal: 123n. Number ke saath directly mix nahi hota."
+  },
+  {
+    "num": 18,
+    "id": "Q18",
+    "category": "Variables, Data Types & Operators",
+    "question": "Symbol kya hota hai?",
+    "answer": "Unique aur immutable primitive, mostly unique object keys banane ke liye."
+  },
+  {
+    "num": 19,
+    "id": "Q19",
+    "category": "Variables, Data Types & Operators",
+    "question": "Implicit aur explicit coercion kya hai?",
+    "answer": "Implicit: engine khud convert kare ('5'*2). Explicit: tum khud kro (Number('5'), String(5))."
+  },
+  {
+    "num": 20,
+    "id": "Q20",
+    "category": "Variables, Data Types & Operators",
+    "question": "Number('') aur Number(' 12 ') kya dete hain?",
+    "answer": "0 aur 12."
+  },
+  {
+    "num": 21,
+    "id": "Q21",
+    "category": "Variables, Data Types & Operators",
+    "question": "parseInt aur Number mein difference?",
+    "answer": "parseInt('12px') = 12 (aage ka ignore), Number('12px') = NaN. parseInt mein radix do: parseInt('10', 10)."
+  },
+  {
+    "num": 22,
+    "id": "Q22",
+    "category": "Variables, Data Types & Operators",
+    "question": "Short-circuit evaluation kya hai?",
+    "answer": "a && b: a falsy ho to a return, a || b: a truthy ho to a return. Right side evaluate hi nahi hoti."
+  },
+  {
+    "num": 23,
+    "id": "Q23",
+    "category": "Variables, Data Types & Operators",
+    "question": "?? (nullish coalescing) aur || mein difference?",
+    "answer": "|| har falsy par fallback deta hai (0, '' bhi). ?? sirf null/undefined par."
+  },
+  {
+    "num": 24,
+    "id": "Q24",
+    "category": "Variables, Data Types & Operators",
+    "question": "Optional chaining (?.) kya karta hai?",
+    "answer": "Agar left side null/undefined ho to error ke bajay undefined return karta hai: user?.address?.city."
+  },
+  {
+    "num": 25,
+    "id": "Q25",
+    "category": "Variables, Data Types & Operators",
+    "question": "++i aur i++ mein difference?",
+    "answer": "++i pehle increment fir value deta hai, i++ purani value deta hai fir increment."
+  },
+  {
+    "num": 26,
+    "id": "Q26",
+    "category": "Variables, Data Types & Operators",
+    "question": "Exponent operator kya hai?",
+    "answer": "** : 2 ** 3 = 8. Math.pow ka shorthand."
+  },
+  {
+    "num": 27,
+    "id": "Q27",
+    "category": "Variables, Data Types & Operators",
+    "question": "Logical assignment operators kaun se hain?",
+    "answer": "||=, &&=, ??= : a ||= 5 matlab a falsy ho to hi assign."
+  },
+  {
+    "num": 28,
+    "id": "Q28",
+    "category": "Variables, Data Types & Operators",
+    "question": "Object.is() aur === mein difference?",
+    "answer": "Object.is(NaN, NaN) true aur Object.is(0, -0) false. === mein ulta."
+  },
+  {
+    "num": 29,
+    "id": "Q29",
+    "category": "Variables, Data Types & Operators",
+    "question": "Template literals kya hain?",
+    "answer": "Backticks `...${expr}...` : multi-line strings aur expression interpolation."
+  },
+  {
+    "num": 30,
+    "id": "Q30",
+    "category": "Variables, Data Types & Operators",
+    "question": "Primitive aur reference type mein difference?",
+    "answer": "Primitive value copy hoti hai, objects/arrays ka reference copy hota hai."
+  },
+  {
+    "num": 31,
+    "id": "Q31",
+    "category": "Variables, Data Types & Operators",
+    "question": "Immutable ka matlab string ke context mein?",
+    "answer": "String ke characters badal nahi sakte; s[0]='x' kuch nahi karta. Naya string banta hai."
+  },
+  {
+    "num": 32,
+    "id": "Q32",
+    "category": "Variables, Data Types & Operators",
+    "question": "Number.MAX_SAFE_INTEGER kya hai?",
+    "answer": "9007199254740991 (2^53 - 1)."
+  },
+  {
+    "num": 33,
+    "id": "Q33",
+    "category": "Variables, Data Types & Operators",
+    "question": "Infinity kab milta hai?",
+    "answer": "1/0 par. -1/0 = -Infinity. 0/0 = NaN."
+  },
+  {
+    "num": 34,
+    "id": "Q34",
+    "category": "Variables, Data Types & Operators",
+    "question": "Comma operator kya hai?",
+    "answer": "(a, b) dono evaluate karke last value deta hai. for loops mein kabhi kabhi dikhta hai."
+  },
+  {
+    "num": 35,
+    "id": "Q35",
+    "category": "Variables, Data Types & Operators",
+    "question": "void operator kya karta hai?",
+    "answer": "Expression evaluate karke undefined return karta hai."
+  },
+  {
+    "num": 36,
+    "id": "Q36",
+    "category": "Variables, Data Types & Operators",
+    "question": "delete operator kya karta hai?",
+    "answer": "Object ki property hata deta hai. Variables delete nahi hote."
+  },
+  {
+    "num": 37,
+    "id": "Q37",
+    "category": "Variables, Data Types & Operators",
+    "question": "in aur hasOwnProperty mein difference?",
+    "answer": "in prototype chain bhi check karta hai, hasOwnProperty (ya Object.hasOwn) sirf apni property."
+  },
+  {
+    "num": 38,
+    "id": "Q38",
+    "category": "Variables, Data Types & Operators",
+    "question": "instanceof kya check karta hai?",
+    "answer": "Prototype chain mein constructor.prototype hai ya nahi."
+  },
+  {
+    "num": 39,
+    "id": "Q39",
+    "category": "Variables, Data Types & Operators",
+    "question": "Bitwise operators ka ek use case?",
+    "answer": "x & 1 se odd/even check, x | 0 se integer truncate, flags/permissions."
+  },
+  {
+    "num": 40,
+    "id": "Q40",
+    "category": "Variables, Data Types & Operators",
+    "question": "Math.round(-2.5) kya deta hai?",
+    "answer": "-2 (halfway values positive infinity ki taraf round hoti hain)."
+  },
+  {
+    "num": 41,
+    "id": "Q41",
+    "category": "Variables, Data Types & Operators",
+    "question": "toFixed ka return type kya hai?",
+    "answer": "String. Number chahiye to Number(x.toFixed(2))."
+  },
+  {
+    "num": 42,
+    "id": "Q42",
+    "category": "Control Flow & Loops",
+    "question": "for, for...in aur for...of mein difference?",
+    "answer": "for: index loop. for...in: object ki enumerable keys (strings). for...of: iterable ki values (arrays, strings, Map, Set)."
+  },
+  {
+    "num": 43,
+    "id": "Q43",
+    "category": "Control Flow & Loops",
+    "question": "Array par for...in kyun avoid karna chahiye?",
+    "answer": "Ye indexes string mein deta hai aur prototype ki enumerable properties bhi la sakta hai."
+  },
+  {
+    "num": 44,
+    "id": "Q44",
+    "category": "Control Flow & Loops",
+    "question": "break aur continue mein difference?",
+    "answer": "break loop poora rok deta hai, continue sirf current iteration skip karta hai."
+  },
+  {
+    "num": 45,
+    "id": "Q45",
+    "category": "Control Flow & Loops",
+    "question": "Labeled statement kya hai?",
+    "answer": "outer: for(...) { for(...) { break outer; } } : nested loop se bahar nikalne ke liye."
+  },
+  {
+    "num": 46,
+    "id": "Q46",
+    "category": "Control Flow & Loops",
+    "question": "switch mein break na likhein to?",
+    "answer": "Fall-through hota hai: agle case ka code bhi chal jata hai."
+  },
+  {
+    "num": 47,
+    "id": "Q47",
+    "category": "Control Flow & Loops",
+    "question": "switch strict comparison karta hai ya loose?",
+    "answer": "Strict (===)."
+  },
+  {
+    "num": 48,
+    "id": "Q48",
+    "category": "Control Flow & Loops",
+    "question": "do...while kab use hota hai?",
+    "answer": "Jab loop body kam se kam ek baar chalani ho."
+  },
+  {
+    "num": 49,
+    "id": "Q49",
+    "category": "Control Flow & Loops",
+    "question": "Ternary operator syntax?",
+    "answer": "condition ? valueIfTrue : valueIfFalse."
+  },
+  {
+    "num": 50,
+    "id": "Q50",
+    "category": "Control Flow & Loops",
+    "question": "while(true) se kaise bahar nikle?",
+    "answer": "break, return (function ke andar) ya throw."
+  },
+  {
+    "num": 51,
+    "id": "Q51",
+    "category": "Control Flow & Loops",
+    "question": "forEach mein break kyun nahi chalta?",
+    "answer": "forEach callback chalata hai; break sirf loops mein valid hai. some/every/for...of use karo."
+  },
+  {
+    "num": 52,
+    "id": "Q52",
+    "category": "Control Flow & Loops",
+    "question": "Infinite loop kaise banta hai?",
+    "answer": "Condition kabhi false na ho, ya counter update bhool jao: while(true) ya for(;;)."
+  },
+  {
+    "num": 53,
+    "id": "Q53",
+    "category": "Control Flow & Loops",
+    "question": "else if chain ki jagah kya use kar sakte hain?",
+    "answer": "switch, lookup object/map, ya early return."
+  },
+  {
+    "num": 54,
+    "id": "Q54",
+    "category": "Control Flow & Loops",
+    "question": "Early return pattern kya hai?",
+    "answer": "Invalid cases pehle return kar do taaki nested if kam ho jayein."
+  },
+  {
+    "num": 55,
+    "id": "Q55",
+    "category": "Control Flow & Loops",
+    "question": "for loop mein var vs let closure issue?",
+    "answer": "var ek hi variable share karta hai, let har iteration ka naya binding banata hai (setTimeout in loop classic example)."
+  },
+  {
+    "num": 56,
+    "id": "Q56",
+    "category": "Control Flow & Loops",
+    "question": "Array ko reverse order mein loop kaise karein?",
+    "answer": "for (let i = arr.length-1; i>=0; i--) ya arr.toReversed()."
+  },
+  {
+    "num": 57,
+    "id": "Q57",
+    "category": "Control Flow & Loops",
+    "question": "Loop mein 1 se 100 ka sum?",
+    "answer": "let s=0; for(let i=1;i<=100;i++) s+=i; => 5050 (ya n*(n+1)/2)."
+  },
+  {
+    "num": 58,
+    "id": "Q58",
+    "category": "Control Flow & Loops",
+    "question": "Object ki keys par loop?",
+    "answer": "for...in, Object.keys(o).forEach, ya for (const [k,v] of Object.entries(o))."
+  },
+  {
+    "num": 59,
+    "id": "Q59",
+    "category": "Control Flow & Loops",
+    "question": "Short-circuit se if ka shortcut?",
+    "answer": "isLoggedIn && showDashboard()."
+  },
+  {
+    "num": 60,
+    "id": "Q60",
+    "category": "Control Flow & Loops",
+    "question": "Nested ternary ke nuksan?",
+    "answer": "Padhna mushkil ho jata hai; complex conditions mein if/else ya function use karo."
+  },
+  {
+    "num": 61,
+    "id": "Q61",
+    "category": "Control Flow & Loops",
+    "question": "Guard clause kya hai?",
+    "answer": "Function ke start mein invalid input check karke return kar dena."
+  },
+  {
+    "num": 62,
+    "id": "Q62",
+    "category": "Functions",
+    "question": "Function declaration aur function expression mein difference?",
+    "answer": "Declaration hoist hoti hai (poori), expression sirf variable hoist hota hai - pehle call karoge to error."
+  },
+  {
+    "num": 63,
+    "id": "Q63",
+    "category": "Functions",
+    "question": "Arrow function aur normal function mein 3 differences?",
+    "answer": "1) Apna this nahi (lexical this). 2) arguments object nahi. 3) new ke saath constructor nahi bana sakte."
+  },
+  {
+    "num": 64,
+    "id": "Q64",
+    "category": "Functions",
+    "question": "First-class functions ka matlab?",
+    "answer": "Functions ko variable mein rakh sakte hain, argument ke roop mein pass kar sakte hain aur return kar sakte hain."
+  },
+  {
+    "num": 65,
+    "id": "Q65",
+    "category": "Functions",
+    "question": "Higher-order function kya hai?",
+    "answer": "Jo function dusre function ko argument le ya return kare (map, filter, reduce)."
+  },
+  {
+    "num": 66,
+    "id": "Q66",
+    "category": "Functions",
+    "question": "Callback function kya hai?",
+    "answer": "Ek function jo dusre function ko argument ke roop mein di jati hai aur baad mein call hoti hai."
+  },
+  {
+    "num": 67,
+    "id": "Q67",
+    "category": "Functions",
+    "question": "Pure function kya hai?",
+    "answer": "Same input par same output aur koi side effect nahi."
+  },
+  {
+    "num": 68,
+    "id": "Q68",
+    "category": "Functions",
+    "question": "Side effect ke examples?",
+    "answer": "Global variable badalna, DOM update, network call, console.log, input argument mutate karna."
+  },
+  {
+    "num": 69,
+    "id": "Q69",
+    "category": "Functions",
+    "question": "IIFE kya hai aur kyun use hota hai?",
+    "answer": "(function(){ ... })() - turant chalne wala function, private scope banane ke liye."
+  },
+  {
+    "num": 70,
+    "id": "Q70",
+    "category": "Functions",
+    "question": "Default parameters kya hain?",
+    "answer": "function f(a, b = 10) : b na mile ya undefined ho to 10."
+  },
+  {
+    "num": 71,
+    "id": "Q71",
+    "category": "Functions",
+    "question": "Rest parameter kya hai?",
+    "answer": "function f(...args) : bachi hui saari arguments ka real array."
+  },
+  {
+    "num": 72,
+    "id": "Q72",
+    "category": "Functions",
+    "question": "Spread aur rest mein difference?",
+    "answer": "Rest values ko ikattha karta hai (parameters/destructuring), spread values ko phailata hai (calls/arrays/objects)."
+  },
+  {
+    "num": 73,
+    "id": "Q73",
+    "category": "Functions",
+    "question": "arguments object kya hai?",
+    "answer": "Normal functions mein milne wala array-like object. Arrow functions mein nahi hota."
+  },
+  {
+    "num": 74,
+    "id": "Q74",
+    "category": "Functions",
+    "question": "Function ki length property kya batati hai?",
+    "answer": "Default/rest se pehle declared parameters ki ginti."
+  },
+  {
+    "num": 75,
+    "id": "Q75",
+    "category": "Functions",
+    "question": "Recursion kya hai? Base case kyun zaroori hai?",
+    "answer": "Function khud ko call kare. Base case ke bina infinite recursion = stack overflow."
+  },
+  {
+    "num": 76,
+    "id": "Q76",
+    "category": "Functions",
+    "question": "Currying kya hai?",
+    "answer": "f(a,b,c) ko f(a)(b)(c) mein badalna. Partial application ke liye useful."
+  },
+  {
+    "num": 77,
+    "id": "Q77",
+    "category": "Functions",
+    "question": "Memoization kya hai?",
+    "answer": "Function ke results cache karna taaki same input par dubara calculation na ho."
+  },
+  {
+    "num": 78,
+    "id": "Q78",
+    "category": "Functions",
+    "question": "Function composition kya hai?",
+    "answer": "Chhote functions ko jodna: compose(f,g)(x) = f(g(x))."
+  },
+  {
+    "num": 79,
+    "id": "Q79",
+    "category": "Functions",
+    "question": "Named function expression ka fayda?",
+    "answer": "Stack trace mein naam dikhta hai aur function khud ko andar se call kar sakta hai."
+  },
+  {
+    "num": 80,
+    "id": "Q80",
+    "category": "Functions",
+    "question": "Generator function kya hai?",
+    "answer": "function* jo yield se pause/resume ho sakta hai aur iterator return karta hai."
+  },
+  {
+    "num": 81,
+    "id": "Q81",
+    "category": "Functions",
+    "question": "Function hoisting kya hai?",
+    "answer": "Declarations scope ke top par move hoti hain, isliye pehle call ho sakti hain."
+  },
+  {
+    "num": 82,
+    "id": "Q82",
+    "category": "Functions",
+    "question": "Callback hell kya hai?",
+    "answer": "Nested callbacks ki pyramid jo padhna mushkil bana de. Promises/async-await se solve hota hai."
+  },
+  {
+    "num": 83,
+    "id": "Q83",
+    "category": "Functions",
+    "question": "Function overloading JS mein hoti hai?",
+    "answer": "Nahi. Same naam ka latest function jeet jata hai. Arguments check karke simulate karte hain."
+  },
+  {
+    "num": 84,
+    "id": "Q84",
+    "category": "Functions",
+    "question": "Return na likhein to function kya deta hai?",
+    "answer": "undefined."
+  },
+  {
+    "num": 85,
+    "id": "Q85",
+    "category": "Functions",
+    "question": "Closure ke bina private variable kaise banate?",
+    "answer": "Class private fields #x ya Symbol/WeakMap; but closure sabse classic tareeka hai."
+  },
+  {
+    "num": 86,
+    "id": "Q86",
+    "category": "Functions",
+    "question": "Debounce kya hai?",
+    "answer": "Rapid calls ko rok kar sirf last call ke X ms baad chalana (search box)."
+  },
+  {
+    "num": 87,
+    "id": "Q87",
+    "category": "Functions",
+    "question": "Throttle kya hai?",
+    "answer": "Function ko maximum har X ms mein ek baar chalne dena (scroll event)."
+  },
+  {
+    "num": 88,
+    "id": "Q88",
+    "category": "Functions",
+    "question": "Function ko object ki tarah use kar sakte hain?",
+    "answer": "Haan, functions objects hain: f.count = 0 jaisi properties lag sakti hain."
+  },
+  {
+    "num": 89,
+    "id": "Q89",
+    "category": "Functions",
+    "question": "Parameters aur arguments mein difference?",
+    "answer": "Parameters definition mein naam hote hain, arguments call karte waqt di gayi values."
+  },
+  {
+    "num": 90,
+    "id": "Q90",
+    "category": "Functions",
+    "question": "Pass by value ya pass by reference?",
+    "answer": "JS hamesha pass by value hai; objects ke case mein value reference hoti hai (reference ki copy)."
+  },
+  {
+    "num": 91,
+    "id": "Q91",
+    "category": "Functions",
+    "question": "Tagged template literal kya hai?",
+    "answer": "tag`hello ${x}` - function ko strings aur values alag-alag milte hain."
+  },
+  {
+    "num": 92,
+    "id": "Q92",
+    "category": "Functions",
+    "question": "Immediately return object from arrow?",
+    "answer": "Parentheses lagao: () => ({ a: 1 })."
+  },
+  {
+    "num": 93,
+    "id": "Q93",
+    "category": "Functions",
+    "question": "Function expression ko call karne se pehle hoist kyun fail hota hai?",
+    "answer": "var f undefined hota hai (TypeError: f is not a function), let/const mein TDZ ReferenceError."
+  },
+  {
+    "num": 94,
+    "id": "Q94",
+    "category": "Functions",
+    "question": "new.target kya hai?",
+    "answer": "Function mein check karne ke liye ki wo new ke saath call hua ya nahi."
+  },
+  {
+    "num": 95,
+    "id": "Q95",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Scope kya hai? Types?",
+    "answer": "Variable kahan accessible hai. Types: global, function, block (let/const), module."
+  },
+  {
+    "num": 96,
+    "id": "Q96",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Lexical scope kya hai?",
+    "answer": "Scope code likhne ki jagah se decide hota hai, call karne ki jagah se nahi."
+  },
+  {
+    "num": 97,
+    "id": "Q97",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Scope chain kya hai?",
+    "answer": "Variable na mile to engine bahar ke scopes mein dhundta hai global tak."
+  },
+  {
+    "num": 98,
+    "id": "Q98",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Hoisting kya hai?",
+    "answer": "Declarations (var, function) ka scope ke top par chala jana. Initialization nahi hoti."
+  },
+  {
+    "num": 99,
+    "id": "Q99",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Ye kya print karega? console.log(a); var a = 5;",
+    "answer": "undefined (declaration hoist hua, value nahi)."
+  },
+  {
+    "num": 100,
+    "id": "Q100",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Ye kya print karega? console.log(b); let b = 5;",
+    "answer": "ReferenceError (TDZ)."
+  },
+  {
+    "num": 101,
+    "id": "Q101",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Closure kya hai?",
+    "answer": "Function jo apne bahar ke scope ke variables ko yaad rakhta hai, bahar wala function khatam hone ke baad bhi."
+  },
+  {
+    "num": 102,
+    "id": "Q102",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Closure ka real use case?",
+    "answer": "Data privacy, counters, memoization, event handlers, currying, once()."
+  },
+  {
+    "num": 103,
+    "id": "Q103",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Closure memory leak kab karta hai?",
+    "answer": "Jab bade objects ka reference closure mein atka rahe aur function jinda rahe (listeners remove na karna)."
+  },
+  {
+    "num": 104,
+    "id": "Q104",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Counter closure likho.",
+    "answer": "function makeCounter(){ let c=0; return () => ++c; } const n=makeCounter(); n(); // 1, n(); // 2"
+  },
+  {
+    "num": 105,
+    "id": "Q105",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Loop mein setTimeout var ke saath kya print karega? for(var i=0;i<3;i++)",
+    "answer": "setTimeout(()=>console.log(i),0) 3 3 3. Fix: let use karo ya IIFE."
+  },
+  {
+    "num": 106,
+    "id": "Q106",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Same code let ke saath?",
+    "answer": "0 1 2 kyunki har iteration ka apna i hota hai."
+  },
+  {
+    "num": 107,
+    "id": "Q107",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "this kya hai?",
+    "answer": "Function call hone ke tareeke se decide hone wala context object."
+  },
+  {
+    "num": 108,
+    "id": "Q108",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "this ke 4 binding rules?",
+    "answer": "1) new binding 2) explicit (call/apply/bind) 3) implicit (obj.method()) 4) default (global/undefined in strict)."
+  },
+  {
+    "num": 109,
+    "id": "Q109",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Arrow function mein this kaise kaam karta hai?",
+    "answer": "Apne enclosing scope ka this inherit karta hai; call/bind se badalta nahi."
+  },
+  {
+    "num": 110,
+    "id": "Q110",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "call, apply aur bind mein difference?",
+    "answer": "call(this, a, b) turant chalata hai, apply(this, [a,b]) array leta hai, bind(this) naya function return karta hai."
+  },
+  {
+    "num": 111,
+    "id": "Q111",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Method ko variable mein nikalne par this kyun toot jata hai?",
+    "answer": "Implicit binding chali jati hai; const f = obj.m; f() mein this undefined/global hota hai."
+  },
+  {
+    "num": 112,
+    "id": "Q112",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Event handler mein this kya hota hai?",
+    "answer": "Normal function mein: wahi element jis par listener laga. Arrow mein: bahar ka this."
+  },
+  {
+    "num": 113,
+    "id": "Q113",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Strict mode mein global function ka this?",
+    "answer": "undefined."
+  },
+  {
+    "num": 114,
+    "id": "Q114",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Global scope mein this browser mein?",
+    "answer": "window (script mein), module mein undefined."
+  },
+  {
+    "num": 115,
+    "id": "Q115",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Polyfill for bind likho.",
+    "answer": "Function.prototype.myBind = function(ctx, ...a){ const f=this; return function(...b){ return f.apply(ctx,[...a,...b]); }; }"
+  },
+  {
+    "num": 116,
+    "id": "Q116",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Shadowing kya hai?",
+    "answer": "Inner scope ka variable bahar wale same naam ke variable ko chhupa deta hai."
+  },
+  {
+    "num": 117,
+    "id": "Q117",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Illegal shadowing kya hai?",
+    "answer": "let a mein { var a } karna SyntaxError hai kyunki var bahar tak hoist hota hai."
+  },
+  {
+    "num": 118,
+    "id": "Q118",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Global variable accidentally kaise bante hain?",
+    "answer": "Declare kiye bina assign karne par (non-strict mode). 'use strict' isse rokta hai."
+  },
+  {
+    "num": 119,
+    "id": "Q119",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "'use strict' kya karta hai?",
+    "answer": "Silent errors ko errors banata hai, undeclared variables rokta hai, this default undefined karta hai."
+  },
+  {
+    "num": 120,
+    "id": "Q120",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Module scope kya hai?",
+    "answer": "ES module ka apna scope hota hai, top-level var window par leak nahi hota."
+  },
+  {
+    "num": 121,
+    "id": "Q121",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Closure aur scope mein relation?",
+    "answer": "Closure = function + uska lexical environment. Scope rules iske neeche kaam karte hain."
+  },
+  {
+    "num": 122,
+    "id": "Q122",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Block scope ka example?",
+    "answer": "{ let x = 1; } console.log(x) // ReferenceError."
+  },
+  {
+    "num": 123,
+    "id": "Q123",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Function ke andar function declaration hoist kahan hota hai?",
+    "answer": "Us function ke scope ke top par."
+  },
+  {
+    "num": 124,
+    "id": "Q124",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Hoisting mein function aur var same naam ho to?",
+    "answer": "Function declaration var par priority leti hai, phir assignment var ko overwrite karta hai."
+  },
+  {
+    "num": 125,
+    "id": "Q125",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Once function banao (closure).",
+    "answer": "function once(fn){ let done=false,r; return (...a)=>{ if(!done){done=true; r=fn(...a);} return r; }; }"
+  },
+  {
+    "num": 126,
+    "id": "Q126",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Garbage collection kaise kaam karta hai?",
+    "answer": "Mark-and-sweep: roots se reachable objects rakhta hai, baaki memory free kar deta hai."
+  },
+  {
+    "num": 127,
+    "id": "Q127",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Execution context kya hai?",
+    "answer": "Code chalne ka environment: variable environment, scope chain aur this. Global aur function contexts hote hain."
+  },
+  {
+    "num": 128,
+    "id": "Q128",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Call stack kya hai?",
+    "answer": "LIFO structure jo function calls track karta hai."
+  },
+  {
+    "num": 129,
+    "id": "Q129",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Stack overflow kab aata hai?",
+    "answer": "Bahut deep/infinite recursion se call stack limit cross hone par (RangeError)."
+  },
+  {
+    "num": 130,
+    "id": "Q130",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Lexical environment kya hai?",
+    "answer": "Variables ka record + outer environment ka reference."
+  },
+  {
+    "num": 131,
+    "id": "Q131",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "globalThis kya hai?",
+    "answer": "Har environment (browser, Node) mein global object ka standard naam."
+  },
+  {
+    "num": 132,
+    "id": "Q132",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Module pattern kya hai?",
+    "answer": "IIFE/closure se private state aur public API return karna."
+  },
+  {
+    "num": 133,
+    "id": "Q133",
+    "category": "Scope, Hoisting, Closures & this",
+    "question": "Currying with closure example?",
+    "answer": "const add = a => b => a + b; add(2)(3) // 5"
+  },
+  {
+    "num": 134,
+    "id": "Q134",
+    "category": "Arrays",
+    "question": "map, filter aur reduce mein difference?",
+    "answer": "map har element transform karke naya array deta hai, filter condition pass karne wale elements deta hai, reduce poore array ko ek value mein badalta hai."
+  },
+  {
+    "num": 135,
+    "id": "Q135",
+    "category": "Arrays",
+    "question": "forEach aur map mein difference?",
+    "answer": "forEach kuch return nahi karta (undefined), map naya array return karta hai."
+  },
+  {
+    "num": 136,
+    "id": "Q136",
+    "category": "Arrays",
+    "question": "Array ko kaise check karein ki array hai?",
+    "answer": "Array.isArray(x). typeof array ke liye 'object' deta hai."
+  },
+  {
+    "num": 137,
+    "id": "Q137",
+    "category": "Arrays",
+    "question": "push, pop, shift, unshift kya karte hain?",
+    "answer": "push end mein add, pop end se remove, shift start se remove, unshift start mein add."
+  },
+  {
+    "num": 138,
+    "id": "Q138",
+    "category": "Arrays",
+    "question": "slice aur splice mein difference?",
+    "answer": "slice original ko nahi badalta, copy deta hai. splice original array ko mutate karta hai (add/remove)."
+  },
+  {
+    "num": 139,
+    "id": "Q139",
+    "category": "Arrays",
+    "question": "Array sort() default kaise sort karta hai?",
+    "answer": "Elements ko strings maan kar lexicographically. [10,2,1].sort() => [1,10,2]. Numbers ke liye sort((a,b)=>a-b)."
+  },
+  {
+    "num": 140,
+    "id": "Q140",
+    "category": "Arrays",
+    "question": "find, findIndex, some, every ka use?",
+    "answer": "find pehla matching element, findIndex uska index (-1 agar nahi), some koi ek match, every sabhi match."
+  },
+  {
+    "num": 141,
+    "id": "Q141",
+    "category": "Arrays",
+    "question": "includes aur indexOf mein difference?",
+    "answer": "includes boolean deta hai aur NaN detect karta hai, indexOf index deta hai (NaN nahi milta)."
+  },
+  {
+    "num": 142,
+    "id": "Q142",
+    "category": "Arrays",
+    "question": "Array copy karne ke tareeke?",
+    "answer": "[...arr], arr.slice(), Array.from(arr), structuredClone(arr) (deep)."
+  },
+  {
+    "num": 143,
+    "id": "Q143",
+    "category": "Arrays",
+    "question": "Shallow aur deep copy mein difference?",
+    "answer": "Shallow mein nested objects ka reference share hota hai, deep mein sab kuch naya banta hai."
+  },
+  {
+    "num": 144,
+    "id": "Q144",
+    "category": "Arrays",
+    "question": "Array flatten kaise karein?",
+    "answer": "arr.flat(Infinity) ya reduce/recursion."
+  },
+  {
+    "num": 145,
+    "id": "Q145",
+    "category": "Arrays",
+    "question": "Duplicates remove kaise karein?",
+    "answer": "[...new Set(arr)] ya filter((v,i,a)=>a.indexOf(v)===i)."
+  },
+  {
+    "num": 146,
+    "id": "Q146",
+    "category": "Arrays",
+    "question": "Array ka max find karna?",
+    "answer": "Math.max(...arr) ya reduce. Bahut bade arrays mein spread se stack issue ho sakta hai."
+  },
+  {
+    "num": 147,
+    "id": "Q147",
+    "category": "Arrays",
+    "question": "concat ka use?",
+    "answer": "Do ya zyada arrays jodta hai, naya array return karta hai."
+  },
+  {
+    "num": 148,
+    "id": "Q148",
+    "category": "Arrays",
+    "question": "Array.from ka use?",
+    "answer": "Array-like/iterable (NodeList, string, Set) ko array mein badalna, mapping function ke saath bhi."
+  },
+  {
+    "num": 149,
+    "id": "Q149",
+    "category": "Arrays",
+    "question": "Array.of(3) aur new Array(3) mein difference?",
+    "answer": "Array.of(3) = [3]. new Array(3) = 3 empty slots wala array."
+  },
+  {
+    "num": 150,
+    "id": "Q150",
+    "category": "Arrays",
+    "question": "Sparse array kya hai?",
+    "answer": "Jisme kuch indexes khali (holes) hon, e.g. [1,,3]."
+  },
+  {
+    "num": 151,
+    "id": "Q151",
+    "category": "Arrays",
+    "question": "arr.length = 0 karne se kya hota hai?",
+    "answer": "Array khali ho jata hai (same reference par)."
+  },
+  {
+    "num": 152,
+    "id": "Q152",
+    "category": "Arrays",
+    "question": "Array destructuring ka example?",
+    "answer": "const [a, b, ...rest] = [1,2,3,4]; a=1, b=2, rest=[3,4]."
+  },
+  {
+    "num": 153,
+    "id": "Q153",
+    "category": "Arrays",
+    "question": "Variables swap kaise karein?",
+    "answer": "[a, b] = [b, a]."
+  },
+  {
+    "num": 154,
+    "id": "Q154",
+    "category": "Arrays",
+    "question": "reduce se sum likho.",
+    "answer": "[1,2,3].reduce((acc, n) => acc + n, 0) // 6"
+  },
+  {
+    "num": 155,
+    "id": "Q155",
+    "category": "Arrays",
+    "question": "reduce ka initial value na do to?",
+    "answer": "Pehla element accumulator banta hai; empty array par TypeError aata hai."
+  },
+  {
+    "num": 156,
+    "id": "Q156",
+    "category": "Arrays",
+    "question": "flatMap kya karta hai?",
+    "answer": "map + flat(1) ek saath."
+  },
+  {
+    "num": 157,
+    "id": "Q157",
+    "category": "Arrays",
+    "question": "at() method kya hai?",
+    "answer": "arr.at(-1) = last element (negative index support)."
+  },
+  {
+    "num": 158,
+    "id": "Q158",
+    "category": "Arrays",
+    "question": "toSorted, toReversed, with kya hain?",
+    "answer": "Naye non-mutating methods jo copy return karte hain."
+  },
+  {
+    "num": 159,
+    "id": "Q159",
+    "category": "Arrays",
+    "question": "Array.prototype.fill ka use?",
+    "answer": "Array ko ek value se bharna: new Array(5).fill(0)."
+  },
+  {
+    "num": 160,
+    "id": "Q160",
+    "category": "Arrays",
+    "question": "join aur split ka relation?",
+    "answer": "split string ko array banata hai, join array ko string banata hai."
+  },
+  {
+    "num": 161,
+    "id": "Q161",
+    "category": "Arrays",
+    "question": "Array ke elements ko reverse karna?",
+    "answer": "arr.reverse() (mutates) ya arr.toReversed()."
+  },
+  {
+    "num": 162,
+    "id": "Q162",
+    "category": "Arrays",
+    "question": "Array equality [1,2]==[1,2]?",
+    "answer": "false - reference compare hota hai."
+  },
+  {
+    "num": 163,
+    "id": "Q163",
+    "category": "Arrays",
+    "question": "Array ko object mein convert?",
+    "answer": "Object.assign({}, arr) ya {...arr} - keys indexes ban jati hain."
+  },
+  {
+    "num": 164,
+    "id": "Q164",
+    "category": "Arrays",
+    "question": "Object.entries se Map?",
+    "answer": "new Map(Object.entries(obj))."
+  },
+  {
+    "num": 165,
+    "id": "Q165",
+    "category": "Arrays",
+    "question": "Array ka last element nikalne ke 3 tareeke?",
+    "answer": "arr[arr.length-1], arr.at(-1), arr.slice(-1)[0]."
+  },
+  {
+    "num": 166,
+    "id": "Q166",
+    "category": "Arrays",
+    "question": "Array chunk function likho.",
+    "answer": "const chunk=(a,n)=>Array.from({length:Math.ceil(a.length/n)},(_,i)=>a.slice(i*n,i*n+n));"
+  },
+  {
+    "num": 167,
+    "id": "Q167",
+    "category": "Arrays",
+    "question": "Typed arrays kya hain?",
+    "answer": "Uint8Array jaisi fixed-type binary data arrays (performance, buffers)."
+  },
+  {
+    "num": 168,
+    "id": "Q168",
+    "category": "Arrays",
+    "question": "copyWithin kya karta hai?",
+    "answer": "Array ke andar hi ek hissa dusre hisse par copy karta hai."
+  },
+  {
+    "num": 169,
+    "id": "Q169",
+    "category": "Arrays",
+    "question": "Array ko randomly shuffle kaise karein?",
+    "answer": "Fisher-Yates: end se start tak random index se swap."
+  },
+  {
+    "num": 170,
+    "id": "Q170",
+    "category": "Arrays",
+    "question": "Two arrays ka intersection?",
+    "answer": "a.filter(x => b.includes(x)) ya Set se O(n)."
+  },
+  {
+    "num": 171,
+    "id": "Q171",
+    "category": "Arrays",
+    "question": "Array ka union?",
+    "answer": "[...new Set([...a, ...b])]."
+  },
+  {
+    "num": 172,
+    "id": "Q172",
+    "category": "Arrays",
+    "question": "every empty array par kya deta hai?",
+    "answer": "true. some empty par false."
+  },
+  {
+    "num": 173,
+    "id": "Q173",
+    "category": "Arrays",
+    "question": "Array mein holes ke saath forEach?",
+    "answer": "Holes skip ho jate hain."
+  },
+  {
+    "num": 174,
+    "id": "Q174",
+    "category": "Arrays",
+    "question": "Array.prototype.sort stable hai?",
+    "answer": "Haan, modern engines (ES2019+) mein stable."
+  },
+  {
+    "num": 175,
+    "id": "Q175",
+    "category": "Arrays",
+    "question": "Large array mein O(1) lookup kaise?",
+    "answer": "Set ya Map/object mein convert karo."
+  },
+  {
+    "num": 176,
+    "id": "Q176",
+    "category": "Strings",
+    "question": "String immutable kyun kehte hain?",
+    "answer": "Methods naya string return karte hain, original string badalta nahi."
+  },
+  {
+    "num": 177,
+    "id": "Q177",
+    "category": "Strings",
+    "question": "slice, substring aur substr mein difference?",
+    "answer": "slice negative indexes support karta hai, substring negatives ko 0 maanta hai aur swap kar deta hai, substr deprecated hai."
+  },
+  {
+    "num": 178,
+    "id": "Q178",
+    "category": "Strings",
+    "question": "String reverse kaise karein?",
+    "answer": "str.split('').reverse().join('') ya [...str].reverse().join('') (emoji safe)."
+  },
+  {
+    "num": 179,
+    "id": "Q179",
+    "category": "Strings",
+    "question": "Palindrome check likho.",
+    "answer": "const isPal = s => { const c = s.toLowerCase().replace(/[^a-z0-9]/g,''); return c === [...c].reverse().join(''); }"
+  },
+  {
+    "num": 180,
+    "id": "Q180",
+    "category": "Strings",
+    "question": "trim, trimStart, trimEnd?",
+    "answer": "Whitespace hatate hain (dono taraf / start / end)."
+  },
+  {
+    "num": 181,
+    "id": "Q181",
+    "category": "Strings",
+    "question": "includes, startsWith, endsWith?",
+    "answer": "Boolean return karte hain substring check ke liye."
+  },
+  {
+    "num": 182,
+    "id": "Q182",
+    "category": "Strings",
+    "question": "replace aur replaceAll mein difference?",
+    "answer": "replace string pattern par sirf pehla match badalta hai; replaceAll sab. Regex /g se bhi replace sab karta hai."
+  },
+  {
+    "num": 183,
+    "id": "Q183",
+    "category": "Strings",
+    "question": "padStart / padEnd ka use?",
+    "answer": "'5'.padStart(2,'0') = '05'. Formatting ke liye."
+  },
+  {
+    "num": 184,
+    "id": "Q184",
+    "category": "Strings",
+    "question": "repeat() ka use?",
+    "answer": "'ab'.repeat(3) = 'ababab'."
+  },
+  {
+    "num": 185,
+    "id": "Q185",
+    "category": "Strings",
+    "question": "charAt aur [] mein difference?",
+    "answer": "Out of range par charAt '' deta hai, [] undefined."
+  },
+  {
+    "num": 186,
+    "id": "Q186",
+    "category": "Strings",
+    "question": "String compare locale ke saath?",
+    "answer": "a.localeCompare(b)."
+  },
+  {
+    "num": 187,
+    "id": "Q187",
+    "category": "Strings",
+    "question": "Unicode/emoji ki length?",
+    "answer": "'ὠ'.length = 2 (UTF-16). [...'ὠ'].length = 1."
+  },
+  {
+    "num": 188,
+    "id": "Q188",
+    "category": "Strings",
+    "question": "String ko number mein?",
+    "answer": "Number(s), +s, parseInt, parseFloat."
+  },
+  {
+    "num": 189,
+    "id": "Q189",
+    "category": "Strings",
+    "question": "Vowels count karne ka code?",
+    "answer": "(s.match(/[aeiou]/gi) || []).length"
+  },
+  {
+    "num": 190,
+    "id": "Q190",
+    "category": "Strings",
+    "question": "Anagram check kaise karein?",
+    "answer": "Dono ko sort karke compare, ya character frequency map banao (O(n))."
+  },
+  {
+    "num": 191,
+    "id": "Q191",
+    "category": "Strings",
+    "question": "Word frequency kaise nikalein?",
+    "answer": "s.split(/\\s+/).reduce((m,w)=>(m[w]=(m[w]||0)+1,m),{})"
+  },
+  {
+    "num": 192,
+    "id": "Q192",
+    "category": "Strings",
+    "question": "Title case function?",
+    "answer": "s.split(' ').map(w=>w[0].toUpperCase()+w.slice(1)).join(' ')"
+  },
+  {
+    "num": 193,
+    "id": "Q193",
+    "category": "Strings",
+    "question": "split limit ka use?",
+    "answer": "'a,b,c'.split(',', 2) = ['a','b']."
+  },
+  {
+    "num": 194,
+    "id": "Q194",
+    "category": "Strings",
+    "question": "Regex test() aur match() mein difference?",
+    "answer": "test boolean deta hai, match matches ka array/null deta hai."
+  },
+  {
+    "num": 195,
+    "id": "Q195",
+    "category": "Strings",
+    "question": "Regex flags g, i, m, s, u, y ka matlab?",
+    "answer": "global, ignore case, multiline, dotAll, unicode, sticky."
+  },
+  {
+    "num": 196,
+    "id": "Q196",
+    "category": "Strings",
+    "question": "Capturing group kya hai?",
+    "answer": "(…) se match ka hissa alag milta hai: /(\\d+)-(\\d+)/.exec('10-20')."
+  },
+  {
+    "num": 197,
+    "id": "Q197",
+    "category": "Strings",
+    "question": "Named capture group?",
+    "answer": "/(?<year>\\d{4})/ : match.groups.year."
+  },
+  {
+    "num": 198,
+    "id": "Q198",
+    "category": "Strings",
+    "question": "Lookahead kya hai?",
+    "answer": "x(?=y) : x tabhi match jab uske baad y ho (y consume nahi hota)."
+  },
+  {
+    "num": 199,
+    "id": "Q199",
+    "category": "Strings",
+    "question": "Greedy aur lazy quantifier?",
+    "answer": "* + greedy (zyada se zyada), *? +? lazy (kam se kam)."
+  },
+  {
+    "num": 200,
+    "id": "Q200",
+    "category": "Strings",
+    "question": "Email validate karne ka simple regex?",
+    "answer": "/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/ - basic check; strict validation server par."
+  },
+  {
+    "num": 201,
+    "id": "Q201",
+    "category": "Strings",
+    "question": "String.raw ka use?",
+    "answer": "Escape sequences ko process kiye bina raw string deta hai."
+  },
+  {
+    "num": 202,
+    "id": "Q202",
+    "category": "Strings",
+    "question": "normalize() kab chahiye?",
+    "answer": "Accented characters ko comparable form mein laane ke liye (NFC/NFD)."
+  },
+  {
+    "num": 203,
+    "id": "Q203",
+    "category": "Strings",
+    "question": "localeCompare, Intl.NumberFormat?",
+    "answer": "Locale-aware sorting aur number/currency formatting."
+  },
+  {
+    "num": 204,
+    "id": "Q204",
+    "category": "Strings",
+    "question": "Character code kaise milta hai?",
+    "answer": "'A'.charCodeAt(0) = 65, String.fromCharCode(65) = 'A'."
+  },
+  {
+    "num": 205,
+    "id": "Q205",
+    "category": "Strings",
+    "question": "Longest word nikalna?",
+    "answer": "s.split(' ').reduce((a,b)=>b.length>a.length?b:a)"
+  },
+  {
+    "num": 206,
+    "id": "Q206",
+    "category": "Strings",
+    "question": "Count occurrences of a char?",
+    "answer": "s.split(ch).length - 1"
+  },
+  {
+    "num": 207,
+    "id": "Q207",
+    "category": "Strings",
+    "question": "First non-repeating character?",
+    "answer": "Frequency map banao fir string mein pehla jiski count 1 ho."
+  },
+  {
+    "num": 208,
+    "id": "Q208",
+    "category": "Strings",
+    "question": "String compression 'aaabb' -> 'a3b2'?",
+    "answer": "Loop mein consecutive chars count karke build karo."
+  },
+  {
+    "num": 209,
+    "id": "Q209",
+    "category": "Strings",
+    "question": "Capitalize first letter?",
+    "answer": "s.charAt(0).toUpperCase() + s.slice(1)"
+  },
+  {
+    "num": 210,
+    "id": "Q210",
+    "category": "Strings",
+    "question": "at() string par?",
+    "answer": "'abc'.at(-1) = 'c'."
+  },
+  {
+    "num": 211,
+    "id": "Q211",
+    "category": "Strings",
+    "question": "Camel case to snake case?",
+    "answer": "s.replace(/[A-Z]/g, m => '_' + m.toLowerCase())"
+  },
+  {
+    "num": 212,
+    "id": "Q212",
+    "category": "Strings",
+    "question": "String concatenation performance?",
+    "answer": "Modern engines optimize; loops mein bahut bade joins ke liye array.join behtar."
+  },
+  {
+    "num": 213,
+    "id": "Q213",
+    "category": "Strings",
+    "question": "Escape characters kaun se?",
+    "answer": "\\n newline, \\t tab, \\\\ backslash, \\' \\\" quotes, \\u0041 unicode."
+  },
+  {
+    "num": 214,
+    "id": "Q214",
+    "category": "Strings",
+    "question": "Multi-line string kaise likhein?",
+    "answer": "Template literals backticks mein."
+  },
+  {
+    "num": 215,
+    "id": "Q215",
+    "category": "Strings",
+    "question": "indexOf vs lastIndexOf?",
+    "answer": "Pehli aur aakhri occurrence ka index."
+  },
+  {
+    "num": 216,
+    "id": "Q216",
+    "category": "Strings",
+    "question": "matchAll ka use?",
+    "answer": "Saare matches ka iterator capture groups ke saath (g flag zaroori)."
+  },
+  {
+    "num": 217,
+    "id": "Q217",
+    "category": "Strings",
+    "question": "String ko characters array mein?",
+    "answer": "[...s] ya s.split('')."
+  },
+  {
+    "num": 218,
+    "id": "Q218",
+    "category": "Objects & Prototypes",
+    "question": "Object create karne ke tareeke?",
+    "answer": "Literal {}, new Object(), Object.create(proto), constructor function, class."
+  },
+  {
+    "num": 219,
+    "id": "Q219",
+    "category": "Objects & Prototypes",
+    "question": "Dot notation aur bracket notation?",
+    "answer": "obj.key static naam ke liye; obj[expr] dynamic/special-character keys ke liye."
+  },
+  {
+    "num": 220,
+    "id": "Q220",
+    "category": "Objects & Prototypes",
+    "question": "Object.keys, values, entries?",
+    "answer": "Keys, values aur [key, value] pairs ka array deta hai (own enumerable)."
+  },
+  {
+    "num": 221,
+    "id": "Q221",
+    "category": "Objects & Prototypes",
+    "question": "Object.freeze aur Object.seal mein difference?",
+    "answer": "freeze: add/delete/modify kuch nahi. seal: add/delete nahi, existing values modify ho sakti hain. Dono shallow."
+  },
+  {
+    "num": 222,
+    "id": "Q222",
+    "category": "Objects & Prototypes",
+    "question": "Object.assign aur spread mein difference?",
+    "answer": "Dono shallow copy karte hain. assign target ko mutate kar sakta hai aur setters trigger karta hai."
+  },
+  {
+    "num": 223,
+    "id": "Q223",
+    "category": "Objects & Prototypes",
+    "question": "Deep clone kaise karein?",
+    "answer": "structuredClone(obj) (functions nahi), ya recursion; JSON.parse(JSON.stringify()) mein Date/undefined/functions kho jate hain."
+  },
+  {
+    "num": 224,
+    "id": "Q224",
+    "category": "Objects & Prototypes",
+    "question": "Object destructuring example?",
+    "answer": "const { name, age = 18, address: { city } } = user;"
+  },
+  {
+    "num": 225,
+    "id": "Q225",
+    "category": "Objects & Prototypes",
+    "question": "Computed property names?",
+    "answer": "const obj = { [key + 'Id']: 5 };"
+  },
+  {
+    "num": 226,
+    "id": "Q226",
+    "category": "Objects & Prototypes",
+    "question": "Shorthand properties/methods?",
+    "answer": "{ name, greet() {} } - name: name ki jagah."
+  },
+  {
+    "num": 227,
+    "id": "Q227",
+    "category": "Objects & Prototypes",
+    "question": "Getter aur setter kya hain?",
+    "answer": "get/set keywords jo property access par function chalate hain."
+  },
+  {
+    "num": 228,
+    "id": "Q228",
+    "category": "Objects & Prototypes",
+    "question": "Property descriptor kya hai?",
+    "answer": "Object.defineProperty se writable, enumerable, configurable control karna."
+  },
+  {
+    "num": 229,
+    "id": "Q229",
+    "category": "Objects & Prototypes",
+    "question": "Prototype kya hai?",
+    "answer": "Har object ka hidden link [[Prototype]] jisse properties inherit hoti hain."
+  },
+  {
+    "num": 230,
+    "id": "Q230",
+    "category": "Objects & Prototypes",
+    "question": "Prototype chain kya hai?",
+    "answer": "Property na mile to engine prototype ke prototype mein dhundta hai, null tak."
+  },
+  {
+    "num": 231,
+    "id": "Q231",
+    "category": "Objects & Prototypes",
+    "question": "__proto__ aur prototype mein difference?",
+    "answer": "prototype function/class ki property hai; __proto__ instance ka us prototype tak link hai."
+  },
+  {
+    "num": 232,
+    "id": "Q232",
+    "category": "Objects & Prototypes",
+    "question": "Object.create(null) ka use?",
+    "answer": "Bina prototype ka pure dictionary object banata hai."
+  },
+  {
+    "num": 233,
+    "id": "Q233",
+    "category": "Objects & Prototypes",
+    "question": "Constructor function kya hai?",
+    "answer": "Capital naam ka function jo new ke saath objects banata hai."
+  },
+  {
+    "num": 234,
+    "id": "Q234",
+    "category": "Objects & Prototypes",
+    "question": "new keyword kya karta hai?",
+    "answer": "1) naya object banata 2) prototype link 3) this bind karke function chalata 4) object return karta."
+  },
+  {
+    "num": 235,
+    "id": "Q235",
+    "category": "Objects & Prototypes",
+    "question": "Class JS mein sach mein kya hai?",
+    "answer": "Prototype-based inheritance par syntactic sugar."
+  },
+  {
+    "num": 236,
+    "id": "Q236",
+    "category": "Objects & Prototypes",
+    "question": "Class mein extends aur super?",
+    "answer": "extends se inheritance, super() parent constructor call karta hai aur this use se pehle zaroori hai."
+  },
+  {
+    "num": 237,
+    "id": "Q237",
+    "category": "Objects & Prototypes",
+    "question": "Static methods kya hain?",
+    "answer": "Class par directly lagte hain (Class.m()), instances par nahi."
+  },
+  {
+    "num": 238,
+    "id": "Q238",
+    "category": "Objects & Prototypes",
+    "question": "Private fields (#x) kya hain?",
+    "answer": "Class ke bahar access nahi ho sakte, syntax-level privacy."
+  },
+  {
+    "num": 239,
+    "id": "Q239",
+    "category": "Objects & Prototypes",
+    "question": "Method chaining kaise banti hai?",
+    "answer": "Har method return this kare."
+  },
+  {
+    "num": 240,
+    "id": "Q240",
+    "category": "Objects & Prototypes",
+    "question": "Object mein key exist karti hai? Tareeke?",
+    "answer": "'k' in obj, Object.hasOwn(obj,'k'), obj.k !== undefined (value undefined ho to galat)."
+  },
+  {
+    "num": 241,
+    "id": "Q241",
+    "category": "Objects & Prototypes",
+    "question": "Optional chaining object par?",
+    "answer": "user?.profile?.name safe access."
+  },
+  {
+    "num": 242,
+    "id": "Q242",
+    "category": "Objects & Prototypes",
+    "question": "Object comparison {}=={}?",
+    "answer": "false - references compare hote hain."
+  },
+  {
+    "num": 243,
+    "id": "Q243",
+    "category": "Objects & Prototypes",
+    "question": "Objects ko merge karna?",
+    "answer": "{...a, ...b} - same key par b jeetta hai."
+  },
+  {
+    "num": 244,
+    "id": "Q244",
+    "category": "Objects & Prototypes",
+    "question": "Object ko array mein? Array ko object mein?",
+    "answer": "Object.entries(obj); Object.fromEntries(pairs)."
+  },
+  {
+    "num": 245,
+    "id": "Q245",
+    "category": "Objects & Prototypes",
+    "question": "Object property delete?",
+    "answer": "delete obj.key."
+  },
+  {
+    "num": 246,
+    "id": "Q246",
+    "category": "Objects & Prototypes",
+    "question": "JSON.stringify ki limits?",
+    "answer": "undefined, functions, symbols skip; Date string ban jati hai; circular reference par error."
+  },
+  {
+    "num": 247,
+    "id": "Q247",
+    "category": "Objects & Prototypes",
+    "question": "JSON.parse reviver ka use?",
+    "answer": "Parse karte waqt values transform karna (e.g. date strings ko Date)."
+  },
+  {
+    "num": 248,
+    "id": "Q248",
+    "category": "Objects & Prototypes",
+    "question": "toString aur valueOf ka kaam?",
+    "answer": "Object ko string/primitive mein convert karte waqt call hote hain."
+  },
+  {
+    "num": 249,
+    "id": "Q249",
+    "category": "Objects & Prototypes",
+    "question": "Symbol.iterator kya hai?",
+    "answer": "Object ko for...of ke layak iterable banane wali well-known symbol."
+  },
+  {
+    "num": 250,
+    "id": "Q250",
+    "category": "Objects & Prototypes",
+    "question": "Map aur Object mein difference?",
+    "answer": "Map mein kisi bhi type ki key, insertion order, size property, aur frequent add/remove mein behtar."
+  },
+  {
+    "num": 251,
+    "id": "Q251",
+    "category": "Objects & Prototypes",
+    "question": "WeakMap kya hai?",
+    "answer": "Keys sirf objects aur weakly held; GC ho sakti hain; iterate nahi hota."
+  },
+  {
+    "num": 252,
+    "id": "Q252",
+    "category": "Objects & Prototypes",
+    "question": "Set kya hai?",
+    "answer": "Unique values ka collection, has/add/delete O(1) average."
+  },
+  {
+    "num": 253,
+    "id": "Q253",
+    "category": "Objects & Prototypes",
+    "question": "WeakSet?",
+    "answer": "Sirf objects, weak references; membership tracking."
+  },
+  {
+    "num": 254,
+    "id": "Q254",
+    "category": "Objects & Prototypes",
+    "question": "Object.getPrototypeOf?",
+    "answer": "Kisi object ka prototype return karta hai."
+  },
+  {
+    "num": 255,
+    "id": "Q255",
+    "category": "Objects & Prototypes",
+    "question": "instanceof kaise kaam karta hai?",
+    "answer": "Check karta hai ki constructor.prototype object ki prototype chain mein hai."
+  },
+  {
+    "num": 256,
+    "id": "Q256",
+    "category": "Objects & Prototypes",
+    "question": "Mixin kya hai?",
+    "answer": "Multiple sources se methods ek class/object mein copy karna (Object.assign)."
+  },
+  {
+    "num": 257,
+    "id": "Q257",
+    "category": "Objects & Prototypes",
+    "question": "Composition vs inheritance?",
+    "answer": "Composition 'has-a' (functions/objects jodna), inheritance 'is-a'. Composition zyada flexible mana jata hai."
+  },
+  {
+    "num": 258,
+    "id": "Q258",
+    "category": "Objects & Prototypes",
+    "question": "Factory function kya hai?",
+    "answer": "Bina new ke objects return karne wala function."
+  },
+  {
+    "num": 259,
+    "id": "Q259",
+    "category": "Objects & Prototypes",
+    "question": "this class method callback mein kyun khota hai?",
+    "answer": "Method alag se pass hone par binding toot jati hai; bind ya arrow class field use karo."
+  },
+  {
+    "num": 260,
+    "id": "Q260",
+    "category": "Objects & Prototypes",
+    "question": "Object.groupBy?",
+    "answer": "Items ko callback ke key ke hisaab se group karta hai (modern engines)."
+  },
+  {
+    "num": 261,
+    "id": "Q261",
+    "category": "Objects & Prototypes",
+    "question": "Property enumeration order?",
+    "answer": "Integer keys ascending, fir strings insertion order mein, fir symbols."
+  },
+  {
+    "num": 262,
+    "id": "Q262",
+    "category": "ES6+ Modern Features",
+    "question": "ES6 ke major features?",
+    "answer": "let/const, arrow functions, classes, template literals, destructuring, spread/rest, modules, promises, Map/Set, symbols, generators."
+  },
+  {
+    "num": 263,
+    "id": "Q263",
+    "category": "ES6+ Modern Features",
+    "question": "Destructuring defaults aur rename?",
+    "answer": "const { a: x = 10 } = obj; a ko x naam milta hai aur default 10."
+  },
+  {
+    "num": 264,
+    "id": "Q264",
+    "category": "ES6+ Modern Features",
+    "question": "Spread operator ke 3 uses?",
+    "answer": "Array copy/merge, object copy/merge, function call mein arguments phailana."
+  },
+  {
+    "num": 265,
+    "id": "Q265",
+    "category": "ES6+ Modern Features",
+    "question": "ES Modules kaise kaam karte hain?",
+    "answer": "export / import syntax, static, strict mode, apna scope. <script type='module'>."
+  },
+  {
+    "num": 266,
+    "id": "Q266",
+    "category": "ES6+ Modern Features",
+    "question": "Named aur default export mein difference?",
+    "answer": "Named multiple hote hain aur same naam se import; default ek hi aur koi bhi naam se import."
+  },
+  {
+    "num": 267,
+    "id": "Q267",
+    "category": "ES6+ Modern Features",
+    "question": "Dynamic import kya hai?",
+    "answer": "import('./x.js') promise return karta hai, lazy loading ke liye."
+  },
+  {
+    "num": 268,
+    "id": "Q268",
+    "category": "ES6+ Modern Features",
+    "question": "CommonJS aur ES Modules?",
+    "answer": "CommonJS: require/module.exports, synchronous. ESM: import/export, static analysis, async loading."
+  },
+  {
+    "num": 269,
+    "id": "Q269",
+    "category": "ES6+ Modern Features",
+    "question": "Iterator protocol kya hai?",
+    "answer": "Object jisme next() ho jo {value, done} return kare."
+  },
+  {
+    "num": 270,
+    "id": "Q270",
+    "category": "ES6+ Modern Features",
+    "question": "Generator ka use case?",
+    "answer": "Lazy sequences, custom iterators, async flows."
+  },
+  {
+    "num": 271,
+    "id": "Q271",
+    "category": "ES6+ Modern Features",
+    "question": "Promise.all, allSettled, race, any?",
+    "answer": "all: sab pass nahi to fail. allSettled: sabke results. race: pehla settle. any: pehla fulfill."
+  },
+  {
+    "num": 272,
+    "id": "Q272",
+    "category": "ES6+ Modern Features",
+    "question": "Optional catch binding?",
+    "answer": "try {} catch { } - error variable zaroori nahi."
+  },
+  {
+    "num": 273,
+    "id": "Q273",
+    "category": "ES6+ Modern Features",
+    "question": "Array/Object destructuring function parameters mein?",
+    "answer": "function f({ id, name }) { } - named-params jaisa."
+  },
+  {
+    "num": 274,
+    "id": "Q274",
+    "category": "ES6+ Modern Features",
+    "question": "Proxy kya hai?",
+    "answer": "Object ke operations (get/set/has) intercept karne wala wrapper."
+  },
+  {
+    "num": 275,
+    "id": "Q275",
+    "category": "ES6+ Modern Features",
+    "question": "Reflect kya hai?",
+    "answer": "Object operations ke default behaviour ke liye methods (Reflect.get/set/has)."
+  },
+  {
+    "num": 276,
+    "id": "Q276",
+    "category": "ES6+ Modern Features",
+    "question": "Tagged templates ka use?",
+    "answer": "styled-components, SQL sanitization, i18n."
+  },
+  {
+    "num": 277,
+    "id": "Q277",
+    "category": "ES6+ Modern Features",
+    "question": "Nullish coalescing aur optional chaining kab aaye?",
+    "answer": "ES2020."
+  },
+  {
+    "num": 278,
+    "id": "Q278",
+    "category": "ES6+ Modern Features",
+    "question": "Object.fromEntries?",
+    "answer": "[ [k,v] ] pairs se object banata hai."
+  },
+  {
+    "num": 279,
+    "id": "Q279",
+    "category": "ES6+ Modern Features",
+    "question": "Array.prototype.at, Object.hasOwn?",
+    "answer": "ES2022 additions."
+  },
+  {
+    "num": 280,
+    "id": "Q280",
+    "category": "ES6+ Modern Features",
+    "question": "Top-level await?",
+    "answer": "ES modules mein await bina async function ke use karna."
+  },
+  {
+    "num": 281,
+    "id": "Q281",
+    "category": "ES6+ Modern Features",
+    "question": "structuredClone?",
+    "answer": "Built-in deep clone (functions/DOM nodes nahi)."
+  },
+  {
+    "num": 282,
+    "id": "Q282",
+    "category": "ES6+ Modern Features",
+    "question": "globalThis?",
+    "answer": "Universal global object reference."
+  },
+  {
+    "num": 283,
+    "id": "Q283",
+    "category": "ES6+ Modern Features",
+    "question": "Symbol.asyncIterator?",
+    "answer": "for await...of ke liye async iterables."
+  },
+  {
+    "num": 284,
+    "id": "Q284",
+    "category": "ES6+ Modern Features",
+    "question": "Class fields aur static blocks?",
+    "answer": "Class body mein directly properties aur static initialization blocks."
+  },
+  {
+    "num": 285,
+    "id": "Q285",
+    "category": "ES6+ Modern Features",
+    "question": "WeakRef aur FinalizationRegistry?",
+    "answer": "Objects ko weakly refer karna; advanced memory-sensitive caches."
+  },
+  {
+    "num": 286,
+    "id": "Q286",
+    "category": "ES6+ Modern Features",
+    "question": "Exponentiation, BigInt, numeric separators?",
+    "answer": "2**10, 123n, 1_000_000 readability ke liye."
+  },
+  {
+    "num": 287,
+    "id": "Q287",
+    "category": "ES6+ Modern Features",
+    "question": "Array grouping aur findLast?",
+    "answer": "findLast/findLastIndex end se search; Object.groupBy grouping."
+  },
+  {
+    "num": 288,
+    "id": "Q288",
+    "category": "ES6+ Modern Features",
+    "question": "Pipeline/decorators?",
+    "answer": "Proposals ya limited support - interviews mein concept ke roop mein pooche jate hain."
+  },
+  {
+    "num": 289,
+    "id": "Q289",
+    "category": "ES6+ Modern Features",
+    "question": "Babel aur transpiling kya hai?",
+    "answer": "Naye syntax ko purane browsers ke liye purane JS mein convert karna."
+  },
+  {
+    "num": 290,
+    "id": "Q290",
+    "category": "ES6+ Modern Features",
+    "question": "Polyfill vs transpile?",
+    "answer": "Polyfill missing API add karta hai, transpile syntax badalta hai."
+  },
+  {
+    "num": 291,
+    "id": "Q291",
+    "category": "ES6+ Modern Features",
+    "question": "Tree shaking kya hai?",
+    "answer": "Bundler ka unused exports hata dena (ESM ki static structure ki wajah se)."
+  },
+  {
+    "num": 292,
+    "id": "Q292",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "JavaScript single-threaded hai to async kaise hota hai?",
+    "answer": "Browser/Node ke Web APIs/libuv background mein kaam karte hain aur event loop callbacks ko call stack khali hone par chalata hai."
+  },
+  {
+    "num": 293,
+    "id": "Q293",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "Event loop kya hai?",
+    "answer": "Ek mechanism jo call stack aur queues dekhta rehta hai aur stack khali hone par queue se agla task uthata hai."
+  },
+  {
+    "num": 294,
+    "id": "Q294",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "Microtask aur macrotask mein difference?",
+    "answer": "Microtasks: Promise.then, queueMicrotask. Macrotasks: setTimeout, setInterval, I/O. Har macrotask ke baad saare microtasks chalte hain."
+  },
+  {
+    "num": 295,
+    "id": "Q295",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "Output? console.log(1); setTimeout(()=>console.log(2),0);",
+    "answer": "Promise.resolve().then(()=>console.log(3)); console.log(4); 1 4 3 2."
+  },
+  {
+    "num": 296,
+    "id": "Q296",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "Promise kya hai? Uski 3 states?",
+    "answer": "Future value ka object. States: pending, fulfilled, rejected."
+  },
+  {
+    "num": 297,
+    "id": "Q297",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "Promise chaining kaise hoti hai?",
+    "answer": "then() naya promise return karta hai; return value agle then ko jati hai."
+  },
+  {
+    "num": 298,
+    "id": "Q298",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "catch aur finally?",
+    "answer": "catch rejection handle karta hai, finally success/fail dono mein chalta hai."
+  },
+  {
+    "num": 299,
+    "id": "Q299",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "async/await kya hai?",
+    "answer": "Promises ke upar syntactic sugar jo async code ko synchronous jaisa dikhata hai."
+  },
+  {
+    "num": 300,
+    "id": "Q300",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "async function kya return karti hai?",
+    "answer": "Hamesha Promise."
+  },
+  {
+    "num": 301,
+    "id": "Q301",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "await ko error handle kaise karein?",
+    "answer": "try/catch ya promise.catch()."
+  },
+  {
+    "num": 302,
+    "id": "Q302",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "Parallel mein 3 API calls kaise karein?",
+    "answer": "await Promise.all([a(), b(), c()]) - sequential await slow hota hai."
+  },
+  {
+    "num": 303,
+    "id": "Q303",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "Promise.all ka ek fail ho jaye to?",
+    "answer": "Poora promise reject; baaki chalte rehte hain par result discard. allSettled use karo."
+  },
+  {
+    "num": 304,
+    "id": "Q304",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "Promise.race ka use case?",
+    "answer": "Timeout implement karna: API call vs timer."
+  },
+  {
+    "num": 305,
+    "id": "Q305",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "Promise.any kab reject hota hai?",
+    "answer": "Jab saare reject hon (AggregateError)."
+  },
+  {
+    "num": 306,
+    "id": "Q306",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "Callback vs Promise vs async-await?",
+    "answer": "Callbacks nested ho jate hain, Promises chain karte hain, async/await sabse readable hai."
+  },
+  {
+    "num": 307,
+    "id": "Q307",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "Promisify kya hai?",
+    "answer": "Callback-style function ko Promise return karne wale function mein badalna."
+  },
+  {
+    "num": 308,
+    "id": "Q308",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "Promise constructor likho.",
+    "answer": "new Promise((resolve, reject) => { ... resolve(v) / reject(err) })."
+  },
+  {
+    "num": 309,
+    "id": "Q309",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "Unhandled rejection kya hai?",
+    "answer": "Reject hua promise jisme catch nahi - browser/Node warning ya crash."
+  },
+  {
+    "num": 310,
+    "id": "Q310",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "setTimeout(fn, 0) turant kyun nahi chalta?",
+    "answer": "Callback macrotask queue mein jata hai; current stack aur microtasks ke baad chalta hai."
+  },
+  {
+    "num": 311,
+    "id": "Q311",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "setInterval ka nuksan aur alternative?",
+    "answer": "Overlapping ho sakta hai; recursive setTimeout ya requestAnimationFrame."
+  },
+  {
+    "num": 312,
+    "id": "Q312",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "clearTimeout / clearInterval?",
+    "answer": "Scheduled callbacks cancel karte hain."
+  },
+  {
+    "num": 313,
+    "id": "Q313",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "requestAnimationFrame kab use karein?",
+    "answer": "Smooth animations ke liye, browser repaint se pehle."
+  },
+  {
+    "num": 314,
+    "id": "Q314",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "fetch API kaise use hoti hai?",
+    "answer": "fetch(url).then(r => r.json()). Dhyan: HTTP 404/500 par bhi promise reject nahi hota, r.ok check karo."
+  },
+  {
+    "num": 315,
+    "id": "Q315",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "fetch mein POST request?",
+    "answer": "fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)})"
+  },
+  {
+    "num": 316,
+    "id": "Q316",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "AbortController ka use?",
+    "answer": "fetch ya async kaam ko cancel karna (timeout/unmount)."
+  },
+  {
+    "num": 317,
+    "id": "Q317",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "Race condition kya hai async mein?",
+    "answer": "Do requests ka order alag ho jana aur purana result naye ko overwrite kar dena."
+  },
+  {
+    "num": 318,
+    "id": "Q318",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "Retry with backoff?",
+    "answer": "Fail hone par badhte delay (1s, 2s, 4s) ke saath dobara try karna."
+  },
+  {
+    "num": 319,
+    "id": "Q319",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "Sleep function likho.",
+    "answer": "const sleep = ms => new Promise(r => setTimeout(r, ms));"
+  },
+  {
+    "num": 320,
+    "id": "Q320",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "await loop mein vs Promise.all?",
+    "answer": "Loop mein await sequential hota hai. Independent tasks ke liye Promise.all."
+  },
+  {
+    "num": 321,
+    "id": "Q321",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "for await...of?",
+    "answer": "Async iterables ya promises ke array ko sequentially iterate karta hai."
+  },
+  {
+    "num": 322,
+    "id": "Q322",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "Top-level await kab chalta hai?",
+    "answer": "ES modules mein, module load async ho jata hai."
+  },
+  {
+    "num": 323,
+    "id": "Q323",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "Concurrency limit kaise lagayein?",
+    "answer": "Pool pattern: ek time par N promises chalao aur ek khatam ho to agla shuru."
+  },
+  {
+    "num": 324,
+    "id": "Q324",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "Promise.resolve() kya karta hai?",
+    "answer": "Value ko resolved promise mein wrap karta hai."
+  },
+  {
+    "num": 325,
+    "id": "Q325",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "then ke andar throw karne par?",
+    "answer": "Returned promise reject ho jata hai aur agla catch chalta hai."
+  },
+  {
+    "num": 326,
+    "id": "Q326",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "Callback ke error-first pattern?",
+    "answer": "Node style: callback(err, data), pehla argument error."
+  },
+  {
+    "num": 327,
+    "id": "Q327",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "Web Workers kya hain?",
+    "answer": "Alag thread mein heavy computation chalane ke liye; DOM access nahi."
+  },
+  {
+    "num": 328,
+    "id": "Q328",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "Service Worker kya hai?",
+    "answer": "Browser aur network ke beech proxy: offline caching, push notifications."
+  },
+  {
+    "num": 329,
+    "id": "Q329",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "Async stack trace / debugging tip?",
+    "answer": "DevTools async call stacks on karo aur try/catch mein error context log karo."
+  },
+  {
+    "num": 330,
+    "id": "Q330",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "queueMicrotask?",
+    "answer": "Microtask queue mein callback daalta hai."
+  },
+  {
+    "num": 331,
+    "id": "Q331",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "process.nextTick Node mein?",
+    "answer": "Microtasks se bhi pehle chalta hai (nextTick queue)."
+  },
+  {
+    "num": 332,
+    "id": "Q332",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "Polling aur WebSocket mein difference?",
+    "answer": "Polling baar baar request karta hai, WebSocket persistent two-way connection."
+  },
+  {
+    "num": 333,
+    "id": "Q333",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "Server-Sent Events?",
+    "answer": "Server se client ko one-way streaming over HTTP."
+  },
+  {
+    "num": 334,
+    "id": "Q334",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "Debounce async search mein kyun?",
+    "answer": "Har keystroke par API call rokne ke liye."
+  },
+  {
+    "num": 335,
+    "id": "Q335",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "Promise memoization?",
+    "answer": "In-flight promise cache karo taaki same request duplicate na ho."
+  },
+  {
+    "num": 336,
+    "id": "Q336",
+    "category": "Async JS, Promises & Event Loop",
+    "question": "Async function mein return await ka fayda?",
+    "answer": "try/catch ke andar ho to error wahin catch hota hai."
+  },
+  {
+    "num": 337,
+    "id": "Q337",
+    "category": "DOM, Events & Browser APIs",
+    "question": "DOM kya hai?",
+    "answer": "HTML ka tree-structured object model jisse JS page padh/badal sakta hai."
+  },
+  {
+    "num": 338,
+    "id": "Q338",
+    "category": "DOM, Events & Browser APIs",
+    "question": "getElementById, querySelector, querySelectorAll?",
+    "answer": "Elements select karte hain. querySelector CSS selector leta hai aur pehla match deta hai; querySelectorAll static NodeList."
+  },
+  {
+    "num": 339,
+    "id": "Q339",
+    "category": "DOM, Events & Browser APIs",
+    "question": "HTMLCollection aur NodeList mein difference?",
+    "answer": "HTMLCollection live hoti hai, querySelectorAll ki NodeList static. NodeList par forEach milta hai."
+  },
+  {
+    "num": 340,
+    "id": "Q340",
+    "category": "DOM, Events & Browser APIs",
+    "question": "innerHTML, textContent, innerText?",
+    "answer": "innerHTML HTML parse karta hai (XSS risk), textContent raw text, innerText visible text (CSS aware)."
+  },
+  {
+    "num": 341,
+    "id": "Q341",
+    "category": "DOM, Events & Browser APIs",
+    "question": "createElement aur append?",
+    "answer": "Naya element banao, content/attributes set karo, parent.append(el) se add karo."
+  },
+  {
+    "num": 342,
+    "id": "Q342",
+    "category": "DOM, Events & Browser APIs",
+    "question": "addEventListener ke fayde?",
+    "answer": "Ek event par multiple handlers, capture/once/passive options, removeEventListener."
+  },
+  {
+    "num": 343,
+    "id": "Q343",
+    "category": "DOM, Events & Browser APIs",
+    "question": "Event bubbling aur capturing?",
+    "answer": "Bubbling: child se parent tak. Capturing: parent se child tak. Default bubbling hai."
+  },
+  {
+    "num": 344,
+    "id": "Q344",
+    "category": "DOM, Events & Browser APIs",
+    "question": "Event delegation kya hai?",
+    "answer": "Parent par ek listener laga kar event.target se child pehchanna - dynamic elements ke liye bhi chalta hai."
+  },
+  {
+    "num": 345,
+    "id": "Q345",
+    "category": "DOM, Events & Browser APIs",
+    "question": "event.target aur event.currentTarget?",
+    "answer": "target: jis par click hua. currentTarget: jis par listener laga hai."
+  },
+  {
+    "num": 346,
+    "id": "Q346",
+    "category": "DOM, Events & Browser APIs",
+    "question": "preventDefault aur stopPropagation?",
+    "answer": "preventDefault default action rokta hai (form submit/link). stopPropagation bubbling rokta hai."
+  },
+  {
+    "num": 347,
+    "id": "Q347",
+    "category": "DOM, Events & Browser APIs",
+    "question": "Form submit handle kaise karein?",
+    "answer": "form.addEventListener('submit', e => { e.preventDefault(); ... })"
+  },
+  {
+    "num": 348,
+    "id": "Q348",
+    "category": "DOM, Events & Browser APIs",
+    "question": "localStorage, sessionStorage, cookies?",
+    "answer": "localStorage permanent (~5MB), sessionStorage tab tak, cookies server ko bheji jati hain (~4KB) aur expiry set hoti hai."
+  },
+  {
+    "num": 349,
+    "id": "Q349",
+    "category": "DOM, Events & Browser APIs",
+    "question": "localStorage mein object kaise store karein?",
+    "answer": "JSON.stringify karke set, JSON.parse karke get."
+  },
+  {
+    "num": 350,
+    "id": "Q350",
+    "category": "DOM, Events & Browser APIs",
+    "question": "DOMContentLoaded aur load event?",
+    "answer": "DOMContentLoaded HTML parse hone par, load images/styles ke baad."
+  },
+  {
+    "num": 351,
+    "id": "Q351",
+    "category": "DOM, Events & Browser APIs",
+    "question": "defer aur async script attributes?",
+    "answer": "async: download ke saath execute turant (order nahi). defer: parse ke baad, order maintain."
+  },
+  {
+    "num": 352,
+    "id": "Q352",
+    "category": "DOM, Events & Browser APIs",
+    "question": "Reflow aur repaint?",
+    "answer": "Reflow layout recalculation (costly), repaint sirf visual update."
+  },
+  {
+    "num": 353,
+    "id": "Q353",
+    "category": "DOM, Events & Browser APIs",
+    "question": "DocumentFragment kyun?",
+    "answer": "Multiple elements ko memory mein jodkar ek baar DOM mein daalna (performance)."
+  },
+  {
+    "num": 354,
+    "id": "Q354",
+    "category": "DOM, Events & Browser APIs",
+    "question": "classList methods?",
+    "answer": "add, remove, toggle, contains, replace."
+  },
+  {
+    "num": 355,
+    "id": "Q355",
+    "category": "DOM, Events & Browser APIs",
+    "question": "dataset attribute?",
+    "answer": "data-user-id attributes ko el.dataset.userId se access karna."
+  },
+  {
+    "num": 356,
+    "id": "Q356",
+    "category": "DOM, Events & Browser APIs",
+    "question": "Element ko create ke baad list mein remove?",
+    "answer": "el.remove() ya parent.removeChild(el)."
+  },
+  {
+    "num": 357,
+    "id": "Q357",
+    "category": "DOM, Events & Browser APIs",
+    "question": "IntersectionObserver ka use?",
+    "answer": "Lazy loading, infinite scroll - element viewport mein aaya ya nahi."
+  },
+  {
+    "num": 358,
+    "id": "Q358",
+    "category": "DOM, Events & Browser APIs",
+    "question": "MutationObserver?",
+    "answer": "DOM changes watch karna."
+  },
+  {
+    "num": 359,
+    "id": "Q359",
+    "category": "DOM, Events & Browser APIs",
+    "question": "getBoundingClientRect?",
+    "answer": "Element ka size aur viewport-relative position."
+  },
+  {
+    "num": 360,
+    "id": "Q360",
+    "category": "DOM, Events & Browser APIs",
+    "question": "window aur document mein difference?",
+    "answer": "window browser global object, document uska DOM property."
+  },
+  {
+    "num": 361,
+    "id": "Q361",
+    "category": "DOM, Events & Browser APIs",
+    "question": "BOM kya hai?",
+    "answer": "Browser Object Model: window, navigator, location, history, screen."
+  },
+  {
+    "num": 362,
+    "id": "Q362",
+    "category": "DOM, Events & Browser APIs",
+    "question": "CORS kya hai?",
+    "answer": "Browser security policy; alag origin ke resources ke liye server ko headers (Access-Control-Allow-Origin) dene padte hain."
+  },
+  {
+    "num": 363,
+    "id": "Q363",
+    "category": "DOM, Events & Browser APIs",
+    "question": "XSS kya hai aur kaise bachein?",
+    "answer": "Malicious script injection. innerHTML avoid, input sanitize/escape, CSP use karo."
+  },
+  {
+    "num": 364,
+    "id": "Q364",
+    "category": "DOM, Events & Browser APIs",
+    "question": "CSRF kya hai?",
+    "answer": "Logged-in user se unintended request karwana. Tokens, SameSite cookies se bachav."
+  },
+  {
+    "num": 365,
+    "id": "Q365",
+    "category": "DOM, Events & Browser APIs",
+    "question": "Same-origin policy?",
+    "answer": "Different origin (protocol+host+port) ka data script se read nahi hota."
+  },
+  {
+    "num": 366,
+    "id": "Q366",
+    "category": "DOM, Events & Browser APIs",
+    "question": "History API pushState?",
+    "answer": "Page reload bina URL badalna (SPA routing)."
+  },
+  {
+    "num": 367,
+    "id": "Q367",
+    "category": "DOM, Events & Browser APIs",
+    "question": "Clipboard, Geolocation APIs?",
+    "answer": "navigator.clipboard.writeText, navigator.geolocation.getCurrentPosition (permission chahiye)."
+  },
+  {
+    "num": 368,
+    "id": "Q368",
+    "category": "DOM, Events & Browser APIs",
+    "question": "Lazy loading images?",
+    "answer": "loading='lazy' attribute ya IntersectionObserver."
+  },
+  {
+    "num": 369,
+    "id": "Q369",
+    "category": "DOM, Events & Browser APIs",
+    "question": "Memory leak DOM mein kaise hote hain?",
+    "answer": "Removed elements par listeners/references reh jana, global caches, timers clear na karna."
+  },
+  {
+    "num": 370,
+    "id": "Q370",
+    "category": "DOM, Events & Browser APIs",
+    "question": "Virtual DOM kya hai?",
+    "answer": "React ka in-memory DOM copy; diff karke sirf changes real DOM par lagata hai."
+  },
+  {
+    "num": 371,
+    "id": "Q371",
+    "category": "DOM, Events & Browser APIs",
+    "question": "Custom events kaise banate hain?",
+    "answer": "el.dispatchEvent(new CustomEvent('x', {detail: data}))."
+  },
+  {
+    "num": 372,
+    "id": "Q372",
+    "category": "DOM, Events & Browser APIs",
+    "question": "input event aur change event?",
+    "answer": "input har keystroke par, change focus chhodne/commit par."
+  },
+  {
+    "num": 373,
+    "id": "Q373",
+    "category": "DOM, Events & Browser APIs",
+    "question": "keydown vs keyup vs keypress?",
+    "answer": "keydown press par, keyup release par, keypress deprecated."
+  },
+  {
+    "num": 374,
+    "id": "Q374",
+    "category": "DOM, Events & Browser APIs",
+    "question": "Mouse events list?",
+    "answer": "click, dblclick, mousedown, mouseup, mousemove, mouseenter, mouseleave."
+  },
+  {
+    "num": 375,
+    "id": "Q375",
+    "category": "DOM, Events & Browser APIs",
+    "question": "Drag and drop kaise?",
+    "answer": "draggable attribute, dragstart/dragover/drop events aur dataTransfer."
+  },
+  {
+    "num": 376,
+    "id": "Q376",
+    "category": "DOM, Events & Browser APIs",
+    "question": "Passive event listeners?",
+    "answer": "{passive:true} bataata hai ki preventDefault nahi hoga, scroll smooth rehta hai."
+  },
+  {
+    "num": 377,
+    "id": "Q377",
+    "category": "DOM, Events & Browser APIs",
+    "question": "Web Storage vs IndexedDB?",
+    "answer": "IndexedDB bade structured data ke liye async database."
+  },
+  {
+    "num": 378,
+    "id": "Q378",
+    "category": "DOM, Events & Browser APIs",
+    "question": "URL aur URLSearchParams?",
+    "answer": "URL parse karna aur query params get/set karna."
+  },
+  {
+    "num": 379,
+    "id": "Q379",
+    "category": "DOM, Events & Browser APIs",
+    "question": "Intl API ka use?",
+    "answer": "Date, number, currency ko locale ke hisaab se format karna."
+  },
+  {
+    "num": 380,
+    "id": "Q380",
+    "category": "DOM, Events & Browser APIs",
+    "question": "Date object ki gotchas?",
+    "answer": "Months 0-indexed hain, timezone confusion; toISOString UTC deta hai."
+  },
+  {
+    "num": 381,
+    "id": "Q381",
+    "category": "DOM, Events & Browser APIs",
+    "question": "Console methods?",
+    "answer": "log, error, warn, table, group, time/timeEnd, assert."
+  },
+  {
+    "num": 382,
+    "id": "Q382",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "try/catch/finally kaise kaam karta hai?",
+    "answer": "try mein risky code, catch error handle karta hai, finally hamesha chalta hai."
+  },
+  {
+    "num": 383,
+    "id": "Q383",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "throw sirf Error objects ka hona chahiye?",
+    "answer": "Best practice: haan, taaki stack trace mile (throw new Error('msg'))."
+  },
+  {
+    "num": 384,
+    "id": "Q384",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "Custom error class banao.",
+    "answer": "class ValidationError extends Error { constructor(m){ super(m); this.name='ValidationError'; } }"
+  },
+  {
+    "num": 385,
+    "id": "Q385",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "Error types kaun se hain?",
+    "answer": "SyntaxError, ReferenceError, TypeError, RangeError, URIError, EvalError."
+  },
+  {
+    "num": 386,
+    "id": "Q386",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "TypeError: undefined is not a function ka matlab?",
+    "answer": "Jo cheez call kar rahe ho wo function nahi hai (typo, undefined value)."
+  },
+  {
+    "num": 387,
+    "id": "Q387",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "try/catch async callback ke bahar kaam karta hai?",
+    "answer": "Nahi, callback baad mein chalta hai. async/await ya .catch() use karo."
+  },
+  {
+    "num": 388,
+    "id": "Q388",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "window.onerror aur unhandledrejection?",
+    "answer": "Global error handlers - logging ke liye."
+  },
+  {
+    "num": 389,
+    "id": "Q389",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "Debugging tools?",
+    "answer": "console, DevTools breakpoints, debugger statement, Network tab, source maps."
+  },
+  {
+    "num": 390,
+    "id": "Q390",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "Linting aur formatting?",
+    "answer": "ESLint code quality, Prettier formatting."
+  },
+  {
+    "num": 391,
+    "id": "Q391",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "Unit test kya hai? Tools?",
+    "answer": "Chhote function ka isolated test. Jest, Vitest, Mocha."
+  },
+  {
+    "num": 392,
+    "id": "Q392",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "Mock aur stub?",
+    "answer": "Real dependencies ki jagah fake behaviour dena tests mein."
+  },
+  {
+    "num": 393,
+    "id": "Q393",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "TDD kya hai?",
+    "answer": "Pehle failing test, fir code, fir refactor."
+  },
+  {
+    "num": 394,
+    "id": "Q394",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "Node.js kya hai?",
+    "answer": "Chrome V8 par bana server-side JS runtime, event-driven non-blocking I/O."
+  },
+  {
+    "num": 395,
+    "id": "Q395",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "npm, package.json, package-lock?",
+    "answer": "Package manager, project metadata aur dependencies, exact versions lock."
+  },
+  {
+    "num": 396,
+    "id": "Q396",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "dependencies aur devDependencies?",
+    "answer": "dependencies production ke liye, devDependencies sirf development/testing."
+  },
+  {
+    "num": 397,
+    "id": "Q397",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "Semantic versioning?",
+    "answer": "MAJOR.MINOR.PATCH: breaking, feature, bugfix."
+  },
+  {
+    "num": 398,
+    "id": "Q398",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "Node mein modules?",
+    "answer": "CommonJS (require) default, ESM ke liye 'type':'module' ya .mjs."
+  },
+  {
+    "num": 399,
+    "id": "Q399",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "Express.js kya hai?",
+    "answer": "Node ka minimal web framework: routing aur middleware."
+  },
+  {
+    "num": 400,
+    "id": "Q400",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "Middleware kya hai?",
+    "answer": "Request-response cycle mein beech ka function (req, res, next)."
+  },
+  {
+    "num": 401,
+    "id": "Q401",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "REST API principles?",
+    "answer": "Resources URLs, HTTP verbs (GET/POST/PUT/DELETE), stateless, status codes."
+  },
+  {
+    "num": 402,
+    "id": "Q402",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "HTTP status codes common?",
+    "answer": "200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 500 Server Error."
+  },
+  {
+    "num": 403,
+    "id": "Q403",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "JWT kya hai?",
+    "answer": "Signed token jisme user claims hote hain; stateless authentication."
+  },
+  {
+    "num": 404,
+    "id": "Q404",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "Environment variables kyun?",
+    "answer": "Secrets/config code se alag rakhne ke liye (.env, process.env)."
+  },
+  {
+    "num": 405,
+    "id": "Q405",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "Streams aur Buffers Node mein?",
+    "answer": "Streams data chunks mein process karte hain; Buffers binary data hold karte hain."
+  },
+  {
+    "num": 406,
+    "id": "Q406",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "fs module sync vs async?",
+    "answer": "Sync event loop block karta hai; server mein async/promises use karo."
+  },
+  {
+    "num": 407,
+    "id": "Q407",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "Node event loop phases?",
+    "answer": "timers, pending callbacks, poll, check (setImmediate), close callbacks."
+  },
+  {
+    "num": 408,
+    "id": "Q408",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "Clustering aur worker threads?",
+    "answer": "Multi-core use karne ke liye processes/threads."
+  },
+  {
+    "num": 409,
+    "id": "Q409",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "Git basics?",
+    "answer": "init, add, commit, branch, merge, pull, push; feature branches aur PRs."
+  },
+  {
+    "num": 410,
+    "id": "Q410",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "Bundlers kya hain?",
+    "answer": "Webpack/Vite/esbuild modules ko optimize karke browser ke liye bundle banate hain."
+  },
+  {
+    "num": 411,
+    "id": "Q411",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "TypeScript kya hai?",
+    "answer": "JS ka typed superset jo compile hokar JS banta hai."
+  },
+  {
+    "num": 412,
+    "id": "Q412",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "Performance optimization tips?",
+    "answer": "Debounce/throttle, lazy load, code splitting, minify, caching, virtualization."
+  },
+  {
+    "num": 413,
+    "id": "Q413",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "Web Vitals kya hain?",
+    "answer": "LCP, INP/FID, CLS - loading, interactivity, stability metrics."
+  },
+  {
+    "num": 414,
+    "id": "Q414",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "SOLID aur design patterns JS mein?",
+    "answer": "Singleton, Observer, Factory, Module, Pub/Sub commonly use hote hain."
+  },
+  {
+    "num": 415,
+    "id": "Q415",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "Observer / Pub-Sub pattern?",
+    "answer": "Subjects events publish karte hain aur subscribers listen karte hain (loose coupling)."
+  },
+  {
+    "num": 416,
+    "id": "Q416",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "Singleton pattern?",
+    "answer": "Class ka sirf ek instance - module cache se natural milta hai."
+  },
+  {
+    "num": 417,
+    "id": "Q417",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "Immutable updates kyun?",
+    "answer": "State change track karna aur bugs kam karna (React, Redux)."
+  },
+  {
+    "num": 418,
+    "id": "Q418",
+    "category": "Errors, Debugging, Testing & Node",
+    "question": "Security best practices?",
+    "answer": "Input validation, escaping, HTTPS, CSP, dependency audit (npm audit), secrets safe rakhna."
+  }
+]

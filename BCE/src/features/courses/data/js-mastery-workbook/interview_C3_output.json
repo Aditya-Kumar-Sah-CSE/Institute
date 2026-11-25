@@ -1,0 +1,418 @@
+[
+  {
+    "num": 542,
+    "id": "Q542",
+    "prompt": "Output kya hoga?",
+    "code": "console.log(typeof null, typeof undefined, typeof NaN);",
+    "answer": "object undefined number",
+    "explanation": "Language quirks."
+  },
+  {
+    "num": 543,
+    "id": "Q543",
+    "prompt": "Output kya hoga?",
+    "code": "console.log(0.1 + 0.2 === 0.3);",
+    "answer": "false",
+    "explanation": "Floating point precision."
+  },
+  {
+    "num": 544,
+    "id": "Q544",
+    "prompt": "Output kya hoga?",
+    "code": "console.log([] + [], [] + {}, [1,2] + [3]);",
+    "answer": "'' '[object Object]' '1,23'",
+    "explanation": "Arrays strings mein convert hote hain."
+  },
+  {
+    "num": 545,
+    "id": "Q545",
+    "prompt": "Output kya hoga?",
+    "code": "console.log('5' + 3, '5' - 3, '5' * '2');",
+    "answer": "53 2 10",
+    "explanation": "+ concat karta hai, baaki numeric."
+  },
+  {
+    "num": 546,
+    "id": "Q546",
+    "prompt": "Output kya hoga?",
+    "code": "console.log(1 < 2 < 3, 3 > 2 > 1);",
+    "answer": "true false",
+    "explanation": "3>2 = true, true > 1 = false."
+  },
+  {
+    "num": 547,
+    "id": "Q547",
+    "prompt": "Output kya hoga?",
+    "code": "console.log([10, 9, 1].sort());",
+    "answer": "[1, 10, 9]",
+    "explanation": "Default sort string-wise."
+  },
+  {
+    "num": 548,
+    "id": "Q548",
+    "prompt": "Output kya hoga?",
+    "code": "console.log(NaN == NaN, Object.is(NaN, NaN));",
+    "answer": "false true",
+    "explanation": "NaN khud ke barabar nahi."
+  },
+  {
+    "num": 549,
+    "id": "Q549",
+    "prompt": "Output kya hoga?",
+    "code": "console.log(!!'0', !!'', !![] , !!null);",
+    "answer": "true false true false",
+    "explanation": "Truthy/falsy rules."
+  },
+  {
+    "num": 550,
+    "id": "Q550",
+    "prompt": "Output kya hoga?",
+    "code": "var a = 1; { var a = 2; } console.log(a);",
+    "answer": "2",
+    "explanation": "var block-scoped nahi hai."
+  },
+  {
+    "num": 551,
+    "id": "Q551",
+    "prompt": "Output kya hoga?",
+    "code": "let a = 1; { let a = 2; } console.log(a);",
+    "answer": "1",
+    "explanation": "let block-scoped hai."
+  },
+  {
+    "num": 552,
+    "id": "Q552",
+    "prompt": "Output kya hoga?",
+    "code": "console.log(x); var x = 5;",
+    "answer": "undefined",
+    "explanation": "var hoisting."
+  },
+  {
+    "num": 553,
+    "id": "Q553",
+    "prompt": "Output kya hoga?",
+    "code": "for (var i=0;i<3;i++) setTimeout(()=>console.log(i),0);",
+    "answer": "3 3 3",
+    "explanation": "Shared var i."
+  },
+  {
+    "num": 554,
+    "id": "Q554",
+    "prompt": "Output kya hoga?",
+    "code": "for (let i=0;i<3;i++) setTimeout(()=>console.log(i),0);",
+    "answer": "0 1 2",
+    "explanation": "Har iteration ka naya i."
+  },
+  {
+    "num": 555,
+    "id": "Q555",
+    "prompt": "Output kya hoga?",
+    "code": "console.log(1); setTimeout(()=>console.log(2)); Promise.resolve().then(()=>console.log(3));\n    console.log(4);",
+    "answer": "1 4 3 2",
+    "explanation": "Microtask pehle chalta hai."
+  },
+  {
+    "num": 556,
+    "id": "Q556",
+    "prompt": "Output kya hoga?",
+    "code": "const o = {a:1}; const p = o; p.a = 2; console.log(o.a);",
+    "answer": "2",
+    "explanation": "Same reference."
+  },
+  {
+    "num": 557,
+    "id": "Q557",
+    "prompt": "Output kya hoga?",
+    "code": "console.log([1,2,3].map(parseInt));",
+    "answer": "[1, NaN, NaN]",
+    "explanation": "map index ko radix bana deta hai."
+  },
+  {
+    "num": 558,
+    "id": "Q558",
+    "prompt": "Output kya hoga?",
+    "code": "console.log([...'abc'].reverse().join(''));",
+    "answer": "cba",
+    "explanation": "String spread."
+  },
+  {
+    "num": 559,
+    "id": "Q559",
+    "prompt": "Output kya hoga?",
+    "code": "function f(){ return this; } console.log(f() === globalThis);",
+    "answer": "true (non-strict)",
+    "explanation": "Default binding."
+  },
+  {
+    "num": 560,
+    "id": "Q560",
+    "prompt": "Output kya hoga?",
+    "code": "const o = { n:'x', f(){ return this.n; } }; const g = o.f; console.log(g());",
+    "answer": "undefined",
+    "explanation": "this toot gaya."
+  },
+  {
+    "num": 561,
+    "id": "Q561",
+    "prompt": "Output kya hoga?",
+    "code": "const o = { n:'x', f: () => this.n }; console.log(o.f());",
+    "answer": "undefined",
+    "explanation": "Arrow ka this lexical hota hai."
+  },
+  {
+    "num": 562,
+    "id": "Q562",
+    "prompt": "Output kya hoga?",
+    "code": "console.log(typeof typeof 1);",
+    "answer": "string",
+    "explanation": "typeof hamesha string deta hai."
+  },
+  {
+    "num": 563,
+    "id": "Q563",
+    "prompt": "Output kya hoga?",
+    "code": "console.log([] == false, [] === false, null == false);",
+    "answer": "true false false",
+    "explanation": "Coercion rules."
+  },
+  {
+    "num": 564,
+    "id": "Q564",
+    "prompt": "Output kya hoga?",
+    "code": "console.log(Math.max(), Math.min());",
+    "answer": "-Infinity Infinity",
+    "explanation": "Empty arguments."
+  },
+  {
+    "num": 565,
+    "id": "Q565",
+    "prompt": "Output kya hoga?",
+    "code": "console.log(parseInt('08'), parseInt('0x1f'), +'');",
+    "answer": "8 31 0",
+    "explanation": "parseInt hex samajhta hai."
+  },
+  {
+    "num": 566,
+    "id": "Q566",
+    "prompt": "Output kya hoga?",
+    "code": "let a = 5; let b = a++ + ++a; console.log(a, b);",
+    "answer": "7 12",
+    "explanation": "5 + 7."
+  },
+  {
+    "num": 567,
+    "id": "Q567",
+    "prompt": "Output kya hoga?",
+    "code": "console.log(1 + +'2' + '3');",
+    "answer": "33",
+    "explanation": "(1+2)=3 fir '3' concat."
+  },
+  {
+    "num": 568,
+    "id": "Q568",
+    "prompt": "Output kya hoga?",
+    "code": "const a = [1,2,3]; a.length = 1; console.log(a);",
+    "answer": "[1]",
+    "explanation": "length truncate karti hai."
+  },
+  {
+    "num": 569,
+    "id": "Q569",
+    "prompt": "Output kya hoga?",
+    "code": "console.log(Boolean(new Boolean(false)));",
+    "answer": "true",
+    "explanation": "Object hamesha truthy."
+  },
+  {
+    "num": 570,
+    "id": "Q570",
+    "prompt": "Output kya hoga?",
+    "code": "console.log('b' + 'a' + +'a' + 'a');",
+    "answer": "baNaNa",
+    "explanation": "+'a' = NaN."
+  },
+  {
+    "num": 571,
+    "id": "Q571",
+    "prompt": "Output kya hoga?",
+    "code": "console.log([1,2,3].includes(NaN), [NaN].includes(NaN), [NaN].indexOf(NaN));",
+    "answer": "false true -1",
+    "explanation": "includes NaN handle karta hai."
+  },
+  {
+    "num": 572,
+    "id": "Q572",
+    "prompt": "Output kya hoga?",
+    "code": "const s = new Set([1,1,2,'1']); console.log(s.size);",
+    "answer": "3",
+    "explanation": "1 aur '1' alag."
+  },
+  {
+    "num": 573,
+    "id": "Q573",
+    "prompt": "Output kya hoga?",
+    "code": "console.log(Array(3).join('-'));",
+    "answer": "--",
+    "explanation": "Empty slots ''."
+  },
+  {
+    "num": 574,
+    "id": "Q574",
+    "prompt": "Output kya hoga?",
+    "code": "console.log(!function(){ return 0; }());",
+    "answer": "true",
+    "explanation": "IIFE 0 return, ! se true."
+  },
+  {
+    "num": 575,
+    "id": "Q575",
+    "prompt": "Output kya hoga?",
+    "code": "function f(a, b = a * 2){ return b; } console.log(f(3), f(3, undefined), f(3, null));",
+    "answer": "6 6 null",
+    "explanation": "Default sirf undefined par."
+  },
+  {
+    "num": 576,
+    "id": "Q576",
+    "prompt": "Output kya hoga?",
+    "code": "console.log(new Date(2024, 0, 31).getMonth());",
+    "answer": "0",
+    "explanation": "Months 0-indexed."
+  },
+  {
+    "num": 577,
+    "id": "Q577",
+    "prompt": "Output kya hoga?",
+    "code": "async function f(){ return 1; } console.log(f());",
+    "answer": "Promise {<fulfilled>: 1}",
+    "explanation": "Async function promise deta hai."
+  },
+  {
+    "num": 578,
+    "id": "Q578",
+    "prompt": "Output kya hoga?",
+    "code": "Promise.reject(1).catch(x => x + 1).then(console.log);",
+    "answer": "2",
+    "explanation": "catch ka return agle then mein jata hai."
+  },
+  {
+    "num": 579,
+    "id": "Q579",
+    "prompt": "Output kya hoga?",
+    "code": "console.log(typeof [], Array.isArray([]));",
+    "answer": "object true",
+    "explanation": ""
+  },
+  {
+    "num": 580,
+    "id": "Q580",
+    "prompt": "Output kya hoga?",
+    "code": "let x = 10; function f(){ console.log(x); let x = 5; } f();",
+    "answer": "ReferenceError",
+    "explanation": "TDZ shadowing."
+  },
+  {
+    "num": 581,
+    "id": "Q581",
+    "prompt": "Output kya hoga?",
+    "code": "console.log(delete [1,2,3][0], [1,2,3].length);",
+    "answer": "true 3",
+    "explanation": ""
+  },
+  {
+    "num": 582,
+    "id": "Q582",
+    "prompt": "Output kya hoga?",
+    "code": "console.log(Number.MAX_SAFE_INTEGER + 2);",
+    "answer": "9007199254740992",
+    "explanation": "Precision loss."
+  },
+  {
+    "num": 583,
+    "id": "Q583",
+    "prompt": "Output kya hoga?",
+    "code": "const f = () => {}; console.log(f.name, f.length);",
+    "answer": "f 0",
+    "explanation": ""
+  },
+  {
+    "num": 584,
+    "id": "Q584",
+    "prompt": "Output kya hoga?",
+    "code": "console.log({} + [], [] + {});",
+    "answer": "[object Object] [object Object]",
+    "explanation": "Dono concatenation."
+  },
+  {
+    "num": 585,
+    "id": "Q585",
+    "prompt": "Output kya hoga?",
+    "code": "console.log([1,2,3] + '');",
+    "answer": "1,2,3",
+    "explanation": ""
+  },
+  {
+    "num": 586,
+    "id": "Q586",
+    "prompt": "Output kya hoga?",
+    "code": "console.log(isNaN('abc'), Number.isNaN('abc'));",
+    "answer": "true false",
+    "explanation": "isNaN coercion karta hai."
+  },
+  {
+    "num": 587,
+    "id": "Q587",
+    "prompt": "Output kya hoga?",
+    "code": "console.log('abc'.at(-1), [1,2,3].at(-2));",
+    "answer": "c 2",
+    "explanation": ""
+  },
+  {
+    "num": 588,
+    "id": "Q588",
+    "prompt": "Output kya hoga?",
+    "code": "console.log(Object.keys('hi'));",
+    "answer": "['0','1']",
+    "explanation": ""
+  },
+  {
+    "num": 589,
+    "id": "Q589",
+    "prompt": "Output kya hoga?",
+    "code": "console.log(1_000 + 1);",
+    "answer": "1001",
+    "explanation": "Numeric separator."
+  },
+  {
+    "num": 590,
+    "id": "Q590",
+    "prompt": "Output kya hoga?",
+    "code": "console.log(null ?? 'd', 0 ?? 'd', 0 || 'd');",
+    "answer": "d 0 d",
+    "explanation": ""
+  },
+  {
+    "num": 591,
+    "id": "Q591",
+    "prompt": "Output kya hoga?",
+    "code": "const { a = 1, b = 2 } = { a: undefined, b: null }; console.log(a, b);",
+    "answer": "1 null",
+    "explanation": "Default sirf undefined par."
+  },
+  {
+    "num": 592,
+    "id": "Q592",
+    "prompt": "Output kya hoga?",
+    "code": "label: for (let i=0;i<3;i++){ for (let j=0;j<3;j++){ if (j==1) continue label;\n    console.log(i,j);} }",
+    "answer": "0 0, 1 0, 2 0",
+    "explanation": ""
+  },
+  {
+    "num": 593,
+    "id": "Q593",
+    "prompt": "Output kya hoga?",
+    "code": "console.log([...'aab'].filter((c,i,a)=>a.indexOf(c)===i));",
+    "answer": "['a','b']",
+    "explanation": ""
+  }
+]

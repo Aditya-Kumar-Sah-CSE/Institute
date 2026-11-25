@@ -76,10 +76,10 @@ export async function getCourseMcqsAction(courseId: string) {
     attempts = (attemptsData || []) as CourseMCQAttempt[];
   }
 
-  // Security Rule: Strip correct_option for students
+  // Security Rule: Strip correct_option and explanation for students before submission
   const mcqs: CourseMCQ[] = (mcqsData || []).map((mcq: any) => {
     if (!isStaff) {
-      const { correct_option, ...publicMcq } = mcq;
+      const { correct_option, explanation, ...publicMcq } = mcq;
       return publicMcq as CourseMCQ;
     }
     return mcq as CourseMCQ;
@@ -258,7 +258,7 @@ export async function submitCourseMcqAttemptAction(courseId: string, userAnswers
   const adminSupabase = await createAdminClient();
   const { data: mcqs, error } = await adminSupabase
     .from('course_mcqs')
-    .select('id, correct_option, marks')
+    .select('id, correct_option, marks, explanation')
     .eq('course_id', courseId)
     .eq('is_active', true);
 
@@ -268,7 +268,7 @@ export async function submitCourseMcqAttemptAction(courseId: string, userAnswers
 
   let totalScore = 0;
   let maxPossibleScore = 0;
-  const detailedResults: Record<string, { selected: string; correctOption: string; isCorrect: boolean }> = {};
+  const detailedResults: Record<string, { selected: string; correctOption: string; isCorrect: boolean; explanation?: string | null }> = {};
 
   const normalizeAnswers = (str: string) => (str || '').split(',').map(s => s.trim().toUpperCase()).filter(Boolean).sort().join(',');
 
@@ -287,7 +287,8 @@ export async function submitCourseMcqAttemptAction(courseId: string, userAnswers
     detailedResults[mcq.id] = {
       selected: studentSelected,
       correctOption: actualCorrect,
-      isCorrect
+      isCorrect,
+      explanation: mcq.explanation || null
     };
   }
 

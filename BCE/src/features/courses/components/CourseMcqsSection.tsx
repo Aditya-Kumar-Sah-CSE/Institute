@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import CreateMcqModal from '@/features/courses/components/CreateMcqModal';
 import { getCourseMcqsAction, deleteCourseMcqAction, submitCourseMcqAttemptAction } from '@/features/courses/actions/mcqs';
 import type { CourseMCQ, CourseMCQAttempt } from '@/types/database';
-import { HelpCircle, Plus, Edit, Trash2, CheckCircle, XCircle, RotateCcw, Award, History } from 'lucide-react';
+import { HelpCircle, Plus, Edit, Trash2, CheckCircle, XCircle, RotateCcw, Award, History, ChevronLeft, ChevronRight, Lightbulb } from 'lucide-react';
 
 interface CourseMcqsSectionProps {
   courseId: string;
@@ -35,10 +35,40 @@ export default function CourseMcqsSection({
   const [submissionResult, setSubmissionResult] = useState<{
     score: number;
     total: number;
-    detailedResults: Record<string, { selected: string; correctOption: string; isCorrect: boolean }>;
+    detailedResults: Record<string, { selected: string; correctOption: string; isCorrect: boolean; explanation?: string | null }>;
   } | null>(null);
 
   const [showHistory, setShowHistory] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [showAllOnPage, setShowAllOnPage] = useState<boolean>(false);
+
+  const categories = useMemo(() => {
+    const seen: string[] = [];
+    mcqs.forEach(m => {
+      if (m.category && !seen.includes(m.category)) seen.push(m.category);
+    });
+    return seen;
+  }, [mcqs]);
+
+  const mcqGlobalNumber = useMemo(() => {
+    const map = new Map<string, number>();
+    mcqs.forEach((m, idx) => map.set(m.id, idx + 1));
+    return map;
+  }, [mcqs]);
+
+  const filteredMcqs = useMemo(() => {
+    if (selectedCategory === 'All' || !categories.includes(selectedCategory)) return mcqs;
+    return mcqs.filter(m => m.category === selectedCategory);
+  }, [mcqs, selectedCategory, categories]);
+
+  const pageSize = showAllOnPage ? Math.max(filteredMcqs.length, 1) : 25;
+  const totalPages = Math.max(1, Math.ceil(filteredMcqs.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const visibleMcqs = useMemo(() => {
+    const start = (safePage - 1) * pageSize;
+    return filteredMcqs.slice(start, start + pageSize);
+  }, [filteredMcqs, safePage, pageSize]);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -64,7 +94,7 @@ export default function CourseMcqsSection({
       const updated = current.includes(optionKey)
         ? current.filter(k => k !== optionKey)
         : [...current, optionKey].sort();
-      
+
       if (updated.length === 0) {
         const copy = { ...prev };
         delete copy[mcqId];
@@ -128,12 +158,10 @@ export default function CourseMcqsSection({
     }
   };
 
-  const latestAttempt = attempts.length > 0 ? attempts[0] : null;
-
   return (
-    <Card 
+    <Card
       className="course-mcqs-card"
-      variant="glass" 
+      variant="glass"
       padding="lg"
       style={{
         background: 'var(--bg-secondary)',
@@ -142,25 +170,29 @@ export default function CourseMcqsSection({
       }}
     >
       {/* SECTION HEADER */}
-      <div 
-        style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          flexWrap: 'wrap', 
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
           gap: 'var(--space-md)',
-          marginBottom: 'var(--space-lg)' 
+          marginBottom: 'var(--space-lg)'
         }}
       >
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '1.25rem' }}>❓</span>
             <h2 className="section-title" style={{ margin: 0, fontSize: 'var(--text-xl)' }}>
-              Course MCQs
+              Course MCQs {mcqs.length > 0 ? `(${mcqs.length})` : ''}
             </h2>
           </div>
           <p className="text-secondary" style={{ margin: '4px 0 0 0', fontSize: 'var(--text-sm)' }}>
-            Create and manage MCQ assessments for this course.
+            {isStaff
+              ? 'Create and manage MCQ assessments for this course.'
+              : mcqs.length > 0
+                ? `Practice topic-wise or submit the full assessment (${mcqs.length} questions).`
+                : 'Practice MCQ assessments for this course.'}
           </p>
         </div>
 
@@ -177,9 +209,9 @@ export default function CourseMcqsSection({
           )}
 
           {isStaff && (
-            <Button 
-              variant="primary" 
-              size="sm" 
+            <Button
+              variant="primary"
+              size="sm"
               onClick={() => {
                 setEditingMcq(null);
                 setIsModalOpen(true);
@@ -194,13 +226,13 @@ export default function CourseMcqsSection({
 
       {/* ATTEMPT HISTORY LIST (IF TOGGLED) */}
       {showHistory && attempts.length > 0 && (
-        <div style={{ background: 'rgba(0,0,0,0.2)', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-lg)', border: '1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ background: 'var(--bg-surface)', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-lg)', border: '1px solid var(--border-default)' }}>
           <h4 style={{ margin: '0 0 var(--space-xs) 0', fontSize: 'var(--text-sm)', color: 'var(--neon-cyan)' }}>
             📜 Past Attempt History
           </h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {attempts.map((att, idx) => (
-              <div key={att.id || idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', padding: '6px 10px', background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)' }}>
+              <div key={att.id || idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', padding: '6px 10px', background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-default)' }}>
                 <span>Attempt #{attempts.length - idx} • {new Date(att.submitted_at).toLocaleString()}</span>
                 <span style={{ fontWeight: 'bold', color: 'var(--neon-gold)' }}>Score: {att.score} / {att.total}</span>
               </div>
@@ -215,13 +247,13 @@ export default function CourseMcqsSection({
           Loading course MCQs...
         </div>
       ) : mcqs.length === 0 ? (
-        <div style={{ padding: 'var(--space-xl)', textAlign: 'center', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-md)', border: '1px border-dashed var(--glass-border)' }}>
+        <div style={{ padding: 'var(--space-xl)', textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--glass-border)' }}>
           <HelpCircle size={36} style={{ opacity: 0.3, marginBottom: '8px' }} />
           <p style={{ margin: 0, fontSize: 'var(--text-sm)' }}>No MCQs created for this course yet.</p>
           {isStaff && (
-            <Button 
-              variant="secondary" 
-              size="sm" 
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => {
                 setEditingMcq(null);
                 setIsModalOpen(true);
@@ -236,12 +268,12 @@ export default function CourseMcqsSection({
         <div>
           {/* SUBMISSION RESULT BANNER */}
           {submissionResult && (
-            <div 
-              style={{ 
-                background: 'rgba(57, 255, 20, 0.1)', 
-                border: '1px solid var(--neon-lime)', 
-                padding: 'var(--space-md)', 
-                borderRadius: 'var(--radius-md)', 
+            <div
+              style={{
+                background: 'rgba(57, 255, 20, 0.1)',
+                border: '1px solid var(--neon-lime)',
+                padding: 'var(--space-md)',
+                borderRadius: 'var(--radius-md)',
                 marginBottom: 'var(--space-lg)',
                 display: 'flex',
                 alignItems: 'center',
@@ -268,23 +300,111 @@ export default function CourseMcqsSection({
             </div>
           )}
 
+          {/* SECTION FILTER & PAGINATION CONTROLS */}
+          {(categories.length > 1 || mcqs.length > 25) && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: 'var(--space-lg)', padding: 'var(--space-sm) var(--space-md)', background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)' }}>
+              {categories.length > 1 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedCategory('All'); setCurrentPage(1); }}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: '999px',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      border: `1px solid ${selectedCategory === 'All' ? 'var(--neon-cyan)' : 'var(--border-default)'}`,
+                      background: selectedCategory === 'All' ? 'rgba(0, 229, 255, 0.14)' : 'var(--bg-secondary)',
+                      color: selectedCategory === 'All' ? 'var(--neon-cyan)' : 'var(--text-secondary)'
+                    }}
+                  >
+                    All Sections ({mcqs.length})
+                  </button>
+                  {categories.map(cat => {
+                    const count = mcqs.filter(m => m.category === cat).length;
+                    const active = selectedCategory === cat;
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => { setSelectedCategory(cat); setCurrentPage(1); }}
+                        style={{
+                          padding: '5px 12px',
+                          borderRadius: '999px',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          border: `1px solid ${active ? 'var(--neon-cyan)' : 'var(--border-default)'}`,
+                          background: active ? 'rgba(0, 229, 255, 0.14)' : 'var(--bg-secondary)',
+                          color: active ? 'var(--neon-cyan)' : 'var(--text-secondary)'
+                        }}
+                      >
+                        {cat} ({count})
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {filteredMcqs.length > 25 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  <span>
+                    Showing {((safePage - 1) * pageSize) + 1}–{Math.min(safePage * pageSize, filteredMcqs.length)} of {filteredMcqs.length} questions • Answered {Object.keys(userAnswers).length} / {mcqs.length} total
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {!showAllOnPage && totalPages > 1 && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={safePage <= 1}
+                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        >
+                          <ChevronLeft size={14} /> Prev
+                        </Button>
+                        <span style={{ fontWeight: 600, padding: '0 6px' }}>Page {safePage} / {totalPages}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={safePage >= totalPages}
+                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        >
+                          Next <ChevronRight size={14} />
+                        </Button>
+                      </>
+                    )}
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => { setShowAllOnPage(v => !v); setCurrentPage(1); }}
+                    >
+                      {showAllOnPage ? 'Paginate (25)' : `Show All (${filteredMcqs.length})`}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* QUESTIONS LIST */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
-            {mcqs.map((mcq, index) => {
+            {visibleMcqs.map((mcq) => {
+              const questionNumber = mcqGlobalNumber.get(mcq.id) || 1;
               const res = submissionResult?.detailedResults?.[mcq.id];
               const selectedKeys = userAnswers[mcq.id] || [];
-              const staffCorrectList = isStaff && mcq.correct_option 
-                ? mcq.correct_option.split(',').map(s => s.trim().toUpperCase()) 
+              const staffCorrectList = isStaff && mcq.correct_option
+                ? mcq.correct_option.split(',').map(s => s.trim().toUpperCase())
                 : [];
-              const resultCorrectList = res?.correctOption 
-                ? res.correctOption.split(',').map(s => s.trim().toUpperCase()) 
+              const resultCorrectList = res?.correctOption
+                ? res.correctOption.split(',').map(s => s.trim().toUpperCase())
                 : [];
-              const isMultiCorrect = isStaff 
-                ? staffCorrectList.length > 1 
+              const isMultiCorrect = isStaff
+                ? staffCorrectList.length > 1
                 : (res ? resultCorrectList.length > 1 : mcq.correct_option?.includes(','));
 
               return (
-                <div 
+                <div
                   key={mcq.id}
                   style={{
                     background: 'var(--bg-input)',
@@ -298,12 +418,17 @@ export default function CourseMcqsSection({
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-md)', marginBottom: 'var(--space-md)' }}>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'baseline', flexWrap: 'wrap' }}>
                       <span style={{ fontWeight: 'bold', color: 'var(--neon-cyan)', fontSize: 'var(--text-sm)' }}>
-                        Q{index + 1}.
+                        Q{questionNumber}.
                       </span>
                       {mcq.question_text && (
-                        <h4 style={{ margin: 0, fontSize: 'var(--text-md)', fontWeight: 600, lineHeight: 1.4 }}>
+                        <h4 style={{ margin: 0, fontSize: 'var(--text-md)', fontWeight: 600, lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>
                           {mcq.question_text}
                         </h4>
+                      )}
+                      {mcq.category && (
+                        <span style={{ fontSize: '11px', background: 'var(--bg-secondary)', color: 'var(--text-secondary)', padding: '2px 8px', borderRadius: '10px', border: '1px solid var(--border-default)', fontWeight: 600 }}>
+                          {mcq.category}
+                        </span>
                       )}
                       {isMultiCorrect ? (
                         <span style={{ fontSize: '11px', background: 'rgba(57, 255, 20, 0.15)', color: 'var(--neon-lime)', padding: '2px 8px', borderRadius: '10px', border: '1px solid rgba(57, 255, 20, 0.3)', fontWeight: 'bold' }}>
@@ -319,17 +444,17 @@ export default function CourseMcqsSection({
                     {/* TRAINER ACTIONS */}
                     {isStaff && (
                       <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
-                        <button 
+                        <button
                           onClick={() => {
                             setEditingMcq(mcq);
                             setIsModalOpen(true);
                           }}
-                          style={{ background: 'rgba(255,255,255,0.08)', border: 'none', color: 'var(--neon-cyan)', padding: '6px', borderRadius: '4px', cursor: 'pointer' }}
+                          style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-default)', color: 'var(--neon-cyan)', padding: '6px', borderRadius: '4px', cursor: 'pointer' }}
                           title="Edit MCQ"
                         >
                           <Edit size={14} />
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleDeleteMcq(mcq.id)}
                           style={{ background: 'rgba(255, 69, 58, 0.1)', border: 'none', color: '#ff4d4f', padding: '6px', borderRadius: '4px', cursor: 'pointer' }}
                           title="Delete MCQ"
@@ -343,9 +468,9 @@ export default function CourseMcqsSection({
                   {/* QUESTION IMAGE / DIAGRAM */}
                   {mcq.question_image_url && (
                     <div style={{ marginBottom: 'var(--space-md)', textAlign: 'center' }}>
-                      <img 
-                        src={mcq.question_image_url} 
-                        alt={`Question ${index + 1}`}
+                      <img
+                        src={mcq.question_image_url}
+                        alt={`Question ${questionNumber}`}
                         style={{ maxWidth: '100%', maxHeight: '350px', borderRadius: 'var(--radius-sm)', objectFit: 'contain' }}
                       />
                     </div>
@@ -365,7 +490,7 @@ export default function CourseMcqsSection({
                       const isUserIncorrect = res && isSelected && !isResultCorrectOption;
 
                       let borderColor = 'var(--glass-border)';
-                      let bgColor = 'rgba(255,255,255,0.02)';
+                      let bgColor = 'var(--bg-surface)';
                       let textColor = 'inherit';
 
                       if (isSelected) {
@@ -405,7 +530,7 @@ export default function CourseMcqsSection({
                             transition: 'all 0.15s ease'
                           }}
                         >
-                          <div 
+                          <div
                             style={{
                               width: '24px',
                               height: '24px',
@@ -436,12 +561,34 @@ export default function CourseMcqsSection({
                       );
                     })}
                   </div>
+
+                  {/* EXPLANATION CALLOUT (revealed after submission or for staff) */}
+                  {(res?.explanation || (isStaff && mcq.explanation)) && (
+                    <div
+                      style={{
+                        marginTop: 'var(--space-sm)',
+                        padding: '8px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-default)',
+                        borderLeft: '3px solid var(--accent-primary)',
+                        fontSize: 'var(--text-xs)',
+                        color: 'var(--text-secondary)',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '8px'
+                      }}
+                    >
+                      <Lightbulb size={14} style={{ color: 'var(--accent-primary)', flexShrink: 0, marginTop: '2px' }} />
+                      <span><strong>Explanation:</strong> {res?.explanation || mcq.explanation}</span>
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
 
-          {/* SUBMIT / RE-ATTEMPT CONTROLS FOR STUDENTS */}
+          {/* BOTTOM PAGINATION + SUBMIT / RE-ATTEMPT CONTROLS */}
           <div style={{ marginTop: 'var(--space-xl)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
             <div>
               {!submissionResult && (
@@ -451,11 +598,33 @@ export default function CourseMcqsSection({
               )}
             </div>
 
-            <div style={{ display: 'flex', gap: 'var(--space-md)' }}>
+            <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center', flexWrap: 'wrap' }}>
+              {!showAllOnPage && totalPages > 1 && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={safePage <= 1}
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  >
+                    <ChevronLeft size={14} /> Prev Page
+                  </Button>
+                  <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600 }}>Page {safePage} / {totalPages}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={safePage >= totalPages}
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  >
+                    Next Page <ChevronRight size={14} />
+                  </Button>
+                </>
+              )}
+
               {!submissionResult ? (
-                <Button 
-                  variant="primary" 
-                  onClick={handleSubmitQuiz} 
+                <Button
+                  variant="primary"
+                  onClick={handleSubmitQuiz}
                   isLoading={isSubmitting}
                   disabled={isSubmitting || Object.keys(userAnswers).length === 0}
                   style={{ padding: '10px 24px', fontWeight: 'bold' }}
@@ -473,7 +642,7 @@ export default function CourseMcqsSection({
       )}
 
       {/* CREATE / EDIT MCQ MODAL */}
-      <CreateMcqModal 
+      <CreateMcqModal
         courseId={courseId}
         isOpen={isModalOpen}
         onClose={() => {

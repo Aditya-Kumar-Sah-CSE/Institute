@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import LessonView from '@/features/courses/components/LessonView';
+import GuidedCourseWorkspace from '@/features/courses/components/GuidedCourseWorkspace';
 import { awardXP } from '@/features/auth/actions/auth';
 import { revalidatePath } from 'next/cache';
 import type { Submission } from '@/types';
@@ -25,17 +26,40 @@ export default async function LessonPage({ params }: { params: Promise<{ courseI
     .eq('user_id', user.id)
     .single();
 
-  // Allow access to the first lesson, otherwise require an approved enrollment
-  const { data: courseLessons } = await supabase
-    .from('lessons')
-    .select('id')
-    .eq('course_id', courseId)
-    .order('sort_order', { ascending: true })
-    .limit(1);
-    
-  const isFirstLesson = courseLessons && courseLessons[0]?.id === lessonId;
+  const isStaffUser = ['admin', 'super_admin', 'superadmin', 'instructor', 'developer'].includes(
+    (profile?.role || '').toLowerCase()
+  );
 
-  if (!isFirstLesson && (!enrollment || enrollment.status !== 'approved')) {
+  // Fetch course title and ordered course lessons for sidebar, progress bar & Prev/Next navigation
+  const [{ data: courseMeta }, { data: courseLessons }] = await Promise.all([
+    supabase.from('courses').select('title').eq('id', courseId).single(),
+    supabase
+      .from('lessons')
+      .select('id, title, week_number, sort_order, xp_reward, created_at')
+      .eq('course_id', courseId)
+      .order('sort_order', { ascending: true }),
+  ]);
+
+  const lessonIds = (courseLessons || []).map(l => l.id);
+  const { data: completedRows } = lessonIds.length > 0
+    ? await supabase
+        .from('lesson_progress')
+        .select('lesson_id')
+        .eq('user_id', user.id)
+        .eq('completed', true)
+        .in('lesson_id', lessonIds)
+    : { data: [] };
+  const completedLessonIds = (completedRows || []).map((r: any) => r.lesson_id);
+
+  const isFirstLesson = courseLessons && courseLessons[0]?.id === lessonId;
+  const currentLessonIndex = courseLessons ? courseLessons.findIndex(l => l.id === lessonId) : -1;
+  const prevLesson = currentLessonIndex > 0 ? courseLessons![currentLessonIndex - 1] : null;
+  const nextLesson =
+    courseLessons && currentLessonIndex >= 0 && currentLessonIndex < courseLessons.length - 1
+      ? courseLessons[currentLessonIndex + 1]
+      : null;
+
+  if (!isFirstLesson && !isStaffUser && (!enrollment || enrollment.status !== 'approved')) {
     redirect(`/courses/${courseId}`);
   }
 
@@ -242,6 +266,27 @@ export default async function LessonPage({ params }: { params: Promise<{ courseI
   }
 
   const showDoubts = profile?.role === 'admin' || profile?.role === 'instructor' || !!batch;
+  const hasGuidedSteps = Array.isArray((lesson as any)?.interactive_steps) && (lesson as any).interactive_steps.length > 0;
+
+  if (hasGuidedSteps) {
+    return (
+      <GuidedCourseWorkspace
+        courseId={courseId}
+        courseTitle={courseMeta?.title || 'Course'}
+        lesson={lesson}
+        allLessons={courseLessons || []}
+        completedLessonIds={completedLessonIds}
+        isCompleted={isCompleted}
+        onComplete={completeLesson}
+        assignments={assignments || []}
+        submissions={submissions}
+        allSubmissions={allSubmissions}
+        submitAssignment={submitAssignment}
+        doubts={showDoubts ? doubts : []}
+        showDoubts={showDoubts}
+      />
+    );
+  }
 
   return (
     <div className="lesson-page" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2xl)' }}>
@@ -262,6 +307,20 @@ export default async function LessonPage({ params }: { params: Promise<{ courseI
           lessonId={lessonId}
           showDoubts={showDoubts}
         />
+        {(prevLesson || nextLesson) && (isStaffUser || enrollment?.status === 'approved') && (
+          <div className="lesson-notes-nav">
+            {prevLesson ? (
+              <Link href={`/courses/${courseId}/${prevLesson.id}`} className="lesson-nav-btn">
+                ← Prev: {prevLesson.title}
+              </Link>
+            ) : <div />}
+            {nextLesson ? (
+              <Link href={`/courses/${courseId}/${nextLesson.id}`} className="lesson-nav-btn">
+                Next: {nextLesson.title} →
+              </Link>
+            ) : <div />}
+          </div>
+        )}
       </div>
     </div>
   );

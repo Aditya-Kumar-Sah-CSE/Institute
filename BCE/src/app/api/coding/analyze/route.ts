@@ -78,10 +78,86 @@ export async function POST(request: Request) {
       totalTests = 5,
       constraints = '',
       metadata,
+      followUpQuestion,
+      previousAnalysis,
     } = body;
 
     if (!code || typeof code !== 'string') {
       return NextResponse.json({ error: 'Code is required' }, { status: 400 });
+    }
+
+    // Handle concise follow-up cross-question inside the Analysis / Celebration modal
+    if (typeof followUpQuestion === 'string' && followUpQuestion.trim().length > 0) {
+      const q = followUpQuestion.trim();
+      const aiCreds = await getAvailableAiCredentials(user.id);
+      const qSystem = `You are Smart Learn AI, a concise competitive programming mentor.
+Answer the student's follow-up cross-question about their ACCEPTED code in 2-4 crisp bullet points or <= 85 words. Be direct, reference their exact code/complexity, and stay practical.`;
+      const qPrompt = `Problem: ${problemTitle} (${language})
+Stats: ${runtimeMs}ms, ${memoryMb}MB, ${passedTests}/${totalTests} passed
+AI Analysis: TC=${previousAnalysis?.analyzedTime || 'N/A'}, SC=${previousAnalysis?.analyzedSpace || 'N/A'}, Score=${previousAnalysis?.overallRating || 'N/A'}/10
+Tip: ${previousAnalysis?.optimizationTip || ''}
+Student Code:
+\`\`\`${language}
+${code.slice(0, 2500)}
+\`\`\`
+Student Follow-up Question: ${q}`;
+
+      let followUpAnswer = '';
+      if (aiCreds?.provider === 'groq') {
+        for (const m of ['openai/gpt-oss-120b', 'qwen/qwen3.8-27b', 'openai/gpt-oss-20b']) {
+          try {
+            const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${aiCreds.apiKey}`,
+              },
+              body: JSON.stringify({
+                model: m,
+                messages: [
+                  { role: 'system', content: qSystem },
+                  { role: 'user', content: qPrompt },
+                ],
+                temperature: 0.25,
+                max_tokens: 260,
+              }),
+            });
+            const data = await res.json();
+            if (data.choices?.[0]?.message?.content) {
+              followUpAnswer = data.choices[0].message.content.trim();
+              break;
+            }
+          } catch {
+            // Try next model
+          }
+        }
+      } else if (aiCreds?.provider === 'gemini') {
+        const client = new GoogleGenAI({ apiKey: aiCreds.apiKey });
+        for (const m of ['gemini-3.5-flash', 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.5-flash-lite']) {
+          try {
+            const res = await client.models.generateContent({
+              model: m,
+              contents: [{ role: 'user', parts: [{ text: `${qSystem}\n\n${qPrompt}` }] }],
+            });
+            if (res.text) {
+              followUpAnswer = res.text.trim();
+              break;
+            }
+          } catch {
+            // Try next model
+          }
+        }
+      }
+
+      if (!followUpAnswer) {
+        followUpAnswer = `Your ${language} solution runs in ${previousAnalysis?.analyzedTime || 'O(N)'} time and ${previousAnalysis?.analyzedSpace || 'O(1)'} space (${runtimeMs}ms). ${previousAnalysis?.optimizationTip || 'Click "Cross Question with Agent ->" to explore edge cases or alternative patterns in full Smart Agent chat.'}`;
+      }
+
+      return NextResponse.json({
+        success: true,
+        answer: followUpAnswer,
+        source: aiCreds ? 'real_ai' : 'heuristic',
+      });
     }
 
     // Cache key
