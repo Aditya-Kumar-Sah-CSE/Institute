@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Code2,
   Copy,
+  ExternalLink,
   Eye,
   FileText,
   FolderGit2,
@@ -69,6 +70,97 @@ interface GuidedCourseWorkspaceProps {
 
 type RightTab = 'console' | 'preview' | 'terminal' | 'analysis';
 type MobilePane = 'curriculum' | 'lesson' | 'workspace';
+
+function getOfficialJsDoc(lessonTitle: string, stepTitle: string, stepSummary: string): { label: string; url: string } {
+  const combined = `${lessonTitle} ${stepTitle} ${stepSummary}`.toLowerCase();
+
+  // Exact concept/step level official docs first
+  if (/\?\?|nullish/.test(combined)) {
+    return { label: 'MDN: Nullish ?? & ?.', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Nullish_coalescing' };
+  }
+  if (/optional chaining|\?\./.test(combined)) {
+    return { label: 'MDN: Optional ?.', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Optional_chaining' };
+  }
+  if (/== vs ===|coercion|truthy|falsy/.test(combined)) {
+    return { label: 'MDN: Equality & Coercion', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Equality_comparisons_and_sameness' };
+  }
+  if (/closure|once\(|memoize|debounce/.test(combined)) {
+    return { label: 'MDN: Closures', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Closures' };
+  }
+  if (/hoist|tdz/.test(combined)) {
+    return { label: 'MDN: Hoisting & TDZ', url: 'https://developer.mozilla.org/en-US/docs/Glossary/Hoisting' };
+  }
+  if (/regex|regexp/.test(combined)) {
+    return { label: 'MDN: RegExp Guide', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions' };
+  }
+  if (/event delegation|addeventlistener|bubbling|capturing|custom event/.test(combined)) {
+    return { label: 'MDN: Events & Listeners', url: 'https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener' };
+  }
+  if (/queryselector|dom|dark mode|accordion|table rows/.test(combined)) {
+    return { label: 'MDN: DOM API', url: 'https://developer.mozilla.org/en-US/docs/Web/API/Document_Object_Model' };
+  }
+  if (/promise|async\/await|retry|polyfill/.test(combined)) {
+    return { label: 'MDN: Promises & Async', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise' };
+  }
+  if (/fetch|abortcontroller/.test(combined)) {
+    return { label: 'MDN: Fetch API', url: 'https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch' };
+  }
+  if (/event loop|settimeout|microtask/.test(combined)) {
+    return { label: 'MDN: Event Loop', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Execution_model' };
+  }
+  if (/localstorage/.test(combined)) {
+    return { label: 'MDN: localStorage', url: 'https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage' };
+  }
+  if (/structuredclone|deep clone/.test(combined)) {
+    return { label: 'MDN: structuredClone', url: 'https://developer.mozilla.org/en-US/docs/Web/API/Window/structuredClone' };
+  }
+  if (/generator|function\*/.test(combined)) {
+    return { label: 'MDN: Generators', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Iterators_and_generators' };
+  }
+  if (/prototype chain|__proto__/.test(combined)) {
+    return { label: 'MDN: Prototypes', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Inheritance_and_the_prototype_chain' };
+  }
+  if (/express|rest api/.test(combined)) {
+    return { label: 'Express 5 Docs', url: 'https://expressjs.com/en/5x/api.html' };
+  }
+  if (/node\.js|fs\.promises|npm|http server/.test(combined)) {
+    return { label: 'Node.js API Docs', url: 'https://nodejs.org/docs/latest/api/' };
+  }
+  if (/error|try\/catch|validationerror|finally/.test(combined)) {
+    return { label: 'MDN: Error Handling', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/try...catch' };
+  }
+
+  // Topic-number fallback across Workbook Topics 0..16, Projects P1..P12, Interview C1..C3
+  const tM = lessonTitle.match(/^(\d{1,2})\.\s/);
+  const topicId = tM ? Number(tM[1]) : null;
+  const topicDocs: Record<number, { label: string; url: string }> = {
+    0: { label: 'MDN: JS Introduction', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Introduction' },
+    1: { label: 'MDN: Grammar & Variables', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Grammar_and_types' },
+    2: { label: 'MDN: Data Types & Operators', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Data_structures' },
+    3: { label: 'MDN: Control Flow & Loops', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Loops_and_iteration' },
+    4: { label: 'MDN: Functions', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Functions' },
+    5: { label: 'MDN: Scope & Closures', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Closures' },
+    6: { label: 'MDN: Array Reference', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array' },
+    7: { label: 'MDN: String & RegExp', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String' },
+    8: { label: 'MDN: Objects & this', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Working_with_objects' },
+    9: { label: 'MDN: ES Modules & ES6+', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules' },
+    10: { label: 'MDN: Classes & OOP', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes' },
+    11: { label: 'MDN: DOM Manipulation', url: 'https://developer.mozilla.org/en-US/docs/Web/API/Document_Object_Model' },
+    12: { label: 'MDN: DOM Events', url: 'https://developer.mozilla.org/en-US/docs/Web/API/Event' },
+    13: { label: 'MDN: Async JS & Promises', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise' },
+    14: { label: 'MDN: Errors & Debugging', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/try...catch' },
+    15: { label: 'Node.js API Docs', url: 'https://nodejs.org/docs/latest/api/' },
+    16: { label: 'MDN: JS Data Structures', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map' },
+  };
+  if (topicId !== null && topicDocs[topicId]) return topicDocs[topicId];
+
+  if (/array/.test(combined)) return { label: 'MDN: Arrays', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array' };
+  if (/string/.test(combined)) return { label: 'MDN: Strings', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String' };
+  if (/object/.test(combined)) return { label: 'MDN: Objects', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object' };
+  if (/function|this/.test(combined)) return { label: 'MDN: Functions', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Functions' };
+
+  return { label: 'MDN: JS Reference', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference' };
+}
 
 function buildLiveHtmlDocument(rawCode: string): string {
   const bridge = `<script>
@@ -143,6 +235,62 @@ export default function GuidedCourseWorkspace({
   const [mobilePane, setMobilePane] = useState<MobilePane>('lesson');
   const [showDoubtsDrawer, setShowDoubtsDrawer] = useState<boolean>(false);
   const [isDarkTheme, setIsDarkTheme] = useState<boolean>(true);
+
+  // 2 Draggable Resizable Window Sliders (Left Sidebar <-> Center, Center <-> Right IDE)
+  const bodyGridRef = useRef<HTMLDivElement>(null);
+  const [leftSidebarPx, setLeftSidebarPx] = useState<number>(265);
+  const [rightPanePct, setRightPanePct] = useState<number>(46);
+  const [activeResizer, setActiveResizer] = useState<'left' | 'right' | null>(null);
+
+  useEffect(() => {
+    try {
+      const savedLeft = parseFloat(localStorage.getItem('bce:gcw-left-px') || '');
+      if (savedLeft >= 185 && savedLeft <= 440) setLeftSidebarPx(savedLeft);
+      const savedRight = parseFloat(localStorage.getItem('bce:gcw-right-pct') || '');
+      if (savedRight >= 26 && savedRight <= 68) setRightPanePct(savedRight);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (!activeResizer) return;
+    const handleMove = (clientX: number) => {
+      if (!bodyGridRef.current) return;
+      const rect = bodyGridRef.current.getBoundingClientRect();
+      if (rect.width <= 0) return;
+
+      if (activeResizer === 'left') {
+        const nextPx = Math.round(Math.min(440, Math.max(185, clientX - rect.left)));
+        setLeftSidebarPx(nextPx);
+      } else if (activeResizer === 'right') {
+        const fromRight = rect.right - clientX;
+        const pct = Math.min(68, Math.max(26, (fromRight / rect.width) * 100));
+        setRightPanePct(Number(pct.toFixed(2)));
+      }
+    };
+
+    const onMouseMove = (e: MouseEvent) => handleMove(e.clientX);
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches[0]) handleMove(e.touches[0].clientX);
+    };
+    const onEnd = () => {
+      setActiveResizer(null);
+      try {
+        localStorage.setItem('bce:gcw-left-px', String(leftSidebarPx));
+        localStorage.setItem('bce:gcw-right-pct', String(rightPanePct));
+      } catch {}
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onEnd);
+    window.addEventListener('touchmove', onTouchMove);
+    window.addEventListener('touchend', onEnd);
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onEnd);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onEnd);
+    };
+  }, [activeResizer, leftSidebarPx, rightPanePct]);
 
   useEffect(() => {
     const syncTheme = () => {
@@ -501,9 +649,10 @@ export default function GuidedCourseWorkspace({
   }
 
   const currentAnalysis = aiAnalysis[activeStep.id];
+  const officialDoc = getOfficialJsDoc(lesson.title, activeStep.title, activeStep.summary);
 
   return (
-    <div className="gcw-shell" data-mobile-pane={mobilePane}>
+    <div className={`gcw-shell ${activeResizer ? 'is-resizing' : ''}`} data-mobile-pane={mobilePane}>
       {/* ── TOP PROGRESS & STATUS BAR ── */}
       <header className="gcw-topbar">
         <div className="gcw-topbar-left">
@@ -552,8 +701,20 @@ export default function GuidedCourseWorkspace({
           </div>
         </div>
 
-        {/* Status, XP, Doubts, Complete */}
+        {/* Status, Docs, XP, Doubts, Complete */}
         <div className="gcw-topbar-right">
+          <a
+            href={officialDoc.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="gcw-icon-btn"
+            style={{ borderColor: 'var(--accent-primary)', color: 'var(--accent-primary)' }}
+            title={`Official JavaScript Docs for this topic (${officialDoc.url})`}
+          >
+            <BookOpen size={13} />
+            <span>{officialDoc.label}</span>
+            <ExternalLink size={11} />
+          </a>
           <span className="gcw-xp-pill">+{lesson.xp_reward} XP</span>
           {showDoubts && (
             <button
@@ -624,10 +785,11 @@ export default function GuidedCourseWorkspace({
       )}
 
       {/* ── MAIN 3-PANE CODING NINJAS STYLE WORKSPACE ── */}
-      <div className={`gcw-body-grid ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
+      <div ref={bodyGridRef} className={`gcw-body-grid ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
         {/* PANE 1: LEFT SIDEBAR (Week -> Lesson -> Sub-Parts) */}
         {sidebarOpen && (
-          <aside className="gcw-left-sidebar">
+          <>
+            <aside className="gcw-left-sidebar" style={{ width: `${leftSidebarPx}px` }}>
             <div style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)', padding: '2px 4px' }}>
               Course Modules • {courseTitle.slice(0, 26)}
             </div>
@@ -717,6 +879,19 @@ export default function GuidedCourseWorkspace({
               );
             })}
           </aside>
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            title="Drag to resize Syllabus width (double-click to reset)"
+            className={`gcw-resizer ${activeResizer === 'left' ? 'is-active' : ''}`}
+            onMouseDown={(e) => { e.preventDefault(); setActiveResizer('left'); }}
+            onTouchStart={() => setActiveResizer('left')}
+            onDoubleClick={() => {
+              setLeftSidebarPx(265);
+              try { localStorage.setItem('bce:gcw-left-px', '265'); } catch {}
+            }}
+          />
+          </>
         )}
 
         {/* PANE 2: CENTER FOCUSED CONCEPT / ONE-TASK PLAYER */}
@@ -993,8 +1168,22 @@ export default function GuidedCourseWorkspace({
           </div>
         </section>
 
+        {/* SLIDER 2: Drag between Center Lesson Pane & Right IDE/Terminal Pane */}
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          title="Drag to resize Lesson / IDE width (double-click to reset)"
+          className={`gcw-resizer ${activeResizer === 'right' ? 'is-active' : ''}`}
+          onMouseDown={(e) => { e.preventDefault(); setActiveResizer('right'); }}
+          onTouchStart={() => setActiveResizer('right')}
+          onDoubleClick={() => {
+            setRightPanePct(46);
+            try { localStorage.setItem('bce:gcw-right-pct', '46'); } catch {}
+          }}
+        />
+
         {/* PANE 3: RIGHT SMART LEARN IDE + TERMINAL + WEB PREVIEW + AI TOPIC ANALYSIS */}
-        <section className="gcw-right-pane">
+        <section className="gcw-right-pane" style={{ width: `${rightPanePct}%` }}>
           {/* Editor Toolbar */}
           <div className="gcw-editor-toolbar">
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

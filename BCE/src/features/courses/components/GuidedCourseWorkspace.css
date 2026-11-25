@@ -3,17 +3,26 @@
    Supports Light (Day) & Dark Themes via variables.css
    ═══════════════════════════════════════════════════ */
 
+/* Remove top dashboard padding & footer top margin so workspace sits flush */
+.content-wrapper:has(.gcw-shell) .dashboard-content {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.content-wrapper:has(.gcw-shell) .app-global-footer {
+  margin-top: 0 !important;
+}
+
 .gcw-shell {
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: calc(100vh - 108px);
-  min-height: 620px;
+  height: calc(100vh - 64px);
+  min-height: 560px;
   background: var(--bg-primary);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
+  border-bottom: 1px solid var(--border-default);
+  border-radius: 0;
   overflow: hidden;
-  box-shadow: var(--shadow-lg);
 }
 
 /* ── Top Progress & Status Header ── */
@@ -160,17 +169,60 @@
   background: rgba(16, 185, 129, 0.1);
 }
 
-/* ── 3-Pane Studio Grid ── */
+/* ── 3-Pane Studio Flex Container with 2 Draggable Resizers ── */
 .gcw-body-grid {
   flex: 1;
   min-height: 0;
-  display: grid;
-  grid-template-columns: 270px minmax(0, 1fr) minmax(0, 1.05fr);
+  display: flex;
+  flex-direction: row;
+  width: 100%;
   overflow: hidden;
 }
 
-.gcw-body-grid.sidebar-collapsed {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+.gcw-shell.is-resizing {
+  user-select: none;
+  cursor: col-resize;
+}
+
+.gcw-shell.is-resizing .gcw-editor-wrap,
+.gcw-shell.is-resizing .gcw-preview-iframe {
+  pointer-events: none;
+}
+
+.gcw-resizer {
+  width: 7px;
+  flex-shrink: 0;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border-default);
+  border-right: 1px solid var(--border-default);
+  cursor: col-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 5;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.gcw-resizer::after {
+  content: '';
+  width: 3px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--border-strong);
+  transition: background 0.15s ease, height 0.15s ease;
+}
+
+.gcw-resizer:hover,
+.gcw-resizer.is-active {
+  background: var(--interactive-selected);
+  border-color: var(--accent-primary);
+}
+
+.gcw-resizer:hover::after,
+.gcw-resizer.is-active::after {
+  background: var(--accent-primary);
+  height: 52px;
 }
 
 /* ── Left Sidebar (Course Weeks -> Lessons -> Sub-Parts) ── */
@@ -178,8 +230,8 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  flex-shrink: 0;
   background: var(--bg-secondary);
-  border-right: 1px solid var(--border-default);
   overflow-y: auto;
   padding: 10px;
   gap: 6px;
@@ -283,10 +335,10 @@
 .gcw-center-pane {
   display: flex;
   flex-direction: column;
+  flex: 1;
   min-height: 0;
-  min-width: 0;
+  min-width: 240px;
   background: var(--bg-surface);
-  border-right: 1px solid var(--border-default);
 }
 
 .gcw-center-scroll {
@@ -412,8 +464,9 @@
 .gcw-right-pane {
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
   min-height: 0;
-  min-width: 0;
+  min-width: 280px;
   background: var(--bg-primary);
 }
 
@@ -528,9 +581,12 @@
   .gcw-left-sidebar,
   .gcw-center-pane,
   .gcw-right-pane {
-    width: 100%;
+    width: 100% !important;
     border-right: none;
     max-height: none;
+  }
+  .gcw-resizer {
+    display: none !important;
   }
   .gcw-editor-wrap {
     height: 300px;

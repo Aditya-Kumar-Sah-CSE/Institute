@@ -89,14 +89,110 @@ export async function executeCodeResiliently(req: ExecutionRequest): Promise<Exe
   if (langKey === 'javascript' || langKey === 'js' || langKey === 'typescript' || langKey === 'ts') {
     try {
       const logs: string[] = [];
-      const customConsole = {
-        log: (...args: any[]) => logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')),
-        error: (...args: any[]) => logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')),
-        warn: (...args: any[]) => logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')),
+      const timers = new Map<string, number>();
+
+      const safeStringify = (val: any): string => {
+        if (val === undefined) return 'undefined';
+        if (val === null) return 'null';
+        if (typeof val === 'bigint') return `${val.toString()}n`;
+        if (typeof val === 'symbol') return val.toString();
+        if (typeof val === 'function') return `[Function: ${val.name || 'anonymous'}]`;
+        if (typeof val !== 'object') return String(val);
+        try {
+          const seen = new WeakSet();
+          return JSON.stringify(val, (_k, v) => {
+            if (typeof v === 'bigint') return `${v.toString()}n`;
+            if (typeof v === 'symbol') return v.toString();
+            if (typeof v === 'function') return `[Function: ${v.name || 'anonymous'}]`;
+            if (v && typeof v === 'object') {
+              if (seen.has(v)) return '[Circular]';
+              seen.add(v);
+            }
+            return v;
+          });
+        } catch {
+          return String(val);
+        }
       };
 
-      const fn = new Function('console', 'stdin', codeToSend);
-      fn(customConsole, stdinToSend);
+      const pushArgs = (...args: any[]) => logs.push(args.map(safeStringify).join(' '));
+
+      const formatTable = (data: any) => {
+        if (data === null || typeof data !== 'object') {
+          pushArgs(data);
+          return;
+        }
+        const rows: Record<string, string>[] = Array.isArray(data)
+          ? data.map((v, i): Record<string, string> => ({ '(index)': String(i), ...(v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, val]) => [k, safeStringify(val)])) : { Values: safeStringify(v) }) }))
+          : Object.entries(data).map(([k, v]): Record<string, string> =>
+              v && typeof v === 'object' && !Array.isArray(v)
+                ? { '(index)': k, ...Object.fromEntries(Object.entries(v).map(([ck, cv]) => [ck, safeStringify(cv)])) }
+                : { '(index)': k, Values: safeStringify(v) }
+            );
+        if (rows.length === 0) {
+          logs.push('(empty table)');
+          return;
+        }
+        const cols = Array.from(new Set(rows.flatMap(r => Object.keys(r))));
+        const widths = cols.map(c => Math.max(c.length, ...rows.map(r => (r[c] ?? '').length)));
+        const fmtRow = (vals: string[]) => '| ' + vals.map((v, idx) => v.padEnd(widths[idx])).join(' | ') + ' |';
+        const sep = '+-' + widths.map(w => '-'.repeat(w)).join('-+-') + '-+';
+        logs.push(sep, fmtRow(cols), sep, ...rows.map(r => fmtRow(cols.map(c => r[c] ?? ''))), sep);
+      };
+
+      const customConsole = {
+        log: pushArgs,
+        info: pushArgs,
+        debug: pushArgs,
+        warn: (...args: any[]) => logs.push('[warn] ' + args.map(safeStringify).join(' ')),
+        error: (...args: any[]) => logs.push('[error] ' + args.map(safeStringify).join(' ')),
+        dir: (obj: any) => logs.push(safeStringify(obj)),
+        table: formatTable,
+        assert: (cond: any, ...args: any[]) => {
+          if (!cond) logs.push('Assertion failed: ' + (args.length ? args.map(safeStringify).join(' ') : 'false'));
+        },
+        time: (label = 'default') => timers.set(String(label), performance.now()),
+        timeEnd: (label = 'default') => {
+          const key = String(label);
+          const start = timers.get(key);
+          if (start !== undefined) {
+            timers.delete(key);
+            logs.push(`${key}: ${(performance.now() - start).toFixed(2)}ms`);
+          }
+        },
+        clear: () => {
+          logs.length = 0;
+        },
+      };
+
+      // Track queued timers so short setTimeout snippets (e.g. Event Loop / debounce labs) also flush cleanly
+      let pendingTimers = 0;
+      const wrappedSetTimeout = (cb: (...args: any[]) => void, ms = 0, ...args: any[]) => {
+        const clamped = Math.min(Math.max(Number(ms) || 0, 0), 350);
+        pendingTimers++;
+        return setTimeout(() => {
+          try {
+            if (typeof cb === 'function') cb(...args);
+          } catch (timerErr: any) {
+            logs.push('[error] ' + (timerErr?.message || String(timerErr)));
+          } finally {
+            pendingTimers--;
+          }
+        }, clamped);
+      };
+
+      const wrappedFn = new Function('console', 'stdin', 'setTimeout', `return (async () => {\n${codeToSend}\n})();`);
+      const maybePromise = wrappedFn(customConsole, stdinToSend, wrappedSetTimeout);
+      if (maybePromise && typeof maybePromise.then === 'function') {
+        await Promise.race([maybePromise, new Promise(r => setTimeout(r, 600))]);
+      }
+
+      // Briefly wait for short queued timers / microtasks without delaying synchronous code
+      await Promise.resolve();
+      const timerDeadline = Date.now() + 450;
+      while (pendingTimers > 0 && Date.now() < timerDeadline) {
+        await new Promise(r => setTimeout(r, 25));
+      }
 
       const res: ExecutionResult = {
         status: 'SUCCESS',
