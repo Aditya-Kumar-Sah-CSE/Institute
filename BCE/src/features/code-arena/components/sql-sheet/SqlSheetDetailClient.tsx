@@ -36,9 +36,10 @@ import SheetReviewsSection from '../SheetReviewsSection';
 import SqlMcqCard from './SqlMcqCard';
 import SqlQueryWorkspace from './SqlQueryWorkspace';
 import { CheatSheetView, PracticeTablesView, QuizSessionView } from './SqlReferenceViews';
-import type {
-  SqlSheetQuestion,
-  SqlQuestionProgress,
+import {
+  normalizeSqlQuestion,
+  type SqlSheetQuestion,
+  type SqlQuestionProgress,
 } from '@/features/code-arena/data/sqlSheetReference';
 import '@/features/code-arena/components/CodeArena.css';
 import './SqlSheet.css';
@@ -96,7 +97,7 @@ const PAGE_SIZE = 15;
 
 export default function SqlSheetDetailClient({
   sheet,
-  questions,
+  questions: rawQuestions,
   initialProgress,
   totalEnrolledCount = 0,
   enrolledUsersList = [],
@@ -108,6 +109,10 @@ export default function SqlSheetDetailClient({
   isInstructor = false,
   isPublicPreview = false,
 }: SqlSheetDetailClientProps) {
+  const questions = useMemo(
+    () => (rawQuestions || []).map(normalizeSqlQuestion),
+    [rawQuestions]
+  );
   const [activeTab, setActiveTab] = useState<MainTab>('arena');
 
   // Progress state map keyed by question_number

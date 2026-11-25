@@ -33,6 +33,46 @@ export interface SqlQuestionProgress {
   solved_at?: string | null;
 }
 
+function safeJsonParse<T>(val: any, fallback: T): T {
+  if (val === null || val === undefined) return fallback;
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (!trimmed) return fallback;
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (typeof parsed === 'string') {
+        return JSON.parse(parsed) as T;
+      }
+      return parsed as T;
+    } catch {
+      return fallback;
+    }
+  }
+  return val as T;
+}
+
+export function normalizeSqlQuestion(raw: any): SqlSheetQuestion {
+  const options = safeJsonParse<Record<string, string> | null>(raw?.options, null);
+  const basicConcepts = safeJsonParse<string[]>(raw?.basic_concepts, []);
+  const explanationPoints = safeJsonParse<string[]>(raw?.explanation_points, []);
+  const incorrectOptions = safeJsonParse<Record<string, string>>(raw?.incorrect_options, {});
+  const stepByStep = safeJsonParse<string[]>(raw?.step_by_step, []);
+  const clauseBreakdown = safeJsonParse<SqlQuestionClause[]>(raw?.clause_breakdown, []);
+
+  return {
+    ...raw,
+    options: options && typeof options === 'object' && !Array.isArray(options) ? options : null,
+    basic_concepts: Array.isArray(basicConcepts) ? basicConcepts : [],
+    explanation_points: Array.isArray(explanationPoints) ? explanationPoints : [],
+    incorrect_options:
+      incorrectOptions && typeof incorrectOptions === 'object' && !Array.isArray(incorrectOptions)
+        ? incorrectOptions
+        : {},
+    step_by_step: Array.isArray(stepByStep) ? stepByStep : [],
+    clause_breakdown: Array.isArray(clauseBreakdown) ? clauseBreakdown : [],
+  };
+}
+
 export interface PracticeTableSchema {
   name: string;
   description: string;

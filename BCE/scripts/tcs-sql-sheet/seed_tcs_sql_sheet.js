@@ -134,7 +134,7 @@ async function run() {
       console.log(`Created new SQL sheet: ${sheetId}`);
     }
 
-    // Step 4: Batch upsert all 530 questions cleanly via Postgres
+    // Step 4: Batch upsert all 530 questions using native JS objects/arrays (no double JSON.stringify!)
     const rows = questions.map((q) => ({
       sheet_id: sheetId,
       question_number: q.id,
@@ -142,49 +142,41 @@ async function run() {
       section: q.section,
       difficulty: deriveDifficulty(q),
       question: q.question,
-      options: q.options ? JSON.stringify(q.options) : null,
+      options: q.options || null,
       correct_option: q.correct_option || null,
       correct_answer: q.correct_answer || null,
       solution_sql: q.solution_sql || null,
-      basic_concepts: JSON.stringify(Array.isArray(q.basic_concepts) ? q.basic_concepts : []),
-      explanation_points: JSON.stringify(Array.isArray(q.explanation_points) ? q.explanation_points : []),
-      incorrect_options: JSON.stringify(q.incorrect_options || {}),
-      step_by_step: JSON.stringify(Array.isArray(q.step_by_step) ? q.step_by_step : []),
-      clause_breakdown: JSON.stringify(Array.isArray(q.clause_breakdown) ? q.clause_breakdown : []),
+      basic_concepts: Array.isArray(q.basic_concepts) ? q.basic_concepts : [],
+      explanation_points: Array.isArray(q.explanation_points) ? q.explanation_points : [],
+      incorrect_options: q.incorrect_options || {},
+      step_by_step: Array.isArray(q.step_by_step) ? q.step_by_step : [],
+      clause_breakdown: Array.isArray(q.clause_breakdown) ? q.clause_breakdown : [],
     }));
 
     const BATCH_SIZE = 100;
+    const supabaseUpsert = createClient(SUPABASE_URL, SERVICE_KEY);
     for (let i = 0; i < rows.length; i += BATCH_SIZE) {
       const batch = rows.slice(i, i + BATCH_SIZE);
-      for (const r of batch) {
-        await pgUpsert`
-          INSERT INTO public.coding_sheet_sql_questions (
-            sheet_id, question_number, type, section, difficulty, question,
-            options, correct_option, correct_answer, solution_sql,
-            basic_concepts, explanation_points, incorrect_options, step_by_step, clause_breakdown
-          ) VALUES (
-            ${r.sheet_id}, ${r.question_number}, ${r.type}, ${r.section}, ${r.difficulty}, ${r.question},
-            ${r.options}::jsonb, ${r.correct_option}, ${r.correct_answer}, ${r.solution_sql},
-            ${r.basic_concepts}::jsonb, ${r.explanation_points}::jsonb, ${r.incorrect_options}::jsonb, ${r.step_by_step}::jsonb, ${r.clause_breakdown}::jsonb
-          )
-          ON CONFLICT (sheet_id, question_number) DO UPDATE SET
-            type = EXCLUDED.type,
-            section = EXCLUDED.section,
-            difficulty = EXCLUDED.difficulty,
-            question = EXCLUDED.question,
-            options = EXCLUDED.options,
-            correct_option = EXCLUDED.correct_option,
-            correct_answer = EXCLUDED.correct_answer,
-            solution_sql = EXCLUDED.solution_sql,
-            basic_concepts = EXCLUDED.basic_concepts,
-            explanation_points = EXCLUDED.explanation_points,
-            incorrect_options = EXCLUDED.incorrect_options,
-            step_by_step = EXCLUDED.step_by_step,
-            clause_breakdown = EXCLUDED.clause_breakdown
-        `;
-      }
+      const { error: upsertErr } = await supabaseUpsert
+        .from('coding_sheet_sql_questions')
+        .upsert(batch, { onConflict: 'sheet_id,question_number' });
+      if (upsertErr) throw upsertErr;
       console.log(`Upserted batch ${i + 1}..${Math.min(i + BATCH_SIZE, rows.length)}`);
     }
+
+    // Double check JSONB types directly in Postgres (never 'string')
+    const typeCheck = await pgUpsert`
+      SELECT
+        COUNT(*) FILTER (WHERE jsonb_typeof(options) = 'string') AS bad_opts,
+        COUNT(*) FILTER (WHERE jsonb_typeof(basic_concepts) = 'string') AS bad_bc,
+        COUNT(*) FILTER (WHERE jsonb_typeof(explanation_points) = 'string') AS bad_ep,
+        COUNT(*) FILTER (WHERE jsonb_typeof(incorrect_options) = 'string') AS bad_io,
+        COUNT(*) FILTER (WHERE jsonb_typeof(step_by_step) = 'string') AS bad_sbs,
+        COUNT(*) FILTER (WHERE jsonb_typeof(clause_breakdown) = 'string') AS bad_cb
+      FROM public.coding_sheet_sql_questions
+      WHERE sheet_id = ${sheetId}
+    `;
+    console.log('JSONB type check (all should be 0):', typeCheck[0]);
 
     await pgUpsert`NOTIFY pgrst, 'reload schema'`;
   } finally {
