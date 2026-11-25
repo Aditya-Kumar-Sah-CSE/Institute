@@ -296,6 +296,7 @@ export default async function LessonPage({ params }: { params: Promise<{ courseI
         </Link>
         <LessonView 
           lesson={lesson} 
+          courseTitle={courseMeta?.title || 'Course'}
           isCompleted={isCompleted}
           onComplete={completeLesson}
           assignments={assignments || []}

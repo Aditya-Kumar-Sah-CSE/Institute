@@ -39,6 +39,7 @@ import AssignmentCard from '@/features/courses/components/AssignmentCard';
 import LessonDoubts from '@/app/(dashboard)/courses/[courseId]/[lessonId]/components/LessonDoubts';
 import { registerMonacoIntelliSense, intelliSenseEditorOptions } from '@/features/code-arena/lib/monacoIntelliSense';
 import { useSmartAgentSession } from '@/features/analytics/context/SmartAgentSessionContext';
+import { recordLastCourseActivity } from '@/features/courses/lib/courseProgressTracker';
 import type { Assignment, Lesson, Submission } from '@/types';
 import type { GuidedLessonStep, SidebarLessonSummary } from '../types/guided';
 import './GuidedCourseWorkspace.css';
@@ -527,6 +528,18 @@ export default function GuidedCourseWorkspace({
   const [mobilePane, setMobilePane] = useState<MobilePane>('lesson');
   const [showDoubtsDrawer, setShowDoubtsDrawer] = useState<boolean>(false);
   const [isDarkTheme, setIsDarkTheme] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (courseId && lesson.id) {
+      recordLastCourseActivity({
+        courseId,
+        courseTitle,
+        lessonId: lesson.id,
+        lessonTitle: lesson.title,
+        weekNumber: lesson.week_number ?? null,
+      });
+    }
+  }, [courseId, courseTitle, lesson.id, lesson.title, lesson.week_number]);
 
   // 2 Vertical Resizers (Left Sidebar <-> Center, Center <-> Right) + 1 Horizontal Resizer (Editor <-> Output/Terminal/AI/Preview)
   const bodyGridRef = useRef<HTMLDivElement>(null);

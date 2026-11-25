@@ -12,10 +12,12 @@ import { parseAttachmentUrls } from '@/lib/attachments';
 import { Play, FileText, Paperclip, CheckCircle, ExternalLink, ClipboardList, MessageCircle } from 'lucide-react';
 import AssignmentCard from '@/features/courses/components/AssignmentCard';
 import LessonDoubts from '@/app/(dashboard)/courses/[courseId]/[lessonId]/components/LessonDoubts';
+import { recordLastCourseActivity } from '@/features/courses/lib/courseProgressTracker';
 import './LessonView.css';
 
 interface LessonViewProps {
   lesson: Lesson;
+  courseTitle?: string;
   isCompleted?: boolean;
   onComplete?: () => void;
 
@@ -34,6 +36,7 @@ type TabId = 'video' | 'notes' | 'materials' | 'assignments' | 'doubts';
 
 export default function LessonView({
   lesson,
+  courseTitle = 'Course',
   isCompleted,
   onComplete,
   assignments = [],
@@ -45,6 +48,17 @@ export default function LessonView({
   lessonId,
   showDoubts = false,
 }: LessonViewProps) {
+  useEffect(() => {
+    if (courseId && (lessonId || lesson.id)) {
+      recordLastCourseActivity({
+        courseId,
+        courseTitle,
+        lessonId: lessonId || lesson.id,
+        lessonTitle: lesson.title,
+        weekNumber: (lesson as any).week_number ?? null,
+      });
+    }
+  }, [courseId, courseTitle, lessonId, lesson.id, lesson.title, lesson]);
   const embedUrl = getYouTubeEmbedUrl(lesson.youtube_url || '');
   const hasVideo = !!embedUrl;
   const hasExternalLink = !embedUrl && !!lesson.youtube_url;

@@ -1,11 +1,13 @@
 .course-section-tabs {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
   width: 100%;
   min-width: 0;
-  padding: 4px 0 12px;
-  border-bottom: 1px solid var(--border-divider);
+  padding: 4px;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-divider);
 }
 
 .course-section-tabs__button {
@@ -15,19 +17,25 @@
   gap: 8px;
   width: 100%;
   min-width: 0;
-  min-height: 42px;
-  padding: 9px 10px;
+  min-height: 44px;
+  padding: 9px 12px;
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-divider);
-  background: var(--bg-secondary);
+  border: 1px solid transparent;
+  background: transparent;
   color: var(--text-secondary);
   font-size: var(--text-sm);
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1.25;
   text-align: center;
   white-space: normal;
   overflow-wrap: anywhere;
+  transition: all 0.2s ease;
   cursor: pointer;
+}
+
+.course-section-tabs__button:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
 }
 
 .course-section-tabs__button svg {
@@ -35,10 +43,25 @@
 }
 
 .course-section-tabs__button.is-active {
-  border-color: var(--neon-cyan);
-  background: rgba(0, 240, 255, 0.1);
+  border-color: rgba(0, 240, 255, 0.45);
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.14), rgba(59, 130, 246, 0.1));
   color: var(--neon-cyan);
   font-weight: 700;
+  box-shadow: 0 4px 14px rgba(0, 240, 255, 0.1);
+}
+
+.course-section-tabs__count {
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+}
+
+.course-section-tabs__count.is-active {
+  background: rgba(0, 240, 255, 0.16);
+  color: var(--neon-cyan);
 }
 
 .course-section-tab-panel {
@@ -47,7 +70,7 @@
 }
 
 .course-content-tabs {
-  margin-top: var(--space-xl);
+  margin-top: 0;
 }
 
 @media (max-width: 520px) {

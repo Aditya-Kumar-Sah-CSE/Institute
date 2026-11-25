@@ -19,6 +19,7 @@ import JoinedStudentsList from '@/features/admin/components/JoinedStudentsList';
 import CourseReviewsSection from '@/features/courses/components/CourseReviewsSection';
 import EndOfCourseReviewCard from '@/features/courses/components/EndOfCourseReviewCard';
 import CourseHeroCard from '@/features/courses/components/CourseHeroCard';
+import { BookOpen, Play, ArrowLeft, Sparkles } from 'lucide-react';
 import { getCourseReviewsData } from '@/features/courses/actions/reviews';
 import './CourseDetail.css';
 
@@ -121,54 +122,117 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
   const adminClient = await createAdminClient();
   const [
     { data: enrolledStudents },
-    reviewsData
+    reviewsData,
+    { count: doubtsCount },
+    { count: mcqsCount }
   ] = await Promise.all([
     adminClient
       .from('enrollments')
       .select('id, user_id, status, profiles(id, name, email, avatar_url, institute_id)')
       .eq('course_id', courseId)
       .eq('status', 'approved'),
-    getCourseReviewsData(courseId, user.id)
+    getCourseReviewsData(courseId, user.id),
+    supabase.from('doubts').select('id', { count: 'exact', head: true }).eq('course_id', courseId),
+    supabase.from('course_mcqs').select('id', { count: 'exact', head: true }).eq('course_id', courseId),
   ]);
 
   const isEnrolled = !!(enrollment && enrollment.status === 'approved');
   const isCourseCompleted = !!userCertificate || (enrollment && (enrollment.progress || 0) >= 1.0);
+  const canAccessLessons = Boolean(isEnrolled || isStaffUser || course.created_by === user.id);
 
+  // Group curriculum cleanly by explicit week_number (or created_at date for legacy courses)
+  const lessonsList = lessons || [];
+  const hasExplicitWeeks = lessonsList.some((l: any) => typeof l.week_number === 'number' && l.week_number > 0);
+  const groupedLessons = lessonsList.reduce((acc: Record<string, typeof lessonsList>, lesson: any) => {
+    const key = hasExplicitWeeks
+      ? `Week ${lesson.week_number || 1}`
+      : new Date(lesson.created_at || Date.now()).toLocaleDateString(undefined, {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        });
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(lesson);
+    return acc;
+  }, {} as Record<string, typeof lessonsList>);
+
+  const sortedWeekKeys = Object.keys(groupedLessons).sort((a, b) => {
+    if (hasExplicitWeeks) {
+      return Number(a.replace(/\D+/g, '')) - Number(b.replace(/\D+/g, ''));
+    }
+    return new Date(a).getTime() - new Date(b).getTime();
+  });
+
+  const completedInCourse = lessonsList.filter((l: any) => completedLessonIds.has(l.id)).length;
+  const totalLessonsCount = lessonsList.length;
+  const courseProgressPct = totalLessonsCount > 0 ? Math.round((completedInCourse / totalLessonsCount) * 100) : 0;
+  const nextResumeLesson = lessonsList.find((l: any) => !completedLessonIds.has(l.id)) || lessonsList[0] || null;
 
   return (
     <div className="course-detail-page">
-      <div>
-        <Link href="/courses" style={{ color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '6px', marginBottom: 'var(--space-md)', fontSize: 'var(--text-sm)', textDecoration: 'none', transition: 'color 0.2s' }}>
-          ← Back to Courses
-        </Link>
+      {/* Compact Top Course Command Header (replaces tall whitespace) */}
+      <div className="course-top-bar">
+        <div className="course-top-bar__left">
+          <div className="course-top-bar__meta">
+            <Link href="/courses" className="course-top-back-link">
+              <ArrowLeft size={14} /> Back to Courses
+            </Link>
+            <span
+              className="course-difficulty-badge"
+              style={{ backgroundColor: getDifficultyColor(course.difficulty), fontSize: '0.68rem', padding: '2px 7px' }}
+            >
+              {course.difficulty.charAt(0).toUpperCase() + course.difficulty.slice(1)}
+            </span>
+            {course.profiles?.name && (
+              <span style={{ fontSize: '0.78rem', color: 'var(--neon-cyan)', fontWeight: 600 }}>
+                Instructor: {course.profiles.name}
+              </span>
+            )}
+          </div>
+          <h1 className="course-top-title">{course.title}</h1>
+        </div>
+
+        <div className="course-top-bar__right">
+          {totalLessonsCount > 0 && (
+            <span className="course-top-progress-pill">
+              <BookOpen size={13} /> {completedInCourse}/{totalLessonsCount} Lessons ({courseProgressPct}%)
+            </span>
+          )}
+          {course.total_xp > 0 && (
+            <span className="course-top-progress-pill" style={{ color: '#fbbf24', borderColor: 'rgba(251,191,36,0.3)', background: 'rgba(251,191,36,0.1)' }}>
+              <Sparkles size={13} /> {course.total_xp} XP
+            </span>
+          )}
+          {canAccessLessons && nextResumeLesson && (
+            <Link href={`/courses/${courseId}/${nextResumeLesson.id}`} className="course-top-resume-btn">
+              <Play size={13} fill="currentColor" />
+              {completedInCourse > 0 && completedInCourse < totalLessonsCount
+                ? 'Continue Course'
+                : completedInCourse >= totalLessonsCount
+                  ? 'Review Course'
+                  : 'Start Course'}
+            </Link>
+          )}
+        </div>
       </div>
+
       <CourseContentTabs
+        weeksCount={sortedWeekKeys.length}
+        lessonsCount={totalLessonsCount}
+        doubtsCount={doubtsCount || 0}
+        mcqsCount={mcqsCount || 0}
         curriculum={(
-          <div className="lessons-section">
-            <h2 className="section-title">Course Curriculum</h2>
-            {(() => {
-              if (!lessons || lessons.length === 0) return null;
-              const groupedLessons = lessons.reduce((acc, lesson) => {
-                const dateStr = new Date(lesson.created_at || Date.now()).toLocaleDateString(undefined, {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                });
-                if (!acc[dateStr]) acc[dateStr] = [];
-                acc[dateStr].push(lesson);
-                return acc;
-              }, {} as Record<string, typeof lessons>);
-              const sortedDates = Object.keys(groupedLessons).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-              return (
-                <CurriculumListClient
-                  courseId={courseId}
-                  groupedLessons={groupedLessons}
-                  sortedDates={sortedDates}
-                  completedLessonIds={Array.from(completedLessonIds)}
-                  isApproved={!!(enrollment && enrollment.status === 'approved')}
-                />
-              );
-            })()}
+          <div className="lessons-section" style={{ gap: 'var(--space-sm)' }}>
+            {lessonsList.length > 0 && (
+              <CurriculumListClient
+                courseId={courseId}
+                courseTitle={course.title}
+                groupedLessons={groupedLessons}
+                sortedDates={sortedWeekKeys}
+                completedLessonIds={Array.from(completedLessonIds)}
+                isApproved={canAccessLessons}
+              />
+            )}
           </div>
         )}
         doubts={(

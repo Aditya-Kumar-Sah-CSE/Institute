@@ -6,28 +6,41 @@ import './CourseSectionTabs.css';
 
 type CourseTab = 'curriculum' | 'doubts' | 'mcqs';
 
-const tabs: { id: CourseTab; label: string; icon: typeof BookOpen }[] = [
-  { id: 'curriculum', label: 'Course Curriculum', icon: BookOpen },
-  { id: 'doubts', label: 'Course Doubts', icon: MessageCircleQuestion },
-  { id: 'mcqs', label: 'Course MCQs', icon: ClipboardList },
-];
-
 export default function CourseContentTabs({
   curriculum,
   doubts,
   mcqs,
+  weeksCount = 0,
+  lessonsCount = 0,
+  doubtsCount = 0,
+  mcqsCount = 0,
 }: {
   curriculum: ReactNode;
   doubts: ReactNode;
   mcqs: ReactNode;
+  weeksCount?: number;
+  lessonsCount?: number;
+  doubtsCount?: number;
+  mcqsCount?: number;
 }) {
   const [activeTab, setActiveTab] = useState<CourseTab>('curriculum');
   const content = { curriculum, doubts, mcqs }[activeTab];
 
+  const curriculumMeta =
+    weeksCount > 0
+      ? `${weeksCount} ${weeksCount === 1 ? 'Week' : 'Weeks'}`
+      : `${lessonsCount} ${lessonsCount === 1 ? 'Lesson' : 'Lessons'}`;
+
+  const tabs: { id: CourseTab; label: string; countLabel: string; icon: typeof BookOpen }[] = [
+    { id: 'curriculum', label: 'Course Curriculum', countLabel: curriculumMeta, icon: BookOpen },
+    { id: 'doubts', label: 'Course Doubts', countLabel: String(doubtsCount), icon: MessageCircleQuestion },
+    { id: 'mcqs', label: 'Course MCQs', countLabel: String(mcqsCount), icon: ClipboardList },
+  ];
+
   return (
     <section className="course-content-tabs">
       <div className="course-section-tabs" role="tablist" aria-label="Course learning sections">
-        {tabs.map(({ id, label, icon: Icon }) => {
+        {tabs.map(({ id, label, countLabel, icon: Icon }) => {
           const selected = activeTab === id;
           return (
             <button
@@ -41,7 +54,10 @@ export default function CourseContentTabs({
               className={`course-section-tabs__button${selected ? ' is-active' : ''}`}
             >
               <Icon size={17} />
-              {label}
+              <span>{label}</span>
+              <span className={`course-section-tabs__count${selected ? ' is-active' : ''}`}>
+                ({countLabel})
+              </span>
             </button>
           );
         })}
