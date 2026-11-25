@@ -1,0 +1,1535 @@
+{
+  "meta": {
+    "series": "DSA for Freshers: Mid-level Company Roadmap",
+    "level": 2,
+    "level_title": "Core Patterns",
+    "batch": "Part 3: Binary Search (boundary, rotated, matrix, on answer, on value range)",
+    "id_range": "L2-051 to L2-075",
+    "language_for_code": "C++17",
+    "language_for_explanations": "Hinglish",
+    "total_problems_in_batch": 25,
+    "includes_headers_hint": "#include <bits/stdc++.h> and using namespace std;",
+    "note": "company_tags indicative hain (frequently asked trends), official guarantee nahi."
+  },
+  "theory": [
+    {
+      "topic": "Binary Search Fundamentals & Boundary Templates",
+      "concept": "Binary search me search space har step par aadha hota hai, isliye O(log n). Do cheezein hamesha clear rakho: search space ka range ([lo, hi] ya [lo, hi)) aur loop invariant (answer hamesha is range ke andar hai). Zyadatar bugs off-by-one aur infinite loop se aate hain.",
+      "key_points": [
+        "mid = lo + (hi - lo) / 2 (lo + hi overflow kar sakta hai)",
+        "Exact search: while(lo <= hi), lo = mid + 1 / hi = mid - 1",
+        "Boundary search (lower_bound): while(lo < hi) with hi = n, 'a[mid] < x' par lo = mid + 1, warna hi = mid. Result = pehla index jahan a[idx] >= x",
+        "upper_bound = pehla index jahan a[idx] > x; first/last occurrence = lower_bound(x) aur upper_bound(x) - 1",
+        "Insert position = lower_bound ka result (n tak ja sakta hai)",
+        "STL: lower_bound, upper_bound, binary_search (sorted range par)"
+      ],
+      "template_cpp": "// first index with a[idx] >= x  (search space [lo, hi))\nint lo = 0, hi = n;\nwhile(lo < hi){\n  int mid = lo + (hi - lo) / 2;\n  if(a[mid] < x) lo = mid + 1; else hi = mid;\n}\n// lo is the answer (n if all elements < x)",
+      "pitfalls": [
+        "Infinite loop jab lo = mid aur mid lo ke barabar ho (upper mid use karo)",
+        "hi = n - 1 aur hi = n ka confusion",
+        "Unsorted data par binary search"
+      ]
+    },
+    {
+      "topic": "Rotated Sorted Array",
+      "concept": "Rotated sorted array me har mid par do halves me se kam se kam ek half sorted hota hai. Wo half pehchano, check karo ki target us sorted range me hai ya nahi, phir sahi half chuno. Minimum dhundne ke liye a[mid] ko a[hi] se compare karo.",
+      "key_points": [
+        "a[lo] <= a[mid] => left half sorted; warna right half sorted",
+        "Target sorted half ki range [a[lo], a[mid]) ya (a[mid], a[hi]] me ho to wahi half rakho",
+        "Minimum: a[mid] > a[hi] => minimum right me (lo = mid + 1), warna hi = mid",
+        "Duplicates hone par worst case O(n) ho jata hai (a[lo] == a[mid] == a[hi] par shrink ek-ek karke)"
+      ],
+      "template_cpp": "int lo = 0, hi = n - 1;\nwhile(lo <= hi){\n  int mid = lo + (hi - lo) / 2;\n  if(a[mid] == t) return mid;\n  if(a[lo] <= a[mid]){ // left sorted\n    if(a[lo] <= t && t < a[mid]) hi = mid - 1; else lo = mid + 1;\n  } else {             // right sorted\n    if(a[mid] < t && t <= a[hi]) lo = mid + 1; else hi = mid - 1;\n  }\n}",
+      "pitfalls": [
+        "Sorted half pehchanne me < aur <= ka galat use",
+        "Target range check me boundary equality",
+        "Distinct vs duplicates ka difference"
+      ]
+    },
+    {
+      "topic": "Binary Search on Answer (Monotonic Predicate)",
+      "concept": "Jab sawaal 'minimum possible maximum' ya 'maximum possible minimum' type ka ho aur kisi value X ke liye feasible(X) check O(n) me ho sake aur wo check monotonic ho (feasible ho to bade/chhote X bhi feasible), to answer ko binary search karo. Array nahi, answer ki range par search chalta hai.",
+      "key_points": [
+        "Step 1: answer ki range (lo, hi) tay karo (e.g., lo = max(a), hi = sum(a))",
+        "Step 2: feasible(mid) function likho (aksar greedy simulation)",
+        "Minimum feasible X: feasible(mid) true => hi = mid, warna lo = mid + 1",
+        "Maximum feasible X: feasible(mid) true => lo = mid, warna hi = mid - 1 (mid = lo + (hi - lo + 1) / 2 upper mid)",
+        "Pehchan: 'minimize the maximum', 'maximize the minimum', 'least capacity/speed/days'",
+        "Complexity: O(n * log(range))"
+      ],
+      "template_cpp": "// minimum X such that ok(X) is true\nint lo = LOW, hi = HIGH;\nwhile(lo < hi){\n  int mid = lo + (hi - lo) / 2;\n  if(ok(mid)) hi = mid; else lo = mid + 1;\n}\nreturn lo;\n\n// maximum X such that ok(X) is true\nwhile(lo < hi){\n  int mid = lo + (hi - lo + 1) / 2;\n  if(ok(mid)) lo = mid; else hi = mid - 1;\n}",
+      "pitfalls": [
+        "Range galat (lo ko max element se kam rakhna)",
+        "feasible function monotonic na hona",
+        "Upper mid na use karna (infinite loop in max search)",
+        "ceil division: (x + k - 1) / k, long long ke saath"
+      ]
+    },
+    {
+      "topic": "Matrix & Peak Searches",
+      "concept": "Fully sorted matrix (row ki shuruaat pichhli row ke last se bada) ko flatten karke 1D binary search kar sakte hain: index i -> m[i / C][i % C]. Peak element me slope dekhte hain: a[mid] < a[mid+1] ho to peak right me hai.",
+      "key_points": [
+        "Flatten index: row = idx / C, col = idx % C",
+        "Row-wise aur column-wise sorted matrix (Search 2D Matrix II) ke liye staircase walk O(R + C)",
+        "Peak: a[mid] < a[mid + 1] => lo = mid + 1, warna hi = mid (ek peak guaranteed)",
+        "Mountain/Peak jaise problems me 'direction' decide karta hai ki kaun si half rakhni hai"
+      ],
+      "template_cpp": "int lo = 0, hi = R * C - 1;\nwhile(lo <= hi){\n  int mid = lo + (hi - lo) / 2;\n  int v = m[mid / C][mid % C];\n  if(v == t) return true;\n  if(v < t) lo = mid + 1; else hi = mid - 1;\n}",
+      "pitfalls": [
+        "Row aur column ko ulta use karna (mid / C vs mid % C)",
+        "Staircase me sorted-both-directions assumption",
+        "Peak me mid + 1 out of range (loop lo < hi se bachata hai)"
+      ]
+    },
+    {
+      "topic": "Binary Search on Value Range with Counting",
+      "concept": "Kabhi array sorted nahi hota par answer ki value range known hoti hai (1..n, matrix min..max). Value mid ke liye 'kitne elements <= mid' count karo aur us count se decide karo ki answer left ya right range me hai. Kth smallest, find duplicate, median me ye idea aata hai.",
+      "key_points": [
+        "Kth smallest in sorted matrix: count(<= mid) >= k => hi = mid, warna lo = mid + 1",
+        "Find the duplicate: count(<= mid) > mid => duplicate [1, mid] me hai",
+        "Median of two sorted arrays: chhote array par partition index binary search karo (left halves ka max <= right halves ka min)",
+        "Counting O(n) ya O(R + C) me hoti hai, total O(n log(range))"
+      ],
+      "template_cpp": "int lo = 1, hi = n - 1;      // value range\nwhile(lo < hi){\n  int mid = lo + (hi - lo) / 2;\n  int cnt = 0;\n  for(int x : a) if(x <= mid) cnt++;\n  if(cnt > mid) hi = mid; else lo = mid + 1;\n}",
+      "pitfalls": [
+        "Index par nahi value par search ho raha hai (range alag hoti hai)",
+        "Median me edge partitions (INT_MIN / INT_MAX sentinels)",
+        "Odd/even total length ka alag handling"
+      ]
+    }
+  ],
+  "problems": [
+    {
+      "id": "L2-051",
+      "level": 2,
+      "topic": "Binary Search (Boundary)",
+      "title": "Search Insert Position",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Adobe",
+        "TCS",
+        "Infosys",
+        "Wipro"
+      ],
+      "problem_statement": "Given a sorted array of distinct integers and a target, return the index if the target is found; otherwise return the index where it would be inserted to keep the array sorted.",
+      "description": "O(log n) time me solve karna hai.",
+      "constraints": [
+        "1 <= n <= 1e4",
+        "-1e4 <= a[i], target <= 1e4",
+        "Sorted ascending, distinct"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,3,5,6], t=5",
+          "output": "2",
+          "explanation": "Mil gaya"
+        },
+        {
+          "input": "[1,3,5,6], t=2",
+          "output": "1",
+          "explanation": "1 aur 3 ke beech"
+        },
+        {
+          "input": "[1,3,5,6], t=7",
+          "output": "4",
+          "explanation": "Sabse bada, end me"
+        }
+      ],
+      "theory": "Ye lower_bound hai: pehla index jahan a[idx] >= target. Agar sab chhote hain to n.",
+      "brute_force": {
+        "approach": "Linear scan: pehla element jo >= target ho.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int searchInsert(const vector<int>& a, int t){ for(int i = 0; i < (int)a.size(); i++) if(a[i] >= t) return i; return a.size(); }"
+      },
+      "optimized": {
+        "approach": "Binary search on [0, n) (lower_bound).",
+        "time": "O(log n)",
+        "space": "O(1)",
+        "code_cpp": "int searchInsert(const vector<int>& a, int t){ int lo = 0, hi = a.size(); while(lo < hi){ int mid = lo + (hi - lo) / 2; if(a[mid] < t) lo = mid + 1; else hi = mid; } return lo; }"
+      },
+      "explanation": "hi = n se start karte hain taaki 'end me insert' ka answer bhi represent ho sake. Ye template baaki saari boundary problems ka base hai.",
+      "edge_cases": [
+        "Target smaller than all",
+        "Target larger than all",
+        "Single element"
+      ]
+    },
+    {
+      "id": "L2-052",
+      "level": 2,
+      "topic": "Binary Search (Boundary)",
+      "title": "Find First and Last Position of Element in Sorted Array",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Facebook",
+        "Microsoft",
+        "Google",
+        "Infosys",
+        "Flipkart"
+      ],
+      "problem_statement": "Given a sorted array (may contain duplicates) and a target, return [first, last] index of the target, or [-1, -1] if it is absent.",
+      "description": "O(log n) runtime chahiye.",
+      "constraints": [
+        "0 <= n <= 1e5",
+        "-1e9 <= a[i], target <= 1e9",
+        "Sorted non-decreasing"
+      ],
+      "test_cases": [
+        {
+          "input": "[5,7,7,8,8,10], t=8",
+          "output": "[3,4]",
+          "explanation": "8 index 3 se 4"
+        },
+        {
+          "input": "[5,7,7,8,8,10], t=6",
+          "output": "[-1,-1]",
+          "explanation": "Nahi hai"
+        },
+        {
+          "input": "[], t=0",
+          "output": "[-1,-1]",
+          "explanation": "Empty"
+        }
+      ],
+      "theory": "first = lower_bound(t), last = lower_bound(t + 1) - 1 (ya upper_bound(t) - 1). first par a[first] == t check zaroori.",
+      "brute_force": {
+        "approach": "Linear scan se pehli aur aakhri occurrence.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "vector<int> searchRange(const vector<int>& a, int t){ int f = -1, l = -1; for(int i = 0; i < (int)a.size(); i++) if(a[i] == t){ if(f < 0) f = i; l = i; } return {f, l}; }"
+      },
+      "optimized": {
+        "approach": "Do boundary binary searches.",
+        "time": "O(log n)",
+        "space": "O(1)",
+        "code_cpp": "vector<int> searchRange(const vector<int>& a, int t){ auto lb = [&](int x){ int lo = 0, hi = a.size(); while(lo < hi){ int m = lo + (hi - lo) / 2; if(a[m] < x) lo = m + 1; else hi = m; } return lo; }; int l = lb(t), r = lb(t + 1) - 1; if(l >= (int)a.size() || a[l] != t) return {-1, -1}; return {l, r}; }"
+      },
+      "explanation": "Ek hi lower_bound function se dono ends mil jaate hain. Count of element = last - first + 1 (frequency in sorted array O(log n) me).",
+      "edge_cases": [
+        "Target absent",
+        "All elements equal target",
+        "Single occurrence"
+      ]
+    },
+    {
+      "id": "L2-053",
+      "level": 2,
+      "topic": "Binary Search (Rotated)",
+      "title": "Search in Rotated Sorted Array",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Google",
+        "Facebook",
+        "Adobe",
+        "Apple",
+        "Flipkart",
+        "TCS",
+        "Infosys"
+      ],
+      "problem_statement": "A sorted array of distinct values is rotated at an unknown pivot. Given a target, return its index or -1 in O(log n).",
+      "description": "Jaise [0,1,2,4,5,6,7] ko rotate karke [4,5,6,7,0,1,2].",
+      "constraints": [
+        "1 <= n <= 5000",
+        "-1e4 <= a[i], target <= 1e4",
+        "All values distinct"
+      ],
+      "test_cases": [
+        {
+          "input": "[4,5,6,7,0,1,2], t=0",
+          "output": "4",
+          "explanation": "Index 4"
+        },
+        {
+          "input": "[4,5,6,7,0,1,2], t=3",
+          "output": "-1",
+          "explanation": "Nahi hai"
+        },
+        {
+          "input": "[1], t=0",
+          "output": "-1",
+          "explanation": "Single"
+        }
+      ],
+      "theory": "Har mid par ek half sorted hota hai. Sorted half me target ki range check karke sahi half chuno.",
+      "brute_force": {
+        "approach": "Linear search.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int searchRot(const vector<int>& a, int t){ for(int i = 0; i < (int)a.size(); i++) if(a[i] == t) return i; return -1; }"
+      },
+      "optimized": {
+        "approach": "Modified binary search.",
+        "time": "O(log n)",
+        "space": "O(1)",
+        "code_cpp": "int searchRot(const vector<int>& a, int t){ int lo = 0, hi = (int)a.size() - 1; while(lo <= hi){ int mid = lo + (hi - lo) / 2; if(a[mid] == t) return mid; if(a[lo] <= a[mid]){ if(a[lo] <= t && t < a[mid]) hi = mid - 1; else lo = mid + 1; } else { if(a[mid] < t && t <= a[hi]) lo = mid + 1; else hi = mid - 1; } } return -1; }"
+      },
+      "explanation": "a[lo] <= a[mid] (equal ke saath) isliye ki lo == mid par bhi left half 'sorted' maana jata hai. Pehle pivot dhundkar do binary search bhi kar sakte ho.",
+      "edge_cases": [
+        "Not rotated",
+        "Single element",
+        "Target at pivot"
+      ]
+    },
+    {
+      "id": "L2-054",
+      "level": 2,
+      "topic": "Binary Search (Rotated)",
+      "title": "Find Minimum in Rotated Sorted Array",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Google",
+        "Facebook",
+        "Infosys",
+        "Zoho"
+      ],
+      "problem_statement": "Given a rotated sorted array of distinct elements, return the minimum element in O(log n).",
+      "description": "Minimum hi rotation point hai.",
+      "constraints": [
+        "1 <= n <= 5000",
+        "-5000 <= a[i] <= 5000",
+        "All values distinct"
+      ],
+      "test_cases": [
+        {
+          "input": "[3,4,5,1,2]",
+          "output": "1",
+          "explanation": "Pivot par 1"
+        },
+        {
+          "input": "[4,5,6,7,0,1,2]",
+          "output": "0",
+          "explanation": "Pivot par 0"
+        },
+        {
+          "input": "[11,13,15,17]",
+          "output": "11",
+          "explanation": "Rotate nahi hua"
+        }
+      ],
+      "theory": "a[mid] > a[hi] ho to minimum right half me hai (lo = mid + 1), warna mid khud ya left me hai (hi = mid).",
+      "brute_force": {
+        "approach": "Poore array me min_element.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int findMin(const vector<int>& a){ return *min_element(a.begin(), a.end()); }"
+      },
+      "optimized": {
+        "approach": "Binary search comparing mid with hi.",
+        "time": "O(log n)",
+        "space": "O(1)",
+        "code_cpp": "int findMin(const vector<int>& a){ int lo = 0, hi = (int)a.size() - 1; while(lo < hi){ int mid = lo + (hi - lo) / 2; if(a[mid] > a[hi]) lo = mid + 1; else hi = mid; } return a[lo]; }"
+      },
+      "explanation": "a[lo] se compare karne par un-rotated case me confusion hoti hai; a[hi] se compare karna safe hai. Rotation count = min ka index.",
+      "edge_cases": [
+        "Not rotated",
+        "Rotated by n - 1",
+        "Two elements"
+      ]
+    },
+    {
+      "id": "L2-055",
+      "level": 2,
+      "topic": "Binary Search (Peak)",
+      "title": "Find Peak Element",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Facebook",
+        "Infosys",
+        "TCS"
+      ],
+      "problem_statement": "A peak is an element strictly greater than its neighbors (a[-1] and a[n] are treated as -infinity). Return the index of any peak. Adjacent elements are never equal. Solve in O(log n).",
+      "description": "Multiple peaks ho sakte hain, koi bhi valid chalega.",
+      "constraints": [
+        "1 <= n <= 1000",
+        "-2^31 <= a[i] <= 2^31 - 1",
+        "a[i] != a[i+1]"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,2,3,1]",
+          "output": "2",
+          "explanation": "3 peak hai"
+        },
+        {
+          "input": "[1,2,1,3,5,6,4]",
+          "output": "5",
+          "explanation": "Do peaks (1 ya 5 dono valid hain)"
+        },
+        {
+          "input": "[1]",
+          "output": "0",
+          "explanation": "Single"
+        }
+      ],
+      "theory": "mid par slope dekho: a[mid] < a[mid + 1] ho to upar chadh rahe hain, isliye right me peak pakka hai. Warna left (mid sahit) me.",
+      "brute_force": {
+        "approach": "Linear scan: pehla peak.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int findPeak(const vector<int>& a){ int n = a.size(); for(int i = 0; i < n; i++){ bool l = (i == 0) || a[i] > a[i-1]; bool r = (i == n - 1) || a[i] > a[i+1]; if(l && r) return i; } return -1; }"
+      },
+      "optimized": {
+        "approach": "Binary search on slope.",
+        "time": "O(log n)",
+        "space": "O(1)",
+        "code_cpp": "int findPeak(const vector<int>& a){ int lo = 0, hi = (int)a.size() - 1; while(lo < hi){ int mid = lo + (hi - lo) / 2; if(a[mid] < a[mid + 1]) lo = mid + 1; else hi = mid; } return lo; }"
+      },
+      "explanation": "Array sorted nahi hai, phir bhi binary search isliye chalta hai ki boundaries -infinity hain, to jis taraf array upar ja raha hai us taraf peak guarantee hai.",
+      "edge_cases": [
+        "Strictly increasing",
+        "Strictly decreasing",
+        "Peak at ends"
+      ]
+    },
+    {
+      "id": "L2-056",
+      "level": 2,
+      "topic": "Binary Search (Matrix)",
+      "title": "Search a 2D Matrix",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Google",
+        "Adobe",
+        "Infosys",
+        "TCS"
+      ],
+      "problem_statement": "A matrix has rows sorted left to right, and the first integer of each row is greater than the last integer of the previous row. Return true if target exists in the matrix.",
+      "description": "Poora matrix flatten karne par sorted 1D array banta hai.",
+      "constraints": [
+        "1 <= rows, cols <= 100",
+        "-1e4 <= m[i][j], target <= 1e4"
+      ],
+      "test_cases": [
+        {
+          "input": "[[1,3,5,7],[10,11,16,20],[23,30,34,60]], t=3",
+          "output": "true",
+          "explanation": "Row 0 me"
+        },
+        {
+          "input": "[[1,3,5,7],[10,11,16,20],[23,30,34,60]], t=13",
+          "output": "false",
+          "explanation": "Nahi hai"
+        },
+        {
+          "input": "[[1]], t=1",
+          "output": "true",
+          "explanation": "Single"
+        }
+      ],
+      "theory": "Virtual 1D array: index mid -> m[mid / C][mid % C]. Fir normal binary search.",
+      "brute_force": {
+        "approach": "Saare cells scan.",
+        "time": "O(R*C)",
+        "space": "O(1)",
+        "code_cpp": "bool searchMatrix(const vector<vector<int>>& m, int t){ for(auto& row : m) for(int v : row) if(v == t) return true; return false; }"
+      },
+      "optimized": {
+        "approach": "Flattened binary search.",
+        "time": "O(log(R*C))",
+        "space": "O(1)",
+        "code_cpp": "bool searchMatrix(const vector<vector<int>>& m, int t){ int R = m.size(), C = m[0].size(); int lo = 0, hi = R * C - 1; while(lo <= hi){ int mid = lo + (hi - lo) / 2; int v = m[mid / C][mid % C]; if(v == t) return true; if(v < t) lo = mid + 1; else hi = mid - 1; } return false; }"
+      },
+      "explanation": "Matrix ko actually flatten nahi karte (extra memory nahi), sirf index mapping karte hain. Agar sirf rows/columns sorted ho (strict condition nahi), to staircase search (O(R + C)) use hota hai.",
+      "edge_cases": [
+        "Single row",
+        "Single column",
+        "Target absent"
+      ]
+    },
+    {
+      "id": "L2-057",
+      "level": 2,
+      "topic": "Binary Search (Index)",
+      "title": "Single Element in a Sorted Array",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Adobe",
+        "Infosys"
+      ],
+      "problem_statement": "Every element in a sorted array appears exactly twice, except one element that appears once. Find that single element in O(log n) time and O(1) space.",
+      "description": "XOR se O(n) me ho jata hai, par yahan O(log n) chahiye.",
+      "constraints": [
+        "1 <= n <= 1e5 (n odd)",
+        "0 <= a[i] <= 1e5"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,1,2,3,3,4,4,8,8]",
+          "output": "2",
+          "explanation": "2 akela"
+        },
+        {
+          "input": "[3,3,7,7,10,11,11]",
+          "output": "10",
+          "explanation": "10 akela"
+        },
+        {
+          "input": "[5]",
+          "output": "5",
+          "explanation": "Single"
+        }
+      ],
+      "theory": "Single element se pehle pairs (even, odd) index par hote hain, baad me (odd, even). mid ko even bana ke a[mid] == a[mid+1] check karo: equal ho to single right me, warna left (mid sahit).",
+      "brute_force": {
+        "approach": "Sabka XOR.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int singleNonDuplicate(const vector<int>& a){ int x = 0; for(int v : a) x ^= v; return x; }"
+      },
+      "optimized": {
+        "approach": "Binary search on pair alignment.",
+        "time": "O(log n)",
+        "space": "O(1)",
+        "code_cpp": "int singleNonDuplicate(const vector<int>& a){ int lo = 0, hi = (int)a.size() - 1; while(lo < hi){ int mid = lo + (hi - lo) / 2; if(mid % 2 == 1) mid--; if(a[mid] == a[mid + 1]) lo = mid + 2; else hi = mid; } return a[lo]; }"
+      },
+      "explanation": "Pair alignment (even index par pair shuru hona) single element ke baad toot jati hai. Isi 'alignment break' par binary search chalta hai.",
+      "edge_cases": [
+        "Single element at start",
+        "Single element at end",
+        "n = 1"
+      ]
+    },
+    {
+      "id": "L2-058",
+      "level": 2,
+      "topic": "Binary Search (Index)",
+      "title": "Find K Closest Elements",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Facebook",
+        "Microsoft",
+        "Infosys"
+      ],
+      "problem_statement": "Given a sorted array, integers k and x, return the k closest integers to x in ascending order. If there is a tie, prefer the smaller element.",
+      "description": "Closest ka matlab |a[i] - x| chhota. Tie me chhota element.",
+      "constraints": [
+        "1 <= k <= n <= 1e4",
+        "-1e4 <= a[i], x <= 1e4",
+        "Sorted ascending"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,2,3,4,5], k=4, x=3",
+          "output": "[1,2,3,4]",
+          "explanation": "3 ke aas paas"
+        },
+        {
+          "input": "[1,2,3,4,5], k=4, x=-1",
+          "output": "[1,2,3,4]",
+          "explanation": "Sabse chhote"
+        },
+        {
+          "input": "[1,3], k=1, x=2",
+          "output": "[1]",
+          "explanation": "Tie: 1 aur 3, chhota 1"
+        }
+      ],
+      "theory": "Answer ek contiguous window hai. Window ka left start binary search karo [0, n-k]: agar x - a[mid] > a[mid+k] - x to window right shift karo.",
+      "brute_force": {
+        "approach": "Distance (aur tie par value) se sort, pehle k lo, phir ascending sort.",
+        "time": "O(n log n)",
+        "space": "O(n)",
+        "code_cpp": "vector<int> findClosest(const vector<int>& a, int k, int x){ vector<int> v = a; stable_sort(v.begin(), v.end(), [&](int p, int q){ int dp = abs(p - x), dq = abs(q - x); if(dp != dq) return dp < dq; return p < q; }); v.resize(k); sort(v.begin(), v.end()); return v; }"
+      },
+      "optimized": {
+        "approach": "Binary search on window start.",
+        "time": "O(log(n - k) + k)",
+        "space": "O(1) extra",
+        "code_cpp": "vector<int> findClosest(const vector<int>& a, int k, int x){ int lo = 0, hi = (int)a.size() - k; while(lo < hi){ int mid = lo + (hi - lo) / 2; if(x - a[mid] > a[mid + k] - x) lo = mid + 1; else hi = mid; } return vector<int>(a.begin() + lo, a.begin() + lo + k); }"
+      },
+      "explanation": "Sorted array me closest k elements hamesha ek continuous block hote hain. Strict '>' tie me left window rakhta hai (chhota element).",
+      "edge_cases": [
+        "x smaller than all",
+        "x larger than all",
+        "Ties"
+      ]
+    },
+    {
+      "id": "L2-059",
+      "level": 2,
+      "topic": "Binary Search (Index)",
+      "title": "Kth Missing Positive Number",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Google",
+        "Amazon",
+        "Microsoft",
+        "Infosys",
+        "TCS"
+      ],
+      "problem_statement": "Given a strictly increasing array of positive integers and an integer k, return the k-th positive integer that is missing from the array.",
+      "description": "Missing numbers 1, 2, 3, ... me se wo jo array me nahi hain.",
+      "constraints": [
+        "1 <= n <= 1000",
+        "1 <= a[i] <= 1000",
+        "1 <= k <= 1000",
+        "Strictly increasing"
+      ],
+      "test_cases": [
+        {
+          "input": "[2,3,4,7,11], k=5",
+          "output": "9",
+          "explanation": "Missing: 1,5,6,8,9"
+        },
+        {
+          "input": "[1,2,3,4], k=2",
+          "output": "6",
+          "explanation": "Missing: 5,6"
+        },
+        {
+          "input": "[2], k=1",
+          "output": "1",
+          "explanation": "1 missing"
+        }
+      ],
+      "theory": "Index i tak missing count = a[i] - (i + 1). Ye non-decreasing hai, to pehla index dhundo jahan missing >= k; answer = lo + k.",
+      "brute_force": {
+        "approach": "1, 2, 3... ko array ke saath simulate karke missing ginte jao.",
+        "time": "O(n + k)",
+        "space": "O(1)",
+        "code_cpp": "int findKthPositive(const vector<int>& a, int k){ int cur = 1, idx = 0, n = a.size(); for(;;){ if(idx < n && a[idx] == cur) idx++; else if(--k == 0) return cur; cur++; } }"
+      },
+      "optimized": {
+        "approach": "Binary search on missing-count formula.",
+        "time": "O(log n)",
+        "space": "O(1)",
+        "code_cpp": "int findKthPositive(const vector<int>& a, int k){ int lo = 0, hi = a.size(); while(lo < hi){ int mid = lo + (hi - lo) / 2; if(a[mid] - (mid + 1) < k) lo = mid + 1; else hi = mid; } return lo + k; }"
+      },
+      "explanation": "lo elements array me hain jo answer se pehle aate hain, to answer = k + lo (k missing + lo present numbers shift). Predicate: 'index mid tak kam se kam k missing hain'.",
+      "edge_cases": [
+        "k before first element",
+        "k after last element",
+        "Single element"
+      ]
+    },
+    {
+      "id": "L2-060",
+      "level": 2,
+      "topic": "Binary Search (Index)",
+      "title": "Valid Perfect Square",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Infosys",
+        "TCS"
+      ],
+      "problem_statement": "Return true if num is a perfect square. Do not use any built-in sqrt function.",
+      "description": "Integer square root ka hi application hai.",
+      "constraints": [
+        "1 <= num <= 2^31 - 1"
+      ],
+      "test_cases": [
+        {
+          "input": "16",
+          "output": "true",
+          "explanation": "4 * 4"
+        },
+        {
+          "input": "14",
+          "output": "false",
+          "explanation": "Perfect square nahi"
+        },
+        {
+          "input": "1",
+          "output": "true",
+          "explanation": "1 * 1"
+        }
+      ],
+      "theory": "1..num par binary search: mid * mid (long long) ko num se compare karo.",
+      "brute_force": {
+        "approach": "i = 1, 2, 3... jab tak i*i <= num.",
+        "time": "O(sqrt n)",
+        "space": "O(1)",
+        "code_cpp": "bool isPerfectSquare(int n){ for(long long i = 1; i * i <= n; i++) if(i * i == n) return true; return false; }"
+      },
+      "optimized": {
+        "approach": "Binary search on root.",
+        "time": "O(log n)",
+        "space": "O(1)",
+        "code_cpp": "bool isPerfectSquare(int n){ long long lo = 1, hi = n; while(lo <= hi){ long long mid = lo + (hi - lo) / 2; long long sq = mid * mid; if(sq == n) return true; if(sq < n) lo = mid + 1; else hi = mid - 1; } return false; }"
+      },
+      "explanation": "mid * mid ko long long me rakhna zaroori. Alternative: odd numbers ka sum (1 + 3 + 5 + ...) ya Newton's method.",
+      "edge_cases": [
+        "num = 1",
+        "Large non-square",
+        "Large square (2147395600)"
+      ]
+    },
+    {
+      "id": "L2-061",
+      "level": 2,
+      "topic": "Binary Search (Partition)",
+      "title": "Median of Two Sorted Arrays",
+      "difficulty": "Hard",
+      "company_tags": [
+        "Google",
+        "Amazon",
+        "Microsoft",
+        "Facebook",
+        "Apple",
+        "Adobe",
+        "Flipkart"
+      ],
+      "problem_statement": "Given two sorted arrays, return the median of the combined sorted array. Expected complexity O(log(min(m, n))).",
+      "description": "Combined length even ho to do middle values ka average.",
+      "constraints": [
+        "0 <= m, n <= 1000",
+        "1 <= m + n <= 2000",
+        "-1e6 <= a[i], b[i] <= 1e6"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,3], [2]",
+          "output": "2.0",
+          "explanation": "Merged [1,2,3]"
+        },
+        {
+          "input": "[1,2], [3,4]",
+          "output": "2.5",
+          "explanation": "(2 + 3) / 2"
+        },
+        {
+          "input": "[], [1]",
+          "output": "1.0",
+          "explanation": "Ek array khali"
+        }
+      ],
+      "theory": "Chhote array a par partition index i binary search karo; b me j = (m+n+1)/2 - i. Valid partition: aL <= bR aur bL <= aR. Tab median max(aL, bL) (odd) ya average with min(aR, bR) (even).",
+      "brute_force": {
+        "approach": "Dono ko merge (concatenate + sort) karke middle nikalo.",
+        "time": "O((m+n) log(m+n))",
+        "space": "O(m+n)",
+        "code_cpp": "double findMedian(const vector<int>& A, const vector<int>& B){ vector<int> v(A); v.insert(v.end(), B.begin(), B.end()); sort(v.begin(), v.end()); int n = v.size(); if(n % 2) return v[n / 2]; return (v[n / 2 - 1] + v[n / 2]) / 2.0; }"
+      },
+      "optimized": {
+        "approach": "Binary search on partition of the smaller array.",
+        "time": "O(log(min(m, n)))",
+        "space": "O(1)",
+        "code_cpp": "double findMedian(const vector<int>& A, const vector<int>& B){ const vector<int>& a = A.size() <= B.size() ? A : B; const vector<int>& b = A.size() <= B.size() ? B : A; int m = a.size(), n = b.size(); int lo = 0, hi = m; while(lo <= hi){ int i = (lo + hi) / 2; int j = (m + n + 1) / 2 - i; int aL = i ? a[i-1] : INT_MIN, aR = i < m ? a[i] : INT_MAX; int bL = j ? b[j-1] : INT_MIN, bR = j < n ? b[j] : INT_MAX; if(aL <= bR && bL <= aR){ if((m + n) % 2) return max(aL, bL); return (max(aL, bL) + (double)min(aR, bR)) / 2.0; } if(aL > bR) hi = i - 1; else lo = i + 1; } return 0.0; }"
+      },
+      "explanation": "Idea: dono arrays ko aise cut karo ki left halves ke total elements = (m+n+1)/2 ho aur left ka har element right ke har element se chhota ya barabar ho. Sentinels (INT_MIN/INT_MAX) empty side handle karte hain. Is problem ko samajhna hi Level 2 ka ek big milestone hai.",
+      "edge_cases": [
+        "One array empty",
+        "Disjoint ranges",
+        "Even and odd total length"
+      ]
+    },
+    {
+      "id": "L2-062",
+      "level": 2,
+      "topic": "Binary Search on Answer",
+      "title": "Koko Eating Bananas",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Facebook",
+        "Flipkart",
+        "Infosys",
+        "TCS"
+      ],
+      "problem_statement": "Koko has piles of bananas and h hours. Each hour she picks one pile and eats up to k bananas from it (if the pile has fewer, she finishes it and waits). Return the minimum integer k so she finishes all piles within h hours.",
+      "description": "h >= number of piles guaranteed hai.",
+      "constraints": [
+        "1 <= piles <= 1e4",
+        "piles.length <= h <= 1e9",
+        "1 <= piles[i] <= 1e9"
+      ],
+      "test_cases": [
+        {
+          "input": "[3,6,7,11], h=8",
+          "output": "4",
+          "explanation": "Speed 4 me 1+2+2+3 = 8 hours"
+        },
+        {
+          "input": "[30,11,23,4,20], h=5",
+          "output": "30",
+          "explanation": "Har pile 1 hour"
+        },
+        {
+          "input": "[30,11,23,4,20], h=6",
+          "output": "23",
+          "explanation": "Speed 23"
+        }
+      ],
+      "theory": "Speed k jitna badhega hours utne ghatenge (monotonic). feasible(k) = sum(ceil(p / k)) <= h. Minimum feasible k par binary search [1, max pile].",
+      "brute_force": {
+        "approach": "k = 1, 2, 3... ek-ek karke try.",
+        "time": "O(n * max)",
+        "space": "O(1)",
+        "code_cpp": "bool canEat(const vector<int>& p, int k, long long h){ long long t = 0; for(int x : p) t += (x + (long long)k - 1) / k; return t <= h; }\nint minEatingSpeed(const vector<int>& p, int h){ for(int k = 1;; k++) if(canEat(p, k, h)) return k; }"
+      },
+      "optimized": {
+        "approach": "Binary search on speed.",
+        "time": "O(n log max)",
+        "space": "O(1)",
+        "code_cpp": "bool canEat(const vector<int>& p, int k, long long h){ long long t = 0; for(int x : p) t += (x + (long long)k - 1) / k; return t <= h; }\nint minEatingSpeed(const vector<int>& p, int h){ int lo = 1, hi = *max_element(p.begin(), p.end()); while(lo < hi){ int mid = lo + (hi - lo) / 2; if(canEat(p, mid, h)) hi = mid; else lo = mid + 1; } return lo; }"
+      },
+      "explanation": "Ye 'binary search on answer' ka sabse famous example hai. Array sorted nahi hai, par 'speed' ki range monotonic hai: jo speed kaam karti hai usse zyada speed bhi kaam karegi.",
+      "edge_cases": [
+        "h = number of piles",
+        "Single pile",
+        "Huge piles (ceil with long long)"
+      ]
+    },
+    {
+      "id": "L2-063",
+      "level": 2,
+      "topic": "Binary Search on Answer",
+      "title": "Capacity To Ship Packages Within D Days",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Facebook",
+        "Uber",
+        "Flipkart",
+        "Infosys"
+      ],
+      "problem_statement": "Packages with given weights must be shipped in order (conveyor belt) within D days. Each day load packages in order without exceeding the ship's capacity. Return the least capacity that works.",
+      "description": "Packages ka order change nahi ho sakta.",
+      "constraints": [
+        "1 <= D <= n <= 5e4",
+        "1 <= weights[i] <= 500"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,2,3,4,5,6,7,8,9,10], D=5",
+          "output": "15",
+          "explanation": "(1..5),(6,7),(8),(9),(10)"
+        },
+        {
+          "input": "[3,2,2,4,1,4], D=3",
+          "output": "6",
+          "explanation": "Capacity 6"
+        },
+        {
+          "input": "[1,2,3,1,1], D=4",
+          "output": "3",
+          "explanation": "Capacity 3"
+        }
+      ],
+      "theory": "Capacity range [max(weights), sum(weights)]. feasible(c) = greedy simulation se days <= D. Minimum feasible c binary search.",
+      "brute_force": {
+        "approach": "Capacity max(weights) se start karke ek-ek badhao jab tak days <= D na ho.",
+        "time": "O(n * sum)",
+        "space": "O(1)",
+        "code_cpp": "int daysNeeded(const vector<int>& w, int cap){ int d = 1; long long cur = 0; for(int x : w){ if(cur + x > cap){ d++; cur = 0; } cur += x; } return d; }\nint shipWithinDays(const vector<int>& w, int D){ for(int cap = *max_element(w.begin(), w.end());; cap++) if(daysNeeded(w, cap) <= D) return cap; }"
+      },
+      "optimized": {
+        "approach": "Binary search on capacity.",
+        "time": "O(n log sum)",
+        "space": "O(1)",
+        "code_cpp": "int daysNeeded(const vector<int>& w, int cap){ int d = 1; long long cur = 0; for(int x : w){ if(cur + x > cap){ d++; cur = 0; } cur += x; } return d; }\nint shipWithinDays(const vector<int>& w, int D){ int lo = *max_element(w.begin(), w.end()), hi = accumulate(w.begin(), w.end(), 0); while(lo < hi){ int mid = lo + (hi - lo) / 2; if(daysNeeded(w, mid) <= D) hi = mid; else lo = mid + 1; } return lo; }"
+      },
+      "explanation": "Lower bound max(weights) isliye ki capacity us se kam hui to sabse bhaari package kabhi ship hi nahi hoga. Upper bound sum = ek din me sab.",
+      "edge_cases": [
+        "D = 1",
+        "D = n",
+        "One heavy package"
+      ]
+    },
+    {
+      "id": "L2-064",
+      "level": 2,
+      "topic": "Binary Search on Answer",
+      "title": "Minimum Number of Days to Make m Bouquets",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Google",
+        "Amazon",
+        "Microsoft",
+        "Flipkart",
+        "Infosys"
+      ],
+      "problem_statement": "bloomDay[i] is the day flower i blooms. To make a bouquet you need k adjacent bloomed flowers. Return the minimum number of days to make m bouquets, or -1 if impossible.",
+      "description": "Har flower sirf ek bouquet me use hota hai.",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "1 <= bloomDay[i] <= 1e9",
+        "1 <= m <= 1e6",
+        "1 <= k <= n"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,10,3,10,2], m=3, k=1",
+          "output": "3",
+          "explanation": "Din 3 tak 3 flowers khil chuke"
+        },
+        {
+          "input": "[1,10,3,10,2], m=3, k=2",
+          "output": "-1",
+          "explanation": "m*k > n"
+        },
+        {
+          "input": "[7,7,7,7,12,7,7], m=2, k=3",
+          "output": "12",
+          "explanation": "Din 12 par hi dusra bouquet"
+        }
+      ],
+      "theory": "Din d jitna bada, utne zyada flowers khile (monotonic). feasible(d): adjacent runs me k flowers ka group ginke m ya zyada bane ya nahi. Range [min, max bloomDay].",
+      "brute_force": {
+        "approach": "Har possible din (min se max tak) ek-ek karke try.",
+        "time": "O(n * (max - min))",
+        "space": "O(1)",
+        "code_cpp": "bool canMake(const vector<int>& b, int m, int k, int day){ int cnt = 0, run = 0; for(int x : b){ if(x <= day){ if(++run == k){ cnt++; run = 0; } } else run = 0; } return cnt >= m; }\nint minDays(const vector<int>& b, int m, int k){ if((long long)m * k > (long long)b.size()) return -1; int lo = *min_element(b.begin(), b.end()), hi = *max_element(b.begin(), b.end()); for(int d = lo; d <= hi; d++) if(canMake(b, m, k, d)) return d; return -1; }"
+      },
+      "optimized": {
+        "approach": "Binary search on day.",
+        "time": "O(n log(max))",
+        "space": "O(1)",
+        "code_cpp": "bool canMake(const vector<int>& b, int m, int k, int day){ int cnt = 0, run = 0; for(int x : b){ if(x <= day){ if(++run == k){ cnt++; run = 0; } } else run = 0; } return cnt >= m; }\nint minDays(const vector<int>& b, int m, int k){ if((long long)m * k > (long long)b.size()) return -1; int lo = *min_element(b.begin(), b.end()), hi = *max_element(b.begin(), b.end()); while(lo < hi){ int mid = lo + (hi - lo) / 2; if(canMake(b, m, k, mid)) hi = mid; else lo = mid + 1; } return lo; }"
+      },
+      "explanation": "m * k > n pehle check karo (impossible case, aur overflow ke liye long long). Din ka answer hamesha kisi bloomDay value ke barabar hota hai, isliye range [min, max] kaafi hai.",
+      "edge_cases": [
+        "m * k > n",
+        "k = 1",
+        "All flowers bloom same day"
+      ]
+    },
+    {
+      "id": "L2-065",
+      "level": 2,
+      "topic": "Binary Search on Answer",
+      "title": "Find the Smallest Divisor Given a Threshold",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Infosys",
+        "TCS"
+      ],
+      "problem_statement": "Given an array and a threshold, choose a positive integer divisor d so that the sum of ceil(a[i] / d) is <= threshold. Return the smallest such d.",
+      "description": "Divisor badhne se sum ghatta hai (monotonic).",
+      "constraints": [
+        "1 <= n <= 5e4",
+        "1 <= a[i] <= 1e6",
+        "n <= threshold <= 1e6"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,2,5,9], th=6",
+          "output": "5",
+          "explanation": "1+1+1+2 = 5"
+        },
+        {
+          "input": "[44,22,33,11,1], th=5",
+          "output": "44",
+          "explanation": "Har ceil = 1"
+        },
+        {
+          "input": "[2,3,5,7,11], th=11",
+          "output": "3",
+          "explanation": "Sum 11"
+        }
+      ],
+      "theory": "Binary search d in [1, max]. feasible(d) = sum of ceil(a[i] / d) <= threshold.",
+      "brute_force": {
+        "approach": "d = 1, 2, 3... try karte jao.",
+        "time": "O(n * max)",
+        "space": "O(1)",
+        "code_cpp": "bool okDiv(const vector<int>& a, int d, int th){ long long s = 0; for(int x : a) s += (x + (long long)d - 1) / d; return s <= th; }\nint smallestDivisor(const vector<int>& a, int th){ for(int d = 1;; d++) if(okDiv(a, d, th)) return d; }"
+      },
+      "optimized": {
+        "approach": "Binary search on divisor.",
+        "time": "O(n log max)",
+        "space": "O(1)",
+        "code_cpp": "bool okDiv(const vector<int>& a, int d, int th){ long long s = 0; for(int x : a) s += (x + (long long)d - 1) / d; return s <= th; }\nint smallestDivisor(const vector<int>& a, int th){ int lo = 1, hi = *max_element(a.begin(), a.end()); while(lo < hi){ int mid = lo + (hi - lo) / 2; if(okDiv(a, mid, th)) hi = mid; else lo = mid + 1; } return lo; }"
+      },
+      "explanation": "Koko Eating Bananas ka twin problem. d = max(a) par har ceil 1 ho jata hai, isliye wahi upper bound hai (threshold >= n guaranteed).",
+      "edge_cases": [
+        "Threshold = n",
+        "Single element",
+        "Large values"
+      ]
+    },
+    {
+      "id": "L2-066",
+      "level": 2,
+      "topic": "Binary Search on Answer",
+      "title": "Split Array Largest Sum",
+      "difficulty": "Hard",
+      "company_tags": [
+        "Google",
+        "Amazon",
+        "Microsoft",
+        "Facebook",
+        "Flipkart",
+        "Goldman Sachs"
+      ],
+      "problem_statement": "Split an array of non-negative integers into k non-empty contiguous subarrays so that the largest subarray sum is minimized. Return that minimized largest sum.",
+      "description": "Allocate Books / Painter's Partition ka same problem.",
+      "constraints": [
+        "1 <= n <= 1000",
+        "0 <= a[i] <= 1e6",
+        "1 <= k <= min(50, n)"
+      ],
+      "test_cases": [
+        {
+          "input": "[7,2,5,10,8], k=2",
+          "output": "18",
+          "explanation": "[7,2,5] aur [10,8]"
+        },
+        {
+          "input": "[1,2,3,4,5], k=2",
+          "output": "9",
+          "explanation": "[1,2,3,4] aur [5]"
+        },
+        {
+          "input": "[1,4,4], k=3",
+          "output": "4",
+          "explanation": "Har element alag"
+        }
+      ],
+      "theory": "Largest sum S ka answer [max(a), sum(a)] me hai. feasible(S): greedy se kitne parts lagte hain; parts <= k ho to S feasible. Minimum feasible S binary search.",
+      "brute_force": {
+        "approach": "DP: dp[i][j] = pehle i elements ko j parts me todne ka min largest-sum; har partition point try.",
+        "time": "O(n^2 * k)",
+        "space": "O(n * k)",
+        "code_cpp": "int splitArray(const vector<int>& a, int k){ int n = a.size(); vector<long long> pre(n + 1, 0); for(int i = 0; i < n; i++) pre[i+1] = pre[i] + a[i]; vector<vector<long long>> dp(n + 1, vector<long long>(k + 1, LLONG_MAX)); dp[0][0] = 0; for(int i = 1; i <= n; i++) for(int j = 1; j <= min(i, k); j++) for(int p = j - 1; p < i; p++){ if(dp[p][j-1] == LLONG_MAX) continue; dp[i][j] = min(dp[i][j], max(dp[p][j-1], pre[i] - pre[p])); } return (int)dp[n][k]; }"
+      },
+      "optimized": {
+        "approach": "Binary search on the answer + greedy part counting.",
+        "time": "O(n log sum)",
+        "space": "O(1)",
+        "code_cpp": "int partsNeeded(const vector<int>& a, long long cap){ int c = 1; long long cur = 0; for(int x : a){ if(cur + x > cap){ c++; cur = 0; } cur += x; } return c; }\nint splitArray(const vector<int>& a, int k){ long long lo = *max_element(a.begin(), a.end()), hi = accumulate(a.begin(), a.end(), 0LL); while(lo < hi){ long long mid = lo + (hi - lo) / 2; if(partsNeeded(a, mid) <= k) hi = mid; else lo = mid + 1; } return (int)lo; }"
+      },
+      "explanation": "Brute DP aur optimized ka farq: DP har partition combination explore karta hai, binary search ek simple greedy check ko log(sum) baar chalata hai. Ye Capacity To Ship Packages ka hi twin hai (days = k parts).",
+      "edge_cases": [
+        "k = 1",
+        "k = n",
+        "Zeros in array"
+      ]
+    },
+    {
+      "id": "L2-067",
+      "level": 2,
+      "topic": "Binary Search on Answer",
+      "title": "Magnetic Force Between Two Balls (Aggressive Cows)",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Flipkart",
+        "Zoho",
+        "Infosys"
+      ],
+      "problem_statement": "Given basket positions and m balls, place the balls in baskets so that the minimum distance between any two balls is maximized. Return that maximum minimum distance.",
+      "description": "Positions distinct hain, unsorted aa sakte hain.",
+      "constraints": [
+        "2 <= n <= 1e5",
+        "1e9 >= position[i] >= 1",
+        "2 <= m <= n"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,2,3,4,7], m=3",
+          "output": "3",
+          "explanation": "Balls at 1, 4, 7"
+        },
+        {
+          "input": "[5,4,3,2,1,1000000000], m=2",
+          "output": "999999999",
+          "explanation": "Balls at 1 aur 1e9"
+        },
+        {
+          "input": "[1,2,3], m=2",
+          "output": "2",
+          "explanation": "Balls at 1 aur 3"
+        }
+      ],
+      "theory": "Sort positions. Distance d feasible agar greedy se kam se kam m balls rakh sako (pichhli ball se >= d door). d chhota to feasible, bada to nahi: maximum feasible d search karo (upper mid).",
+      "brute_force": {
+        "approach": "d ko bade se chhote ki taraf try karo jab tak feasible na mile.",
+        "time": "O(n * range)",
+        "space": "O(1)",
+        "code_cpp": "bool canPlace(const vector<int>& p, int m, int d){ int cnt = 1, last = p[0]; for(size_t i = 1; i < p.size(); i++) if(p[i] - last >= d){ cnt++; last = p[i]; } return cnt >= m; }\nint maxDistance(vector<int> p, int m){ sort(p.begin(), p.end()); for(int d = p.back() - p[0]; d >= 1; d--) if(canPlace(p, m, d)) return d; return 0; }"
+      },
+      "optimized": {
+        "approach": "Binary search on distance (maximum feasible).",
+        "time": "O(n log range)",
+        "space": "O(1)",
+        "code_cpp": "bool canPlace(const vector<int>& p, int m, int d){ int cnt = 1, last = p[0]; for(size_t i = 1; i < p.size(); i++) if(p[i] - last >= d){ cnt++; last = p[i]; } return cnt >= m; }\nint maxDistance(vector<int> p, int m){ sort(p.begin(), p.end()); int lo = 1, hi = p.back() - p[0]; while(lo < hi){ int mid = lo + (hi - lo + 1) / 2; if(canPlace(p, m, mid)) lo = mid; else hi = mid - 1; } return lo; }"
+      },
+      "explanation": "Ye 'maximize the minimum' pattern hai, isliye upper mid (lo + (hi - lo + 1) / 2) use hota hai, nahi to lo = mid par infinite loop ho sakta hai.",
+      "edge_cases": [
+        "m = 2",
+        "m = n",
+        "Unsorted input"
+      ]
+    },
+    {
+      "id": "L2-068",
+      "level": 2,
+      "topic": "Binary Search on Answer",
+      "title": "Maximum Candies Allocated to K Children",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Google",
+        "Amazon",
+        "Microsoft",
+        "Infosys"
+      ],
+      "problem_statement": "Given piles of candies, you may split any pile into smaller sub-piles but cannot merge. Allocate sub-piles to k children so each gets the same number of candies from a single pile. Return the maximum candies each child can get.",
+      "description": "Kuch candies bach sakti hain. Agar k bachon ko kuch nahi mil sakta to 0.",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "1 <= candies[i] <= 1e7",
+        "1 <= k <= 1e12"
+      ],
+      "test_cases": [
+        {
+          "input": "[5,8,6], k=3",
+          "output": "5",
+          "explanation": "Har pile se 1 sub-pile of 5"
+        },
+        {
+          "input": "[2,5], k=11",
+          "output": "0",
+          "explanation": "Kisi ko nahi"
+        },
+        {
+          "input": "[4,7,5], k=4",
+          "output": "3",
+          "explanation": "1 + 2 + 1 = 4 bachon ko 3 candies"
+        }
+      ],
+      "theory": "Per child x candies par kitne bachon ko mil sakta: sum(pile / x). Ye >= k ho to feasible. x chhota ho to feasible; maximum feasible x par binary search (upper mid), range [0, max].",
+      "brute_force": {
+        "approach": "x ko max se 1 tak neeche ki taraf try karo.",
+        "time": "O(n * max)",
+        "space": "O(1)",
+        "code_cpp": "long long kids(const vector<int>& c, int x){ long long t = 0; for(int v : c) t += v / x; return t; }\nint maximumCandies(const vector<int>& c, long long k){ for(int x = *max_element(c.begin(), c.end()); x >= 1; x--) if(kids(c, x) >= k) return x; return 0; }"
+      },
+      "optimized": {
+        "approach": "Binary search on candies per child.",
+        "time": "O(n log max)",
+        "space": "O(1)",
+        "code_cpp": "long long kids(const vector<int>& c, int x){ long long t = 0; for(int v : c) t += v / x; return t; }\nint maximumCandies(const vector<int>& c, long long k){ int lo = 0, hi = *max_element(c.begin(), c.end()); while(lo < hi){ int mid = lo + (hi - lo + 1) / 2; if(kids(c, mid) >= k) lo = mid; else hi = mid - 1; } return lo; }"
+      },
+      "explanation": "lo = 0 se start isliye kyunki 'kisi ko nahi' valid answer hai. Upper mid hone se mid kabhi 0 nahi hota (division by zero se bachaav).",
+      "edge_cases": [
+        "Answer 0",
+        "k = 1",
+        "Huge k (long long)"
+      ]
+    },
+    {
+      "id": "L2-069",
+      "level": 2,
+      "topic": "Binary Search on Answer",
+      "title": "Minimum Time to Complete Trips",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Google",
+        "Amazon",
+        "Microsoft",
+        "Infosys"
+      ],
+      "problem_statement": "time[i] is the time bus i takes to complete one trip; buses work independently and can make unlimited consecutive trips. Return the minimum time for all buses together to complete at least totalTrips trips.",
+      "description": "Time jitna zyada, trips utne zyada (monotonic).",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "1 <= time[i], totalTrips <= 1e7"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,2,3], total=5",
+          "output": "3",
+          "explanation": "Time 3 par 3 + 1 + 1 = 5 trips"
+        },
+        {
+          "input": "[2], total=1",
+          "output": "2",
+          "explanation": "Ek bus"
+        },
+        {
+          "input": "[5,10,10], total=9",
+          "output": "25",
+          "explanation": "5 + 2 + 2 = 9"
+        }
+      ],
+      "theory": "feasible(T) = sum(T / time[i]) >= totalTrips. Range [1, min(time) * totalTrips].",
+      "brute_force": {
+        "approach": "T = 1, 2, 3... try.",
+        "time": "O(n * answer)",
+        "space": "O(1)",
+        "code_cpp": "long long tripsIn(const vector<int>& t, long long T){ long long c = 0; for(int x : t) c += T / x; return c; }\nlong long minimumTime(const vector<int>& t, long long total){ for(long long T = 1;; T++) if(tripsIn(t, T) >= total) return T; }"
+      },
+      "optimized": {
+        "approach": "Binary search on time.",
+        "time": "O(n log(min * total))",
+        "space": "O(1)",
+        "code_cpp": "long long tripsIn(const vector<int>& t, long long T){ long long c = 0; for(int x : t) c += T / x; return c; }\nlong long minimumTime(const vector<int>& t, long long total){ long long lo = 1, hi = (long long)*min_element(t.begin(), t.end()) * total; while(lo < hi){ long long mid = lo + (hi - lo) / 2; if(tripsIn(t, mid) >= total) hi = mid; else lo = mid + 1; } return lo; }"
+      },
+      "explanation": "Upper bound: sabse tez bus akela hi total trips kar le to min * total time lagega. Values bade hain (1e7 * 1e7), isliye long long zaroori.",
+      "edge_cases": [
+        "Single bus",
+        "Identical buses",
+        "Large total"
+      ]
+    },
+    {
+      "id": "L2-070",
+      "level": 2,
+      "topic": "Binary Search on Value Range",
+      "title": "Kth Smallest Element in a Sorted Matrix",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Facebook",
+        "Flipkart",
+        "Infosys"
+      ],
+      "problem_statement": "Given an n x n matrix where each row and each column is sorted in ascending order, return the k-th smallest element (in sorted order, not distinct).",
+      "description": "Memory efficient solution chahiye (O(1) extra).",
+      "constraints": [
+        "1 <= n <= 300",
+        "-1e9 <= m[i][j] <= 1e9",
+        "1 <= k <= n^2"
+      ],
+      "test_cases": [
+        {
+          "input": "[[1,5,9],[10,11,13],[12,13,15]], k=8",
+          "output": "13",
+          "explanation": "Sorted: 1,5,9,10,11,12,13,13,15"
+        },
+        {
+          "input": "[[-5]], k=1",
+          "output": "-5",
+          "explanation": "Single"
+        },
+        {
+          "input": "[[1,2],[1,3]], k=2",
+          "output": "1",
+          "explanation": "1,1,2,3"
+        }
+      ],
+      "theory": "Value range [m[0][0], m[n-1][n-1]] par binary search. count(<= mid) staircase walk se O(n) me; count >= k ho to hi = mid warna lo = mid + 1.",
+      "brute_force": {
+        "approach": "Sab elements ko vector me daalo aur sort karo.",
+        "time": "O(n^2 log n)",
+        "space": "O(n^2)",
+        "code_cpp": "int kthSmallest(const vector<vector<int>>& m, int k){ vector<int> v; for(auto& r : m) for(int x : r) v.push_back(x); sort(v.begin(), v.end()); return v[k - 1]; }"
+      },
+      "optimized": {
+        "approach": "Binary search on value + staircase counting.",
+        "time": "O(n log(range))",
+        "space": "O(1)",
+        "code_cpp": "int countLE(const vector<vector<int>>& m, int x){ int n = m.size(), r = n - 1, c = 0, cnt = 0; while(r >= 0 && c < n){ if(m[r][c] <= x){ cnt += r + 1; c++; } else r--; } return cnt; }\nint kthSmallest(const vector<vector<int>>& m, int k){ int n = m.size(); int lo = m[0][0], hi = m[n-1][n-1]; while(lo < hi){ int mid = lo + (hi - lo) / 2; if(countLE(m, mid) >= k) hi = mid; else lo = mid + 1; } return lo; }"
+      },
+      "explanation": "Staircase counting: bottom-left se start; cell <= x ho to us column me upar ke saare cells <= x (cnt += r + 1) aur right jao, warna upar jao. Final lo hamesha matrix ki kisi actual value par hota hai. Heap approach O(k log n) bhi hai (Level 3).",
+      "edge_cases": [
+        "k = 1",
+        "k = n^2",
+        "Duplicate values"
+      ]
+    },
+    {
+      "id": "L2-071",
+      "level": 2,
+      "topic": "Binary Search on Value Range",
+      "title": "Find the Duplicate Number",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Google",
+        "Facebook",
+        "Adobe",
+        "Infosys",
+        "TCS"
+      ],
+      "problem_statement": "Given n + 1 integers in the range [1, n], exactly one value repeats (it may repeat more than twice). Return it without modifying the array and using only O(1) extra space.",
+      "description": "Sort ya HashSet allowed nahi (O(1) space aur array modify nahi).",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "a.length == n + 1",
+        "1 <= a[i] <= n"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,3,4,2,2]",
+          "output": "2",
+          "explanation": "2 repeat hota hai"
+        },
+        {
+          "input": "[3,1,3,4,2]",
+          "output": "3",
+          "explanation": "3 repeat"
+        },
+        {
+          "input": "[3,3,3,3,3]",
+          "output": "3",
+          "explanation": "Bahut baar repeat"
+        }
+      ],
+      "theory": "Pigeonhole: 1..mid me mid se zyada elements aayein to duplicate [1, mid] me hai, warna [mid+1, n] me. Value range par binary search with counting.",
+      "brute_force": {
+        "approach": "Nested loops se pehla repeated pair.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int findDuplicate(const vector<int>& a){ int n = a.size(); for(int i = 0; i < n; i++) for(int j = i + 1; j < n; j++) if(a[i] == a[j]) return a[i]; return -1; }"
+      },
+      "optimized": {
+        "approach": "Binary search on value + count.",
+        "time": "O(n log n)",
+        "space": "O(1)",
+        "code_cpp": "int findDuplicate(const vector<int>& a){ int lo = 1, hi = (int)a.size() - 1; while(lo < hi){ int mid = lo + (hi - lo) / 2; int cnt = 0; for(int x : a) if(x <= mid) cnt++; if(cnt > mid) hi = mid; else lo = mid + 1; } return lo; }"
+      },
+      "explanation": "Floyd's cycle detection (tortoise-hare) se O(n) time aur O(1) space me bhi hota hai (array ko linked list ki tarah dekhte hain). Interview me dono batao to impression acha padta hai.",
+      "edge_cases": [
+        "Duplicate appears many times",
+        "Duplicate at the ends",
+        "n = 1"
+      ]
+    },
+    {
+      "id": "L2-072",
+      "level": 2,
+      "topic": "Binary Search (Boundary)",
+      "title": "Find Smallest Letter Greater Than Target",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Google",
+        "Amazon",
+        "Microsoft",
+        "Infosys"
+      ],
+      "problem_statement": "Given a sorted array of letters and a target letter, return the smallest letter strictly greater than the target. Letters wrap around: if none is greater, return the first letter.",
+      "description": "Circular wrap-around ka dhyan rakho.",
+      "constraints": [
+        "2 <= n <= 1e4",
+        "Lowercase letters, sorted non-decreasing"
+      ],
+      "test_cases": [
+        {
+          "input": "[c,f,j], t=a",
+          "output": "c",
+          "explanation": "Pehla letter bada hai"
+        },
+        {
+          "input": "[c,f,j], t=c",
+          "output": "f",
+          "explanation": "Strictly greater"
+        },
+        {
+          "input": "[x,x,y,y], t=z",
+          "output": "x",
+          "explanation": "Wrap-around"
+        }
+      ],
+      "theory": "upper_bound: pehla index jahan letter > target. Agar index n ho to wrap karke 0 (lo % n).",
+      "brute_force": {
+        "approach": "Linear scan: pehla letter > target, nahi mila to first.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "char nextGreatestLetter(const vector<char>& l, char t){ for(char c : l) if(c > t) return c; return l[0]; }"
+      },
+      "optimized": {
+        "approach": "Binary search (upper_bound) + modulo wrap.",
+        "time": "O(log n)",
+        "space": "O(1)",
+        "code_cpp": "char nextGreatestLetter(const vector<char>& l, char t){ int lo = 0, hi = l.size(); while(lo < hi){ int mid = lo + (hi - lo) / 2; if(l[mid] <= t) lo = mid + 1; else hi = mid; } return l[lo % l.size()]; }"
+      },
+      "explanation": "'<=' use karke hum upper_bound lete hain (strictly greater). Modulo se wrap-around ek line me handle ho jata hai.",
+      "edge_cases": [
+        "Target >= last letter",
+        "Target smaller than all",
+        "Duplicate letters"
+      ]
+    },
+    {
+      "id": "L2-073",
+      "level": 2,
+      "topic": "Binary Search on Answer",
+      "title": "Special Array With X Elements Greater Than or Equal X",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Google",
+        "Amazon",
+        "Infosys",
+        "Cognizant"
+      ],
+      "problem_statement": "Array a is special if there exists a number x such that exactly x elements of a are >= x. Return x if the array is special, otherwise -1 (x is unique if it exists).",
+      "description": "x array ka element hona zaroori nahi.",
+      "constraints": [
+        "1 <= n <= 100",
+        "0 <= a[i] <= 1000"
+      ],
+      "test_cases": [
+        {
+          "input": "[3,5]",
+          "output": "2",
+          "explanation": "Exactly 2 elements >= 2"
+        },
+        {
+          "input": "[0,0]",
+          "output": "-1",
+          "explanation": "Koi x kaam nahi karta"
+        },
+        {
+          "input": "[0,4,3,0,4]",
+          "output": "3",
+          "explanation": "3 elements >= 3"
+        }
+      ],
+      "theory": "count(x) = x se bade-barabar elements ki ginti x badhne par ghatti hai, isliye count(x) - x strictly decreasing hai. Sorted array me lower_bound se count nikalo aur x par binary search karo (range [0, n]).",
+      "brute_force": {
+        "approach": "x = 0 se n tak har x ke liye linear count.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int specialArray(const vector<int>& a){ int n = a.size(); for(int x = 0; x <= n; x++){ int c = 0; for(int v : a) if(v >= x) c++; if(c == x) return x; } return -1; }"
+      },
+      "optimized": {
+        "approach": "Sort + binary search on x with lower_bound.",
+        "time": "O(n log n)",
+        "space": "O(1) extra",
+        "code_cpp": "int specialArray(vector<int> a){ sort(a.begin(), a.end()); int n = a.size(); int lo = 0, hi = n; while(lo <= hi){ int mid = (lo + hi) / 2; int c = a.end() - lower_bound(a.begin(), a.end(), mid); if(c == mid) return mid; if(c > mid) lo = mid + 1; else hi = mid - 1; } return -1; }"
+      },
+      "explanation": "Yahan answer ek exact match hai (monotonic function ka zero), sirf 'minimum feasible' nahi. x ka range [0, n] hi hai kyunki x se bade elements n se zyada nahi ho sakte.",
+      "edge_cases": [
+        "All zeros (answer -1)",
+        "x = n",
+        "Single element"
+      ]
+    },
+    {
+      "id": "L2-074",
+      "level": 2,
+      "topic": "Binary Search on Answer",
+      "title": "Heaters",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Google",
+        "Amazon",
+        "Microsoft",
+        "Infosys"
+      ],
+      "problem_statement": "Given positions of houses and heaters on a line, return the minimum radius such that every house is within that radius of at least one heater (all heaters share the same radius).",
+      "description": "Radius wahi hoga jo sabse door-nearest-heater wale house ko cover kare.",
+      "constraints": [
+        "1 <= houses, heaters <= 3e4",
+        "1 <= position <= 1e9"
+      ],
+      "test_cases": [
+        {
+          "input": "houses=[1,2,3], heaters=[2]",
+          "output": "1",
+          "explanation": "Ghar 1 aur 3 ki doori 1"
+        },
+        {
+          "input": "houses=[1,2,3,4], heaters=[1,4]",
+          "output": "1",
+          "explanation": "Beech wale ghar doori 1"
+        },
+        {
+          "input": "houses=[1,5], heaters=[2]",
+          "output": "3",
+          "explanation": "Ghar 5 ki doori 3"
+        }
+      ],
+      "theory": "Har house ke liye nearest heater dhundo (sorted heaters par lower_bound: left aur right candidate). Radius = sab doori ka maximum.",
+      "brute_force": {
+        "approach": "Har house ke liye saare heaters se distance (min).",
+        "time": "O(n * m)",
+        "space": "O(1)",
+        "code_cpp": "int findRadius(const vector<int>& h, const vector<int>& t){ int r = 0; for(int x : h){ int d = INT_MAX; for(int y : t) d = min(d, abs(x - y)); r = max(r, d); } return r; }"
+      },
+      "optimized": {
+        "approach": "Sort heaters + lower_bound for nearest.",
+        "time": "O((n + m) log m)",
+        "space": "O(1)",
+        "code_cpp": "int findRadius(const vector<int>& h, vector<int> t){ sort(t.begin(), t.end()); int r = 0; for(int x : h){ auto it = lower_bound(t.begin(), t.end(), x); int d = INT_MAX; if(it != t.end()) d = min(d, *it - x); if(it != t.begin()) d = min(d, x - *prev(it)); r = max(r, d); } return r; }"
+      },
+      "explanation": "Nearest-neighbour search sorted array me lower_bound ka classic use hai. Alternative: radius par binary search aur two-pointer coverage check (answer-search).",
+      "edge_cases": [
+        "House at heater position",
+        "Houses far left/right of all heaters",
+        "Single heater"
+      ]
+    },
+    {
+      "id": "L2-075",
+      "level": 2,
+      "topic": "Binary Search on Answer",
+      "title": "Minimum Speed to Arrive on Time",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Infosys",
+        "Flipkart"
+      ],
+      "problem_statement": "You must travel through n trains in order; train i covers dist[i] km. All trains run at the same speed (positive integer, km/h). Each train except the last must depart at an integer hour (wait if you arrive earlier). Return the minimum integer speed so you arrive within 'hour' hours (hour has at most 2 decimals), or -1 if impossible. The answer fits in 1e7.",
+      "description": "Last train ke liye waiting nahi hoti, baaki ke liye time ceil hota hai.",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "1 <= dist[i] <= 1e5",
+        "1 <= hour <= 1e9, at most 2 decimal places"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,3,2], hour=6",
+          "output": "1",
+          "explanation": "1 + 3 + 2 = 6 hours"
+        },
+        {
+          "input": "[1,3,2], hour=2.7",
+          "output": "3",
+          "explanation": "1 + 1 + 0.667 = 2.67"
+        },
+        {
+          "input": "[1,3,2], hour=1.9",
+          "output": "-1",
+          "explanation": "Kam se kam 2 ghante se zyada chahiye"
+        }
+      ],
+      "theory": "Total time = sum(ceil(dist[i] / v)) (last chhodkar) + dist[last] / v. Speed badhne par time ghatta hai (monotonic). Floating error se bachne ke liye hour ko 100 se multiply karke integer arithmetic karo.",
+      "brute_force": {
+        "approach": "Speed v = 1, 2, 3... try (max 1e7 tak).",
+        "time": "O(n * answer)",
+        "space": "O(1)",
+        "code_cpp": "bool okSpeed(const vector<int>& d, long long H, long long v){ long long S = 0; for(size_t i = 0; i + 1 < d.size(); i++) S += (d[i] + v - 1) / v; return S * 100 * v + (long long)d.back() * 100 <= H * v; }\nint minSpeedOnTime(const vector<int>& d, double hour){ long long H = llround(hour * 100); for(long long v = 1; v <= 10000000; v++) if(okSpeed(d, H, v)) return (int)v; return -1; }"
+      },
+      "optimized": {
+        "approach": "Binary search on speed with integer time check.",
+        "time": "O(n log 1e7)",
+        "space": "O(1)",
+        "code_cpp": "bool okSpeed(const vector<int>& d, long long H, long long v){ long long S = 0; for(size_t i = 0; i + 1 < d.size(); i++) S += (d[i] + v - 1) / v; return S * 100 * v + (long long)d.back() * 100 <= H * v; }\nint minSpeedOnTime(const vector<int>& d, double hour){ long long H = llround(hour * 100); long long lo = 1, hi = 10000000; if(!okSpeed(d, H, hi)) return -1; while(lo < hi){ long long mid = lo + (hi - lo) / 2; if(okSpeed(d, H, mid)) hi = mid; else lo = mid + 1; } return (int)lo; }"
+      },
+      "explanation": "Condition S + last/v <= hour ko v se multiply aur 100 se scale karke fully integer bana diya (no floating comparison). Upper bound 1e7 problem statement ki guarantee hai; us par bhi fail ho to -1.",
+      "edge_cases": [
+        "Impossible (hour <= n - 1)",
+        "Single train",
+        "Huge speed needed"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1853 @@
+{
+  "meta": {
+    "series": "DSA for Freshers: Mid-level Company Roadmap",
+    "level": 2,
+    "level_title": "Core Patterns",
+    "batch": "Part 4 (final batch of Level 2): Sorting + comparators, Greedy basics, Revision sheet",
+    "id_range": "L2-076 to L2-100",
+    "language_for_code": "C++17",
+    "language_for_explanations": "Hinglish",
+    "total_problems_in_batch": 25,
+    "level_2_total_problems": 100,
+    "includes_headers_hint": "#include <bits/stdc++.h> and using namespace std;",
+    "note": "company_tags indicative hain (frequently asked trends), official guarantee nahi. Intervals (merge/insert/min rooms) aur advanced greedy Level 3 me hain."
+  },
+  "theory": [
+    {
+      "topic": "Custom Comparators (Sorting by Rules)",
+      "concept": "std::sort ko lambda comparator do to apni marzi ke order me sort hota hai. Comparator true tab return karta hai jab pehla element dusre se PEHLE aana chahiye. Ye strict weak ordering follow kare: irreflexive (comp(a, a) = false), asymmetric, transitive. Warna undefined behaviour ya crash.",
+      "key_points": [
+        "Multi-key sorting: pehle primary key compare karo, equal ho to secondary: if(fx != fy) return fx < fy; return x > y;",
+        "Largest Number trick: a aur b ka order a+b > b+a (strings concatenate karke compare), ye valid strict weak ordering hai",
+        "pair / array / tuple default lexicographic sort hote hain (pehle first, phir second)",
+        "stable_sort equal elements ka relative order preserve karta hai",
+        "Comparator me <= kabhi mat use karo (comp(a, a) true ho jata hai, crash ho sakta hai)",
+        "Sorting ke dauraan comparator me container ko modify ya wahi container padhna (jise sort kar rahe ho) avoid karo; copy ya frequency map use karo"
+      ],
+      "template_cpp": "sort(a.begin(), a.end(), [&](int x, int y){\n  if(freq[x] != freq[y]) return freq[x] < freq[y];   // primary: frequency asc\n  return x > y;                                        // secondary: value desc\n});",
+      "pitfalls": [
+        "<= comparator se runtime error",
+        "Comparator ke andar expensive kaam (count() har baar) O(n^2 log n) bana deta hai",
+        "Non-transitive rules (inconsistent comparator)"
+      ]
+    },
+    {
+      "topic": "Counting & Bucket Sort (Small Value Range)",
+      "concept": "Jab values ki range chhoti ho (e.g., 0..1000, a..z, heights 1..100), to comparison sort (O(n log n)) ki jagah frequency array se O(n + range) me sort ho jata hai. Frequency-based sorting (character frequency, H-Index) me bhi buckets kaam aate hain.",
+      "key_points": [
+        "cnt[v]++ phir v ko ascending traverse karke cnt[v] baar output karo",
+        "Relative Sort Array / Custom Sort String: pehle given order ke elements, phir bacha hua",
+        "H-Index: bucket[min(citation, n)] banao, peeche se cumulative count dekho",
+        "Height Checker: counting sort se expected array on-the-fly milta hai (extra array ki zaroorat nahi)"
+      ],
+      "template_cpp": "int cnt[1001] = {0};\nfor(int x : a) cnt[x]++;\nvector<int> out;\nfor(int v = 0; v <= 1000; v++) while(cnt[v]-- > 0) out.push_back(v);",
+      "pitfalls": [
+        "Range bahut badi (1e9) ho to counting sort lagu nahi",
+        "Negative values ke liye offset zaroori",
+        "Stable counting sort ke liye prefix sums chahiye (yahan sirf values)"
+      ]
+    },
+    {
+      "topic": "Quickselect (Kth Largest / Smallest)",
+      "concept": "Kth element ke liye poori sorting zaroori nahi. Quicksort ka partition step kar do: pivot ka final index i mil jata hai. i == target index to done, warna sirf ek side me recurse. Average O(n), worst O(n^2) (random pivot se rare).",
+      "key_points": [
+        "Kth largest = (n - k)-th smallest (0-indexed)",
+        "Random pivot se sorted input par bhi average O(n)",
+        "Bahut saare duplicates ho to 3-way partition use karo (Dutch National Flag)",
+        "Alternatives: sort O(n log n), min-heap of size k O(n log k) (Level 3), nth_element STL O(n)"
+      ],
+      "template_cpp": "// partition around random pivot, keep only the side containing index k\nwhile(l < r){\n  swap(a[l + rng() % (r - l + 1)], a[r]);\n  int pv = a[r], i = l;\n  for(int j = l; j < r; j++) if(a[j] < pv) swap(a[i++], a[j]);\n  swap(a[i], a[r]);\n  if(i == k) return a[i];\n  if(i < k) l = i + 1; else r = i - 1;\n}",
+      "pitfalls": [
+        "Pivot hamesha last/first lena (sorted input par O(n^2))",
+        "k ko 1-indexed/0-indexed me confuse karna",
+        "Equal elements par infinite loop ya O(n^2)"
+      ]
+    },
+    {
+      "topic": "Sort + Adjacent / Sort + Two Pointers",
+      "concept": "Sorting ke baad kai problems local ho jati hain: minimum difference sirf adjacent elements me hota hai, overlap check sirf adjacent intervals me, triangle ke liye sabse bade teen elements. Isliye pehla step 'sort karo' hona chahiye jab order se matlab na ho.",
+      "key_points": [
+        "Min absolute difference: sort karke adjacent diff",
+        "Meeting rooms (overlap): start se sort, har meeting ka start pichhle ke end se chhota to overlap",
+        "Intersection of arrays: dono sort, do pointers (multiset intersection)",
+        "Largest perimeter triangle: descending sort, pehla (a[i] < a[i+1] + a[i+2]) triplet",
+        "Sort karne se original index/order kho jata hai (agar zaroori ho to pair me index rakho)"
+      ],
+      "template_cpp": "sort(a.begin(), a.end());\nint best = INT_MAX;\nfor(size_t i = 1; i < a.size(); i++) best = min(best, a[i] - a[i-1]);",
+      "pitfalls": [
+        "Duplicates par adjacent logic (diff 0 pairs)",
+        "Sort ke baad original positions chahiye ho",
+        "Interval overlap me <= vs < (end == start allowed?)"
+      ]
+    },
+    {
+      "topic": "Greedy Strategy (Local Choice, Global Optimum)",
+      "concept": "Greedy me har step par abhi ka sabse accha local choice liya jata hai aur kabhi wapas nahi badla jata. Ye tabhi sahi hai jab proof ho ki local choice kabhi global optimum se door nahi le jata. Proof ke do common tareeke: exchange argument (optimal solution me apna choice swap karke kharab nahi hota) aur 'greedy stays ahead'.",
+      "key_points": [
+        "Pehle sort karna aksar greedy ka pehla step hota hai (cookies, boats, units on truck, two-city scheduling by difference)",
+        "Jab greedy fail hota hai: 0/1 knapsack, coin change (arbitrary coins) jaise problems me DP chahiye",
+        "Counterexample dhundo pehle: chhote input par brute force se compare karo (stress test)",
+        "Reachability greedy: farthest reachable index maintain karo (Jump Game)",
+        "Reset greedy: running total negative hote hi start aage badhao (Gas Station, Kadane)",
+        "Two-pass greedy: left se constraint, phir right se constraint (Candy)",
+        "Interval-type greedy (earliest end time first) Level 3 me aayegi"
+      ],
+      "template_cpp": "// farthest reachable index greedy (Jump Game)\nint far = 0;\nfor(int i = 0; i < n; i++){\n  if(i > far) return false;\n  far = max(far, i + a[i]);\n}\nreturn true;",
+      "pitfalls": [
+        "Bina proof ke greedy lagana",
+        "Ties break karne ka rule galat",
+        "Local choice ko baad me badalne ki zaroorat (tab DP)"
+      ]
+    }
+  ],
+  "problems": [
+    {
+      "id": "L2-076",
+      "level": 2,
+      "topic": "Sorting (Custom Comparator)",
+      "title": "Sort Array by Increasing Frequency",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Infosys",
+        "TCS"
+      ],
+      "problem_statement": "Sort the array in increasing order of frequency. If multiple values have the same frequency, sort them in decreasing order of value.",
+      "description": "Do-level sorting rule: pehle frequency (asc), tie par value (desc).",
+      "constraints": [
+        "1 <= n <= 100",
+        "-100 <= a[i] <= 100"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,1,2,2,2,3]",
+          "output": "[3,1,1,2,2,2]",
+          "explanation": "3 (freq 1), 1 (freq 2), 2 (freq 3)"
+        },
+        {
+          "input": "[2,3,1,3,2]",
+          "output": "[1,3,3,2,2]",
+          "explanation": "Freq 2 wale: 3 pehle (bada), phir 2"
+        },
+        {
+          "input": "[-1,1,-6,4,5,-6,1,4,1]",
+          "output": "[5,-1,4,4,-6,-6,1,1,1]",
+          "explanation": "Mixed"
+        }
+      ],
+      "theory": "Frequency map banao, phir comparator: if(f[x] != f[y]) return f[x] < f[y]; return x > y;",
+      "brute_force": {
+        "approach": "Comparator ke andar har baar count() se frequency nikalo.",
+        "time": "O(n^2 log n)",
+        "space": "O(n)",
+        "code_cpp": "vector<int> frequencySort(vector<int> a){ vector<int> b = a; sort(a.begin(), a.end(), [&](int x, int y){ int fx = count(b.begin(), b.end(), x), fy = count(b.begin(), b.end(), y); if(fx != fy) return fx < fy; return x > y; }); return a; }"
+      },
+      "optimized": {
+        "approach": "Frequency map ek baar, phir sort.",
+        "time": "O(n log n)",
+        "space": "O(n)",
+        "code_cpp": "vector<int> frequencySort(vector<int> a){ unordered_map<int,int> f; for(int x : a) f[x]++; sort(a.begin(), a.end(), [&](int x, int y){ if(f[x] != f[y]) return f[x] < f[y]; return x > y; }); return a; }"
+      },
+      "explanation": "Brute me comparator ke andar O(n) kaam hone se total O(n^2 log n) ho gaya. Heavy computation ko comparator se bahar nikalo (precompute).",
+      "edge_cases": [
+        "All same frequency",
+        "Single element",
+        "Negative numbers"
+      ]
+    },
+    {
+      "id": "L2-077",
+      "level": 2,
+      "topic": "Sorting (Custom Comparator)",
+      "title": "Sort Characters By Frequency",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Facebook",
+        "Infosys"
+      ],
+      "problem_statement": "Sort the characters of a string in decreasing order of frequency (equal characters stay together). For determinism, characters with equal frequency are ordered by ASCII value ascending.",
+      "description": "LeetCode me equal frequency wale kisi bhi order me ho sakte hain; yahan test karne ke liye ascending char fix kiya hai.",
+      "constraints": [
+        "1 <= |s| <= 5e5",
+        "ASCII characters (upper/lower case alag)"
+      ],
+      "test_cases": [
+        {
+          "input": "tree",
+          "output": "eert",
+          "explanation": "e freq 2, phir r aur t"
+        },
+        {
+          "input": "cccaaa",
+          "output": "aaaccc",
+          "explanation": "Tie par chhota char pehle"
+        },
+        {
+          "input": "Aabb",
+          "output": "bbAa",
+          "explanation": "'A'(65) < 'a'(97)"
+        }
+      ],
+      "theory": "freq[256] banao, characters ko (freq desc, char asc) se sort karo, phir har char ko freq baar likho.",
+      "brute_force": {
+        "approach": "Characters ko comparator me count() se sort.",
+        "time": "O(n^2 log n)",
+        "space": "O(n)",
+        "code_cpp": "string frequencySortStr(string s){ string b = s; sort(s.begin(), s.end(), [&](char x, char y){ int fx = count(b.begin(), b.end(), x), fy = count(b.begin(), b.end(), y); if(fx != fy) return fx > fy; return x < y; }); return s; }"
+      },
+      "optimized": {
+        "approach": "Frequency array + sort distinct chars + build.",
+        "time": "O(n + k log k)",
+        "space": "O(n)",
+        "code_cpp": "string frequencySortStr(const string& s){ int f[256] = {0}; for(unsigned char c : s) f[c]++; vector<int> ch; for(int c = 0; c < 256; c++) if(f[c]) ch.push_back(c); sort(ch.begin(), ch.end(), [&](int x, int y){ if(f[x] != f[y]) return f[x] > f[y]; return x < y; }); string r; for(int c : ch) r.append(f[c], (char)c); return r; }"
+      },
+      "explanation": "Poori string sort karne ki jagah sirf distinct characters (max 256) sort hote hain. Total O(n) jaisa. Heap/bucket sort se bhi hota hai.",
+      "edge_cases": [
+        "All same character",
+        "Case sensitivity",
+        "Single character"
+      ]
+    },
+    {
+      "id": "L2-078",
+      "level": 2,
+      "topic": "Sorting (Custom Comparator)",
+      "title": "Largest Number",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Apple",
+        "Facebook",
+        "Infosys",
+        "Flipkart"
+      ],
+      "problem_statement": "Given non-negative integers, arrange them so they form the largest number and return it as a string.",
+      "description": "Result bahut bada ho sakta hai, isliye string return karo.",
+      "constraints": [
+        "1 <= n <= 100",
+        "0 <= a[i] <= 1e9"
+      ],
+      "test_cases": [
+        {
+          "input": "[10,2]",
+          "output": "210",
+          "explanation": "2 pehle, phir 10"
+        },
+        {
+          "input": "[3,30,34,5,9]",
+          "output": "9534330",
+          "explanation": "9, 5, 34, 3, 30"
+        },
+        {
+          "input": "[0,0]",
+          "output": "0",
+          "explanation": "Leading zeros nahi"
+        }
+      ],
+      "theory": "Do numbers x, y ka order: x pehle agar string(x)+string(y) > string(y)+string(x). Is comparator se sort karo. Sab zero ho to '0'.",
+      "brute_force": {
+        "approach": "Saari permutations try karo (chhote n ke liye), sabse bada string lo.",
+        "time": "O(n! * n)",
+        "space": "O(n)",
+        "code_cpp": "string largestNumber(const vector<int>& a){ vector<string> s; for(int x : a) s.push_back(to_string(x)); sort(s.begin(), s.end()); string best = \"\"; do{ string c; for(auto& t : s) c += t; if(c.size() > best.size() || (c.size() == best.size() && c > best)) best = c; } while(next_permutation(s.begin(), s.end())); if(best[0] == '0') return \"0\"; return best; }"
+      },
+      "optimized": {
+        "approach": "Custom comparator on concatenated strings.",
+        "time": "O(n log n * L)",
+        "space": "O(n * L)",
+        "code_cpp": "string largestNumber(const vector<int>& a){ vector<string> s; for(int x : a) s.push_back(to_string(x)); sort(s.begin(), s.end(), [](const string& x, const string& y){ return x + y > y + x; }); if(s[0] == \"0\") return \"0\"; string r; for(auto& t : s) r += t; return r; }"
+      },
+      "explanation": "Normal string compare ('3' vs '30') galat hai kyunki '30' > '3' par '330' > '303'. Concatenation compare isliye sahi hai ki wo directly final answer ko compare karta hai. Ye transitive hai (proof by exchange argument).",
+      "edge_cases": [
+        "All zeros",
+        "Numbers with common prefix (3, 30, 34)",
+        "Single element"
+      ]
+    },
+    {
+      "id": "L2-079",
+      "level": 2,
+      "topic": "Sorting (Custom Order)",
+      "title": "Relative Sort Array",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Infosys",
+        "Cognizant"
+      ],
+      "problem_statement": "Given arr1 and arr2 (distinct values, all in arr1), sort arr1 so elements appear in the same relative order as arr2. Elements not in arr2 go at the end in ascending order.",
+      "description": "arr2 ke elements ke saare duplicates ek saath aate hain.",
+      "constraints": [
+        "1 <= n, m <= 1000",
+        "0 <= value <= 1000",
+        "arr2 distinct, each arr2 element is in arr1"
+      ],
+      "test_cases": [
+        {
+          "input": "a=[2,3,1,3,2,4,6,7,9,2,19], b=[2,1,4,3,9,6]",
+          "output": "[2,2,2,1,4,3,3,9,6,7,19]",
+          "explanation": "Pehle b ke order me, phir 7, 19"
+        },
+        {
+          "input": "a=[28,6,22,8,44,17], b=[22,28,8,6]",
+          "output": "[22,28,8,6,17,44]",
+          "explanation": "Bache hue ascending"
+        },
+        {
+          "input": "a=[1], b=[1]",
+          "output": "[1]",
+          "explanation": "Single"
+        }
+      ],
+      "theory": "Counting array (value <= 1000). arr2 ke order me cnt[x] baar likho, phir 0..1000 ascending bache hue.",
+      "brute_force": {
+        "approach": "arr2 ke har element ke liye arr1 scan karke match nikalo, bache hue sort.",
+        "time": "O(n*m + n log n)",
+        "space": "O(n)",
+        "code_cpp": "vector<int> relativeSortArray(const vector<int>& a, const vector<int>& b){ vector<int> r; vector<bool> used(a.size(), false); for(int x : b) for(size_t i = 0; i < a.size(); i++) if(!used[i] && a[i] == x){ r.push_back(x); used[i] = true; } vector<int> rest; for(size_t i = 0; i < a.size(); i++) if(!used[i]) rest.push_back(a[i]); sort(rest.begin(), rest.end()); r.insert(r.end(), rest.begin(), rest.end()); return r; }"
+      },
+      "optimized": {
+        "approach": "Counting sort style.",
+        "time": "O(n + m + range)",
+        "space": "O(range)",
+        "code_cpp": "vector<int> relativeSortArray(const vector<int>& a, const vector<int>& b){ vector<int> cnt(1001, 0); for(int x : a) cnt[x]++; vector<int> r; for(int x : b){ while(cnt[x] > 0){ r.push_back(x); cnt[x]--; } } for(int v = 0; v <= 1000; v++) while(cnt[v] > 0){ r.push_back(v); cnt[v]--; } return r; }"
+      },
+      "explanation": "Value range chhoti hai (<= 1000) isliye counting sort best. Alternative: arr2 ka position map banake custom comparator.",
+      "edge_cases": [
+        "Elements not in arr2",
+        "arr2 same as arr1 distinct",
+        "Many duplicates"
+      ]
+    },
+    {
+      "id": "L2-080",
+      "level": 2,
+      "topic": "Sorting (Custom Comparator)",
+      "title": "Sort Integers by The Number of 1 Bits",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Infosys",
+        "TCS",
+        "Wipro"
+      ],
+      "problem_statement": "Sort integers by the number of 1 bits in their binary representation (ascending). If two numbers have the same count, sort by value ascending.",
+      "description": "Two-key sort: popcount, phir value.",
+      "constraints": [
+        "1 <= n <= 500",
+        "0 <= a[i] <= 1e4"
+      ],
+      "test_cases": [
+        {
+          "input": "[0,1,2,3,4,5,6,7,8]",
+          "output": "[0,1,2,4,8,3,5,6,7]",
+          "explanation": "Bits: 0 -> 0; 1,2,4,8 -> 1; 3,5,6 -> 2; 7 -> 3"
+        },
+        {
+          "input": "[1024,512,256,128,64,32,16,8,4,2,1]",
+          "output": "[1,2,4,8,16,32,64,128,256,512,1024]",
+          "explanation": "Sab 1 bit, value se sort"
+        },
+        {
+          "input": "[3,3,1]",
+          "output": "[1,3,3]",
+          "explanation": "Duplicates"
+        }
+      ],
+      "theory": "Comparator: popcount compare, tie par value. __builtin_popcount ya Kernighan loop.",
+      "brute_force": {
+        "approach": "Insertion sort (O(n^2)) with popcount key.",
+        "time": "O(n^2 * bits)",
+        "space": "O(1)",
+        "code_cpp": "vector<int> sortByBits(vector<int> a){ auto key = [](int x){ int c = 0; for(int t = x; t; t &= t - 1) c++; return c; }; for(size_t i = 1; i < a.size(); i++){ int v = a[i]; size_t j = i; while(j > 0 && (key(a[j-1]) > key(v) || (key(a[j-1]) == key(v) && a[j-1] > v))){ a[j] = a[j-1]; j--; } a[j] = v; } return a; }"
+      },
+      "optimized": {
+        "approach": "std::sort with two-key comparator.",
+        "time": "O(n log n)",
+        "space": "O(1)",
+        "code_cpp": "vector<int> sortByBits(vector<int> a){ sort(a.begin(), a.end(), [](int x, int y){ int bx = __builtin_popcount(x), by = __builtin_popcount(y); if(bx != by) return bx < by; return x < y; }); return a; }"
+      },
+      "explanation": "Ye Level 1 ke 'Number of 1 Bits' aur sorting ka combination hai. Alternative trick: key = popcount * 100000 + value ek hi integer me.",
+      "edge_cases": [
+        "Zero",
+        "Powers of two",
+        "Duplicates"
+      ]
+    },
+    {
+      "id": "L2-081",
+      "level": 2,
+      "topic": "Sorting (Custom Order)",
+      "title": "Custom Sort String",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Facebook",
+        "Infosys"
+      ],
+      "problem_statement": "Given a string order (unique characters) and a string s, permute s so characters appear in the order defined by 'order'. Characters of s not present in order go at the end (here: in ascending order, for determinism).",
+      "description": "order me jo characters pehle aate hain, s me bhi pehle aane chahiye.",
+      "constraints": [
+        "1 <= |order|, |s| <= 200",
+        "Lowercase letters",
+        "order has unique characters"
+      ],
+      "test_cases": [
+        {
+          "input": "order=cba, s=abcd",
+          "output": "cbad",
+          "explanation": "c, b, a ke baad d"
+        },
+        {
+          "input": "order=bcafg, s=abcd",
+          "output": "bcad",
+          "explanation": "b, c, a, phir d"
+        },
+        {
+          "input": "order=xyz, s=abc",
+          "output": "abc",
+          "explanation": "Koi match nahi: ascending"
+        }
+      ],
+      "theory": "s ki frequency array. order ke har character ko cnt baar likho (aur cnt = 0 karo), phir bache hue characters ascending.",
+      "brute_force": {
+        "approach": "order ke har character ke liye s scan, bache hue sort.",
+        "time": "O(|order| * |s| + |s| log |s|)",
+        "space": "O(|s|)",
+        "code_cpp": "string customSort(const string& order, const string& s){ string r, rest; vector<bool> used(s.size(), false); for(char o : order) for(size_t i = 0; i < s.size(); i++) if(!used[i] && s[i] == o){ r += s[i]; used[i] = true; } for(size_t i = 0; i < s.size(); i++) if(!used[i]) rest += s[i]; sort(rest.begin(), rest.end()); return r + rest; }"
+      },
+      "optimized": {
+        "approach": "Frequency array (counting sort).",
+        "time": "O(|order| + |s|)",
+        "space": "O(1)",
+        "code_cpp": "string customSort(const string& order, const string& s){ int cnt[256] = {0}; for(unsigned char c : s) cnt[c]++; string r; for(unsigned char c : order){ r.append(cnt[c], (char)c); cnt[c] = 0; } for(int c = 0; c < 256; c++) r.append(cnt[c], (char)c); return r; }"
+      },
+      "explanation": "Relative Sort Array ka string version. order ke character ko ek baar likhne ke baad cnt = 0 karna zaroori hai taaki aakhri loop me dobara na aaye.",
+      "edge_cases": [
+        "Characters not in order",
+        "order has chars absent in s",
+        "Repeated characters"
+      ]
+    },
+    {
+      "id": "L2-082",
+      "level": 2,
+      "topic": "Sorting (Quickselect)",
+      "title": "Kth Largest Element in an Array",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Facebook",
+        "Google",
+        "Microsoft",
+        "Apple",
+        "Adobe",
+        "Flipkart",
+        "Infosys"
+      ],
+      "problem_statement": "Given an integer array and k, return the k-th largest element (in sorted order, not distinct).",
+      "description": "Sort kiye bina average O(n) me solve karna interview ka follow-up hota hai.",
+      "constraints": [
+        "1 <= k <= n <= 1e5",
+        "-1e4 <= a[i] <= 1e4"
+      ],
+      "test_cases": [
+        {
+          "input": "[3,2,1,5,6,4], k=2",
+          "output": "5",
+          "explanation": "Sorted desc: 6,5,4,..."
+        },
+        {
+          "input": "[3,2,3,1,2,4,5,5,6], k=4",
+          "output": "4",
+          "explanation": "6,5,5,4"
+        },
+        {
+          "input": "[1], k=1",
+          "output": "1",
+          "explanation": "Single"
+        }
+      ],
+      "theory": "Quickselect: kth largest = (n - k)-th smallest. Random pivot se partition karo aur sirf us side me jao jahan target index hai.",
+      "brute_force": {
+        "approach": "Poora array descending sort, a[k-1].",
+        "time": "O(n log n)",
+        "space": "O(1)",
+        "code_cpp": "int findKthLargest(vector<int> a, int k){ sort(a.begin(), a.end(), greater<int>()); return a[k - 1]; }"
+      },
+      "optimized": {
+        "approach": "Quickselect with random pivot.",
+        "time": "O(n) average, O(n^2) worst",
+        "space": "O(1)",
+        "code_cpp": "int quickSelect(vector<int>& a, int l, int r, int k){ static mt19937 rng(12345); while(l < r){ int p = l + rng() % (r - l + 1); swap(a[p], a[r]); int pv = a[r], i = l; for(int j = l; j < r; j++) if(a[j] < pv) swap(a[i++], a[j]); swap(a[i], a[r]); if(i == k) return a[i]; if(i < k) l = i + 1; else r = i - 1; } return a[l]; }\nint findKthLargest(vector<int> a, int k){ int n = a.size(); return quickSelect(a, 0, n - 1, n - k); }"
+      },
+      "explanation": "Har partition ke baad ek side discard ho jati hai: n + n/2 + n/4 + ... = O(n) expected. Min-heap of size k se O(n log k) hota hai (Level 3), nth_element STL me ready-made hai.",
+      "edge_cases": [
+        "k = 1 (maximum)",
+        "k = n (minimum)",
+        "Many duplicates"
+      ]
+    },
+    {
+      "id": "L2-083",
+      "level": 2,
+      "topic": "Sorting (Sort + Adjacent)",
+      "title": "Minimum Absolute Difference",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Infosys",
+        "Cognizant"
+      ],
+      "problem_statement": "Given an array of distinct integers, find all pairs [a, b] (a < b) with the minimum absolute difference between any two elements. Return pairs in ascending order.",
+      "description": "Minimum difference sirf sorted order ke adjacent elements me hota hai.",
+      "constraints": [
+        "2 <= n <= 1e5",
+        "-1e6 <= a[i] <= 1e6",
+        "All distinct"
+      ],
+      "test_cases": [
+        {
+          "input": "[4,2,1,3]",
+          "output": "[[1,2],[2,3],[3,4]]",
+          "explanation": "Min diff 1"
+        },
+        {
+          "input": "[1,3,6,10,15]",
+          "output": "[[1,3]]",
+          "explanation": "Min diff 2"
+        },
+        {
+          "input": "[3,8,-10,23,19,-4,-14,27]",
+          "output": "[[-14,-10],[19,23],[23,27]]",
+          "explanation": "Min diff 4"
+        }
+      ],
+      "theory": "Sort karo. Adjacent differences ka minimum nikalo, phir un adjacent pairs ko collect karo jinka diff minimum ho.",
+      "brute_force": {
+        "approach": "Saare pairs compare karo, minimum diff ke pairs collect + sort.",
+        "time": "O(n^2)",
+        "space": "O(1) extra",
+        "code_cpp": "vector<vector<int>> minimumAbsDifference(vector<int> a){ int n = a.size(), best = INT_MAX; for(int i = 0; i < n; i++) for(int j = i + 1; j < n; j++) best = min(best, abs(a[i] - a[j])); vector<vector<int>> r; for(int i = 0; i < n; i++) for(int j = i + 1; j < n; j++) if(abs(a[i] - a[j]) == best) r.push_back({min(a[i], a[j]), max(a[i], a[j])}); sort(r.begin(), r.end()); return r; }"
+      },
+      "optimized": {
+        "approach": "Sort + adjacent scan.",
+        "time": "O(n log n)",
+        "space": "O(1) extra",
+        "code_cpp": "vector<vector<int>> minimumAbsDifference(vector<int> a){ sort(a.begin(), a.end()); int best = INT_MAX; for(size_t i = 1; i < a.size(); i++) best = min(best, a[i] - a[i-1]); vector<vector<int>> r; for(size_t i = 1; i < a.size(); i++) if(a[i] - a[i-1] == best) r.push_back({a[i-1], a[i]}); return r; }"
+      },
+      "explanation": "Agar x aur z ke beech y aaye to |x - z| > |x - y|, isliye closest pair kabhi non-adjacent nahi hota (distinct elements ke liye). Duplicates hote to alag handling chahiye.",
+      "edge_cases": [
+        "n = 2",
+        "All pairs same diff",
+        "Negative numbers"
+      ]
+    },
+    {
+      "id": "L2-084",
+      "level": 2,
+      "topic": "Sorting (Counting)",
+      "title": "Height Checker",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Infosys",
+        "TCS",
+        "Wipro"
+      ],
+      "problem_statement": "Students are standing in a line with given heights. The expected order is non-decreasing. Return the number of indices where the current height differs from the expected height.",
+      "description": "Expected = sorted version of heights.",
+      "constraints": [
+        "1 <= n <= 100",
+        "1 <= heights[i] <= 100"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,1,4,2,1,3]",
+          "output": "3",
+          "explanation": "Sorted: [1,1,1,2,3,4]; 3 jagah alag"
+        },
+        {
+          "input": "[5,1,2,3,4]",
+          "output": "5",
+          "explanation": "Sab alag"
+        },
+        {
+          "input": "[1,2,3,4,5]",
+          "output": "0",
+          "explanation": "Pehle se sorted"
+        }
+      ],
+      "theory": "Sorted copy se compare karo. Values 1..100 hain, isliye counting sort se extra array ke bina bhi expected value on-the-fly mil jati hai.",
+      "brute_force": {
+        "approach": "Copy banao, sort karo, compare.",
+        "time": "O(n log n)",
+        "space": "O(n)",
+        "code_cpp": "int heightChecker(const vector<int>& h){ vector<int> e = h; sort(e.begin(), e.end()); int c = 0; for(size_t i = 0; i < h.size(); i++) if(h[i] != e[i]) c++; return c; }"
+      },
+      "optimized": {
+        "approach": "Counting sort, expected value pointer.",
+        "time": "O(n + range)",
+        "space": "O(range)",
+        "code_cpp": "int heightChecker(const vector<int>& h){ int cnt[101] = {0}; for(int x : h) cnt[x]++; int c = 0, v = 1; for(size_t i = 0; i < h.size(); i++){ while(cnt[v] == 0) v++; if(h[i] != v) c++; cnt[v]--; } return c; }"
+      },
+      "explanation": "Small range hone ki wajah se O(n) possible. 'Expected array' ko explicitly banane ki bhi zaroorat nahi padti.",
+      "edge_cases": [
+        "Already sorted",
+        "All same",
+        "Reverse sorted"
+      ]
+    },
+    {
+      "id": "L2-085",
+      "level": 2,
+      "topic": "Sorting (Sort + Two Pointers)",
+      "title": "Intersection of Two Arrays II",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Facebook",
+        "Infosys"
+      ],
+      "problem_statement": "Given two integer arrays, return their intersection. Each element appears as many times as it shows in both arrays. (Here the result is returned in ascending order for determinism.)",
+      "description": "Multiset intersection: duplicates ki ginti bhi count hoti hai.",
+      "constraints": [
+        "1 <= n, m <= 1000",
+        "0 <= a[i], b[i] <= 1000"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,2,2,1], [2,2]",
+          "output": "[2,2]",
+          "explanation": "2 do baar dono me"
+        },
+        {
+          "input": "[4,9,5], [9,4,9,8,4]",
+          "output": "[4,9]",
+          "explanation": "4 aur 9 ek-ek baar"
+        },
+        {
+          "input": "[1,2], [3,4]",
+          "output": "[]",
+          "explanation": "Koi common nahi"
+        }
+      ],
+      "theory": "Dono arrays sort karo, do pointers. Equal ho to result me daalo aur dono aage; warna chhota wala aage.",
+      "brute_force": {
+        "approach": "Har element ke liye dusre array me unused match dhundo.",
+        "time": "O(n * m)",
+        "space": "O(m)",
+        "code_cpp": "vector<int> intersect(const vector<int>& a, const vector<int>& b){ vector<bool> used(b.size(), false); vector<int> r; for(int x : a) for(size_t j = 0; j < b.size(); j++) if(!used[j] && b[j] == x){ used[j] = true; r.push_back(x); break; } sort(r.begin(), r.end()); return r; }"
+      },
+      "optimized": {
+        "approach": "Sort + two pointers.",
+        "time": "O(n log n + m log m)",
+        "space": "O(1) extra",
+        "code_cpp": "vector<int> intersect(vector<int> a, vector<int> b){ sort(a.begin(), a.end()); sort(b.begin(), b.end()); size_t i = 0, j = 0; vector<int> r; while(i < a.size() && j < b.size()){ if(a[i] < b[j]) i++; else if(a[i] > b[j]) j++; else { r.push_back(a[i]); i++; j++; } } return r; }"
+      },
+      "explanation": "HashMap (frequency) se O(n + m) bhi hota hai. Arrays pehle se sorted ho to two pointers me sorting bhi nahi lagti (follow-up). Level 1 ka L1-015 unique intersection tha, ye multiset version hai.",
+      "edge_cases": [
+        "No common",
+        "Many duplicates",
+        "One array much larger"
+      ]
+    },
+    {
+      "id": "L2-086",
+      "level": 2,
+      "topic": "Sorting (Counting / Buckets)",
+      "title": "H-Index",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Infosys",
+        "TCS"
+      ],
+      "problem_statement": "Given an array of citation counts for a researcher's papers, return the researcher's h-index: the maximum h such that the researcher has at least h papers with at least h citations each.",
+      "description": "Total n papers hain, isliye h <= n.",
+      "constraints": [
+        "1 <= n <= 5000",
+        "0 <= citations[i] <= 1000"
+      ],
+      "test_cases": [
+        {
+          "input": "[3,0,6,1,5]",
+          "output": "3",
+          "explanation": "3 papers me >= 3 citations"
+        },
+        {
+          "input": "[1,3,1]",
+          "output": "1",
+          "explanation": "Sirf 1"
+        },
+        {
+          "input": "[0]",
+          "output": "0",
+          "explanation": "Koi nahi"
+        }
+      ],
+      "theory": "Bucket count: b[min(c, n)]++. Peeche se (h = n ... 0) cumulative total; total >= h hote hi answer h.",
+      "brute_force": {
+        "approach": "h = n se neeche, har h ke liye count(c >= h).",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int hIndex(const vector<int>& c){ int n = c.size(); for(int h = n; h >= 1; h--){ int cnt = 0; for(int x : c) if(x >= h) cnt++; if(cnt >= h) return h; } return 0; }"
+      },
+      "optimized": {
+        "approach": "Bucket (counting) array + cumulative sum.",
+        "time": "O(n)",
+        "space": "O(n)",
+        "code_cpp": "int hIndex(const vector<int>& c){ int n = c.size(); vector<int> b(n + 1, 0); for(int x : c) b[min(x, n)]++; int total = 0; for(int h = n; h >= 0; h--){ total += b[h]; if(total >= h) return h; } return 0; }"
+      },
+      "explanation": "Citations ko n par cap karte hain kyunki h kabhi n se bada nahi ho sakta. Sort karke (descending) bhi O(n log n) me ho jata hai: pehla index i jahan c[i] < i + 1.",
+      "edge_cases": [
+        "All zeros",
+        "All large citations",
+        "Single paper"
+      ]
+    },
+    {
+      "id": "L2-087",
+      "level": 2,
+      "topic": "Sorting (Sort + Adjacent)",
+      "title": "Meeting Rooms (Can Attend All)",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Facebook",
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Infosys",
+        "Flipkart"
+      ],
+      "problem_statement": "Given meeting time intervals [start, end), determine if a person can attend all meetings (no two meetings overlap). A meeting ending at time t and another starting at t do not overlap.",
+      "description": "Sirf overlap check karna hai, rooms ki ginti nahi (wo Level 3 me).",
+      "constraints": [
+        "0 <= n <= 1e4",
+        "0 <= start < end <= 1e6"
+      ],
+      "test_cases": [
+        {
+          "input": "[[0,30],[5,10],[15,20]]",
+          "output": "false",
+          "explanation": "[0,30] aur [5,10] overlap"
+        },
+        {
+          "input": "[[7,10],[2,4]]",
+          "output": "true",
+          "explanation": "Overlap nahi"
+        },
+        {
+          "input": "[[1,5],[5,8]]",
+          "output": "true",
+          "explanation": "Touching allowed"
+        }
+      ],
+      "theory": "Start time se sort karo. Koi bhi adjacent pair me next.start < prev.end ho to overlap.",
+      "brute_force": {
+        "approach": "Saare pairs overlap check.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "bool canAttend(const vector<array<int,2>>& v){ int n = v.size(); for(int i = 0; i < n; i++) for(int j = i + 1; j < n; j++) if(v[i][0] < v[j][1] && v[j][0] < v[i][1]) return false; return true; }"
+      },
+      "optimized": {
+        "approach": "Sort by start + adjacent check.",
+        "time": "O(n log n)",
+        "space": "O(1) extra",
+        "code_cpp": "bool canAttend(vector<array<int,2>> v){ sort(v.begin(), v.end()); for(size_t i = 1; i < v.size(); i++) if(v[i][0] < v[i-1][1]) return false; return true; }"
+      },
+      "explanation": "Sort ke baad agar koi i, j (j > i+1) overlap karte hain to i aur i+1 bhi overlap karenge, isliye adjacent check kaafi hai. Intervals ka pura topic (merge, insert, min rooms) Level 3 me.",
+      "edge_cases": [
+        "Empty list",
+        "Touching intervals",
+        "Identical intervals"
+      ]
+    },
+    {
+      "id": "L2-088",
+      "level": 2,
+      "topic": "Sorting (Sort + Greedy)",
+      "title": "Largest Perimeter Triangle",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Infosys",
+        "TCS",
+        "Wipro"
+      ],
+      "problem_statement": "Given an array of side lengths, return the largest perimeter of a triangle with non-zero area formed from three of these lengths. Return 0 if impossible.",
+      "description": "Triangle inequality: do chhoti sides ka sum badi side se bada hona chahiye.",
+      "constraints": [
+        "3 <= n <= 1e4",
+        "1 <= a[i] <= 1e6"
+      ],
+      "test_cases": [
+        {
+          "input": "[2,1,2]",
+          "output": "5",
+          "explanation": "2 + 1 + 2"
+        },
+        {
+          "input": "[1,2,1,10]",
+          "output": "0",
+          "explanation": "Koi valid triangle nahi"
+        },
+        {
+          "input": "[3,2,3,4]",
+          "output": "10",
+          "explanation": "4 + 3 + 3"
+        }
+      ],
+      "theory": "Descending sort karo. Pehla triplet (a[i], a[i+1], a[i+2]) jahan a[i] < a[i+1] + a[i+2] sabse bada perimeter dega, kyunki baaki triplets chhote hain.",
+      "brute_force": {
+        "approach": "Saare triplets par triangle check.",
+        "time": "O(n^3)",
+        "space": "O(1)",
+        "code_cpp": "int largestPerimeter(const vector<int>& a){ int n = a.size(), best = 0; for(int i = 0; i < n; i++) for(int j = i + 1; j < n; j++) for(int k = j + 1; k < n; k++){ int x = a[i], y = a[j], z = a[k]; if(x + y > z && x + z > y && y + z > x) best = max(best, x + y + z); } return best; }"
+      },
+      "optimized": {
+        "approach": "Sort desc + consecutive triplet check.",
+        "time": "O(n log n)",
+        "space": "O(1)",
+        "code_cpp": "int largestPerimeter(vector<int> a){ sort(a.begin(), a.end(), greater<int>()); for(size_t i = 0; i + 2 < a.size(); i++) if(a[i] < a[i+1] + a[i+2]) return a[i] + a[i+1] + a[i+2]; return 0; }"
+      },
+      "explanation": "Greedy argument: sabse bada side fix karke uske liye sabse bade do partners lo; agar wo bhi fail ho to koi aur partner kaam nahi karega. Valid Triangle Number (L2-044) ka greedy cousin.",
+      "edge_cases": [
+        "No valid triangle",
+        "All equal",
+        "Degenerate (a + b == c)"
+      ]
+    },
+    {
+      "id": "L2-089",
+      "level": 2,
+      "topic": "Greedy",
+      "title": "Assign Cookies",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Infosys",
+        "TCS"
+      ],
+      "problem_statement": "Each child i has greed g[i] (minimum cookie size they accept); each cookie j has size s[j]. A child gets at most one cookie and a cookie goes to at most one child. Maximize the number of content children.",
+      "description": "Cookie size >= greed ho tabhi child content.",
+      "constraints": [
+        "1 <= n, m <= 3e4",
+        "1 <= g[i], s[j] <= 2^31 - 1"
+      ],
+      "test_cases": [
+        {
+          "input": "g=[1,2,3], s=[1,1]",
+          "output": "1",
+          "explanation": "Sirf pehla child"
+        },
+        {
+          "input": "g=[1,2], s=[1,2,3]",
+          "output": "2",
+          "explanation": "Dono content"
+        },
+        {
+          "input": "g=[10,9,8,7], s=[5,6,7,8]",
+          "output": "2",
+          "explanation": "7 aur 8 wale bachche"
+        }
+      ],
+      "theory": "Dono sort karo. Sabse kam greedy wale bachche ko sabse chhoti sufficient cookie do. Two pointers: cookie child ke liye kaafi ho to child content, warna agli (bigger) cookie.",
+      "brute_force": {
+        "approach": "Sort children; har bachche ke liye sabse chhoti unused sufficient cookie scan karke.",
+        "time": "O(n * m)",
+        "space": "O(m)",
+        "code_cpp": "int findContentChildren(vector<int> g, vector<int> s){ sort(g.begin(), g.end()); sort(s.begin(), s.end()); vector<bool> used(s.size(), false); int c = 0; for(int x : g){ for(size_t j = 0; j < s.size(); j++) if(!used[j] && s[j] >= x){ used[j] = true; c++; break; } } return c; }"
+      },
+      "optimized": {
+        "approach": "Sort + two pointers.",
+        "time": "O(n log n + m log m)",
+        "space": "O(1)",
+        "code_cpp": "int findContentChildren(vector<int> g, vector<int> s){ sort(g.begin(), g.end()); sort(s.begin(), s.end()); size_t i = 0; for(size_t j = 0; j < s.size() && i < g.size(); j++) if(s[j] >= g[i]) i++; return i; }"
+      },
+      "explanation": "Chhoti cookie bade greed wale ke kaam ki nahi, isliye usse sabse kam greed wale ko dena hi safe hai (exchange argument). Brute me har bar scan hota hai, optimized me ek hi pass.",
+      "edge_cases": [
+        "No cookies",
+        "All cookies too small",
+        "More cookies than children"
+      ]
+    },
+    {
+      "id": "L2-090",
+      "level": 2,
+      "topic": "Greedy",
+      "title": "Lemonade Change",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Infosys",
+        "Cognizant"
+      ],
+      "problem_statement": "Lemonade costs $5. Customers pay with $5, $10 or $20 bills one at a time in order. You start with no change. Return true if you can give correct change to every customer.",
+      "description": "$20 par change me $10 + $5 ya $5 + $5 + $5 do ho sakta hai.",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "bills[i] in {5, 10, 20}"
+      ],
+      "test_cases": [
+        {
+          "input": "[5,5,5,10,20]",
+          "output": "true",
+          "explanation": "20 par 10 + 5 wapas"
+        },
+        {
+          "input": "[5,5,10,10,20]",
+          "output": "false",
+          "explanation": "20 par change nahi"
+        },
+        {
+          "input": "[10,10]",
+          "output": "false",
+          "explanation": "Pehle hi $5 nahi"
+        }
+      ],
+      "theory": "Greedy: $20 par pehle $10 + $5 do (kyunki $5 zyada kaam ke hain, $10 sirf $20 ke change me use hota hai). Nahi to teen $5.",
+      "brute_force": {
+        "approach": "Backtracking: $20 par dono tareeke try karo.",
+        "time": "O(2^k)",
+        "space": "O(n) stack",
+        "code_cpp": "bool rec(const vector<int>& b, int i, int c5, int c10){ if(i == (int)b.size()) return true; int x = b[i]; if(x == 5) return rec(b, i + 1, c5 + 1, c10); if(x == 10){ if(c5 == 0) return false; return rec(b, i + 1, c5 - 1, c10 + 1); } if(c10 > 0 && c5 > 0 && rec(b, i + 1, c5 - 1, c10 - 1)) return true; if(c5 >= 3 && rec(b, i + 1, c5 - 3, c10)) return true; return false; }\nbool lemonadeChange(const vector<int>& b){ return rec(b, 0, 0, 0); }"
+      },
+      "optimized": {
+        "approach": "Greedy with two counters.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "bool lemonadeChange(const vector<int>& b){ int c5 = 0, c10 = 0; for(int x : b){ if(x == 5) c5++; else if(x == 10){ if(!c5) return false; c5--; c10++; } else { if(c10 && c5){ c10--; c5--; } else if(c5 >= 3) c5 -= 3; else return false; } } return true; }"
+      },
+      "explanation": "Backtracking me har $20 par do branch hote hain. Greedy proof: $10 sirf $20 ke change me kaam aate hain, jabki $5 har jagah, isliye $10 pehle kharch karo.",
+      "edge_cases": [
+        "First customer pays $10 or $20",
+        "Only $5 bills",
+        "Many $20 bills"
+      ]
+    },
+    {
+      "id": "L2-091",
+      "level": 2,
+      "topic": "Greedy",
+      "title": "Maximum Units on a Truck",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Infosys",
+        "Wipro"
+      ],
+      "problem_statement": "boxTypes[i] = [numberOfBoxes, unitsPerBox]. The truck can carry at most truckSize boxes. Return the maximum total number of units that can be put on the truck.",
+      "description": "Box type ke saare boxes lene zaroori nahi.",
+      "constraints": [
+        "1 <= types <= 1000",
+        "1 <= boxes, units <= 1000",
+        "1 <= truckSize <= 1e6"
+      ],
+      "test_cases": [
+        {
+          "input": "[[1,3],[2,2],[3,1]], size=4",
+          "output": "8",
+          "explanation": "1*3 + 2*2 + 1*1"
+        },
+        {
+          "input": "[[5,10],[2,5],[4,7],[3,9]], size=10",
+          "output": "91",
+          "explanation": "5*10 + 3*9 + 2*7"
+        },
+        {
+          "input": "[[1,1]], size=5",
+          "output": "1",
+          "explanation": "Sirf 1 box hai"
+        }
+      ],
+      "theory": "Jis box me zyada units, pehle usko lo: units per box descending sort, phir jitne boxes ja sakte hain uthao.",
+      "brute_force": {
+        "approach": "Ek-ek box uthao: har baar bache hue me se sabse zyada units wala type.",
+        "time": "O(truckSize * types)",
+        "space": "O(1)",
+        "code_cpp": "int maximumUnits(vector<array<int,2>> b, int size){ int total = 0; while(size > 0){ int bi = -1; for(size_t i = 0; i < b.size(); i++) if(b[i][0] > 0 && (bi < 0 || b[i][1] > b[bi][1])) bi = i; if(bi < 0) break; b[bi][0]--; size--; total += b[bi][1]; } return total; }"
+      },
+      "optimized": {
+        "approach": "Sort by units desc + bulk take.",
+        "time": "O(t log t)",
+        "space": "O(1)",
+        "code_cpp": "int maximumUnits(vector<array<int,2>> b, int size){ sort(b.begin(), b.end(), [](const array<int,2>& x, const array<int,2>& y){ return x[1] > y[1]; }); int total = 0; for(auto& t : b){ int take = min(t[0], size); total += take * t[1]; size -= take; if(!size) break; } return total; }"
+      },
+      "explanation": "Fractional knapsack jaisa hi greedy hai (value/weight = units per box, weight = 1 box). Brute me truckSize bada ho (1e6) to slow, isliye bulk take.",
+      "edge_cases": [
+        "Truck bigger than all boxes",
+        "truckSize = 1",
+        "Equal units"
+      ]
+    },
+    {
+      "id": "L2-092",
+      "level": 2,
+      "topic": "Greedy",
+      "title": "Jump Game",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Google",
+        "Facebook",
+        "Apple",
+        "Adobe",
+        "Infosys",
+        "TCS",
+        "Zoho"
+      ],
+      "problem_statement": "a[i] is the maximum jump length from index i. Starting at index 0, return true if you can reach the last index.",
+      "description": "Max jump hai, exact jump nahi.",
+      "constraints": [
+        "1 <= n <= 1e4",
+        "0 <= a[i] <= 1e5"
+      ],
+      "test_cases": [
+        {
+          "input": "[2,3,1,1,4]",
+          "output": "true",
+          "explanation": "0 -> 1 -> 4"
+        },
+        {
+          "input": "[3,2,1,0,4]",
+          "output": "false",
+          "explanation": "Index 3 par atak jate hain"
+        },
+        {
+          "input": "[0]",
+          "output": "true",
+          "explanation": "Pehle hi last par"
+        }
+      ],
+      "theory": "Farthest reachable index maintain karo. Agar i > farthest to waha tak pahunch hi nahi sakte (false); warna farthest = max(farthest, i + a[i]).",
+      "brute_force": {
+        "approach": "DP: reachable[] array; har reachable index se aage ke saare indices mark.",
+        "time": "O(n^2)",
+        "space": "O(n)",
+        "code_cpp": "bool canJump(const vector<int>& a){ int n = a.size(); vector<bool> r(n, false); r[0] = true; for(int i = 0; i < n; i++){ if(!r[i]) continue; for(int j = 1; j <= a[i] && i + j < n; j++) r[i + j] = true; } return r[n - 1]; }"
+      },
+      "optimized": {
+        "approach": "Greedy farthest reach.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "bool canJump(const vector<int>& a){ int far = 0; for(int i = 0; i < (int)a.size(); i++){ if(i > far) return false; far = max(far, i + a[i]); } return true; }"
+      },
+      "explanation": "Reachable set hamesha 0 se 'far' tak ek continuous range hoti hai, isliye poora reachable array banane ki zaroorat nahi.",
+      "edge_cases": [
+        "n = 1",
+        "Zero blocking in the middle",
+        "Large jumps"
+      ]
+    },
+    {
+      "id": "L2-093",
+      "level": 2,
+      "topic": "Greedy",
+      "title": "Jump Game II",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Google",
+        "Facebook",
+        "Adobe",
+        "Flipkart",
+        "Infosys"
+      ],
+      "problem_statement": "a[i] is the maximum jump length from index i. Return the minimum number of jumps to reach the last index. It is guaranteed you can reach it.",
+      "description": "Minimum jumps chahiye, sirf reachability nahi.",
+      "constraints": [
+        "1 <= n <= 1e4",
+        "0 <= a[i] <= 1000",
+        "Last index reachable"
+      ],
+      "test_cases": [
+        {
+          "input": "[2,3,1,1,4]",
+          "output": "2",
+          "explanation": "0 -> 1 -> 4"
+        },
+        {
+          "input": "[2,3,0,1,4]",
+          "output": "2",
+          "explanation": "0 -> 1 -> 4"
+        },
+        {
+          "input": "[1]",
+          "output": "0",
+          "explanation": "Pehle hi last"
+        }
+      ],
+      "theory": "BFS-levels jaisa soch: current jump ki range (curEnd) aur uske andar se farthest reach. i == curEnd par jump count++ aur curEnd = farthest.",
+      "brute_force": {
+        "approach": "DP: dp[i] = i tak pahunchne ke min jumps; har index se aage relax.",
+        "time": "O(n^2)",
+        "space": "O(n)",
+        "code_cpp": "int jump(const vector<int>& a){ int n = a.size(); vector<int> dp(n, INT_MAX); dp[0] = 0; for(int i = 0; i < n; i++){ if(dp[i] == INT_MAX) continue; for(int j = 1; j <= a[i] && i + j < n; j++) dp[i + j] = min(dp[i + j], dp[i] + 1); } return dp[n - 1]; }"
+      },
+      "optimized": {
+        "approach": "Greedy level-by-level (implicit BFS).",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int jump(const vector<int>& a){ int n = a.size(), jumps = 0, curEnd = 0, far = 0; for(int i = 0; i < n - 1; i++){ far = max(far, i + a[i]); if(i == curEnd){ jumps++; curEnd = far; } } return jumps; }"
+      },
+      "explanation": "Har jump ek 'level' hai; us level ke saare indices me se jo sabse door pahunchta hai wahi agla level decide karta hai. Loop n-1 tak isliye ki last index par jump count nahi badhana.",
+      "edge_cases": [
+        "n = 1",
+        "All ones",
+        "Single big jump"
+      ]
+    },
+    {
+      "id": "L2-094",
+      "level": 2,
+      "topic": "Greedy",
+      "title": "Gas Station",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Facebook",
+        "Infosys",
+        "TCS"
+      ],
+      "problem_statement": "There are n gas stations on a circular route; station i has gas[i] fuel and travelling to the next station costs cost[i]. Return the starting station index from which you can complete the circuit clockwise, or -1. If a solution exists it is unique.",
+      "description": "Tank khali se start hota hai, kisi bhi moment par tank negative nahi hona chahiye.",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "0 <= gas[i], cost[i] <= 1e4"
+      ],
+      "test_cases": [
+        {
+          "input": "gas=[1,2,3,4,5], cost=[3,4,5,1,2]",
+          "output": "3",
+          "explanation": "Station 3 se start"
+        },
+        {
+          "input": "gas=[2,3,4], cost=[3,4,3]",
+          "output": "-1",
+          "explanation": "Total gas < total cost"
+        },
+        {
+          "input": "gas=[5,1,2,3,4], cost=[4,4,1,5,1]",
+          "output": "4",
+          "explanation": "Station 4"
+        }
+      ],
+      "theory": "Agar total gas < total cost to -1. Warna running tank negative hote hi us point tak ka koi bhi start galat; start = i + 1, tank = 0. End me bacha hua start answer.",
+      "brute_force": {
+        "approach": "Har station se simulate karke circuit complete check.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int canCompleteCircuit(const vector<int>& g, const vector<int>& c){ int n = g.size(); for(int s = 0; s < n; s++){ int tank = 0; bool ok = true; for(int k = 0; k < n; k++){ int i = (s + k) % n; tank += g[i] - c[i]; if(tank < 0){ ok = false; break; } } if(ok) return s; } return -1; }"
+      },
+      "optimized": {
+        "approach": "Single pass with total and tank reset.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int canCompleteCircuit(const vector<int>& g, const vector<int>& c){ int n = g.size(), total = 0, tank = 0, start = 0; for(int i = 0; i < n; i++){ int d = g[i] - c[i]; total += d; tank += d; if(tank < 0){ start = i + 1; tank = 0; } } return total >= 0 ? start : -1; }"
+      },
+      "explanation": "Proof sketch: agar start s se i par tank negative hua to s se i ke beech ka koi bhi station start nahi ban sakta (unse bhi i tak ka sum negative hi aata). Total >= 0 ho to last reset point hi valid start hai. Ye Kadane ke reset idea jaisa hai.",
+      "edge_cases": [
+        "Total gas < total cost",
+        "n = 1",
+        "Start at index 0"
+      ]
+    },
+    {
+      "id": "L2-095",
+      "level": 2,
+      "topic": "Greedy",
+      "title": "Non-decreasing Array (At Most One Modification)",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Facebook",
+        "Infosys"
+      ],
+      "problem_statement": "Given an array, check if it can become non-decreasing by modifying at most one element (to any value).",
+      "description": "Modification ki value koi bhi ho sakti hai.",
+      "constraints": [
+        "1 <= n <= 1e4",
+        "-1e5 <= a[i] <= 1e5"
+      ],
+      "test_cases": [
+        {
+          "input": "[4,2,3]",
+          "output": "true",
+          "explanation": "4 ko 1 kar do"
+        },
+        {
+          "input": "[4,2,1]",
+          "output": "false",
+          "explanation": "Do changes chahiye"
+        },
+        {
+          "input": "[3,4,2,3]",
+          "output": "false",
+          "explanation": "Ek change se nahi"
+        }
+      ],
+      "theory": "Pehla violation (a[i] < a[i-1]) milne par choose karo: a[i-1] ko chhota karo (a[i-1] = a[i]) ya a[i] ko bada (a[i] = a[i-1]). Agar a[i] < a[i-2] ho to a[i] ko bada karna padega, warna a[i-1] ko chhota. Dusra violation aaye to false.",
+      "brute_force": {
+        "approach": "Har index ko pados ki value se replace karke sorted check.",
+        "time": "O(n^2)",
+        "space": "O(n)",
+        "code_cpp": "bool checkPossibility(const vector<int>& a){ int n = a.size(); auto isSorted = [&](const vector<int>& v){ for(size_t i = 1; i < v.size(); i++) if(v[i] < v[i-1]) return false; return true; }; if(isSorted(a)) return true; for(int i = 0; i < n; i++){ vector<int> cand; if(i > 0) cand.push_back(a[i-1]); if(i + 1 < n) cand.push_back(a[i+1]); for(int v : cand){ vector<int> b = a; b[i] = v; if(isSorted(b)) return true; } } return false; }"
+      },
+      "optimized": {
+        "approach": "Single pass, fix at the first violation greedily.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "bool checkPossibility(vector<int> a){ int cnt = 0; for(int i = 1; i < (int)a.size(); i++){ if(a[i] < a[i-1]){ if(++cnt > 1) return false; if(i >= 2 && a[i] < a[i-2]) a[i] = a[i-1]; else a[i-1] = a[i]; } } return true; }"
+      },
+      "explanation": "Greedy choice: jab bhi possible ho a[i-1] ko chhota karo (a[i] ko bada karne se aage ke liye rukawat ban sakti hai). Sirf a[i] < a[i-2] hone par a[i] ko bada karna padta hai.",
+      "edge_cases": [
+        "Violation at start",
+        "Violation at end",
+        "Two separate violations"
+      ]
+    },
+    {
+      "id": "L2-096",
+      "level": 2,
+      "topic": "Greedy",
+      "title": "Partition Labels",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Facebook",
+        "Infosys",
+        "Flipkart"
+      ],
+      "problem_statement": "Partition a string into as many parts as possible so that each letter appears in at most one part. Return the sizes of the parts.",
+      "description": "Parts ko jodne par wahi string milti hai.",
+      "constraints": [
+        "1 <= |s| <= 500",
+        "Lowercase letters"
+      ],
+      "test_cases": [
+        {
+          "input": "ababcbacadefegdehijhklij",
+          "output": "[9,7,8]",
+          "explanation": "ababcbaca | defegde | hijhklij"
+        },
+        {
+          "input": "eccbbbbdec",
+          "output": "[10]",
+          "explanation": "Sab ek hi part"
+        },
+        {
+          "input": "a",
+          "output": "[1]",
+          "explanation": "Single"
+        }
+      ],
+      "theory": "Har letter ka last index nikalo. Part ki end = us part me aaye letters ke last indices ka maximum. i == end par part complete.",
+      "brute_force": {
+        "approach": "Har part ke liye end ko rfind se baar baar badhao.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "vector<int> partitionLabels(const string& s){ int n = s.size(); vector<int> r; int i = 0; while(i < n){ int end = s.rfind(s[i]); int j = i; while(j <= end){ end = max(end, (int)s.rfind(s[j])); j++; } r.push_back(end - i + 1); i = end + 1; } return r; }"
+      },
+      "optimized": {
+        "approach": "last[] array + single pass.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "vector<int> partitionLabels(const string& s){ int last[26] = {0}; for(int i = 0; i < (int)s.size(); i++) last[s[i] - 'a'] = i; vector<int> r; int start = 0, end = 0; for(int i = 0; i < (int)s.size(); i++){ end = max(end, last[s[i] - 'a']); if(i == end){ r.push_back(end - start + 1); start = i + 1; } } return r; }"
+      },
+      "explanation": "Greedy: part ko jaldi se jaldi close karo (jis point par us part ke saare letters ka last occurrence cover ho jaye). Ye interval-merging ka hi ek disguised version hai.",
+      "edge_cases": [
+        "Single part",
+        "All distinct letters",
+        "Single character"
+      ]
+    },
+    {
+      "id": "L2-097",
+      "level": 2,
+      "topic": "Greedy",
+      "title": "Two City Scheduling",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Facebook",
+        "Infosys"
+      ],
+      "problem_statement": "2n people must be sent to city A or city B, exactly n to each. costs[i] = [aCost, bCost]. Return the minimum total cost.",
+      "description": "Exactly n log har city me jayenge.",
+      "constraints": [
+        "2 <= 2n <= 100",
+        "2n even",
+        "1 <= cost <= 1000"
+      ],
+      "test_cases": [
+        {
+          "input": "[[10,20],[30,200],[400,50],[30,20]]",
+          "output": "110",
+          "explanation": "10 + 30 (A) + 50 + 20 (B)"
+        },
+        {
+          "input": "[[259,770],[448,54],[926,667],[184,139],[840,118],[577,469]]",
+          "output": "1859",
+          "explanation": "Sorted by difference"
+        },
+        {
+          "input": "[[1,2],[2,1]]",
+          "output": "2",
+          "explanation": "Ek-ek"
+        }
+      ],
+      "theory": "Sabko pehle B bhejne ka socho. Fir n logon ko A bhejo jinke liye (aCost - bCost) sabse chhota (sabse zyada bachat). Matlab difference se sort karo, pehle n A me, baaki B me.",
+      "brute_force": {
+        "approach": "Saare C(2n, n) subsets try karo (bitmask).",
+        "time": "O(2^(2n) * n)",
+        "space": "O(1)",
+        "code_cpp": "int twoCitySchedCost(const vector<array<int,2>>& c){ int m = c.size(), n = m / 2, best = INT_MAX; for(int mask = 0; mask < (1 << m); mask++){ if(__builtin_popcount(mask) != n) continue; int s = 0; for(int i = 0; i < m; i++) s += ((mask >> i) & 1) ? c[i][0] : c[i][1]; best = min(best, s); } return best; }"
+      },
+      "optimized": {
+        "approach": "Sort by (a - b) and split.",
+        "time": "O(n log n)",
+        "space": "O(1)",
+        "code_cpp": "int twoCitySchedCost(vector<array<int,2>> c){ sort(c.begin(), c.end(), [](const array<int,2>& x, const array<int,2>& y){ return x[0] - x[1] < y[0] - y[1]; }); int n = c.size() / 2, s = 0; for(int i = 0; i < n; i++) s += c[i][0]; for(int i = n; i < 2 * n; i++) s += c[i][1]; return s; }"
+      },
+      "explanation": "(aCost - bCost) 'A ko prefer karne ki bachat' hai. Jinki bachat zyada hai unhe A bhejna sahi hai. Total = sum(b) + sum of chosen differences, isliye difference se sort karna hi optimal.",
+      "edge_cases": [
+        "n = 1",
+        "All equal costs",
+        "One city much cheaper"
+      ]
+    },
+    {
+      "id": "L2-098",
+      "level": 2,
+      "topic": "Greedy",
+      "title": "Candy",
+      "difficulty": "Hard",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Facebook",
+        "Adobe",
+        "Flipkart",
+        "Infosys"
+      ],
+      "problem_statement": "Children stand in a line with ratings. Each child must get at least one candy, and a child with a higher rating than a neighbour must get more candies than that neighbour. Return the minimum total candies.",
+      "description": "Dono neighbours (left aur right) ko dekhna padta hai.",
+      "constraints": [
+        "1 <= n <= 2e4",
+        "0 <= rating[i] <= 2e4"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,0,2]",
+          "output": "5",
+          "explanation": "Candies [2,1,2]"
+        },
+        {
+          "input": "[1,2,2]",
+          "output": "4",
+          "explanation": "Candies [1,2,1]"
+        },
+        {
+          "input": "[1,3,2,2,1]",
+          "output": "7",
+          "explanation": "Candies [1,2,1,2,1]"
+        }
+      ],
+      "theory": "Do passes: left to right (agar r[i] > r[i-1] to c[i] = c[i-1] + 1), phir right to left (agar r[i] > r[i+1] to c[i] = max(c[i], c[i+1] + 1)). Dono constraints alag-alag satisfy ho jaate hain.",
+      "brute_force": {
+        "approach": "Sabko 1 candy se shuru, jab tak koi rule violate ho fix karte raho.",
+        "time": "O(n^2)",
+        "space": "O(n)",
+        "code_cpp": "int candy(const vector<int>& r){ int n = r.size(); vector<int> c(n, 1); bool ch = true; while(ch){ ch = false; for(int i = 0; i < n; i++){ if(i > 0 && r[i] > r[i-1] && c[i] <= c[i-1]){ c[i] = c[i-1] + 1; ch = true; } if(i + 1 < n && r[i] > r[i+1] && c[i] <= c[i+1]){ c[i] = c[i+1] + 1; ch = true; } } } return accumulate(c.begin(), c.end(), 0); }"
+      },
+      "optimized": {
+        "approach": "Two-pass greedy.",
+        "time": "O(n)",
+        "space": "O(n)",
+        "code_cpp": "int candy(const vector<int>& r){ int n = r.size(); vector<int> c(n, 1); for(int i = 1; i < n; i++) if(r[i] > r[i-1]) c[i] = c[i-1] + 1; for(int i = n - 2; i >= 0; i--) if(r[i] > r[i+1]) c[i] = max(c[i], c[i+1] + 1); return accumulate(c.begin(), c.end(), 0); }"
+      },
+      "explanation": "Ek pass me dono sides ko handle karna mushkil hai; do alag passes me har side ka constraint satisfy hota hai aur max lene se dono. Equal ratings par koi constraint nahi (1 candy bhi chalegi).",
+      "edge_cases": [
+        "All equal ratings",
+        "Strictly increasing",
+        "Valley/peak shapes"
+      ]
+    },
+    {
+      "id": "L2-099",
+      "level": 2,
+      "topic": "Greedy",
+      "title": "Task Scheduler",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Facebook",
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Uber",
+        "Infosys"
+      ],
+      "problem_statement": "Tasks are labeled A-Z; each takes one unit of time. The same task must have at least n units of cooldown between two runs. The CPU may be idle. Return the minimum number of units to finish all tasks.",
+      "description": "Order of tasks free hai, par cooldown rule follow karna hai.",
+      "constraints": [
+        "1 <= tasks <= 1e4",
+        "0 <= n <= 100"
+      ],
+      "test_cases": [
+        {
+          "input": "AAABBB, n=2",
+          "output": "8",
+          "explanation": "A B idle A B idle A B"
+        },
+        {
+          "input": "AAABBB, n=0",
+          "output": "6",
+          "explanation": "Cooldown nahi"
+        },
+        {
+          "input": "AAAAAABCDEFG, n=2",
+          "output": "16",
+          "explanation": "A ke beech idle slots bharne ke liye kaafi tasks nahi"
+        }
+      ],
+      "theory": "Sabse zyada frequency (mx) wala task frame banata hai: (mx - 1) frames of size (n + 1) plus last frame me wo tasks jinki freq mx hai (numMax). Answer = max(total tasks, (mx - 1) * (n + 1) + numMax).",
+      "brute_force": {
+        "approach": "Time-step simulation: har step par cooldown se bahar wale tasks me se sabse zyada bache wala chalao.",
+        "time": "O(T * 26)",
+        "space": "O(1)",
+        "code_cpp": "int leastInterval(const string& t, int n){ int cnt[26] = {0}; for(char c : t) cnt[c - 'A']++; int last[26]; fill(last, last + 26, -1000000); int remaining = t.size(), time = 0; while(remaining > 0){ int pick = -1; for(int i = 0; i < 26; i++) if(cnt[i] > 0 && time - last[i] > n){ if(pick < 0 || cnt[i] > cnt[pick]) pick = i; } if(pick >= 0){ cnt[pick]--; last[pick] = time; remaining--; } time++; } return time; }"
+      },
+      "optimized": {
+        "approach": "Closed-form formula from max frequency.",
+        "time": "O(T)",
+        "space": "O(1)",
+        "code_cpp": "int leastInterval(const string& t, int n){ int cnt[26] = {0}; for(char c : t) cnt[c - 'A']++; int mx = *max_element(cnt, cnt + 26); int numMax = count(cnt, cnt + 26, mx); return max((int)t.size(), (mx - 1) * (n + 1) + numMax); }"
+      },
+      "explanation": "Idle slots sirf tab lagte hain jab dusre tasks se frames bhar nahi paate; agar bahut saare tasks hon to idle zero aur answer = total tasks. Ye max-heap + cooldown queue se bhi hota hai (Level 3).",
+      "edge_cases": [
+        "n = 0",
+        "Single task type",
+        "Many distinct tasks (no idle)"
+      ]
+    },
+    {
+      "id": "L2-100",
+      "level": 2,
+      "topic": "Greedy",
+      "title": "Increasing Triplet Subsequence",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Facebook",
+        "Infosys"
+      ],
+      "problem_statement": "Return true if there exist indices i < j < k with a[i] < a[j] < a[k]. Solve in O(n) time and O(1) space.",
+      "description": "Subsequence continuous nahi hona chahiye.",
+      "constraints": [
+        "1 <= n <= 5e5",
+        "-2^31 <= a[i] <= 2^31 - 1"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,2,3,4,5]",
+          "output": "true",
+          "explanation": "Koi bhi teen"
+        },
+        {
+          "input": "[5,4,3,2,1]",
+          "output": "false",
+          "explanation": "Decreasing"
+        },
+        {
+          "input": "[2,1,5,0,4,6]",
+          "output": "true",
+          "explanation": "0 < 4 < 6"
+        }
+      ],
+      "theory": "Do variables: first = sabse chhota ab tak, second = sabse chhota 'second element of a pair'. x <= first to first = x; x <= second to second = x; warna x teesra element hai => true.",
+      "brute_force": {
+        "approach": "Teen nested loops.",
+        "time": "O(n^3)",
+        "space": "O(1)",
+        "code_cpp": "bool increasingTriplet(const vector<int>& a){ int n = a.size(); for(int i = 0; i < n; i++) for(int j = i + 1; j < n; j++) for(int k = j + 1; k < n; k++) if(a[i] < a[j] && a[j] < a[k]) return true; return false; }"
+      },
+      "optimized": {
+        "approach": "Greedy two-variable tracking.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "bool increasingTriplet(const vector<int>& a){ long long f = LLONG_MAX, s = LLONG_MAX; for(int x : a){ if(x <= f) f = x; else if(x <= s) s = x; else return true; } return false; }"
+      },
+      "explanation": "second ke paas hamesha koi chhoti value hai jo uske pehle aayi thi (chahe first baad me update ho gaya ho), isliye teesra element milte hi triplet pakka hai. Ye LIS (Longest Increasing Subsequence) ke patience-sorting idea ka k = 3 case hai.",
+      "edge_cases": [
+        "Equal elements",
+        "n < 3",
+        "Triplet with large gaps"
+      ]
+    }
+  ],
+  "level_revision": {
+    "title": "Level 2 Revision Sheet (Part 1 to 4: L2-001 to L2-100)",
+    "pattern_cheat_sheet": [
+      {
+        "pattern": "Fixed-size sliding window",
+        "when_to_use": "Window ki length k pehle se fixed (sum, average, vowel count, anagram, deque max)",
+        "idea": "Add a[i], remove a[i-k], answer update",
+        "practice_ids": [
+          "L2-001",
+          "L2-002",
+          "L2-003",
+          "L2-004",
+          "L2-005",
+          "L2-006",
+          "L2-007",
+          "L2-008"
+        ]
+      },
+      {
+        "pattern": "Variable sliding window (expand/shrink)",
+        "when_to_use": "Longest/shortest subarray ya substring with a monotonic condition (non-negative / counts)",
+        "idea": "r expand; while condition invalid -> l++; best = max(best, r - l + 1)",
+        "practice_ids": [
+          "L2-009",
+          "L2-010",
+          "L2-011",
+          "L2-012",
+          "L2-013",
+          "L2-014",
+          "L2-015",
+          "L2-018",
+          "L2-019"
+        ]
+      },
+      {
+        "pattern": "atMost(k) counting trick",
+        "when_to_use": "Exactly k type counts (odd numbers, distinct integers)",
+        "idea": "Exactly k = atMost(k) - atMost(k-1); count += r - l + 1",
+        "practice_ids": [
+          "L2-016",
+          "L2-017",
+          "L2-049"
+        ]
+      },
+      {
+        "pattern": "Kadane's algorithm",
+        "when_to_use": "Max/min subarray sum, product, circular, absolute sum",
+        "idea": "cur = max(a[i], cur + a[i]); best = max(best, cur)",
+        "practice_ids": [
+          "L2-020",
+          "L2-021",
+          "L2-022",
+          "L2-023",
+          "L2-024"
+        ]
+      },
+      {
+        "pattern": "Prefix sum / range queries / 2D prefix",
+        "when_to_use": "Bahut saare range sum queries, product except self",
+        "idea": "pre[R+1] - pre[L]; 2D inclusion-exclusion",
+        "practice_ids": [
+          "L2-026",
+          "L2-027",
+          "L2-028"
+        ]
+      },
+      {
+        "pattern": "Difference array",
+        "when_to_use": "Bahut saare range updates, final array ek baar",
+        "idea": "d[l] += v, d[r+1] -= v, prefix sum",
+        "practice_ids": [
+          "L2-029",
+          "L2-030"
+        ]
+      },
+      {
+        "pattern": "Prefix sum + HashMap",
+        "when_to_use": "Subarray with sum k / divisible by k / equal 0-1 / XOR k (negatives allowed)",
+        "idea": "Same prefix (ya prefix - k) pehle dikha? cnt[0] = 1 ya first[0] = -1 seed",
+        "practice_ids": [
+          "L2-031",
+          "L2-032",
+          "L2-033",
+          "L2-034",
+          "L2-035",
+          "L2-036",
+          "L2-037"
+        ]
+      },
+      {
+        "pattern": "Sort + k-sum two pointers",
+        "when_to_use": "3Sum, 4Sum, closest sum, pairs with condition",
+        "idea": "Sort, fix outer elements, l/r pointers, skip duplicates",
+        "practice_ids": [
+          "L2-038",
+          "L2-039",
+          "L2-040",
+          "L2-044",
+          "L2-045",
+          "L2-050"
+        ]
+      },
+      {
+        "pattern": "Greedy shrink pointers",
+        "when_to_use": "Container/trapping water/boats: limiting side move karo",
+        "idea": "Chhoti side wale pointer ko hilao",
+        "practice_ids": [
+          "L2-041",
+          "L2-042",
+          "L2-043"
+        ]
+      },
+      {
+        "pattern": "Binary search: boundaries",
+        "when_to_use": "First/last position, insert position, kth missing, wraparound",
+        "idea": "lower_bound/upper_bound template, hi = n",
+        "practice_ids": [
+          "L2-051",
+          "L2-052",
+          "L2-059",
+          "L2-072"
+        ]
+      },
+      {
+        "pattern": "Binary search: rotated/peak/structure",
+        "when_to_use": "Rotated array, peak, single element, 2D flatten",
+        "idea": "Sorted half ya slope se half discard",
+        "practice_ids": [
+          "L2-053",
+          "L2-054",
+          "L2-055",
+          "L2-056",
+          "L2-057",
+          "L2-058"
+        ]
+      },
+      {
+        "pattern": "Binary search on answer",
+        "when_to_use": "Minimize the maximum / maximize the minimum, least speed/capacity/days",
+        "idea": "Monotonic feasible(mid) greedy check, lo/hi on answer range",
+        "practice_ids": [
+          "L2-062",
+          "L2-063",
+          "L2-064",
+          "L2-065",
+          "L2-066",
+          "L2-067",
+          "L2-068",
+          "L2-069",
+          "L2-073",
+          "L2-075"
+        ]
+      },
+      {
+        "pattern": "Binary search on value range + counting",
+        "when_to_use": "Kth smallest in matrix, find duplicate, median partition",
+        "idea": "count(<= mid) se half decide karo",
+        "practice_ids": [
+          "L2-061",
+          "L2-070",
+          "L2-071"
+        ]
+      },
+      {
+        "pattern": "Custom comparator / frequency sort",
+        "when_to_use": "Multi-key ordering rules",
+        "idea": "Strict weak ordering lambda; heavy work comparator se bahar",
+        "practice_ids": [
+          "L2-076",
+          "L2-077",
+          "L2-078",
+          "L2-079",
+          "L2-080",
+          "L2-081"
+        ]
+      },
+      {
+        "pattern": "Quickselect",
+        "when_to_use": "Kth largest/smallest bina full sort",
+        "idea": "Random pivot partition, ek side discard",
+        "practice_ids": [
+          "L2-082"
+        ]
+      },
+      {
+        "pattern": "Sort + adjacent / counting",
+        "when_to_use": "Min difference, overlap, intersection, small range",
+        "idea": "Sort ke baad local compare ya counting sort",
+        "practice_ids": [
+          "L2-083",
+          "L2-084",
+          "L2-085",
+          "L2-086",
+          "L2-087",
+          "L2-088"
+        ]
+      },
+      {
+        "pattern": "Greedy (local choice)",
+        "when_to_use": "Reach, schedule, assign, partition, two-pass constraints",
+        "idea": "Exchange argument / stays-ahead proof, stress test se verify",
+        "practice_ids": [
+          "L2-089",
+          "L2-090",
+          "L2-091",
+          "L2-092",
+          "L2-093",
+          "L2-094",
+          "L2-095",
+          "L2-096",
+          "L2-097",
+          "L2-098",
+          "L2-099",
+          "L2-100"
+        ]
+      }
+    ],
+    "decision_guide": [
+      "Subarray/substring + 'longest/shortest' + non-negative values -> sliding window",
+      "Subarray sum with negatives -> prefix sum + HashMap",
+      "Sorted array ya monotonic answer -> binary search (index ya answer)",
+      "'Minimize the maximum' / 'maximize the minimum' -> binary search on answer + greedy check",
+      "Pairs/triplets with target and order irrelevant -> sort + two pointers",
+      "Many range updates -> difference array; many range queries -> prefix sum",
+      "Ordering by rules -> comparator ya counting sort",
+      "Local choice provable -> greedy; warna DP (Level 5)"
+    ],
+    "complexity_cheat_sheet": [
+      {
+        "item": "Sliding window (fixed/variable)",
+        "complexity": "O(n) time, O(1) or O(charset) space"
+      },
+      {
+        "item": "Prefix sum build / query",
+        "complexity": "O(n) / O(1)"
+      },
+      {
+        "item": "Prefix + HashMap subarray count",
+        "complexity": "O(n) time, O(n) space"
+      },
+      {
+        "item": "3Sum / 4Sum",
+        "complexity": "O(n^2) / O(n^3) after sorting"
+      },
+      {
+        "item": "Binary search (index)",
+        "complexity": "O(log n)"
+      },
+      {
+        "item": "Binary search on answer",
+        "complexity": "O(n log(range)) (check O(n) per step)"
+      },
+      {
+        "item": "Quickselect",
+        "complexity": "O(n) average, O(n^2) worst"
+      },
+      {
+        "item": "std::sort / stable_sort",
+        "complexity": "O(n log n)"
+      },
+      {
+        "item": "Counting sort",
+        "complexity": "O(n + range)"
+      },
+      {
+        "item": "Greedy scans",
+        "complexity": "Usually O(n) or O(n log n) with sorting"
+      }
+    ],
+    "common_mistakes": [
+      "Sliding window ko negative numbers par lagana (prefix sum + HashMap chahiye)",
+      "Prefix + HashMap me cnt[0] = 1 seed bhoolna ya update ko query se pehle karna",
+      "Binary search me lo/hi/mid update galat (infinite loop): max-feasible search me upper mid use karo",
+      "Binary search on answer me range galat (lo = max element, hi = sum) ya feasible function monotonic na hona",
+      "Comparator me <= use karna ya inconsistent (non-transitive) rules",
+      "int overflow: sums/products ke liye long long, mid * mid, ceil division with long long",
+      "Greedy ko bina proof ya counterexample check ke lagana",
+      "Duplicates skip na karna (3Sum/4Sum) ya galat jagah par skip karna",
+      "kth largest vs kth smallest index confusion (n - k)"
+    ],
+    "interview_checklist": [
+      "1. Constraints se complexity target nikalo (n <= 1e5 => O(n log n) ya O(n))",
+      "2. Brute force bolo aur bottleneck pehchano (repeated work? search? sort?)",
+      "3. Pattern pick karo (decision guide dekho) aur reason batao",
+      "4. Monotonicity / negatives / sorted hone jaisi assumptions explicitly bolo",
+      "5. Template se code likho, chhote example par dry run karo",
+      "6. Edge cases: empty, n = 1, all same, negatives, overflow, duplicates",
+      "7. Complexity bolo aur trade-offs (space vs time) batao",
+      "8. Agar sawaal me follow-up ho (O(1) space, no sort) to approach adjust karo"
+    ],
+    "self_test_before_level_3": {
+      "instruction": "Bina solution dekhe, har problem ka brute + optimized approach aur complexity 10-12 minute me explain kar sako to Level 3 ke liye ready ho.",
+      "problem_ids": [
+        "L2-009",
+        "L2-010",
+        "L2-019",
+        "L2-020",
+        "L2-021",
+        "L2-031",
+        "L2-032",
+        "L2-038",
+        "L2-042",
+        "L2-053",
+        "L2-062",
+        "L2-066",
+        "L2-070",
+        "L2-078",
+        "L2-093",
+        "L2-094",
+        "L2-098"
+      ]
+    },
+    "next_level_preview": {
+      "level": 3,
+      "title": "Data Structures",
+      "topics": [
+        "Stack (monotonic stack, parentheses, next greater element)",
+        "Queue / Deque",
+        "Linked List (fast-slow pointers, reversal, cycle, merge)",
+        "Heap / Priority Queue (Top-K, merge K lists, median stream)",
+        "Intervals (merge, insert, min rooms, non-overlapping)",
+        "Greedy advanced (activity selection, interval greedy)"
+      ],
+      "why": "Level 2 ke patterns (window, prefix sum, binary search, sorting, greedy) ko ab dedicated data structures ka support milega. Monotonic stack aur heap bahut saari medium problems ko O(n log n) me laate hain."
+    }
+  }
+}

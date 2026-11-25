@@ -32,6 +32,13 @@ export function inferSignatureFromCode(code: string, language: string): any | nu
   function normalizeType(raw: string): string {
     let t = raw.replace(/^(?:public|private|protected)\s*:\s*/i, '');
     t = t.replace(/&|\*/g, '').trim().toLowerCase();
+    if (/vector<vector<string>>|string\[\]\[\]/.test(t)) return 'vector<vector<string>>';
+    if (/vector<vector<int>>|int\[\]\[\]/.test(t)) return 'integer[][]';
+    if (/vector<pair<int,int>>|pair<int,int>\[\]/.test(t)) return 'pair<int,int>[]';
+    if (/vector<array<int,2>>|array<int,2>\[\]/.test(t)) return 'array<int,2>[]';
+    if (/vector<array<int,3>>|array<int,3>\[\]/.test(t)) return 'array<int,3>[]';
+    if (/vector<array<int,4>>|array<int,4>\[\]/.test(t)) return 'array<int,4>[]';
+    if (t === 'uint32_t' || t === 'unsigned int') return 'uint32_t';
     if (t === 'int' || t === 'int32_t') return 'integer';
     if (t === 'long' || t === 'long long' || t === 'int64_t') return 'long';
     if (t === 'float') return 'float';
@@ -44,7 +51,6 @@ export function inferSignatureFromCode(code: string, language: string): any | nu
     if (/vector<string>|string\[\]/.test(t)) return 'string[]';
     if (/vector<char>|char\[\]/.test(t)) return 'character[]';
     if (/vector<bool>|bool\[\]/.test(t)) return 'boolean[]';
-    if (/vector<vector<int>>|int\[\]\[\]/.test(t)) return 'integer[][]';
     if (t === 'listnode' || t === 'listnode*') return 'listnode';
     if (t === 'treenode' || t === 'treenode*') return 'treenode';
     return t || 'string';
@@ -62,9 +68,23 @@ export function inferSignatureFromCode(code: string, language: string): any | nu
 
       const params: any[] = [];
       if (rawParams) {
-        const parts = rawParams.split(',');
+        const parts: string[] = [];
+        let depth = 0;
+        let cur = '';
+        for (const ch of rawParams) {
+          if (ch === '<') depth++;
+          else if (ch === '>') depth = Math.max(0, depth - 1);
+          if (ch === ',' && depth === 0) {
+            if (cur.trim()) parts.push(cur.trim());
+            cur = '';
+          } else {
+            cur += ch;
+          }
+        }
+        if (cur.trim()) parts.push(cur.trim());
         for (const part of parts) {
-          const tokens = part.trim().split(/\s+/);
+          const cleanPart = part.replace(/\bconst\b/g, '').trim();
+          const tokens = cleanPart.split(/\s+/);
           if (tokens.length >= 2) {
             const pName = tokens[tokens.length - 1].replace(/&|\*/g, '').trim();
             const pTypeRaw = tokens.slice(0, tokens.length - 1).join(' ').trim();
@@ -213,6 +233,9 @@ function getCppParseFunc(type: string): string {
   if (norm === 'boolean[]' || norm === 'bool[]' || norm === 'vector<bool>' || norm === 'list<boolean>') return 'HarnessParser::parseBoolArray(cin)';
 
   if (norm === 'integer[][]' || norm === 'int[][]' || norm === 'vector<vector<int>>' || norm === 'list<list<integer>>') return 'HarnessParser::parseIntegerMatrix(cin)';
+  if (norm === 'pair<int,int>[]' || norm === 'vector<pair<int,int>>') return 'HarnessParser::parseIntPairArray(cin)';
+  const fixedArrMatch = norm.match(/^(?:vector<)?array<int,(\d+)>(?:>|\[\])$/);
+  if (fixedArrMatch) return `HarnessParser::parseFixedIntArrayList<${fixedArrMatch[1]}>(cin)`;
   if (norm === 'long[][]' || norm === 'vector<vector<longlong>>' || norm === 'vector<vector<long>>' || norm === 'vector<vector<long long>>') return 'HarnessParser::parseLongMatrix(cin)';
   if (norm === 'float[][]' || norm === 'vector<vector<float>>') return 'HarnessParser::parseFloatMatrix(cin)';
   if (norm === 'double[][]' || norm === 'vector<vector<double>>') return 'HarnessParser::parseDoubleMatrix(cin)';
@@ -239,6 +262,9 @@ function generateCppHarness(studentCode: string, funcName: string, params: any[]
 #include <sstream>
 #include <algorithm>
 #include <queue>
+#include <deque>
+#include <array>
+#include <utility>
 #include <cctype>
 #include <unordered_map>
 #include <unordered_set>
@@ -250,6 +276,10 @@ function generateCppHarness(studentCode: string, funcName: string, params: any[]
 #include <numeric>
 #include <iomanip>
 #include <cstdint>
+#include <random>
+#include <functional>
+#include <iterator>
+#include <cstring>
 
 using namespace std;
 
@@ -680,6 +710,68 @@ namespace HarnessParser {
         return res;
     }
 
+    int parseNextIntToken(istream& in) {
+        skipParamLabel(in);
+        int x = 0;
+        in >> x;
+        return x;
+    }
+
+    vector<pair<int, int>> parseIntPairArray(istream& in) {
+        skipParamLabel(in);
+        vector<pair<int, int>> res;
+        skipWhitespaceAndChar(in, '[');
+        if (peekNextChar(in) == ']') {
+            skipWhitespaceAndChar(in, ']');
+            return res;
+        }
+        while (in) {
+            char openCh = peekNextChar(in);
+            if (openCh == '(' || openCh == '[') in >> openCh;
+            int a = parseNextIntToken(in);
+            char comma = 0;
+            in >> comma;
+            int b = parseNextIntToken(in);
+            char closeCh = peekNextChar(in);
+            if (closeCh == ')' || closeCh == ']') in >> closeCh;
+            res.push_back({a, b});
+            char sep;
+            if (!(in >> sep)) break;
+            if (sep == ']') break;
+        }
+        return res;
+    }
+
+    template <size_t N>
+    vector<array<int, N>> parseFixedIntArrayList(istream& in) {
+        skipParamLabel(in);
+        vector<array<int, N>> res;
+        skipWhitespaceAndChar(in, '[');
+        if (peekNextChar(in) == ']') {
+            skipWhitespaceAndChar(in, ']');
+            return res;
+        }
+        while (in) {
+            char openCh = peekNextChar(in);
+            if (openCh == '(' || openCh == '[') in >> openCh;
+            array<int, N> row{};
+            for (size_t i = 0; i < N; ++i) {
+                row[i] = parseNextIntToken(in);
+                if (i + 1 < N) {
+                    char comma = 0;
+                    in >> comma;
+                }
+            }
+            char closeCh = peekNextChar(in);
+            if (closeCh == ')' || closeCh == ']') in >> closeCh;
+            res.push_back(row);
+            char sep;
+            if (!(in >> sep)) break;
+            if (sep == ']') break;
+        }
+        return res;
+    }
+
     ListNode* parseListNode(istream& in) {
         vector<int> arr = parseIntegerArray(in);
         if (arr.empty()) return nullptr;
@@ -824,6 +916,20 @@ namespace HarnessParser {
     string serializeValue(bool x) { return x ? "true" : "false"; }
     string serializeValue(char c) { return string(1, '"') + c + string(1, '"'); }
     string serializeValue(const string& s) { return string(1, '"') + s + string(1, '"'); }
+
+    string serializeValue(const pair<int, int>& p) {
+        return "[" + to_string(p.first) + "," + to_string(p.second) + "]";
+    }
+
+    template<size_t N>
+    string serializeValue(const array<int, N>& arr) {
+        string s = "[";
+        for (size_t i = 0; i < N; ++i) {
+            s += to_string(arr[i]) + (i + 1 < N ? "," : "");
+        }
+        s += "]";
+        return s;
+    }
     
     template<typename T>
     string serializeValue(const vector<T>& v) {

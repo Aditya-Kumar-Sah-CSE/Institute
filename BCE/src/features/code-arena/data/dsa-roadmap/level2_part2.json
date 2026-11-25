@@ -1,0 +1,1518 @@
+{
+  "meta": {
+    "series": "DSA for Freshers: Mid-level Company Roadmap",
+    "level": 2,
+    "level_title": "Core Patterns",
+    "batch": "Part 2: Prefix Sum + HashMap, Difference Array, Two Pointers (advanced)",
+    "id_range": "L2-026 to L2-050",
+    "language_for_code": "C++17",
+    "language_for_explanations": "Hinglish",
+    "total_problems_in_batch": 25,
+    "includes_headers_hint": "#include <bits/stdc++.h> and using namespace std;",
+    "note": "company_tags indicative hain (frequently asked trends), official guarantee nahi."
+  },
+  "theory": [
+    {
+      "topic": "Prefix Sum & Range Queries (1D and 2D)",
+      "concept": "Prefix sum pre[i] = a[0] + ... + a[i-1] (size n+1, pre[0] = 0). Fir kisi bhi range [L, R] ka sum pre[R+1] - pre[L] se O(1) me milta hai. Query bahut ho to har baar loop chalana O(n*q) hota hai, prefix se O(n + q).",
+      "key_points": [
+        "1D: sum(L..R) = pre[R+1] - pre[L]",
+        "2D: pre[i+1][j+1] = m[i][j] + pre[i][j+1] + pre[i+1][j] - pre[i][j] (inclusion-exclusion)",
+        "2D query (r1,c1)-(r2,c2) = pre[r2+1][c2+1] - pre[r1][c2+1] - pre[r2+1][c1] + pre[r1][c1]",
+        "Product except self: left prefix product * right suffix product (division ke bina, zeros bhi handle ho jate hain)",
+        "Prefix array ek baar banta hai, queries immutable data par hi sahi rehti hain"
+      ],
+      "template_cpp": "vector<long long> pre(n + 1, 0);\nfor(int i = 0; i < n; i++) pre[i+1] = pre[i] + a[i];\nlong long rangeSum = pre[R + 1] - pre[L];",
+      "pitfalls": [
+        "pre ka size n (n+1 nahi) rakh dena",
+        "2D me aakhri term (+ pre[r1][c1]) bhool jana",
+        "int overflow (long long use karo)"
+      ]
+    },
+    {
+      "topic": "Prefix Sum + HashMap (Subarray Sum = K)",
+      "concept": "Subarray (i..j] ka sum k hai to pre[j] - pre[i] = k, yani pre[i] = pre[j] - k. Isliye har j par dekho ki 'pre[j] - k' pehle kitni baar aa chuka hai. Ye negatives ke saath bhi kaam karta hai (sliding window nahi karta).",
+      "key_points": [
+        "Count chahiye to cnt[prefix]++ rakho aur answer += cnt[pre - k]",
+        "Longest chahiye to sirf pehli occurrence (first index) rakho",
+        "Seed zaroori: cnt[0] = 1 (ya first[0] = -1) taaki array ke start se shuru hone wale subarrays count hon",
+        "Sliding window tabhi lagta hai jab elements non-negative ho (monotonic sum); negatives me prefix + HashMap",
+        "Binary array me 0 ko -1 maan lo to 'equal 0 aur 1' sum = 0 ki problem ban jati hai"
+      ],
+      "template_cpp": "unordered_map<long long,int> cnt;\ncnt[0] = 1;\nlong long s = 0; int ans = 0;\nfor(int x : a){\n  s += x;\n  auto it = cnt.find(s - k);\n  if(it != cnt.end()) ans += it->second;\n  cnt[s]++;\n}",
+      "pitfalls": [
+        "cnt[0] = 1 seed bhoolna",
+        "Update ko query se pehle kar dena (k = 0 par galat count)",
+        "Longest ke liye har baar index overwrite karna (first occurrence rakho)"
+      ]
+    },
+    {
+      "topic": "Prefix Remainder Trick (Divisibility)",
+      "concept": "Subarray sum k se divisible hai <=> pre[j] % k == pre[i] % k. Isliye remainders ko count/first-index ke saath map karo. Negative numbers me remainder ko ((s % k) + k) % k se normalize karo.",
+      "key_points": [
+        "Same remainder wale prefix pairs = divisible subarrays",
+        "Count ke liye cnt[rem]++, answer += cnt[rem] (update se pehle)",
+        "Length >= 2 wali condition me first index rakho aur i - first >= 2 check karo",
+        "Seed remainder 0 ko index -1 (ya count 1) ke saath"
+      ],
+      "template_cpp": "vector<int> cnt(k, 0); cnt[0] = 1;\nint s = 0, ans = 0;\nfor(int x : a){\n  s = ((s + x) % k + k) % k;\n  ans += cnt[s]++;\n}",
+      "pitfalls": [
+        "C++ me negative % negative hi deta hai",
+        "k = 0 special case (agar problem allow kare)",
+        "s + x overflow (long long ya har step mod)"
+      ]
+    },
+    {
+      "topic": "Difference Array (Range Updates)",
+      "concept": "Bahut saare 'range [l, r] me +v karo' updates ho aur end me final array chahiye to d[l] += v aur d[r+1] -= v karo. Fir d ka prefix sum final array deta hai. Har update O(1), total O(n + q).",
+      "key_points": [
+        "Update: d[l] += v, d[r + 1] -= v",
+        "Final: running sum of d",
+        "Flight bookings, car pooling, range addition, meeting rooms count sab isi pattern ke hain",
+        "Array size n + 2 rakho taaki r + 1 safe rahe"
+      ],
+      "template_cpp": "vector<int> d(n + 2, 0);\nfor(auto& u : updates){ d[u.l] += u.v; d[u.r + 1] -= u.v; }\nint cur = 0;\nfor(int i = 0; i < n; i++){ cur += d[i]; res[i] = cur; }",
+      "pitfalls": [
+        "r + 1 out of range",
+        "1-indexed vs 0-indexed confusion",
+        "Capacity check me '>' vs '>=' (drop-off point par passengers utar jate hain)"
+      ]
+    },
+    {
+      "topic": "Two Pointers on Sorted Arrays (3Sum, 4Sum, kSum)",
+      "concept": "Sort karo. Pehle k-2 elements ko loops se fix karo aur bache hue do ko l aur r pointers se dhundo. Sum chhota ho to l++, bada ho to r--. Duplicates skip karke unique tuples milte hain.",
+      "key_points": [
+        "3Sum O(n^2), 4Sum O(n^3), brute me ye O(n^3) aur O(n^4) hote hain",
+        "Duplicate skip: i par if(i > 0 && a[i] == a[i-1]) continue; match ke baad l aur r ko same values se aage badhao",
+        "Closest sum: har step par best update karo aur diff ke hisab se pointer chalao",
+        "Counting problems (triangle, sum condition): fixed largest/smallest ke saath pointers; match par poora range count (r - l)",
+        "Sorting se original indices kho jate hain, agar indices chahiye to pair (value, index) sort karo"
+      ],
+      "template_cpp": "sort(a.begin(), a.end());\nfor(int i = 0; i < n - 2; i++){\n  if(i > 0 && a[i] == a[i-1]) continue;\n  int l = i + 1, r = n - 1;\n  while(l < r){\n    int s = a[i] + a[l] + a[r];\n    if(s < 0) l++; else if(s > 0) r--;\n    else { res.push_back({a[i], a[l], a[r]}); l++; r--; while(l < r && a[l] == a[l-1]) l++; while(l < r && a[r] == a[r+1]) r--; }\n  }\n}",
+      "pitfalls": [
+        "Duplicate skip galat jagah (i ke liye bhi aur l/r ke liye bhi chahiye)",
+        "4Sum me int overflow (long long sum)",
+        "n < 3 ya n < 4 edge case"
+      ]
+    },
+    {
+      "topic": "Two Pointers: Greedy Shrink (Container, Trapping Water, Boats)",
+      "concept": "Dono ends par pointers; jis side ka 'limiting factor' chhota hai, usi pointer ko move karo, kyunki dusri side ko move karne se answer improve nahi ho sakta. Isse O(n) me n^2 pairs ka kaam ho jata hai.",
+      "key_points": [
+        "Container With Most Water: area = min(h[l], h[r]) * (r - l); chhoti height wala pointer move karo",
+        "Trapping Rain Water: lmax/rmax maintain karo; chhoti side ka water pakka (limiting side wahi hai)",
+        "Boats: sort karke heaviest + lightest ko pair karo; pair na bane to heaviest akela jata hai",
+        "Backspace compare: peeche se scan karke skip count se chhupe hue characters chhodo (O(1) space)"
+      ],
+      "template_cpp": "int l = 0, r = n - 1, best = 0;\nwhile(l < r){\n  best = max(best, min(h[l], h[r]) * (r - l));\n  if(h[l] < h[r]) l++; else r--;\n}",
+      "pitfalls": [
+        "Dono pointers ek saath move karna",
+        "Equal heights par kaun sa pointer hataye (koi bhi chalta hai)",
+        "Trapping water me water negative ho jana (lmax update pehle karo)"
+      ]
+    }
+  ],
+  "problems": [
+    {
+      "id": "L2-026",
+      "level": 2,
+      "topic": "Prefix Sum",
+      "title": "Range Sum Query (Immutable)",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "TCS",
+        "Infosys",
+        "Wipro"
+      ],
+      "problem_statement": "Given an array and multiple queries (L, R), return the sum of elements between indices L and R inclusive for each query.",
+      "description": "Array change nahi hota, queries bahut hoti hain.",
+      "constraints": [
+        "1 <= n <= 1e4",
+        "-1e5 <= a[i] <= 1e5",
+        "Up to 1e4 queries",
+        "0 <= L <= R < n"
+      ],
+      "test_cases": [
+        {
+          "input": "a=[-2,0,3,-5,2,-1], q=[(0,2),(2,5),(0,5)]",
+          "output": "[1,-1,-3]",
+          "explanation": "Teen range sums"
+        }
+      ],
+      "theory": "pre[i+1] = pre[i] + a[i]. Query answer = pre[R+1] - pre[L].",
+      "brute_force": {
+        "approach": "Har query ke liye L se R tak loop.",
+        "time": "O(n*q)",
+        "space": "O(1)",
+        "code_cpp": "vector<int> rangeSums(const vector<int>& a, const vector<pair<int,int>>& q){ vector<int> r; for(auto& p : q){ int s = 0; for(int i = p.first; i <= p.second; i++) s += a[i]; r.push_back(s); } return r; }"
+      },
+      "optimized": {
+        "approach": "Prefix sum array ek baar, har query O(1).",
+        "time": "O(n + q)",
+        "space": "O(n)",
+        "code_cpp": "vector<int> rangeSums(const vector<int>& a, const vector<pair<int,int>>& q){ int n = a.size(); vector<int> pre(n + 1, 0); for(int i = 0; i < n; i++) pre[i+1] = pre[i] + a[i]; vector<int> r; for(auto& p : q) r.push_back(pre[p.second + 1] - pre[p.first]); return r; }"
+      },
+      "explanation": "Extra (n+1) space se query cost O(n) se O(1) ho gayi. Prefix sum aage ke saare subarray-sum patterns ki buniyad hai.",
+      "edge_cases": [
+        "L = R",
+        "L = 0",
+        "Whole array"
+      ]
+    },
+    {
+      "id": "L2-027",
+      "level": 2,
+      "topic": "Prefix Sum",
+      "title": "Product of Array Except Self",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Facebook",
+        "Apple",
+        "Google",
+        "Infosys",
+        "Flipkart"
+      ],
+      "problem_statement": "Given an array, return an array where answer[i] is the product of all elements except a[i]. Do not use division and solve in O(n).",
+      "description": "Zeros ho sakte hain, isliye division approach unsafe hai.",
+      "constraints": [
+        "2 <= n <= 1e5",
+        "-30 <= a[i] <= 30",
+        "Product fits in 32-bit int"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,2,3,4]",
+          "output": "[24,12,8,6]",
+          "explanation": "Har position ke bina product"
+        },
+        {
+          "input": "[-1,1,0,-3,3]",
+          "output": "[0,0,9,0,0]",
+          "explanation": "Zero ke saath"
+        },
+        {
+          "input": "[2,3]",
+          "output": "[3,2]",
+          "explanation": "Do elements"
+        }
+      ],
+      "theory": "answer[i] = (i se pehle sabka product) * (i ke baad sabka product). Pehle left pass, phir right pass me suffix product multiply karo.",
+      "brute_force": {
+        "approach": "Har i ke liye baaki sab elements multiply karo.",
+        "time": "O(n^2)",
+        "space": "O(1) extra",
+        "code_cpp": "vector<int> productExceptSelf(const vector<int>& a){ int n = a.size(); vector<int> r(n, 1); for(int i = 0; i < n; i++) for(int j = 0; j < n; j++) if(i != j) r[i] *= a[j]; return r; }"
+      },
+      "optimized": {
+        "approach": "Left products output array me, phir right se suffix product.",
+        "time": "O(n)",
+        "space": "O(1) extra (output chhodkar)",
+        "code_cpp": "vector<int> productExceptSelf(const vector<int>& a){ int n = a.size(); vector<int> r(n, 1); for(int i = 1; i < n; i++) r[i] = r[i-1] * a[i-1]; int suf = 1; for(int i = n - 1; i >= 0; i--){ r[i] *= suf; suf *= a[i]; } return r; }"
+      },
+      "explanation": "Total product / a[i] zero par fail hota hai. Prefix aur suffix products dono alag alag pass me combine hote hain, isliye zero automatically sahi handle hota hai.",
+      "edge_cases": [
+        "One zero",
+        "Two zeros",
+        "Negative numbers"
+      ]
+    },
+    {
+      "id": "L2-028",
+      "level": 2,
+      "topic": "Prefix Sum",
+      "title": "Range Sum Query 2D (Immutable)",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Infosys"
+      ],
+      "problem_statement": "Given a 2D matrix and multiple queries (r1, c1, r2, c2), return the sum of elements inside the rectangle for each query.",
+      "description": "Matrix immutable hai aur queries bahut hain.",
+      "constraints": [
+        "1 <= rows, cols <= 200",
+        "-1e4 <= m[i][j] <= 1e4",
+        "Up to 1e4 queries"
+      ],
+      "test_cases": [
+        {
+          "input": "m=[[3,0,1,4,2],[5,6,3,2,1],[1,2,0,1,5],[4,1,0,1,7],[1,0,3,0,5]], q=[(2,1,4,3),(1,1,2,2),(1,2,2,4)]",
+          "output": "[8,11,12]",
+          "explanation": "Teen rectangle sums"
+        }
+      ],
+      "theory": "2D prefix: pre[i+1][j+1] = m[i][j] + pre[i][j+1] + pre[i+1][j] - pre[i][j]. Rectangle sum inclusion-exclusion se.",
+      "brute_force": {
+        "approach": "Har query me rectangle ke andar sab cells jodo.",
+        "time": "O(q * R * C)",
+        "space": "O(1)",
+        "code_cpp": "vector<int> sumRegions(const vector<vector<int>>& m, const vector<array<int,4>>& q){ vector<int> r; for(auto& x : q){ int s = 0; for(int i = x[0]; i <= x[2]; i++) for(int j = x[1]; j <= x[3]; j++) s += m[i][j]; r.push_back(s); } return r; }"
+      },
+      "optimized": {
+        "approach": "2D prefix sum, har query O(1).",
+        "time": "O(R*C + q)",
+        "space": "O(R*C)",
+        "code_cpp": "vector<int> sumRegions(const vector<vector<int>>& m, const vector<array<int,4>>& q){ int R = m.size(), C = m[0].size(); vector<vector<int>> pre(R + 1, vector<int>(C + 1, 0)); for(int i = 0; i < R; i++) for(int j = 0; j < C; j++) pre[i+1][j+1] = m[i][j] + pre[i][j+1] + pre[i+1][j] - pre[i][j]; vector<int> r; for(auto& x : q) r.push_back(pre[x[2]+1][x[3]+1] - pre[x[0]][x[3]+1] - pre[x[2]+1][x[1]] + pre[x[0]][x[1]]); return r; }"
+      },
+      "explanation": "Inclusion-exclusion: bada rectangle - upar wala - left wala + dono ka overlap (jo do baar ghat gaya tha).",
+      "edge_cases": [
+        "Single cell",
+        "Whole matrix",
+        "Single row or column"
+      ]
+    },
+    {
+      "id": "L2-029",
+      "level": 2,
+      "topic": "Difference Array",
+      "title": "Corporate Flight Bookings",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Infosys"
+      ],
+      "problem_statement": "There are n flights labeled 1..n. Each booking [first, last, seats] reserves seats on every flight from first to last. Return the total seats booked on each flight.",
+      "description": "Har booking ek range update hai.",
+      "constraints": [
+        "1 <= n <= 2e4",
+        "1 <= bookings <= 2e4",
+        "1 <= first <= last <= n",
+        "1 <= seats <= 1e4"
+      ],
+      "test_cases": [
+        {
+          "input": "bookings=[[1,2,10],[2,3,20],[2,5,25]], n=5",
+          "output": "[10,55,45,25,25]",
+          "explanation": "Range updates ka total"
+        },
+        {
+          "input": "bookings=[[1,2,10],[2,2,15]], n=2",
+          "output": "[10,25]",
+          "explanation": "Do bookings"
+        }
+      ],
+      "theory": "Difference array: d[first] += seats, d[last+1] -= seats. Final = prefix sum of d.",
+      "brute_force": {
+        "approach": "Har booking ke liye first se last tak loop chalake add.",
+        "time": "O(bookings * n)",
+        "space": "O(1) extra",
+        "code_cpp": "vector<int> corpFlightBookings(const vector<array<int,3>>& b, int n){ vector<int> r(n, 0); for(auto& x : b) for(int i = x[0]; i <= x[1]; i++) r[i-1] += x[2]; return r; }"
+      },
+      "optimized": {
+        "approach": "Difference array + prefix sum.",
+        "time": "O(n + bookings)",
+        "space": "O(n)",
+        "code_cpp": "vector<int> corpFlightBookings(const vector<array<int,3>>& b, int n){ vector<int> d(n + 2, 0); for(auto& x : b){ d[x[0]] += x[2]; d[x[1] + 1] -= x[2]; } vector<int> r(n); int cur = 0; for(int i = 1; i <= n; i++){ cur += d[i]; r[i-1] = cur; } return r; }"
+      },
+      "explanation": "Range update ko do point updates me badal diya. Saare updates ke baad ek hi prefix pass me final array mil jata hai.",
+      "edge_cases": [
+        "Single booking",
+        "Booking for all flights",
+        "Overlapping bookings"
+      ]
+    },
+    {
+      "id": "L2-030",
+      "level": 2,
+      "topic": "Difference Array",
+      "title": "Car Pooling",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Uber",
+        "Google",
+        "Microsoft",
+        "Infosys"
+      ],
+      "problem_statement": "A car has a given capacity. trips[i] = [passengers, from, to]: passengers are picked up at 'from' and dropped at 'to'. Return true if all trips can be done without ever exceeding capacity.",
+      "description": "Drop-off point par passengers utar jaate hain, naye us point par chadh sakte hain.",
+      "constraints": [
+        "1 <= trips <= 1000",
+        "1 <= passengers <= 100",
+        "0 <= from < to <= 1000",
+        "1 <= capacity <= 1e5"
+      ],
+      "test_cases": [
+        {
+          "input": "trips=[[2,1,5],[3,3,7]], cap=4",
+          "output": "false",
+          "explanation": "Location 3 se 4 tak load 5"
+        },
+        {
+          "input": "trips=[[2,1,5],[3,3,7]], cap=5",
+          "output": "true",
+          "explanation": "Max load 5"
+        },
+        {
+          "input": "trips=[[3,2,7],[3,7,9],[8,3,9]], cap=11",
+          "output": "true",
+          "explanation": "Load kabhi 11 se upar nahi"
+        }
+      ],
+      "theory": "Difference array over locations: d[from] += n, d[to] -= n. Prefix sum se har location par load aur check load <= capacity.",
+      "brute_force": {
+        "approach": "Har location (0..1000) par saare trips scan karke load nikalo.",
+        "time": "O(1001 * trips)",
+        "space": "O(1)",
+        "code_cpp": "bool carPooling(const vector<array<int,3>>& t, int cap){ for(int loc = 0; loc <= 1000; loc++){ int load = 0; for(auto& x : t) if(x[1] <= loc && loc < x[2]) load += x[0]; if(load > cap) return false; } return true; }"
+      },
+      "optimized": {
+        "approach": "Difference array on location axis.",
+        "time": "O(trips + 1001)",
+        "space": "O(1001)",
+        "code_cpp": "bool carPooling(const vector<array<int,3>>& t, int cap){ vector<int> d(1002, 0); for(auto& x : t){ d[x[1]] += x[0]; d[x[2]] -= x[0]; } int cur = 0; for(int i = 0; i <= 1000; i++){ cur += d[i]; if(cur > cap) return false; } return true; }"
+      },
+      "explanation": "'to' par -= karne se drop-off point par passengers utarna model ho jata hai (half-open interval [from, to)).",
+      "edge_cases": [
+        "Boundary pickup and dropoff at same point",
+        "Single trip over capacity",
+        "No overlap"
+      ]
+    },
+    {
+      "id": "L2-031",
+      "level": 2,
+      "topic": "Prefix Sum + HashMap",
+      "title": "Subarray Sum Equals K",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Facebook",
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Apple",
+        "Infosys",
+        "TCS",
+        "Flipkart"
+      ],
+      "problem_statement": "Given an integer array and k, return the total number of contiguous subarrays whose sum equals k.",
+      "description": "Array me negative numbers ho sakte hain, isliye sliding window nahi chalega.",
+      "constraints": [
+        "1 <= n <= 2e4",
+        "-1000 <= a[i] <= 1000",
+        "-1e7 <= k <= 1e7"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,1,1], k=2",
+          "output": "2",
+          "explanation": "Do subarrays"
+        },
+        {
+          "input": "[1,2,3], k=3",
+          "output": "2",
+          "explanation": "[1,2] aur [3]"
+        },
+        {
+          "input": "[1,-1,0], k=0",
+          "output": "3",
+          "explanation": "[1,-1], [0], [1,-1,0]"
+        }
+      ],
+      "theory": "pre[j] - pre[i] = k => pre[i] = pre[j] - k. HashMap me prefix sums ki frequency rakho (cnt[0] = 1 se start).",
+      "brute_force": {
+        "approach": "Har start se end tak running sum, k ke barabar hone par count++.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int subarraySum(const vector<int>& a, int k){ int n = a.size(), r = 0; for(int i = 0; i < n; i++){ int s = 0; for(int j = i; j < n; j++){ s += a[j]; if(s == k) r++; } } return r; }"
+      },
+      "optimized": {
+        "approach": "Prefix sum + frequency HashMap.",
+        "time": "O(n)",
+        "space": "O(n)",
+        "code_cpp": "int subarraySum(const vector<int>& a, int k){ unordered_map<long long,int> cnt; cnt[0] = 1; long long s = 0; int r = 0; for(int x : a){ s += x; auto it = cnt.find(s - k); if(it != cnt.end()) r += it->second; cnt[s]++; } return r; }"
+      },
+      "explanation": "Pehle query (cnt[s-k]) phir update (cnt[s]++), warna k = 0 par khud ko count kar leta. Ye prefix+hashmap pattern ka sabse important problem hai.",
+      "edge_cases": [
+        "k = 0",
+        "Negative numbers",
+        "Single element equals k"
+      ]
+    },
+    {
+      "id": "L2-032",
+      "level": 2,
+      "topic": "Prefix Sum + HashMap",
+      "title": "Continuous Subarray Sum",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Facebook",
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Infosys"
+      ],
+      "problem_statement": "Return true if the array has a subarray of length at least 2 whose sum is a multiple of k.",
+      "description": "0 bhi k ka multiple maana jata hai.",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "0 <= a[i] <= 1e9",
+        "1 <= k <= 2^31 - 1"
+      ],
+      "test_cases": [
+        {
+          "input": "[23,2,4,6,7], k=6",
+          "output": "true",
+          "explanation": "[2,4] sum 6"
+        },
+        {
+          "input": "[23,2,6,4,7], k=6",
+          "output": "true",
+          "explanation": "Poora array sum 42"
+        },
+        {
+          "input": "[23,2,6,4,7], k=13",
+          "output": "false",
+          "explanation": "Koi nahi"
+        }
+      ],
+      "theory": "Prefix % k same ho to beech ka sum divisible hai. Har remainder ki pehli index rakho aur check karo ki current index se kam se kam 2 door ho.",
+      "brute_force": {
+        "approach": "Har (i, j), j > i, ke liye sum nikalo aur % k check karo.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "bool checkSubarraySum(const vector<int>& a, int k){ int n = a.size(); for(int i = 0; i < n; i++){ long long s = a[i]; for(int j = i + 1; j < n; j++){ s += a[j]; if(s % k == 0) return true; } } return false; }"
+      },
+      "optimized": {
+        "approach": "Prefix remainder + first-index HashMap.",
+        "time": "O(n)",
+        "space": "O(min(n, k))",
+        "code_cpp": "bool checkSubarraySum(const vector<int>& a, int k){ unordered_map<int,int> first; first[0] = -1; long long s = 0; for(int i = 0; i < (int)a.size(); i++){ s = (s + a[i]) % k; auto it = first.find((int)s); if(it == first.end()) first[(int)s] = i; else if(i - it->second >= 2) return true; } return false; }"
+      },
+      "explanation": "Pehli occurrence hi rakhte hain taaki subarray sabse lamba mile (length >= 2 ka check aasan ho). first[0] = -1 se array ke shuru wale subarrays cover hote hain.",
+      "edge_cases": [
+        "Two zeros",
+        "k = 1",
+        "n = 1 (false)"
+      ]
+    },
+    {
+      "id": "L2-033",
+      "level": 2,
+      "topic": "Prefix Sum + HashMap",
+      "title": "Subarray Sums Divisible by K",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Infosys",
+        "Cognizant"
+      ],
+      "problem_statement": "Given an integer array and k, return the number of non-empty subarrays whose sum is divisible by k.",
+      "description": "Negative numbers ho sakte hain.",
+      "constraints": [
+        "1 <= n <= 3e4",
+        "-1e4 <= a[i] <= 1e4",
+        "2 <= k <= 1e4"
+      ],
+      "test_cases": [
+        {
+          "input": "[4,5,0,-2,-3,1], k=5",
+          "output": "7",
+          "explanation": "Saare divisible subarrays"
+        },
+        {
+          "input": "[5], k=9",
+          "output": "0",
+          "explanation": "Koi nahi"
+        },
+        {
+          "input": "[-1,2,9], k=2",
+          "output": "2",
+          "explanation": "[2] aur poora array"
+        }
+      ],
+      "theory": "Prefix remainders ka frequency count. Same remainder wale prefix pairs (nC2) divisible subarrays dete hain. Negative remainder ko normalize karo.",
+      "brute_force": {
+        "approach": "Har subarray ka sum aur % k.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int subarraysDivByK(const vector<int>& a, int k){ int n = a.size(), r = 0; for(int i = 0; i < n; i++){ long long s = 0; for(int j = i; j < n; j++){ s += a[j]; if(s % k == 0) r++; } } return r; }"
+      },
+      "optimized": {
+        "approach": "Remainder frequency array (size k).",
+        "time": "O(n + k)",
+        "space": "O(k)",
+        "code_cpp": "int subarraysDivByK(const vector<int>& a, int k){ vector<int> cnt(k, 0); cnt[0] = 1; int s = 0, r = 0; for(int x : a){ s = ((s + x) % k + k) % k; r += cnt[s]++; } return r; }"
+      },
+      "explanation": "((s % k) + k) % k negative remainder ko [0, k-1] me laata hai. Subarray Sum Equals K ka remainder-version hai.",
+      "edge_cases": [
+        "Negative sums",
+        "All multiples of k",
+        "k larger than all elements"
+      ]
+    },
+    {
+      "id": "L2-034",
+      "level": 2,
+      "topic": "Prefix Sum + HashMap",
+      "title": "Contiguous Array",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Facebook",
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Infosys"
+      ],
+      "problem_statement": "Given a binary array, return the maximum length of a contiguous subarray with an equal number of 0 and 1.",
+      "description": "0 aur 1 ki ginti barabar honi chahiye.",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "a[i] in {0, 1}"
+      ],
+      "test_cases": [
+        {
+          "input": "[0,1]",
+          "output": "2",
+          "explanation": "Poora array"
+        },
+        {
+          "input": "[0,1,0]",
+          "output": "2",
+          "explanation": "[0,1] ya [1,0]"
+        },
+        {
+          "input": "[0,0,1,0,0,0,1,1]",
+          "output": "6",
+          "explanation": "[1,0,0,0,1,1]"
+        }
+      ],
+      "theory": "0 ko -1 maan lo. Equal 0 aur 1 <=> sum = 0. Prefix sum ka first-index map rakho; same prefix dobara mile to beech ka sum 0 hai.",
+      "brute_force": {
+        "approach": "Har subarray me balance track karo (1 => +1, 0 => -1).",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int findMaxLength(const vector<int>& a){ int n = a.size(), best = 0; for(int i = 0; i < n; i++){ int bal = 0; for(int j = i; j < n; j++){ bal += a[j] ? 1 : -1; if(bal == 0) best = max(best, j - i + 1); } } return best; }"
+      },
+      "optimized": {
+        "approach": "Prefix balance + first-index HashMap.",
+        "time": "O(n)",
+        "space": "O(n)",
+        "code_cpp": "int findMaxLength(const vector<int>& a){ unordered_map<int,int> first; first[0] = -1; int s = 0, best = 0; for(int i = 0; i < (int)a.size(); i++){ s += a[i] ? 1 : -1; auto it = first.find(s); if(it == first.end()) first[s] = i; else best = max(best, i - it->second); } return best; }"
+      },
+      "explanation": "Value transform (0 -> -1) se problem 'longest subarray with sum 0' ban gayi. Ye transform kai problems me kaam aata hai.",
+      "edge_cases": [
+        "All zeros",
+        "All ones",
+        "Empty answer 0 (e.g. [1,1,0] gives 2)"
+      ]
+    },
+    {
+      "id": "L2-035",
+      "level": 2,
+      "topic": "Prefix Sum + HashMap",
+      "title": "Longest Subarray with Sum K (Negatives Allowed)",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Google",
+        "Infosys",
+        "TCS"
+      ],
+      "problem_statement": "Given an array that may contain negative numbers and a value k, find the length of the longest subarray with sum exactly k. Return 0 if none exists.",
+      "description": "Sliding window yahan fail hota hai kyunki negatives se sum monotonic nahi rehta.",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "-1e4 <= a[i] <= 1e4",
+        "-1e9 <= k <= 1e9"
+      ],
+      "test_cases": [
+        {
+          "input": "[10,5,2,7,1,-10], k=15",
+          "output": "6",
+          "explanation": "Poora array"
+        },
+        {
+          "input": "[-5,8,-14,2,4,12], k=-5",
+          "output": "5",
+          "explanation": "Pehle 5 elements"
+        },
+        {
+          "input": "[1,2,3], k=7",
+          "output": "0",
+          "explanation": "Koi nahi"
+        }
+      ],
+      "theory": "Har prefix sum ki pehli index store karo. Current prefix s par agar s - k pehle dikha hai to length = i - first[s-k].",
+      "brute_force": {
+        "approach": "Har start se end tak running sum; k milne par length update.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int longestSubarrayK(const vector<int>& a, long long k){ int n = a.size(), best = 0; for(int i = 0; i < n; i++){ long long s = 0; for(int j = i; j < n; j++){ s += a[j]; if(s == k) best = max(best, j - i + 1); } } return best; }"
+      },
+      "optimized": {
+        "approach": "Prefix sum + first-index HashMap.",
+        "time": "O(n)",
+        "space": "O(n)",
+        "code_cpp": "int longestSubarrayK(const vector<int>& a, long long k){ unordered_map<long long,int> first; first[0] = -1; long long s = 0; int best = 0; for(int i = 0; i < (int)a.size(); i++){ s += a[i]; auto it = first.find(s - k); if(it != first.end()) best = max(best, i - it->second); if(!first.count(s)) first[s] = i; } return best; }"
+      },
+      "explanation": "Longest ke liye first occurrence rakhte hain (overwrite nahi). Count wali problem me frequency rakhte, yahan index.",
+      "edge_cases": [
+        "All negative",
+        "k = 0",
+        "Whole array is the answer"
+      ]
+    },
+    {
+      "id": "L2-036",
+      "level": 2,
+      "topic": "Prefix Sum + HashMap",
+      "title": "Binary Subarrays With Sum",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Google",
+        "Amazon",
+        "Microsoft",
+        "Infosys"
+      ],
+      "problem_statement": "Given a binary array and an integer goal, return the number of non-empty subarrays whose sum equals goal.",
+      "description": "Sirf 0 aur 1 hain, isliye prefix sum 0..n ke beech rehta hai (array se bhi count ho sakta hai).",
+      "constraints": [
+        "1 <= n <= 3e4",
+        "a[i] in {0, 1}",
+        "0 <= goal <= n"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,0,1,0,1], goal=2",
+          "output": "4",
+          "explanation": "Chaar subarrays"
+        },
+        {
+          "input": "[0,0,0,0,0], goal=0",
+          "output": "15",
+          "explanation": "n(n+1)/2"
+        },
+        {
+          "input": "[1], goal=1",
+          "output": "1",
+          "explanation": "Single"
+        }
+      ],
+      "theory": "Prefix sum ki frequency array cnt[0..n] rakho. answer += cnt[s - goal]. (Ya atMost(goal) - atMost(goal-1) sliding window.)",
+      "brute_force": {
+        "approach": "Har subarray ka sum.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int numSubarraysWithSum(const vector<int>& a, int goal){ int n = a.size(), r = 0; for(int i = 0; i < n; i++){ int s = 0; for(int j = i; j < n; j++){ s += a[j]; if(s == goal) r++; } } return r; }"
+      },
+      "optimized": {
+        "approach": "Prefix frequency array (HashMap ki jagah).",
+        "time": "O(n)",
+        "space": "O(n)",
+        "code_cpp": "int numSubarraysWithSum(const vector<int>& a, int goal){ vector<int> cnt(a.size() + 2, 0); cnt[0] = 1; int s = 0, r = 0; for(int x : a){ s += x; if(s >= goal) r += cnt[s - goal]; cnt[s]++; } return r; }"
+      },
+      "explanation": "Prefix sum ki range chhoti (0..n) hai, isliye array HashMap se tez aur simple hai. goal = 0 par bhi seed cnt[0] = 1 sahi count deta hai.",
+      "edge_cases": [
+        "goal = 0",
+        "All ones",
+        "goal = n"
+      ]
+    },
+    {
+      "id": "L2-037",
+      "level": 2,
+      "topic": "Prefix Sum + HashMap",
+      "title": "Count Subarrays with XOR K",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Google",
+        "Infosys",
+        "Zoho"
+      ],
+      "problem_statement": "Given an array and an integer k, count the number of subarrays whose XOR equals k.",
+      "description": "XOR ke liye bhi prefix idea chalta hai kyunki x ^ x = 0.",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "0 <= a[i], k <= 1e6"
+      ],
+      "test_cases": [
+        {
+          "input": "[4,2,2,6,4], k=6",
+          "output": "4",
+          "explanation": "[4,2],[2,2,6],[6],[4,2,2,6,4]"
+        },
+        {
+          "input": "[5,6,7,8,9], k=5",
+          "output": "2",
+          "explanation": "[5] aur poora array"
+        },
+        {
+          "input": "[1,1], k=0",
+          "output": "1",
+          "explanation": "[1,1]"
+        }
+      ],
+      "theory": "px[j] ^ px[i] = k => px[i] = px[j] ^ k. Prefix XOR ki frequency map.",
+      "brute_force": {
+        "approach": "Har subarray ka XOR running se.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "long long countXor(const vector<int>& a, int k){ int n = a.size(); long long r = 0; for(int i = 0; i < n; i++){ int x = 0; for(int j = i; j < n; j++){ x ^= a[j]; if(x == k) r++; } } return r; }"
+      },
+      "optimized": {
+        "approach": "Prefix XOR + HashMap.",
+        "time": "O(n)",
+        "space": "O(n)",
+        "code_cpp": "long long countXor(const vector<int>& a, int k){ unordered_map<int,int> cnt; cnt[0] = 1; int x = 0; long long r = 0; for(int v : a){ x ^= v; auto it = cnt.find(x ^ k); if(it != cnt.end()) r += it->second; cnt[x]++; } return r; }"
+      },
+      "explanation": "Sum ki jagah XOR bhi 'invertible operation' hai (a ^ a = 0), isliye Subarray Sum Equals K ka same template chalta hai.",
+      "edge_cases": [
+        "k = 0",
+        "All same values",
+        "Single element"
+      ]
+    },
+    {
+      "id": "L2-038",
+      "level": 2,
+      "topic": "Two Pointers",
+      "title": "3Sum",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Facebook",
+        "Microsoft",
+        "Apple",
+        "Adobe",
+        "TCS",
+        "Infosys",
+        "Flipkart"
+      ],
+      "problem_statement": "Given an integer array, return all unique triplets [a, b, c] such that a + b + c = 0.",
+      "description": "Solution set me duplicate triplets nahi hone chahiye.",
+      "constraints": [
+        "0 <= n <= 3000",
+        "-1e5 <= a[i] <= 1e5"
+      ],
+      "test_cases": [
+        {
+          "input": "[-1,0,1,2,-1,-4]",
+          "output": "[[-1,-1,2],[-1,0,1]]",
+          "explanation": "Unique triplets"
+        },
+        {
+          "input": "[0,1,1]",
+          "output": "[]",
+          "explanation": "Sum 0 nahi"
+        },
+        {
+          "input": "[0,0,0]",
+          "output": "[[0,0,0]]",
+          "explanation": "Ek triplet"
+        }
+      ],
+      "theory": "Sort karo. i fix karo, l = i+1 aur r = n-1 pointers. Sum < 0 to l++, > 0 to r--, 0 par record karke dono move aur duplicates skip.",
+      "brute_force": {
+        "approach": "Teen nested loops + set se duplicates hatao.",
+        "time": "O(n^3)",
+        "space": "O(k)",
+        "code_cpp": "vector<vector<int>> threeSum(vector<int> a){ sort(a.begin(), a.end()); set<vector<int>> s; int n = a.size(); for(int i = 0; i < n; i++) for(int j = i + 1; j < n; j++) for(int k = j + 1; k < n; k++) if(a[i] + a[j] + a[k] == 0) s.insert({a[i], a[j], a[k]}); return vector<vector<int>>(s.begin(), s.end()); }"
+      },
+      "optimized": {
+        "approach": "Sort + two pointers + duplicate skipping.",
+        "time": "O(n^2)",
+        "space": "O(1) extra",
+        "code_cpp": "vector<vector<int>> threeSum(vector<int> a){ sort(a.begin(), a.end()); int n = a.size(); vector<vector<int>> r; for(int i = 0; i < n - 2; i++){ if(a[i] > 0) break; if(i > 0 && a[i] == a[i-1]) continue; int l = i + 1, h = n - 1; while(l < h){ int s = a[i] + a[l] + a[h]; if(s < 0) l++; else if(s > 0) h--; else { r.push_back({a[i], a[l], a[h]}); l++; h--; while(l < h && a[l] == a[l-1]) l++; while(l < h && a[h] == a[h+1]) h--; } } } return r; }"
+      },
+      "explanation": "Sort hone se duplicates adjacent aa jaate hain, isliye set ki zaroorat nahi. a[i] > 0 par break kyunki sorted array me teeno positive honge to sum > 0.",
+      "edge_cases": [
+        "n < 3",
+        "All zeros",
+        "Many duplicates"
+      ]
+    },
+    {
+      "id": "L2-039",
+      "level": 2,
+      "topic": "Two Pointers",
+      "title": "3Sum Closest",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Facebook",
+        "Infosys"
+      ],
+      "problem_statement": "Given an array and a target, find three integers whose sum is closest to the target and return that sum.",
+      "description": "Exactly ek solution assume kiya gaya hai.",
+      "constraints": [
+        "3 <= n <= 500",
+        "-1000 <= a[i] <= 1000",
+        "-1e4 <= target <= 1e4"
+      ],
+      "test_cases": [
+        {
+          "input": "[-1,2,1,-4], t=1",
+          "output": "2",
+          "explanation": "-1 + 2 + 1"
+        },
+        {
+          "input": "[0,0,0], t=1",
+          "output": "0",
+          "explanation": "Sirf ek triplet"
+        },
+        {
+          "input": "[1,1,1,0], t=-100",
+          "output": "2",
+          "explanation": "Sabse chhota triplet sum"
+        }
+      ],
+      "theory": "Sort + i fix + two pointers. Har sum par best update; sum < target to l++, warna r--; sum == target to turant return.",
+      "brute_force": {
+        "approach": "Saare triplets check.",
+        "time": "O(n^3)",
+        "space": "O(1)",
+        "code_cpp": "int threeSumClosest(const vector<int>& a, int t){ int n = a.size(), best = a[0] + a[1] + a[2]; for(int i = 0; i < n; i++) for(int j = i + 1; j < n; j++) for(int k = j + 1; k < n; k++){ int s = a[i] + a[j] + a[k]; if(abs(s - t) < abs(best - t)) best = s; } return best; }"
+      },
+      "optimized": {
+        "approach": "Sort + two pointers.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int threeSumClosest(vector<int> a, int t){ sort(a.begin(), a.end()); int n = a.size(), best = a[0] + a[1] + a[2]; for(int i = 0; i < n - 2; i++){ int l = i + 1, h = n - 1; while(l < h){ int s = a[i] + a[l] + a[h]; if(abs(s - t) < abs(best - t)) best = s; if(s == t) return s; if(s < t) l++; else h--; } } return best; }"
+      },
+      "explanation": "3Sum ka hi template hai; yahan 'exactly 0' ke bajay 'minimum |sum - target|' track hota hai. Duplicate skip ki zaroorat nahi (sirf ek sum chahiye).",
+      "edge_cases": [
+        "Exact match exists",
+        "Target far from all sums",
+        "Negative target"
+      ]
+    },
+    {
+      "id": "L2-040",
+      "level": 2,
+      "topic": "Two Pointers",
+      "title": "4Sum",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Adobe",
+        "Infosys"
+      ],
+      "problem_statement": "Given an array and a target, return all unique quadruplets whose sum equals the target.",
+      "description": "Duplicate quadruplets nahi chahiye.",
+      "constraints": [
+        "1 <= n <= 200",
+        "-1e9 <= a[i] <= 1e9",
+        "-1e9 <= target <= 1e9"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,0,-1,0,-2,2], t=0",
+          "output": "[[-2,-1,1,2],[-2,0,0,2],[-1,0,0,1]]",
+          "explanation": "Teen quadruplets"
+        },
+        {
+          "input": "[2,2,2,2,2], t=8",
+          "output": "[[2,2,2,2]]",
+          "explanation": "Duplicates collapse"
+        },
+        {
+          "input": "[1], t=1",
+          "output": "[]",
+          "explanation": "n < 4"
+        }
+      ],
+      "theory": "Sort + do nested loops (i, j) + two pointers (l, r). Sum long long me (overflow). Har level par duplicates skip.",
+      "brute_force": {
+        "approach": "Chaar nested loops + set.",
+        "time": "O(n^4)",
+        "space": "O(k)",
+        "code_cpp": "vector<vector<int>> fourSum(vector<int> a, int t){ sort(a.begin(), a.end()); set<vector<int>> s; int n = a.size(); for(int i = 0; i < n; i++) for(int j = i + 1; j < n; j++) for(int k = j + 1; k < n; k++) for(int l = k + 1; l < n; l++) if((long long)a[i] + a[j] + a[k] + a[l] == t) s.insert({a[i], a[j], a[k], a[l]}); return vector<vector<int>>(s.begin(), s.end()); }"
+      },
+      "optimized": {
+        "approach": "Sort + 2 loops + two pointers.",
+        "time": "O(n^3)",
+        "space": "O(1) extra",
+        "code_cpp": "vector<vector<int>> fourSum(vector<int> a, int t){ sort(a.begin(), a.end()); int n = a.size(); vector<vector<int>> r; for(int i = 0; i < n - 3; i++){ if(i > 0 && a[i] == a[i-1]) continue; for(int j = i + 1; j < n - 2; j++){ if(j > i + 1 && a[j] == a[j-1]) continue; int l = j + 1, h = n - 1; while(l < h){ long long s = (long long)a[i] + a[j] + a[l] + a[h]; if(s < t) l++; else if(s > t) h--; else { r.push_back({a[i], a[j], a[l], a[h]}); l++; h--; while(l < h && a[l] == a[l-1]) l++; while(l < h && a[h] == a[h+1]) h--; } } } } return r; }"
+      },
+      "explanation": "kSum ka general rule: (k-2) loops + 2 pointers = O(n^(k-1)). Values 1e9 tak hain, isliye sum long long me.",
+      "edge_cases": [
+        "n < 4",
+        "All same",
+        "Overflow values"
+      ]
+    },
+    {
+      "id": "L2-041",
+      "level": 2,
+      "topic": "Two Pointers",
+      "title": "Container With Most Water",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Facebook",
+        "Microsoft",
+        "Adobe",
+        "Goldman Sachs",
+        "Infosys",
+        "TCS"
+      ],
+      "problem_statement": "Given n vertical lines with heights h[i], find two lines that together with the x-axis form a container holding the most water. Return the maximum area.",
+      "description": "Container tilt nahi hota. Area = min(height) * width.",
+      "constraints": [
+        "2 <= n <= 1e5",
+        "0 <= h[i] <= 1e4"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,8,6,2,5,4,8,3,7]",
+          "output": "49",
+          "explanation": "Lines 8 aur 7, width 7"
+        },
+        {
+          "input": "[1,1]",
+          "output": "1",
+          "explanation": "Do lines"
+        },
+        {
+          "input": "[4,3,2,1,4]",
+          "output": "16",
+          "explanation": "Dono 4, width 4"
+        }
+      ],
+      "theory": "l = 0, r = n-1. Area nikalo, phir chhoti height wala pointer move karo kyunki uski height se bada area ab width ghatne par mil nahi sakta.",
+      "brute_force": {
+        "approach": "Saare pairs (i, j) ka area.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int maxArea(const vector<int>& h){ int n = h.size(), best = 0; for(int i = 0; i < n; i++) for(int j = i + 1; j < n; j++) best = max(best, min(h[i], h[j]) * (j - i)); return best; }"
+      },
+      "optimized": {
+        "approach": "Two pointers, shorter side move.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int maxArea(const vector<int>& h){ int l = 0, r = (int)h.size() - 1, best = 0; while(l < r){ best = max(best, min(h[l], h[r]) * (r - l)); if(h[l] < h[r]) l++; else r--; } return best; }"
+      },
+      "explanation": "Proof idea: chhoti line ke saath har naye partner ka area <= current area (width kam, height limited by chhoti line). Isliye chhoti line ko hata dena safe hai.",
+      "edge_cases": [
+        "Two lines only",
+        "All equal heights",
+        "Zero heights"
+      ]
+    },
+    {
+      "id": "L2-042",
+      "level": 2,
+      "topic": "Two Pointers",
+      "title": "Trapping Rain Water",
+      "difficulty": "Hard",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Facebook",
+        "Goldman Sachs",
+        "Adobe",
+        "Flipkart",
+        "Infosys"
+      ],
+      "problem_statement": "Given n non-negative integers representing an elevation map (bar width 1), compute how much water it can trap after raining.",
+      "description": "Har bar ke upar pani = min(left max, right max) - height.",
+      "constraints": [
+        "0 <= n <= 2e4",
+        "0 <= h[i] <= 1e5"
+      ],
+      "test_cases": [
+        {
+          "input": "[0,1,0,2,1,0,1,3,2,1,2,1]",
+          "output": "6",
+          "explanation": "6 units"
+        },
+        {
+          "input": "[4,2,0,3,2,5]",
+          "output": "9",
+          "explanation": "9 units"
+        },
+        {
+          "input": "[1,2,3]",
+          "output": "0",
+          "explanation": "Increasing: pani nahi"
+        }
+      ],
+      "theory": "Two pointers with lmax aur rmax. Jis side ki height chhoti hai uski side ka pani pakka (limiting side wahi hai); us side ka pointer aage badhao.",
+      "brute_force": {
+        "approach": "Har i ke liye leftMax aur rightMax loop se.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int trap(const vector<int>& h){ int n = h.size(), r = 0; for(int i = 0; i < n; i++){ int lm = 0, rm = 0; for(int j = 0; j <= i; j++) lm = max(lm, h[j]); for(int j = i; j < n; j++) rm = max(rm, h[j]); r += min(lm, rm) - h[i]; } return r; }"
+      },
+      "optimized": {
+        "approach": "Two pointers, O(1) space.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int trap(const vector<int>& h){ int l = 0, r = (int)h.size() - 1, lm = 0, rm = 0, res = 0; while(l < r){ if(h[l] < h[r]){ lm = max(lm, h[l]); res += lm - h[l]; l++; } else { rm = max(rm, h[r]); res += rm - h[r]; r--; } } return res; }"
+      },
+      "explanation": "Intermediate approach: leftMax[] aur rightMax[] arrays banao (O(n) space). Two pointers se wo arrays bhi hat jaate hain. Monotonic stack se bhi hota hai (Level 3).",
+      "edge_cases": [
+        "n < 3",
+        "Strictly increasing/decreasing",
+        "Valley in middle"
+      ]
+    },
+    {
+      "id": "L2-043",
+      "level": 2,
+      "topic": "Two Pointers",
+      "title": "Boats to Save People",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Infosys",
+        "Cognizant"
+      ],
+      "problem_statement": "Each boat carries at most two people and a maximum weight limit. Given weights of people, return the minimum number of boats needed (each person's weight <= limit).",
+      "description": "Ek boat me max 2 log, total weight limit se zyada nahi.",
+      "constraints": [
+        "1 <= n <= 5e4",
+        "1 <= people[i] <= limit <= 3e4"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,2], limit=3",
+          "output": "1",
+          "explanation": "Dono ek boat me"
+        },
+        {
+          "input": "[3,2,2,1], limit=3",
+          "output": "3",
+          "explanation": "(1,2), (2), (3)"
+        },
+        {
+          "input": "[3,5,3,4], limit=5",
+          "output": "4",
+          "explanation": "Koi pair nahi"
+        }
+      ],
+      "theory": "Sort karo. Sabse bhaari ke saath sabse halka bithao (agar fit ho). Fit nahi hota to bhaari akela jata hai.",
+      "brute_force": {
+        "approach": "Sort + har bhaari ke liye sabse bhaari fit hone wala partner O(n) me dhundo.",
+        "time": "O(n^2)",
+        "space": "O(n)",
+        "code_cpp": "int numRescueBoats(vector<int> p, int limit){ sort(p.begin(), p.end()); int n = p.size(); vector<bool> used(n, false); int boats = 0; for(int i = n - 1; i >= 0; i--){ if(used[i]) continue; used[i] = true; boats++; for(int j = i - 1; j >= 0; j--) if(!used[j] && p[i] + p[j] <= limit){ used[j] = true; break; } } return boats; }"
+      },
+      "optimized": {
+        "approach": "Sort + two pointers (heaviest + lightest).",
+        "time": "O(n log n)",
+        "space": "O(1)",
+        "code_cpp": "int numRescueBoats(vector<int> p, int limit){ sort(p.begin(), p.end()); int l = 0, r = (int)p.size() - 1, b = 0; while(l <= r){ if(p[l] + p[r] <= limit) l++; r--; b++; } return b; }"
+      },
+      "explanation": "Greedy argument: agar bhaari ke saath halka bhi fit nahi hota to bhaari kisi ke saath pair nahi ho sakta. Isliye bhaari akela jata hai.",
+      "edge_cases": [
+        "Everyone alone",
+        "Everyone pairs",
+        "Single person"
+      ]
+    },
+    {
+      "id": "L2-044",
+      "level": 2,
+      "topic": "Two Pointers",
+      "title": "Valid Triangle Number",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Facebook",
+        "Infosys"
+      ],
+      "problem_statement": "Given an array of side lengths, return the number of triplets that can form a triangle.",
+      "description": "Triangle ke liye har do sides ka sum teesri side se bada hona chahiye.",
+      "constraints": [
+        "1 <= n <= 1000",
+        "0 <= a[i] <= 1000"
+      ],
+      "test_cases": [
+        {
+          "input": "[2,2,3,4]",
+          "output": "3",
+          "explanation": "(2,3,4),(2,3,4),(2,2,3)"
+        },
+        {
+          "input": "[4,2,3,4]",
+          "output": "4",
+          "explanation": "Chaar valid triplets"
+        },
+        {
+          "input": "[1,1,3]",
+          "output": "0",
+          "explanation": "1 + 1 < 3"
+        }
+      ],
+      "theory": "Sort karo. Sabse badi side k fix karo; l = 0, r = k-1. a[l] + a[r] > a[k] ho to l se r-1 tak sab valid (r-l count), r--; warna l++.",
+      "brute_force": {
+        "approach": "Saare triplets (i < j < k) par teeno inequalities check.",
+        "time": "O(n^3)",
+        "space": "O(1)",
+        "code_cpp": "int triangleNumber(const vector<int>& a){ int n = a.size(), c = 0; for(int i = 0; i < n; i++) for(int j = i + 1; j < n; j++) for(int k = j + 1; k < n; k++) if(a[i] + a[j] > a[k] && a[i] + a[k] > a[j] && a[j] + a[k] > a[i]) c++; return c; }"
+      },
+      "optimized": {
+        "approach": "Sort + fix largest + two pointers.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int triangleNumber(vector<int> a){ sort(a.begin(), a.end()); int n = a.size(), c = 0; for(int k = n - 1; k >= 2; k--){ int l = 0, r = k - 1; while(l < r){ if(a[l] + a[r] > a[k]){ c += r - l; r--; } else l++; } } return c; }"
+      },
+      "explanation": "Sorted me sirf ek inequality (a + b > c, c sabse badi) check karni padti hai. Match par l..r-1 ke saare elements r ke saath valid hote hain, isliye ek saath count.",
+      "edge_cases": [
+        "Zeros in array",
+        "n < 3",
+        "All equal"
+      ]
+    },
+    {
+      "id": "L2-045",
+      "level": 2,
+      "topic": "Two Pointers",
+      "title": "Two Sum Less Than K",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Infosys"
+      ],
+      "problem_statement": "Given an array and integer k, return the maximum sum of two elements (i < j) that is less than k, or -1 if no such pair exists.",
+      "description": "Pairs ka order matter nahi karta, isliye sort kar sakte hain.",
+      "constraints": [
+        "1 <= n <= 100",
+        "1 <= a[i] <= 1000",
+        "1 <= k <= 2000"
+      ],
+      "test_cases": [
+        {
+          "input": "[34,23,1,24,75,33,54,8], k=60",
+          "output": "58",
+          "explanation": "34 + 24"
+        },
+        {
+          "input": "[10,20,30], k=15",
+          "output": "-1",
+          "explanation": "Koi pair nahi"
+        },
+        {
+          "input": "[1,2], k=4",
+          "output": "3",
+          "explanation": "1 + 2"
+        }
+      ],
+      "theory": "Sort + two pointers: sum < k par best update aur l++ (bada sum try), warna r--.",
+      "brute_force": {
+        "approach": "Saare pairs.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int twoSumLessThanK(const vector<int>& a, int k){ int n = a.size(), best = -1; for(int i = 0; i < n; i++) for(int j = i + 1; j < n; j++){ int s = a[i] + a[j]; if(s < k) best = max(best, s); } return best; }"
+      },
+      "optimized": {
+        "approach": "Sort + two pointers.",
+        "time": "O(n log n)",
+        "space": "O(1)",
+        "code_cpp": "int twoSumLessThanK(vector<int> a, int k){ sort(a.begin(), a.end()); int l = 0, r = (int)a.size() - 1, best = -1; while(l < r){ int s = a[l] + a[r]; if(s < k){ best = max(best, s); l++; } else r--; } return best; }"
+      },
+      "explanation": "Two Sum II ka variation: 'closest below target'. Pointers ki movement ka reason wahi: sum chhota hai to bada karo, bada hai to chhota.",
+      "edge_cases": [
+        "No valid pair",
+        "n = 1",
+        "Duplicates"
+      ]
+    },
+    {
+      "id": "L2-046",
+      "level": 2,
+      "topic": "Two Pointers",
+      "title": "Backspace String Compare",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Google",
+        "Amazon",
+        "Microsoft",
+        "Facebook",
+        "Infosys"
+      ],
+      "problem_statement": "Given two strings s and t where '#' means a backspace, return true if they are equal after processing all backspaces.",
+      "description": "Khali text par backspace kuch nahi karta. Follow-up: O(1) extra space.",
+      "constraints": [
+        "1 <= |s|, |t| <= 200",
+        "Lowercase letters and '#'"
+      ],
+      "test_cases": [
+        {
+          "input": "ab#c, ad#c",
+          "output": "true",
+          "explanation": "Dono 'ac'"
+        },
+        {
+          "input": "ab##, c#d#",
+          "output": "true",
+          "explanation": "Dono khali"
+        },
+        {
+          "input": "a#c, b",
+          "output": "false",
+          "explanation": "'c' vs 'b'"
+        }
+      ],
+      "theory": "Peeche se scan: '#' mile to skip count badhao, skip > 0 ho to character chhodo. Dono strings ke agle valid characters compare karo.",
+      "brute_force": {
+        "approach": "Stack-style string build karke compare.",
+        "time": "O(n + m)",
+        "space": "O(n + m)",
+        "code_cpp": "string build(const string& s){ string r; for(char c : s){ if(c == '#'){ if(!r.empty()) r.pop_back(); } else r += c; } return r; }\nbool backspaceCompare(const string& a, const string& b){ return build(a) == build(b); }"
+      },
+      "optimized": {
+        "approach": "Do pointers peeche se, O(1) space.",
+        "time": "O(n + m)",
+        "space": "O(1)",
+        "code_cpp": "bool backspaceCompare(const string& s, const string& t){ int i = (int)s.size() - 1, j = (int)t.size() - 1; auto next = [&](const string& x, int p){ int skip = 0; while(p >= 0){ if(x[p] == '#'){ skip++; p--; } else if(skip > 0){ skip--; p--; } else break; } return p; }; while(i >= 0 || j >= 0){ i = next(s, i); j = next(t, j); if(i < 0 && j < 0) return true; if(i < 0 || j < 0) return false; if(s[i] != t[j]) return false; i--; j--; } return true; }"
+      },
+      "explanation": "Peeche se isliye kyunki backspace apne se pehle ke characters ko hi hatata hai. Aage se scan karne par ye pata nahi chalta ki kaun sa character mitega.",
+      "edge_cases": [
+        "Both empty after backspaces",
+        "Backspace on empty string",
+        "Different lengths"
+      ]
+    },
+    {
+      "id": "L2-047",
+      "level": 2,
+      "topic": "Two Pointers",
+      "title": "Longest Mountain in Array",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Google",
+        "Amazon",
+        "Microsoft",
+        "Infosys"
+      ],
+      "problem_statement": "A mountain subarray has length >= 3, strictly increases up to a peak, then strictly decreases. Return the length of the longest mountain, or 0.",
+      "description": "Peak pehle/aakhri index par nahi ho sakta, aur plateau (equal values) allowed nahi.",
+      "constraints": [
+        "1 <= n <= 1e4",
+        "0 <= a[i] <= 1e4"
+      ],
+      "test_cases": [
+        {
+          "input": "[2,1,4,7,3,2,5]",
+          "output": "5",
+          "explanation": "[1,4,7,3,2]"
+        },
+        {
+          "input": "[2,2,2]",
+          "output": "0",
+          "explanation": "Koi mountain nahi"
+        },
+        {
+          "input": "[0,1,2,3,4,5,4,3,2,1,0]",
+          "output": "11",
+          "explanation": "Poora array"
+        }
+      ],
+      "theory": "Har peak (a[i-1] < a[i] > a[i+1]) se left aur right expand karo. Mountain ke baad i = r par jump karo, to total O(n).",
+      "brute_force": {
+        "approach": "Saare subarrays par mountain check.",
+        "time": "O(n^3)",
+        "space": "O(1)",
+        "code_cpp": "bool isMt(const vector<int>& a, int i, int j){ if(j - i + 1 < 3) return false; int k = i; while(k < j && a[k] < a[k+1]) k++; if(k == i || k == j) return false; while(k < j && a[k] > a[k+1]) k++; return k == j; }\nint longestMountain(const vector<int>& a){ int n = a.size(), best = 0; for(int i = 0; i < n; i++) for(int j = i + 2; j < n; j++) if(isMt(a, i, j)) best = max(best, j - i + 1); return best; }"
+      },
+      "optimized": {
+        "approach": "Peak par expand + skip ahead.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int longestMountain(const vector<int>& a){ int n = a.size(), best = 0, i = 1; while(i < n - 1){ if(a[i-1] < a[i] && a[i] > a[i+1]){ int l = i - 1; while(l > 0 && a[l-1] < a[l]) l--; int r = i + 1; while(r < n - 1 && a[r] > a[r+1]) r++; best = max(best, r - l + 1); i = r; } else i++; } return best; }"
+      },
+      "explanation": "Har element zyada se zyada ek hi mountain ke andar expand hota hai, isliye total kaam O(n). Valid Mountain Array (L1-058) ka longest version.",
+      "edge_cases": [
+        "n < 3",
+        "Plateaus",
+        "Multiple mountains"
+      ]
+    },
+    {
+      "id": "L2-048",
+      "level": 2,
+      "topic": "Two Pointers",
+      "title": "Number of Subsequences That Satisfy the Given Sum Condition",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Google",
+        "Amazon",
+        "Microsoft",
+        "Infosys"
+      ],
+      "problem_statement": "Given an array and target, return the number of non-empty subsequences such that min + max <= target. Answer modulo 1e9 + 7.",
+      "description": "Subsequence ke elements ka order matter nahi karta (sirf min aur max), isliye sort kar sakte hain.",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "1 <= a[i] <= 1e6",
+        "1 <= target <= 1e6"
+      ],
+      "test_cases": [
+        {
+          "input": "[3,5,6,7], t=9",
+          "output": "4",
+          "explanation": "[3],[3,5],[3,6],[3,5,6]"
+        },
+        {
+          "input": "[3,3,6,8], t=10",
+          "output": "6",
+          "explanation": "Subsequences with min+max<=10"
+        },
+        {
+          "input": "[2,3,3,4,6,7], t=12",
+          "output": "61",
+          "explanation": "Large count"
+        }
+      ],
+      "theory": "Sort karo. l = min, r = max. a[l] + a[r] <= t ho to l ko min rakhke beech ke r-l elements free (2^(r-l) subsequences); phir l++. Warna r--.",
+      "brute_force": {
+        "approach": "Saare subsets enumerate (bitmask, sirf chhote n ke liye).",
+        "time": "O(2^n * n)",
+        "space": "O(1)",
+        "code_cpp": "int numSubseq(const vector<int>& a, int t){ int n = a.size(); long long c = 0; for(int m = 1; m < (1 << n); m++){ int mn = INT_MAX, mx = INT_MIN; for(int i = 0; i < n; i++) if((m >> i) & 1){ mn = min(mn, a[i]); mx = max(mx, a[i]); } if(mn + mx <= t) c++; } return c % 1000000007; }"
+      },
+      "optimized": {
+        "approach": "Sort + two pointers + precomputed powers of 2.",
+        "time": "O(n log n)",
+        "space": "O(n)",
+        "code_cpp": "int numSubseq(vector<int> a, int t){ const long long MOD = 1000000007; sort(a.begin(), a.end()); int n = a.size(); vector<long long> p2(n, 1); for(int i = 1; i < n; i++) p2[i] = p2[i-1] * 2 % MOD; int l = 0, r = n - 1; long long res = 0; while(l <= r){ if(a[l] + a[r] <= t){ res = (res + p2[r - l]) % MOD; l++; } else r--; } return (int)res; }"
+      },
+      "explanation": "Subsequence me sirf min aur max matter karte hain. Min = a[l] fix hone par l+1..r me se koi bhi subset le sakte ho, isliye 2^(r-l). Modulo har step par.",
+      "edge_cases": [
+        "Single element (2*a <= t)",
+        "No valid subsequence",
+        "Large n (modulo)"
+      ]
+    },
+    {
+      "id": "L2-049",
+      "level": 2,
+      "topic": "Sliding Window (Variable)",
+      "title": "Subarrays with K Different Integers",
+      "difficulty": "Hard",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Facebook",
+        "Infosys"
+      ],
+      "problem_statement": "Given an integer array and k, return the number of contiguous subarrays that have exactly k different integers.",
+      "description": "Exactly k directly window se nahi nikalta; atMost trick lagta hai.",
+      "constraints": [
+        "1 <= n <= 2e4",
+        "1 <= a[i], k <= n"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,2,1,2,3], k=2",
+          "output": "7",
+          "explanation": "7 subarrays"
+        },
+        {
+          "input": "[1,2,1,3,4], k=3",
+          "output": "3",
+          "explanation": "3 subarrays"
+        },
+        {
+          "input": "[1,1], k=1",
+          "output": "3",
+          "explanation": "Teeno subarrays"
+        }
+      ],
+      "theory": "Exactly k = atMost(k) - atMost(k-1). atMost(k): variable window me distinct <= k rakho aur har r par r-l+1 count karo.",
+      "brute_force": {
+        "approach": "Har start se extend; distinct set ka size k par count++.",
+        "time": "O(n^2)",
+        "space": "O(n)",
+        "code_cpp": "int subarraysWithKDistinct(const vector<int>& a, int k){ int n = a.size(), c = 0; for(int i = 0; i < n; i++){ set<int> s; for(int j = i; j < n; j++){ s.insert(a[j]); if((int)s.size() == k) c++; else if((int)s.size() > k) break; } } return c; }"
+      },
+      "optimized": {
+        "approach": "atMost(k) - atMost(k - 1) with sliding window.",
+        "time": "O(n)",
+        "space": "O(n)",
+        "code_cpp": "int atMost(const vector<int>& a, int k){ if(k <= 0) return 0; unordered_map<int,int> f; int l = 0, c = 0; for(int r = 0; r < (int)a.size(); r++){ f[a[r]]++; while((int)f.size() > k){ if(--f[a[l]] == 0) f.erase(a[l]); l++; } c += r - l + 1; } return c; }\nint subarraysWithKDistinct(const vector<int>& a, int k){ return atMost(a, k) - atMost(a, k - 1); }"
+      },
+      "explanation": "Ye Part 1 ke 'Count Nice Subarrays' wali trick ka hard version hai. Distinct count ko map.size() se maintain karte hain (erase zaroori).",
+      "edge_cases": [
+        "k = 1",
+        "k greater than distinct count",
+        "All same"
+      ]
+    },
+    {
+      "id": "L2-050",
+      "level": 2,
+      "topic": "Two Pointers",
+      "title": "Max Number of K-Sum Pairs",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Infosys",
+        "Wipro"
+      ],
+      "problem_statement": "In one operation you pick two numbers from the array that sum to k and remove them. Return the maximum number of operations.",
+      "description": "Har element ek hi baar use ho sakta hai.",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "1 <= a[i], k <= 1e9"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,2,3,4], k=5",
+          "output": "2",
+          "explanation": "(1,4), (2,3)"
+        },
+        {
+          "input": "[3,1,3,4,3], k=6",
+          "output": "1",
+          "explanation": "Sirf (3,3)"
+        },
+        {
+          "input": "[2,2], k=4",
+          "output": "1",
+          "explanation": "Ek pair"
+        }
+      ],
+      "theory": "Sort + two pointers: sum == k par count++ aur dono move, sum < k to l++, warna r--.",
+      "brute_force": {
+        "approach": "Har unused element ke liye uska complement dhundo (used flags).",
+        "time": "O(n^2)",
+        "space": "O(n)",
+        "code_cpp": "int maxOperations(const vector<int>& a, int k){ int n = a.size(), c = 0; vector<bool> u(n, false); for(int i = 0; i < n; i++){ if(u[i]) continue; for(int j = i + 1; j < n; j++) if(!u[j] && a[i] + a[j] == k){ u[i] = u[j] = true; c++; break; } } return c; }"
+      },
+      "optimized": {
+        "approach": "Sort + two pointers.",
+        "time": "O(n log n)",
+        "space": "O(1)",
+        "code_cpp": "int maxOperations(vector<int> a, int k){ sort(a.begin(), a.end()); int l = 0, r = (int)a.size() - 1, c = 0; while(l < r){ int s = a[l] + a[r]; if(s == k){ c++; l++; r--; } else if(s < k) l++; else r--; } return c; }"
+      },
+      "explanation": "Alternative: HashMap se frequency rakho (unsorted me bhi O(n)). Sorted two pointers me extra memory nahi lagti.",
+      "edge_cases": [
+        "No pairs",
+        "Same number pairs (k = 2x)",
+        "Odd count of one number"
+      ]
+    }
+  ]
+}

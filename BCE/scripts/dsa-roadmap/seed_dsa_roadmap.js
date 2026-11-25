@@ -31,7 +31,7 @@ if (!DATABASE_URL || !SUPABASE_URL || !SERVICE_KEY) {
 const SHEET_SLUG = 'dsa-company-roadmap-520';
 const SHEET_TITLE = 'DSA for Freshers: Company Roadmap (Levels 1–5)';
 const SHEET_DESCRIPTION =
-  'Complete 5-Level Structured DSA Mastery Roadmap (~520 curated problems for TCS Digital, Infosys, Wipro, Cognizant, Capgemini & Product Companies). Level 1 (90 Foundation problems) active with Hinglish Theory Modules, Brute Force vs Optimized C++17 solutions, interactive Test Cases, Level Revision Cheat Sheets & Full Arena IDE.';
+  'Complete 5-Level Structured DSA Mastery Roadmap (490+ curated problems for TCS Digital, Infosys, Wipro, Cognizant, Capgemini & Product Companies). Level 1 (90 Foundation problems) & Level 2 (100 Core Patterns problems) — 190 problems active with Hinglish Theory Modules, Brute Force vs Optimized C++17 solutions, interactive Test Cases, Level Revision Cheat Sheets & Full Arena IDE.';
 const CREATOR_USER_ID = 'd175f6b1-ef9d-428a-8a26-14365a624ae9';
 
 const ROADMAP_BLUEPRINT = [
@@ -49,7 +49,7 @@ const ROADMAP_BLUEPRINT = [
     subtitle: 'Two Pointers, Sliding Window, Prefix Sum, Kadane, Binary Search & Sorting',
     description:
       'Combine Level 1 primitives into high-frequency interview patterns: fixed/variable sliding windows, subarray sum + hashmap, Binary Search on Answer, and custom comparator sorting.',
-    target_problem_count: 130,
+    target_problem_count: 100,
   },
   {
     level_number: 3,
@@ -106,6 +106,10 @@ function normalizeContractType(cppType) {
     .replace(/\s+/g, ' ');
   if (/vector\s*<\s*vector\s*<\s*string\s*>\s*>/i.test(clean)) return 'vector<vector<string>>';
   if (/vector\s*<\s*vector\s*<\s*int\s*>\s*>/i.test(clean)) return 'integer[][]';
+  if (/vector\s*<\s*pair\s*<\s*int\s*,\s*int\s*>\s*>/i.test(clean)) return 'pair<int,int>[]';
+  const arrMatch = clean.match(/vector\s*<\s*array\s*<\s*int\s*,\s*(\d+)\s*>\s*>/i);
+  if (arrMatch) return `array<int,${arrMatch[1]}>[]`;
+  if (/vector\s*<\s*long\s+long\s*>/i.test(clean)) return 'long[]';
   if (/vector\s*<\s*string\s*>/i.test(clean)) return 'string[]';
   if (/vector\s*<\s*char\s*>/i.test(clean)) return 'character[]';
   if (/vector\s*<\s*int\s*>/i.test(clean)) return 'integer[]';
@@ -309,11 +313,17 @@ function mapSignatureForStarter(prob, sig) {
         return 'String';
       case 'integer[]':
         return 'int[]';
+      case 'long[]':
+        return 'long[]';
       case 'character[]':
         return 'char[]';
       case 'string[]':
         return 'String[]';
       case 'integer[][]':
+      case 'pair<int,int>[]':
+      case 'array<int,2>[]':
+      case 'array<int,3>[]':
+      case 'array<int,4>[]':
         return 'int[][]';
       case 'vector<vector<string>>':
         return 'List<List<String>>';
@@ -336,11 +346,17 @@ function mapSignatureForStarter(prob, sig) {
         return 'return 0.0;';
       case 'integer[]':
         return 'return new int[0];';
+      case 'long[]':
+        return 'return new long[0];';
       case 'character[]':
         return 'return new char[0];';
       case 'string[]':
         return 'return new String[0];';
       case 'integer[][]':
+      case 'pair<int,int>[]':
+      case 'array<int,2>[]':
+      case 'array<int,3>[]':
+      case 'array<int,4>[]':
         return 'return new int[0][0];';
       case 'vector<vector<string>>':
         return 'return new ArrayList<>();';
@@ -759,11 +775,36 @@ async function run() {
 
   const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
-  // 2. Sync coding_sheet_roadmap_levels (for optional Level Theory & Revision modals inside SheetDetailClient)
+  // 2. Sync coding_sheet_roadmap_levels & coding_sheet_roadmap_problems
   const { error: lvlErr } = await supabase
     .from('coding_sheet_roadmap_levels')
     .upsert(levelRows.map((l) => ({ sheet_id: sheetId, ...l })), { onConflict: 'sheet_id,level_number' });
   if (lvlErr) throw lvlErr;
+
+  const roadmapProbRows = allProblems.map((prob) => ({
+    sheet_id: sheetId,
+    problem_code: prob.id,
+    order_index: prob.globalNum - 1,
+    level_number: prob.level || 1,
+    batch_name: prob.batch_name || null,
+    topic: prob.topic,
+    title: prob.title,
+    difficulty: normalizeDifficulty(prob.difficulty),
+    company_tags: prob.company_tags || [],
+    problem_statement: prob.problem_statement || '',
+    description: prob.description || '',
+    constraints: Array.isArray(prob.constraints) ? prob.constraints : [],
+    test_cases: Array.isArray(prob.test_cases) ? prob.test_cases : [],
+    theory: prob.theory || '',
+    brute_force: prob.brute_force || {},
+    optimized: prob.optimized || {},
+    explanation: prob.explanation || '',
+    edge_cases: Array.isArray(prob.edge_cases) ? prob.edge_cases : [],
+  }));
+  const { error: rmProbErr } = await supabase
+    .from('coding_sheet_roadmap_problems')
+    .upsert(roadmapProbRows, { onConflict: 'sheet_id,problem_code' });
+  if (rmProbErr) throw rmProbErr;
 
   // 3. Upsert every problem into coding_problems, coding_problem_test_cases, and coding_sheet_problems
   let processed = 0;
@@ -783,10 +824,12 @@ async function run() {
         return: sig.return,
       };
       const firstTcOut = String(prob.test_cases?.[0]?.output || '');
-      if (prob.id === 'L1-015') {
+      if (prob.id === 'L1-015' || prob.id === 'L2-085') {
         contractSig.outputContract = { type: 'return_value', ordering: 'unordered' };
-      } else if (prob.id === 'L1-066') {
+      } else if (prob.id === 'L1-066' || prob.id === 'L2-038' || prob.id === 'L2-040') {
         contractSig.outputContract = { type: 'return_value', ordering: 'unordered_groups' };
+      } else if (sig.return.type === 'double') {
+        contractSig.outputContract = { type: 'return_value', ordering: 'exact', floatTolerance: 1e-5 };
       } else if (/^\d+\s*,\s*\[/.test(firstTcOut) && sig.params[0]) {
         contractSig.outputContract = {
           type: 'return_and_mutation',

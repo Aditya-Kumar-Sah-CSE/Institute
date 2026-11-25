@@ -1,0 +1,1527 @@
+{
+  "meta": {
+    "series": "DSA for Freshers: Mid-level Company Roadmap",
+    "level": 2,
+    "level_title": "Core Patterns",
+    "batch": "Part 1: Sliding Window + Kadane's Algorithm",
+    "id_range": "L2-001 to L2-025",
+    "language_for_code": "C++17",
+    "language_for_explanations": "Hinglish",
+    "total_problems_in_batch": 25,
+    "includes_headers_hint": "#include <bits/stdc++.h> and using namespace std;",
+    "level_2_plan": [
+      "Part 1: Sliding Window + Kadane (this file)",
+      "Part 2: Prefix Sum + HashMap, Two Pointers advanced",
+      "Part 3: Binary Search (index and on answer)",
+      "Part 4: Sorting + custom comparators, Greedy basics, Level 2 revision"
+    ],
+    "note": "company_tags indicative hain (frequently asked trends), official guarantee nahi."
+  },
+  "theory": [
+    {
+      "topic": "Sliding Window: Fixed Size",
+      "concept": "Jab window ki length k pehle se fixed ho, to har naye element par ek element add karo aur ek purana remove karo. Isse har window ka answer O(1) me update hota hai, total O(n) (brute me O(n*k)).",
+      "key_points": [
+        "Pehle pehli window (0..k-1) build karo, phir i = k se n-1 tak slide karo",
+        "Add a[i], remove a[i-k]",
+        "Sum, count of vowels, frequency array, ya deque ke saath use hota hai",
+        "'Cards from either end' jaisi problems me complement window (n-k size) soch sakte ho"
+      ],
+      "template_cpp": "int s = 0; for(int i = 0; i < k; i++) s += a[i];\nint best = s;\nfor(int i = k; i < n; i++){ s += a[i] - a[i-k]; best = max(best, s); }",
+      "pitfalls": [
+        "k > n edge case",
+        "Pehli window build karna bhool jana",
+        "Index i-k negative access"
+      ]
+    },
+    {
+      "topic": "Sliding Window: Variable Size (Expand & Shrink)",
+      "concept": "Right pointer r har step par window badhata hai. Jab window ki condition toot jaye to left pointer l ko tab tak aage badhao jab tak condition wapas valid na ho. Har element max do baar touch hota hai, isliye O(n).",
+      "key_points": [
+        "Kab lagta hai: 'longest/shortest subarray (ya substring) jo condition satisfy kare' aur condition window ke saath monotonic ho (window bada to condition bigadti hai, ya chhota to bigadti hai)",
+        "Longest valid window: har r par shrink karke valid karo, phir best = max(best, r-l+1)",
+        "Shortest valid window: valid hote hi best update karo, phir l badhao (while loop)",
+        "Negative numbers hone par ye pattern toot jata hai (sum monotonic nahi rehta), tab prefix sum + HashMap (Part 2) lagta hai",
+        "State: frequency array/map, distinct count, zeros count, sum, product"
+      ],
+      "template_cpp": "int l = 0, best = 0;\nfor(int r = 0; r < n; r++){\n  add(a[r]);\n  while(!valid()){ remove(a[l]); l++; }\n  best = max(best, r - l + 1);\n}",
+      "pitfalls": [
+        "Shrink ke time state update na karna",
+        "Shortest window me update galat jagah par karna",
+        "Negative values ke saath sum window lagana"
+      ]
+    },
+    {
+      "topic": "Counting Subarrays: atMost(k) Trick",
+      "concept": "Har r par valid window [l..r] me r par khatam hone wale r-l+1 subarrays hote hain (kyunki [l..r], [l+1..r], ..., [r..r] sab valid). 'Exactly k' ko atMost(k) - atMost(k-1) se nikala jata hai.",
+      "key_points": [
+        "count += r - l + 1 (har r par)",
+        "Exactly k = atMost(k) - atMost(k-1) (nice subarrays, binary subarrays, k distinct)",
+        "Product < k jaisi problems me positive numbers zaroori hain",
+        "Three characters wale substrings me 'har char ka last index' trick bhi chalti hai"
+      ],
+      "template_cpp": "int atMost(const vector<int>& a, int k){\n  if(k < 0) return 0;\n  int l = 0, c = 0, cnt = 0;\n  for(int r = 0; r < (int)a.size(); r++){\n    cnt += a[r] & 1;\n    while(cnt > k) cnt -= a[l++] & 1;\n    c += r - l + 1;\n  }\n  return c;\n}\n// exactly k = atMost(k) - atMost(k - 1)",
+      "pitfalls": [
+        "Overflow in count (long long)",
+        "k - 1 = -1 case (atMost(-1) = 0)",
+        "Product window me divide by zero (zeros ho to alag handle)"
+      ]
+    },
+    {
+      "topic": "Frequency Windows (Anagram / Permutation Matching)",
+      "concept": "Fixed window par character frequency ko pattern ki frequency se compare karte hain. 26 size ki array compare karna O(26) hota hai, isliye total O(26 * n).",
+      "key_points": [
+        "need[26] pattern ke liye, win[26] current window ke liye",
+        "Window slide: win[s[i]]++, win[s[i-m]]--",
+        "Minimum Window Substring me missing counter rakhte hain: kitne characters abhi bhi chahiye",
+        "Dono arrays equal ho to match (equal(begin, end, begin))"
+      ],
+      "template_cpp": "int need[26] = {0}, win[26] = {0};\nfor(char c : p) need[c - 'a']++;\nfor(int i = 0; i < n; i++){\n  win[s[i] - 'a']++;\n  if(i >= m) win[s[i-m] - 'a']--;\n  if(i >= m - 1 && equal(begin(need), end(need), begin(win))) /* match at i-m+1 */;\n}",
+      "pitfalls": [
+        "m > n edge case",
+        "Window shrink ka index (i - m)",
+        "Uppercase/lowercase alag arrays"
+      ]
+    },
+    {
+      "topic": "Monotonic Deque (Sliding Window Maximum)",
+      "concept": "Deque me indices aise rakho ki unki values decreasing ho. Front hamesha current window ka maximum deta hai. Naya element aane par chhote elements peeche se pop kar do kyunki wo kabhi max nahi banenge.",
+      "key_points": [
+        "Front se wo index hatao jo window se bahar ho gaya (front <= i - k)",
+        "Back se wo indices hatao jinki value <= a[i]",
+        "Har index ek baar push aur ek baar pop hota hai, isliye O(n)",
+        "Min ke liye comparison ulta karo"
+      ],
+      "template_cpp": "deque<int> dq;\nfor(int i = 0; i < n; i++){\n  while(!dq.empty() && dq.front() <= i - k) dq.pop_front();\n  while(!dq.empty() && a[dq.back()] <= a[i]) dq.pop_back();\n  dq.push_back(i);\n  if(i >= k - 1) res.push_back(a[dq.front()]);\n}",
+      "pitfalls": [
+        "Values nahi, indices store karo",
+        "Equal elements par <= ya < ka decision",
+        "Pehli window complete hone se pehle answer push karna"
+      ]
+    },
+    {
+      "topic": "Kadane's Algorithm",
+      "concept": "Maximum subarray sum: har index par 'yahan khatam hone wala best subarray' = max(a[i], prev + a[i]). Agar pichhla sum negative ho to usse chhod do aur naya subarray shuru karo.",
+      "key_points": [
+        "cur = max(a[i], cur + a[i]); best = max(best, cur)",
+        "Initial values a[0] se lo (all-negative array handle hota hai)",
+        "Product version: current max aur current min dono track karo (negative * negative = positive)",
+        "Circular: max(normal Kadane, total - minimum Kadane), par all-negative me normal answer hi lo",
+        "Max absolute sum = max(max Kadane, -(min Kadane))"
+      ],
+      "template_cpp": "long long cur = a[0], best = a[0];\nfor(size_t i = 1; i < a.size(); i++){\n  cur = max((long long)a[i], cur + a[i]);\n  best = max(best, cur);\n}",
+      "pitfalls": [
+        "cur = 0 se start karne par all-negative array galat",
+        "Product me swap(max, min) negative par bhoolna",
+        "Circular me all-negative case"
+      ]
+    }
+  ],
+  "problems": [
+    {
+      "id": "L2-001",
+      "level": 2,
+      "topic": "Sliding Window (Fixed)",
+      "title": "Maximum Sum Subarray of Size K",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "TCS",
+        "Infosys",
+        "Wipro",
+        "Cognizant"
+      ],
+      "problem_statement": "Given an array and an integer k, find the maximum sum of any contiguous subarray of size k.",
+      "description": "Window ki length hamesha k hai. Elements negative bhi ho sakte hain.",
+      "constraints": [
+        "1 <= k <= n <= 1e5",
+        "-1e4 <= a[i] <= 1e4"
+      ],
+      "test_cases": [
+        {
+          "input": "[2,1,5,1,3,2], k=3",
+          "output": "9",
+          "explanation": "[5,1,3]"
+        },
+        {
+          "input": "[-1,-2,-3,-4], k=2",
+          "output": "-3",
+          "explanation": "[-1,-2]"
+        },
+        {
+          "input": "[4], k=1",
+          "output": "4",
+          "explanation": "Single"
+        }
+      ],
+      "theory": "Pehli window ka sum nikalo; aage har step par naya element add aur purana (a[i-k]) subtract.",
+      "brute_force": {
+        "approach": "Har starting index par k elements ka sum alag se nikalo.",
+        "time": "O(n*k)",
+        "space": "O(1)",
+        "code_cpp": "long long maxSumK(const vector<int>& a, int k){ int n = a.size(); long long best = LLONG_MIN; for(int i = 0; i + k <= n; i++){ long long s = 0; for(int j = i; j < i + k; j++) s += a[j]; best = max(best, s); } return best; }"
+      },
+      "optimized": {
+        "approach": "Fixed-size sliding window.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "long long maxSumK(const vector<int>& a, int k){ int n = a.size(); long long s = 0; for(int i = 0; i < k; i++) s += a[i]; long long best = s; for(int i = k; i < n; i++){ s += a[i] - a[i-k]; best = max(best, s); } return best; }"
+      },
+      "explanation": "Brute me do consecutive windows ke k-1 elements common hote hain par dobara jode jaate hain. Sliding window us repeated kaam ko hata deta hai.",
+      "edge_cases": [
+        "k = 1",
+        "k = n",
+        "All negative"
+      ]
+    },
+    {
+      "id": "L2-002",
+      "level": 2,
+      "topic": "Sliding Window (Fixed)",
+      "title": "Maximum Average Subarray I",
+      "difficulty": "Easy",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Infosys",
+        "Capgemini"
+      ],
+      "problem_statement": "Given an array and k, find the contiguous subarray of length k that has the maximum average and return that average.",
+      "description": "Max average = max sum / k, isliye max sum window dhundhna kaafi hai.",
+      "constraints": [
+        "1 <= k <= n <= 1e5",
+        "-1e4 <= a[i] <= 1e4"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,12,-5,-6,50,3], k=4",
+          "output": "12.75",
+          "explanation": "[12,-5,-6,50]"
+        },
+        {
+          "input": "[5], k=1",
+          "output": "5.0",
+          "explanation": "Single"
+        },
+        {
+          "input": "[0,4,0,3,2], k=1",
+          "output": "4.0",
+          "explanation": "Max element"
+        }
+      ],
+      "theory": "Average ke bajay sum compare karo (k same hai), end me ek baar divide.",
+      "brute_force": {
+        "approach": "Har window ka sum alag loop se.",
+        "time": "O(n*k)",
+        "space": "O(1)",
+        "code_cpp": "double findMaxAverage(const vector<int>& a, int k){ int n = a.size(); long long best = LLONG_MIN; for(int i = 0; i + k <= n; i++){ long long s = 0; for(int j = i; j < i + k; j++) s += a[j]; best = max(best, s); } return (double)best / k; }"
+      },
+      "optimized": {
+        "approach": "Sliding window sum.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "double findMaxAverage(const vector<int>& a, int k){ int n = a.size(); long long s = 0; for(int i = 0; i < k; i++) s += a[i]; long long best = s; for(int i = k; i < n; i++){ s += a[i] - a[i-k]; best = max(best, s); } return (double)best / k; }"
+      },
+      "explanation": "Division se bachna floating-point errors kam karta hai. Sum ko long long me rakho.",
+      "edge_cases": [
+        "k = 1",
+        "k = n",
+        "Negative averages"
+      ]
+    },
+    {
+      "id": "L2-003",
+      "level": 2,
+      "topic": "Sliding Window (Fixed)",
+      "title": "Maximum Number of Vowels in a Substring of Length K",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Infosys",
+        "Zoho"
+      ],
+      "problem_statement": "Given a string s and integer k, return the maximum number of vowel letters in any substring of s with length k.",
+      "description": "Vowels: a, e, i, o, u (lowercase).",
+      "constraints": [
+        "1 <= k <= |s| <= 1e5",
+        "Lowercase letters"
+      ],
+      "test_cases": [
+        {
+          "input": "abciiidef, k=3",
+          "output": "3",
+          "explanation": "iii"
+        },
+        {
+          "input": "aeiou, k=2",
+          "output": "2",
+          "explanation": "Koi bhi window"
+        },
+        {
+          "input": "leetcode, k=3",
+          "output": "2",
+          "explanation": "ee ya eco"
+        }
+      ],
+      "theory": "Window me vowel count maintain karo: aane wale char vowel ho to +1, jaane wala vowel ho to -1.",
+      "brute_force": {
+        "approach": "Har window me vowels alag se ginno.",
+        "time": "O(n*k)",
+        "space": "O(1)",
+        "code_cpp": "bool isVow(char c){ return c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u'; }\nint maxVowels(const string& s, int k){ int n = s.size(), best = 0; for(int i = 0; i + k <= n; i++){ int c = 0; for(int j = i; j < i + k; j++) if(isVow(s[j])) c++; best = max(best, c); } return best; }"
+      },
+      "optimized": {
+        "approach": "Sliding window count.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "bool isVow(char c){ return c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u'; }\nint maxVowels(const string& s, int k){ int n = s.size(), c = 0; for(int i = 0; i < k; i++) c += isVow(s[i]); int best = c; for(int i = k; i < n; i++){ c += isVow(s[i]) - isVow(s[i-k]); best = max(best, c); } return best; }"
+      },
+      "explanation": "Sliding window sum jaisa hi pattern hai, bas value 'char vowel hai ya nahi' (0/1) hai.",
+      "edge_cases": [
+        "No vowels",
+        "All vowels",
+        "k = 1"
+      ]
+    },
+    {
+      "id": "L2-004",
+      "level": 2,
+      "topic": "Sliding Window (Fixed)",
+      "title": "Maximum Points You Can Obtain from Cards",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Google",
+        "Flipkart"
+      ],
+      "problem_statement": "Cards are in a row. In one step you take a card from the beginning or end. Take exactly k cards and maximize the total points.",
+      "description": "Sirf dono ends se hi cards le sakte ho.",
+      "constraints": [
+        "1 <= k <= n <= 1e5",
+        "1 <= cardPoints[i] <= 1e4"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,2,3,4,5,6,1], k=3",
+          "output": "12",
+          "explanation": "5 + 6 + 1"
+        },
+        {
+          "input": "[2,2,2], k=2",
+          "output": "4",
+          "explanation": "Koi bhi 2"
+        },
+        {
+          "input": "[9,7,7,9,7,7,9], k=7",
+          "output": "55",
+          "explanation": "Saare cards"
+        }
+      ],
+      "theory": "Kuch cards left se (i) aur baaki (k-i) right se. Pehle k left se lo, phir ek-ek karke left ka last hatao aur right ka naya jodo (window circular ghoomti hai).",
+      "brute_force": {
+        "approach": "Har i (0..k) ke liye left se i aur right se k-i cards ka sum alag se nikalo.",
+        "time": "O(k^2)",
+        "space": "O(1)",
+        "code_cpp": "int maxScore(const vector<int>& a, int k){ int n = a.size(), best = 0; for(int i = 0; i <= k; i++){ int s = 0; for(int j = 0; j < i; j++) s += a[j]; for(int j = 0; j < k - i; j++) s += a[n - 1 - j]; best = max(best, s); } return best; }"
+      },
+      "optimized": {
+        "approach": "Pehle k left cards ka sum, phir ek step me left se ek hatao, right se ek jodo.",
+        "time": "O(k)",
+        "space": "O(1)",
+        "code_cpp": "int maxScore(const vector<int>& a, int k){ int n = a.size(), s = 0; for(int i = 0; i < k; i++) s += a[i]; int best = s; for(int i = 1; i <= k; i++){ s += a[n - i] - a[k - i]; best = max(best, s); } return best; }"
+      },
+      "explanation": "Alternative soch: n-k size ki contiguous window ka minimum sum nikalo, answer = total - minWindow. Dono equivalent hain.",
+      "edge_cases": [
+        "k = n",
+        "k = 1",
+        "Cards at ends vs middle"
+      ]
+    },
+    {
+      "id": "L2-005",
+      "level": 2,
+      "topic": "Sliding Window (Fixed)",
+      "title": "Find All Anagrams in a String",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Facebook",
+        "Microsoft",
+        "Infosys",
+        "Flipkart"
+      ],
+      "problem_statement": "Given strings s and p, return all start indices of p's anagrams in s.",
+      "description": "Anagram = same letters same count, window ki length |p| hoti hai.",
+      "constraints": [
+        "1 <= |s|, |p| <= 3e4",
+        "Lowercase letters"
+      ],
+      "test_cases": [
+        {
+          "input": "cbaebabacd, abc",
+          "output": "[0,6]",
+          "explanation": "cba aur bac"
+        },
+        {
+          "input": "abab, ab",
+          "output": "[0,1,2]",
+          "explanation": "ab, ba, ab"
+        },
+        {
+          "input": "a, ab",
+          "output": "[]",
+          "explanation": "p lamba hai"
+        }
+      ],
+      "theory": "Fixed window of size |p|. need[26] aur win[26] equal ho to current start index answer.",
+      "brute_force": {
+        "approach": "Har window ko sort karo aur sorted p se compare karo.",
+        "time": "O(n * m log m)",
+        "space": "O(m)",
+        "code_cpp": "vector<int> findAnagrams(const string& s, const string& p){ vector<int> r; int n = s.size(), m = p.size(); string sp = p; sort(sp.begin(), sp.end()); for(int i = 0; i + m <= n; i++){ string w = s.substr(i, m); sort(w.begin(), w.end()); if(w == sp) r.push_back(i); } return r; }"
+      },
+      "optimized": {
+        "approach": "Sliding frequency array comparison.",
+        "time": "O(26 * n)",
+        "space": "O(1)",
+        "code_cpp": "vector<int> findAnagrams(const string& s, const string& p){ vector<int> r; int n = s.size(), m = p.size(); if(m > n) return r; int need[26] = {0}, win[26] = {0}; for(char c : p) need[c - 'a']++; for(int i = 0; i < n; i++){ win[s[i] - 'a']++; if(i >= m) win[s[i - m] - 'a']--; if(i >= m - 1 && equal(begin(need), end(need), begin(win))) r.push_back(i - m + 1); } return r; }"
+      },
+      "explanation": "Brute me har window ko naye string me copy aur sort karna padta hai. Optimized me window update O(1) hota hai.",
+      "edge_cases": [
+        "|p| > |s|",
+        "Overlapping anagrams",
+        "All same letters"
+      ]
+    },
+    {
+      "id": "L2-006",
+      "level": 2,
+      "topic": "Sliding Window (Fixed)",
+      "title": "Permutation in String",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Microsoft",
+        "Amazon",
+        "Google",
+        "TCS"
+      ],
+      "problem_statement": "Given s1 and s2, return true if s2 contains a permutation of s1 as a substring.",
+      "description": "Find All Anagrams ka boolean version.",
+      "constraints": [
+        "1 <= |s1|, |s2| <= 1e4",
+        "Lowercase letters"
+      ],
+      "test_cases": [
+        {
+          "input": "ab, eidbaooo",
+          "output": "true",
+          "explanation": "ba substring"
+        },
+        {
+          "input": "ab, eidboaoo",
+          "output": "false",
+          "explanation": "Koi permutation window nahi"
+        },
+        {
+          "input": "a, a",
+          "output": "true",
+          "explanation": "Single"
+        }
+      ],
+      "theory": "Fixed window |s1| par frequency match; pehla match milte hi true.",
+      "brute_force": {
+        "approach": "Har window sort karke s1 (sorted) se compare.",
+        "time": "O(n * m log m)",
+        "space": "O(m)",
+        "code_cpp": "bool checkInclusion(const string& s1, const string& s2){ int n = s2.size(), m = s1.size(); string a = s1; sort(a.begin(), a.end()); for(int i = 0; i + m <= n; i++){ string w = s2.substr(i, m); sort(w.begin(), w.end()); if(w == a) return true; } return false; }"
+      },
+      "optimized": {
+        "approach": "Sliding frequency window.",
+        "time": "O(26 * n)",
+        "space": "O(1)",
+        "code_cpp": "bool checkInclusion(const string& s1, const string& s2){ int n = s2.size(), m = s1.size(); if(m > n) return false; int need[26] = {0}, win[26] = {0}; for(char c : s1) need[c - 'a']++; for(int i = 0; i < n; i++){ win[s2[i] - 'a']++; if(i >= m) win[s2[i - m] - 'a']--; if(i >= m - 1 && equal(begin(need), end(need), begin(win))) return true; } return false; }"
+      },
+      "explanation": "Early return ki wajah se average case aur tez. Same template, sirf return type alag.",
+      "edge_cases": [
+        "s1 longer than s2",
+        "Single char",
+        "Match at the very end"
+      ]
+    },
+    {
+      "id": "L2-007",
+      "level": 2,
+      "topic": "Sliding Window (Fixed)",
+      "title": "Grumpy Bookstore Owner",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Infosys",
+        "Cognizant"
+      ],
+      "problem_statement": "Each minute customers[i] enter. If grumpy[i] = 1 they are unsatisfied. The owner can stay not grumpy for X consecutive minutes once. Return the max number of satisfied customers.",
+      "description": "Jo customers already satisfied hain (grumpy = 0), unhe alag count karo. X minutes ki window me wo customers jo grumpy minutes me the, extra ban jate hain.",
+      "constraints": [
+        "1 <= X <= n <= 2e4",
+        "0 <= customers[i] <= 1000",
+        "grumpy[i] in {0, 1}"
+      ],
+      "test_cases": [
+        {
+          "input": "c=[1,0,1,2,1,1,7,5], g=[0,1,0,1,0,1,0,1], X=3",
+          "output": "16",
+          "explanation": "Base 10 + best extra window (minutes 5 se 7) 6 = 16"
+        },
+        {
+          "input": "c=[1], g=[0], X=1",
+          "output": "1",
+          "explanation": "Already satisfied"
+        },
+        {
+          "input": "c=[4,10,10], g=[1,1,0], X=2",
+          "output": "24",
+          "explanation": "Window [4,10] + base 10"
+        }
+      ],
+      "theory": "Answer = base (grumpy = 0 wale customers) + maximum extra jo fixed window X me grumpy minutes ke customers se milta hai.",
+      "brute_force": {
+        "approach": "Har window start ke liye poore array ka satisfied count nikalo.",
+        "time": "O(n*X) ya O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int maxSatisfied(const vector<int>& c, const vector<int>& g, int X){ int n = c.size(), best = 0; for(int st = 0; st + X <= n; st++){ int total = 0; for(int i = 0; i < n; i++) if(g[i] == 0 || (i >= st && i < st + X)) total += c[i]; best = max(best, total); } return best; }"
+      },
+      "optimized": {
+        "approach": "Base + sliding window of extra.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int maxSatisfied(const vector<int>& c, const vector<int>& g, int X){ int n = c.size(), base = 0; for(int i = 0; i < n; i++) if(!g[i]) base += c[i]; int extra = 0, best = 0; for(int i = 0; i < n; i++){ if(g[i]) extra += c[i]; if(i >= X && g[i - X]) extra -= c[i - X]; best = max(best, extra); } return base + best; }"
+      },
+      "explanation": "Problem ko do hisso me tod diya: jo fixed hai (base) aur jo window se badal sakta hai (extra). Ye decomposition trick bahut baar kaam aati hai.",
+      "edge_cases": [
+        "X = n",
+        "All grumpy",
+        "No grumpy"
+      ]
+    },
+    {
+      "id": "L2-008",
+      "level": 2,
+      "topic": "Sliding Window (Fixed)",
+      "title": "Sliding Window Maximum",
+      "difficulty": "Hard",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Microsoft",
+        "Facebook",
+        "Flipkart",
+        "Adobe"
+      ],
+      "problem_statement": "Given an array and window size k, return the maximum of each sliding window as the window moves from left to right.",
+      "description": "Output me n-k+1 values aayengi.",
+      "constraints": [
+        "1 <= k <= n <= 1e5",
+        "-1e4 <= a[i] <= 1e4"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,3,-1,-3,5,3,6,7], k=3",
+          "output": "[3,3,5,5,6,7]",
+          "explanation": "Har window ka max"
+        },
+        {
+          "input": "[1], k=1",
+          "output": "[1]",
+          "explanation": "Single"
+        },
+        {
+          "input": "[9,11], k=2",
+          "output": "[11]",
+          "explanation": "Ek window"
+        }
+      ],
+      "theory": "Monotonic decreasing deque (indices). Front = current window max. Naya element aane par chhote elements pop karo, window se bahar index front se pop karo.",
+      "brute_force": {
+        "approach": "Har window me max_element se scan.",
+        "time": "O(n*k)",
+        "space": "O(1) extra",
+        "code_cpp": "vector<int> maxSlidingWindow(const vector<int>& a, int k){ vector<int> r; int n = a.size(); for(int i = 0; i + k <= n; i++) r.push_back(*max_element(a.begin() + i, a.begin() + i + k)); return r; }"
+      },
+      "optimized": {
+        "approach": "Monotonic deque.",
+        "time": "O(n)",
+        "space": "O(k)",
+        "code_cpp": "vector<int> maxSlidingWindow(const vector<int>& a, int k){ deque<int> dq; vector<int> r; for(int i = 0; i < (int)a.size(); i++){ while(!dq.empty() && dq.front() <= i - k) dq.pop_front(); while(!dq.empty() && a[dq.back()] <= a[i]) dq.pop_back(); dq.push_back(i); if(i >= k - 1) r.push_back(a[dq.front()]); } return r; }"
+      },
+      "explanation": "Har element deque me ek baar aata aur ek baar nikalta hai, isliye amortized O(1) per element. Heap se bhi hota hai par O(n log n).",
+      "edge_cases": [
+        "k = 1",
+        "k = n",
+        "Decreasing array",
+        "Increasing array"
+      ]
+    },
+    {
+      "id": "L2-009",
+      "level": 2,
+      "topic": "Sliding Window (Variable)",
+      "title": "Longest Substring Without Repeating Characters",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Google",
+        "Facebook",
+        "Adobe",
+        "TCS",
+        "Infosys",
+        "Flipkart"
+      ],
+      "problem_statement": "Given a string s, return the length of the longest substring without repeating characters.",
+      "description": "Substring continuous hota hai, subsequence nahi.",
+      "constraints": [
+        "0 <= |s| <= 5e4",
+        "ASCII characters"
+      ],
+      "test_cases": [
+        {
+          "input": "abcabcbb",
+          "output": "3",
+          "explanation": "abc"
+        },
+        {
+          "input": "bbbbb",
+          "output": "1",
+          "explanation": "b"
+        },
+        {
+          "input": "pwwkew",
+          "output": "3",
+          "explanation": "wke"
+        }
+      ],
+      "theory": "Har character ka last index rakho. Repeat mile aur uska last index window ke andar ho to l = last + 1.",
+      "brute_force": {
+        "approach": "Har start index se tab tak badho jab tak duplicate na mile.",
+        "time": "O(n * min(n, charset))",
+        "space": "O(charset)",
+        "code_cpp": "int lengthOfLongest(const string& s){ int n = s.size(), best = 0; for(int i = 0; i < n; i++){ bool seen[256] = {false}; for(int j = i; j < n; j++){ unsigned char c = s[j]; if(seen[c]) break; seen[c] = true; best = max(best, j - i + 1); } } return best; }"
+      },
+      "optimized": {
+        "approach": "Window + last-seen index array.",
+        "time": "O(n)",
+        "space": "O(charset)",
+        "code_cpp": "int lengthOfLongest(const string& s){ int last[256]; fill(last, last + 256, -1); int best = 0, l = 0; for(int r = 0; r < (int)s.size(); r++){ unsigned char c = s[r]; if(last[c] >= l) l = last[c] + 1; last[c] = r; best = max(best, r - l + 1); } return best; }"
+      },
+      "explanation": "last[c] >= l check zaroori hai kyunki purana repeat window ke bahar bhi ho sakta hai. l ko kabhi peeche nahi le jate.",
+      "edge_cases": [
+        "Empty string",
+        "All unique",
+        "All same",
+        "Repeat outside current window"
+      ]
+    },
+    {
+      "id": "L2-010",
+      "level": 2,
+      "topic": "Sliding Window (Variable)",
+      "title": "Minimum Size Subarray Sum",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Facebook",
+        "Amazon",
+        "Microsoft",
+        "Infosys",
+        "TCS"
+      ],
+      "problem_statement": "Given an array of positive integers and a target, return the minimal length of a contiguous subarray whose sum is >= target, or 0 if none.",
+      "description": "Elements positive hain, isliye window badhane se sum badhta hai.",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "1 <= a[i] <= 1e4",
+        "1 <= target <= 1e9"
+      ],
+      "test_cases": [
+        {
+          "input": "t=7, [2,3,1,2,4,3]",
+          "output": "2",
+          "explanation": "[4,3]"
+        },
+        {
+          "input": "t=4, [1,4,4]",
+          "output": "1",
+          "explanation": "[4]"
+        },
+        {
+          "input": "t=11, [1,1,1,1,1,1,1,1]",
+          "output": "0",
+          "explanation": "Sum 8 < 11"
+        }
+      ],
+      "theory": "r se expand karo; jab sum >= target ho to shortest window update karo aur l badhao (while).",
+      "brute_force": {
+        "approach": "Har start se sum >= target hone tak extend karo.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int minSubArrayLen(int t, const vector<int>& a){ int n = a.size(), best = INT_MAX; for(int i = 0; i < n; i++){ long long s = 0; for(int j = i; j < n; j++){ s += a[j]; if(s >= t){ best = min(best, j - i + 1); break; } } } return best == INT_MAX ? 0 : best; }"
+      },
+      "optimized": {
+        "approach": "Variable window (shrink while valid).",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int minSubArrayLen(int t, const vector<int>& a){ int n = a.size(), l = 0, best = INT_MAX; long long s = 0; for(int r = 0; r < n; r++){ s += a[r]; while(s >= t){ best = min(best, r - l + 1); s -= a[l++]; } } return best == INT_MAX ? 0 : best; }"
+      },
+      "explanation": "Shortest window me valid hote hi shrink karte hain (longest wale me invalid hone par). Negative numbers hote to ye approach fail hoti.",
+      "edge_cases": [
+        "No valid subarray",
+        "Single element >= target",
+        "Whole array needed"
+      ]
+    },
+    {
+      "id": "L2-011",
+      "level": 2,
+      "topic": "Sliding Window (Variable)",
+      "title": "Longest Substring with At Most K Distinct Characters",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Google",
+        "Amazon",
+        "Facebook",
+        "Microsoft",
+        "Infosys"
+      ],
+      "problem_statement": "Given a string s and integer k, return the length of the longest substring that contains at most k distinct characters.",
+      "description": "k = 0 ho to answer 0.",
+      "constraints": [
+        "1 <= |s| <= 5e4",
+        "0 <= k <= 50"
+      ],
+      "test_cases": [
+        {
+          "input": "eceba, k=2",
+          "output": "3",
+          "explanation": "ece"
+        },
+        {
+          "input": "aa, k=1",
+          "output": "2",
+          "explanation": "aa"
+        },
+        {
+          "input": "abc, k=0",
+          "output": "0",
+          "explanation": "k = 0"
+        }
+      ],
+      "theory": "Frequency array + distinct counter. Distinct > k hone par l se characters hatao jab tak distinct <= k na ho.",
+      "brute_force": {
+        "approach": "Har start se extend karo jab tak distinct <= k.",
+        "time": "O(n^2)",
+        "space": "O(charset)",
+        "code_cpp": "int kDistinct(const string& s, int k){ int n = s.size(), best = 0; for(int i = 0; i < n; i++){ int f[256] = {0}, d = 0; for(int j = i; j < n; j++){ if(f[(unsigned char)s[j]]++ == 0) d++; if(d > k) break; best = max(best, j - i + 1); } } return best; }"
+      },
+      "optimized": {
+        "approach": "Variable window with frequency + distinct count.",
+        "time": "O(n)",
+        "space": "O(charset)",
+        "code_cpp": "int kDistinct(const string& s, int k){ if(k == 0) return 0; int f[256] = {0}, d = 0, l = 0, best = 0; for(int r = 0; r < (int)s.size(); r++){ if(f[(unsigned char)s[r]]++ == 0) d++; while(d > k){ if(--f[(unsigned char)s[l++]] == 0) d--; } best = max(best, r - l + 1); } return best; }"
+      },
+      "explanation": "Distinct ginti tab hi badalti hai jab frequency 0 se 1 ya 1 se 0 hoti hai. Ye pattern 'at most k' wali saari problems ka base hai.",
+      "edge_cases": [
+        "k = 0",
+        "k >= distinct count",
+        "Single char"
+      ]
+    },
+    {
+      "id": "L2-012",
+      "level": 2,
+      "topic": "Sliding Window (Variable)",
+      "title": "Fruit Into Baskets",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Google",
+        "Amazon",
+        "Microsoft",
+        "TCS",
+        "Infosys"
+      ],
+      "problem_statement": "Trees give fruits of types fruits[i]. You have two baskets, each holds one fruit type. Starting at any tree, pick one fruit from each consecutive tree to the right. Return the maximum number of fruits you can pick.",
+      "description": "Matlab: longest subarray with at most 2 distinct values.",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "0 <= fruits[i] < n"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,2,1]",
+          "output": "3",
+          "explanation": "Sab le sakte ho"
+        },
+        {
+          "input": "[0,1,2,2]",
+          "output": "3",
+          "explanation": "[1,2,2]"
+        },
+        {
+          "input": "[1,2,3,2,2]",
+          "output": "4",
+          "explanation": "[2,3,2,2]"
+        }
+      ],
+      "theory": "At most K distinct (K = 2) ka seedha application.",
+      "brute_force": {
+        "approach": "Har start se extend, set me distinct track karo.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int totalFruit(const vector<int>& a){ int n = a.size(), best = 0; for(int i = 0; i < n; i++){ set<int> s; for(int j = i; j < n; j++){ s.insert(a[j]); if(s.size() > 2) break; best = max(best, j - i + 1); } } return best; }"
+      },
+      "optimized": {
+        "approach": "Window + unordered_map counts.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int totalFruit(const vector<int>& a){ unordered_map<int,int> f; int l = 0, best = 0; for(int r = 0; r < (int)a.size(); r++){ f[a[r]]++; while(f.size() > 2){ if(--f[a[l]] == 0) f.erase(a[l]); l++; } best = max(best, r - l + 1); } return best; }"
+      },
+      "explanation": "Problem statement ko pehchan lena (word problem se pattern nikalna) hi asli skill hai. map.size() distinct count deta hai, bas erase karna mat bhoolo.",
+      "edge_cases": [
+        "Single type",
+        "Two types only",
+        "All different"
+      ]
+    },
+    {
+      "id": "L2-013",
+      "level": 2,
+      "topic": "Sliding Window (Variable)",
+      "title": "Max Consecutive Ones III",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Facebook",
+        "Amazon",
+        "Microsoft",
+        "Infosys",
+        "Zoho"
+      ],
+      "problem_statement": "Given a binary array and integer k, return the maximum number of consecutive 1s if you can flip at most k zeros.",
+      "description": "Flip karna = window me k tak zeros allow karna.",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "a[i] in {0, 1}",
+        "0 <= k <= n"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,1,1,0,0,0,1,1,1,1,0], k=2",
+          "output": "6",
+          "explanation": "Do zeros flip karke 6 ones"
+        },
+        {
+          "input": "[0,0,1,1,0,0,1,1,1,0,1,1,0,0,0,1,1,1,1], k=3",
+          "output": "10",
+          "explanation": "Longest window with <= 3 zeros"
+        },
+        {
+          "input": "[0,0], k=0",
+          "output": "0",
+          "explanation": "Koi flip nahi"
+        }
+      ],
+      "theory": "Window me zeros ki ginti rakho. Zeros > k ho to l badhao jab tak zeros <= k na ho.",
+      "brute_force": {
+        "approach": "Har start se extend jab tak zeros <= k.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int longestOnes(const vector<int>& a, int k){ int n = a.size(), best = 0; for(int i = 0; i < n; i++){ int z = 0; for(int j = i; j < n; j++){ if(a[j] == 0) z++; if(z > k) break; best = max(best, j - i + 1); } } return best; }"
+      },
+      "optimized": {
+        "approach": "Variable window, zero count.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int longestOnes(const vector<int>& a, int k){ int l = 0, z = 0, best = 0; for(int r = 0; r < (int)a.size(); r++){ if(a[r] == 0) z++; while(z > k){ if(a[l++] == 0) z--; } best = max(best, r - l + 1); } return best; }"
+      },
+      "explanation": "'Atmost k bad elements wala longest window' ka sabse simple form. Max Consecutive Ones (L1-008) ka generalization (k = 0).",
+      "edge_cases": [
+        "k = 0",
+        "k >= number of zeros",
+        "All zeros"
+      ]
+    },
+    {
+      "id": "L2-014",
+      "level": 2,
+      "topic": "Sliding Window (Variable)",
+      "title": "Longest Repeating Character Replacement",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Google",
+        "Amazon",
+        "Microsoft",
+        "Infosys",
+        "TCS"
+      ],
+      "problem_statement": "Given a string of uppercase letters and integer k, you can replace at most k characters with any letter. Return the length of the longest substring with all same letters after replacements.",
+      "description": "Window valid hai agar (window length - sabse zyada baar aane wale character ki ginti) <= k.",
+      "constraints": [
+        "1 <= |s| <= 1e5",
+        "0 <= k <= |s|",
+        "Uppercase letters"
+      ],
+      "test_cases": [
+        {
+          "input": "ABAB, k=2",
+          "output": "4",
+          "explanation": "Do replacements"
+        },
+        {
+          "input": "AABABBA, k=1",
+          "output": "4",
+          "explanation": "AABA -> AAAA"
+        },
+        {
+          "input": "A, k=0",
+          "output": "1",
+          "explanation": "Single"
+        }
+      ],
+      "theory": "Window me maxFreq rakho. len - maxFreq > k ho to l ko ek baar badhao (window kabhi chhoti nahi hoti, sirf slide hoti hai), best = r-l+1.",
+      "brute_force": {
+        "approach": "Har start se extend, maxFreq track karo, invalid hote hi break.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int characterReplacement(const string& s, int k){ int n = s.size(), best = 0; for(int i = 0; i < n; i++){ int f[26] = {0}, mx = 0; for(int j = i; j < n; j++){ mx = max(mx, ++f[s[j] - 'A']); if(j - i + 1 - mx > k) break; best = max(best, j - i + 1); } } return best; }"
+      },
+      "optimized": {
+        "approach": "Non-shrinking window trick: sirf tab update jab maxFreq badhe.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int characterReplacement(const string& s, int k){ int f[26] = {0}, l = 0, mx = 0, best = 0; for(int r = 0; r < (int)s.size(); r++){ mx = max(mx, ++f[s[r] - 'A']); if(r - l + 1 - mx > k){ f[s[l] - 'A']--; l++; } best = max(best, r - l + 1); } return best; }"
+      },
+      "explanation": "mx ko kabhi decrease nahi karte, kyunki answer tabhi badh sakta hai jab koi naya maxFreq mile. Stale mx se kabhi galat bada answer nahi banta, ye is trick ka subtle part hai.",
+      "edge_cases": [
+        "k = 0",
+        "k = |s|",
+        "All same letter"
+      ]
+    },
+    {
+      "id": "L2-015",
+      "level": 2,
+      "topic": "Sliding Window (Variable)",
+      "title": "Subarray Product Less Than K",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Google",
+        "Amazon",
+        "Microsoft",
+        "Infosys"
+      ],
+      "problem_statement": "Given an array of positive integers and k, return the number of contiguous subarrays whose product is strictly less than k.",
+      "description": "Count karna hai, length nahi. Elements positive hain.",
+      "constraints": [
+        "1 <= n <= 3e4",
+        "1 <= a[i] <= 1000",
+        "0 <= k <= 1e6"
+      ],
+      "test_cases": [
+        {
+          "input": "[10,5,2,6], k=100",
+          "output": "8",
+          "explanation": "[10],[5],[2],[6],[10,5],[5,2],[2,6],[5,2,6]"
+        },
+        {
+          "input": "[1,2,3], k=0",
+          "output": "0",
+          "explanation": "Product kabhi < 0 nahi"
+        },
+        {
+          "input": "[1,1,1], k=2",
+          "output": "6",
+          "explanation": "Sab subarrays"
+        }
+      ],
+      "theory": "Valid window [l..r] me r par khatam hone wale r-l+1 subarrays hain. Product >= k ho to l se divide karte jao.",
+      "brute_force": {
+        "approach": "Har start se product badhate jao jab tak < k.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int numSubarrayProductLessThanK(const vector<int>& a, int k){ int n = a.size(), c = 0; for(int i = 0; i < n; i++){ long long p = 1; for(int j = i; j < n; j++){ p *= a[j]; if(p >= k) break; c++; } } return c; }"
+      },
+      "optimized": {
+        "approach": "Window + count += r - l + 1.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int numSubarrayProductLessThanK(const vector<int>& a, int k){ if(k <= 1) return 0; long long p = 1; int l = 0, c = 0; for(int r = 0; r < (int)a.size(); r++){ p *= a[r]; while(p >= k) p /= a[l++]; c += r - l + 1; } return c; }"
+      },
+      "explanation": "k <= 1 par answer 0 (kyunki product >= 1). Agar ye check na ho to while loop me l > r ho jata hai. Ye 'count subarrays' wale pattern ka pehla example hai.",
+      "edge_cases": [
+        "k <= 1",
+        "All ones",
+        "Single large element"
+      ]
+    },
+    {
+      "id": "L2-016",
+      "level": 2,
+      "topic": "Sliding Window (Variable)",
+      "title": "Count Number of Nice Subarrays",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Google",
+        "Amazon",
+        "Microsoft",
+        "Infosys"
+      ],
+      "problem_statement": "Given an integer array and k, a subarray is nice if it contains exactly k odd numbers. Return the number of nice subarrays.",
+      "description": "Exactly k directly window se handle karna mushkil hai.",
+      "constraints": [
+        "1 <= n <= 5e4",
+        "1 <= a[i] <= 1e5",
+        "1 <= k <= n"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,1,2,1,1], k=3",
+          "output": "2",
+          "explanation": "[1,1,2,1] aur [1,2,1,1]"
+        },
+        {
+          "input": "[2,4,6], k=1",
+          "output": "0",
+          "explanation": "Koi odd nahi"
+        },
+        {
+          "input": "[2,2,2,1,2,2,1,2,2,2], k=2",
+          "output": "16",
+          "explanation": "Do odd wale subarrays"
+        }
+      ],
+      "theory": "Exactly k = atMost(k) - atMost(k-1). atMost me valid window ke r-l+1 subarrays count hote hain.",
+      "brute_force": {
+        "approach": "Har start se extend, odd count k par exact hone par count++.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int numberOfSubarrays(const vector<int>& a, int k){ int n = a.size(), c = 0; for(int i = 0; i < n; i++){ int odd = 0; for(int j = i; j < n; j++){ odd += a[j] & 1; if(odd > k) break; if(odd == k) c++; } } return c; }"
+      },
+      "optimized": {
+        "approach": "atMost(k) - atMost(k - 1).",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int atMost(const vector<int>& a, int k){ if(k < 0) return 0; int l = 0, c = 0, odd = 0; for(int r = 0; r < (int)a.size(); r++){ odd += a[r] & 1; while(odd > k) odd -= a[l++] & 1; c += r - l + 1; } return c; }\nint numberOfSubarrays(const vector<int>& a, int k){ return atMost(a, k) - atMost(a, k - 1); }"
+      },
+      "explanation": "Exactly = atMost(k) - atMost(k-1) trick Binary Subarrays With Sum, Subarrays with K Different Integers jaisi problems me bhi lagti hai. Alternative: prefix count + HashMap (Part 2).",
+      "edge_cases": [
+        "No odd numbers",
+        "All odd",
+        "k = n"
+      ]
+    },
+    {
+      "id": "L2-017",
+      "level": 2,
+      "topic": "Sliding Window (Variable)",
+      "title": "Number of Substrings Containing All Three Characters",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Infosys",
+        "Zoho"
+      ],
+      "problem_statement": "Given a string s of only 'a', 'b', 'c', return the number of substrings containing at least one occurrence of all three characters.",
+      "description": "Substrings count karne hain jinme a, b, c teeno ho.",
+      "constraints": [
+        "3 <= |s| <= 5e4",
+        "Only a, b, c"
+      ],
+      "test_cases": [
+        {
+          "input": "abcabc",
+          "output": "10",
+          "explanation": "Teen aur usse lambe valid substrings"
+        },
+        {
+          "input": "aaacb",
+          "output": "3",
+          "explanation": "aaacb, aacb, acb"
+        },
+        {
+          "input": "abc",
+          "output": "1",
+          "explanation": "Sirf abc"
+        }
+      ],
+      "theory": "Har r par teeno characters ka last index rakho. Valid start indices 0..min(last) hote hain, to count += min(last) + 1.",
+      "brute_force": {
+        "approach": "Har start se tab tak badho jab tak teeno mil na jaye; phir baaki saare end valid hain (n - j).",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int numberOfSubstrings(const string& s){ int n = s.size(), c = 0; for(int i = 0; i < n; i++){ bool seen[3] = {false}; int cnt = 0; for(int j = i; j < n; j++){ if(!seen[s[j] - 'a']){ seen[s[j] - 'a'] = true; cnt++; } if(cnt == 3){ c += n - j; break; } } } return c; }"
+      },
+      "optimized": {
+        "approach": "Last-seen indices ka minimum.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int numberOfSubstrings(const string& s){ int last[3] = {-1, -1, -1}, c = 0; for(int i = 0; i < (int)s.size(); i++){ last[s[i] - 'a'] = i; c += min({last[0], last[1], last[2]}) + 1; } return c; }"
+      },
+      "explanation": "Agar koi character abhi tak nahi dikha to min = -1 aur contribution 0 ho jati hai. Window shrink ki zaroorat nahi, direct counting formula hai.",
+      "edge_cases": [
+        "Missing one character",
+        "Repeated pattern",
+        "Minimum length 3"
+      ]
+    },
+    {
+      "id": "L2-018",
+      "level": 2,
+      "topic": "Sliding Window (Variable)",
+      "title": "Longest Subarray of 1's After Deleting One Element",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Google",
+        "Infosys"
+      ],
+      "problem_statement": "Given a binary array, you must delete exactly one element. Return the size of the longest non-empty subarray containing only 1s in the resulting array, or 0 if none.",
+      "description": "Ek element delete karna hi padega, chahe sab 1 hon.",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "a[i] in {0, 1}"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,1,0,1]",
+          "output": "3",
+          "explanation": "0 delete karo"
+        },
+        {
+          "input": "[0,1,1,1,0,1,1,0,1]",
+          "output": "5",
+          "explanation": "Beech wala 0 delete"
+        },
+        {
+          "input": "[1,1,1]",
+          "output": "2",
+          "explanation": "Ek 1 delete karna padega"
+        }
+      ],
+      "theory": "Window me at most ek zero allow karo. Us window me ek element delete hoga, to answer = windowLength - 1 = r - l.",
+      "brute_force": {
+        "approach": "Har possible delete index d ke liye baaki array me longest ones run nikalo.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int longestSubarray(const vector<int>& a){ int n = a.size(), best = 0; for(int d = 0; d < n; d++){ int cur = 0; for(int i = 0; i < n; i++){ if(i == d) continue; if(a[i] == 1){ cur++; best = max(best, cur); } else cur = 0; } } return best; }"
+      },
+      "optimized": {
+        "approach": "Window with at most one zero; answer r - l.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int longestSubarray(const vector<int>& a){ int l = 0, z = 0, best = 0; for(int r = 0; r < (int)a.size(); r++){ if(a[r] == 0) z++; while(z > 1){ if(a[l++] == 0) z--; } best = max(best, r - l); } return best; }"
+      },
+      "explanation": "Max Consecutive Ones III ka k = 1 case, bas answer me -1 (delete hone wala element). All ones par bhi ek delete hota hai, isliye n-1.",
+      "edge_cases": [
+        "All ones",
+        "All zeros",
+        "Single element"
+      ]
+    },
+    {
+      "id": "L2-019",
+      "level": 2,
+      "topic": "Sliding Window (Variable)",
+      "title": "Minimum Window Substring",
+      "difficulty": "Hard",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Facebook",
+        "Microsoft",
+        "Adobe",
+        "Flipkart"
+      ],
+      "problem_statement": "Given strings s and t, return the minimum window substring of s such that every character in t (including duplicates) is included in the window. Return empty string if none.",
+      "description": "t ke duplicates bhi match hone chahiye. Answer unique hai.",
+      "constraints": [
+        "1 <= |s|, |t| <= 1e5",
+        "English letters"
+      ],
+      "test_cases": [
+        {
+          "input": "ADOBECODEBANC, ABC",
+          "output": "BANC",
+          "explanation": "Sabse chhota window"
+        },
+        {
+          "input": "a, a",
+          "output": "a",
+          "explanation": "Same"
+        },
+        {
+          "input": "a, aa",
+          "output": "",
+          "explanation": "Do a chahiye"
+        }
+      ],
+      "theory": "need[] frequency aur missing counter. r par expand: need ghatao, pehle positive tha to missing--. missing == 0 par l shrink karke minimum window update karo.",
+      "brute_force": {
+        "approach": "Har start se extend jab tak sab chars cover na ho jaye, minimum track.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "string minWindow(const string& s, const string& t){ int n = s.size(), bl = INT_MAX, bs = 0; int need0[128] = {0}; for(char c : t) need0[(int)(unsigned char)c]++; for(int i = 0; i < n; i++){ int need[128]; copy(need0, need0 + 128, need); int missing = t.size(); for(int j = i; j < n; j++){ if(need[(int)(unsigned char)s[j]]-- > 0) missing--; if(missing == 0){ if(j - i + 1 < bl){ bl = j - i + 1; bs = i; } break; } } } return bl == INT_MAX ? \"\" : s.substr(bs, bl); }"
+      },
+      "optimized": {
+        "approach": "Variable window + need[] + missing counter.",
+        "time": "O(n + m)",
+        "space": "O(1)",
+        "code_cpp": "string minWindow(const string& s, const string& t){ int need[128] = {0}; for(char c : t) need[(int)(unsigned char)c]++; int missing = t.size(), l = 0, bs = 0, bl = INT_MAX; for(int r = 0; r < (int)s.size(); r++){ if(need[(int)(unsigned char)s[r]]-- > 0) missing--; while(missing == 0){ if(r - l + 1 < bl){ bl = r - l + 1; bs = l; } if(++need[(int)(unsigned char)s[l]] > 0) missing++; l++; } } return bl == INT_MAX ? \"\" : s.substr(bs, bl); }"
+      },
+      "explanation": "need[c] negative ka matlab window me c zyada hai. missing sirf tab ghatta hai jab need[c] pehle positive tha. Ye 'shortest valid window' ka sabse famous interview problem hai.",
+      "edge_cases": [
+        "t longer than s",
+        "Duplicates in t",
+        "Window is the whole string"
+      ]
+    },
+    {
+      "id": "L2-020",
+      "level": 2,
+      "topic": "Kadane's Algorithm",
+      "title": "Maximum Subarray",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Google",
+        "Apple",
+        "Adobe",
+        "TCS",
+        "Infosys",
+        "Flipkart"
+      ],
+      "problem_statement": "Given an integer array, find the contiguous subarray (at least one element) with the largest sum and return its sum.",
+      "description": "Array me negatives ho sakte hain, subarray non-empty hona chahiye.",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "-1e4 <= a[i] <= 1e4"
+      ],
+      "test_cases": [
+        {
+          "input": "[-2,1,-3,4,-1,2,1,-5,4]",
+          "output": "6",
+          "explanation": "[4,-1,2,1]"
+        },
+        {
+          "input": "[1]",
+          "output": "1",
+          "explanation": "Single"
+        },
+        {
+          "input": "[-3,-1,-2]",
+          "output": "-1",
+          "explanation": "All negative: sabse bada single element"
+        }
+      ],
+      "theory": "Kadane: cur = max(a[i], cur + a[i]); best = max(best, cur). Pichhla sum negative ho to wo subarray ko sirf nuksaan pahunchata hai, isliye naya shuru karo.",
+      "brute_force": {
+        "approach": "Har (i, j) subarray ka sum, running sum se.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int maxSubArray(const vector<int>& a){ int n = a.size(); long long best = LLONG_MIN; for(int i = 0; i < n; i++){ long long s = 0; for(int j = i; j < n; j++){ s += a[j]; best = max(best, s); } } return (int)best; }"
+      },
+      "optimized": {
+        "approach": "Kadane's algorithm.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int maxSubArray(const vector<int>& a){ long long cur = a[0], best = a[0]; for(size_t i = 1; i < a.size(); i++){ cur = max((long long)a[i], cur + a[i]); best = max(best, cur); } return (int)best; }"
+      },
+      "explanation": "cur ko 0 se init karoge to all-negative array galat aayega (empty subarray count ho jayega). Divide and conquer se bhi O(n log n) me hota hai, par Kadane best hai.",
+      "edge_cases": [
+        "All negative",
+        "Single element",
+        "All positive"
+      ]
+    },
+    {
+      "id": "L2-021",
+      "level": 2,
+      "topic": "Kadane's Algorithm",
+      "title": "Maximum Product Subarray",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Google",
+        "LinkedIn",
+        "Infosys"
+      ],
+      "problem_statement": "Given an integer array, find the contiguous non-empty subarray with the largest product and return it.",
+      "description": "Negative * negative = positive, isliye sirf max product track karna kaafi nahi.",
+      "constraints": [
+        "1 <= n <= 2e4",
+        "-10 <= a[i] <= 10",
+        "Product fits in 32-bit int"
+      ],
+      "test_cases": [
+        {
+          "input": "[2,3,-2,4]",
+          "output": "6",
+          "explanation": "[2,3]"
+        },
+        {
+          "input": "[-2,0,-1]",
+          "output": "0",
+          "explanation": "Zero beech me"
+        },
+        {
+          "input": "[-2,3,-4]",
+          "output": "24",
+          "explanation": "Poora array"
+        }
+      ],
+      "theory": "Har index par max aur min product (ending here) rakho. Negative aane par dono swap ho jate hain.",
+      "brute_force": {
+        "approach": "Har (i, j) subarray ka product.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int maxProduct(const vector<int>& a){ int n = a.size(); long long best = LLONG_MIN; for(int i = 0; i < n; i++){ long long p = 1; for(int j = i; j < n; j++){ p *= a[j]; best = max(best, p); } } return (int)best; }"
+      },
+      "optimized": {
+        "approach": "Kadane variant with max aur min.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int maxProduct(const vector<int>& a){ long long mx = a[0], mn = a[0], best = a[0]; for(size_t i = 1; i < a.size(); i++){ long long x = a[i]; if(x < 0) swap(mx, mn); mx = max(x, mx * x); mn = min(x, mn * x); best = max(best, mx); } return (int)best; }"
+      },
+      "explanation": "Sabse chhota (most negative) product ek negative number se multiply ho kar sabse bada ban sakta hai, isliye min bhi maintain karna zaroori hai. Zero par dono reset ho jate hain (x se).",
+      "edge_cases": [
+        "Contains zero",
+        "Odd number of negatives",
+        "Single negative"
+      ]
+    },
+    {
+      "id": "L2-022",
+      "level": 2,
+      "topic": "Kadane's Algorithm",
+      "title": "Maximum Sum Circular Subarray",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Google",
+        "Infosys"
+      ],
+      "problem_statement": "Given a circular integer array, return the maximum possible sum of a non-empty subarray (a subarray may wrap around the end).",
+      "description": "Circular matlab: last ke baad pehle element aa sakta hai (par element ek se zyada baar nahi).",
+      "constraints": [
+        "1 <= n <= 3e4",
+        "-3e4 <= a[i] <= 3e4"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,-2,3,-2]",
+          "output": "3",
+          "explanation": "[3]"
+        },
+        {
+          "input": "[5,-3,5]",
+          "output": "10",
+          "explanation": "5 + 5 (wrap)"
+        },
+        {
+          "input": "[-3,-2,-3]",
+          "output": "-2",
+          "explanation": "All negative"
+        }
+      ],
+      "theory": "Answer = max(normal Kadane, total - minimum subarray sum). Wrap wala subarray = total minus beech ka minimum subarray. All negative ho to total - min = 0 (empty), isliye normal max return karo.",
+      "brute_force": {
+        "approach": "Har start aur har length (1..n) ke liye modulo index se sum.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int maxSubarraySumCircular(const vector<int>& a){ int n = a.size(); long long best = LLONG_MIN; for(int i = 0; i < n; i++){ long long s = 0; for(int len = 1; len <= n; len++){ s += a[(i + len - 1) % n]; best = max(best, s); } } return (int)best; }"
+      },
+      "optimized": {
+        "approach": "max Kadane aur min Kadane + total.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int maxSubarraySumCircular(const vector<int>& a){ long long total = 0, curMax = 0, curMin = 0, mx = a[0], mn = a[0]; for(int x : a){ total += x; curMax = max<long long>(curMax + x, x); mx = max(mx, curMax); curMin = min<long long>(curMin + x, x); mn = min(mn, curMin); } return (int)(mx < 0 ? mx : max(mx, total - mn)); }"
+      },
+      "explanation": "Circular case ko 'total minus ek middle subarray' me badalna is problem ka core idea hai. mx < 0 check isliye ki total - mn = 0 empty subarray represent karta hai, jo allowed nahi.",
+      "edge_cases": [
+        "All negative",
+        "All positive",
+        "Single element"
+      ]
+    },
+    {
+      "id": "L2-023",
+      "level": 2,
+      "topic": "Kadane's Algorithm",
+      "title": "Maximum Absolute Sum of Any Subarray",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Google",
+        "Infosys",
+        "Cognizant"
+      ],
+      "problem_statement": "Given an integer array, return the maximum absolute sum of any (possibly empty) subarray.",
+      "description": "Absolute sum = |sum|. Sabse bada positive ya sabse negative sum dono dekhne padte hain.",
+      "constraints": [
+        "1 <= n <= 1e5",
+        "-1e4 <= a[i] <= 1e4"
+      ],
+      "test_cases": [
+        {
+          "input": "[1,-3,2,3,-4]",
+          "output": "5",
+          "explanation": "[2,3]"
+        },
+        {
+          "input": "[2,-5,1,-4,3,-2]",
+          "output": "8",
+          "explanation": "[-5,1,-4] ka abs = 8"
+        },
+        {
+          "input": "[-1]",
+          "output": "1",
+          "explanation": "|-1|"
+        }
+      ],
+      "theory": "Do Kadane ek saath: max ending here (floor 0) aur min ending here (cap 0). Answer = max(best max, -best min).",
+      "brute_force": {
+        "approach": "Har subarray ka |sum|.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int maxAbsoluteSum(const vector<int>& a){ int n = a.size(), best = 0; for(int i = 0; i < n; i++){ int s = 0; for(int j = i; j < n; j++){ s += a[j]; best = max(best, abs(s)); } } return best; }"
+      },
+      "optimized": {
+        "approach": "Dual Kadane (max aur min).",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int maxAbsoluteSum(const vector<int>& a){ int curMax = 0, curMin = 0, best = 0; for(int x : a){ curMax = max(0, curMax + x); curMin = min(0, curMin + x); best = max({best, curMax, -curMin}); } return best; }"
+      },
+      "explanation": "Absolute value ko do alag problems me tod diya: maximum sum aur minimum sum. Empty subarray allowed hai, isliye floor 0 se start karna sahi hai (L2-020 ke ulat).",
+      "edge_cases": [
+        "All negative",
+        "All positive",
+        "Alternating signs"
+      ]
+    },
+    {
+      "id": "L2-024",
+      "level": 2,
+      "topic": "Kadane's Algorithm",
+      "title": "Longest Turbulent Subarray",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Google",
+        "Amazon",
+        "Microsoft",
+        "Infosys"
+      ],
+      "problem_statement": "A subarray is turbulent if the comparison sign flips between each adjacent pair (< > < > ... or > < > < ...). Return the length of the longest turbulent subarray.",
+      "description": "Equal adjacent elements turbulence tod dete hain.",
+      "constraints": [
+        "1 <= n <= 4e4",
+        "0 <= a[i] <= 1e9"
+      ],
+      "test_cases": [
+        {
+          "input": "[9,4,2,10,7,8,8,1,9]",
+          "output": "5",
+          "explanation": "[4,2,10,7,8]"
+        },
+        {
+          "input": "[4,8,12,16]",
+          "output": "2",
+          "explanation": "Sirf pair"
+        },
+        {
+          "input": "[100]",
+          "output": "1",
+          "explanation": "Single"
+        }
+      ],
+      "theory": "inc = length of turbulent subarray ending here with last step increasing; dec = decreasing. Increase par inc = dec + 1, dec = 1; decrease par dec = inc + 1, inc = 1; equal par dono 1.",
+      "brute_force": {
+        "approach": "Har start se extend jab tak signs alternate ho rahe hain.",
+        "time": "O(n^2)",
+        "space": "O(1)",
+        "code_cpp": "int maxTurbulenceSize(const vector<int>& a){ int n = a.size(), best = 1; for(int i = 0; i < n; i++){ int len = 1; for(int j = i + 1; j < n; j++){ if(a[j] == a[j-1]) break; if(j >= i + 2 && (a[j] > a[j-1]) == (a[j-1] > a[j-2])) break; len++; } best = max(best, len); } return best; }"
+      },
+      "optimized": {
+        "approach": "Kadane-style DP with inc/dec.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int maxTurbulenceSize(const vector<int>& a){ int n = a.size(), best = 1, inc = 1, dec = 1; for(int i = 1; i < n; i++){ if(a[i] > a[i-1]){ inc = dec + 1; dec = 1; } else if(a[i] < a[i-1]){ dec = inc + 1; inc = 1; } else { inc = dec = 1; } best = max(best, max(inc, dec)); } return best; }"
+      },
+      "explanation": "Kadane ka idea 'ending here ka best' yahan do states (inc, dec) ke saath use hua hai. Ye DP ka preview bhi hai (Level 5).",
+      "edge_cases": [
+        "All equal",
+        "Strictly increasing",
+        "Single element"
+      ]
+    },
+    {
+      "id": "L2-025",
+      "level": 2,
+      "topic": "Greedy / Running Gain",
+      "title": "Best Time to Buy and Sell Stock II",
+      "difficulty": "Medium",
+      "company_tags": [
+        "Amazon",
+        "Microsoft",
+        "Goldman Sachs",
+        "Infosys",
+        "TCS"
+      ],
+      "problem_statement": "Given daily stock prices, you may buy and sell multiple times (hold at most one share at a time). Return the maximum profit.",
+      "description": "Ek hi din buy aur sell bhi allowed hai.",
+      "constraints": [
+        "1 <= n <= 3e4",
+        "0 <= prices[i] <= 1e4"
+      ],
+      "test_cases": [
+        {
+          "input": "[7,1,5,3,6,4]",
+          "output": "7",
+          "explanation": "(5-1) + (6-3)"
+        },
+        {
+          "input": "[1,2,3,4,5]",
+          "output": "4",
+          "explanation": "Ek lamba trade = chhote trades ka sum"
+        },
+        {
+          "input": "[7,6,4,3,1]",
+          "output": "0",
+          "explanation": "Koi profit nahi"
+        }
+      ],
+      "theory": "Har upward step (p[i] - p[i-1] > 0) ka profit le lo. Multiple trades me yahi optimal hai kyunki lamba trade = chhote consecutive gains ka sum.",
+      "brute_force": {
+        "approach": "DP: dp[i] = i days me best profit; har i ke liye saare buy days j try karo.",
+        "time": "O(n^2)",
+        "space": "O(n)",
+        "code_cpp": "int maxProfit2(const vector<int>& p){ int n = p.size(); vector<int> dp(n + 1, 0); for(int i = 2; i <= n; i++){ dp[i] = dp[i-1]; for(int j = 0; j < i - 1; j++) dp[i] = max(dp[i], dp[j] + p[i-1] - p[j]); } return dp[n]; }"
+      },
+      "optimized": {
+        "approach": "Greedy: sum of positive differences.",
+        "time": "O(n)",
+        "space": "O(1)",
+        "code_cpp": "int maxProfit2(const vector<int>& p){ int r = 0; for(size_t i = 1; i < p.size(); i++) r += max(0, p[i] - p[i-1]); return r; }"
+      },
+      "explanation": "Stock I (L1-026) me ek hi trade tha, yahan unlimited. Greedy proof: har valley se peak tak ka profit chhote steps me tod sakte ho.",
+      "edge_cases": [
+        "Strictly decreasing",
+        "Strictly increasing",
+        "Single day"
+      ]
+    }
+  ]
+}

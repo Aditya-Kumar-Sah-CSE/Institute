@@ -14,6 +14,10 @@ export interface ParsedCppParam {
     | 'vector<int>'
     | 'vector<char>'
     | 'vector<string>'
+    | 'vector<pair<int,int>>'
+    | 'vector<array<int,2>>'
+    | 'vector<array<int,3>>'
+    | 'vector<array<int,4>>'
     | 'vector<vector<int>>'
     | 'vector<vector<string>>';
   isMutableRef: boolean;
@@ -34,6 +38,10 @@ function classifyCppType(rawType: string): ParsedCppParam['baseType'] {
 
   if (/vector\s*<\s*vector\s*<\s*string\s*>\s*>/i.test(compact)) return 'vector<vector<string>>';
   if (/vector\s*<\s*vector\s*<\s*int\s*>\s*>/i.test(compact)) return 'vector<vector<int>>';
+  if (/vector\s*<\s*pair\s*<\s*int\s*,\s*int\s*>\s*>/i.test(compact)) return 'vector<pair<int,int>>';
+  if (/vector\s*<\s*array\s*<\s*int\s*,\s*2\s*>\s*>/i.test(compact)) return 'vector<array<int,2>>';
+  if (/vector\s*<\s*array\s*<\s*int\s*,\s*3\s*>\s*>/i.test(compact)) return 'vector<array<int,3>>';
+  if (/vector\s*<\s*array\s*<\s*int\s*,\s*4\s*>\s*>/i.test(compact)) return 'vector<array<int,4>>';
   if (/vector\s*<\s*string\s*>/i.test(compact)) return 'vector<string>';
   if (/vector\s*<\s*char\s*>/i.test(compact)) return 'vector<char>';
   if (/vector\s*<\s*int\s*>/i.test(compact)) return 'vector<int>';
@@ -237,6 +245,18 @@ export function buildRoadmapStdin(rawInput: string, sig: ParsedCppSignature | nu
         }
         break;
       }
+      case 'vector<pair<int,int>>':
+      case 'vector<array<int,2>>':
+      case 'vector<array<int,3>>':
+      case 'vector<array<int,4>>': {
+        const normalized = token.replace(/\(/g, '[').replace(/\)/g, ']');
+        const mat = parseIntMatrix(normalized);
+        lines.push(String(mat.length));
+        for (const row of mat) {
+          if (row.length > 0) lines.push(row.join(' '));
+        }
+        break;
+      }
       case 'string': {
         lines.push(stripSurroundingQuotes(token));
         break;
@@ -270,6 +290,14 @@ function getCppReaderSnippet(param: ParsedCppParam, varName: string): string {
       return `    int __n_${varName} = 0; cin >> __n_${varName}; string __dummy_${varName}; getline(cin, __dummy_${varName}); vector<string> ${varName}(__n_${varName}); for (int __i = 0; __i < __n_${varName}; ++__i) getline(cin, ${varName}[__i]);`;
     case 'vector<vector<int>>':
       return `    int __r_${varName} = 0; cin >> __r_${varName}; vector<vector<int>> ${varName}(__r_${varName}); for (int __i = 0; __i < __r_${varName}; ++__i) { int __c = 0; cin >> __c; ${varName}[__i].resize(__c); for (int &__x : ${varName}[__i]) cin >> __x; }`;
+    case 'vector<pair<int,int>>':
+      return `    int __n_${varName} = 0; cin >> __n_${varName}; vector<pair<int,int>> ${varName}(__n_${varName}); for (int __i = 0; __i < __n_${varName}; ++__i) cin >> ${varName}[__i].first >> ${varName}[__i].second;`;
+    case 'vector<array<int,2>>':
+    case 'vector<array<int,3>>':
+    case 'vector<array<int,4>>': {
+      const nDims = param.baseType.endsWith('4>>') ? 4 : param.baseType.endsWith('3>>') ? 3 : 2;
+      return `    int __n_${varName} = 0; cin >> __n_${varName}; vector<array<int,${nDims}>> ${varName}(__n_${varName}); for (int __i = 0; __i < __n_${varName}; ++__i) for (int __j = 0; __j < ${nDims}; ++__j) cin >> ${varName}[__i][__j];`;
+    }
     case 'string':
       return `    string ${varName}; if (cin.peek() == '\\n') cin.get(); getline(cin, ${varName}); if (!${varName}.empty() && ${varName}.back() == '\\r') ${varName}.pop_back();`;
     case 'char':
@@ -434,8 +462,8 @@ export function compareRoadmapOutputs(actualRaw: string, expectedRaw: string, pr
     return expElems.join(',') === actElems.slice(0, expElems.length).join(',');
   }
 
-  // Group Anagrams (L1-066) or unordered groups: normalize [[bat],[nat,tan]]
-  if (problemCode === 'L1-066' && aComp.startsWith('[[') && eComp.startsWith('[[')) {
+  // Group Anagrams (L1-066) or 3Sum/4Sum (L2-038/L2-040) unordered groups
+  if ((problemCode === 'L1-066' || problemCode === 'L2-038' || problemCode === 'L2-040') && aComp.startsWith('[[') && eComp.startsWith('[[')) {
     const normalizeGroups = (raw: string) => {
       const inner = raw.slice(1, -1);
       const matches = inner.match(/\[[^\]]*\]/g) || [];
@@ -455,8 +483,8 @@ export function compareRoadmapOutputs(actualRaw: string, expectedRaw: string, pr
     if (normalizeGroups(aComp) === normalizeGroups(eComp)) return true;
   }
 
-  // Intersection (L1-015) can return unique elements in any order
-  if (problemCode === 'L1-015' && aComp.startsWith('[') && eComp.startsWith('[')) {
+  // Intersection (L1-015, L2-085) can return elements in any order
+  if ((problemCode === 'L1-015' || problemCode === 'L2-085') && aComp.startsWith('[') && eComp.startsWith('[')) {
     const normSet = (r: string) => r.slice(1, -1).split(',').map((x) => x.trim()).filter(Boolean).sort().join(',');
     if (normSet(aComp) === normSet(eComp)) return true;
   }

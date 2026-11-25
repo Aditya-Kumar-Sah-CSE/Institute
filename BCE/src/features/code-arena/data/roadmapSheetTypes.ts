@@ -15,6 +15,7 @@ export interface RoadmapTheoryModule {
   topic: string;
   concept: string;
   key_points: string[];
+  template_cpp?: string;
   pitfalls: string[];
   batch?: string;
   part?: number;
@@ -28,6 +29,7 @@ export interface RoadmapRevisionData {
     idea: string;
     practice_ids: string[];
   }>;
+  decision_guide?: string[];
   complexity_cheat_sheet?: Array<{
     item: string;
     complexity: string;
@@ -36,6 +38,10 @@ export interface RoadmapRevisionData {
   interview_checklist?: string[];
   cpp_tips?: string[];
   self_test_before_level_2?: {
+    instruction: string;
+    problem_ids: string[];
+  };
+  self_test_before_level_3?: {
     instruction: string;
     problem_ids: string[];
   };

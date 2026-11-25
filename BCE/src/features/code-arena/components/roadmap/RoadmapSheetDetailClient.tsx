@@ -160,10 +160,21 @@ export default function RoadmapSheetDetailClient({
     return m;
   }, [problems]);
 
+  const selfTestBlock = useMemo(() => {
+    const rev = activeLevelObj?.revision_data;
+    if (!rev) return null;
+    return (
+      rev[`self_test_before_level_${selectedLevelNum + 1}`] ||
+      rev.self_test_before_level_2 ||
+      rev.self_test_before_level_3 ||
+      null
+    );
+  }, [activeLevelObj, selectedLevelNum]);
+
   const selfTestIdSet = useMemo(() => {
-    const ids = activeLevelObj?.revision_data?.self_test_before_level_2?.problem_ids || [];
+    const ids = selfTestBlock?.problem_ids || [];
     return new Set(ids);
-  }, [activeLevelObj]);
+  }, [selfTestBlock]);
 
   const levelProblems = useMemo(
     () => problems.filter((p) => p.level_number === selectedLevelNum),
@@ -584,7 +595,7 @@ export default function RoadmapSheetDetailClient({
                 setActiveTab('problems');
               }}
             >
-              <Flame size={13} color="#f59e0b" /> Practice Self-Test (14 Must-Know)
+              <Flame size={13} color="#f59e0b" /> Practice Self-Test ({selfTestIdSet.size || 0} Must-Know)
             </button>
           </div>
         </div>
@@ -765,7 +776,7 @@ export default function RoadmapSheetDetailClient({
                   <option value="UNSOLVED">Unsolved</option>
                   <option value="REVISED">Revised</option>
                   <option value="BOOKMARKED">Bookmarked</option>
-                  <option value="SELF_TEST">Self-Test (14)</option>
+                  <option value="SELF_TEST">Self-Test ({selfTestIdSet.size})</option>
                 </select>
               </div>
 

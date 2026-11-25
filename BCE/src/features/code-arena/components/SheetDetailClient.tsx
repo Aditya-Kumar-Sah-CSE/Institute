@@ -94,7 +94,23 @@ export default function SheetDetailClient({
   const router = useRouter();
   const [showRoadmapTheoryModal, setShowRoadmapTheoryModal] = useState(false);
   const [showRoadmapRevisionModal, setShowRoadmapRevisionModal] = useState(false);
-  const unlockedRoadmapLevel = roadmapLevels.find((l) => l.is_unlocked) || roadmapLevels[0];
+  const unlockedRoadmapLevels = roadmapLevels.filter((l) => l.is_unlocked);
+  const [activeRoadmapLevelNum, setActiveRoadmapLevelNum] = useState<number>(
+    unlockedRoadmapLevels[0]?.level_number || roadmapLevels[0]?.level_number || 1
+  );
+  const [selectedLevelFilter, setSelectedLevelFilter] = useState<'ALL' | number>('ALL');
+  const [selectedTopicFilter, setSelectedTopicFilter] = useState<string>('ALL');
+  const activeRoadmapLevel =
+    unlockedRoadmapLevels.find((l) => l.level_number === activeRoadmapLevelNum) ||
+    unlockedRoadmapLevels[0] ||
+    roadmapLevels[0];
+
+  const getProblemLevelNumber = (p: Problem): number | null => {
+    const lvlTag = (p.tags || []).find((t) => /^Level\s+\d+$/i.test(t));
+    if (lvlTag) return Number(lvlTag.replace(/\D+/g, '')) || null;
+    const codeMatch = String(p.external_problem_id || '').match(/^L(\d+)-/i);
+    return codeMatch ? Number(codeMatch[1]) : null;
+  };
   const [isMounted, setIsMounted] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isEnrolled, setIsEnrolled] = useState(initialIsEnrolled);
@@ -560,9 +576,9 @@ export default function SheetDetailClient({
           </p>
 
           {/* Reference Material & Video Explanation Section */}
-          {(sheet.attachment_url || sheet.youtube_url || unlockedRoadmapLevel) && (
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
-              {unlockedRoadmapLevel && (unlockedRoadmapLevel.theory_modules?.length || 0) > 0 && (
+          {(sheet.attachment_url || sheet.youtube_url || activeRoadmapLevel) && (
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '16px' }}>
+              {activeRoadmapLevel && (activeRoadmapLevel.theory_modules?.length || 0) > 0 && (
                 <button
                   type="button"
                   onClick={() => setShowRoadmapTheoryModal(true)}
@@ -580,10 +596,10 @@ export default function SheetDetailClient({
                     cursor: 'pointer',
                   }}
                 >
-                  <BookOpen size={14} /> Level {unlockedRoadmapLevel.level_number} Theory ({unlockedRoadmapLevel.theory_modules.length})
+                  <BookOpen size={14} /> Level {activeRoadmapLevel.level_number} Theory ({activeRoadmapLevel.theory_modules.length})
                 </button>
               )}
-              {unlockedRoadmapLevel && unlockedRoadmapLevel.revision_data && Object.keys(unlockedRoadmapLevel.revision_data).length > 0 && (
+              {activeRoadmapLevel && activeRoadmapLevel.revision_data && Object.keys(activeRoadmapLevel.revision_data).length > 0 && (
                 <button
                   type="button"
                   onClick={() => setShowRoadmapRevisionModal(true)}
@@ -601,7 +617,7 @@ export default function SheetDetailClient({
                     cursor: 'pointer',
                   }}
                 >
-                  <Sparkles size={14} /> Revision & Cheat Sheet
+                  <Sparkles size={14} /> Level {activeRoadmapLevel.level_number} Revision & Cheat Sheet
                 </button>
               )}
               {sheet.youtube_url && (
@@ -926,24 +942,125 @@ export default function SheetDetailClient({
 
       {/* Problems Checklist — only shown when user has access */}
       {hasAccess && (() => {
-        const totalProblemPages = Math.max(1, Math.ceil(problems.length / PROBLEMS_PER_PAGE));
-        const startProblemIdx = (currentProblemPage - 1) * PROBLEMS_PER_PAGE;
-        const pagedProblems = problems.slice(startProblemIdx, startProblemIdx + PROBLEMS_PER_PAGE);
+        const filteredProblems = problems.filter((p) => {
+          if (selectedLevelFilter !== 'ALL' && getProblemLevelNumber(p) !== selectedLevelFilter) {
+            return false;
+          }
+          if (selectedTopicFilter !== 'ALL') {
+            const topicMatch = (p.tags || []).some((t) =>
+              t.toLowerCase().includes(selectedTopicFilter.toLowerCase())
+            );
+            if (!topicMatch) return false;
+          }
+          return true;
+        });
+
+        const totalProblemPages = Math.max(1, Math.ceil(filteredProblems.length / PROBLEMS_PER_PAGE));
+        const safePage = Math.min(currentProblemPage, totalProblemPages);
+        const startProblemIdx = (safePage - 1) * PROBLEMS_PER_PAGE;
+        const pagedProblems = filteredProblems.slice(startProblemIdx, startProblemIdx + PROBLEMS_PER_PAGE);
 
         return (
           <section className="arena-problems-section" style={{ marginTop: '8px' }}>
+            {roadmapLevels.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginBottom: '14px', padding: '12px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--glass-border)' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedLevelFilter('ALL');
+                    setSelectedTopicFilter('ALL');
+                    setCurrentProblemPage(1);
+                  }}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    border: selectedLevelFilter === 'ALL' ? '1px solid rgba(6, 182, 212, 0.5)' : '1px solid var(--glass-border)',
+                    background: selectedLevelFilter === 'ALL' ? 'rgba(6, 182, 212, 0.14)' : 'rgba(255,255,255,0.03)',
+                    color: selectedLevelFilter === 'ALL' ? 'var(--neon-cyan)' : 'var(--text-secondary)',
+                  }}
+                >
+                  All Active ({problems.length})
+                </button>
+                {roadmapLevels.map((lvl) => {
+                  const lvlProbs = problems.filter((p) => getProblemLevelNumber(p) === lvl.level_number);
+                  const lvlSolved = lvlProbs.filter((p) => (solvedStatusMap[p.id]?.isSolved) ?? solvedProblemIds.includes(p.id)).length;
+                  const isActive = selectedLevelFilter === lvl.level_number;
+                  return (
+                    <button
+                      key={lvl.level_number}
+                      type="button"
+                      disabled={!lvl.is_unlocked}
+                      onClick={() => {
+                        if (!lvl.is_unlocked) return;
+                        setSelectedLevelFilter(lvl.level_number);
+                        setActiveRoadmapLevelNum(lvl.level_number);
+                        setSelectedTopicFilter('ALL');
+                        setCurrentProblemPage(1);
+                      }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: lvl.is_unlocked ? 'pointer' : 'not-allowed',
+                        opacity: lvl.is_unlocked ? 1 : 0.5,
+                        border: isActive ? '1px solid rgba(6, 182, 212, 0.5)' : '1px solid var(--glass-border)',
+                        background: isActive ? 'rgba(6, 182, 212, 0.14)' : 'rgba(255,255,255,0.03)',
+                        color: isActive ? 'var(--neon-cyan)' : 'var(--text-secondary)',
+                      }}
+                      title={lvl.subtitle || lvl.title}
+                    >
+                      {!lvl.is_unlocked && <Lock size={11} />}
+                      <span>L{lvl.level_number}: {lvl.title}</span>
+                      <span style={{ fontSize: '10.5px', opacity: 0.8 }}>
+                        {lvl.is_unlocked ? `(${lvlSolved}/${lvlProbs.length || lvl.target_problem_count})` : '(Soon)'}
+                      </span>
+                    </button>
+                  );
+                })}
+                {selectedTopicFilter !== 'ALL' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedTopicFilter('ALL');
+                      setCurrentProblemPage(1);
+                    }}
+                    style={{
+                      marginLeft: 'auto',
+                      padding: '5px 10px',
+                      borderRadius: '8px',
+                      fontSize: '11.5px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      border: '1px solid rgba(168, 85, 247, 0.4)',
+                      background: 'rgba(168, 85, 247, 0.12)',
+                      color: '#c084fc',
+                    }}
+                  >
+                    Topic: {selectedTopicFilter} ×
+                  </button>
+                )}
+              </div>
+            )}
+
             <h3 className="split-sect-title" style={{ fontSize: 'var(--text-md)', fontWeight: 800, marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>Problems List ({totalProblems})</span>
+              <span>Problems List ({filteredProblems.length})</span>
               {totalProblemPages > 1 && (
                 <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
-                  Page {currentProblemPage} of {totalProblemPages}
+                  Page {safePage} of {totalProblemPages}
                 </span>
               )}
             </h3>
 
             <div className="practice-rows-list">
-              {pagedProblems.map((problem, idx) => {
-                const overallIndex = startProblemIdx + idx + 1;
+              {pagedProblems.map((problem) => {
+                const overallIndex = problem.order_index >= 0 ? problem.order_index + 1 : 1;
                 const status = solvedStatusMap[problem.id];
                 const isSolved = status ? status.isSolved : solvedProblemIds.includes(problem.id);
                 const sources = status?.sources || (isSolved ? ['ARENA'] : []);
@@ -1166,32 +1283,32 @@ export default function SheetDetailClient({
                 return [1, '...', current - 1, current, current + 1, '...', total];
               };
 
-              const pageNumbers = getVisiblePageNumbers(currentProblemPage, totalProblemPages);
+              const pageNumbers = getVisiblePageNumbers(safePage, totalProblemPages);
 
               return (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginTop: '16px', padding: '12px 16px', background: 'rgba(20, 20, 25, 0.4)', borderRadius: '12px', border: '1px solid var(--glass-border)', maxWidth: '100%' }}>
                   <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                    Showing <strong style={{ color: 'var(--text-main)' }}>{startProblemIdx + 1}–{Math.min(startProblemIdx + PROBLEMS_PER_PAGE, problems.length)}</strong> of <strong style={{ color: 'var(--neon-cyan)' }}>{problems.length}</strong> problems
+                    Showing <strong style={{ color: 'var(--text-main)' }}>{startProblemIdx + 1}–{Math.min(startProblemIdx + PROBLEMS_PER_PAGE, filteredProblems.length)}</strong> of <strong style={{ color: 'var(--neon-cyan)' }}>{filteredProblems.length}</strong> problems
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', maxWidth: '100%', overflowX: 'auto' }}>
                     <button
                       type="button"
                       onClick={() => setCurrentProblemPage(prev => Math.max(prev - 1, 1))}
-                      disabled={currentProblemPage === 1}
+                      disabled={safePage === 1}
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '4px',
                         padding: '6px 12px',
                         borderRadius: '8px',
-                        background: currentProblemPage === 1 ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
+                        background: safePage === 1 ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
                         border: '1px solid var(--glass-border)',
-                        color: currentProblemPage === 1 ? 'var(--text-muted)' : 'var(--text-main)',
+                        color: safePage === 1 ? 'var(--text-muted)' : 'var(--text-main)',
                         fontSize: '12px',
                         fontWeight: 700,
-                        cursor: currentProblemPage === 1 ? 'not-allowed' : 'pointer',
-                        opacity: currentProblemPage === 1 ? 0.5 : 1,
+                        cursor: safePage === 1 ? 'not-allowed' : 'pointer',
+                        opacity: safePage === 1 ? 0.5 : 1,
                       }}
                     >
                       <ChevronLeft size={14} /> Previous
@@ -1217,9 +1334,9 @@ export default function SheetDetailClient({
                             height: '32px',
                             padding: '0 6px',
                             borderRadius: '8px',
-                            background: currentProblemPage === pNum ? 'linear-gradient(135deg, var(--neon-cyan), #3b82f6)' : 'rgba(255,255,255,0.04)',
-                            border: currentProblemPage === pNum ? 'none' : '1px solid var(--glass-border)',
-                            color: currentProblemPage === pNum ? '#000' : 'var(--text-secondary)',
+                            background: safePage === pNum ? 'linear-gradient(135deg, var(--neon-cyan), #3b82f6)' : 'rgba(255,255,255,0.04)',
+                            border: safePage === pNum ? 'none' : '1px solid var(--glass-border)',
+                            color: safePage === pNum ? '#000' : 'var(--text-secondary)',
                             fontSize: '12px',
                             fontWeight: 800,
                             cursor: 'pointer',
@@ -1233,20 +1350,20 @@ export default function SheetDetailClient({
                     <button
                       type="button"
                       onClick={() => setCurrentProblemPage(prev => Math.min(prev + 1, totalProblemPages))}
-                      disabled={currentProblemPage === totalProblemPages}
+                      disabled={safePage === totalProblemPages}
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '4px',
                         padding: '6px 12px',
                         borderRadius: '8px',
-                        background: currentProblemPage === totalProblemPages ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
+                        background: safePage === totalProblemPages ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
                         border: '1px solid var(--glass-border)',
-                        color: currentProblemPage === totalProblemPages ? 'var(--text-muted)' : 'var(--text-main)',
+                        color: safePage === totalProblemPages ? 'var(--text-muted)' : 'var(--text-main)',
                         fontSize: '12px',
                         fontWeight: 700,
-                        cursor: currentProblemPage === totalProblemPages ? 'not-allowed' : 'pointer',
-                        opacity: currentProblemPage === totalProblemPages ? 0.5 : 1,
+                        cursor: safePage === totalProblemPages ? 'not-allowed' : 'pointer',
+                        opacity: safePage === totalProblemPages ? 0.5 : 1,
                       }}
                     >
                       Next <ChevronRight size={14} />
@@ -1744,35 +1861,56 @@ export default function SheetDetailClient({
       </Modal>
 
       {/* Level Theory Modules Modal (when sheet has roadmapLevels) */}
-      {unlockedRoadmapLevel && (
+      {activeRoadmapLevel && (
         <Modal
           isOpen={showRoadmapTheoryModal}
           onClose={() => setShowRoadmapTheoryModal(false)}
-          title={`Level ${unlockedRoadmapLevel.level_number} Concept Theory (${unlockedRoadmapLevel.theory_modules?.length || 0} Modules)`}
+          title={`Level ${activeRoadmapLevel.level_number}: ${activeRoadmapLevel.title} — Concept Theory (${activeRoadmapLevel.theory_modules?.length || 0} Modules)`}
           size="lg"
         >
           <div style={{ maxHeight: '75vh', overflowY: 'auto', paddingRight: '4px' }}>
+            {unlockedRoadmapLevels.length > 1 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '14px' }}>
+                {unlockedRoadmapLevels.map((lvl) => (
+                  <button
+                    key={lvl.level_number}
+                    type="button"
+                    onClick={() => setActiveRoadmapLevelNum(lvl.level_number)}
+                    className={lvl.level_number === activeRoadmapLevel.level_number ? 'rm-btn-primary' : 'rm-btn-outline'}
+                    style={{ padding: '5px 12px', fontSize: '12px' }}
+                  >
+                    Level {lvl.level_number}: {lvl.title} ({lvl.theory_modules?.length || 0})
+                  </button>
+                ))}
+              </div>
+            )}
             <RoadmapTheoryModulesView
-              level={unlockedRoadmapLevel}
-              modules={unlockedRoadmapLevel.theory_modules || []}
-              onFilterByTopic={() => setShowRoadmapTheoryModal(false)}
+              level={activeRoadmapLevel}
+              modules={activeRoadmapLevel.theory_modules || []}
+              onFilterByTopic={(topicName) => {
+                setSelectedLevelFilter(activeRoadmapLevel.level_number);
+                setSelectedTopicFilter(topicName);
+                setCurrentProblemPage(1);
+                setShowRoadmapTheoryModal(false);
+              }}
             />
           </div>
         </Modal>
       )}
 
       {/* Level Revision & Self-Test Cheat Sheet Modal (when sheet has roadmapLevels) */}
-      {unlockedRoadmapLevel && (() => {
+      {activeRoadmapLevel && (() => {
         const byCode: Record<string, RoadmapProblem> = {};
         const progByCode: Record<string, RoadmapProblemProgress> = {};
         (sheet.problems || []).forEach((p, idx) => {
           const code = p.external_problem_id || `L1-${String(idx + 1).padStart(3, '0')}`;
+          const probLvlNum = getProblemLevelNumber(p) || activeRoadmapLevel.level_number;
           const isSolved = (solvedStatusMap[p.id]?.isSolved) ?? solvedProblemIds.includes(p.id);
           byCode[code] = {
             id: p.id,
             problem_code: code,
             order_index: idx + 1,
-            level_number: unlockedRoadmapLevel.level_number,
+            level_number: probLvlNum,
             topic: p.tags?.[0] || 'DSA',
             title: p.title,
             difficulty: (p.difficulty?.toUpperCase() as any) || 'EASY',
@@ -1789,7 +1927,7 @@ export default function SheetDetailClient({
           };
           progByCode[code] = {
             problem_code: code,
-            level_number: unlockedRoadmapLevel.level_number,
+            level_number: probLvlNum,
             is_solved: isSolved,
             is_revised: false,
             is_bookmarked: false,
@@ -1797,19 +1935,38 @@ export default function SheetDetailClient({
             xp_awarded: 0,
           };
         });
+        const nextLevelMeta = roadmapLevels.find(
+          (l) => l.level_number === activeRoadmapLevel.level_number + 1
+        );
 
         return (
           <Modal
             isOpen={showRoadmapRevisionModal}
             onClose={() => setShowRoadmapRevisionModal(false)}
-            title={`Level ${unlockedRoadmapLevel.level_number} Revision & Self-Test Playbook`}
+            title={`Level ${activeRoadmapLevel.level_number}: ${activeRoadmapLevel.title} — Revision & Self-Test Playbook`}
             size="lg"
           >
             <div style={{ maxHeight: '75vh', overflowY: 'auto', paddingRight: '4px' }}>
+              {unlockedRoadmapLevels.length > 1 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '14px' }}>
+                  {unlockedRoadmapLevels.map((lvl) => (
+                    <button
+                      key={lvl.level_number}
+                      type="button"
+                      onClick={() => setActiveRoadmapLevelNum(lvl.level_number)}
+                      className={lvl.level_number === activeRoadmapLevel.level_number ? 'rm-btn-primary' : 'rm-btn-outline'}
+                      style={{ padding: '5px 12px', fontSize: '12px' }}
+                    >
+                      Level {lvl.level_number}: {lvl.title} Revision
+                    </button>
+                  ))}
+                </div>
+              )}
               <RoadmapRevisionView
-                level={unlockedRoadmapLevel}
+                level={activeRoadmapLevel}
                 problemsByCode={byCode}
                 progressMap={progByCode}
+                nextLevelTargetCount={nextLevelMeta?.target_problem_count}
                 onSelectProblem={(code) => {
                   const target = byCode[code];
                   setShowRoadmapRevisionModal(false);

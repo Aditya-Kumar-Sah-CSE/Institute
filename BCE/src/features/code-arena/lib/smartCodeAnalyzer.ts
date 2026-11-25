@@ -316,6 +316,9 @@ function formatConstraintInput(val: string, samples: any[] = []): string {
         const label = part.slice(0, eqIdx).trim();
         const rhs = part.slice(eqIdx + 1).trim();
         if (rhs.startsWith('[')) {
+          if (rhs.startsWith('[[') || rhs.startsWith('[(')) {
+            return `${label} = ${rhs}`;
+          }
           if (idx === parts.length - 1 || parts.length === 1) {
             return `${label} = [${Array.from({ length: 5 }, (_, i) => i + 1).join(',')}]`;
           }
