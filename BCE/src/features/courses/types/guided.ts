@@ -37,6 +37,18 @@ export interface GuidedStepSection {
   points: string[];
 }
 
+export interface GuidedCodeExample {
+  title: string;
+  code: string;
+  language?: 'javascript' | 'html';
+}
+
+export interface GuidedTestCase {
+  label: string;
+  input: string;
+  expected: string;
+}
+
 export interface GuidedLessonStep {
   id: string;
   stepNumber: number;
@@ -44,6 +56,10 @@ export interface GuidedLessonStep {
   badge: string;
   title: string;
   summary: string;
+  definition?: string;
+  syntax?: string;
+  examples?: GuidedCodeExample[];
+  testCases?: GuidedTestCase[];
   keywords?: string[];
   sections?: GuidedStepSection[];
   keyPoints?: string[];

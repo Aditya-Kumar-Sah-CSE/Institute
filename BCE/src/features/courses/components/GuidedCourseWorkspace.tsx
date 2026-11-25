@@ -16,6 +16,7 @@ import {
   ExternalLink,
   Eye,
   FileText,
+  FlaskConical,
   FolderGit2,
   Globe,
   HelpCircle,
@@ -183,7 +184,7 @@ function wrapJsIntoHtmlTemplate(rawJs: string, title = 'HTML Playground'): strin
 <body>
   <div id="app" class="card">
     <h2 style="margin-top:0">${title.replace(/</g, '&lt;')}</h2>
-    <p id="status">Edit HTML, CSS, and JavaScript below.</p>
+    <p id="status">Edit HTML, CSS, and JavaScript to preview live UI updates.</p>
   </div>
   <script>
 ${rawJs}
@@ -192,7 +193,6 @@ ${rawJs}
 </html>`;
 }
 
-// Injects safe storage fallback (for sandboxed iframes without allow-same-origin) + console postMessage bridge
 function buildLiveHtmlDocument(rawCode: string): string {
   const bridge = `<script>
 (function() {
@@ -252,7 +252,6 @@ ${trimmed}
 </html>`;
   }
 
-  // Raw JS touching document.*
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -272,7 +271,6 @@ ${trimmed}
 </html>`;
 }
 
-// Standalone HTML page for "Open in Browser" new tab (no fake message, authentic browser execution)
 function buildStandaloneBrowserHtml(rawCode: string, title: string, lang: 'javascript' | 'html'): string {
   const trimmed = rawCode.trim();
   if (lang === 'html' || /<!doctype|<html|<body/i.test(trimmed)) {
@@ -281,7 +279,6 @@ function buildStandaloneBrowserHtml(rawCode: string, title: string, lang: 'javas
   if (isHtmlMarkup(trimmed)) {
     return `<!DOCTYPE html>\n<html lang="en">\n<head><meta charset="UTF-8" /><title>${title.replace(/</g, '&lt;')}</title></head>\n<body style="font-family:system-ui,sans-serif;padding:24px;background:#0f172a;color:#f8fafc">\n${trimmed}\n</body>\n</html>`;
   }
-  // Pure JS opened in real browser tab: run inside real browser DevTools AND show live captured console output
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -297,7 +294,7 @@ function buildStandaloneBrowserHtml(rawCode: string, title: string, lang: 'javas
 </head>
 <body>
   <h1>${title.replace(/</g, '&lt;')}</h1>
-  <p>Running natively in your browser tab (open F12 DevTools Console to inspect objects interactively).</p>
+  <p>Running natively in your browser tab (press F12 for DevTools Console).</p>
   <div id="app" style="margin-bottom:14px"></div>
   <div id="console"></div>
   <script>
@@ -323,7 +320,6 @@ ${trimmed}
 </html>`;
 }
 
-// Render inline `code` tokens cleanly inside structured prose
 function renderInlineFormatted(text: string): React.ReactNode {
   const parts = text.split(/(`[^`]+`)/g);
   return parts.map((part, idx) => {
@@ -366,13 +362,6 @@ function StructuredArrowPoint({ text }: { text: string }) {
   );
 }
 
-function splitSummaryBullets(summary: string): string[] {
-  const clean = String(summary || '').trim();
-  if (!clean) return [];
-  const pieces = clean.split(/(?:\s*;\s*|\.\s+(?=[A-Z]))/).map(s => s.trim()).filter(Boolean);
-  return pieces.length > 0 ? pieces : [clean];
-}
-
 export default function GuidedCourseWorkspace({
   courseId,
   courseTitle,
@@ -402,11 +391,13 @@ export default function GuidedCourseWorkspace({
   const [showDoubtsDrawer, setShowDoubtsDrawer] = useState<boolean>(false);
   const [isDarkTheme, setIsDarkTheme] = useState<boolean>(true);
 
-  // 2 Draggable Resizable Window Sliders (Left Sidebar <-> Center, Center <-> Right IDE)
+  // 2 Vertical Resizers (Left Sidebar <-> Center, Center <-> Right) + 1 Horizontal Resizer (Editor <-> Output/Terminal/AI/Preview)
   const bodyGridRef = useRef<HTMLDivElement>(null);
+  const rightPaneRef = useRef<HTMLElement>(null);
   const [leftSidebarPx, setLeftSidebarPx] = useState<number>(265);
   const [rightPanePct, setRightPanePct] = useState<number>(46);
-  const [activeResizer, setActiveResizer] = useState<'left' | 'right' | null>(null);
+  const [outputPanePct, setOutputPanePct] = useState<number>(46);
+  const [activeResizer, setActiveResizer] = useState<'left' | 'right' | 'bottom' | null>(null);
 
   useEffect(() => {
     try {
@@ -414,12 +405,24 @@ export default function GuidedCourseWorkspace({
       if (savedLeft >= 200 && savedLeft <= 440) setLeftSidebarPx(savedLeft);
       const savedRight = parseFloat(localStorage.getItem('bce:gcw-right-pct') || '');
       if (savedRight >= 26 && savedRight <= 68) setRightPanePct(savedRight);
+      const savedOut = parseFloat(localStorage.getItem('bce:gcw-output-pct') || '');
+      if (savedOut >= 22 && savedOut <= 78) setOutputPanePct(savedOut);
     } catch {}
   }, []);
 
   useEffect(() => {
     if (!activeResizer) return;
-    const handleMove = (clientX: number) => {
+    const handleMove = (clientX: number, clientY: number) => {
+      if (activeResizer === 'bottom') {
+        if (!rightPaneRef.current) return;
+        const rect = rightPaneRef.current.getBoundingClientRect();
+        if (rect.height <= 0) return;
+        const fromBottom = rect.bottom - clientY;
+        const pct = Math.min(78, Math.max(22, (fromBottom / rect.height) * 100));
+        setOutputPanePct(Number(pct.toFixed(2)));
+        return;
+      }
+
       if (!bodyGridRef.current) return;
       const rect = bodyGridRef.current.getBoundingClientRect();
       if (rect.width <= 0) return;
@@ -434,15 +437,16 @@ export default function GuidedCourseWorkspace({
       }
     };
 
-    const onMouseMove = (e: MouseEvent) => handleMove(e.clientX);
+    const onMouseMove = (e: MouseEvent) => handleMove(e.clientX, e.clientY);
     const onTouchMove = (e: TouchEvent) => {
-      if (e.touches[0]) handleMove(e.touches[0].clientX);
+      if (e.touches[0]) handleMove(e.touches[0].clientX, e.touches[0].clientY);
     };
     const onEnd = () => {
       setActiveResizer(null);
       try {
         localStorage.setItem('bce:gcw-left-px', String(leftSidebarPx));
         localStorage.setItem('bce:gcw-right-pct', String(rightPanePct));
+        localStorage.setItem('bce:gcw-output-pct', String(outputPanePct));
       } catch {}
     };
 
@@ -456,7 +460,7 @@ export default function GuidedCourseWorkspace({
       window.removeEventListener('touchmove', onTouchMove);
       window.removeEventListener('touchend', onEnd);
     };
-  }, [activeResizer, leftSidebarPx, rightPanePct]);
+  }, [activeResizer, leftSidebarPx, rightPanePct, outputPanePct]);
 
   useEffect(() => {
     const syncTheme = () => {
@@ -515,8 +519,12 @@ export default function GuidedCourseWorkspace({
     runMode: 'none',
   };
 
-  // Right Workspace State
   const [codeByStep, setCodeByStep] = useState<Record<string, string>>({});
+  const codeByStepRef = useRef(codeByStep);
+  useEffect(() => {
+    codeByStepRef.current = codeByStep;
+  }, [codeByStep]);
+
   const [editorLang, setEditorLang] = useState<'javascript' | 'html'>('javascript');
   const [rightTab, setRightTab] = useState<RightTab>('console');
   const [isRunning, setIsRunning] = useState(false);
@@ -527,7 +535,6 @@ export default function GuidedCourseWorkspace({
   const [previewKey, setPreviewKey] = useState<number>(0);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
-  // AI Topic & Code Analysis state
   const [aiAnalysis, setAiAnalysis] = useState<Record<string, any>>({});
   const [aiLoading, setAiLoading] = useState(false);
   const [aiQuestion, setAiQuestion] = useState('');
@@ -538,16 +545,18 @@ export default function GuidedCourseWorkspace({
   const defaultCodeForStep =
     activeStep.starterCode ||
     activeStep.codeSnippet ||
-    `// ${activeStep.title}\nconsole.log('Practice active step live!');`;
+    activeStep.examples?.[0]?.code ||
+    `// ${activeStep.title}\nconsole.log('Ready!');`;
 
   const editorCode = codeByStep[activeStep.id] ?? defaultCodeForStep;
   const canRenderWebPreview = hasDomCode(editorCode, editorLang);
 
-  // Sync editor language & initial tab when switching steps
+  // Sync editor mode cleanly on step transition
   useEffect(() => {
     if (steps.length === 0) return;
-    const code = codeByStep[activeStep.id] ?? (activeStep.starterCode || activeStep.codeSnippet || '');
-    const isHtml = activeStep.runMode === 'html_preview' || isHtmlMarkup(code);
+    const step = steps.find(s => s.id === activeStep.id);
+    const code = codeByStepRef.current[activeStep.id] ?? (step?.starterCode || step?.codeSnippet || step?.examples?.[0]?.code || '');
+    const isHtml = step?.runMode === 'html_preview' || isHtmlMarkup(code);
     setEditorLang(isHtml ? 'html' : 'javascript');
     if (isHtml) {
       setRightTab('preview');
@@ -560,9 +569,8 @@ export default function GuidedCourseWorkspace({
     setConsoleErr('');
     setExecTimeMs(null);
     setAiFollowupReply(null);
-  }, [activeStep.id, steps.length]);
+  }, [activeStep.id, steps]);
 
-  // Real-time debounced Web Preview refresh whenever HTML/DOM code changes
   useEffect(() => {
     if (rightTab !== 'preview' || !canRenderWebPreview) return;
     const timer = setTimeout(() => {
@@ -571,7 +579,6 @@ export default function GuidedCourseWorkspace({
     return () => clearTimeout(timer);
   }, [editorCode, rightTab, canRenderWebPreview]);
 
-  // Listen to iframe console bridge messages
   useEffect(() => {
     const handler = (ev: MessageEvent) => {
       if (ev.data?.source !== 'smartlearn-preview') return;
@@ -603,7 +610,7 @@ export default function GuidedCourseWorkspace({
       const blobUrl = URL.createObjectURL(blob);
       const win = window.open(blobUrl, '_blank');
       if (!win) {
-        setSyncMessage('Popup blocked — please allow popups for this site to open full Browser Preview.');
+        setSyncMessage('Popup blocked — please allow popups to open full Browser Preview.');
         setTimeout(() => setSyncMessage(null), 4000);
       }
       setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
@@ -732,8 +739,8 @@ export default function GuidedCourseWorkspace({
         body: JSON.stringify({
           problemTitle: `${lesson.title} — ${activeStep.title}`,
           language: editorLang === 'html' ? 'html' : 'javascript',
-          code: editorCode || `// Concept: ${activeStep.title}\n// ${activeStep.summary}`,
-          constraints: activeStep.analysisFocus || activeStep.summary,
+          code: editorCode || `// Concept: ${activeStep.title}\n// ${activeStep.definition || activeStep.summary}`,
+          constraints: activeStep.analysisFocus || activeStep.definition || activeStep.summary,
           passedTests: 1,
           totalTests: 1,
         }),
@@ -761,14 +768,14 @@ export default function GuidedCourseWorkspace({
         body: JSON.stringify({
           problemTitle: `${lesson.title} — ${activeStep.title}`,
           language: editorLang === 'html' ? 'html' : 'javascript',
-          code: editorCode || `// Concept: ${activeStep.summary}`,
-          constraints: activeStep.analysisFocus || activeStep.summary,
+          code: editorCode || `// Concept: ${activeStep.definition || activeStep.summary}`,
+          constraints: activeStep.analysisFocus || activeStep.definition || activeStep.summary,
           followUpQuestion: q,
           previousAnalysis: aiAnalysis[activeStep.id],
         }),
       });
       const data = await res.json();
-      setAiFollowupReply(data?.answer || 'Open Full Agent below for a deeper step-by-step explanation.');
+      setAiFollowupReply(data?.answer || 'Open Full Agent below for a deeper walkthrough.');
       setAiQuestion('');
     } catch {
       setAiFollowupReply('Could not reach AI mentor right now.');
@@ -839,12 +846,14 @@ export default function GuidedCourseWorkspace({
   }
 
   const currentAnalysis = aiAnalysis[activeStep.id];
-  const officialDoc = getOfficialJsDoc(lesson.title, activeStep.title, activeStep.summary);
-  const summaryBullets = splitSummaryBullets(activeStep.summary);
+  const officialDoc = getOfficialJsDoc(lesson.title, activeStep.title, activeStep.definition || activeStep.summary);
+  const definitionText = activeStep.definition || activeStep.summary;
   const keywords = activeStep.keywords && activeStep.keywords.length > 0 ? activeStep.keywords : [];
+  const resizerStateClass =
+    activeResizer === 'bottom' ? 'is-h-resizing' : activeResizer ? 'is-resizing' : '';
 
   return (
-    <div className={`gcw-shell ${activeResizer ? 'is-resizing' : ''}`} data-mobile-pane={mobilePane}>
+    <div className={`gcw-shell ${resizerStateClass}`} data-mobile-pane={mobilePane}>
       {/* ── TOP PROGRESS & STATUS BAR ── */}
       <header className="gcw-topbar">
         <div className="gcw-topbar-left">
@@ -870,7 +879,6 @@ export default function GuidedCourseWorkspace({
           </div>
         </div>
 
-        {/* Dual Progress Indicators */}
         <div className="gcw-progress-cluster">
           <div className="gcw-progress-item">
             <div className="gcw-progress-meta">
@@ -893,7 +901,6 @@ export default function GuidedCourseWorkspace({
           </div>
         </div>
 
-        {/* Status, Official Docs, XP, Doubts, Complete */}
         <div className="gcw-topbar-right">
           <a
             href={officialDoc.url}
@@ -964,7 +971,6 @@ export default function GuidedCourseWorkspace({
         </button>
       </div>
 
-      {/* Optional Doubts Slide Panel */}
       {showDoubtsDrawer && showDoubts && (
         <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border-default)', background: 'var(--bg-secondary)', maxHeight: '320px', overflowY: 'auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -975,9 +981,9 @@ export default function GuidedCourseWorkspace({
         </div>
       )}
 
-      {/* ── MAIN 3-PANE WORKSPACE WITH 2 DRAGGABLE RESIZERS ── */}
+      {/* ── MAIN 3-PANE WORKSPACE WITH 3 DRAGGABLE SLIDERS ── */}
       <div ref={bodyGridRef} className={`gcw-body-grid ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
-        {/* PANE 1: LEFT SIDEBAR (Week -> Lesson -> Sub-Parts) */}
+        {/* PANE 1: LEFT SIDEBAR */}
         {sidebarOpen && (
           <>
             <aside className="gcw-left-sidebar" style={{ width: `${leftSidebarPx}px` }}>
@@ -1080,7 +1086,7 @@ export default function GuidedCourseWorkspace({
           </>
         )}
 
-        {/* PANE 2: CENTER FOCUSED CONCEPT / STRUCTURED POINTS / ONE-TASK PLAYER */}
+        {/* PANE 2: CENTER LESSON — HEADING, KEYWORDS, DEFINITION, SYNTAX, MULTIPLE EXAMPLES, TEST CASES */}
         <section className="gcw-center-pane">
           <div className="gcw-center-scroll">
             <div className="gcw-step-badge-row">
@@ -1094,9 +1100,10 @@ export default function GuidedCourseWorkspace({
               )}
             </div>
 
+            {/* 1. Heading */}
             <h2 className="gcw-step-title">{activeStep.title}</h2>
 
-            {/* Keywords Pill Strip */}
+            {/* 2. Curated Keywords */}
             {keywords.length > 0 && (
               <div className="gcw-kw-strip">
                 <span className="gcw-kw-label">Keywords:</span>
@@ -1106,16 +1113,75 @@ export default function GuidedCourseWorkspace({
               </div>
             )}
 
-            {/* Structured Concise Focus Summary (Arrows — no walls of prose) */}
-            {summaryBullets.length > 0 && (
-              <div className="gcw-summary-list">
-                {summaryBullets.map((line, i) => (
-                  <StructuredArrowPoint key={i} text={line} />
-                ))}
+            {/* 3. Definition */}
+            {definitionText && (
+              <div className="gcw-definition-card">
+                <div className="gcw-box-title">
+                  <span>{activeStep.kind === 'task' ? 'Problem Statement' : 'Definition'}</span>
+                </div>
+                <p className="gcw-definition-text">{renderInlineFormatted(definitionText)}</p>
               </div>
             )}
 
-            {/* Structured Heading + Arrow Sections */}
+            {/* 4. Syntax Block */}
+            {activeStep.syntax && (
+              <div className="gcw-box">
+                <div className="gcw-box-title">
+                  <span>Syntax</span>
+                </div>
+                <CodeBlockWrapper
+                  language={isHtmlMarkup(activeStep.syntax) ? 'html' : 'javascript'}
+                  code={activeStep.syntax}
+                  margin="0"
+                />
+              </div>
+            )}
+
+            {/* 5. Multiple Runnable Examples */}
+            {activeStep.examples && activeStep.examples.length > 0 ? (
+              <div className="gcw-example-stack">
+                {activeStep.examples.map((ex, idx) => (
+                  <div key={idx} className="gcw-box">
+                    <div className="gcw-box-title">
+                      <span>{ex.title}</span>
+                    </div>
+                    <CodeBlockWrapper
+                      language={ex.language || (isHtmlMarkup(ex.code) ? 'html' : 'javascript')}
+                      code={ex.code}
+                      margin="0"
+                      extraActions={
+                        <button
+                          type="button"
+                          className="gcw-icon-btn is-accent"
+                          style={{ padding: '3px 9px', fontSize: '11px' }}
+                          onClick={() => handleLoadCodeToWorkspace(ex.code, ex.language === 'html')}
+                        >
+                          <Play size={11} /> Load in IDE →
+                        </button>
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : activeStep.codeSnippet ? (
+              <CodeBlockWrapper
+                language={isHtmlMarkup(activeStep.codeSnippet) ? 'html' : 'javascript'}
+                code={activeStep.codeSnippet}
+                margin="0"
+                extraActions={
+                  <button
+                    type="button"
+                    className="gcw-icon-btn is-accent"
+                    style={{ padding: '3px 9px', fontSize: '11px' }}
+                    onClick={() => handleLoadCodeToWorkspace(activeStep.codeSnippet!)}
+                  >
+                    <Play size={11} /> Load in IDE →
+                  </button>
+                }
+              />
+            ) : null}
+
+            {/* 6. Key Rules / Sections (excluding filler) */}
             {activeStep.sections && activeStep.sections.length > 0 ? (
               activeStep.sections.map((sec, sIdx) => (
                 <div key={sIdx} className="gcw-box">
@@ -1142,30 +1208,34 @@ export default function GuidedCourseWorkspace({
               </div>
             ) : null}
 
-            {/* Syntax-Highlighted Example Snippet */}
-            {activeStep.codeSnippet && (
-              <CodeBlockWrapper
-                language={isHtmlMarkup(activeStep.codeSnippet) ? 'html' : 'javascript'}
-                code={activeStep.codeSnippet}
-                margin="0"
-                extraActions={
-                  <button
-                    type="button"
-                    className="gcw-icon-btn is-accent"
-                    style={{ padding: '3px 9px', fontSize: '11px' }}
-                    onClick={() => handleLoadCodeToWorkspace(activeStep.codeSnippet!)}
-                  >
-                    <Play size={11} /> Load in IDE →
-                  </button>
-                }
-              />
+            {/* 7. Verification Test Cases */}
+            {activeStep.testCases && activeStep.testCases.length > 0 && (
+              <div className="gcw-box">
+                <div className="gcw-box-title">
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <FlaskConical size={13} /> Test Cases &amp; Expected Output
+                  </span>
+                </div>
+                <div className="gcw-testcase-list">
+                  {activeStep.testCases.map((tc, i) => (
+                    <div key={i} className="gcw-testcase-row">
+                      <span className="gcw-testcase-label">{tc.label}</span>
+                      <div className="gcw-testcase-io">
+                        <span>Input: {renderInlineFormatted(tc.input)}</span>
+                        <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>→</span>
+                        <span className="gcw-testcase-expected">Expected: {tc.expected}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
 
-            {/* Progressive Guided Task Hints (Step 1 -> Step 2 -> Step 3) */}
+            {/* Progressive Guided Hints */}
             {activeStep.hints && activeStep.hints.length > 0 && (
               <div className="gcw-box">
                 <div className="gcw-box-title">
-                  <span>Step-by-Step Guided Hints</span>
+                  <span>Step-by-Step Hints</span>
                   {(revealedHintsCount[activeStep.id] || 0) < activeStep.hints.length && (
                     <button
                       type="button"
@@ -1191,11 +1261,11 @@ export default function GuidedCourseWorkspace({
               </div>
             )}
 
-            {/* Reference Solution Card (Syntax-Highlighted) */}
+            {/* Reference Solution Checkpoint */}
             {activeStep.solutionCode && (
               <div className="gcw-box">
                 <div className="gcw-box-title">
-                  <span>Verified Reference Solution</span>
+                  <span>{activeStep.kind === 'project_milestone' ? 'Milestone Reference Checkpoint' : 'Verified Reference Solution'}</span>
                   <button
                     type="button"
                     className="gcw-icon-btn"
@@ -1223,12 +1293,12 @@ export default function GuidedCourseWorkspace({
                     }
                   />
                 ) : (
-                  <StructuredArrowPoint text='Workflow → Write & run your solution in the Right IDE first, then click "Reveal Solution" to verify.' />
+                  <StructuredArrowPoint text='Solve & test in the Right IDE first, then click "Reveal Solution" to verify.' />
                 )}
               </div>
             )}
 
-            {/* Structured Table (Study Plan / 150 MCQ Key Reference) */}
+            {/* Structured Table */}
             {activeStep.tableRows && activeStep.tableRows.length > 0 && (
               <div className="gcw-box" style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
@@ -1252,7 +1322,7 @@ export default function GuidedCourseWorkspace({
               </div>
             )}
 
-            {/* Interview Q&A / Coding / Output Interactive Decks */}
+            {/* Interview Q&A Decks */}
             {activeStep.qaItems && activeStep.qaItems.length > 0 && (
               <div className="gcw-qa-deck">
                 {activeStep.qaItems.map(qa => {
@@ -1302,7 +1372,7 @@ export default function GuidedCourseWorkspace({
               </div>
             )}
 
-            {/* Inline Assignment Submission Step */}
+            {/* Inline Assignment Submission */}
             {activeStep.kind === 'assignment' && assignments.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {assignments.map(assign => {
@@ -1323,7 +1393,6 @@ export default function GuidedCourseWorkspace({
             )}
           </div>
 
-          {/* Sticky Center Navigation Footer */}
           <div className="gcw-center-footer">
             <div>
               {activeStepIdx > 0 ? (
@@ -1368,7 +1437,7 @@ export default function GuidedCourseWorkspace({
           </div>
         </section>
 
-        {/* SLIDER 2: Drag between Center Lesson Pane & Right IDE/Terminal Pane */}
+        {/* SLIDER 2: Vertical Resizer between Center Pane & Right IDE Pane */}
         <div
           role="separator"
           aria-orientation="vertical"
@@ -1382,9 +1451,8 @@ export default function GuidedCourseWorkspace({
           }}
         />
 
-        {/* PANE 3: RIGHT SMART LEARN IDE + TERMINAL + REAL WEB PREVIEW + AI TOPIC ANALYSIS */}
-        <section className="gcw-right-pane" style={{ width: `${rightPanePct}%` }}>
-          {/* Editor Toolbar */}
+        {/* PANE 3: RIGHT SMART LEARN IDE + HORIZONTAL SLIDER + TERMINAL / WEB PREVIEW / AI */}
+        <section ref={rightPaneRef} className="gcw-right-pane" style={{ width: `${rightPanePct}%` }}>
           <div className="gcw-editor-toolbar">
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent-primary)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -1444,7 +1512,6 @@ export default function GuidedCourseWorkspace({
             </div>
           </div>
 
-          {/* Monaco Code Editor */}
           <div className="gcw-editor-wrap">
             <Editor
               height="100%"
@@ -1464,8 +1531,21 @@ export default function GuidedCourseWorkspace({
             />
           </div>
 
-          {/* Output / Real Web Preview / Smart Learn Terminal / AI Topic Analysis */}
-          <div className="gcw-output-pane">
+          {/* SLIDER 3: Horizontal Resizer (Up/Down) between Editor & Output / Web Preview / Smart Terminal / AI */}
+          <div
+            role="separator"
+            aria-orientation="horizontal"
+            title="Drag up or down to resize Terminal / Preview / AI height (double-click to reset)"
+            className={`gcw-h-resizer ${activeResizer === 'bottom' ? 'is-active' : ''}`}
+            onMouseDown={(e) => { e.preventDefault(); setActiveResizer('bottom'); }}
+            onTouchStart={() => setActiveResizer('bottom')}
+            onDoubleClick={() => {
+              setOutputPanePct(46);
+              try { localStorage.setItem('bce:gcw-output-pct', '46'); } catch {}
+            }}
+          />
+
+          <div className="gcw-output-pane" style={{ height: `${outputPanePct}%` }}>
             <div className="gcw-output-tabs">
               <button
                 type="button"
@@ -1520,7 +1600,7 @@ export default function GuidedCourseWorkspace({
                 <>
                   {!consoleOut && !consoleErr && !isRunning && (
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                      Click <strong>Run Code ▶</strong> above to execute JavaScript in Smart Learn Node runtime and inspect output here.
+                      Click <strong>Run Code ▶</strong> above to execute JavaScript and inspect output here.
                     </span>
                   )}
                   {isRunning && <span style={{ fontSize: '12px', color: 'var(--accent-primary)' }}>Executing code…</span>}
@@ -1538,7 +1618,7 @@ export default function GuidedCourseWorkspace({
                   <div className="gcw-preview-toolbar">
                     <span style={{ color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                       <Globe size={12} style={{ color: 'var(--accent-primary)' }} />
-                      {canRenderWebPreview ? 'index.html — Live Interactive Preview' : 'practice.js — Node / Console Script'}
+                      {canRenderWebPreview ? 'index.html — Live Interactive Preview' : 'practice.js — Console Script'}
                     </span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       {canRenderWebPreview && (
@@ -1588,12 +1668,11 @@ export default function GuidedCourseWorkspace({
                   ) : (
                     <div className="gcw-preview-empty">
                       <strong style={{ fontSize: '13px', color: 'var(--accent-primary)' }}>
-                        This step runs pure JavaScript (no HTML/DOM markup yet)
+                        Console JavaScript Mode (no HTML/DOM markup yet)
                       </strong>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                        <StructuredArrowPoint text="Console Output → Click Run Code to see logs and tables in the Console Output tab" />
-                        <StructuredArrowPoint text="HTML Preview → Switch to HTML Playground below if you want to build & preview a visual DOM UI" />
-                        <StructuredArrowPoint text="Browser Tab → Or click Open in Browser above to run this script inside Chrome/Edge DevTools" />
+                        <StructuredArrowPoint text="Console Output → Run Code shows console logs and assertion outputs" />
+                        <StructuredArrowPoint text="HTML UI Mode → Switch to HTML Playground below to render live DOM components" />
                       </div>
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
                         <button type="button" className="gcw-icon-btn" onClick={handleRunCode}>
@@ -1609,8 +1688,8 @@ export default function GuidedCourseWorkspace({
               )}
 
               {rightTab === 'terminal' && (
-                <div style={{ flex: 1, minHeight: '150px', height: '100%', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div style={{ flex: 1, minHeight: '135px', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-default)' }}>
+                <div style={{ flex: 1, minHeight: '100px', height: '100%', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ flex: 1, minHeight: '95px', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-default)' }}>
                     <TerminalWorkspace />
                   </div>
                 </div>
@@ -1667,7 +1746,7 @@ export default function GuidedCourseWorkspace({
                       className="gcw-icon-btn"
                       onClick={() =>
                         smartAgentSession?.openDrawer?.(
-                          `Help me understand "${lesson.title} -> ${activeStep.title}". Context: ${activeStep.summary}. My current code:\n${editorCode}`
+                          `Help me understand "${lesson.title} -> ${activeStep.title}". Context: ${definitionText}. My current code:\n${editorCode}`
                         )
                       }
                       title="Open in full Smart Learn AI Drawer"

@@ -195,9 +195,54 @@
   cursor: col-resize;
 }
 
+.gcw-shell.is-h-resizing {
+  user-select: none;
+  cursor: row-resize;
+}
+
 .gcw-shell.is-resizing .gcw-editor-wrap,
-.gcw-shell.is-resizing .gcw-preview-iframe {
+.gcw-shell.is-resizing .gcw-preview-iframe,
+.gcw-shell.is-h-resizing .gcw-editor-wrap,
+.gcw-shell.is-h-resizing .gcw-preview-iframe {
   pointer-events: none;
+}
+
+/* Horizontal Divider Slider (Editor <-> Output/Terminal/AI/Preview) */
+.gcw-h-resizer {
+  height: 7px;
+  width: 100%;
+  flex-shrink: 0;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--border-default);
+  cursor: row-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 5;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.gcw-h-resizer::after {
+  content: '';
+  height: 3px;
+  width: 48px;
+  border-radius: 999px;
+  background: var(--border-strong);
+  transition: background 0.15s ease, width 0.15s ease;
+}
+
+.gcw-h-resizer:hover,
+.gcw-h-resizer.is-active {
+  background: var(--interactive-selected);
+  border-color: var(--accent-primary);
+}
+
+.gcw-h-resizer:hover::after,
+.gcw-h-resizer.is-active::after {
+  background: var(--accent-primary);
+  width: 68px;
 }
 
 .gcw-resizer {
@@ -466,6 +511,67 @@
   border: 1px solid rgba(6, 182, 212, 0.3);
 }
 
+.gcw-definition-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-left: 3px solid var(--accent-primary);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gcw-definition-text {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-primary);
+}
+
+.gcw-example-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gcw-testcase-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.gcw-testcase-row {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+}
+
+.gcw-testcase-label {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.gcw-testcase-io {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-code);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.gcw-testcase-expected {
+  color: var(--accent-success);
+  font-weight: 700;
+}
+
 .gcw-summary-list {
   display: flex;
   flex-direction: column;
@@ -648,14 +754,13 @@
 
 .gcw-editor-wrap {
   flex: 1;
-  min-height: 165px;
-  border-bottom: 1px solid var(--border-default);
+  min-height: 110px;
   position: relative;
 }
 
 .gcw-output-pane {
-  height: 46%;
-  min-height: 185px;
+  flex-shrink: 0;
+  min-height: 120px;
   display: flex;
   flex-direction: column;
   background: var(--bg-surface);
@@ -780,14 +885,15 @@
     border-right: none;
     max-height: none;
   }
-  .gcw-resizer {
+  .gcw-resizer,
+  .gcw-h-resizer {
     display: none !important;
   }
   .gcw-editor-wrap {
     height: 300px;
   }
   .gcw-output-pane {
-    height: 320px;
+    height: 320px !important;
   }
   .gcw-shell[data-mobile-pane='curriculum'] .gcw-center-pane,
   .gcw-shell[data-mobile-pane='curriculum'] .gcw-right-pane {

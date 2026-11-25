@@ -530,6 +530,11 @@ ${project.starterCode}
   return templates[project.id] || templates[1];
 }
 
+const topicsDeep1 = require('./data/topics_deep_curriculum');
+const topicsDeep2 = require('./data/topics_deep_curriculum_2');
+const tasksMetadata = require('./data/tasks_metadata');
+const projectScaffolds = require('./data/projects_guided_scaffolds');
+
 function createInteractiveStepsForLesson(
   item,
   { meta, topicsPartA, taskSolutions, projectsPartB, c1Theory, c2Coding, c3Output, mcqsPartD, prettyJS, isExecutableJS }
@@ -574,6 +579,18 @@ function createInteractiveStepsForLesson(
       title: 'Workbook Study Method & Curriculum Alignment',
       keywords: ['Active Coding', 'No Copy-Paste', '3-Step Hints', 'Node.js 22'],
       summary: 'Follow a read -> code live -> solve -> verify loop for every topic.',
+      definition: 'Every lesson pairs deep concept cards with live multi-example sandboxes, 6 progressive TODO tasks, and automated input -> expected checks verified on Node.js 22.',
+      syntax: 'Read Concept -> Load Example in IDE -> Solve TODO Steps -> Verify Test Cases',
+      examples: [
+        {
+          title: 'Example 1: Active Verification Pattern with console.assert()',
+          code: `function practiceStep(concept) {\n  return \`Read -> Code Live -> Solve Task -> Verify (\${concept})\`;\n}\nconst msg = practiceStep('Closures');\nconsole.log(msg);\nconsole.assert(msg.includes('Closures'), 'Expected concept name');`
+        }
+      ],
+      testCases: [
+        { label: 'Active loop output', input: "practiceStep('Closures')", expected: '"Read -> Code Live -> Solve Task -> Verify (Closures)"' },
+        { label: 'Assertion verification', input: 'console.assert(condition, msg)', expected: 'Passes silently when invariant holds' }
+      ],
       sections: [
         { heading: 'Study Rules', points: meta.howToUse },
         { heading: 'Curriculum Alignment', points: meta.researchNotes }
@@ -651,41 +668,36 @@ function createInteractiveStepsForLesson(
     return steps;
   }
 
-  // 3. Part A Topics (1..16) -> Individual Concept Steps + Core Demo + 6 Guided Tasks
+  // 3. Part A Topics (1..16) -> Deep Micro-Concepts + Core Lab + 6 Guided Tasks
   const topicMatch = title.match(/^(\d{1,2})\.\s/);
   if (topicMatch) {
     const topicId = Number(topicMatch[1]);
     const topic = topicsPartA.find(t => t.id === topicId);
     if (topic) {
       const isDomTopic = topicId === 11 || topicId === 12;
-      const runMode = isDomTopic ? 'html_preview' : 'javascript';
+      const taskRunMode = isDomTopic ? 'html_preview' : 'javascript';
+      const deepConcepts = topicsDeep1[topicId] || topicsDeep2[topicId] || [];
 
-      topic.kyaSeekhnaHai.forEach((bullet, idx) => {
-        const cleanLabel = bullet.split(/[:—-]/)[0].trim().slice(0, 62);
+      deepConcepts.forEach((concept, idx) => {
+        const conceptRunMode =
+          typeof concept.starterCode === 'string' && concept.starterCode.includes('<html')
+            ? 'html_preview'
+            : 'javascript';
+
         push({
           kind: 'concept',
-          badge: `Theory Part ${idx + 1}/${topic.kyaSeekhnaHai.length}`,
-          title: `${topic.phase.replace(/^Phase \d+:\s*/, '')} — ${cleanLabel}`,
-          keywords: extractKeywords(bullet, [topic.title.split(/[,&]/)[0].trim()]),
-          summary: bullet,
-          sections: [
-            {
-              heading: 'Concept Breakdown',
-              points: splitToArrowPoints(bullet)
-            },
-            {
-              heading: 'Practice Flow',
-              points: [
-                isDomTopic
-                  ? 'Live Preview → Run HTML/DOM snippet in the Right Editor & inspect Web Preview'
-                  : 'Run Code ▶ → Execute the Right Editor example and tweak test inputs',
-                'Advance → Verify output matches expectation, then click Next Step →'
-              ]
-            }
-          ],
-          starterCode: buildConceptStarter(topicId, idx, topic.codeExample),
-          runMode,
-          analysisFocus: `Topic ${topicId} (${topic.title}) Concept ${idx + 1}: ${bullet}`
+          badge: `Concept ${idx + 1}/${deepConcepts.length}`,
+          title: concept.title,
+          keywords: concept.keywords,
+          summary: concept.definition,
+          definition: concept.definition,
+          syntax: concept.syntax,
+          examples: concept.examples,
+          keyPoints: concept.keyPoints,
+          testCases: concept.testCases,
+          starterCode: concept.starterCode,
+          runMode: conceptRunMode,
+          analysisFocus: `Topic ${topicId} (${topic.title}) — ${concept.title}`
         });
       });
 
@@ -694,54 +706,56 @@ function createInteractiveStepsForLesson(
           ? `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8" />\n  <style>\n    body { font-family: system-ui, sans-serif; padding: 18px; background: #0f172a; color: #f8fafc; }\n    .box { max-width: 420px; background: #1e293b; border: 1px solid #334155; padding: 16px; border-radius: 10px; }\n    li { padding: 6px 10px; margin-top: 6px; background: #0f172a; border-radius: 6px; }\n    .done { text-decoration: line-through; opacity: 0.6; }\n  </style>\n</head>\n<body>\n  <div id="app" class="box">\n    <h3 style="margin-top:0">Topic ${topic.id} Sandbox</h3>\n    <ul id="list" style="list-style:none;padding:0">\n      <li class="item">Sample existing task (click me)</li>\n    </ul>\n  </div>\n  <script>\n${topic.codeExample}\n  </script>\n</body>\n</html>`
           : prettyJS(topic.codeExample);
 
+      const coreKeywords = Array.from(
+        new Set(deepConcepts.flatMap(c => (Array.isArray(c.keywords) ? c.keywords : [])))
+      ).slice(0, 6);
+
       push({
         kind: 'code_lab',
-        badge: 'Workbook Core Demo',
-        title: `${topic.id}. Core Code Walkthrough`,
-        keywords: extractKeywords(topic.codeExample, ['Core Example', topic.title.split(',')[0].trim()]),
-        summary: `Runnable core snippet for Topic ${topic.id}: ${topic.title}.`,
-        sections: [
+        badge: 'Workbook Core Lab',
+        title: `${topic.id}. ${topic.title} — Integrated Code Lab`,
+        keywords: coreKeywords.length ? coreKeywords : [`Topic ${topic.id}`, 'Core Lab'],
+        summary: `Consolidated runnable walkthrough combining core techniques from ${topic.title}.`,
+        definition: `Run and modify this unified ${topic.title} sandbox to see how multiple concepts fit together in practice.`,
+        examples: [
           {
-            heading: 'Walkthrough Steps',
-            points: [
-              'Trace → Read each statement and predict console/DOM behavior before running',
-              'Execute → Load into the Right IDE and verify live output',
-              'Modify → Change edge inputs to solidify the concept'
-            ]
+            title: `Complete Topic ${topic.id} Walkthrough`,
+            language: isDomTopic ? 'html' : 'javascript',
+            code: coreStarter
           }
         ],
-        codeSnippet: prettyJS(topic.codeExample),
+        keyPoints: Array.isArray(topic.kyaSeekhnaHai) ? topic.kyaSeekhnaHai.slice(0, 5) : undefined,
         starterCode: coreStarter,
-        runMode,
+        runMode: taskRunMode,
         analysisFocus: `Explain Topic ${topic.id} Core Code Example line by line`
       });
 
       topic.tasks.forEach((task, tIdx) => {
         const sol = prettyJS(taskSolutions[task.id] || '');
+        const tMeta = tasksMetadata[task.id] || {};
+        const todoComments = (task.steps || [])
+          .map(st => `// TODO (Step ${st.step}): ${st.text}`)
+          .join('\n');
         const starter = isDomTopic
-          ? `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8" />\n  <style>\n    body { font-family: system-ui, sans-serif; padding: 18px; background: #0f172a; color: #f8fafc; }\n    button { background: #06b6d4; color: #082f49; border: none; padding: 8px 14px; border-radius: 6px; font-weight: 700; cursor: pointer; }\n  </style>\n</head>\n<body>\n  <h2 id="title">Task ${task.id}</h2>\n  <div id="app">\n    <button id="toggleBtn">Run Action</button>\n    <ul id="list"></ul>\n  </div>\n  <script>\n    // Task ${task.id}: ${task.title}\n    // Hint 1: ${task.steps[0]?.text || ''}\n  </script>\n</body>\n</html>`
-          : `// Task ${task.id}: ${task.title}\n// Step 1: ${task.steps[0]?.text || ''}\n\n`;
+          ? `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8" />\n  <style>\n    body { font-family: system-ui, sans-serif; padding: 18px; background: #0f172a; color: #f8fafc; }\n    button { background: #06b6d4; color: #082f49; border: none; padding: 8px 14px; border-radius: 6px; font-weight: 700; cursor: pointer; }\n  </style>\n</head>\n<body>\n  <h2 id="title">Task ${task.id}</h2>\n  <div id="app">\n    <button id="toggleBtn">Run Action</button>\n    <ul id="list"></ul>\n  </div>\n  <script>\n    // Task ${task.id}: ${task.title}\n${todoComments
+              .split('\n')
+              .map(line => '    ' + line)
+              .join('\n')}\n  </script>\n</body>\n</html>`
+          : `// Task ${task.id}: ${task.title}\n${todoComments}\n\n`;
 
         push({
           kind: 'task',
           badge: `Practice Task ${task.id} (${tIdx + 1}/6)`,
           title: `Task ${task.id}: ${task.title}`,
-          keywords: extractKeywords(task.title, [`Task ${task.id}`, '3-Step Hints', 'IDE Lab']),
+          keywords: Array.isArray(tMeta.keywords) && tMeta.keywords.length ? tMeta.keywords : [`Task ${task.id}`],
           summary: task.title,
-          sections: [
-            {
-              heading: 'Guided Solve Flow',
-              points: [
-                'Attempt → Write and test your own code in the Right IDE first',
-                'Hints → Reveal Step 1 → Step 2 → Step 3 progressively only if stuck',
-                'Verify → Run your solution and compare with the Reference Solution'
-              ]
-            }
-          ],
+          definition: task.title,
+          syntax: tMeta.syntax,
+          testCases: tMeta.testCases,
           hints: task.steps,
           starterCode: starter,
           solutionCode: sol,
-          runMode,
+          runMode: taskRunMode,
           analysisFocus: `Task ${task.id}: ${task.title}`
         });
       });
@@ -769,7 +783,7 @@ function createInteractiveStepsForLesson(
     }
   }
 
-  // 4. Part B Guided Projects (P1..P12)
+  // 4. Part B Guided Projects (P1..P12) -> Blueprint + Incremental TODO Milestones
   const projMatch = title.match(/^P(\d{1,2}):\s/);
   if (projMatch) {
     const pid = Number(projMatch[1]);
@@ -777,55 +791,58 @@ function createInteractiveStepsForLesson(
     if (project) {
       const isRestApi = pid === 12;
       const runMode = isRestApi ? 'javascript' : 'html_preview';
-      const editorStarter = isRestApi ? prettyJS(project.starterCode) : buildHtmlProjectStarter(project);
+      const scaffold = projectScaffolds[pid];
 
-      push({
-        kind: 'project_overview',
-        badge: `Project ${pid}/12 • Overview`,
-        title: `Project ${pid}: ${project.title}`,
-        keywords: project.skills.slice(0, 6),
-        summary: `Level: ${project.level} — inspect the working starter in Web Preview, then customize step by step.`,
-        sections: [
-          {
-            heading: 'Core Skills Practiced',
-            points: project.skills.map(s => `Skill → ${s}`)
-          },
-          {
-            heading: 'Build Approach',
-            points: [
-              isRestApi
-                ? 'Backend Setup → Scaffold Express routes locally in Node.js (use Terminal / local project)'
-                : 'Live Preview → Run code in the Right Editor & open full-tab Browser Preview',
-              'Milestones → Follow Milestones 1–3 cleanly before submitting'
-            ]
-          }
-        ],
-        codeSnippet: prettyJS(project.starterCode),
-        starterCode: editorStarter,
-        runMode,
-        analysisFocus: `Project ${pid} Architecture & Starter Setup: ${project.title}`
-      });
-
-      const chunkSize = Math.ceil(project.steps.length / 3);
-      const totalMilestones = Math.ceil(project.steps.length / chunkSize);
-      for (let i = 0; i < project.steps.length; i += chunkSize) {
-        const mNum = Math.floor(i / chunkSize) + 1;
-        const slice = project.steps.slice(i, i + chunkSize);
+      if (scaffold) {
         push({
-          kind: 'project_milestone',
-          badge: `Build Milestone ${mNum}/${totalMilestones}`,
-          title: `Steps ${i + 1}–${i + slice.length}: Build Phase ${mNum}`,
-          keywords: [...project.skills.slice(0, 4), `Phase ${mNum}`],
-          summary: `Implement Milestone ${mNum} features and test in ${isRestApi ? 'Node / Terminal' : 'Live Web Preview'}.`,
+          kind: 'project_overview',
+          badge: `Project ${pid}/12 • Blueprint`,
+          title: `Project ${pid}: ${project.title}`,
+          keywords: scaffold.overview.keywords,
+          summary: scaffold.overview.definition,
+          definition: scaffold.overview.definition,
+          syntax: scaffold.overview.syntax,
           sections: [
             {
-              heading: `Phase ${mNum} Checklist`,
-              points: slice.map((st, idx) => `Step ${i + idx + 1} → ${st}`)
+              heading: 'Build Architecture',
+              points: scaffold.overview.architecture
             }
           ],
-          starterCode: editorStarter,
+          testCases: scaffold.overview.testCases,
+          starterCode: scaffold.overview.starterCode,
           runMode,
-          analysisFocus: `Project ${pid} Milestone ${mNum}: ${slice.join(' | ')}`
+          analysisFocus: `Project ${pid} Architecture & Starter Setup: ${project.title}`
+        });
+
+        scaffold.milestones.forEach((m, mIdx) => {
+          push({
+            kind: 'project_milestone',
+            badge: `Build Milestone ${mIdx + 1}/${scaffold.milestones.length}`,
+            title: m.title,
+            keywords: m.keywords,
+            summary: m.definition,
+            definition: m.definition,
+            syntax: m.syntax,
+            sections: m.sections,
+            testCases: m.testCases,
+            hints: m.hints,
+            starterCode: m.starterCode,
+            solutionCode: m.solutionCode,
+            runMode,
+            analysisFocus: `Project ${pid} Milestone ${mIdx + 1}: ${m.title}`
+          });
+        });
+      } else {
+        const fallbackStarter = isRestApi ? prettyJS(project.starterCode) : buildHtmlProjectStarter(project);
+        push({
+          kind: 'project_overview',
+          badge: `Project ${pid}/12 • Blueprint`,
+          title: `Project ${pid}: ${project.title}`,
+          keywords: project.skills.slice(0, 6),
+          summary: `Level: ${project.level}`,
+          starterCode: fallbackStarter,
+          runMode,
+          analysisFocus: `Project ${pid}: ${project.title}`
         });
       }
 
